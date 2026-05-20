@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Admin panel and data files — no benefit to indexing these
+Disallow: /admin/
+Disallow: /data/
+Disallow: /_hash.php
+
+Sitemap: https://www.insulationproducts.com/sitemap.xml

@@ -1,0 +1,56 @@
+# IPC Admin — Apache hardening
+#
+# This .htaccess locks down the /admin/ folder on Network Solutions shared
+# hosting. It assumes mod_rewrite, mod_headers, and mod_deflate are enabled
+# (they all are on standard Network Solutions cPanel hosting).
+
+# Suppress version disclosure
+ServerSignature Off
+<IfModule mod_headers.c>
+  Header unset X-Powered-By
+  Header always unset X-Powered-By
+</IfModule>
+
+# Force HTTPS — the login form posts a password and the session cookie is
+# marked Secure (see admin/config.php), so plain HTTP must redirect first.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+# No directory listings
+Options -Indexes
+
+# Force UTF-8 for PHP-rendered pages
+AddDefaultCharset UTF-8
+
+# Defense-in-depth response headers
+<IfModule mod_headers.c>
+  Header always set X-Frame-Options "DENY"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "same-origin"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+  # Conservative CSP — the admin uses inline <style> blocks but no external JS.
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+</IfModule>
+
+# Block direct access to sensitive files in this directory
+<FilesMatch "(^|/)(config\.php|\.htaccess|admin-log\.jsonl|.*\.json|.*\.bak|.*\.backup\..*)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Catch any timestamped JSON backups that ever land in /admin/
+<FilesMatch "^products-all\.backup\.">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Restrict HTTP methods to the ones we actually use. HEAD is included so
+# uptime monitors don't get a 403.
+<LimitExcept GET POST HEAD>
+  Order Allow,Deny
+  Deny from all
+</LimitExcept>

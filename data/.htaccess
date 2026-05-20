@@ -1,0 +1,48 @@
+# /data/ — server-only storage for the live product catalog.
+# The React frontend reads /data/products-all.json over HTTP, so that single
+# file must be public. Everything else in this directory (backups, logs,
+# anything starting with a dot) must be blocked.
+
+Options -Indexes
+ServerSignature Off
+AddDefaultCharset UTF-8
+
+# Block PHP execution outright — this directory only holds JSON.
+<FilesMatch "\.(php|phtml|phps|php\d?)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Block timestamped backups written by save_products() in admin/config.php.
+<FilesMatch "^products-all\.backup\.">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Block any other .bak / .backup. / .old / .tmp leftovers.
+<FilesMatch "\.(bak|backup\.[^.]+|old|tmp|swp)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Block dotfiles (.htaccess, .git, etc.)
+<FilesMatch "^\.">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Cache the JSON catalog very briefly. The React app appends a per-minute
+# cache-buster query string (see src/App.jsx fetchProductsCached), so the
+# server-side cache and the browser cache both age out within ~60 seconds.
+# This is what makes admin edits visible on the live site within ~1 minute.
+<IfModule mod_headers.c>
+  <FilesMatch "products-all\.json$">
+    Header set Cache-Control "public, max-age=60, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# Only allow read methods.
+<LimitExcept GET HEAD>
+  Order Allow,Deny
+  Deny from all
+</LimitExcept>
