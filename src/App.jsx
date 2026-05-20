@@ -4811,35 +4811,72 @@ function ProductDetail({ product, allProducts }) {
               {product.sku}
             </span>
             {hasPdfFile ? (
-              <a
-                href={product.pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
-                style={{
-                  background: "#00bef2",
-                  color: "#141414",
-                  textDecoration: "none",
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              <>
+                {/* Primary PDF — uses pdfLabel if set (e.g. "Molded Cap" for IP52EC), else "Download PDF" */}
+                <a
+                  href={product.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
+                  style={{
+                    background: "#00bef2",
+                    color: "#141414",
+                    textDecoration: "none",
+                  }}
                 >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="12" y1="18" x2="12" y2="12" />
-                  <polyline points="9 15 12 18 15 15" />
-                </svg>
-                Download PDF
-              </a>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="12" y1="18" x2="12" y2="12" />
+                    <polyline points="9 15 12 18 15 15" />
+                  </svg>
+                  {product.pdfLabel || "Download PDF"}
+                </a>
+                {/* Additional PDF variants (e.g. IP52EC plugged-cap) — same styling */}
+                {Array.isArray(product.additionalPdfs) &&
+                  product.additionalPdfs.map((extra) => (
+                    <a
+                      key={extra.url}
+                      href={extra.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
+                      style={{
+                        background: "#00bef2",
+                        color: "#141414",
+                        textDecoration: "none",
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="12" y1="18" x2="12" y2="12" />
+                        <polyline points="9 15 12 18 15 15" />
+                      </svg>
+                      {extra.label || "Download PDF"}
+                    </a>
+                  ))}
+              </>
             ) : (
               <button
                 onClick={() => setSearchParam("page", "contact")}
@@ -5282,49 +5319,100 @@ function ProductPage({ products }) {
           {/* Right: action buttons */}
           <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
             {product.pdfUrl ? (
-              <a
-                href={product.pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ipc-tap"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "9px 16px",
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: "rgba(255,255,255,0.1)",
-                  color: "#ffffff",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  textDecoration: "none",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.18)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              <>
+                {/* Primary PDF — uses pdfLabel if set, else generic "Data Sheet" */}
+                <a
+                  href={product.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ipc-tap"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "9px 16px",
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    background: "rgba(255,255,255,0.1)",
+                    color: "#ffffff",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    textDecoration: "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.18)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                  }}
                 >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="12" y1="18" x2="12" y2="12" />
-                  <polyline points="9 15 12 18 15 15" />
-                </svg>
-                Data Sheet
-              </a>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="12" y1="18" x2="12" y2="12" />
+                    <polyline points="9 15 12 18 15 15" />
+                  </svg>
+                  {product.pdfLabel || "Data Sheet"}
+                </a>
+                {/* Additional PDF variants — same styling */}
+                {Array.isArray(product.additionalPdfs) &&
+                  product.additionalPdfs.map((extra) => (
+                    <a
+                      key={extra.url}
+                      href={extra.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ipc-tap"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "9px 16px",
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: "rgba(255,255,255,0.1)",
+                        color: "#ffffff",
+                        border: "1px solid rgba(255,255,255,0.2)",
+                        textDecoration: "none",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(255,255,255,0.18)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                      }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="12" y1="18" x2="12" y2="12" />
+                        <polyline points="9 15 12 18 15 15" />
+                      </svg>
+                      {extra.label || "Data Sheet"}
+                    </a>
+                  ))}
+              </>
             ) : null}
             <button
               onClick={() => setSearchParam("page", "contact")}
@@ -6865,6 +6953,10 @@ function ServicesPage() {
         "Works on most tubing materials",
       ],
       leadTime: "≤ 1 week",
+      brochure: {
+        url: "/pdfs/marketing/Identification-Markers.pdf",
+        label: "Identification Markers brochure",
+      },
     },
     {
       iconKey: "kit",
@@ -6877,6 +6969,10 @@ function ServicesPage() {
         "JIT pull-system programs",
       ],
       leadTime: "≤ 1 week (JIT by agreement)",
+      brochure: {
+        url: "/pdfs/marketing/Tubing-Kits.pdf",
+        label: "Tubing Kits brochure",
+      },
     },
     {
       iconKey: "barcode",
@@ -7054,22 +7150,56 @@ function ServicesPage() {
                 </ul>
               </div>
 
-              {/* Lead time */}
-              <div
-                className="px-6 py-4 flex items-center justify-between"
-                style={{
-                  background: "#f8fafc",
-                  borderTop: "1px solid #e5e9ee",
-                }}
-              >
-                <span
-                  className="text-xs font-semibold"
-                  style={{ color: "#6b7280" }}
+              {/* Card footer strip — always rendered to preserve card silhouette.
+                  Contains the brochure download link when one exists, otherwise
+                  remains empty (just a visual cap on the card).               */}
+              {svc.brochure ? (
+                <a
+                  href={svc.brochure.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-4 flex items-center gap-2 text-xs font-semibold transition-colors duration-150"
+                  style={{
+                    color: "#005da3",
+                    borderTop: "1px solid #e5e9ee",
+                    background: "#f8fafc",
+                    textDecoration: "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#eaf3fa";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#f8fafc";
+                  }}
                 >
-                  Typical Lead Time
-                </span>
-                <Badge>{svc.leadTime}</Badge>
-              </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="12" y1="18" x2="12" y2="12" />
+                    <polyline points="9 15 12 18 15 15" />
+                  </svg>
+                  Download {svc.brochure.label} ↗
+                </a>
+              ) : (
+                <div
+                  className="px-6 py-4"
+                  style={{
+                    background: "#f8fafc",
+                    borderTop: "1px solid #e5e9ee",
+                  }}
+                  aria-hidden="true"
+                />
+              )}
             </div>
           ))}
         </div>

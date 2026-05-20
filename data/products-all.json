@@ -97,7 +97,8 @@
       "Design allows superior liquid-tight seal & optimum pull strength."
     ],
     "operatingTemp": "",
-    "specificationsSummary": "UL & CUL Listed · File No. E197675 · Outdoor Lighting · Long Conduit Runs · Wire Protection · Type B Conduit Locations"
+    "specificationsSummary": "UL & CUL Listed · File No. E197675 · Outdoor Lighting · Long Conduit Runs · Wire Protection · Type B Conduit Locations",
+    "pdfUrl": "/pdfs/CC.pdf"
   },
   {
     "id": "CC90",
@@ -226,7 +227,8 @@
       "Molded of type nylon 6. Flammability classification 94V-2; temperature index 125°C. \"O\" ring & steel locknut included."
     ],
     "operatingTemp": "Up to 125°C",
-    "specificationsSummary": "Nylon 6 · Flammability 94V-2 · Temp Index 125°C · Colors: Black or Gray · Sizes: 3/8\" to 2\" · UL File No. E197675"
+    "specificationsSummary": "Nylon 6 · Flammability 94V-2 · Temp Index 125°C · Colors: Black or Gray · Sizes: 3/8\" to 2\" · UL File No. E197675",
+    "pdfUrl": "/pdfs/CC90.pdf"
   },
   {
     "id": "CCS",
@@ -358,7 +360,8 @@
       "Molded of type nylon 6. Flammability classification 94V-2; temperature index 125°C. \"O\" ring & steel locknut included."
     ],
     "operatingTemp": "Temperature index 125°C",
-    "specificationsSummary": "Nylon 6 Construction · Flammability 94V-2 · Temp Index 125°C · Colors: Black or Gray · O-ring & Steel Locknut Included · UL File No. E197675"
+    "specificationsSummary": "Nylon 6 Construction · Flammability 94V-2 · Temp Index 125°C · Colors: Black or Gray · O-ring & Steel Locknut Included · UL File No. E197675",
+    "pdfUrl": "/pdfs/CCS.pdf"
   },
   {
     "id": "CT",
@@ -467,7 +470,8 @@
       "Integral rigid & flexible PVC construction. Suitable for use in high vibration or flexing applications."
     ],
     "operatingTemp": "",
-    "specificationsSummary": "UL File No. E129972 · CSA File No. LL-84707 · 1/4\" thru 2\" trade size · PVC Construction · Sunlight Resistant · Sizes from 100' and 50' packages"
+    "specificationsSummary": "UL File No. E129972 · CSA File No. LL-84707 · 1/4\" thru 2\" trade size · PVC Construction · Sunlight Resistant · Sizes from 100' and 50' packages",
+    "pdfUrl": "/pdfs/CT.pdf"
   },
   {
     "id": "IP10EX",
@@ -753,7 +757,8 @@
       "This tubing is available with standard wall thickness shown below along with a .032\" wall thickness in sizes #24 thru 1/2\" on special order where 600V rating is needed."
     ],
     "operatingTemp": "-20°C to 105°C",
-    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · 1000 V/mil dielectric · MIL-I-631D Grade C · ASTM D 922 · AMS 3631 · QPL Approved"
+    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · 1000 V/mil dielectric · MIL-I-631D Grade C · ASTM D 922 · AMS 3631 · QPL Approved",
+    "pdfUrl": "/pdfs/IP10EX.pdf"
   },
   {
     "id": "IP1274",
@@ -1017,7 +1022,8 @@
       "IP1274 has a very soft durometer (71 Shore A) which makes it extremely flexible and also has a high cut-through resistance."
     ],
     "operatingTemp": "-68°C to 85°C",
-    "specificationsSummary": "MIL-I-7444 Type I Class 1 & 2 · MIL-I-7444 Type III Class 1 · MIL-I-22076 · Colors: Black, White, Clear · Dielectric Strength: 300+ VPM · Tensile Strength: 1800 PSI"
+    "specificationsSummary": "MIL-I-7444 Type I Class 1 & 2 · MIL-I-7444 Type III Class 1 · MIL-I-22076 · Colors: Black, White, Clear · Dielectric Strength: 300+ VPM · Tensile Strength: 1800 PSI",
+    "pdfUrl": "/pdfs/IP1274.pdf"
   },
   {
     "id": "IP12GA",
@@ -1285,7 +1291,7 @@
   },
   {
     "id": "IP12GA - IP1274",
-    "sku": "IP12GA - IP1274",
+    "sku": "IP12GA-IP1274",
     "name": "Extruded General Purpose Vinyl Tubing",
     "badges": [
       "Exceptional Temperature Range",
@@ -1565,7 +1571,8 @@
       "IP1274 is manufactured to withstand temperatures as low as -70°C. This produces unusually high flexibility and cut-through resistance while maintaining high dielectric strength. Recommended uses include harnessing, cable or conduit installations in airborne devices, aircraft, missiles and snow machines."
     ],
     "operatingTemp": "-70°C to 90°C",
-    "specificationsSummary": "MIL-I-631 Grade A & B · ASTM D922 · MIL-I-7444 Types I and III · MIL-I-22076 · IP12GA: -55°C to 90°C, 1000 VPM · IP1274: -70°C to 85°C, 545 VPM · Colors: Black, Clear"
+    "specificationsSummary": "MIL-I-631 Grade A & B · ASTM D922 · MIL-I-7444 Types I and III · MIL-I-22076 · IP12GA: -55°C to 90°C, 1000 VPM · IP1274: -70°C to 85°C, 545 VPM · Colors: Black, Clear",
+    "pdfUrl": "/pdfs/IP12GA-IP1274.pdf"
   },
   {
     "id": "IP13SP",
@@ -1687,7 +1694,8 @@
       "It is available in a wide variety of materials and colors to satisfy high temperature (up to 260°C), fire resistant (U/L 94V-0 & 94V-2) and U/V applications, plus color coding and identification."
     ],
     "operatingTemp": "-268°C to 260°C (PTFE); -60°C to 88°C (Polyethylene); -40°C to 121°C (Nylon)",
-    "specificationsSummary": "U/L 94V-0 & 94V-2 · Mil-Spec · High Temp up to 260°C · Available in Polyethylene, Nylon, PTFE · Standard and Reverse Cuts · Color Coding Available"
+    "specificationsSummary": "U/L 94V-0 & 94V-2 · Mil-Spec · High Temp up to 260°C · Available in Polyethylene, Nylon, PTFE · Standard and Reverse Cuts · Color Coding Available",
+    "pdfUrl": "/pdfs/IP13SP.pdf"
   },
   {
     "id": "IP15PV",
@@ -1904,11 +1912,12 @@
       "Sold from stock in 100 ft. coils up to 11/16\" x 15/16\" x 1/8\" wall and in 50' lengths 11/16\" x 1\" x 5/32\" wall and larger tubings. Cut pieces or special lengths on quotation."
     ],
     "operatingTemp": "",
-    "specificationsSummary": "FDA Approved · U.S. Pharmacopoeia Classes I-VI · Federal Specification L-T-790B · Clear · Food Grade Vinyl · Kink Resistant"
+    "specificationsSummary": "FDA Approved · U.S. Pharmacopoeia Classes I-VI · Federal Specification L-T-790B · Clear · Food Grade Vinyl · Kink Resistant",
+    "pdfUrl": "/pdfs/IP15PV.pdf"
   },
   {
     "id": "IP17TW-18SW-19LW",
-    "sku": "IP17TW-18SW-19LW",
+    "sku": "IP17TW-IP18SW-IP19LW",
     "name": "Extruded PTFE Spaghetti Tubing",
     "badges": [
       "Excellent Thermal Resistance",
@@ -2245,7 +2254,8 @@
       "PTFE tubing is the material to specify when the reliability and dependability of an application at environmental, electrical, mechanical, and chemical extremes is paramount."
     ],
     "operatingTemp": "-275°F to 500°F (-70°C to 260°C)",
-    "specificationsSummary": "Standard Wall: AMS 3653B, MIL-I-22129, U/L 600V · Thin Wall: AMS 3655 · Light Wall: AMS 3654 · Melt Point: 620°F · Continuous Usage: -275°F to 500°F · FDA: GFR 21.121.2555"
+    "specificationsSummary": "Standard Wall: AMS 3653B, MIL-I-22129, U/L 600V · Thin Wall: AMS 3655 · Light Wall: AMS 3654 · Melt Point: 620°F · Continuous Usage: -275°F to 500°F · FDA: GFR 21.121.2555",
+    "pdfUrl": "/pdfs/IP17TW-IP18SW-IP19LW.pdf"
   },
   {
     "id": "IP25PU",
@@ -2497,7 +2507,8 @@
       "For best results, use sleeved compression fittings with all thermoplastic tubing."
     ],
     "operatingTemp": "",
-    "specificationsSummary": "Ether Specific Gravity: 1.12 · Ether Tensile Strength: 5500 · Ester Specific Gravity: 1.20 · Ester Tensile Strength: 6500 · Elongation: 550% · FDA Compliant"
+    "specificationsSummary": "Ether Specific Gravity: 1.12 · Ether Tensile Strength: 5500 · Ester Specific Gravity: 1.20 · Ester Tensile Strength: 6500 · Elongation: 550% · FDA Compliant",
+    "pdfUrl": "/pdfs/IP25PU.pdf"
   },
   {
     "id": "IP29CG",
@@ -2690,7 +2701,8 @@
       "When comparing this product to heat shrinkable PVC, IP29CG offers reduced longitudinal shrinkage, better shelf-life, vivid colors and superior temperature characteristics."
     ],
     "operatingTemp": "-55°C to 105°C",
-    "specificationsSummary": "Longitudinal Shrinkage: <5% · -55°C to 105°C · 550 V/mil · RoHS Compliant · Colors: Black, White, Clear, Red, Blue, Green, Yellow · Low Temp Flexibility: No cracking @-55°C"
+    "specificationsSummary": "Longitudinal Shrinkage: <5% · -55°C to 105°C · 550 V/mil · RoHS Compliant · Colors: Black, White, Clear, Red, Blue, Green, Yellow · Low Temp Flexibility: No cracking @-55°C",
+    "pdfUrl": "/pdfs/IP29CG.pdf"
   },
   {
     "id": "IP30HS",
@@ -2891,7 +2903,8 @@
       "Also available in Irradiated (product #IP32IP) and 1/32\" heavy wall."
     ],
     "operatingTemp": "-20°C to 105°C",
-    "specificationsSummary": "U/L Subject 224 VW-1 · Rated 600V · CSA OFT · ASTM D 3150 · Mil-I-23053/2 class 2 · 1083 V/mil · Colors: Black, White, Clear, Red, Yellow"
+    "specificationsSummary": "U/L Subject 224 VW-1 · Rated 600V · CSA OFT · ASTM D 3150 · Mil-I-23053/2 class 2 · 1083 V/mil · Colors: Black, White, Clear, Red, Yellow",
+    "pdfUrl": "/pdfs/IP30HS.pdf"
   },
   {
     "id": "IP30UV",
@@ -3059,7 +3072,8 @@
       "SAE J2527 standard for exterior testing. SAE J 1885 standard for interior testing. SAE J1976 standard for South Florida Weathering, Direct Sunlight."
     ],
     "operatingTemp": "-20°C to 105°C",
-    "specificationsSummary": "Longitudinal Shrinkage: 20% · Store at 70°F or below, or use in 30 days · -20°C to 105°C · Colors: Black, White, Clear, Red, Yellow"
+    "specificationsSummary": "Longitudinal Shrinkage: 20% · Store at 70°F or below, or use in 30 days · -20°C to 105°C · Colors: Black, White, Clear, Red, Yellow",
+    "pdfUrl": "/pdfs/IP30UV.pdf"
   },
   {
     "id": "IP32IP",
@@ -3222,7 +3236,8 @@
       "Improved solder iron cut-through and abrasion resistance with outstanding dielectric and mechanical protection."
     ],
     "operatingTemp": "-20°C to 105°C",
-    "specificationsSummary": "U/L Subject 224 VW-1 · Rated for 600V · CSA OFT · ASTM D 3150 · Mil-I-23053/2 class 1 · 1083 V/mil · Colors: Black"
+    "specificationsSummary": "U/L Subject 224 VW-1 · Rated for 600V · CSA OFT · ASTM D 3150 · Mil-I-23053/2 class 1 · 1083 V/mil · Colors: Black",
+    "pdfUrl": "/pdfs/IP32IP.pdf"
   },
   {
     "id": "IP33PO",
@@ -3407,7 +3422,8 @@
       "Also available in 3:1 and 4:1 shrink ratio and Medical Grade USP class VI (IP53MP)."
     ],
     "operatingTemp": "-55°C to 135°C",
-    "specificationsSummary": "U/L Subject 224 VW-1 · Mil-I-23053/5 · 600 V/mil · -55°C to 135°C · Colors: Black, White, Clear, Red, Blue, Yellow"
+    "specificationsSummary": "U/L Subject 224 VW-1 · Mil-I-23053/5 · 600 V/mil · -55°C to 135°C · Colors: Black, White, Clear, Red, Blue, Yellow",
+    "pdfUrl": "/pdfs/IP33PO.pdf"
   },
   {
     "id": "IP33TW",
@@ -3580,7 +3596,8 @@
       "Resists a wide range of chemicals and oils, as well as sunlight, moisture and fungus."
     ],
     "operatingTemp": "-55°C to 135°C",
-    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · AMS 3636 · ASTM 3637 · 1300 V/mil · Colors: Black, White, Clear, Red, Blue, Yellow"
+    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · AMS 3636 · ASTM 3637 · 1300 V/mil · Colors: Black, White, Clear, Red, Blue, Yellow",
+    "pdfUrl": "/pdfs/IP33TW.pdf"
   },
   {
     "id": "IP34SR",
@@ -3747,7 +3764,8 @@
       "Resists a wide range of chemicals and oils, as well as sunlight, moisture and fungus."
     ],
     "operatingTemp": "-55°C to 135°C",
-    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · Mil-I-23053/6 · 800 V/mil · Longitudinal Shrinkage <5% · Colors: Black, Clear"
+    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · Mil-I-23053/6 · 800 V/mil · Longitudinal Shrinkage <5% · Colors: Black, Clear",
+    "pdfUrl": "/pdfs/IP34SR.pdf"
   },
   {
     "id": "IP35KY",
@@ -3900,337 +3918,8 @@
       "Heat Shrinkable Kynar is excellent for strain relief applications. It can be flexed, twisted and bent repeatedly without loss of mechanical or electrical strength. Because of its thin wall, Kynar can be used in areas where space is limited."
     ],
     "operatingTemp": "-55°C to 175°C",
-    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · M23053/8 · 800-1000 V/mil · Colors: Clear, Black · Heat Shock: 4 hrs @ 300°C no cracks"
-  },
-  {
-    "id": "IP37SH-IP36TH-IP39LH",
-    "sku": "IP37SH - IP36TH - IP39LH",
-    "name": "TFE Teflon Heat Shrink Tubing",
-    "badges": [
-      "2:1 Shrink",
-      "High Temperature",
-      "Excellent Chemical Resistance"
-    ],
-    "caption": "A very high temperature, chemical resistant tubing",
-    "partType": "PVDF Heat Shrink",
-    "photoUrl": "https://placehold.co/400x300/e8edf2/005da3?text=IP37SH%20-%20IP36TH%20-%20IP39LH",
-    "specTable1": {
-      "rows": [
-        {
-          "label": null,
-          "value": "U/L Recognized"
-        },
-        {
-          "label": null,
-          "value": "Mil-I-23053/12"
-        },
-        {
-          "label": null,
-          "value": "AMS 3585"
-        },
-        {
-          "label": null,
-          "value": "FDA Approved C.F.R. 21 121.255"
-        },
-        {
-          "label": "Shrink Ratio:",
-          "value": "2:1 as shown above / 4:1 (call for information)"
-        },
-        {
-          "label": "Shrink Temperature:",
-          "value": "621°F"
-        },
-        {
-          "label": "Continuous Operating Temperature:",
-          "value": "-100°F to 500°F"
-        }
-      ],
-      "title": "Specifications:"
-    },
-    "specTable2": {
-      "rows": [
-        [
-          "30",
-          ".034/.015\"",
-          "-",
-          ".009\"",
-          "-"
-        ],
-        [
-          "28",
-          ".038/.018",
-          "-",
-          ".009",
-          "-"
-        ],
-        [
-          "26",
-          ".046/.022",
-          "-",
-          ".009",
-          "-"
-        ],
-        [
-          "24",
-          ".050/.027",
-          ".012\"",
-          ".010",
-          ".006\""
-        ],
-        [
-          "22",
-          ".055/.032",
-          ".012",
-          ".010",
-          ".006"
-        ],
-        [
-          "20",
-          ".060/.039",
-          ".016",
-          ".012",
-          ".006"
-        ],
-        [
-          "19",
-          ".065/.043",
-          ".016",
-          ".012",
-          ".006"
-        ],
-        [
-          "18",
-          ".076/.049",
-          ".016",
-          ".012",
-          ".006"
-        ],
-        [
-          "17",
-          ".085/.054",
-          ".016",
-          ".012",
-          ".006"
-        ],
-        [
-          "16",
-          ".093/.061",
-          ".016",
-          ".012",
-          ".006"
-        ],
-        [
-          "15",
-          ".110/.067",
-          ".016",
-          ".012",
-          ".006"
-        ],
-        [
-          "14",
-          ".120/.072",
-          ".016",
-          ".012",
-          ".008"
-        ],
-        [
-          "13",
-          ".140/.080",
-          ".016",
-          ".012",
-          ".008"
-        ],
-        [
-          "12",
-          ".150/.089",
-          ".016",
-          ".012",
-          ".008"
-        ],
-        [
-          "11",
-          ".170/.101",
-          ".016",
-          ".012",
-          ".008"
-        ],
-        [
-          "10",
-          ".191/.112",
-          ".016",
-          ".012",
-          ".008"
-        ],
-        [
-          "9",
-          ".205/.124",
-          ".020",
-          ".015",
-          ".008"
-        ],
-        [
-          "1/8",
-          ".215/.130",
-          ".020",
-          ".015",
-          ".008"
-        ],
-        [
-          "8",
-          ".240/.141",
-          ".020",
-          ".015",
-          ".008"
-        ],
-        [
-          "7",
-          ".270/.158",
-          ".020",
-          ".015",
-          ".008"
-        ],
-        [
-          "6",
-          ".302/.178",
-          ".020",
-          ".015",
-          ".010"
-        ],
-        [
-          "5",
-          ".320/.198",
-          ".020",
-          ".015",
-          ".010"
-        ],
-        [
-          "4",
-          ".370/.224",
-          ".020",
-          ".015",
-          ".010"
-        ],
-        [
-          "3",
-          ".390/.249",
-          ".020",
-          ".015",
-          ".010"
-        ],
-        [
-          "1/4",
-          ".410/.260",
-          ".020",
-          ".015",
-          ".010"
-        ],
-        [
-          "2",
-          ".430/.278",
-          ".020",
-          ".015",
-          ".010"
-        ],
-        [
-          "1",
-          ".450/.311",
-          ".020",
-          ".015",
-          ".010"
-        ],
-        [
-          "5/16",
-          ".470/.329",
-          ".020",
-          ".015",
-          ".012"
-        ],
-        [
-          "0",
-          ".470/.347",
-          ".020",
-          ".015",
-          ".012"
-        ],
-        [
-          "3/8",
-          ".560/.399",
-          ".025",
-          ".020",
-          "-"
-        ],
-        [
-          "7/16",
-          ".655/.462",
-          ".025",
-          ".020",
-          "-"
-        ],
-        [
-          "1/2",
-          ".750/.524",
-          ".025",
-          ".020",
-          "-"
-        ],
-        [
-          "5/8",
-          ".930/.655",
-          ".030",
-          ".025",
-          "-"
-        ],
-        [
-          "3/4",
-          "1.125/.786",
-          ".035",
-          ".030",
-          "-"
-        ],
-        [
-          "7/8",
-          "1.310/.911",
-          ".035",
-          "-",
-          "-"
-        ],
-        [
-          "1\"",
-          "1.500/1.036",
-          ".035",
-          "-",
-          "-"
-        ]
-      ],
-      "columnSpans": [
-        {
-          "sub": null,
-          "label": "Order\nSize",
-          "colspan": 1
-        },
-        {
-          "sub": null,
-          "label": "Expanded ID /\nRecovered ID",
-          "colspan": 1
-        },
-        {
-          "sub": [
-            "Standard",
-            "Thin",
-            "Light Wall"
-          ],
-          "label": "Recovered Wall Thickness",
-          "colspan": 3
-        }
-      ]
-    },
-    "description": [
-      "TFE Teflon Heat Shrink Tubing is a unique Thermoplastic that possesses excellent characteristics for tubing used in high temperature applications, corrosive atmospheres, electrical insulation and as a lubricant. TFE possesses the lowest coefficient of friction of any known solid, and is used widely because of its anti-stick properties. It is non-wetting and self-lubricating.",
-      "TFE heat shrink tubing has excellent chemical resistant qualities and is unaffected by all known chemicals except alkali metals, Fluorine under certain conditions and some Fluorine compounds at elevated temperatures. It is unaffected by weathering and has excellent resistance to outdoor exposure.",
-      "TFE has the widest working range of any plastics material (-250°C to 260°C), does not support combustion and is an excellent insulator for electrical applications."
-    ],
-    "operatingTemp": "-100°F to 500°F",
-    "specificationsSummary": "U/L Recognized · Mil-I-23053/12 · AMS 3585 · FDA Approved C.F.R. 21 121.255 · Shrink Ratio: 2:1 / 4:1 · Shrink Temp: 621°F"
+    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · M23053/8 · 800-1000 V/mil · Colors: Clear, Black · Heat Shock: 4 hrs @ 300°C no cracks",
+    "pdfUrl": "/pdfs/IP35KY.pdf"
   },
   {
     "id": "IP37SH-IP36TH-IP39LH",
@@ -4248,7 +3937,15 @@
       "rows": [
         {
           "label": null,
-          "value": "M23053/12"
+          "value": "U/L Recognized"
+        },
+        {
+          "label": null,
+          "value": "Mil-I-23053/12"
+        },
+        {
+          "label": null,
+          "value": "AMS 3585"
         },
         {
           "label": null,
@@ -4552,7 +4249,8 @@
       "PTFE has the widest working range of any plastics material (-250°C to 260°C), does not support combustion and is an excellent insulator for electrical applications."
     ],
     "operatingTemp": "-100°F to 500°F",
-    "specificationsSummary": "M23053/12 · FDA Approved C.F.R. 21 121.255 · Shrink Ratio: 2:1 / 4:1 · Shrink Temperature: 621°F · Operating Temp: -100°F to 500°F"
+    "specificationsSummary": "U/L Recognized · Mil-I-23053/12 · AMS 3585 · FDA Approved C.F.R. 21 121.255 · Shrink Ratio: 2:1 / 4:1 · Shrink Temp: 621°F",
+    "pdfUrl": "/pdfs/IP37SH-IP36TH-IP39LH.pdf"
   },
   {
     "id": "IP38FE",
@@ -4831,7 +4529,8 @@
       "FEP Teflon is normally used where many of the properties inherent in TFE are desired but the shrink temperature must be lower."
     ],
     "operatingTemp": "-55°C to 200°C",
-    "specificationsSummary": "Mil-I-23053-11 · FDA Title 21 #177.1550 · -55°C to 200°C · Shrink 290°C · Dielectric strength 2000 volts/mil · 1.3:1 and 1.67:1 Shrink Ratios"
+    "specificationsSummary": "Mil-I-23053-11 · FDA Title 21 #177.1550 · -55°C to 200°C · Shrink 290°C · Dielectric strength 2000 volts/mil · 1.3:1 and 1.67:1 Shrink Ratios",
+    "pdfUrl": "/pdfs/IP38FE.pdf"
   },
   {
     "id": "IP3L",
@@ -4942,11 +4641,12 @@
       "A portable heat gun can be used for shrinking in most applications."
     ],
     "operatingTemp": "-20°C to +100°C",
-    "specificationsSummary": "U/L VW-1 · U/L file #E129478 · Dielectric Strength: 2400 volts/mil (.004\") · Shrink Ratio: up to 50% · Operating Temp: -20°C to +100°C · Colors: Black, White, Clear"
+    "specificationsSummary": "U/L VW-1 · U/L file #E129478 · Dielectric Strength: 2400 volts/mil (.004\") · Shrink Ratio: up to 50% · Operating Temp: -20°C to +100°C · Colors: Black, White, Clear",
+    "pdfUrl": "/pdfs/IP3L.pdf"
   },
   {
     "id": "IP41NE / IP43VT",
-    "sku": "IP41NE / IP43VT",
+    "sku": "IP41NE-IP43VT",
     "name": "Neoprene / Viton Heat Shrink Tubing",
     "badges": [
       "Highly Abrasion Resistant",
@@ -5111,7 +4811,8 @@
       "The tubings are easily marked by hot-stamping for permanent wire and terminal identification."
     ],
     "operatingTemp": "-70°C to +121°C (Neoprene) / -55°C to 200°C (Viton)",
-    "specificationsSummary": "M23053/1 Class 1 & 2 (Neoprene) · M23053/13 (Viton) · Temp: -70°C to +121°C / -55°C to 200°C · Shrink Temp: 135°C min (Neoprene) / 175°C (Viton) · Dielectric Strength: 500 V/Mil · Tensile Strength: 2400 psi"
+    "specificationsSummary": "M23053/1 Class 1 & 2 (Neoprene) · M23053/13 (Viton) · Temp: -70°C to +121°C / -55°C to 200°C · Shrink Temp: 135°C min (Neoprene) / 175°C (Viton) · Dielectric Strength: 500 V/Mil · Tensile Strength: 2400 psi",
+    "pdfUrl": "/pdfs/IP41NE-IP43VT.pdf"
   },
   {
     "id": "IP42MW",
@@ -5237,11 +4938,12 @@
       "Melt Wall Polyolefin Tubing is recommended for a wide variety of electronic, electrical and mechanical applications...wherever a highly reliable one-step approach to jacketing, encapsulation and environmental sealing is required."
     ],
     "operatingTemp": "-55°C to 110°C",
-    "specificationsSummary": "MIL-I-23053/4 Class 1 · AMS 3634 · U/L Approved · Shrink Ratio: 2.5:1 · Longitudinal Shrinkage: +1/-10% · Shrink Temp: 135°C · Colors: Black standard"
+    "specificationsSummary": "MIL-I-23053/4 Class 1 · AMS 3634 · U/L Approved · Shrink Ratio: 2.5:1 · Longitudinal Shrinkage: +1/-10% · Shrink Temp: 135°C · Colors: Black standard",
+    "pdfUrl": "/pdfs/IP42MW.pdf"
   },
   {
     "id": "IP44A2 & IP45A3",
-    "sku": "IP44A2 & IP45A3",
+    "sku": "IP44A2-IP45A3",
     "name": "Adhesive Lined Polyolefin Heat Shrink Tubing",
     "badges": [
       "Flexible, Thin Wall",
@@ -5402,7 +5104,8 @@
       "The tubing is availble in a standard 2 to 1 shrink (product #IP44A2), and also as a 3 to 1 shrink (product #IP45A3) for hard to fit applications. For larger diameters see product #IP47HV Heavy Wall Polyolefin Tubing."
     ],
     "operatingTemp": "",
-    "specificationsSummary": "Shrink Temp: 121°C · 500 Volts/Mil · M23053/4 Class 2 (IP44A2) · M23053/4 Class 3 (IP45A3) · U/L Approved · Standard Lengths 4'"
+    "specificationsSummary": "Shrink Temp: 121°C · 500 Volts/Mil · M23053/4 Class 2 (IP44A2) · M23053/4 Class 3 (IP45A3) · U/L Approved · Standard Lengths 4'",
+    "pdfUrl": "/pdfs/IP44A2-IP45A3.pdf"
   },
   {
     "id": "IP46MD",
@@ -5550,7 +5253,8 @@
       "This tubing can also be supplied in heavy wall (product #IP47HV) where a thicker wall is needed. Both tubings are rated for continuous operating temperature up to 90°C for non-pressurized cable systems."
     ],
     "operatingTemp": "Up to 90°C",
-    "specificationsSummary": "MIL-I-23053/15 Class 2 · Dielectric Strength: 250 volts/mil @ 150 mils · Tensile Strength: 2400 psi · Water Absorption: 0.2% · Solvent Resistance: Excellent · Standard Length: 48\""
+    "specificationsSummary": "MIL-I-23053/15 Class 2 · Dielectric Strength: 250 volts/mil @ 150 mils · Tensile Strength: 2400 psi · Water Absorption: 0.2% · Solvent Resistance: Excellent · Standard Length: 48\"",
+    "pdfUrl": "/pdfs/IP46MD.pdf"
   },
   {
     "id": "IP47HV",
@@ -5696,7 +5400,8 @@
       "This tubing can also be supplied in medium wall (product #IP46) where wall constraint is a factor. Both tubings are rated for continuous operating temperature up to 90°C for non-pressurized cable systems."
     ],
     "operatingTemp": "Up to 90°C",
-    "specificationsSummary": "U/L Approved · MIL-I-23053/15 Class 1 and 2 · Dielectric Strength: 250 volts/mil @ 150 mils · Tensile Strength: 2400 psi · Water Absorption: 0.05% · Standard Length: 48\""
+    "specificationsSummary": "U/L Approved · MIL-I-23053/15 Class 1 and 2 · Dielectric Strength: 250 volts/mil @ 150 mils · Tensile Strength: 2400 psi · Water Absorption: 0.05% · Standard Length: 48\"",
+    "pdfUrl": "/pdfs/IP47HV.pdf"
   },
   {
     "id": "IP48MH",
@@ -5841,7 +5546,8 @@
       "Physical property values are published by DuPont and are typical for 65 gauge Mylar polyester film. Further information on Mylar film is available from the DuPont Co. Our Engineering Dept. will be glad to work with you on individual requests."
     ],
     "operatingTemp": "-60°C to +150°C",
-    "specificationsSummary": "M23053/7 Class 2 · Dielectric Strength: 1,500 VPM min. · Tensile Strength: 20,000 PSI · Melting Point: 245°C+ · Dielectric Constant: 3.9-3.9 · Temperature Range: -60 to +150°C"
+    "specificationsSummary": "M23053/7 Class 2 · Dielectric Strength: 1,500 VPM min. · Tensile Strength: 20,000 PSI · Melting Point: 245°C+ · Dielectric Constant: 3.9-3.9 · Temperature Range: -60 to +150°C",
+    "pdfUrl": "/pdfs/IP48MH.pdf"
   },
   {
     "id": "IP49VP",
@@ -5990,7 +5696,8 @@
       "This tubing is ideal for aircraft / aerospace assemblies where flexible wire bundling and fire-resistant covering of components is needed."
     ],
     "operatingTemp": "-55°C to 135°C",
-    "specificationsSummary": "U/L 224 · CSA · AMS-3587 · Shrink Ratio 2:1 · 800 V/mil · Color: Black"
+    "specificationsSummary": "U/L 224 · CSA · AMS-3587 · Shrink Ratio 2:1 · 800 V/mil · Color: Black",
+    "pdfUrl": "/pdfs/IP49VP.pdf"
   },
   {
     "id": "IP52EC",
@@ -6164,7 +5871,15 @@
       "End caps are manufactured from crosslinked polyolefin and exhibit a dielectric strength of 600 - 1000 volts/mil. They are designed to remain tightly in place for the life of the substrate."
     ],
     "operatingTemp": "-55°C to 225°C",
-    "specificationsSummary": "Tensile Strength: 2100 psi · Elongation: 350% · Specific Gravity: 1.1 · Dielectric Strength: 500 V/Mil min. · Heat Shock: No Cracking at 225°C · Noncorrosive"
+    "specificationsSummary": "Tensile Strength: 2100 psi · Elongation: 350% · Specific Gravity: 1.1 · Dielectric Strength: 500 V/Mil min. · Heat Shock: No Cracking at 225°C · Noncorrosive",
+    "pdfUrl": "/pdfs/IP52EC-molded-cap.pdf",
+    "pdfLabel": "Molded Cap",
+    "additionalPdfs": [
+      {
+        "url": "/pdfs/IP52EC-plugged-cap.pdf",
+        "label": "Plugged Cap"
+      }
+    ]
   },
   {
     "id": "IP53MP",
@@ -6425,7 +6140,8 @@
       "High-Performance, Non-Phthalate Polyvinylchloride: Ultra-flexible, crystal clear, low shrink temperature, non-phthalate Polyvinylchloride is ideal for tube joining, transitioning and providing transparent protection. Features outstanding flexibility, exceptional clarity, low shrink temperature."
     ],
     "operatingTemp": "-55°C to 175°C (-67°F to 347°F)",
-    "specificationsSummary": "Shrink Ratio: 2:1 · Acrylated Polyolefin: -55°C to 121°C · PVDF: -55°C to 175°C · PVC: -20°C to 60°C · Colors: Black, White, Blue, Clear, Crystal Clear · USP Class VI, ISO 10993-5"
+    "specificationsSummary": "Shrink Ratio: 2:1 · Acrylated Polyolefin: -55°C to 121°C · PVDF: -55°C to 175°C · PVC: -20°C to 60°C · Colors: Black, White, Blue, Clear, Crystal Clear · USP Class VI, ISO 10993-5",
+    "pdfUrl": "/pdfs/IP53MP.pdf"
   },
   {
     "id": "IP55FL",
@@ -6584,7 +6300,8 @@
       "Fluoropolymer tubings shrink at 125°C on applications such as jacketing for components, fuse coverings and capacitor protection. Because the tubing is transparent, it offers excellent see-thru inspection and identification."
     ],
     "operatingTemp": "-55°C to 150°C",
-    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · AMS-3632C · Mil-I-23053/18 Class 2 · 2500V Electrical · Colors: Clear, Black"
+    "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · AMS-3632C · Mil-I-23053/18 Class 2 · 2500V Electrical · Colors: Clear, Black",
+    "pdfUrl": "/pdfs/IP55FL.pdf"
   },
   {
     "id": "IP56DR",
@@ -6714,11 +6431,12 @@
       "IP56DR remains flexible at low temperatures which makes it ideal for cables and harness applications that operate in severe environmental conditions."
     ],
     "operatingTemp": "-75°C to +120°C",
-    "specificationsSummary": "M23053/16 · MIL-R-46846 Type 1 Class 1 · -75°C to +120°C · Shrink Temp: 150°C min · Color: Black · Markers and Cut Pieces Available"
+    "specificationsSummary": "M23053/16 · MIL-R-46846 Type 1 Class 1 · -75°C to +120°C · Shrink Temp: 150°C min · Color: Black · Markers and Cut Pieces Available",
+    "pdfUrl": "/pdfs/IP56DR.pdf"
   },
   {
     "id": "IP61ES & IP62EF",
-    "sku": "IP61ES & IP62EF",
+    "sku": "IP61ES-IP62EF",
     "name": "Expandable Polyester Sleeving",
     "badges": [
       "Self-Fitting",
@@ -6850,7 +6568,8 @@
       "Polyester expandable sleeving is available as a standard U/L recognized product rated for 125°C. It can also be supplied with the added feature of flame retardance. Also U/L recognized for 125°C, the flame retardant version carries U/L's highest VW-1 rating."
     ],
     "operatingTemp": "Rated to 125°C",
-    "specificationsSummary": "U/L Recognized · CSA Certified · 125°C Rating · Flame Retardant VW-1 · .010\" Filament Diameter · Nine Colors Available"
+    "specificationsSummary": "U/L Recognized · CSA Certified · 125°C Rating · Flame Retardant VW-1 · .010\" Filament Diameter · Nine Colors Available",
+    "pdfUrl": "/pdfs/IP61ES-IP62EF.pdf"
   },
   {
     "id": "IP63ES",
@@ -6933,7 +6652,8 @@
       "Roundit 2000 has many applications in the aeronautical, marine, electronic, furniture accessory and general manufacturing industries."
     ],
     "operatingTemp": "Up to 125°C",
-    "specificationsSummary": "U/L Recognized · Rated for 125°C · Tough Fabric Texture · Melt Temp: 250°C · Available in different versions · Tie at intervals if continuous temp exceeds 110°C"
+    "specificationsSummary": "U/L Recognized · Rated for 125°C · Tough Fabric Texture · Melt Temp: 250°C · Available in different versions · Tie at intervals if continuous temp exceeds 110°C",
+    "pdfUrl": "/pdfs/IP63ES.pdf"
   },
   {
     "id": "IP64FS-IP65VC-IP66AC-IP67SC",
@@ -7093,7 +6813,8 @@
       "Silicone coated (IP67SC) fiberglass is a highly flexible sleeving designed for use at temperatures up to 200°C. It also retains its flexibility at temperatures as low as -70°C. This sleeving is compatible with most high temperature insulation systems, exhibits excellent corona resistance and is self-extinguishing leaving only a non-conductive ash. Its applications are widespread because of its large operating band and includes insulation of leads and connections in transformers."
     ],
     "operatingTemp": "Up to 1200°F (Heat Treated); 130°C (Vinyl Coated); 155°C (Acrylic Coated); -70°C to 200°C (Silicone Coated)",
-    "specificationsSummary": "U/L Recognized · MIL-I-3190 · MIL-I-21557 · ASTM D-372 · NEMA VS-1 · 130°C / 155°C / 200°C"
+    "specificationsSummary": "U/L Recognized · MIL-I-3190 · MIL-I-21557 · ASTM D-372 · NEMA VS-1 · 130°C / 155°C / 200°C",
+    "pdfUrl": "/pdfs/IP64FS-IP65VC-IP66AC-IP67SC.pdf"
   },
   {
     "id": "IP69HT",
@@ -7210,11 +6931,12 @@
       "Using a propane torch or heat gun, pre-heat the object to remove any moisture. This will assist flow-out and bonding of the adhesive. Spirally wrap tape, keeping snug at all times, with about a 20% overlap. Warm the ends first and press down firmly to secure. Start shrinking from the center, moving in a circular direction around the pipe at all times. As the tape shrinks, work towards the ends of the tape."
     ],
     "operatingTemp": "-25°C to 60°C",
-    "specificationsSummary": "-25°C to 60°C · Tensile Strength 2,600 P.S.I. · Adhesive Peel Strength 10 P.S.I. · Dielectric Breakdown 650 volts/mil · Volume Resistivity 10¹⁵ OHM-CM · Water Absorption 0.15% after 24 hrs at 23°C"
+    "specificationsSummary": "-25°C to 60°C · Tensile Strength 2,600 P.S.I. · Adhesive Peel Strength 10 P.S.I. · Dielectric Breakdown 650 volts/mil · Volume Resistivity 10¹⁵ OHM-CM · Water Absorption 0.15% after 24 hrs at 23°C",
+    "pdfUrl": "/pdfs/IP69HT.pdf"
   },
   {
     "id": "IP71NS - IP72PS - IP73PP",
-    "sku": "IP71NS - IP72PS - IP73PP",
+    "sku": "IP71NS-IP72PS-IP73PP",
     "name": "Slit Guard Conduit Tubing",
     "badges": [
       "General Purpose Polyethylene",
@@ -7365,7 +7087,8 @@
       "Polypropylene Slit Guard Conduit gives the added flexibility to allow sharp bends in tight areas and is available in a UL-94 V2 rated material."
     ],
     "operatingTemp": "-40°F to +300°F (Nylon); -40°F to +200°F (Polyethylene); -40°F to +275°F (Polypropylene)",
-    "specificationsSummary": "Colors: standard black (others available) · Put-up: Boxes or Gaylord · Available with or without slit · Polyethylene: -40°F to +200°F · Nylon: -40°F to +300°F, 5100psi, 225% elongation · Polypropylene: -40°F to +275°F, 3000psi, 700% elongation"
+    "specificationsSummary": "Colors: standard black (others available) · Put-up: Boxes or Gaylord · Available with or without slit · Polyethylene: -40°F to +200°F · Nylon: -40°F to +300°F, 5100psi, 225% elongation · Polypropylene: -40°F to +275°F, 3000psi, 700% elongation",
+    "pdfUrl": "/pdfs/IP71NS-IP72PS-IP73PP.pdf"
   },
   {
     "id": "IP75AD",
@@ -7418,7 +7141,8 @@
       "Application Systems: Our dispensing equipment is reliable, consistent and dependable. We offer solutions from hand held applicators to fully automated systems, microprocessor controllers, precision dispensing valves and a complete family of accessories. With engineers on site, we will be able to create a solution to your adhesive requirements. We are here for all your adhesive requirements."
     ],
     "operatingTemp": "",
-    "specificationsSummary": "Instant Adhesives (Cyanoacrylates) · Threadlockers & Anaerobics · Structural Adhesives (Epoxies, UV Cure, Acrylics, Methacrylates) · Sealants · Application Systems · Domestically Made"
+    "specificationsSummary": "Instant Adhesives (Cyanoacrylates) · Threadlockers & Anaerobics · Structural Adhesives (Epoxies, UV Cure, Acrylics, Methacrylates) · Sealants · Application Systems · Domestically Made",
+    "pdfUrl": "/pdfs/IP75AD.pdf"
   },
   {
     "id": "VALUE-ADDED",
@@ -7469,7 +7193,8 @@
       "IPC can also slit down the length of certain tubings, create bar codes and offer JIT services from our large inventory. IPC is your one stop shop for all your tubing needs. Please contact a salesperson for additional details."
     ],
     "operatingTemp": "",
-    "specificationsSummary": "Spooling · Coiling · Cutting · Any type of tubing · Custom lengths · ISO9001:2000"
+    "specificationsSummary": "Spooling · Coiling · Cutting · Any type of tubing · Custom lengths · ISO9001:2000",
+    "pdfUrl": "/pdfs/VALUE-ADDED.pdf"
   },
   {
     "id": "VT-1100",
@@ -7539,6 +7264,7 @@
       "A larger bench to heat gun is available for production lines where continuous operation for extended periods is needed."
     ],
     "operatingTemp": "250°F – 1100°F",
-    "specificationsSummary": "UL & CSA Approved · 1200 Watts · 120 VAC/10 Amp · 1.6 lbs · Variable Temperature 250°F–1100°F · Two Speed Motor"
+    "specificationsSummary": "UL & CSA Approved · 1200 Watts · 120 VAC/10 Amp · 1.6 lbs · Variable Temperature 250°F–1100°F · Two Speed Motor",
+    "pdfUrl": "/pdfs/VT-1100.pdf"
   }
 ]
