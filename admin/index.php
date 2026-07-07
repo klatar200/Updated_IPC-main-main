@@ -103,6 +103,13 @@ ksort($grouped);
     <div class="alert alert-<?= h($msgType) ?>"><?= h($message) ?></div>
   <?php endif; ?>
 
+  <!-- Search -->
+  <div class="search-bar">
+    <input type="search" id="productSearch" placeholder="Search by SKU / part number or product name…" autocomplete="off" aria-label="Search products" />
+    <span id="searchCount" style="display:flex;align-items:center;font-size:13px;color:#6b7280;white-space:nowrap;"></span>
+  </div>
+  <p id="searchEmpty" style="display:none;color:#9ca3af;font-size:13px;margin:0 0 24px;">No products match your search.</p>
+
   <!-- Stats -->
   <div class="stats">
     <div class="stat"><div class="stat-val"><?= count($products) ?></div><div class="stat-lbl">Total Products</div></div>
@@ -119,7 +126,7 @@ ksort($grouped);
 
   <!-- Products by category -->
   <?php foreach ($grouped as $type => $items): ?>
-  <div class="section">
+  <div class="section" data-section>
     <div class="section-title"><?= h($type) ?> (<?= count($items) ?>)</div>
     <table>
       <thead>
@@ -133,7 +140,7 @@ ksort($grouped);
       </thead>
       <tbody>
         <?php foreach ($items as $p): ?>
-        <tr>
+        <tr data-search="<?= h(strtolower(($p['sku'] ?? $p['id'] ?? '') . ' ' . ($p['name'] ?? ''))) ?>">
           <td><span class="sku"><?= h($p['sku'] ?? $p['id'] ?? '—') ?></span></td>
           <td><?= h($p['name'] ?? '—') ?></td>
           <td style="font-size:12px;color:#6b7280"><?= h($p['operatingTemp'] ?? '—') ?></td>
@@ -164,5 +171,41 @@ ksort($grouped);
   </div>
   <?php endforeach; ?>
 </main>
+<script>
+(function () {
+  var input    = document.getElementById('productSearch');
+  var empty    = document.getElementById('searchEmpty');
+  var count    = document.getElementById('searchCount');
+  var rows     = Array.prototype.slice.call(document.querySelectorAll('tr[data-search]'));
+  var sections = Array.prototype.slice.call(document.querySelectorAll('[data-section]'));
+  if (!input) return;
+
+  var total = rows.length;
+
+  function apply() {
+    var q = input.value.trim().toLowerCase();
+    var visibleCount = 0;
+
+    rows.forEach(function (row) {
+      var match = q === '' || row.getAttribute('data-search').indexOf(q) !== -1;
+      row.style.display = match ? '' : 'none';
+      if (match) visibleCount++;
+    });
+
+    // Hide a category section entirely when none of its rows match.
+    sections.forEach(function (sec) {
+      var visible = sec.querySelectorAll('tr[data-search]:not([style*="display: none"])').length;
+      sec.style.display = visible ? '' : 'none';
+    });
+
+    empty.style.display = visibleCount ? 'none' : '';
+    count.textContent = q === ''
+      ? ''
+      : visibleCount + ' of ' + total + (visibleCount === 1 ? ' match' : ' matches');
+  }
+
+  input.addEventListener('input', apply);
+})();
+</script>
 </body>
 </html>
