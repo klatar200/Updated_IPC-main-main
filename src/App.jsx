@@ -4608,7 +4608,9 @@ function SpecTable1({ table }) {
 
 /** Right spec table — multi-column with optional colspan header grouping */
 function SpecTable2({ table }) {
-  const { columnSpans, rows: rawRows } = table;
+  // Guard the whole prop first: a product with no specTable2 (or null) must not
+  // crash the page — destructuring null throws. Fall back to an empty table.
+  const { columnSpans, rows: rawRows } = table ?? {};
   // Defensively guard both arrays against null/undefined from malformed catalog data
   const colSpans = Array.isArray(columnSpans) ? columnSpans : [];
   const rows = Array.isArray(rawRows) ? rawRows : [];

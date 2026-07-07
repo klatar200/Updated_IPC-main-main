@@ -1,0 +1,31 @@
+# Network Solutions / Apache config for the IPC standalone Vite build.
+# Placed in /public so Vite copies it verbatim into /dist at build time.
+
+Options -MultiViews
+RewriteEngine On
+
+# Serve existing files and directories normally (assets, JSON, .well-known, etc.)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Fall through to index.html so react-router can handle the URL on the client.
+# The SPA uses real paths (/products, /contact, etc.) so this rule is essential
+# for any direct navigation or refresh on a non-root path.
+RewriteRule ^ index.html [QSA,L]
+
+# Long-cache the hashed assets Vite emits under /assets — filename changes
+# whenever content changes, so it's safe to cache aggressively.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(?:js|css|woff2?|ttf|otf|eot|svg|png|jpg|jpeg|gif|webp|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # The HTML shell must NOT be cached — it points to the latest hashed bundle.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# Gzip / Brotli where available
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>

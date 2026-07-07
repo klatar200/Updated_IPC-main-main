@@ -1,0 +1,14 @@
+# Prevent directory listing
+Options -Indexes
+
+# Block PHP execution — uploaded PDFs must never be executed as PHP
+<FilesMatch "\.php$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Only allow GET requests (PDFs are read-only assets)
+<LimitExcept GET>
+    Order Allow,Deny
+    Deny from all
+</LimitExcept>
