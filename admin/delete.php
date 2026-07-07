@@ -18,7 +18,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     array_splice($products, $idx, 1);
     if (save_products($products)) {
-        audit_log('delete', $sku, 'Product deleted: ' . ($product['name'] ?? '')); // #6
+        // Also remove the product's PDF so deleting a product doesn't leave an
+        // orphaned data sheet on disk. Scoped strictly to PDF_DIR so a tampered
+        // pdfUrl can never make us unlink a file outside the upload folder.
+        $pdfDetail = '';
+        if (!empty($product['pdfUrl'])) {
+            $oldName    = basename($product['pdfUrl']);
+            $realPdfDir = realpath(PDF_DIR);
+            $realFile   = realpath(PDF_DIR . $oldName);
+            if ($realPdfDir && $realFile && strpos($realFile, $realPdfDir) === 0) {
+                @unlink($realFile);
+                $pdfDetail = ' | PDF removed: ' . $oldName;
+            }
+        }
+        audit_log('delete', $sku, 'Product deleted: ' . ($product['name'] ?? '') . $pdfDetail); // #6
         header('Location: index.php?msg=' . urlencode($sku . ' deleted successfully') . '&type=success');
         exit;
     }
@@ -54,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <p>
     <span class="product-name"><?= h($sku) ?> — <?= h($product['name'] ?? '') ?></span><br><br>
     This will permanently remove it from <code>products-all.json</code>.
-    The PDF file (if any) will <em>not</em> be deleted from the server.
+    The PDF file (if any) will <em>also</em> be deleted from the server.
     This action cannot be undone.
   </p>
   <div class="actions">

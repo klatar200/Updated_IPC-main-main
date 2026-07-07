@@ -14,8 +14,22 @@ if ($idx === -1) {
 
 $product = $products[$idx];
 
+// Optimistic-concurrency signature of the record as it is currently stored.
+// The form echoes this back in a hidden field; on save we compare, so two
+// people editing the SAME product can't silently clobber each other.
+$storedSig = sha1(json_encode($product));
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check(); // #2 — CSRF protection
+
+    // If the stored record changed since this form was opened, refuse the save
+    // and tell the user to reload. (A resubmit after this warning will carry
+    // the refreshed signature and go through, giving an explicit override.)
+    $submittedSig = $_POST['orig_sig'] ?? '';
+    if ($submittedSig !== '' && $submittedSig !== $storedSig) {
+        $errors[] = 'This product was changed by another session since you opened this page. Your edits were NOT saved. Reload to see the current version, then re-apply your changes (submitting again will overwrite the other change).';
+    }
+
     // Build updated product from form
     $updated = $product; // start with existing data
 
@@ -83,9 +97,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        // If the SKU changed and the current PDF is the auto-named <oldsku>.pdf
+        // inside PDF_DIR, rename the file to match the new SKU and repoint
+        // pdfUrl — otherwise a later upload would create <newsku>.pdf and leave
+        // the old file orphaned. Strictly scoped to PDF_DIR.
+        $renameNote = '';
+        if ($updated['sku'] !== $sku && !empty($updated['pdfUrl'])) {
+            $oldName     = basename($updated['pdfUrl']);
+            $expectedOld = pdf_filename_for_sku($sku);
+            $newName     = pdf_filename_for_sku($updated['sku']);
+            if ($oldName === $expectedOld && $newName !== '.pdf' && $newName !== $oldName) {
+                $realPdfDir = realpath(PDF_DIR);
+                $realOld    = realpath(PDF_DIR . $oldName);
+                if ($realPdfDir && $realOld && strpos($realOld, $realPdfDir) === 0
+                    && @rename($realOld, PDF_DIR . $newName)) {
+                    $updated['pdfUrl'] = PDF_URL . $newName;
+                    $renameNote = ' | PDF renamed ' . $oldName . ' → ' . $newName;
+                }
+            }
+        }
         $products[$idx] = $updated;
         if (save_products($products)) {
-            audit_log('edit', $updated['sku'], 'Product details updated'); // #6
+            $detail = ($updated['sku'] !== $sku ? ('Renamed from ' . $sku . '. ') : '') . 'Product details updated' . $renameNote;
+            audit_log('edit', $updated['sku'], $detail); // #6
             header('Location: index.php?msg=' . urlencode($updated['sku'] . ' saved successfully') . '&type=success');
             exit;
         }
@@ -151,7 +185,11 @@ $partTypes = ['Polyolefin Heat Shrink','PVDF Heat Shrink','Dual-Wall Heat Shrink
   <a class="logo" href="index.php">← IPC Admin</a>
   <nav>
     <a href="upload-pdf.php?sku=<?= urlencode($product['sku'] ?? '') ?>">Upload PDF</a>
-    <a href="auth.php?logout=1">Sign Out</a>
+    <form method="POST" action="auth.php" style="display:inline;margin:0;">
+      <input type="hidden" name="logout" value="1">
+      <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+      <button type="submit" style="background:none;border:none;padding:0;margin-left:16px;font:inherit;font-size:13px;color:rgba(255,255,255,0.7);cursor:pointer;">Sign Out</button>
+    </form>
   </nav>
 </header>
 <main>
@@ -258,6 +296,7 @@ $partTypes = ['Polyolefin Heat Shrink','PVDF Heat Shrink','Dual-Wall Heat Shrink
     <div class="form-actions">
       <a href="index.php" class="btn btn-secondary">Cancel</a>
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+      <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
       <button type="submit" class="btn btn-primary">Save Changes</button>
     </div>
   </form>

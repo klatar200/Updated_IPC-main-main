@@ -147,12 +147,125 @@ function audit_log(string $action, string $sku, string $detail = ''): void {
     file_put_contents($logPath, $entry, FILE_APPEND | LOCK_EX);
 }
 
+// ─── Login throttle (persistent, IP-keyed) ────────────────────────────────
+// The old throttle counted failures in $_SESSION, which an attacker resets
+// simply by not sending the session cookie. This version persists failures
+// to a small JSON file keyed by client IP so the delay actually applies to
+// scripted attacks. The file lives in admin/ (already writable — audit_log()
+// writes here) and is blocked from the web by admin/.htaccess (*.json rule).
+define('LOGIN_THROTTLE_FILE', __DIR__ . '/.login-throttle.json');
+define('LOGIN_THROTTLE_WINDOW', 900); // forget failures older than 15 minutes
+
+function login_throttle_client_ip(): string {
+    return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+}
+
+// Read the throttle map, dropping entries whose last failure is outside the
+// window so the file can't grow without bound.
+function login_throttle_read(): array {
+    if (!file_exists(LOGIN_THROTTLE_FILE)) return [];
+    $raw = @file_get_contents(LOGIN_THROTTLE_FILE);
+    $map = $raw ? json_decode($raw, true) : [];
+    if (!is_array($map)) return [];
+    $now = time();
+    foreach ($map as $ip => $rec) {
+        if (!is_array($rec) || ($now - (int)($rec['t'] ?? 0)) > LOGIN_THROTTLE_WINDOW) {
+            unset($map[$ip]);
+        }
+    }
+    return $map;
+}
+
+function login_throttle_write(array $map): void {
+    @file_put_contents(LOGIN_THROTTLE_FILE, json_encode($map), LOCK_EX);
+}
+
+// How many recent failures this IP has accumulated (0 if none / expired).
+function login_failure_count(string $ip): int {
+    $map = login_throttle_read();
+    return (int)($map[$ip]['c'] ?? 0);
+}
+
+function login_register_failure(string $ip): void {
+    $map = login_throttle_read();
+    $map[$ip] = ['c' => (int)($map[$ip]['c'] ?? 0) + 1, 't' => time()];
+    login_throttle_write($map);
+}
+
+function login_reset_failures(string $ip): void {
+    $map = login_throttle_read();
+    unset($map[$ip]);
+    login_throttle_write($map);
+}
+
 // Helper: find a product by SKU
 function find_product(array $products, string $sku): int {
     foreach ($products as $i => $p) {
         if (($p['sku'] ?? '') === $sku) return $i;
     }
     return -1;
+}
+
+// Helper: derive the canonical PDF filename for a SKU. Single source of truth
+// for the sanitization rule (non-alphanumerics → dash, collapse repeats, trim,
+// lowercase) so upload, rename, and display all agree on the filename.
+function pdf_filename_for_sku(string $sku): string {
+    $safe = preg_replace('/[^a-zA-Z0-9_\-]/', '-', $sku); // non-alphanumeric → dash
+    $safe = preg_replace('/-{2,}/', '-', $safe);            // collapse repeated dashes
+    $safe = trim($safe, '-');                               // trim leading/trailing dashes
+    $safe = strtolower($safe);                              // lowercase
+    return $safe . '.pdf';
+}
+
+// Helper: coerce an arbitrary product row into the exact schema the React app
+// and the add/edit forms expect. Used by the JSON importer so a malformed or
+// partial row can't land in products-all.json with a broken specTable shape,
+// a stringified badge list, or unexpected extra keys. Unknown keys are dropped
+// (whitelist), types are coerced, and both spec tables are guaranteed to have
+// their container structure.
+function normalize_product(array $p): array {
+    $str = function ($v) { return is_scalar($v) ? trim((string)$v) : ''; };
+    // badges/description accept either an array or a newline-delimited string.
+    $toList = function ($v) {
+        if (is_array($v)) {
+            $items = array_map(function ($x) { return is_scalar($x) ? trim((string)$x) : ''; }, $v);
+        } elseif (is_string($v)) {
+            $items = array_map('trim', explode("\n", $v));
+        } else {
+            $items = [];
+        }
+        return array_values(array_filter($items, function ($x) { return $x !== ''; }));
+    };
+
+    $sku = $str($p['sku'] ?? $p['id'] ?? '');
+
+    // specTable1 → { title, rows[] }
+    $st1      = is_array($p['specTable1'] ?? null) ? $p['specTable1'] : [];
+    $st1Title = $str($st1['title'] ?? 'Specifications:');
+    if ($st1Title === '') $st1Title = 'Specifications:';
+    $st1Rows  = (isset($st1['rows']) && is_array($st1['rows'])) ? array_values($st1['rows']) : [];
+
+    // specTable2 → { columnSpans[], rows[] }
+    $st2      = is_array($p['specTable2'] ?? null) ? $p['specTable2'] : [];
+    $st2Cols  = (isset($st2['columnSpans']) && is_array($st2['columnSpans'])) ? array_values($st2['columnSpans']) : [];
+    $st2Rows  = (isset($st2['rows']) && is_array($st2['rows'])) ? array_values($st2['rows']) : [];
+
+    return [
+        'id'                    => $sku,
+        'sku'                   => $sku,
+        'name'                  => $str($p['name'] ?? ''),
+        'partType'              => $str($p['partType'] ?? ''),
+        'caption'               => $str($p['caption'] ?? ''),
+        'operatingTemp'         => $str($p['operatingTemp'] ?? ''),
+        'specificationsSummary' => $str($p['specificationsSummary'] ?? ''),
+        'photoUrl'              => $str($p['photoUrl'] ?? ''),
+        'badges'                => $toList($p['badges'] ?? []),
+        'description'           => $toList($p['description'] ?? []),
+        'specTable1'            => ['title' => $st1Title, 'rows' => $st1Rows],
+        'specTable2'            => ['columnSpans' => $st2Cols, 'rows' => $st2Rows],
+        // Preserve an existing PDF link if the imported row carries one.
+        'pdfUrl'                => $str($p['pdfUrl'] ?? ''),
+    ];
 }
 
 // Helper: sanitize a string for display.

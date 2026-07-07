@@ -87,7 +87,11 @@ ksort($grouped);
     <a href="import.php">Import JSON</a>
     <a href="audit-log.php">Audit Log</a>
     <a href="/" target="_blank" rel="noopener" title="Opens the public site in a new tab">View Live Site ↗</a>
-    <a href="auth.php?logout=1" class="logout">Sign Out</a>
+    <form method="POST" action="auth.php" style="display:inline;margin:0;">
+      <input type="hidden" name="logout" value="1">
+      <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+      <button type="submit" class="logout" style="background:none;border:none;padding:0;margin-left:20px;font:inherit;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">Sign Out</button>
+    </form>
   </nav>
 </header>
 <main>
@@ -171,41 +175,6 @@ ksort($grouped);
   </div>
   <?php endforeach; ?>
 </main>
-<script>
-(function () {
-  var input    = document.getElementById('productSearch');
-  var empty    = document.getElementById('searchEmpty');
-  var count    = document.getElementById('searchCount');
-  var rows     = Array.prototype.slice.call(document.querySelectorAll('tr[data-search]'));
-  var sections = Array.prototype.slice.call(document.querySelectorAll('[data-section]'));
-  if (!input) return;
-
-  var total = rows.length;
-
-  function apply() {
-    var q = input.value.trim().toLowerCase();
-    var visibleCount = 0;
-
-    rows.forEach(function (row) {
-      var match = q === '' || row.getAttribute('data-search').indexOf(q) !== -1;
-      row.style.display = match ? '' : 'none';
-      if (match) visibleCount++;
-    });
-
-    // Hide a category section entirely when none of its rows match.
-    sections.forEach(function (sec) {
-      var visible = sec.querySelectorAll('tr[data-search]:not([style*="display: none"])').length;
-      sec.style.display = visible ? '' : 'none';
-    });
-
-    empty.style.display = visibleCount ? 'none' : '';
-    count.textContent = q === ''
-      ? ''
-      : visibleCount + ' of ' + total + (visibleCount === 1 ? ' match' : ' matches');
-  }
-
-  input.addEventListener('input', apply);
-})();
-</script>
+<script src="search.js"></script>
 </body>
 </html>

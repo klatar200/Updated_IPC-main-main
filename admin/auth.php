@@ -12,8 +12,10 @@ header('Referrer-Policy: same-origin');
 
 $error = '';
 
-// Handle logout
-if (isset($_GET['logout'])) {
+// Handle logout — must be a POST carrying a valid CSRF token so a malicious
+// page can't force-log-out the admin via a stray <img>/<a> to ?logout=1.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
+    csrf_check();                    // verify token before tearing the session down
     $_SESSION = [];                  // clear all session variables
     session_unset();                 // unset individual variables
     session_destroy();               // destroy the session file
@@ -32,31 +34,33 @@ if (is_authenticated()) {
     exit;
 }
 
-// Very small brute-force throttle: track the last few failed attempts in the
-// session and add a short delay once we cross a threshold. Not a substitute
-// for fail2ban or a strong password, but it makes online dictionary attacks
-// noticeably slower.
-$_SESSION['login_failures'] = $_SESSION['login_failures'] ?? 0;
+// Brute-force throttle keyed by client IP and persisted to disk (see
+// login_* helpers in config.php). Persisting by IP — rather than in the
+// session — means an attacker can't reset the counter by discarding the
+// session cookie between attempts. Not a substitute for a strong password,
+// but it makes online dictionary attacks impractical.
+$clientIp = login_throttle_client_ip();
 
 // Handle login
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
-    if ($_SESSION['login_failures'] >= 5) {
+    $failures = login_failure_count($clientIp);
+    if ($failures >= 5) {
         // 1-second sleep per extra failure, capped at 8 seconds. Enough to
-        // make a 26^8 dictionary attack take longer than the heat death of
+        // make an online dictionary attack take longer than the heat death of
         // the project, without locking out a sleepy admin who fat-fingered.
-        sleep(min(8, $_SESSION['login_failures'] - 4));
+        sleep(min(8, $failures - 4));
     }
     if (password_verify($password, ADMIN_PASSWORD_HASH)) {
         // Defeat session fixation: rotate the session id the moment auth
         // succeeds so any pre-set IPCADMIN cookie is invalidated.
         regenerate_session_id();
         $_SESSION[ADMIN_SESSION_KEY] = true;
-        $_SESSION['login_failures']  = 0;
+        login_reset_failures($clientIp);   // clear this IP's failure streak
         header('Location: index.php');
         exit;
     }
-    $_SESSION['login_failures']++;
+    login_register_failure($clientIp);
     $error = 'Incorrect password. Please try again.';
 }
 ?>

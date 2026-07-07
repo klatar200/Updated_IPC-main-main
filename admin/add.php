@@ -91,7 +91,13 @@ $emptyTable2 = json_encode(['columnSpans' => [['label' => "Order\nSize", 'colspa
 <body>
 <header>
   <a class="logo" href="index.php">← IPC Admin</a>
-  <nav><a href="auth.php?logout=1">Sign Out</a></nav>
+  <nav>
+    <form method="POST" action="auth.php" style="display:inline;margin:0;">
+      <input type="hidden" name="logout" value="1">
+      <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+      <button type="submit" style="background:none;border:none;padding:0;margin-left:16px;font:inherit;font-size:13px;color:rgba(255,255,255,0.7);cursor:pointer;">Sign Out</button>
+    </form>
+  </nav>
 </header>
 <main>
   <h1>Add New Product</h1>

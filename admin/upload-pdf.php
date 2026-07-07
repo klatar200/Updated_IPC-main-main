@@ -64,12 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($file['size'] > 20 * 1024 * 1024) {
             $errors[] = 'File is too large. Maximum size is 20MB.';
         } else {
-            // Build a normalized filename: sanitize SKU for filesystem (#5)
-            $safeSku  = preg_replace('/[^a-zA-Z0-9_\-]/', '-', $sku); // non-alphanumeric → dash
-            $safeSku  = preg_replace('/-{2,}/', '-', $safeSku);         // collapse repeated dashes
-            $safeSku  = trim($safeSku, '-');                             // trim leading/trailing dashes
-            $safeSku  = strtolower($safeSku);                           // lowercase
-            $filename = $safeSku . '.pdf';
+            // Build a normalized filename using the shared rule (config.php).
+            $filename = pdf_filename_for_sku($sku);
             $destPath = PDF_DIR . $filename;
             $destUrl  = PDF_URL . $filename;
 
@@ -126,7 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <a class="logo" href="index.php">← IPC Admin</a>
   <nav>
     <a href="edit.php?sku=<?= urlencode($sku) ?>">Edit Details</a>
-    <a href="auth.php?logout=1">Sign Out</a>
+    <form method="POST" action="auth.php" style="display:inline;margin:0;">
+      <input type="hidden" name="logout" value="1">
+      <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+      <button type="submit" style="background:none;border:none;padding:0;margin-left:16px;font:inherit;font-size:13px;color:rgba(255,255,255,0.7);cursor:pointer;">Sign Out</button>
+    </form>
   </nav>
 </header>
 <main>
@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </form>
         </div>
       </div>
-      <div class="hint" style="margin-top:10px">Uploading a new file will replace this PDF. The file will be saved as <code><?= h(preg_replace('/[^a-zA-Z0-9_\-]/', '-', $sku)) ?>.pdf</code> in the <code>/pdfs/</code> folder.</div>
+      <div class="hint" style="margin-top:10px">Uploading a new file will replace this PDF. The file will be saved as <code><?= h(pdf_filename_for_sku($sku)) ?></code> in the <code>/pdfs/</code> folder.</div>
     <?php else: ?>
       <p style="color:#9ca3af;font-size:13px;margin:0">No PDF uploaded yet for this product — the website is showing a “Request Data Sheet” button.</p>
     <?php endif; ?>
@@ -168,11 +168,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label for="pdf_file">Select PDF File (max 20MB)</label>
       <input type="file" id="pdf_file" name="pdf_file" accept=".pdf,application/pdf" required />
       <?php
-        $safeSku2 = strtolower(trim(preg_replace('/-{2,}/', '-', preg_replace('/[^a-zA-Z0-9_\-]/', '-', $sku)), '-'));
-        $willOverwrite = file_exists(PDF_DIR . $safeSku2 . '.pdf');
+        $pdfName2 = pdf_filename_for_sku($sku);
+        $willOverwrite = file_exists(PDF_DIR . $pdfName2);
       ?>
       <div class="hint">
-        The file will be saved as <code><?= h($safeSku2) ?>.pdf</code> in the <code>/pdfs/</code> directory.
+        The file will be saved as <code><?= h($pdfName2) ?></code> in the <code>/pdfs/</code> directory.
         <?php if ($willOverwrite): ?>
           <span style="color:#dc2626;font-weight:600"> ⚠ This will replace the existing PDF for this product.</span>
         <?php endif; ?>

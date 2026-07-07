@@ -26,6 +26,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $skipCount = 0;
                 $skipReasons = [];
                 foreach ($incoming as $i => $p) {
+                    if (!is_array($p)) {
+                        $skipCount++;
+                        $skipReasons[] = "Row $i: not a product object";
+                        continue;
+                    }
                     $sku  = trim($p['sku'] ?? $p['id'] ?? '');
                     $name = trim($p['name'] ?? '');
                     $type = trim($p['partType'] ?? '');
@@ -70,13 +75,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Merge: update existing by SKU, append new — skip invalid rows (#7)
             $mergedCount = 0;
             foreach ($incoming as $p) {
+                if (!is_array($p)) continue; // skip non-object rows
                 $pSku  = trim($p['sku'] ?? $p['id'] ?? '');
                 $pName = trim($p['name'] ?? '');
                 $pType = trim($p['partType'] ?? '');
                 if (empty($pSku) || empty($pName) || empty($pType)) continue; // skip invalid
+                // Coerce to the canonical schema so a malformed row can't break
+                // the public page render (#5).
+                $clean = normalize_product($p);
                 $idx = find_product($existing, $pSku);
-                if ($idx === -1) $existing[] = $p;
-                else             $existing[$idx] = $p;
+                if ($idx === -1) {
+                    $existing[] = $clean;
+                } else {
+                    // Don't wipe an existing PDF link when the imported row
+                    // omits one — imports rarely include pdfUrl.
+                    if ($clean['pdfUrl'] === '' && !empty($existing[$idx]['pdfUrl'])) {
+                        $clean['pdfUrl'] = $existing[$idx]['pdfUrl'];
+                    }
+                    $existing[$idx] = $clean;
+                }
                 $mergedCount++;
             }
             if (save_products($existing)) {

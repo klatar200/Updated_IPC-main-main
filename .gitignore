@@ -18,3 +18,14 @@ Thumbs.db
 # Editor swap files
 *.swp
 *.swo
+
+# Admin secrets & runtime state — must never enter the repo
+admin/config.local.php
+admin/admin-log.jsonl
+admin/.login-throttle.json
+
+# Local deploy/backup archives — never ship these to the server or the repo
+*.zip
+
+# Catalog backups written by save_products()
+data/products-all.backup.*.json
