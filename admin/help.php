@@ -232,29 +232,17 @@ $navActive = 'help';
       <section class="help-section" id="password">
         <div class="eyebrow eyebrow-start">Getting Started</div>
         <h2>🔑 Your admin password</h2>
-        <p>This dashboard is protected by a single password — there's no separate login for each person, and no self-service "forgot password" reset (see <a href="#signing-in">Signing in &amp; out</a>). That makes keeping track of this password, and knowing when it's time to change it, one of the most important housekeeping tasks for whoever runs this site.</p>
-
-        <div class="callout callout-danger">
-          <b>Taking over this website from someone else?</b>
-          Rotating the admin password should be one of your very first tasks. Anyone who had it before — a previous owner, past employee, or outside contractor — can still sign in and change your entire catalog until it's changed. This isn't something you can do yourself from inside the dashboard (see below); ask your web developer to rotate it as soon as ownership changes hands.
-        </div>
-
-        <h3>Recording your credentials</h3>
-        <p>Use the space below to keep a private record of your login details for your own files. Keep this information somewhere secure — a password manager, a locked document, or a printed copy stored safely — rather than somewhere it could be easily seen or shared.</p>
+        <p>This dashboard is protected by a single password — the same one is used by anyone who manages the catalog (see <a href="#signing-in">Signing in &amp; out</a>).</p>
 
         <div class="credentials-box">
           <div class="credentials-row"><span class="cred-label">Admin dashboard address</span><span class="cred-fill"></span></div>
-          <div class="credentials-row"><span class="cred-label">Current password</span><span class="cred-fill"></span></div>
-          <div class="credentials-row"><span class="cred-label">Password last changed</span><span class="cred-fill"></span></div>
-          <div class="credentials-row"><span class="cred-label">Saved in a password manager?</span><span class="cred-fill"></span></div>
+          <div class="credentials-row"><span class="cred-label">Password</span><span class="cred-fill"></span></div>
         </div>
 
         <div class="callout callout-tip">
-          <b>Good habits</b>
-          Store this password in a password manager if you use one, rather than a sticky note or an unsecured file. Avoid sending it by plain email or chat message. If you ever suspect it's been seen by someone who shouldn't have it, treat that the same as an ownership change — ask your developer to rotate it right away.
+          <b>Keep it safe</b>
+          Store this password somewhere secure, like a password manager. If you'd ever like it changed, ask your web developer — see <a href="#help">Getting more help</a>.
         </div>
-
-        <p>For the technical steps involved in actually changing the password, see <a href="#help">Getting more help</a> — it's a quick, one-time change your developer makes directly on the server.</p>
       </section>
 
       <section class="help-section" id="dashboard">
