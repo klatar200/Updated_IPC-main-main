@@ -40,11 +40,12 @@ public_html/
 └── admin/
     ├── .htaccess           ← HTTPS, security headers, file blocks
     ├── config.php          ← Shared config + admin password hash
+    ├── nav.php             ← Shared header/nav, included on every page
     ├── auth.php            ← Login / logout
     ├── index.php           ← Product dashboard
     ├── add.php / edit.php / delete.php
     ├── upload-pdf.php      ← Upload, replace, or remove a PDF
-    ├── import.php          ← Bulk import / merge JSON
+    ├── help.php            ← In-app help & documentation
     ├── audit-log.php       ← View every change made through the admin
     └── admin-log.jsonl     ← Audit log (auto-created on first save)
 ```
@@ -141,21 +142,18 @@ server and your local copies are stale.
   `pdfUrl` is cleared, the PDF file is deleted from `/pdfs/`, and the
   public site reverts to the **Request Data Sheet** button.
 
-### Bulk importing many products at once
-
-1. From the dashboard, click **Import JSON**.
-2. Upload a `products-all.json` file. The admin shows you a preview:
-   how many entries are new, how many will overwrite existing SKUs, and
-   how many invalid rows will be skipped.
-3. Click **Confirm Import**. A timestamped backup of the current catalog
-   is written to `data/products-all.backup.<datetime>.json` before the
-   merge, in case you need to roll back.
-
 ### Viewing the audit log
 
 Click **Audit Log** in the dashboard nav. Every add, edit, delete, PDF
-upload, PDF removal, and import is recorded with timestamp, SKU, detail,
-and the IP that made the change.
+upload, and PDF removal is recorded with timestamp, SKU, detail, and the
+IP that made the change.
+
+### The navigation bar
+
+Every authenticated admin page shares the same header/nav, rendered from
+`admin/nav.php`. It's included (not copy-pasted) on every page, so Products,
++ Add Product, Audit Log, Help, View Live Site, and Sign Out are always one
+click away no matter where you are in the admin.
 
 ## Spec-table JSON examples
 
@@ -244,7 +242,6 @@ not touch your local override.
 | Public site says "Catalog Unavailable" | `data/products-all.json` is missing on the server, or the JSON is malformed (open it directly to check) |
 | "Another product already uses SKU X" | You tried to rename an SKU to one that already exists — pick a different SKU |
 | Spec table change won't save | The JSON has a syntax error — the message shows what's wrong (missing comma, bad bracket, etc.) |
-| Import skipped rows | The skipped-rows count in the preview shows why (each invalid row has its own reason) |
 
 ## Security notes
 

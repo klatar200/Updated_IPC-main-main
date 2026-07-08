@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "php-admin",
+      "runtimeExecutable": "C:\\php\\php.exe",
+      "runtimeArgs": ["-S", "localhost:8080", "-t", "."],
+      "port": 8080
     }
   ]
 }

@@ -13,11 +13,13 @@ foreach ($products as $p) {
     $grouped[$type][] = $p;
 }
 ksort($grouped);
+$navActive = 'products';
 ?>
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Products</title>
   <style>
@@ -84,26 +86,7 @@ ksort($grouped);
   </style>
 </head>
 <body>
-<header>
-  <a class="logo" href="index.php">
-    <img src="/logo.svg" alt="IPC" style="width:38px;height:38px;border-radius:6px;display:block;flex-shrink:0;">
-    <div>
-      <div class="logo-title">IPC Admin</div>
-      <div class="logo-sub">Product Manager</div>
-    </div>
-  </a>
-  <nav>
-    <a href="add.php">+ Add Product</a>
-    <a href="import.php">Import JSON</a>
-    <a href="audit-log.php">Audit Log</a>
-    <a href="/" target="_blank" rel="noopener" title="Opens the public site in a new tab">View Live Site ↗</a>
-    <form method="POST" action="auth.php" style="display:inline;margin:0;">
-      <input type="hidden" name="logout" value="1">
-      <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
-      <button type="submit" class="logout" style="background:none;border:none;padding:0;margin-left:20px;font:inherit;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">Sign Out</button>
-    </form>
-  </nav>
-</header>
+<?php include 'nav.php'; ?>
 <main>
   <div class="page-header">
     <div>

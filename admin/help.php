@@ -1,0 +1,513 @@
+<?php
+require_once 'config.php';
+require_auth();
+$navActive = 'help';
+?>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IPC Admin — Help &amp; Documentation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body  { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
+
+    /* Header (matches index.php) */
+    header { background: #0d2d52; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
+    .logo  { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-title { color: #fff; font-size: 13px; font-weight: 700; }
+    .logo-sub   { color: rgba(255,255,255,0.5); font-size: 10px; }
+    nav a   { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; margin-left: 20px; }
+    nav a:hover, nav a.current { color: #fff; }
+    nav a.current { border-bottom: 2px solid #005da3; padding-bottom: 4px; }
+    .logout { color: rgba(255,255,255,0.5) !important; }
+
+    main { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 24px; font-weight: 800; margin: 0 0 6px; }
+    .page-header p  { font-size: 14px; color: #6b7280; margin: 0; max-width: 720px; line-height: 1.6; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; }
+    .btn-primary  { background: #005da3; color: #fff; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-edit   { background: rgba(0,93,163,0.08); color: #005da3; }
+    .btn-danger { background: rgba(220,38,38,0.08); color: #dc2626; }
+    .btn-pdf    { background: rgba(0,190,242,0.1); color: #0369a1; }
+    .btn-mock { pointer-events: none; cursor: default; }
+
+    /* Two-column layout */
+    .help-layout { display: flex; align-items: flex-start; gap: 32px; }
+    .help-toc { position: sticky; top: 92px; width: 250px; flex-shrink: 0; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; max-height: calc(100vh - 120px); overflow-y: auto; }
+    .help-toc .toc-group { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #9ca3af; margin: 16px 0 6px; padding: 0 10px; }
+    .help-toc .toc-group:first-child { margin-top: 0; }
+    .help-toc a { display: block; font-size: 12.5px; color: #374151; text-decoration: none; padding: 6px 10px 6px 9px; border-radius: 6px; margin-bottom: 1px; line-height: 1.4; border-left: 3px solid transparent; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease; }
+    .help-toc a:hover { background: #f0f4f8; color: #005da3; }
+    .help-toc a.active { background: #eaf3fb; color: #005da3; font-weight: 700; border-left-color: #005da3; }
+    .help-content { flex: 1; min-width: 0; }
+
+    section.help-section { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 32px; margin-bottom: 22px; scroll-margin-top: 84px; }
+    .help-section .eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 8px; }
+    .help-section h2 { font-size: 20px; font-weight: 800; margin: 0 0 12px; }
+    .help-section h3 { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: #0d2d52; }
+    .help-section p { font-size: 14px; line-height: 1.7; color: #374151; margin: 0 0 14px; }
+    .help-section p:last-child { margin-bottom: 0; }
+    .help-section ul.plain { font-size: 14px; line-height: 1.7; color: #374151; margin: 0 0 14px; padding-left: 20px; }
+    .help-section ul.plain li { margin-bottom: 6px; }
+    .help-section code { background: #f0f4f8; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 12.5px; color: #0d2d52; }
+    .help-section strong { color: #141414; }
+
+    /* Numbered step lists */
+    ol.steps { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: step; }
+    ol.steps > li { counter-increment: step; position: relative; padding: 3px 0 3px 42px; margin-bottom: 16px; font-size: 14px; line-height: 1.65; color: #141414; }
+    ol.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: #005da3; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    ol.steps > li p { margin: 4px 0 0; }
+
+    /* Callouts */
+    .callout { border-radius: 10px; padding: 14px 16px; font-size: 13px; margin: 16px 0; line-height: 1.6; }
+    .callout b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .callout-tip     { background: #eff8ff; border: 1px solid #bfe0f7; color: #0c4a6e; }
+    .callout-warning { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
+    .callout-danger  { background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d; }
+
+    /* Field reference tables */
+    table.field-ref { width: 100%; border-collapse: collapse; margin: 6px 0 18px; font-size: 13px; }
+    table.field-ref th { text-align: left; background: #f0f4f8; color: #374151; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding: 9px 12px; }
+    table.field-ref td { padding: 10px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: top; color: #374151; }
+    table.field-ref td:first-child { font-weight: 700; color: #005da3; white-space: nowrap; }
+    table.field-ref tr:last-child td { border-bottom: none; }
+
+    /* FAQ disclosure */
+    details.faq { border: 1px solid #e5e9ee; border-radius: 10px; padding: 4px 16px; margin-bottom: 10px; }
+    details.faq summary { padding: 12px 0; font-size: 14px; font-weight: 600; cursor: pointer; color: #0d2d52; list-style: none; }
+    details.faq summary::-webkit-details-marker { display: none; }
+    details.faq summary::before { content: "+ "; color: #005da3; font-weight: 800; }
+    details.faq[open] summary::before { content: "– "; }
+    details.faq p { padding-bottom: 14px; margin: 0; }
+
+    .visual-note { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; border: 1px dashed #c7d2dd; border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; font-size: 12.5px; color: #4b5563; line-height: 1.55; }
+    .visual-note .vn-icon { flex-shrink: 0; font-size: 15px; }
+
+    hr.sep { border: none; border-top: 1px solid #e5e9ee; margin: 24px 0; }
+
+    @media (max-width: 900px) {
+      .help-layout { flex-direction: column; }
+      .help-toc { position: static; width: auto; max-height: none; }
+    }
+  </style>
+</head>
+<body>
+<?php include 'nav.php'; ?>
+
+<main>
+  <div class="page-header">
+    <h1>Help &amp; Documentation</h1>
+    <p>A plain-language guide to running your product catalog — no technical background needed. This page only appears after you sign in, so it's safe to keep it open in a tab while you work.</p>
+  </div>
+
+  <div class="help-layout">
+    <!-- Table of contents -->
+    <nav class="help-toc" aria-label="Help topics">
+      <div class="toc-group">Getting Started</div>
+      <a href="#overview">How this dashboard works</a>
+      <a href="#quickref">Quick reference: find what you need</a>
+      <a href="#signing-in">Signing in &amp; out</a>
+      <a href="#dashboard">Reading the dashboard</a>
+
+      <div class="toc-group">Managing Products</div>
+      <a href="#adding">Adding a new product</a>
+      <a href="#editing">Editing a product</a>
+      <a href="#specs">Specifications list</a>
+      <a href="#sizechart">Size / dimension chart</a>
+      <a href="#pdfs">PDF data sheets</a>
+      <a href="#deleting">Deleting a product</a>
+      <a href="#walkthrough">Launching a new product, start to finish</a>
+
+      <div class="toc-group">Advanced</div>
+      <a href="#auditlog">Audit log / change history</a>
+
+      <div class="toc-group">Reference</div>
+      <a href="#faq">Troubleshooting &amp; FAQ</a>
+      <a href="#glossary">Glossary of terms</a>
+      <a href="#help">Getting more help</a>
+    </nav>
+
+    <!-- Content -->
+    <div class="help-content">
+
+      <section class="help-section" id="overview">
+        <div class="eyebrow">Getting Started</div>
+        <h2>How this dashboard works</h2>
+        <p>This admin dashboard is where you manage everything customers see about your parts on the public website: product names, specifications, size charts, photos, and downloadable PDF data sheets. You don't need to know any code to use it — every screen is forms, buttons, and clear confirmations.</p>
+        <p>There are really only two things stored behind this dashboard:</p>
+        <ul class="plain">
+          <li><strong>Your product catalog</strong> — every product's details, in one shared file that both this dashboard and the public website read from.</li>
+          <li><strong>Your PDF data sheets</strong> — the actual PDF files customers download, stored in one shared folder.</li>
+        </ul>
+        <div class="callout callout-tip">
+          <b>Good to know</b>
+          Changes you make here appear on the public website automatically — there's nothing extra to "publish." Allow up to <strong>60 seconds</strong> for a change to show up, since the site briefly caches data for speed. If you want to see it instantly, hold <strong>Ctrl+Shift+R</strong> (Windows) or <strong>Cmd+Shift+R</strong> (Mac) on the live page to force a fresh reload.
+        </div>
+        <div class="callout callout-tip">
+          <b>Your safety net</b>
+          Every single time you save a change, the dashboard automatically keeps a timestamped backup copy of your entire catalog on the server (the five most recent are always kept). If something ever gets saved incorrectly, this history means it can be recovered — just contact your web developer and mention you need a catalog backup restored.
+        </div>
+      </section>
+
+      <section class="help-section" id="quickref">
+        <div class="eyebrow">Getting Started</div>
+        <h2>Quick reference: find what you need</h2>
+        <p>Not sure where to start? Match what you're trying to do to a row below.</p>
+        <table class="field-ref">
+          <tr><td>Add a brand-new part to the catalog</td><td>See the full sequence at <a href="#walkthrough">Launching a new product, start to finish</a>, or jump straight to <a href="#adding">Adding a new product</a>.</td></tr>
+          <tr><td>Fix a typo, price, or spec on an existing part</td><td><a href="#editing">Editing an existing product</a></td></tr>
+          <tr><td>Add a photo to a product</td><td><a href="#editing">Editing an existing product</a> (Photo URL field)</td></tr>
+          <tr><td>Add or replace a downloadable spec sheet</td><td><a href="#pdfs">Managing PDF data sheets</a></td></tr>
+          <tr><td>Change the measurements/size table on a product page</td><td><a href="#sizechart">Building the size / dimension chart</a></td></tr>
+          <tr><td>Remove a part that's discontinued</td><td><a href="#deleting">Deleting a product</a></td></tr>
+          <tr><td>Check who changed something and when</td><td><a href="#auditlog">Audit log / change history</a></td></tr>
+          <tr><td>Something looks wrong or won't save</td><td><a href="#faq">Troubleshooting &amp; FAQ</a></td></tr>
+        </table>
+      </section>
+
+      <section class="help-section" id="signing-in">
+        <div class="eyebrow">Getting Started</div>
+        <h2>Signing in &amp; out</h2>
+        <h3>Signing in</h3>
+        <ol class="steps">
+          <li>Go to your admin web address (the one your developer gave you — it ends in <code>/admin/</code>).</li>
+          <li>Enter your admin password and click <span class="btn btn-primary btn-mock">Sign In →</span>.</li>
+          <li>You'll land on the <strong>Product Catalog</strong> page — that's your home base.</li>
+        </ol>
+        <div class="callout callout-warning">
+          <b>If your password is rejected repeatedly</b>
+          After 5 incorrect attempts in a row, the sign-in page will pause briefly before letting you try again. This is a normal security precaution against guessing attacks, not an error — wait a few seconds and re-enter your password carefully (check that Caps Lock isn't on).
+        </div>
+        <h3>Signing out</h3>
+        <p>Click <strong>Sign Out</strong> in the top-right corner of any page. Your sign-in stays active until you do this — simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed.</p>
+        <div class="callout callout-tip">
+          <b>One password for everyone</b>
+          This dashboard uses a single shared admin password rather than individual employee logins. If more than one person updates the catalog, everyone signs in with the same password. Keep that in mind for two things: anyone who has the password can make changes, and the <a href="#auditlog">Audit log</a> can only identify a change by device/location and time, not by which person was typing — see the note in that section.
+        </div>
+      </section>
+
+      <section class="help-section" id="dashboard">
+        <div class="eyebrow">Getting Started</div>
+        <h2>Reading the dashboard</h2>
+        <p>The <strong>Product Catalog</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
+        <ul class="plain">
+          <li><strong>Header bar</strong> — your logo on the left; on the right, quick links to Products, Add Product, Audit Log, and Help, plus a link to open the live public website in a new tab and Sign Out. This same navigation bar appears at the top of every admin page, so you're never more than one click from anywhere else in the dashboard.</li>
+          <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>
+          <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
+          <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
+        </ul>
+        <h3>The action buttons on each row</h3>
+        <table class="field-ref">
+          <tr><td><span class="btn btn-sm btn-edit btn-mock">Edit</span></td><td>Opens the full edit form for that product — every field is changeable here.</td></tr>
+          <tr><td><span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span></td><td>Upload, replace, or remove that product's downloadable data sheet.</td></tr>
+          <tr><td><span class="btn btn-sm btn-edit btn-mock">View ↗</span></td><td>Opens that exact product on your live public website in a new tab — the fastest way to double-check how a change actually looks to customers.</td></tr>
+          <tr><td><span class="btn btn-sm btn-danger btn-mock">Delete</span></td><td>Permanently removes the product after you confirm. See <a href="#deleting">Deleting a product</a>.</td></tr>
+        </table>
+        <p>This dashboard works in any modern desktop or tablet browser (Chrome, Edge, Safari, Firefox). On narrower screens, the product tables scroll left-to-right — drag within the table itself to reach the Actions column on the right.</p>
+      </section>
+
+      <section class="help-section" id="adding">
+        <div class="eyebrow">Managing Products</div>
+        <h2>Adding a new product</h2>
+        <ol class="steps">
+          <li>From the dashboard, click <span class="btn btn-primary btn-mock">+ Add Product</span> in the top right (it's also in the header nav on every page).</li>
+          <li>
+            <strong>Fill in Basic Information.</strong> Three fields are required (marked with *):
+            <table class="field-ref">
+              <tr><td>SKU / Part Number *</td><td>A short, unique code for this part (e.g. <code>IP33PO</code>). This becomes part of the product's web address <em>and</em> the filename of its PDF, so keep it to letters, numbers, and dashes — no spaces. It must be different from every other SKU already in your catalog.</td></tr>
+              <tr><td>Part Type *</td><td>Pick the category from the dropdown. This decides which section of the catalog (and which page grouping) the product appears under. The available categories are: Polyolefin Heat Shrink, PVDF Heat Shrink, Dual-Wall Heat Shrink, Medical Grade Heat Shrink, Elastomeric Heat Shrink, Fiberglass Sleeving, Expandable Sleeving, End Cap, Tape, Adhesive, and Accessory. This list is fixed — if you need a new category added, ask your web developer.</td></tr>
+              <tr><td>Product Name *</td><td>The full name shown to customers, e.g. "3:1 Polyolefin Heat Shrink Tubing."</td></tr>
+              <tr><td>Operating Temperature</td><td>Optional. Free text, e.g. <code>-55°C to 135°C</code>.</td></tr>
+              <tr><td>Image Caption</td><td>Optional short line shown underneath the product photo.</td></tr>
+              <tr><td>Specifications Summary</td><td>Optional one-line summary shown in list/index views — keep it under about 120 characters, e.g. <code>U/L 224 · RoHS · -55°C to 135°C</code>.</td></tr>
+            </table>
+            <div class="visual-note"><span class="vn-icon">💡</span><strong>Not the same field:</strong> "Specifications Summary" above is only a one-line teaser shown in list views. The full label/value list customers see on the product page itself is a separate step further down the form — see <a href="#specs">Building the specifications list</a>.</div>
+          </li>
+          <li>
+            <strong>Feature Badges</strong> — type one badge per line (press Enter between each). These become small colored pill labels on the product page, e.g.:
+            <div class="visual-note"><span class="vn-icon">🏷️</span>Example: typing <code>Flame Retardant</code> on one line and <code>RoHS Compliant</code> on the next creates two separate badges shown side by side on the live page.</div>
+          </li>
+          <li>
+            <strong>Description Paragraphs</strong> — one paragraph per line. Each line you type becomes its own paragraph of body text on the product page.
+            <div class="visual-note"><span class="vn-icon">🔤</span>Badges and description text show up exactly as typed — plain text only. Typing formatting like <code>&lt;b&gt;bold&lt;/b&gt;</code> or markdown-style asterisks won't make anything bold on the live page; it'll show up as literal characters instead.</div>
+          </li>
+          <li>
+            <strong>Specifications</strong> — this is the label/value list customers see (Material, Color, Shrink Ratio, etc.). Use the visual builder — see <a href="#specs">Building the specifications list</a> below for a full walkthrough.
+          </li>
+          <li>
+            <strong>Size chart</strong> — the grid of measurements (order sizes, expanded/recovered diameters, etc.), if this product has one. Use the visual builder — see <a href="#sizechart">Building the size / dimension chart</a> below.
+          </li>
+          <li>Click <span class="btn btn-primary btn-mock">Add Product</span> at the bottom of the form.</li>
+          <li>You'll land back on the dashboard with a green confirmation message. Find your new product and click <span class="btn btn-sm btn-edit btn-mock">View ↗</span> to see it live (remember: allow ~60 seconds, or hard-refresh to see it immediately).</li>
+        </ol>
+        <div class="callout callout-tip">
+          <b>About the photo</b>
+          The Add Product form doesn't include a photo field — new products start with a branded placeholder image. Once the product is saved, open it with <strong>Edit</strong> and paste a link into the <strong>Photo URL</strong> field described in <a href="#editing">Editing a product</a>.
+        </div>
+        <div class="callout callout-warning">
+          <b>If Add Product won't save</b>
+          The form will list exactly what's missing or wrong at the top in a red box — most often a blank required field, or a SKU that's already used by another product. Fix what's listed and click Add Product again; nothing is lost from the rest of the form.
+        </div>
+      </section>
+
+      <section class="help-section" id="editing">
+        <div class="eyebrow">Managing Products</div>
+        <h2>Editing an existing product</h2>
+        <ol class="steps">
+          <li>Find the product on the dashboard (use the search bar if your catalog is long) and click <span class="btn btn-sm btn-edit btn-mock">Edit</span>.</li>
+          <li>Change any field you need to. Every field from <a href="#adding">Adding a new product</a> is here, plus a few extra:
+            <table class="field-ref">
+              <tr><td>Photo URL</td><td>Paste the full web address of a hosted image (starting with <code>https://</code>, or a path like <code>/images/product.jpg</code> if your developer has set one up). It must link directly to the image file itself — a "share" link from Google Drive, Dropbox, or a photo gallery site opens a viewer webpage instead of the raw image and will <em>not</em> work here; those services usually offer a separate "direct link" or "embed" option you need instead. Leave the field blank to keep the branded placeholder.</td></tr>
+              <tr><td>Primary PDF Button Label</td><td>Customizes the text on the main download button, e.g. "Molded Cap" instead of the default "Download PDF." This only changes the button's <em>label</em> — upload the actual file from the <a href="#pdfs">PDF data sheets</a> page.</td></tr>
+              <tr><td>Additional PDF Links</td><td>One per line, formatted as <code>/pdfs/filename.pdf | Button Label</code> (the label is optional). Each line adds an extra download button, for products that ship with more than one document.</td></tr>
+            </table>
+            <div class="callout callout-warning">
+              <b>Additional PDF files need developer help</b>
+              This field only creates the extra download <em>button and link</em> — it does not upload a file. The dashboard's file-upload tool (on the <a href="#pdfs">PDF data sheets</a> page) only handles a product's one primary data sheet. To add a second or third PDF, ask your web developer to place that file in the <code>/pdfs/</code> folder first; once it's there, you can point an Additional PDF Link at it yourself, the same way you'd link to any file.
+            </div>
+          </li>
+          <li>Click <span class="btn btn-primary btn-mock">Save Changes</span>.</li>
+        </ol>
+        <div class="callout callout-tip">
+          <b>Renaming a SKU</b>
+          You can change a product's SKU on this page. If it has a PDF, that file is automatically renamed to match the new SKU, so the download link keeps working. If you try to rename it to a SKU that's already used by another product, the save is blocked with a clear error — just pick a different one.
+        </div>
+        <div class="callout callout-warning">
+          <b>Old links won't just break — they can show the wrong product</b>
+          Every product's web address is built from its SKU. If you rename one, any bookmark, printed catalog, or link you've shared before with the old SKU stops pointing at this product — and instead of an error page, it silently shows whatever product happens to be first in the catalog, which can be confusing for a customer. Avoid renaming a SKU once its link has been shared publicly; if you must, ask your web developer about adding a redirect.
+        </div>
+        <div class="callout callout-warning">
+          <b>"This product was changed by another session" message</b>
+          If a co-worker (or you, in another browser tab) saved a change to this same product while you had this edit page open, your save will be stopped with this message instead of silently overwriting theirs. Reload the page to see the current version, then re-apply your change.
+        </div>
+        <div class="callout callout-tip">
+          <b>Part Type showing "(current — non-standard)"</b>
+          If a product's category isn't one of the standard options listed in <a href="#adding">Adding a new product</a> — usually because it came from older imported data — its current category appears pinned at the top of the dropdown, labeled "non-standard," so saving the form doesn't silently reassign it. You can leave it as-is or switch it to one of the standard categories.
+        </div>
+      </section>
+
+      <section class="help-section" id="specs">
+        <div class="eyebrow">Managing Products</div>
+        <h2>Building the specifications list</h2>
+        <p>This is the label/value list shown on the left side of a product's detail page (Material, Color, Shrink Ratio, and so on). Both the Add and Edit forms use the same easy, visual builder — no code required.</p>
+        <ol class="steps">
+          <li>Click <span class="btn btn-primary btn-mock" style="background:#fff;color:#005da3;border:1px solid #d1d9e0;">+ Add specification</span> to add a new row.</li>
+          <li>Type a <strong>Label</strong> (e.g. "Material") and its <strong>Value</strong> (e.g. "Polyolefin") into the two boxes.</li>
+          <li>Leave the Label box empty to create a wide note row instead — useful for a standalone line like "RoHS Compliant · UL 224" that doesn't need its own label.</li>
+          <li>Click the <strong>×</strong> button on the right of any row to remove it.</li>
+        </ol>
+        <div class="visual-note"><span class="vn-icon">👀</span>As you type, a <strong>"Live preview — what the website shows"</strong> panel appears right below the editor, so you can see exactly how the list will look on the public page before you even save.</div>
+      </section>
+
+      <section class="help-section" id="sizechart">
+        <div class="eyebrow">Managing Products</div>
+        <h2>Building the size / dimension chart</h2>
+        <p>This is the grid table on the right side of a product page — typically order sizes down the left and measurements (expanded diameter, recovered diameter, wall thickness, etc.) across the top. It also uses a visual, click-and-type builder.</p>
+        <h3>Building it by hand</h3>
+        <table class="field-ref">
+          <tr><td>+ Add column</td><td>Adds a new column header. Click into the heading box and type its name, e.g. "Order Size."</td></tr>
+          <tr><td>Split into sub-columns</td><td>Turns one column heading into a group covering two or more narrower columns underneath it — e.g. a heading "Expanded" split into "Min" and "Max."</td></tr>
+          <tr><td>+ sub-column</td><td>Adds another narrow column under a heading that's already split.</td></tr>
+          <tr><td>+ Add row</td><td>Adds a blank data row at the bottom. Click into each cell and type the value.</td></tr>
+          <tr><td>× (on a row or column)</td><td>Removes that row or column, and shifts the rest to fill the gap.</td></tr>
+        </table>
+        <h3>Pasting straight from a spreadsheet</h3>
+        <p>If you already have this data in Excel or Google Sheets, you don't need to retype it:</p>
+        <ol class="steps">
+          <li>Select and copy the block of cells in your spreadsheet (include the header row if you have one).</li>
+          <li>In the size chart editor, click <span class="btn btn-primary btn-mock" style="background:#fff;color:#141414;border:1px solid #d1d9e0;">Paste from Excel</span>.</li>
+          <li>Click into the box that appears and paste (Ctrl+V or Cmd+V).</li>
+          <li>Leave <strong>"First row is the column headings"</strong> checked if you copied a header row, or uncheck it if you only copied data.</li>
+          <li>Click <span class="btn btn-primary btn-mock" style="background:#fff;color:#005da3;border:1px solid #d1d9e0;">Fill grid</span> — the whole table is built for you instantly.</li>
+        </ol>
+        <div class="callout callout-tip">
+          <b>Advanced mode</b>
+          There's an <strong>Advanced</strong> link in the corner of both spec-table editors that shows the raw underlying data as text. This is entirely optional and meant for technical users only — the visual editor above does everything most people will ever need. If you do open Advanced mode by accident, just don't change anything and switch back; nothing is lost.
+        </div>
+      </section>
+
+      <section class="help-section" id="pdfs">
+        <div class="eyebrow">Managing Products</div>
+        <h2>Managing PDF data sheets</h2>
+        <p>Every product can have a downloadable spec-sheet PDF. When a product has one, its page shows a <strong>"Download PDF"</strong> button; when it doesn't, customers instead see a <strong>"Request Data Sheet"</strong> button (so they can contact you directly).</p>
+        <h3>Uploading a PDF for the first time</h3>
+        <ol class="steps">
+          <li>From the dashboard, click <span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span> on the product's row (or the "Upload PDF" link at the top of its Edit page).</li>
+          <li>Click <strong>Select PDF File</strong> and choose the file from your computer. It must be a genuine PDF, 20MB or smaller.</li>
+          <li>Click <span class="btn btn-primary btn-mock">Upload PDF →</span>.</li>
+          <li>You'll see a green confirmation, and the button on the product's live page switches to "Download PDF" automatically (allow up to 60 seconds, or hard-refresh to see it right away).</li>
+        </ol>
+        <h3>Replacing a PDF</h3>
+        <p>Open the same "Manage PDF" page and upload a new file the same way. The new file <strong>overwrites the old one in place</strong> — the download link customers already have keeps working, and no leftover old file is left behind.</p>
+        <h3>Removing a PDF</h3>
+        <ol class="steps">
+          <li>Open the product's "Manage PDF" page.</li>
+          <li>Click the red <span class="btn btn-sm btn-mock" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">Remove PDF</span> button next to the current file.</li>
+          <li>Confirm the removal. The product reverts to showing "Request Data Sheet," and the file is deleted from the server.</li>
+        </ol>
+        <div class="callout callout-warning">
+          <b>Shared data sheets</b>
+          Some data sheets cover more than one related product (a single PDF listing several SKUs). If you remove that PDF from one product while another product still points to the same file, the dashboard automatically keeps the file safe on the server for the other product — it's only deleted once nothing references it anymore.
+        </div>
+      </section>
+
+      <section class="help-section" id="deleting">
+        <div class="eyebrow">Managing Products</div>
+        <h2>Deleting a product</h2>
+        <ol class="steps">
+          <li>From the dashboard, click <span class="btn btn-sm btn-danger btn-mock">Delete</span> on the product's row.</li>
+          <li>Read the confirmation screen carefully — it names the exact product you're about to remove.</li>
+          <li>Click <strong>Yes, Delete</strong> to confirm, or <strong>Cancel</strong> to back out.</li>
+        </ol>
+        <div class="callout callout-danger">
+          <b>This cannot be undone from the dashboard</b>
+          Deleting a product removes it from the catalog immediately, and its PDF data sheet is deleted from the server too (unless another product still shares that same file). There's no "undo" button. If you delete something by mistake, contact your web developer right away — the automatic backups mentioned in <a href="#overview">How this dashboard works</a> can often restore it, but the sooner you ask, the better.
+        </div>
+      </section>
+
+      <section class="help-section" id="walkthrough">
+        <div class="eyebrow">Managing Products</div>
+        <h2>Launching a brand-new product, start to finish</h2>
+        <p>Adding one part usually touches three different pages, not just the Add Product form. Here's the full sequence in order, pulling together the steps from the sections above:</p>
+        <div class="callout callout-tip">
+          <b>Before you start, have these ready</b>
+          The SKU/part number and category, the full product name, a hosted link to a product photo (if you have one), the PDF data sheet file (if you have one), and any specification or size-chart numbers. Having these on hand up front means you can usually do this in one sitting instead of stopping mid-form to go find something.
+        </div>
+        <ol class="steps">
+          <li>Go to <a href="#adding">Adding a new product</a> and fill in the Add Product form — SKU, Part Type, Product Name, badges, description, and (if the data is ready) the Specifications list and Size chart. Click <strong>Add Product</strong>.</li>
+          <li>Click <span class="btn btn-sm btn-edit btn-mock">Edit</span> on the product you just created and paste in a <strong>Photo URL</strong> — see <a href="#editing">Editing an existing product</a>. The Add form has no photo field, so this always happens as a second step. Click <strong>Save Changes</strong>.</li>
+          <li>Click <span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span> and upload the product's data sheet, if you have one — see <a href="#pdfs">Managing PDF data sheets</a>.</li>
+          <li>Open the product with <span class="btn btn-sm btn-edit btn-mock">View ↗</span> and hard-refresh (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>) to check the photo, specs, size chart, and PDF button all look right.</li>
+        </ol>
+        <div class="visual-note"><span class="vn-icon">✅</span>None of this has to happen in one sitting. A product with no photo or PDF yet is still live and visible on the site — just less complete. Come back and finish it with Edit whenever the missing pieces are ready.</div>
+      </section>
+
+      <section class="help-section" id="auditlog">
+        <div class="eyebrow">Advanced</div>
+        <h2>Audit log / change history</h2>
+        <p>Every add, edit, deletion, and PDF upload or removal made through this dashboard is automatically recorded — who made it (by IP address), exactly when, and what changed.</p>
+        <ol class="steps">
+          <li>Click <strong>Audit Log</strong> in the header navigation.</li>
+          <li>Browse the list — newest changes are always at the top.</li>
+          <li>Use the filter boxes to narrow it down: type a SKU to see everything that's happened to one specific product, or pick an action type (add, edit, delete, upload-pdf, remove-pdf) from the dropdown.</li>
+          <li>Click <strong>Clear</strong> to reset the filters.</li>
+        </ol>
+        <h3>What each colored badge means</h3>
+        <table class="field-ref">
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dcfce7;color:#166534;">add</span></td><td>A brand-new product was created.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dbeafe;color:#1e40af;">edit</span></td><td>An existing product's details were changed.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">delete</span></td><td>A product was permanently removed.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#cffafe;color:#155e75;">upload-pdf</span></td><td>A data sheet was uploaded or replaced.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
+        </table>
+        <div class="visual-note"><span class="vn-icon">🔍</span>Handy for questions like "did someone change this product's price recently?" or "who deleted that part last week?" — check here first before assuming something is a bug.</div>
+        <div class="callout callout-tip">
+          <b>What the audit log can (and can't) tell you</b>
+          Because everyone signs in with the same shared password (see <a href="#signing-in">Signing in &amp; out</a>), the log identifies changes by IP address and timestamp, not by employee name. That's usually enough to tell "this came from the office" versus "this came from somewhere else," and it always shows exactly what changed and when — just not automatically which person was at the keyboard.
+        </div>
+      </section>
+
+      <section class="help-section" id="faq">
+        <div class="eyebrow">Reference</div>
+        <h2>Troubleshooting &amp; frequently asked questions</h2>
+
+        <details class="faq">
+          <summary>I saved a change but it doesn't show on the website yet.</summary>
+          <p>This is expected — allow up to 60 seconds for the public site to catch up. To see it immediately, go to the live page and hold <strong>Ctrl+Shift+R</strong> (Windows) or <strong>Cmd+Shift+R</strong> (Mac) to force a full reload instead of using a cached copy.</p>
+        </details>
+
+        <details class="faq">
+          <summary>I got "A product with this SKU already exists."</summary>
+          <p>Every SKU (part number) must be unique across your whole catalog. Search the dashboard for that SKU to see the existing product, or choose a different SKU for the new one.</p>
+        </details>
+
+        <details class="faq">
+          <summary>While editing, I got "Another product already uses SKU X."</summary>
+          <p>You tried to rename a product's SKU to one that's already taken by a different product. Pick a different new SKU and save again.</p>
+        </details>
+
+        <details class="faq">
+          <summary>The Specifications or Size Chart won't save — it mentions invalid data/JSON.</summary>
+          <p>This usually only happens if the optional "Advanced" text box was edited directly and a bracket, quote, or comma got out of place. The safest fix is to close the page without saving, reopen Edit, and rebuild the change using the visual editor (the +Add specification / +Add row buttons) instead of the Advanced box. If you're not sure, ask your web developer to take a look.</p>
+        </details>
+
+        <details class="faq">
+          <summary>My product photo isn't showing.</summary>
+          <p>Check that the Photo URL is a direct link to the image itself. Paste that same link into a new browser tab on its own — if it doesn't show just the picture (for example, it opens a webpage instead), the link isn't a direct image link and needs to be fixed. This is the most common cause: a "share" link copied from Google Drive, Dropbox, or a photo gallery site opens a viewer page, not the raw image, so it won't work here — those services usually have a separate "direct link" or "embed" option you need instead. Leaving the field blank shows a branded placeholder image instead of a broken one.</p>
+        </details>
+
+        <details class="faq">
+          <summary>I can't log in — it says my password is incorrect.</summary>
+          <p>Double-check Caps Lock and any extra spaces. After 5 incorrect attempts in a row, the page will briefly pause before allowing another try — this is a normal anti-guessing safeguard, not a lockout. Wait a few seconds and try again.</p>
+        </details>
+
+        <details class="faq">
+          <summary>I forgot the admin password entirely.</summary>
+          <p>Resetting it requires direct server access, which is a technical, one-time setup step. Contact your web developer and ask them to rotate the admin password for you.</p>
+        </details>
+
+        <details class="faq">
+          <summary>Can two people use the dashboard at the same time?</summary>
+          <p>Yes — everyone signs in with the same shared password. If two people happen to edit the exact same product at the same time, whoever saves second sees a warning instead of silently overwriting the first change (see <a href="#editing">Editing an existing product</a>). Editing two different products at the same time is completely safe.</p>
+        </details>
+
+        <details class="faq">
+          <summary>How do I add a second PDF to a product that already has one?</summary>
+          <p>Use the <strong>Additional PDF Links</strong> field on the Edit page — but note it only creates the extra download button, it doesn't upload the file. Ask your web developer to place the second PDF in the <code>/pdfs/</code> folder first, then point the link at it. See <a href="#editing">Editing an existing product</a>.</p>
+        </details>
+
+        <details class="faq">
+          <summary>I deleted the wrong product — can I get it back?</summary>
+          <p>Not directly through the dashboard — deletion is immediate and permanent from this side. However, a timestamped backup of your catalog is saved automatically before every change, so contact your web developer as soon as possible; the more recent the mistake, the easier it is to recover.</p>
+        </details>
+      </section>
+
+      <section class="help-section" id="glossary">
+        <div class="eyebrow">Reference</div>
+        <h2>Glossary of terms</h2>
+        <table class="field-ref">
+          <tr><td>SKU / Part Number</td><td>The unique code identifying one specific product, e.g. <code>IP33PO</code>. It also becomes part of that product's web address and its PDF file's name.</td></tr>
+          <tr><td>Part Type</td><td>The category a product belongs to (Heat Shrink, End Cap, Tape, etc.), which controls where it's grouped on the dashboard and the site.</td></tr>
+          <tr><td>Badge</td><td>A small colored pill shown on a product page highlighting a certification or feature, e.g. "RoHS Compliant."</td></tr>
+          <tr><td>Specifications list</td><td>The label/value list on a product page (Material, Color, Shrink Ratio, etc.) — see <a href="#specs">Building the specifications list</a>.</td></tr>
+          <tr><td>Size / dimension chart</td><td>The grid table of measurements on a product page (order sizes, expanded/recovered diameters, etc.) — see <a href="#sizechart">Building the size / dimension chart</a>.</td></tr>
+          <tr><td>PDF data sheet</td><td>The downloadable spec-sheet document customers can get for a product — see <a href="#pdfs">Managing PDF data sheets</a>.</td></tr>
+          <tr><td>Audit log</td><td>The running history of every change made through this dashboard — see <a href="#auditlog">Audit log / change history</a>.</td></tr>
+          <tr><td>IP address</td><td>A number identifying the device/network a change came from, shown in the audit log. Since this dashboard uses one shared password, it tells you roughly where a change came from, not which employee made it.</td></tr>
+        </table>
+      </section>
+
+      <section class="help-section" id="help">
+        <div class="eyebrow">Reference</div>
+        <h2>Getting more help</h2>
+        <h3>A quick safety checklist</h3>
+        <ul class="plain">
+          <li>Don't share the admin password over insecure channels like plain text or email if you can help it — anyone who has it can change the catalog (see <a href="#signing-in">Signing in &amp; out</a>).</li>
+          <li>Don't edit the "Advanced" raw-text box in the Specifications or Size chart editors unless you're comfortable with it — the visual editor above it does everything most people need.</li>
+          <li>Don't rename a SKU that's already been shared publicly unless you're prepared for old links to stop working (see the warning in <a href="#editing">Editing an existing product</a>).</li>
+          <li>Check the <a href="#auditlog">Audit Log</a> before assuming something is a bug — it often shows a change was made on purpose.</li>
+          <li>When in doubt before deleting something, it's always safe to click Cancel and double-check first — deletion can't be undone from the dashboard (see <a href="#deleting">Deleting a product</a>).</li>
+        </ul>
+        <p>This guide covers everything you can do from inside the dashboard. A few things sit outside of it on purpose, since they touch the server directly and are best left to your web developer:</p>
+        <ul class="plain">
+          <li>Resetting the admin password</li>
+          <li>Restoring a catalog backup</li>
+          <li>Changing the overall look, layout, or features of the public website</li>
+        </ul>
+        <p>For anything covered on this page that isn't behaving the way it's described, that's worth flagging to your developer too — it may be worth a second look.</p>
+      </section>
+
+    </div>
+  </div>
+</main>
+<script src="help.js"></script>
+</body>
+</html>

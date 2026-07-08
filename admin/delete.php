@@ -12,6 +12,7 @@ if ($idx === -1) {
 }
 
 $product = $products[$idx];
+$navActive = '';
 
 // POST = confirmed delete — verify CSRF token
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -54,9 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><title>IPC Admin — Delete <?= h($sku) ?></title>
+  <meta charset="UTF-8"/><link rel="icon" type="image/svg+xml" href="logo.svg" /><title>IPC Admin — Delete <?= h($sku) ?></title>
   <style>
-    body { font-family: system-ui, sans-serif; background: #f0f4f8; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; }
+    main { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 60px); padding: 24px; }
     .card { background: #fff; border-radius: 12px; padding: 40px; max-width: 440px; width: 100%; box-shadow: 0 4px 24px rgba(0,45,82,0.12); text-align: center; }
     .icon { font-size: 48px; margin-bottom: 16px; }
     h1 { font-size: 20px; font-weight: 800; color: #141414; margin: 0 0 8px; }
@@ -71,22 +74,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </style>
 </head>
 <body>
-<div class="card">
-  <div class="icon">⚠️</div>
-  <h1>Delete this product?</h1>
-  <p>
-    <span class="product-name"><?= h($sku) ?> — <?= h($product['name'] ?? '') ?></span><br><br>
-    This will permanently remove it from <code>products-all.json</code>.
-    The PDF file (if any) will <em>also</em> be deleted from the server.
-    This action cannot be undone.
-  </p>
-  <div class="actions">
-    <a href="index.php" class="btn btn-cancel">Cancel</a>
-    <form method="POST" style="display:inline">
-      <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
-      <button type="submit" class="btn btn-danger">Yes, Delete</button>
-    </form>
+<?php include 'nav.php'; ?>
+<main>
+  <div class="card">
+    <div class="icon">⚠️</div>
+    <h1>Delete this product?</h1>
+    <p>
+      <span class="product-name"><?= h($sku) ?> — <?= h($product['name'] ?? '') ?></span><br><br>
+      This will permanently remove it from <code>products-all.json</code>.
+      The PDF file (if any) will <em>also</em> be deleted from the server.
+      This action cannot be undone.
+    </p>
+    <div class="actions">
+      <a href="index.php" class="btn btn-cancel">Cancel</a>
+      <form method="POST" style="display:inline">
+        <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+      </form>
+    </div>
   </div>
-</div>
+</main>
 </body>
 </html>

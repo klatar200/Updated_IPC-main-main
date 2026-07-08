@@ -68,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Login</title>
   <style>
@@ -91,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="card">
   <div class="logo">
-    <img src="/logo.svg" alt="IPC" style="width:44px;height:44px;border-radius:8px;display:block;flex-shrink:0;">
+    <img src="logo.svg" alt="IPC" style="width:44px;height:44px;border-radius:8px;display:block;flex-shrink:0;">
     <div>
       <div class="logo-text">Insulation Products<br>Corporation</div>
       <div class="logo-sub">Admin Panel</div>

@@ -211,6 +211,7 @@ $partTypes = ['Polyolefin Heat Shrink','PVDF Heat Shrink','Dual-Wall Heat Shrink
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Edit <?= h($product['sku'] ?? '') ?></title>
   <style>
@@ -250,17 +251,10 @@ $partTypes = ['Polyolefin Heat Shrink','PVDF Heat Shrink','Dual-Wall Heat Shrink
   </style>
 </head>
 <body>
-<header>
-  <a class="logo" href="index.php" style="display:inline-flex;align-items:center;gap:10px;"><img src="/logo.svg" alt="IPC" style="width:32px;height:32px;border-radius:6px;display:block;"><span>Admin</span></a>
-  <nav>
-    <a href="upload-pdf.php?sku=<?= urlencode($product['sku'] ?? '') ?>">Upload PDF</a>
-    <form method="POST" action="auth.php" style="display:inline;margin:0;">
-      <input type="hidden" name="logout" value="1">
-      <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
-      <button type="submit" style="background:none;border:none;padding:0;margin-left:16px;font:inherit;font-size:13px;color:rgba(255,255,255,0.7);cursor:pointer;">Sign Out</button>
-    </form>
-  </nav>
-</header>
+<?php
+$navExtra = '<a href="upload-pdf.php?sku=' . urlencode($product['sku'] ?? '') . '">Upload PDF</a>';
+include 'nav.php';
+?>
 <main>
   <div class="page-header">
     <div>
@@ -394,5 +388,6 @@ $partTypes = ['Polyolefin Heat Shrink','PVDF Heat Shrink','Dual-Wall Heat Shrink
   </form>
 </main>
 <script src="spectable-editor.js"></script>
+<script src="product-preview.js"></script>
 </body>
 </html>

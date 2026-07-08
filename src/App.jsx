@@ -4034,7 +4034,7 @@ function ContactPage() {
  * so rebuilding the React app cannot clobber the live catalog on the server.
  * On first deploy, FTP /data/products-all.json into public_html/data/ once.
  */
-const PRODUCTS_JSON_URL = "/data/products-all.json";
+const PRODUCTS_JSON_URL = "/products-all.json";
 
 /**
  * Global typography CSS — ensures consistent heading scales across all pages.
