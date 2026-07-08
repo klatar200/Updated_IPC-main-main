@@ -27,9 +27,10 @@ $navActive = 'help';
 
     main { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
 
-    .page-header { margin-bottom: 24px; }
-    .page-header h1 { font-size: 24px; font-weight: 800; margin: 0 0 6px; }
-    .page-header p  { font-size: 14px; color: #6b7280; margin: 0; max-width: 720px; line-height: 1.6; }
+    .page-header { margin-bottom: 28px; background: linear-gradient(135deg, #0d2d52 0%, #005da3 100%); border-radius: 16px; padding: 28px 32px; display: flex; align-items: center; gap: 20px; box-shadow: 0 8px 24px rgba(13,45,82,0.18); }
+    .page-header-icon { font-size: 30px; width: 58px; height: 58px; flex-shrink: 0; background: rgba(255,255,255,0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+    .page-header h1 { font-size: 26px; font-weight: 800; margin: 0 0 6px; color: #fff; }
+    .page-header p  { font-size: 14px; color: rgba(255,255,255,0.82); margin: 0; max-width: 720px; line-height: 1.6; }
 
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; }
     .btn-primary  { background: #005da3; color: #fff; }
@@ -49,8 +50,16 @@ $navActive = 'help';
     .help-toc a.active { background: #eaf3fb; color: #005da3; font-weight: 700; border-left-color: #005da3; }
     .help-content { flex: 1; min-width: 0; }
 
-    section.help-section { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 32px; margin-bottom: 22px; scroll-margin-top: 84px; }
-    .help-section .eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 8px; }
+    section.help-section { background: #fff; border: 1px solid #e5e9ee; border-top: 4px solid transparent; border-radius: 14px; padding: 32px; margin-bottom: 22px; scroll-margin-top: 84px; box-shadow: 0 1px 3px rgba(13,45,82,0.04); }
+    section.help-section:has(.eyebrow-start)     { border-top-color: #005da3; }
+    section.help-section:has(.eyebrow-manage)    { border-top-color: #16a34a; }
+    section.help-section:has(.eyebrow-advanced)  { border-top-color: #7c3aed; }
+    section.help-section:has(.eyebrow-reference) { border-top-color: #b45309; }
+    .help-section .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px; padding: 4px 12px; border-radius: 20px; }
+    .eyebrow-start     { background: rgba(0,93,163,0.1);   color: #005da3; }
+    .eyebrow-manage    { background: rgba(22,163,74,0.1);  color: #15803d; }
+    .eyebrow-advanced  { background: rgba(124,58,237,0.1); color: #6d28d9; }
+    .eyebrow-reference { background: rgba(180,83,9,0.1);   color: #b45309; }
     .help-section h2 { font-size: 20px; font-weight: 800; margin: 0 0 12px; }
     .help-section h3 { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: #0d2d52; }
     .help-section p { font-size: 14px; line-height: 1.7; color: #374151; margin: 0 0 14px; }
@@ -72,6 +81,25 @@ $navActive = 'help';
     .callout-tip     { background: #eff8ff; border: 1px solid #bfe0f7; color: #0c4a6e; }
     .callout-warning { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
     .callout-danger  { background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d; }
+    .callout-tip b::before     { content: "💡 "; }
+    .callout-warning b::before { content: "⚠️ "; }
+    .callout-danger b::before  { content: "🚫 "; }
+
+    /* Fill-in credentials record */
+    .credentials-box { background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 4px 18px; margin: 16px 0; }
+    .credentials-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px dashed #d9dee5; }
+    .credentials-row:last-child { border-bottom: none; }
+    .cred-label { flex: 0 0 210px; font-size: 12.5px; font-weight: 700; color: #0d2d52; }
+    .cred-fill  { flex: 1; border-bottom: 1px solid #9ca3af; min-height: 20px; }
+
+    /* Diagrams */
+    .diagram-wrap { background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; margin: 16px 0 20px; }
+    .diagram-caption { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #6b7280; margin: 0 0 12px; }
+    .diagram-wrap svg { width: 100%; height: auto; display: block; }
+
+    /* Back to top */
+    .back-to-top { position: fixed; bottom: 28px; right: 28px; width: 44px; height: 44px; border-radius: 50%; background: #005da3; color: #fff; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 18px; font-weight: 800; box-shadow: 0 4px 12px rgba(0,93,163,0.35); transition: background 0.15s ease, transform 0.15s ease; z-index: 15; }
+    .back-to-top:hover { background: #004e8c; transform: translateY(-2px); }
 
     /* Field reference tables */
     table.field-ref { width: 100%; border-collapse: collapse; margin: 6px 0 18px; font-size: 13px; }
@@ -81,11 +109,12 @@ $navActive = 'help';
     table.field-ref tr:last-child td { border-bottom: none; }
 
     /* FAQ disclosure */
-    details.faq { border: 1px solid #e5e9ee; border-radius: 10px; padding: 4px 16px; margin-bottom: 10px; }
-    details.faq summary { padding: 12px 0; font-size: 14px; font-weight: 600; cursor: pointer; color: #0d2d52; list-style: none; }
+    details.faq { border: 1px solid #e5e9ee; border-radius: 10px; padding: 4px 16px; margin-bottom: 10px; transition: border-color 0.15s ease; }
+    details.faq:hover { border-color: #bfe0f7; }
+    details.faq summary { position: relative; padding: 12px 0 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; color: #0d2d52; list-style: none; }
     details.faq summary::-webkit-details-marker { display: none; }
-    details.faq summary::before { content: "+ "; color: #005da3; font-weight: 800; }
-    details.faq[open] summary::before { content: "– "; }
+    details.faq summary::after { content: "›"; position: absolute; left: 0; top: 9px; font-size: 19px; font-weight: 800; color: #005da3; display: inline-block; transition: transform 0.2s ease; }
+    details.faq[open] summary::after { transform: rotate(90deg); }
     details.faq p { padding-bottom: 14px; margin: 0; }
 
     .visual-note { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; border: 1px dashed #c7d2dd; border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; font-size: 12.5px; color: #4b5563; line-height: 1.55; }
@@ -96,6 +125,8 @@ $navActive = 'help';
     @media (max-width: 900px) {
       .help-layout { flex-direction: column; }
       .help-toc { position: static; width: auto; max-height: none; }
+      .page-header { flex-direction: column; align-items: flex-start; }
+      .back-to-top { bottom: 16px; right: 16px; }
     }
   </style>
 </head>
@@ -104,20 +135,24 @@ $navActive = 'help';
 
 <main>
   <div class="page-header">
-    <h1>Help &amp; Documentation</h1>
-    <p>A plain-language guide to running your product catalog — no technical background needed. This page only appears after you sign in, so it's safe to keep it open in a tab while you work.</p>
+    <div class="page-header-icon">📘</div>
+    <div>
+      <h1>Help &amp; Documentation</h1>
+      <p>A plain-language guide to running your product catalog — no technical background needed. This page only appears after you sign in, so it's safe to keep it open in a tab while you work.</p>
+    </div>
   </div>
 
   <div class="help-layout">
     <!-- Table of contents -->
     <nav class="help-toc" aria-label="Help topics">
-      <div class="toc-group">Getting Started</div>
+      <div class="toc-group">🧭 Getting Started</div>
       <a href="#overview">How this dashboard works</a>
       <a href="#quickref">Quick reference: find what you need</a>
       <a href="#signing-in">Signing in &amp; out</a>
+      <a href="#password">Your admin password</a>
       <a href="#dashboard">Reading the dashboard</a>
 
-      <div class="toc-group">Managing Products</div>
+      <div class="toc-group">🛠️ Managing Products</div>
       <a href="#adding">Adding a new product</a>
       <a href="#editing">Editing a product</a>
       <a href="#specs">Specifications list</a>
@@ -126,10 +161,10 @@ $navActive = 'help';
       <a href="#deleting">Deleting a product</a>
       <a href="#walkthrough">Launching a new product, start to finish</a>
 
-      <div class="toc-group">Advanced</div>
+      <div class="toc-group">⚙️ Advanced</div>
       <a href="#auditlog">Audit log / change history</a>
 
-      <div class="toc-group">Reference</div>
+      <div class="toc-group">📚 Reference</div>
       <a href="#faq">Troubleshooting &amp; FAQ</a>
       <a href="#glossary">Glossary of terms</a>
       <a href="#help">Getting more help</a>
@@ -139,8 +174,8 @@ $navActive = 'help';
     <div class="help-content">
 
       <section class="help-section" id="overview">
-        <div class="eyebrow">Getting Started</div>
-        <h2>How this dashboard works</h2>
+        <div class="eyebrow eyebrow-start">Getting Started</div>
+        <h2>🧭 How this dashboard works</h2>
         <p>This admin dashboard is where you manage everything customers see about your parts on the public website: product names, specifications, size charts, photos, and downloadable PDF data sheets. You don't need to know any code to use it — every screen is forms, buttons, and clear confirmations.</p>
         <p>There are really only two things stored behind this dashboard:</p>
         <ul class="plain">
@@ -158,8 +193,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="quickref">
-        <div class="eyebrow">Getting Started</div>
-        <h2>Quick reference: find what you need</h2>
+        <div class="eyebrow eyebrow-start">Getting Started</div>
+        <h2>🔍 Quick reference: find what you need</h2>
         <p>Not sure where to start? Match what you're trying to do to a row below.</p>
         <table class="field-ref">
           <tr><td>Add a brand-new part to the catalog</td><td>See the full sequence at <a href="#walkthrough">Launching a new product, start to finish</a>, or jump straight to <a href="#adding">Adding a new product</a>.</td></tr>
@@ -174,8 +209,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="signing-in">
-        <div class="eyebrow">Getting Started</div>
-        <h2>Signing in &amp; out</h2>
+        <div class="eyebrow eyebrow-start">Getting Started</div>
+        <h2>🔐 Signing in &amp; out</h2>
         <h3>Signing in</h3>
         <ol class="steps">
           <li>Go to your admin web address (the one your developer gave you — it ends in <code>/admin/</code>).</li>
@@ -194,9 +229,37 @@ $navActive = 'help';
         </div>
       </section>
 
+      <section class="help-section" id="password">
+        <div class="eyebrow eyebrow-start">Getting Started</div>
+        <h2>🔑 Your admin password</h2>
+        <p>This dashboard is protected by a single password — there's no separate login for each person, and no self-service "forgot password" reset (see <a href="#signing-in">Signing in &amp; out</a>). That makes keeping track of this password, and knowing when it's time to change it, one of the most important housekeeping tasks for whoever runs this site.</p>
+
+        <div class="callout callout-danger">
+          <b>Taking over this website from someone else?</b>
+          Rotating the admin password should be one of your very first tasks. Anyone who had it before — a previous owner, past employee, or outside contractor — can still sign in and change your entire catalog until it's changed. This isn't something you can do yourself from inside the dashboard (see below); ask your web developer to rotate it as soon as ownership changes hands.
+        </div>
+
+        <h3>Recording your credentials</h3>
+        <p>Use the space below to keep a private record of your login details for your own files. Keep this information somewhere secure — a password manager, a locked document, or a printed copy stored safely — rather than somewhere it could be easily seen or shared.</p>
+
+        <div class="credentials-box">
+          <div class="credentials-row"><span class="cred-label">Admin dashboard address</span><span class="cred-fill"></span></div>
+          <div class="credentials-row"><span class="cred-label">Current password</span><span class="cred-fill"></span></div>
+          <div class="credentials-row"><span class="cred-label">Password last changed</span><span class="cred-fill"></span></div>
+          <div class="credentials-row"><span class="cred-label">Saved in a password manager?</span><span class="cred-fill"></span></div>
+        </div>
+
+        <div class="callout callout-tip">
+          <b>Good habits</b>
+          Store this password in a password manager if you use one, rather than a sticky note or an unsecured file. Avoid sending it by plain email or chat message. If you ever suspect it's been seen by someone who shouldn't have it, treat that the same as an ownership change — ask your developer to rotate it right away.
+        </div>
+
+        <p>For the technical steps involved in actually changing the password, see <a href="#help">Getting more help</a> — it's a quick, one-time change your developer makes directly on the server.</p>
+      </section>
+
       <section class="help-section" id="dashboard">
-        <div class="eyebrow">Getting Started</div>
-        <h2>Reading the dashboard</h2>
+        <div class="eyebrow eyebrow-start">Getting Started</div>
+        <h2>📊 Reading the dashboard</h2>
         <p>The <strong>Product Catalog</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
         <ul class="plain">
           <li><strong>Header bar</strong> — your logo on the left; on the right, quick links to Products, Add Product, Audit Log, and Help, plus a link to open the live public website in a new tab and Sign Out. This same navigation bar appears at the top of every admin page, so you're never more than one click from anywhere else in the dashboard.</li>
@@ -204,6 +267,71 @@ $navActive = 'help';
           <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
           <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
         </ul>
+
+        <div class="diagram-wrap">
+          <div class="diagram-caption">Dashboard layout at a glance</div>
+          <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the dashboard layout: header, search bar, summary cards, and product table">
+            <rect x="1" y="1" width="638" height="338" rx="10" fill="#ffffff" stroke="#e5e9ee"/>
+            <rect x="10" y="10" width="620" height="30" rx="6" fill="#0d2d52"/>
+            <text x="22" y="29" font-family="system-ui,sans-serif" font-size="11" fill="#ffffff">IPC Admin · Products · + Add Product · Audit Log · Help · Sign Out</text>
+            <text x="10" y="56" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">HEADER — same on every page</text>
+
+            <rect x="10" y="66" width="430" height="24" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
+            <text x="20" y="82" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">Search by SKU or product name…</text>
+            <text x="450" y="82" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">← SEARCH BAR</text>
+
+            <g font-family="system-ui,sans-serif">
+              <rect x="10" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="20" y="122" font-size="16" font-weight="800" fill="#005da3">128</text>
+              <text x="20" y="136" font-size="9" fill="#6b7280">Total Products</text>
+
+              <rect x="164" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="174" y="122" font-size="16" font-weight="800" fill="#005da3">9</text>
+              <text x="174" y="136" font-size="9" fill="#6b7280">Categories</text>
+
+              <rect x="318" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="328" y="122" font-size="16" font-weight="800" fill="#005da3">94</text>
+              <text x="328" y="136" font-size="9" fill="#6b7280">With PDF</text>
+
+              <rect x="472" y="100" width="158" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="482" y="122" font-size="16" font-weight="800" fill="#005da3">34</text>
+              <text x="482" y="136" font-size="9" fill="#6b7280">Missing PDF</text>
+            </g>
+            <text x="10" y="162" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">SUMMARY CARDS — at-a-glance counts</text>
+
+            <text x="10" y="186" font-family="system-ui,sans-serif" font-size="11" font-weight="800" fill="#0d2d52">Fiberglass Sleeving (12)</text>
+            <line x1="10" y1="192" x2="630" y2="192" stroke="#e5e9ee" stroke-width="2"/>
+
+            <rect x="10" y="198" width="620" height="22" fill="#0d2d52"/>
+            <text x="20" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">SKU</text>
+            <text x="110" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">PRODUCT NAME</text>
+            <text x="340" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">TEMP RATING</text>
+            <text x="440" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">DATA SHEET</text>
+            <text x="530" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">ACTIONS</text>
+
+            <rect x="10" y="220" width="620" height="30" fill="#ffffff"/>
+            <text x="20" y="239" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#005da3">IP33PO</text>
+            <text x="110" y="239" font-family="system-ui,sans-serif" font-size="9" fill="#374151">3:1 Polyolefin Heat Shrink Tubing</text>
+            <text x="340" y="239" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">-55°C to 135°C</text>
+            <rect x="440" y="228" width="60" height="16" rx="8" fill="rgba(0,190,242,0.15)"/>
+            <text x="447" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#0369a1">View PDF</text>
+            <rect x="530" y="228" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#005da3">Edit</text>
+            <rect x="568" y="228" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Del</text>
+
+            <rect x="10" y="250" width="620" height="30" fill="#f8fafc"/>
+            <text x="20" y="269" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#005da3">IP50PVDF</text>
+            <text x="110" y="269" font-family="system-ui,sans-serif" font-size="9" fill="#374151">2:1 PVDF Heat Shrink Tubing</text>
+            <text x="340" y="269" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">-55°C to 175°C</text>
+            <text x="440" y="269" font-family="system-ui,sans-serif" font-size="8" fill="#9ca3af">None</text>
+            <rect x="530" y="258" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="270" font-family="system-ui,sans-serif" font-size="8" fill="#005da3">Edit</text>
+            <rect x="568" y="258" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="270" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Del</text>
+
+            <line x1="10" y1="280" x2="630" y2="280" stroke="#f0f4f8" stroke-width="2"/>
+            <text x="10" y="302" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">PRODUCT TABLE — grouped by category, action buttons on the right</text>
+            <text x="10" y="322" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af">(A simplified example — your real catalog will show your actual products.)</text>
+          </svg>
+        </div>
+
         <h3>The action buttons on each row</h3>
         <table class="field-ref">
           <tr><td><span class="btn btn-sm btn-edit btn-mock">Edit</span></td><td>Opens the full edit form for that product — every field is changeable here.</td></tr>
@@ -215,8 +343,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="adding">
-        <div class="eyebrow">Managing Products</div>
-        <h2>Adding a new product</h2>
+        <div class="eyebrow eyebrow-manage">Managing Products</div>
+        <h2>➕ Adding a new product</h2>
         <ol class="steps">
           <li>From the dashboard, click <span class="btn btn-primary btn-mock">+ Add Product</span> in the top right (it's also in the header nav on every page).</li>
           <li>
@@ -259,8 +387,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="editing">
-        <div class="eyebrow">Managing Products</div>
-        <h2>Editing an existing product</h2>
+        <div class="eyebrow eyebrow-manage">Managing Products</div>
+        <h2>✏️ Editing an existing product</h2>
         <ol class="steps">
           <li>Find the product on the dashboard (use the search bar if your catalog is long) and click <span class="btn btn-sm btn-edit btn-mock">Edit</span>.</li>
           <li>Change any field you need to. Every field from <a href="#adding">Adding a new product</a> is here, plus a few extra:
@@ -295,8 +423,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="specs">
-        <div class="eyebrow">Managing Products</div>
-        <h2>Building the specifications list</h2>
+        <div class="eyebrow eyebrow-manage">Managing Products</div>
+        <h2>📋 Building the specifications list</h2>
         <p>This is the label/value list shown on the left side of a product's detail page (Material, Color, Shrink Ratio, and so on). Both the Add and Edit forms use the same easy, visual builder — no code required.</p>
         <ol class="steps">
           <li>Click <span class="btn btn-primary btn-mock" style="background:#fff;color:#005da3;border:1px solid #d1d9e0;">+ Add specification</span> to add a new row.</li>
@@ -308,9 +436,28 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="sizechart">
-        <div class="eyebrow">Managing Products</div>
-        <h2>Building the size / dimension chart</h2>
+        <div class="eyebrow eyebrow-manage">Managing Products</div>
+        <h2>📐 Building the size / dimension chart</h2>
         <p>This is the grid table on the right side of a product page — typically order sizes down the left and measurements (expanded diameter, recovered diameter, wall thickness, etc.) across the top. It also uses a visual, click-and-type builder.</p>
+
+        <div class="diagram-wrap">
+          <div class="diagram-caption">Example of a finished chart, as customers see it</div>
+          <table class="field-ref" style="margin:0;">
+            <tr>
+              <th rowspan="2" style="vertical-align:middle;">Order Size</th>
+              <th colspan="2" style="text-align:center;">Expanded Diameter</th>
+              <th rowspan="2" style="vertical-align:middle;">Wall Thickness</th>
+            </tr>
+            <tr>
+              <th style="text-align:center;">Min</th>
+              <th style="text-align:center;">Max</th>
+            </tr>
+            <tr><td>3/4&quot;</td><td style="text-align:center;">0.750&quot;</td><td style="text-align:center;">0.375&quot;</td><td style="text-align:center;">0.020&quot;</td></tr>
+            <tr><td>1&quot;</td><td style="text-align:center;">1.000&quot;</td><td style="text-align:center;">0.500&quot;</td><td style="text-align:center;">0.024&quot;</td></tr>
+            <tr><td>1-1/2&quot;</td><td style="text-align:center;">1.500&quot;</td><td style="text-align:center;">0.750&quot;</td><td style="text-align:center;">0.030&quot;</td></tr>
+          </table>
+        </div>
+
         <h3>Building it by hand</h3>
         <table class="field-ref">
           <tr><td>+ Add column</td><td>Adds a new column header. Click into the heading box and type its name, e.g. "Order Size."</td></tr>
@@ -335,8 +482,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="pdfs">
-        <div class="eyebrow">Managing Products</div>
-        <h2>Managing PDF data sheets</h2>
+        <div class="eyebrow eyebrow-manage">Managing Products</div>
+        <h2>📄 Managing PDF data sheets</h2>
         <p>Every product can have a downloadable spec-sheet PDF. When a product has one, its page shows a <strong>"Download PDF"</strong> button; when it doesn't, customers instead see a <strong>"Request Data Sheet"</strong> button (so they can contact you directly).</p>
         <h3>Uploading a PDF for the first time</h3>
         <ol class="steps">
@@ -360,8 +507,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="deleting">
-        <div class="eyebrow">Managing Products</div>
-        <h2>Deleting a product</h2>
+        <div class="eyebrow eyebrow-manage">Managing Products</div>
+        <h2>🗑️ Deleting a product</h2>
         <ol class="steps">
           <li>From the dashboard, click <span class="btn btn-sm btn-danger btn-mock">Delete</span> on the product's row.</li>
           <li>Read the confirmation screen carefully — it names the exact product you're about to remove.</li>
@@ -374,13 +521,51 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="walkthrough">
-        <div class="eyebrow">Managing Products</div>
-        <h2>Launching a brand-new product, start to finish</h2>
+        <div class="eyebrow eyebrow-manage">Managing Products</div>
+        <h2>🚀 Launching a brand-new product, start to finish</h2>
         <p>Adding one part usually touches three different pages, not just the Add Product form. Here's the full sequence in order, pulling together the steps from the sections above:</p>
         <div class="callout callout-tip">
           <b>Before you start, have these ready</b>
           The SKU/part number and category, the full product name, a hosted link to a product photo (if you have one), the PDF data sheet file (if you have one), and any specification or size-chart numbers. Having these on hand up front means you can usually do this in one sitting instead of stopping mid-form to go find something.
         </div>
+
+        <div class="diagram-wrap">
+          <div class="diagram-caption">The four-step sequence, visually</div>
+          <svg viewBox="0 0 680 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the four steps: Add Product, Edit, Manage PDF, View">
+            <g font-family="system-ui,sans-serif">
+              <rect x="6" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
+              <circle cx="30" cy="30" r="14" fill="#005da3"/><text x="30" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">1</text>
+              <text x="81" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Add Product</text>
+              <text x="81" y="78" font-size="9" fill="#374151" text-anchor="middle">SKU, category,</text>
+              <text x="81" y="92" font-size="9" fill="#374151" text-anchor="middle">name &amp; details</text>
+
+              <text x="172" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
+
+              <rect x="188" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
+              <circle cx="212" cy="30" r="14" fill="#005da3"/><text x="212" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">2</text>
+              <text x="263" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Edit</text>
+              <text x="263" y="78" font-size="9" fill="#374151" text-anchor="middle">Paste in a</text>
+              <text x="263" y="92" font-size="9" fill="#374151" text-anchor="middle">Photo URL</text>
+
+              <text x="354" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
+
+              <rect x="370" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
+              <circle cx="394" cy="30" r="14" fill="#005da3"/><text x="394" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">3</text>
+              <text x="445" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Manage PDF</text>
+              <text x="445" y="78" font-size="9" fill="#374151" text-anchor="middle">Upload the</text>
+              <text x="445" y="92" font-size="9" fill="#374151" text-anchor="middle">data sheet</text>
+
+              <text x="536" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
+
+              <rect x="552" y="30" width="122" height="80" rx="10" fill="#eefaf1" stroke="#a7e2b8"/>
+              <circle cx="576" cy="30" r="14" fill="#16a34a"/><text x="576" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">4</text>
+              <text x="613" y="60" font-size="12" font-weight="800" fill="#166534" text-anchor="middle">View ↗</text>
+              <text x="613" y="78" font-size="9" fill="#374151" text-anchor="middle">Confirm it</text>
+              <text x="613" y="92" font-size="9" fill="#374151" text-anchor="middle">looks right</text>
+            </g>
+          </svg>
+        </div>
+
         <ol class="steps">
           <li>Go to <a href="#adding">Adding a new product</a> and fill in the Add Product form — SKU, Part Type, Product Name, badges, description, and (if the data is ready) the Specifications list and Size chart. Click <strong>Add Product</strong>.</li>
           <li>Click <span class="btn btn-sm btn-edit btn-mock">Edit</span> on the product you just created and paste in a <strong>Photo URL</strong> — see <a href="#editing">Editing an existing product</a>. The Add form has no photo field, so this always happens as a second step. Click <strong>Save Changes</strong>.</li>
@@ -391,8 +576,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="auditlog">
-        <div class="eyebrow">Advanced</div>
-        <h2>Audit log / change history</h2>
+        <div class="eyebrow eyebrow-advanced">Advanced</div>
+        <h2>🕒 Audit log / change history</h2>
         <p>Every add, edit, deletion, and PDF upload or removal made through this dashboard is automatically recorded — who made it (by IP address), exactly when, and what changed.</p>
         <ol class="steps">
           <li>Click <strong>Audit Log</strong> in the header navigation.</li>
@@ -416,8 +601,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="faq">
-        <div class="eyebrow">Reference</div>
-        <h2>Troubleshooting &amp; frequently asked questions</h2>
+        <div class="eyebrow eyebrow-reference">Reference</div>
+        <h2>❓ Troubleshooting &amp; frequently asked questions</h2>
 
         <details class="faq">
           <summary>I saved a change but it doesn't show on the website yet.</summary>
@@ -471,8 +656,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="glossary">
-        <div class="eyebrow">Reference</div>
-        <h2>Glossary of terms</h2>
+        <div class="eyebrow eyebrow-reference">Reference</div>
+        <h2>📖 Glossary of terms</h2>
         <table class="field-ref">
           <tr><td>SKU / Part Number</td><td>The unique code identifying one specific product, e.g. <code>IP33PO</code>. It also becomes part of that product's web address and its PDF file's name.</td></tr>
           <tr><td>Part Type</td><td>The category a product belongs to (Heat Shrink, End Cap, Tape, etc.), which controls where it's grouped on the dashboard and the site.</td></tr>
@@ -486,8 +671,8 @@ $navActive = 'help';
       </section>
 
       <section class="help-section" id="help">
-        <div class="eyebrow">Reference</div>
-        <h2>Getting more help</h2>
+        <div class="eyebrow eyebrow-reference">Reference</div>
+        <h2>🆘 Getting more help</h2>
         <h3>A quick safety checklist</h3>
         <ul class="plain">
           <li>Don't share the admin password over insecure channels like plain text or email if you can help it — anyone who has it can change the catalog (see <a href="#signing-in">Signing in &amp; out</a>).</li>
@@ -508,6 +693,7 @@ $navActive = 'help';
     </div>
   </div>
 </main>
+<a href="#" class="back-to-top" title="Back to top" aria-label="Back to top">↑</a>
 <script src="help.js"></script>
 </body>
 </html>
