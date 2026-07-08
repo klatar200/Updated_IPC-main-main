@@ -1,8 +1,14 @@
 # Network Solutions / Apache config for the IPC standalone Vite build.
 # Placed in /public so Vite copies it verbatim into /dist at build time.
 
-Options -MultiViews
+# FollowSymLinks (or SymLinksIfOwnerMatch) is REQUIRED for mod_rewrite to run.
+# Without it Apache 500s the moment a RewriteRule tries to fire — which is why a
+# direct load/refresh of a deep SPA path (/products, /company, …) errored while
+# the homepage worked. If the host rejects FollowSymLinks, swap the line below
+# for:  Options -MultiViews +SymLinksIfOwnerMatch
+Options -MultiViews +FollowSymLinks
 RewriteEngine On
+RewriteBase /
 
 # Serve existing files and directories normally (assets, JSON, .well-known, etc.)
 RewriteCond %{REQUEST_FILENAME} !-f
