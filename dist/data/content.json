@@ -1,0 +1,850 @@
+{
+    "features": [
+        {
+            "iconKey": "heatshrink",
+            "title": "Heat Shrink Tubing",
+            "description": "Polyolefin (2:1 & 3:1), dual-wall adhesive-lined, PVDF/Kynar, neoprene, fluoroelastomer, and medical-grade. All RoHS compliant."
+        },
+        {
+            "iconKey": "sleeving",
+            "title": "Electrical Sleeving",
+            "description": "Fiberglass sleeving — heat-treated, vinyl-coated (Class C), acrylic-coated (Class F), silicone-coated (Class H). Expandable polyester also stocked."
+        },
+        {
+            "iconKey": "adhesives",
+            "title": "Adhesives & Accessories",
+            "description": "Industrial & cyanoacrylate adhesives, cable ties, insulating tape, heat guns, and heat-shrinkable end caps."
+        },
+        {
+            "iconKey": "cut",
+            "title": "Custom Cut-to-Length",
+            "description": "Small or large volume precision cutting and spooling. Tight tolerances, clean environment. Typical turnaround: one week or less."
+        },
+        {
+            "iconKey": "marking",
+            "title": "Marking & Kitting",
+            "description": "Custom labeling, bar code printing, wire & cable markers, slit lengthwise, perforations, bagging per spec, JIT services."
+        },
+        {
+            "iconKey": "quality",
+            "title": "ISO 9001 Quality",
+            "description": "ISO 9001:2008 registered facility. Computerized equipment, documented processes, quality maintained from receiving through shipping."
+        }
+    ],
+    "stats": [
+        {
+            "iconKey": "years",
+            "value": "50+",
+            "label": "Years in Business",
+            "sub": "Founded July 1, 1974"
+        },
+        {
+            "iconKey": "stock",
+            "value": "25M+",
+            "label": "Feet in Stock",
+            "sub": "Ready to ship today"
+        },
+        {
+            "iconKey": "dollar",
+            "value": "$50",
+            "label": "Minimum Order",
+            "sub": "No large MOQ required"
+        },
+        {
+            "iconKey": "ship",
+            "value": "≤1 Day",
+            "label": "Shipment Available",
+            "sub": "On most stock items"
+        }
+    ],
+    "markets": [
+        {
+            "iconKey": "auto",
+            "label": "Automotive",
+            "desc": "PPAP & IMDS documentation available. Harness protection, connector sealing, diesel-resistant jacketing.",
+            "page": "industries"
+        },
+        {
+            "iconKey": "aero",
+            "label": "Aerospace & Defense",
+            "desc": "MIL-SPEC, AMS, QPL products in stock. PVDF, FEP, and PTFE tubing for avionics and high-temp compartments.",
+            "page": "industries"
+        },
+        {
+            "iconKey": "medical",
+            "label": "Medical Devices",
+            "desc": "USP Class VI · ISO 10993-5 · FDA 21 CFR. Cleanroom-bagged, alcohol-wiped, double-packaged on request.",
+            "page": "industries"
+        },
+        {
+            "iconKey": "industrial",
+            "label": "Industrial & OEM",
+            "desc": "Motor leads, transformer winding, heating elements. Fiberglass sleeving rated up to 1200°F in stock.",
+            "page": "industries"
+        },
+        {
+            "iconKey": "marine",
+            "label": "Marine & Outdoor",
+            "desc": "UV-rated PVC, dual-wall adhesive-lined tubing, and nonmetallic liquid-tight conduit fittings.",
+            "page": "industries"
+        },
+        {
+            "iconKey": "electronics",
+            "label": "Electronics & Lab",
+            "desc": "PTFE spaghetti tubing, thin-wall polyolefin, and Mylar high-dielectric for PCB and instrumentation work.",
+            "page": "industries"
+        }
+    ],
+    "industryDetail": [
+        {
+            "iconKey": "automotive",
+            "name": "Automotive",
+            "subhead": "PPAP & IMDS documentation available",
+            "useCases": [
+                "Wire harness insulation and strain relief",
+                "Under-hood connector sealing with adhesive-lined tubing",
+                "Diesel-resistant jacketing for fuel system wiring",
+                "Slit guard conduit for cable bundle protection"
+            ],
+            "products": [
+                {
+                    "sku": "IP33PO",
+                    "label": "General Polyolefin Heat Shrink 2:1"
+                },
+                {
+                    "sku": "IP44A2 & IP45A3",
+                    "label": "Adhesive-Lined Polyolefin 2:1 & 3:1"
+                },
+                {
+                    "sku": "IP56DR",
+                    "label": "Diesel-Resistant Heat Shrink"
+                },
+                {
+                    "sku": "IP71NS - IP72PS - IP73PP",
+                    "label": "Slit Guard Conduit Tubing"
+                }
+            ],
+            "certs": [
+                "UL 224 VW-1",
+                "MIL-SPEC",
+                "RoHS",
+                "Ford LP Approved Variants"
+            ]
+        },
+        {
+            "iconKey": "aerospace",
+            "name": "Aerospace & Defense",
+            "subhead": "MIL-SPEC, AMS, QPL products in stock",
+            "useCases": [
+                "MIL-SPEC heat shrink over avionics wiring and connectors",
+                "PVDF and FEP tubing for high-temperature compartments",
+                "PTFE spaghetti tubing for tight-tolerance wire ID",
+                "Neoprene jacketing for fluid and abrasion resistance"
+            ],
+            "products": [
+                {
+                    "sku": "IP35KY",
+                    "label": "PVDF/Kynar Heat Shrink"
+                },
+                {
+                    "sku": "IP38FE",
+                    "label": "FEP Teflon Heat Shrink"
+                },
+                {
+                    "sku": "IP37SH - IP36TH - IP39LH",
+                    "label": "PTFE/TFE Heat Shrink Tubing"
+                },
+                {
+                    "sku": "IP41NE / IP43VT",
+                    "label": "Neoprene / Viton Heat Shrink"
+                }
+            ],
+            "certs": [
+                "MIL-I-23053 (multiple classes)",
+                "AMS-3632C / AMS-3653B",
+                "M23053/8 QPL Available"
+            ]
+        },
+        {
+            "iconKey": "medical",
+            "name": "Medical Devices",
+            "subhead": "USP Class VI · ISO 10993-5 · FDA 21 CFR",
+            "useCases": [
+                "Catheter and surgical instrument handle jacketing",
+                "Endoscope component covering with biocompatible tubing",
+                "Cleanroom-bagged, alcohol-wiped, double-packaged stock",
+                "FDA-grade vinyl tubing for low-pressure fluid transfer"
+            ],
+            "products": [
+                {
+                    "sku": "IP53MP",
+                    "label": "Medical Grade Heat Shrink (USP Class VI)"
+                },
+                {
+                    "sku": "IP15PV",
+                    "label": "FDA Vinyl Tubing"
+                }
+            ],
+            "certs": [
+                "USP Class VI",
+                "ISO 10993-5",
+                "FDA Title 21 CFR",
+                "USFDA Compliant"
+            ]
+        },
+        {
+            "iconKey": "industrial",
+            "name": "Industrial & OEM",
+            "subhead": "Motor leads, transformers, heating elements",
+            "useCases": [
+                "Fiberglass sleeving for motor lead and winding insulation",
+                "High-temperature coating options: vinyl, acrylic, silicone",
+                "Heat shrink end caps for pipe and conduit sealing",
+                "Expandable polyester sleeving for irregular cable bundles"
+            ],
+            "products": [
+                {
+                    "sku": "IP64FS-IP65VC-IP66AC-IP67SC",
+                    "label": "Fiberglass Sleeving (Heat Treated, Vinyl, Acrylic, Silicone Coated)"
+                },
+                {
+                    "sku": "IP52EC",
+                    "label": "Heat Shrink End Caps"
+                },
+                {
+                    "sku": "IP61ES & IP62EF",
+                    "label": "Expandable Polyester Sleeving"
+                },
+                {
+                    "sku": "IP63ES",
+                    "label": "Roundit 2000 Self-Wrapping Sleeving"
+                }
+            ],
+            "certs": [
+                "UL Recognized",
+                "MIL-I-3190",
+                "ASTM D-372",
+                "NEMA VS-1"
+            ]
+        },
+        {
+            "iconKey": "marine",
+            "name": "Marine & Outdoor",
+            "subhead": "UV rated · Waterproof sealing · Corrosion resistant",
+            "useCases": [
+                "Dual-wall adhesive-lined tubing for watertight connector seals",
+                "UV-resistant PVC heat shrink for exposed wiring",
+                "Nonmetallic liquid-tight conduit and fittings",
+                "PTFE and fluoropolymer tubing for chemical/saltwater resistance"
+            ],
+            "products": [
+                {
+                    "sku": "IP44A2 & IP45A3",
+                    "label": "Adhesive-Lined Polyolefin 2:1 & 3:1"
+                },
+                {
+                    "sku": "IP30UV",
+                    "label": "UV-Resistant PVC Heat Shrink"
+                },
+                {
+                    "sku": "CT",
+                    "label": "Nonmetallic Liquid-Tight Conduit Tubing"
+                },
+                {
+                    "sku": "IP55FL",
+                    "label": "Fluoropolymer Heat Shrink"
+                }
+            ],
+            "certs": [
+                "UL & CUL Listed (Conduit system)",
+                "UV Rated Material"
+            ]
+        }
+    ],
+    "services": [
+        {
+            "iconKey": "cut",
+            "title": "Cut-to-Length",
+            "leadTime": "≤ 1 week",
+            "desc": "Precision cutting of heat shrink tubing, sleeving, and extruded tubing to any customer-specified length. Both small and large volumes accommodated.",
+            "details": [
+                "Tight length tolerances maintained",
+                "Clean room environment",
+                "Individual or bulk packaging",
+                "All tubing and sleeving types supported"
+            ]
+        },
+        {
+            "iconKey": "spool",
+            "title": "Spooling & Coiling",
+            "leadTime": "≤ 1 week",
+            "desc": "Tubing and sleeving supplied on customer-specified spools or coils for automated assembly and machine-fed applications.",
+            "details": [
+                "Custom spool sizes and footage",
+                "Cardboard, plastic, or wood cores",
+                "Individual labels per spool",
+                "All extruded products available"
+            ]
+        },
+        {
+            "iconKey": "mark",
+            "title": "Hot-Stamp Marking",
+            "leadTime": "≤ 1 week",
+            "desc": "Custom hot-stamp marking directly on heat shrink tubing and sleeving for cable ID, part number, logo, and sequential numbering.",
+            "details": [
+                "Part numbers, logos, sequential IDs",
+                "Permanent, abrasion-resistant marking",
+                "Single or multi-line text",
+                "Works on most tubing materials"
+            ],
+            "brochure": {
+                "url": "/pdfs/marketing/Identification-Markers.pdf",
+                "label": "Identification Markers brochure"
+            }
+        },
+        {
+            "iconKey": "kit",
+            "title": "Kitting & Bagging",
+            "leadTime": "≤ 1 week (JIT by agreement)",
+            "desc": "Custom kitting and individual bagging of cut pieces or sets per customer specification. JIT delivery programs available to reduce your inventory burden.",
+            "details": [
+                "Individual poly bag with label",
+                "Kit assemblies (multiple items per bag)",
+                "Branded or private-label packaging",
+                "JIT pull-system programs"
+            ],
+            "brochure": {
+                "url": "/pdfs/marketing/Tubing-Kits.pdf",
+                "label": "Tubing Kits brochure"
+            }
+        },
+        {
+            "iconKey": "barcode",
+            "title": "Bar Code Printing",
+            "leadTime": "≤ 1 week",
+            "desc": "Bar code labels and printed identification affixed to individual pieces, coils, or spools. 1D and 2D formats including UPC, Code 128, and QR.",
+            "details": [
+                "1D: Code 128, Code 39, ITF",
+                "2D: QR Code, Data Matrix",
+                "Label on product or packaging",
+                "Customer-supplied or IPC-generated data"
+            ]
+        },
+        {
+            "iconKey": "slit",
+            "title": "Slit & Perforation",
+            "leadTime": "≤ 1 week",
+            "desc": "Tubing and tape slit lengthwise for wrap-around applications, or perforated vertically and/or horizontally for easy separation and dispensing.",
+            "details": [
+                "Lengthwise slit for wrap-around use",
+                "Horizontal perforations (e.g. tear-off lengths)",
+                "Vertical perforations (e.g. marker separation)",
+                "Available on most film and tape products"
+            ]
+        }
+    ],
+    "milestones": [
+        {
+            "year": "1974",
+            "label": "Founded",
+            "desc": "Insulation Products Corporation incorporated July 1, 1974 in Bolingbrook, Illinois."
+        },
+        {
+            "year": "1980s",
+            "label": "Expansion",
+            "desc": "Grew product line from basic vinyl tubing to full heat-shrinkable and extruded tubing catalog."
+        },
+        {
+            "year": "1990s",
+            "label": "ISO Certified",
+            "desc": "Achieved ISO 9001 registration, formalizing quality systems from receiving to shipping."
+        },
+        {
+            "year": "2000s",
+            "label": "Value-Added",
+            "desc": "Launched in-house fabrication services: cut-to-length, hot-stamp marking, kitting, and spooling."
+        },
+        {
+            "year": "2010s",
+            "label": "Remodel",
+            "desc": "State-of-the-art computerized facility and equipment update; expanded MIL-SPEC and medical-grade stocking."
+        },
+        {
+            "year": "2024",
+            "label": "50 Years",
+            "desc": "Celebrating 50 years as a trusted, independent stocking distributor. 25M+ feet in stock, $50 minimum order."
+        }
+    ],
+    "faq": [
+        {
+            "category": "Products",
+            "question": "What types of heat shrink tubing do you carry?",
+            "answer": "IPC stocks a comprehensive range: standard polyolefin (2:1 and 3:1 ratios), thin-wall polyolefin, semi-rigid polyolefin, UV-resistant PVC, irradiated PVC, layflat PVC, dual-wall adhesive-lined (2:1 and 3:1), PVDF/Kynar high-dielectric, fluoropolymer (IP55FL), FEP Teflon (IP38FE), PTFE/TFE heat shrink, neoprene and Viton elastomeric, Mylar high-dielectric, medical-grade (USP Class VI), diesel-resistant, and melt-wall encapsulating tubing. All products are RoHS compliant."
+        },
+        {
+            "category": "Products",
+            "question": "What sleeving and conduit products are available?",
+            "answer": "We supply fiberglass sleeving in four coating options: heat-treated bare glass (IP64FS, up to 1200°F/649°C), vinyl-coated Class C (IPC65VC, 130°C), acrylic-coated Class F (IP66AC, 155°C), and silicone-coated Class H (IP67SC, up to 200°C). We also carry expandable polyester sleeving (IP61ES/IP62EF), self-wrapping Roundit 2000 sleeving (IP63ES), slit guard conduit (polyethylene, nylon, polypropylene), and nonmetallic liquid-tight conduit fittings (CCS, CC, CC90, CT)."
+        },
+        {
+            "category": "Products",
+            "question": "Are your products RoHS compliant?",
+            "answer": "Yes — our entire product line is RoHS compliant. Individual products also carry additional certifications including UL (Subject 224 VW-1), CSA OFT, MIL-SPEC (multiple classes), AMS, FDA Title 21 CFR, USP Class VI, and ASTM standards. Specific certifications are listed on each product's data sheet."
+        },
+        {
+            "category": "Products",
+            "question": "Do you carry extruded and non-shrink tubing?",
+            "answer": "Yes. In addition to heat shrink, IPC stocks extruded vinyl tubing (IP10EX, IP12GA, IP1274, IP15PV FDA grade), PTFE spaghetti tubing (multiple wall thicknesses), polyurethane tubing, and low-temperature PVC. We also carry adhesives, heat guns, cable ties, heat-shrinkable end caps, and heat-shrink tape."
+        },
+        {
+            "category": "Custom & Value-Added Fabrication",
+            "question": "Can you cut tubing to custom lengths?",
+            "answer": "Yes. Our fabrication shop handles precision cut-to-length for any volume — from a handful of pieces to bulk production runs. Parts are bagged per customer specification. Tight tolerances and a clean environment are maintained throughout. Typical turnaround: one week or less."
+        },
+        {
+            "category": "Custom & Value-Added Fabrication",
+            "question": "What marking and labeling services do you offer?",
+            "answer": "IPC offers hot-stamp marking (part numbers, logos, sequential IDs), bar code printing (Code 128, Code 39, QR Code, Data Matrix), wire and cable markers, lengthwise slitting for wrap-around applications, and both vertical and horizontal perforations for easy separation. Labels can be applied to individual pieces, coils, or spools."
+        },
+        {
+            "category": "Custom & Value-Added Fabrication",
+            "question": "Do you offer spooling, coiling, and kitting?",
+            "answer": "Yes. Tubing and sleeving can be supplied on custom spools or in coils to customer specification — including footage, core size, and labeling requirements. Kitting and individual bagging (single items or kit assemblies) are also available, with JIT delivery programs for customers who want to reduce their stocking burden."
+        },
+        {
+            "category": "Custom & Value-Added Fabrication",
+            "question": "What is your standard turnaround time for custom fabrication?",
+            "answer": "One week or less for standard cut-to-length, marking, spooling, and kitting work. Rush service is available — contact our sales team at 630.771.0700 or sales@insulationproducts.com for specific commitments on your project."
+        },
+        {
+            "category": "Ordering & Minimums",
+            "question": "What is the minimum order?",
+            "answer": "IPC's minimum order is $50. We accommodate both prototype/small-volume needs and full production orders — you don't need a large MOQ to buy from us."
+        },
+        {
+            "category": "Ordering & Minimums",
+            "question": "How much inventory do you carry?",
+            "answer": "IPC maintains over 25 million feet of tubing and sleeving in stock at our Bolingbrook, IL facility. Most in-stock items ship the same day or next business day."
+        },
+        {
+            "category": "Ordering & Minimums",
+            "question": "How do I request a quote?",
+            "answer": "Call us at 630.771.0700 (Mon–Fri, 8am–5pm CT), fax your PO or inquiry to 630.771.0701, email sales@insulationproducts.com, or use the Contact form on this website. Include part numbers (or a description), quantities, required lead time, and any special requirements for the fastest response."
+        },
+        {
+            "category": "Ordering & Minimums",
+            "question": "Can I fax my purchase order?",
+            "answer": "Yes. Our fax number is 630.771.0701. Fax is suitable for POs, RFQs, and documentation requests including PPAP packages and IMDS material submissions."
+        },
+        {
+            "category": "Ordering & Minimums",
+            "question": "Do you offer JIT (Just-In-Time) delivery programs?",
+            "answer": "Yes. IPC offers JIT stocking and pull-based delivery programs for customers who want to reduce their on-hand inventory. Contact our sales team to discuss program structure, minimum commitments, and lead times."
+        },
+        {
+            "category": "Ordering & Minimums",
+            "question": "Can IPC support PPAP or IMDS documentation requirements?",
+            "answer": "Yes. IPC can provide PPAP documentation packages and IMDS (International Material Data System) submissions for automotive supplier customers. Contact sales at 630.771.0700 or by email to discuss your specific documentation requirements."
+        },
+        {
+            "category": "Support & Documentation",
+            "question": "Where can I download product data sheets?",
+            "answer": "Individual product data sheets are available on each product's detail page — click the 'Data Sheet' button in the product header. A link to the full IPC product catalog PDF is available on the Products page header and in the site footer."
+        },
+        {
+            "category": "Support & Documentation",
+            "question": "Can IPC cross-reference a competitor part number?",
+            "answer": "Yes. Our technical support team can cross-reference most competitor part numbers to an equivalent IPC product. Call 630.771.0700 or email sales@insulationproducts.com with the competitor part number, material type, and key dimensions."
+        },
+        {
+            "category": "Support & Documentation",
+            "question": "Are certificates of conformance available?",
+            "answer": "Yes. Certificates of conformance (C of C) can be provided with your order upon request. Contact sales at the time of ordering to ensure C of C documentation is included with your shipment."
+        },
+        {
+            "category": "Support & Documentation",
+            "question": "Do you ship internationally?",
+            "answer": "Please contact our sales team at sales@insulationproducts.com or call 630.771.0700 to discuss international shipping options, export compliance, and any restrictions for your specific products and destination."
+        }
+    ],
+    "capabilities": [
+        {
+            "avatar": "🤝",
+            "name": "Inside Sales Team",
+            "role": "Fast, accurate quote & order response"
+        },
+        {
+            "avatar": "⚙️",
+            "name": "Technical Support",
+            "role": "Product selection, specs & cross-reference"
+        },
+        {
+            "avatar": "🏅",
+            "name": "ISO Quality Team",
+            "role": "ISO 9001 in-process & final inspection"
+        },
+        {
+            "avatar": "✂️",
+            "name": "Fabrication Shop",
+            "role": "Cut · Mark · Spool · Kit in ≤ 1 week"
+        }
+    ],
+    "certs": [
+        {
+            "iconKey": "check",
+            "title": "ISO 9001:2008",
+            "sub": "Registered Quality Management System"
+        },
+        {
+            "iconKey": "leaf",
+            "title": "Full RoHS Compliant",
+            "sub": "Entire product line"
+        },
+        {
+            "iconKey": "flag",
+            "title": "Made in USA",
+            "sub": "Bolingbrook, IL facility"
+        },
+        {
+            "iconKey": "list",
+            "title": "UL · CSA · MIL-SPEC · AMS",
+            "sub": "Product-level certifications"
+        },
+        {
+            "iconKey": "build",
+            "title": "PPAP & IMDS Support",
+            "sub": "Automotive documentation available"
+        },
+        {
+            "iconKey": "lock",
+            "title": "Privately Held",
+            "sub": "Independent since July 1, 1974"
+        }
+    ],
+    "companyNav": [
+        {
+            "label": "Industries Served",
+            "sub": "Automotive, Aerospace, Medical…",
+            "page": "industries"
+        },
+        {
+            "label": "Value-Added Services",
+            "sub": "Cut · Mark · Spool · Kit",
+            "page": "services"
+        },
+        {
+            "label": "About IPC",
+            "sub": "History, certs & capabilities",
+            "page": "about"
+        },
+        {
+            "label": "Resources / FAQ",
+            "sub": "Common questions & answers",
+            "page": "faq"
+        }
+    ],
+    "footerLinks": [
+        {
+            "label": "Product Catalog",
+            "page": "products"
+        },
+        {
+            "label": "About IPC",
+            "page": "about"
+        },
+        {
+            "label": "Product Index",
+            "page": "dashboard"
+        },
+        {
+            "label": "Resources / FAQ",
+            "page": "faq"
+        },
+        {
+            "label": "Industries",
+            "page": "industries"
+        },
+        {
+            "label": "Contact",
+            "page": "contact"
+        },
+        {
+            "label": "Services",
+            "page": "services"
+        },
+        {
+            "label": "Privacy Policy",
+            "page": "privacy"
+        }
+    ],
+    "heroProofPoints": [
+        {
+            "stat": "$50",
+            "label": "Minimum Order",
+            "sub": "No large MOQ required"
+        },
+        {
+            "stat": "25M+",
+            "label": "Feet in Stock",
+            "sub": "Ready to ship today"
+        },
+        {
+            "stat": "Same Day",
+            "label": "Shipment Available",
+            "sub": "On in-stock items"
+        },
+        {
+            "stat": "ISO 9001",
+            "label": "Registered Quality",
+            "sub": "Every order, every time"
+        }
+    ],
+    "heroTrust": [
+        {
+            "text": "ISO 9001:2008 Registered"
+        },
+        {
+            "text": "Full RoHS Compliant Product Line"
+        },
+        {
+            "text": "UL · CSA · MIL-SPEC · AMS Rated Products"
+        },
+        {
+            "text": "PPAP & IMDS Documentation Available"
+        },
+        {
+            "text": "Custom Cut · Hot-Stamp Mark · Spool & Kit"
+        },
+        {
+            "text": "JIT Delivery Programs Available"
+        },
+        {
+            "text": "Made in USA Since 1974"
+        },
+        {
+            "text": "$50 Minimum Order"
+        },
+        {
+            "text": "25M+ Feet in Stock"
+        },
+        {
+            "text": "Same-Day Shipment Available"
+        }
+    ],
+    "privacySections": [
+        {
+            "title": "Information We Collect",
+            "content": "When you use the contact or quote request form on this website, we collect the information you provide: your name, company name, email address, phone number (optional), and message content. We do not collect payment information through this website."
+        },
+        {
+            "title": "How We Use Your Information",
+            "content": "The information you submit through our contact form is used solely to respond to your inquiry or quote request. We will contact you using the email address or phone number you provide. We do not sell, rent, or share your personal information with third parties for marketing purposes."
+        },
+        {
+            "title": "Data Retention",
+            "content": "Inquiry data is retained for the duration necessary to fulfill your request and for a reasonable period thereafter for business record-keeping purposes, not to exceed three (3) years unless required by applicable law."
+        },
+        {
+            "title": "Cookies & Tracking",
+            "content": "This website does not use third-party advertising cookies or behavioral tracking technologies. Basic session and functional cookies may be used to maintain your browsing session. We do not use Google Analytics or similar tracking tools that share your data with third parties."
+        },
+        {
+            "title": "Your Rights (GDPR / CCPA)",
+            "content": "Depending on your location, you may have the right to access, correct, or delete personal information we hold about you, and to object to or restrict processing of that information. To exercise any of these rights, please contact us at sales@insulationproducts.com or call 630.771.0700."
+        },
+        {
+            "title": "Data Security",
+            "content": "We take reasonable technical and organizational measures to protect the personal information you share with us against unauthorized access, loss, or misuse. Our website is served over HTTPS."
+        },
+        {
+            "title": "Contact Us",
+            "content": "If you have questions about this Privacy Policy or how your data is handled, contact Insulation Products Corporation at: 250 Gibraltar Dr, Bolingbrook, IL 60440 · Phone: 630.771.0700 · Email: sales@insulationproducts.com"
+        }
+    ],
+    "seo": [
+        {
+            "page": "home",
+            "title": "Insulation Products Corporation — Heat Shrink Tubing, Sleeving & Adhesives",
+            "desc": "IPC is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. Ships same day. ISO 9001 registered."
+        },
+        {
+            "page": "products",
+            "title": "Product Catalog — Insulation Products Corporation",
+            "desc": "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and data sheets, and request a quote."
+        },
+        {
+            "page": "dashboard",
+            "title": "Product Index — Insulation Products Corporation",
+            "desc": "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and data sheets for every SKU."
+        },
+        {
+            "page": "industries",
+            "title": "Industries Served — Insulation Products Corporation",
+            "desc": "IPC supplies specification-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry."
+        },
+        {
+            "page": "services",
+            "title": "Value-Added Services — Insulation Products Corporation",
+            "desc": "Custom cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, and JIT delivery programs. Typical lead time one week or less."
+        },
+        {
+            "page": "about",
+            "title": "About — Insulation Products Corporation",
+            "desc": "Insulation Products Corporation — a spec-grade stocking distributor in Bolingbrook, IL since July 1, 1974. ISO 9001 registered. $50 minimum order, same-day shipment."
+        },
+        {
+            "page": "faq",
+            "title": "FAQ & Resources — Insulation Products Corporation",
+            "desc": "Answers to common questions about IPC products, certifications, ordering minimums, custom fabrication, and documentation support."
+        },
+        {
+            "page": "contact",
+            "title": "Contact / Request a Quote — Insulation Products Corporation",
+            "desc": "Request a quote, submit a PO, or ask a question. Call 630.771.0700, fax 630.771.0701, email sales@insulationproducts.com, or use our online form."
+        },
+        {
+            "page": "privacy",
+            "title": "Privacy Policy — Insulation Products Corporation",
+            "desc": "Privacy policy for Insulation Products Corporation — how we collect and use information submitted through our website contact forms."
+        }
+    ],
+    "contactTips": [
+        {
+            "text": "IPC part number or description"
+        },
+        {
+            "text": "Material type and size needed"
+        },
+        {
+            "text": "Quantity required"
+        },
+        {
+            "text": "Required delivery date"
+        },
+        {
+            "text": "Any special specs or certifications"
+        }
+    ],
+    "copy": {
+        "hero": {
+            "badge": "Bolingbrook, IL — Made in USA Since 1974",
+            "headlineLine1": "25 Million Feet in Stock.",
+            "headlineAccent": "Same-Day Shipment.",
+            "headlineLine3": "Custom Marking & Fabrication.",
+            "subhead": "Insulation Products Corporation is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. UL, CSA, MIL-SPEC, and RoHS compliant product line. Quick, accurate, courteous service since 1974 — the customer is always number one.",
+            "ctaPrimaryLabel": "Browse Products →",
+            "ctaPrimaryPage": "products",
+            "ctaSecondaryLabel": "Request a Quote",
+            "ctaSecondaryPage": "contact"
+        },
+        "homeFeatures": {
+            "eyebrow": "Products & Services",
+            "title": "A Complete Insulation Supply Source",
+            "ctaText": "Need a custom specification or hard-to-find product?",
+            "ctaButton": "Talk to Our Sales Team"
+        },
+        "homeMarkets": {
+            "eyebrow": "Industries Served",
+            "title": "Trusted Across Demanding Markets",
+            "subtitle": "IPC stocks specification-grade insulation materials used across every sector that requires reliable, certified wire and component protection."
+        },
+        "servicesHeader": {
+            "eyebrow": "Fabrication",
+            "title": "Value-Added Services",
+            "intro": "Beyond stocking and distributing, IPC offers a full range of fabrication and customization services — all with a typical lead time of one week or less."
+        },
+        "industriesHeader": {
+            "eyebrow": "Industries Served",
+            "title": "Applications by Industry",
+            "intro": "IPC supplies spec-grade insulation materials across demanding industries. Select your sector to see the products and certifications that serve your application."
+        },
+        "aboutHeader": {
+            "eyebrow": "Company",
+            "title": "About Insulation Products Corporation",
+            "intro": "A spec-grade stocking distributor of electrical insulation materials since July 1, 1974 — quick, accurate, and courteous service, always.",
+            "storyTitle": "Our Story",
+            "certsTitle": "Certifications & Standards",
+            "teamTitle": "Our Team & Capabilities",
+            "ctaTitle": "Ready to place an order or request a quote?"
+        },
+        "faqHeader": {
+            "eyebrow": "Resources",
+            "title": "Frequently Asked Questions",
+            "intro": "Answers to common product, ordering, and service questions. Can't find what you need?"
+        },
+        "contactHeader": {
+            "eyebrow": "Contact",
+            "title": "Get in Touch",
+            "intro": "Ready to order, need a quote, or have a technical question? Our sales team responds quickly and accurately.",
+            "directTitle": "Direct Contact"
+        },
+        "privacyHeader": {
+            "eyebrow": "Legal",
+            "title": "Privacy Policy",
+            "effectiveDate": "January 1, 2025",
+            "intro": "Insulation Products Corporation (\"IPC\", \"we\", \"us\", or \"our\") operates the website at insulationproducts.com. This Privacy Policy explains how we collect, use, and protect information when you visit our site or contact us through it."
+        },
+        "nav": {
+            "home": "Home",
+            "products": "Products",
+            "company": "Company",
+            "quoteButton": "Request a Quote",
+            "allProducts": "All Products",
+            "browseAll": "Browse All Products",
+            "productIndex": "Product Index",
+            "browseByCategory": "Browse by Category"
+        },
+        "footer": {
+            "contactTitle": "Contact",
+            "quickLinksTitle": "Quick Links",
+            "domain": "insulationproducts.com"
+        },
+        "contactForm": {
+            "rfqTab": "📋  Request a Quote",
+            "rfqTabSub": "Structured RFQ — fastest for orders",
+            "msgTab": "✉️  Send a Message",
+            "msgTabSub": "General inquiries & questions",
+            "rfqHeading": "Request a Quote",
+            "rfqIntro": "Fill in as much as you know — our team will clarify anything needed.",
+            "productDetailsTitle": "Product Details",
+            "partLabel": "Part Number / SKU",
+            "partPlaceholder": "e.g. IP35KY, IP33PO, or description",
+            "materialLabel": "Material / Type",
+            "materialPlaceholder": "e.g. Polyolefin 2:1, PVDF, Fiberglass",
+            "quantityLabel": "Quantity Required *",
+            "quantityPlaceholder": "e.g. 500 ft, 1000 pcs, 10 spools",
+            "dateLabel": "Required Delivery Date",
+            "datePlaceholder": "e.g. ASAP, end of month, 6/30/2025",
+            "specialLabel": "Special Requirements",
+            "specialPlaceholder": "e.g. C of C required, PPAP, custom marking, specific color, certifications needed",
+            "notesLabel": "Additional Notes",
+            "notesPlaceholder": "Any other details that will help us respond accurately…",
+            "submitRfq": "Submit Quote Request →",
+            "msgHeading": "Send a Message",
+            "msgIntro": "For general questions, technical guidance, or anything that doesn't fit the RFQ form.",
+            "subjectLabel": "Subject *",
+            "subjectPlaceholder": "What's this about?",
+            "messageLabel": "Message *",
+            "messagePlaceholder": "Include any relevant details — product type, application, quantities, certifications needed…",
+            "submitMsg": "Send Message →",
+            "sendingLabel": "Sending…",
+            "rfqSuccessTitle": "Quote Request Received",
+            "msgSuccessTitle": "Message Received",
+            "successThanks": "Thank you!",
+            "rfqSuccessBody": "Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.",
+            "msgSuccessBody": "Your message has been received. Our sales team will respond within one business day.",
+            "urgentPrefix": "For urgent inquiries:",
+            "networkError": "Network error. Please call 630.771.0700 or email sales@insulationproducts.com directly.",
+            "submitError": "Submission failed. Please call 630.771.0700.",
+            "nameLabel": "Full Name *",
+            "namePlaceholder": "Your name",
+            "emailLabel": "Email *",
+            "emailPlaceholder": "you@company.com",
+            "phoneLabel": "Phone",
+            "phonePlaceholder": "Optional",
+            "companyLabel": "Company",
+            "companyPlaceholder": "Your organization",
+            "tipsTitle": "For fastest response, include:"
+        }
+    }
+}

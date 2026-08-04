@@ -7,11 +7,27 @@
 // Path to products-all.json — relative to document root
 define('PRODUCTS_JSON', __DIR__ . '/../data/products-all.json');
 
+// Path to site-info.json (business details read by the React site) — same folder
+define('SITE_INFO_JSON', __DIR__ . '/../data/site-info.json');
+
+// Path to content.json (editable page content — homepage sections, etc.) — same folder
+define('CONTENT_JSON', __DIR__ . '/../data/content.json');
+
 // Path to PDF storage folder — relative to document root
 define('PDF_DIR', __DIR__ . '/../pdfs/');
 
 // Web URL to the PDF folder (used to build download links)
 define('PDF_URL', '/pdfs/');
+
+// Uploaded product images — lives OUTSIDE the Vite build output (like pdfs/)
+// so redeploying the React app never clobbers customer-uploaded photos.
+// Deployed once to public_html/uploads/images/, then written only by the admin.
+define('IMG_DIR', __DIR__ . '/../uploads/images/');
+define('IMG_URL', '/uploads/images/');
+
+// Contact/RFQ inquiry log — appended by public_html/contact.php, read by
+// admin/inquiries.php. Blocked from the web by admin/.htaccess (*.jsonl rule).
+define('INQUIRIES_FILE', __DIR__ . '/inquiries.jsonl');
 
 // Admin session key
 define('ADMIN_SESSION_KEY', 'ipc_admin_authenticated');
@@ -130,6 +146,59 @@ function save_products(array $products): bool {
     usort($products, fn($a, $b) => strcmp($a['sku'] ?? '', $b['sku'] ?? ''));
     $json = json_encode($products, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     // LOCK_EX prevents concurrent write corruption (#3)
+    return file_put_contents($path, $json, LOCK_EX) !== false;
+}
+
+// Helper: load business details (site-info.json). Returns [] if missing/invalid.
+function load_site_info(): array {
+    if (!file_exists(SITE_INFO_JSON)) return [];
+    $json = file_get_contents(SITE_INFO_JSON);
+    $data = json_decode($json, true);
+    return is_array($data) ? $data : [];
+}
+
+// Helper: save business details. Mirrors save_products(): timestamped backup
+// (keep 5), LOCK_EX write. The React site reads this file at runtime.
+function save_site_info(array $info): bool {
+    $path = SITE_INFO_JSON;
+    $dir  = dirname($path);
+    if (!is_dir($dir)) mkdir($dir, 0755, true);
+    if (file_exists($path)) {
+        @copy($path, $dir . '/site-info.backup.' . date('Ymd-His') . '.json');
+        $backups = glob($dir . '/site-info.backup.*.json');
+        if ($backups && count($backups) > 5) {
+            sort($backups);
+            foreach (array_slice($backups, 0, count($backups) - 5) as $old) @unlink($old);
+        }
+    }
+    $json = json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    return file_put_contents($path, $json, LOCK_EX) !== false;
+}
+
+// Helper: load editable page content (homepage sections, etc.). Returns [] if
+// missing so callers can fall back to their seed defaults.
+function load_content(): array {
+    if (!file_exists(CONTENT_JSON)) return [];
+    $json = file_get_contents(CONTENT_JSON);
+    $data = json_decode($json, true);
+    return is_array($data) ? $data : [];
+}
+
+// Helper: save editable page content. Mirrors save_site_info(): timestamped
+// backup (keep 5), LOCK_EX write. The React site reads this file at runtime.
+function save_content(array $content): bool {
+    $path = CONTENT_JSON;
+    $dir  = dirname($path);
+    if (!is_dir($dir)) mkdir($dir, 0755, true);
+    if (file_exists($path)) {
+        @copy($path, $dir . '/content.backup.' . date('Ymd-His') . '.json');
+        $backups = glob($dir . '/content.backup.*.json');
+        if ($backups && count($backups) > 5) {
+            sort($backups);
+            foreach (array_slice($backups, 0, count($backups) - 5) as $old) @unlink($old);
+        }
+    }
+    $json = json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     return file_put_contents($path, $json, LOCK_EX) !== false;
 }
 
@@ -278,6 +347,25 @@ function pdf_delete_if_unused(array $products, string $url): string {
         return 'removed';
     }
     return '';
+}
+
+// Helper: derive the canonical image filename for a SKU. Same sanitization as
+// pdf_filename_for_sku(); the extension comes from the validated upload.
+function image_filename_for_sku(string $sku, string $ext): string {
+    $safe = preg_replace('/[^a-zA-Z0-9_\-]/', '-', $sku);
+    $safe = preg_replace('/-{2,}/', '-', $safe);
+    $safe = trim($safe, '-');
+    return $safe . '.' . strtolower($ext);
+}
+
+// Helper: is an uploaded image filename still referenced by any product's
+// photoUrl? Mirrors pdf_in_use() so removal never orphans a shared photo.
+function image_in_use(array $products, string $basename): bool {
+    if ($basename === '') return false;
+    foreach ($products as $p) {
+        if (!empty($p['photoUrl']) && basename($p['photoUrl']) === $basename) return true;
+    }
+    return false;
 }
 
 // Helper: sanitize a string for display.

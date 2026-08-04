@@ -1,0 +1,26 @@
+# /uploads/ — customer-uploaded product images (written by admin/upload-image.php).
+# Deployed ONCE to public_html/uploads/, then written only by the admin —
+# never re-upload this folder on subsequent deploys (same rule as /pdfs/ and /data/).
+
+# No directory listings
+Options -Indexes
+
+# Never execute scripts from this folder, even if one somehow lands here.
+<FilesMatch "\.(?i:php|phtml|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# Only image types are served; everything else in here is blocked.
+<FilesMatch "\.(?i:jpe?g|png|webp|gif)$">
+  Order Deny,Allow
+  Allow from all
+</FilesMatch>
+
+# Cache uploaded images for a day — replacements keep the same filename, so
+# a shorter TTL keeps replaced photos from lingering too long.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(?i:jpe?g|png|webp|gif)$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+</IfModule>

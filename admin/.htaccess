@@ -37,7 +37,7 @@ AddDefaultCharset UTF-8
 </IfModule>
 
 # Block direct access to sensitive files in this directory
-<FilesMatch "(^|/)(config\.php|config\.local\.php|\.htaccess|admin-log\.jsonl|\.login-throttle\.json|.*\.json|.*\.bak|.*\.backup\..*)$">
+<FilesMatch "(^|/)(config\.php|config\.local\.php|\.htaccess|admin-log\.jsonl|\.login-throttle\.json|.*\.json|.*\.jsonl|.*\.bak|.*\.bak\..*|.*\.backup\..*)$">
   Order Allow,Deny
   Deny from all
 </FilesMatch>

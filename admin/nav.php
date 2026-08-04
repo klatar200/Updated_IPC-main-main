@@ -42,7 +42,12 @@ $navExtra  = $navExtra  ?? '';
     <?php if ($navExtra !== '') echo $navExtra; ?>
     <a href="index.php" class="<?= $navActive === 'products' ? 'current' : '' ?>">Products</a>
     <a href="add.php" class="<?= $navActive === 'add' ? 'current' : '' ?>">+ Add Product</a>
+    <a href="settings.php" class="<?= $navActive === 'settings' ? 'current' : '' ?>">Business Details</a>
+    <a href="content.php" class="<?= $navActive === 'content' ? 'current' : '' ?>">Page Content</a>
+    <a href="inquiries.php" class="<?= $navActive === 'inquiries' ? 'current' : '' ?>">Inquiries</a>
+    <a href="backups.php" class="<?= $navActive === 'backups' ? 'current' : '' ?>">Backups</a>
     <a href="audit-log.php" class="<?= $navActive === 'auditlog' ? 'current' : '' ?>">Audit Log</a>
+    <a href="password.php" class="<?= $navActive === 'password' ? 'current' : '' ?>">Password</a>
     <a href="help.php" class="<?= $navActive === 'help' ? 'current' : '' ?>">Help</a>
     <a href="/" target="_blank" rel="noopener" title="Opens the public site in a new tab">View Live Site ↗</a>
     <form method="POST" action="auth.php" style="display:inline;margin:0;">

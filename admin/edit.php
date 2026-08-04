@@ -310,7 +310,7 @@ include 'nav.php';
         <div class="form-group full">
           <label for="photoUrl">Photo URL</label>
           <input type="text" id="photoUrl" name="photoUrl" value="<?= h($product['photoUrl'] ?? '') ?>" placeholder="https://... or /images/product.jpg" />
-          <div class="hint">Leave blank to use the IPC branded placeholder.</div>
+          <div class="hint">Leave blank to use the IPC branded placeholder — or <a href="upload-image.php?sku=<?= urlencode($sku) ?>">upload a photo</a> and this field is filled in automatically.</div>
         </div>
         <div class="form-group full">
           <label for="specificationsSummary">Specifications Summary <small style="text-transform:none;font-weight:400">(shown in Product Index table)</small></label>

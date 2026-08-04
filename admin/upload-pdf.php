@@ -58,10 +58,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $file    = $_FILES['pdf_file'];
         $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-        // Validate both extension and actual MIME type (defense in depth)
-        $finfo    = finfo_open(FILEINFO_MIME_TYPE);
-        $mimeType = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
+        // Validate both extension and actual MIME type (defense in depth).
+        // finfo isn't compiled into every PHP build (e.g. Windows dev boxes),
+        // so fall back to checking the %PDF- magic bytes directly.
+        if (function_exists('finfo_open')) {
+            $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+        } else {
+            $head     = (string)@file_get_contents($file['tmp_name'], false, null, 0, 5);
+            $mimeType = $head === '%PDF-' ? 'application/pdf' : '';
+        }
 
         if ($ext !== 'pdf' || $mimeType !== 'application/pdf') {
             $errors[] = 'Only PDF files are accepted (extension and content must both be PDF).';

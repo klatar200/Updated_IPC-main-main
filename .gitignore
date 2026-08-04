@@ -21,11 +21,19 @@ Thumbs.db
 
 # Admin secrets & runtime state — must never enter the repo
 admin/config.local.php
+admin/config.local.php.bak.*
 admin/admin-log.jsonl
 admin/.login-throttle.json
+admin/inquiries.jsonl
+
+# Customer-uploaded product photos (live server state, like pdfs/)
+uploads/images/*
+!uploads/images/.gitkeep
 
 # Local deploy/backup archives — never ship these to the server or the repo
 *.zip
 
-# Catalog backups written by save_products()
+# Data backups written by save_products() / save_site_info() / save_content()
 data/products-all.backup.*.json
+data/site-info.backup.*.json
+data/content.backup.*.json

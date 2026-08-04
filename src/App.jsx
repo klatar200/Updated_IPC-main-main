@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback, Component } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, Component, createContext, useContext } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 
 // ── OverAI global shims ──────────────────────────────────────
@@ -144,6 +144,7 @@ class ErrorBoundary extends Component {
     return { caught: true };
   }
   render() {
+    const site = this.context || SITE_DEFAULTS;
     if (this.state.caught) {
       return (
         <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px", textAlign: "center", background: "#f5f7fa" }}>
@@ -152,13 +153,13 @@ class ErrorBoundary extends Component {
           <p style={{ fontSize: 14, color: "#6b7280", maxWidth: 400, marginBottom: 24 }}>
             An unexpected error occurred. Please refresh the page, or contact us directly.
           </p>
-          <div style={{ fontSize: 14, color: "#005da3" }}>
-            <a href="tel:+16307710700" style={{ color: "#005da3", display: "block", marginBottom: 6 }}>📞 630.771.0700</a>
-            <a href="mailto:sales@insulationproducts.com" style={{ color: "#005da3" }}>📧 sales@insulationproducts.com</a>
+          <div style={{ fontSize: 14, color: "var(--brand-primary)" }}>
+            <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary)", display: "block", marginBottom: 6 }}>📞 {site.contact.phone}</a>
+            <a href={`mailto:${site.contact.email}`} style={{ color: "var(--brand-primary)" }}>📧 {site.contact.email}</a>
           </div>
           <button
             onClick={() => window.location.reload()}
-            style={{ marginTop: 24, padding: "10px 24px", background: "#005da3", color: "#fff", border: "none", borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+            style={{ marginTop: 24, padding: "10px 24px", background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
           >
             Refresh Page
           </button>
@@ -185,6 +186,19 @@ const COMPANY_ITEMS = [
   { label: "Resources / FAQ", sub: "Common questions & answers", page: "faq" },
 ];
 
+// Footer "Quick Links" — module scope so the content system can supply/override
+// them. Each entry's page must be a real route; the admin picks from a fixed list.
+const FOOTER_LINKS = [
+  { label: "Product Catalog", page: "products" },
+  { label: "About IPC", page: "about" },
+  { label: "Product Index", page: "dashboard" },
+  { label: "Resources / FAQ", page: "faq" },
+  { label: "Industries", page: "industries" },
+  { label: "Contact", page: "contact" },
+  { label: "Services", page: "services" },
+  { label: "Privacy Policy", page: "privacy" },
+];
+
 /**
  * IPC Navbar — mega-dropdown architecture.
  *
@@ -199,6 +213,9 @@ const COMPANY_ITEMS = [
  * Accepts { products } prop — categories derived live from the catalog.
  */
 function Navbar({ products = [] }) {
+  const site = useSiteInfo();
+  const { companyNav, copy } = useContent();
+  const nc = copy.nav;
   const [page] = useSearchParam("page");
   const [menuOpen, setMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -250,7 +267,7 @@ function Navbar({ products = [] }) {
   return (
     <header
       style={{
-        background: "#0d2d52",
+        background: "var(--brand-dark)",
         borderBottom: "1px solid rgba(0,190,242,0.15)",
         position: "sticky",
         top: 0,
@@ -286,7 +303,7 @@ function Navbar({ products = [] }) {
           aria-label="Insulation Products Corporation — Home"
         >
           <img
-            src="/logo.svg"
+            src={site.theme?.logoUrl || "/logo.svg"}
             alt="IPC logo"
             width={46}
             height={46}
@@ -318,7 +335,7 @@ function Navbar({ products = [] }) {
             <div
               style={{
                 fontSize: 11,
-                color: "#119ec8",
+                color: "var(--brand-accent-2)",
                 marginTop: 1,
                 letterSpacing: "0.02em",
               }}
@@ -355,7 +372,7 @@ function Navbar({ products = [] }) {
                 currentPage === "home" ? "#ffffff" : "rgba(255,255,255,0.6)",
               borderBottom:
                 currentPage === "home"
-                  ? "2px solid #00bef2"
+                  ? "2px solid var(--brand-accent)"
                   : "2px solid transparent",
               transition: "color 0.15s",
             }}
@@ -369,7 +386,7 @@ function Navbar({ products = [] }) {
                 e.currentTarget.style.color = "rgba(255,255,255,0.6)";
             }}
           >
-            Home
+            {nc.home}
           </button>
 
           {/* ── Products dropdown trigger ── */}
@@ -400,14 +417,14 @@ function Navbar({ products = [] }) {
                     gap: 5,
                     color: active || open ? "#ffffff" : "rgba(255,255,255,0.6)",
                     borderBottom: active
-                      ? "2px solid #00bef2"
+                      ? "2px solid var(--brand-accent)"
                       : open
                         ? "2px solid rgba(0,190,242,0.4)"
                         : "2px solid transparent",
                     transition: "color 0.15s",
                   }}
                 >
-                  Products
+                  {nc.products}
                   <span
                     style={{
                       fontSize: 9,
@@ -482,17 +499,17 @@ function Navbar({ products = [] }) {
                           padding: "0 20px 8px",
                         }}
                       >
-                        All Products
+                        {nc.allProducts}
                       </div>
                       {[
                         {
-                          label: "Browse All Products",
+                          label: nc.browseAll,
                           sub: "Full catalog with specifications",
                           p: "products",
                           params: {},
                         },
                         {
-                          label: "Product Index",
+                          label: nc.productIndex,
                           sub: "Searchable table with filter & sort",
                           p: "dashboard",
                           params: {},
@@ -513,7 +530,7 @@ function Navbar({ products = [] }) {
                               border: "none",
                               cursor: "pointer",
                               borderLeft: itemActive
-                                ? "3px solid #00bef2"
+                                ? "3px solid var(--brand-accent)"
                                 : "3px solid transparent",
                               paddingLeft: itemActive ? 17 : 20,
                             }}
@@ -529,7 +546,7 @@ function Navbar({ products = [] }) {
                               style={{
                                 fontSize: 13,
                                 fontWeight: 600,
-                                color: itemActive ? "#00bef2" : "#ffffff",
+                                color: itemActive ? "var(--brand-accent)" : "#ffffff",
                                 lineHeight: 1.3,
                               }}
                             >
@@ -561,7 +578,7 @@ function Navbar({ products = [] }) {
                           padding: "0 20px 8px",
                         }}
                       >
-                        Browse by Category
+                        {nc.browseByCategory}
                       </div>
                       {categories.length === 0 ? (
                         <div
@@ -605,7 +622,7 @@ function Navbar({ products = [] }) {
                                 width: 5,
                                 height: 5,
                                 borderRadius: "50%",
-                                background: "#005da3",
+                                background: "var(--brand-primary)",
                                 flexShrink: 0,
                               }}
                             />
@@ -656,14 +673,14 @@ function Navbar({ products = [] }) {
                     gap: 5,
                     color: active || open ? "#ffffff" : "rgba(255,255,255,0.6)",
                     borderBottom: active
-                      ? "2px solid #00bef2"
+                      ? "2px solid var(--brand-accent)"
                       : open
                         ? "2px solid rgba(0,190,242,0.4)"
                         : "2px solid transparent",
                     transition: "color 0.15s",
                   }}
                 >
-                  Company
+                  {nc.company}
                   <span
                     style={{
                       fontSize: 9,
@@ -717,7 +734,7 @@ function Navbar({ products = [] }) {
                         }}
                       />
                     </div>
-                    {COMPANY_ITEMS.map((item) => {
+                    {companyNav.map((item) => {
                       const itemActive = currentPage === item.page;
                       return (
                         <button
@@ -733,7 +750,7 @@ function Navbar({ products = [] }) {
                             border: "none",
                             cursor: "pointer",
                             borderLeft: itemActive
-                              ? "3px solid #00bef2"
+                              ? "3px solid var(--brand-accent)"
                               : "3px solid transparent",
                             paddingLeft: itemActive ? 17 : 20,
                           }}
@@ -749,7 +766,7 @@ function Navbar({ products = [] }) {
                             style={{
                               fontSize: 13,
                               fontWeight: 600,
-                              color: itemActive ? "#00bef2" : "#ffffff",
+                              color: itemActive ? "var(--brand-accent)" : "#ffffff",
                               lineHeight: 1.3,
                             }}
                           >
@@ -786,17 +803,17 @@ function Navbar({ products = [] }) {
               fontSize: 13,
               fontWeight: 600,
               color: "#ffffff",
-              background: "#005da3",
+              background: "var(--brand-primary)",
               border: "none",
               cursor: "pointer",
               padding: "10px 22px",
               borderRadius: 6,
               transition: "background 0.15s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#004e8c")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#005da3")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--brand-primary-hover)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--brand-primary)")}
           >
-            Request a Quote
+            {nc.quoteButton}
           </button>
         </div>
 
@@ -900,12 +917,12 @@ function Navbar({ products = [] }) {
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
                 borderLeft:
                   currentPage === "home"
-                    ? "3px solid #00bef2"
+                    ? "3px solid var(--brand-accent)"
                     : "3px solid transparent",
                 paddingLeft: currentPage === "home" ? 13 : 0,
               }}
             >
-              Home
+              {nc.home}
             </button>
 
             {/* Products accordion */}
@@ -933,12 +950,12 @@ function Navbar({ products = [] }) {
                       ? "none"
                       : "1px solid rgba(255,255,255,0.06)",
                   borderLeft: groupActive(["products", "dashboard"])
-                    ? "3px solid #00bef2"
+                    ? "3px solid var(--brand-accent)"
                     : "3px solid transparent",
                   paddingLeft: 16,
                 }}
               >
-                <span>Products</span>
+                <span>{nc.products}</span>
                 <span
                   style={{
                     fontSize: 10,
@@ -962,8 +979,8 @@ function Navbar({ products = [] }) {
                 >
                   {/* Static links */}
                   {[
-                    { label: "Browse All Products", p: "products", params: {} },
-                    { label: "Product Index", p: "dashboard", params: {} },
+                    { label: nc.browseAll, p: "products", params: {} },
+                    { label: nc.productIndex, p: "dashboard", params: {} },
                   ].map((item) => (
                     <button
                       key={item.p}
@@ -979,7 +996,7 @@ function Navbar({ products = [] }) {
                         cursor: "pointer",
                         borderLeft:
                           currentPage === item.p
-                            ? "2px solid #00bef2"
+                            ? "2px solid var(--brand-accent)"
                             : "2px solid rgba(255,255,255,0.08)",
                       }}
                     >
@@ -987,7 +1004,7 @@ function Navbar({ products = [] }) {
                         style={{
                           fontSize: 13,
                           fontWeight: 600,
-                          color: currentPage === item.p ? "#00bef2" : "#ffffff",
+                          color: currentPage === item.p ? "var(--brand-accent)" : "#ffffff",
                         }}
                       >
                         {item.label}
@@ -1032,7 +1049,7 @@ function Navbar({ products = [] }) {
                               width: 5,
                               height: 5,
                               borderRadius: "50%",
-                              background: "#005da3",
+                              background: "var(--brand-primary)",
                               flexShrink: 0,
                             }}
                           />
@@ -1083,12 +1100,12 @@ function Navbar({ products = [] }) {
                     "about",
                     "faq",
                   ])
-                    ? "3px solid #00bef2"
+                    ? "3px solid var(--brand-accent)"
                     : "3px solid transparent",
                   paddingLeft: 16,
                 }}
               >
-                <span>Company</span>
+                <span>{nc.company}</span>
                 <span
                   style={{
                     fontSize: 10,
@@ -1110,7 +1127,7 @@ function Navbar({ products = [] }) {
                     borderBottom: "1px solid rgba(255,255,255,0.06)",
                   }}
                 >
-                  {COMPANY_ITEMS.map((item) => (
+                  {companyNav.map((item) => (
                     <button
                       key={item.page}
                       onClick={() => nav(item.page)}
@@ -1126,7 +1143,7 @@ function Navbar({ products = [] }) {
                         cursor: "pointer",
                         borderLeft:
                           currentPage === item.page
-                            ? "2px solid #00bef2"
+                            ? "2px solid var(--brand-accent)"
                             : "2px solid rgba(255,255,255,0.08)",
                       }}
                     >
@@ -1135,7 +1152,7 @@ function Navbar({ products = [] }) {
                           fontSize: 13,
                           fontWeight: 600,
                           color:
-                            currentPage === item.page ? "#00bef2" : "#ffffff",
+                            currentPage === item.page ? "var(--brand-accent)" : "#ffffff",
                         }}
                       >
                         {item.label}
@@ -1175,7 +1192,7 @@ function Navbar({ products = [] }) {
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
                 borderLeft:
                   currentPage === "contact"
-                    ? "3px solid #00bef2"
+                    ? "3px solid var(--brand-accent)"
                     : "3px solid transparent",
                 paddingLeft: 16,
               }}
@@ -1190,7 +1207,7 @@ function Navbar({ products = [] }) {
                 marginTop: 12,
                 width: "100%",
                 padding: "13px 0",
-                background: "#005da3",
+                background: "var(--brand-primary)",
                 color: "#ffffff",
                 border: "none",
                 cursor: "pointer",
@@ -1199,7 +1216,7 @@ function Navbar({ products = [] }) {
                 fontWeight: 700,
               }}
             >
-              Request a Quote
+              {nc.quoteButton}
             </button>
           </div>
         </div>
@@ -1215,8 +1232,7 @@ function Navbar({ products = [] }) {
  * Proof cards: verified dossier data ($50 MOQ, 25M+ ft, same-day, ISO).
  * Trust rail: infinite horizontal marquee carousel of certification badges.
  */
-function Hero() {
-  const proofPoints = [
+const HERO_PROOF = [
     { stat: "$50", label: "Minimum Order", sub: "No large MOQ required" },
     { stat: "25M+", label: "Feet in Stock", sub: "Ready to ship today" },
     { stat: "Same Day", label: "Shipment Available", sub: "On in-stock items" },
@@ -1225,10 +1241,10 @@ function Hero() {
       label: "Registered Quality",
       sub: "Every order, every time",
     },
-  ];
+];
 
-  // Trust rail items — duplicated to create seamless infinite loop
-  const trustItems = [
+// Trust rail items — duplicated to create seamless infinite loop
+const HERO_TRUST = [
     "ISO 9001:2008 Registered",
     "Full RoHS Compliant Product Line",
     "UL · CSA · MIL-SPEC · AMS Rated Products",
@@ -1239,21 +1255,27 @@ function Hero() {
     "$50 Minimum Order",
     "25M+ Feet in Stock",
     "Same-Day Shipment Available",
-  ];
+];
+
+function Hero() {
+  const { copy, heroProofPoints, heroTrust } = useContent();
+  const c = copy.hero;
+  const proofPoints = heroProofPoints;
+  const trustItems = heroTrust.map((t) => t.text);
 
   return (
     <section
       className="relative overflow-hidden"
       style={{
         background:
-          "linear-gradient(135deg, rgba(20,20,20,0.72) 0%, rgba(20,20,20,0.50) 100%), linear-gradient(135deg, #005da3 0%, #119ec8 55%, #00bef2 100%)",
+          "linear-gradient(135deg, rgba(20,20,20,0.72) 0%, rgba(20,20,20,0.50) 100%), linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 55%, var(--brand-accent) 100%)",
       }}
     >
       <div
         className="absolute right-0 top-0 h-full w-1/2 opacity-10 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse at 80% 40%, #00bef2 0%, transparent 70%)",
+            "radial-gradient(ellipse at 80% 40%, var(--brand-accent) 0%, transparent 70%)",
         }}
       />
 
@@ -1264,7 +1286,7 @@ function Hero() {
             className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest uppercase mb-6 px-3 py-1.5 rounded"
             style={{
               background: "rgba(0,190,242,0.15)",
-              color: "#00bef2",
+              color: "var(--brand-accent)",
               border: "1px solid rgba(0,190,242,0.3)",
             }}
           >
@@ -1273,47 +1295,43 @@ function Hero() {
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                background: "#00bef2",
+                background: "var(--brand-accent)",
                 display: "inline-block",
               }}
             />
-            Bolingbrook, IL — Made in USA Since 1974
+            {c.badge}
           </div>
           <h1
             className="font-extrabold leading-tight mb-6"
             style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)", color: "#ffffff" }}
           >
-            25 Million Feet in Stock.
+            {c.headlineLine1}
             <br />
-            <span style={{ color: "#00bef2" }}>Same-Day Shipment.</span>
+            <span style={{ color: "var(--brand-accent)" }}>{c.headlineAccent}</span>
             <br />
-            Custom Marking &amp; Fabrication.
+            {c.headlineLine3}
           </h1>
           <p
             className="text-base leading-relaxed mb-8 max-w-lg"
             style={{ color: "rgba(255,255,255,0.75)" }}
           >
-            Insulation Products Corporation is a spec-grade stocking distributor
-            of heat-shrinkable &amp; extruded tubing, electrical sleeving, and
-            industrial adhesives. $50 minimum order. UL, CSA, MIL-SPEC, and RoHS
-            compliant product line. Quick, accurate, courteous service since
-            1974 — the customer is always number one.
+            {c.subhead}
           </p>
           <div className="flex flex-wrap gap-3">
             <button
-              onClick={() => setSearchParam("page", "products")}
+              onClick={() => setSearchParam("page", c.ctaPrimaryPage)}
               className="text-sm font-semibold px-6 py-3 rounded transition-all duration-150 hover:brightness-110 hover:shadow-lg"
               style={{
-                background: "#005da3",
+                background: "var(--brand-primary)",
                 color: "#ffffff",
                 border: "none",
                 cursor: "pointer",
               }}
             >
-              Browse Products →
+              {c.ctaPrimaryLabel}
             </button>
             <button
-              onClick={() => setSearchParam("page", "contact")}
+              onClick={() => setSearchParam("page", c.ctaSecondaryPage)}
               className="text-sm font-semibold px-6 py-3 rounded transition-colors duration-150 border border-white/40 hover:border-white/80"
               style={{
                 background: "transparent",
@@ -1321,7 +1339,7 @@ function Hero() {
                 cursor: "pointer",
               }}
             >
-              Request a Quote
+              {c.ctaSecondaryLabel}
             </button>
           </div>
         </div>
@@ -1336,7 +1354,7 @@ function Hero() {
                 padding: "clamp(12px, 2vw, 20px)",
                 background: "rgba(255,255,255,0.07)",
                 border: "1px solid rgba(255,255,255,0.12)",
-                borderLeft: "3px solid #00bef2",
+                borderLeft: "3px solid var(--brand-accent)",
                 backdropFilter: "blur(8px)",
               }}
             >
@@ -1344,7 +1362,7 @@ function Hero() {
                 className="font-extrabold leading-none mb-1"
                 style={{
                   fontSize: "clamp(1.25rem, 3vw, 1.75rem)",
-                  color: "#00bef2",
+                  color: "var(--brand-accent)",
                 }}
               >
                 {p.stat}
@@ -1422,7 +1440,7 @@ function Hero() {
                   paddingRight: 48,
                 }}
               >
-                <span style={{ color: "#00bef2", fontSize: 14, flexShrink: 0 }}>
+                <span style={{ color: "var(--brand-accent)", fontSize: 14, flexShrink: 0 }}>
                   ✓
                 </span>
                 {item}
@@ -1448,28 +1466,28 @@ function FeatureCard({ icon, title, description, onClick }) {
       style={{
         background: "#ffffff",
         border: "1px solid #e5e9ee",
-        boxShadow: "0 1px 4px rgba(0,93,163,0.05)",
+        boxShadow: "0 1px 4px rgba(var(--brand-primary-rgb),0.05)",
       }}
       onClick={onClick}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "#005da3";
-        e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,93,163,0.12)";
+        e.currentTarget.style.borderColor = "var(--brand-primary)";
+        e.currentTarget.style.boxShadow = "0 4px 20px rgba(var(--brand-primary-rgb),0.12)";
         e.currentTarget.style.transform = "translateY(-2px)";
         const iconEl = e.currentTarget.querySelector(".fc-icon");
         if (iconEl) {
-          iconEl.style.background = "rgba(0,93,163,0.12)";
-          iconEl.style.borderColor = "#005da3";
+          iconEl.style.background = "rgba(var(--brand-primary-rgb),0.12)";
+          iconEl.style.borderColor = "var(--brand-primary)";
         }
         const titleEl = e.currentTarget.querySelector(".fc-title");
-        if (titleEl) titleEl.style.color = "#004e8c";
+        if (titleEl) titleEl.style.color = "var(--brand-primary-hover)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = "#e5e9ee";
-        e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,93,163,0.05)";
+        e.currentTarget.style.boxShadow = "0 1px 4px rgba(var(--brand-primary-rgb),0.05)";
         e.currentTarget.style.transform = "";
         const iconEl = e.currentTarget.querySelector(".fc-icon");
         if (iconEl) {
-          iconEl.style.background = "rgba(0,93,163,0.07)";
+          iconEl.style.background = "rgba(var(--brand-primary-rgb),0.07)";
           iconEl.style.borderColor = "transparent";
         }
         const titleEl = e.currentTarget.querySelector(".fc-title");
@@ -1482,8 +1500,8 @@ function FeatureCard({ icon, title, description, onClick }) {
         style={{
           width: 48,
           height: 48,
-          background: "rgba(0,93,163,0.07)",
-          color: "#005da3",
+          background: "rgba(var(--brand-primary-rgb),0.07)",
+          color: "var(--brand-primary)",
           border: "1px solid transparent",
           transition: "background 0.2s, border-color 0.2s",
         }}
@@ -1521,7 +1539,7 @@ function FeatureCard({ icon, title, description, onClick }) {
 
 /**
  * Reusable section header — consistent eyebrow + h2 + optional subtitle across all pages.
- * eyebrow: small all-caps label in #005da3
+ * eyebrow: small all-caps label in var(--brand-primary)
  * title: bold h2 in #141414
  * subtitle: optional muted paragraph
  * action: optional { label, onClick } for a right-aligned CTA button
@@ -1537,7 +1555,7 @@ function SectionHeader({ eyebrow, title, subtitle, action }) {
               fontWeight: 700,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
-              color: "#005da3",
+              color: "var(--brand-primary)",
               marginBottom: 8,
             }}
           >
@@ -1578,7 +1596,7 @@ function SectionHeader({ eyebrow, title, subtitle, action }) {
             fontSize: 13,
             fontWeight: 600,
             color: "#ffffff",
-            background: "#005da3",
+            background: "var(--brand-primary)",
             border: "none",
             cursor: "pointer",
             padding: "10px 20px",
@@ -1732,23 +1750,25 @@ const FEATURES_DATA = [
  * IPC Products & Services section — SVG icons at module level, two-column grid, CTA ribbon.
  */
 function Features() {
+  const { features, copy } = useContent();
+  const c = copy.homeFeatures;
   return (
     <section className="py-20 px-6" style={{ background: "#f5f7fa" }}>
       <div className="max-w-7xl mx-auto">
         <SectionHeader
-          eyebrow="Products & Services"
-          title="A Complete Insulation Supply Source"
+          eyebrow={c.eyebrow}
+          title={c.title}
           action={{
             label: "View Full Catalog →",
             onClick: () => setSearchParam("page", "products"),
           }}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES_DATA.map((f) => (
+          {features.map((f) => (
             <FeatureCard
               key={f.title}
               icon={
-                <div style={{ color: "#005da3" }}>
+                <div style={{ color: "var(--brand-primary)" }}>
                   {FEATURES_ICONS[f.iconKey]}
                 </div>
               }
@@ -1760,25 +1780,25 @@ function Features() {
         </div>
         <div
           className="mt-12 rounded-xl px-8 py-6 flex flex-wrap gap-6 items-center justify-between"
-          style={{ background: "#0d2d52" }}
+          style={{ background: "var(--brand-dark)" }}
         >
           <p
             className="text-sm font-semibold"
             style={{ color: "rgba(255,255,255,0.9)" }}
           >
-            Need a custom specification or hard-to-find product?
+            {c.ctaText}
           </p>
           <button
             onClick={() => setSearchParam("page", "contact")}
             className="text-sm font-semibold px-5 py-2.5 rounded transition-all duration-150 hover:brightness-110 flex-shrink-0"
             style={{
-              background: "#005da3",
+              background: "var(--brand-primary)",
               color: "#ffffff",
               border: "none",
               cursor: "pointer",
             }}
           >
-            Talk to Our Sales Team
+            {c.ctaButton}
           </button>
         </div>
       </div>
@@ -1887,10 +1907,11 @@ const STATS_DATA = [
  * Fix 13: dead divide-x divide-gray-200 Tailwind classes removed (don't work on CSS grid, borders handled separately).
  */
 function StatsBar() {
+  const { stats } = useContent();
   return (
     <section className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4">
-        {STATS_DATA.map((s, i) => (
+        {stats.map((s, i) => (
           <div
             key={s.label}
             className={`py-5 px-4 md:py-7 md:px-6 flex items-center gap-4
@@ -1909,7 +1930,7 @@ function StatsBar() {
             <div>
               <div
                 className="font-extrabold leading-tight"
-                style={{ fontSize: 20, color: "#005da3" }}
+                style={{ fontSize: 20, color: "var(--brand-primary)" }}
               >
                 {s.value}
               </div>
@@ -2071,6 +2092,9 @@ const MKT_MARKETS = [
  * Phase 5: Real IPC application copy per market. SVG icons and data at module level (M-5 fix).
  */
 function HomePage() {
+  const site = useSiteInfo();
+  const { markets, copy } = useContent();
+  const mk = copy.homeMarkets;
   return (
     <div>
       <Hero />
@@ -2081,16 +2105,16 @@ function HomePage() {
       <section className="py-20 px-6" style={{ background: "#ffffff" }}>
         <div className="max-w-7xl mx-auto">
           <SectionHeader
-            eyebrow="Industries Served"
-            title="Trusted Across Demanding Markets"
-            subtitle="IPC stocks specification-grade insulation materials used across every sector that requires reliable, certified wire and component protection."
+            eyebrow={mk.eyebrow}
+            title={mk.title}
+            subtitle={mk.subtitle}
             action={{
               label: "View All Industries →",
               onClick: () => setSearchParam("page", "industries"),
             }}
           />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {MKT_MARKETS.map((m) => (
+            {markets.map((m) => (
               <button
                 key={m.label}
                 onClick={() => setSearchParam("page", m.page)}
@@ -2107,8 +2131,8 @@ function HomePage() {
                     width: 40,
                     height: 40,
                     borderRadius: 8,
-                    background: "rgba(0,93,163,0.07)",
-                    color: "#005da3",
+                    background: "rgba(var(--brand-primary-rgb),0.07)",
+                    color: "var(--brand-primary)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -2144,7 +2168,7 @@ function HomePage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: "#005da3",
+                    color: "var(--brand-primary)",
                     marginTop: 12,
                   }}
                 >
@@ -2159,17 +2183,17 @@ function HomePage() {
       {/* Quote CTA band */}
       <section
         style={{
-          background: "linear-gradient(135deg, #005da3 0%, #119ec8 100%)",
+          background: "linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%)",
         }}
       >
         <div className="max-w-7xl mx-auto px-6 py-14 flex flex-col md:flex-row items-center justify-between gap-8">
           <div>
             <h2 className="text-2xl font-extrabold text-white mb-2">
-              $50 minimum order. 25M+ feet in stock. Ships today.
+              {site.stats.minimumOrder} minimum order. {site.stats.feetInStock} feet in stock. Ships today.
             </h2>
             <p style={{ color: "rgba(255,255,255,0.75)" }} className="text-sm">
-              Call <a href="tel:+16307710700" style={{ color: "#ffffff", fontWeight: 600 }}>630.771.0700</a>,
-              fax <a href="tel:+16307710701" style={{ color: "#ffffff", fontWeight: 600 }}>630.771.0701</a>,
+              Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#ffffff", fontWeight: 600 }}>{site.contact.phone}</a>,
+              fax <a href={`tel:${site.contact.fax}`} style={{ color: "#ffffff", fontWeight: 600 }}>{site.contact.fax}</a>,
               or submit a quote request online — our team responds quickly and accurately.
             </p>
           </div>
@@ -2179,7 +2203,7 @@ function HomePage() {
               className="text-sm font-semibold px-6 py-3 rounded transition-all duration-150 hover:brightness-110"
               style={{
                 background: "#ffffff",
-                color: "#005da3",
+                color: "var(--brand-primary)",
                 border: "none",
                 cursor: "pointer",
               }}
@@ -2222,8 +2246,8 @@ function TeamCard({ name, role, avatar }) {
         cursor: "default",
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "#005da3";
-        e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,93,163,0.10)";
+        e.currentTarget.style.borderColor = "var(--brand-primary)";
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(var(--brand-primary-rgb),0.10)";
         e.currentTarget.style.transform = "translateY(-2px)";
       }}
       onMouseLeave={(e) => {
@@ -2239,9 +2263,9 @@ function TeamCard({ name, role, avatar }) {
           width: 56,
           height: 56,
           background:
-            "linear-gradient(135deg, rgba(0,93,163,0.10) 0%, rgba(0,190,242,0.15) 100%)",
+            "linear-gradient(135deg, rgba(var(--brand-primary-rgb),0.10) 0%, rgba(0,190,242,0.15) 100%)",
           fontSize: 24,
-          border: "1px solid rgba(0,93,163,0.15)",
+          border: "1px solid rgba(var(--brand-primary-rgb),0.15)",
         }}
       >
         {avatar}
@@ -2249,7 +2273,7 @@ function TeamCard({ name, role, avatar }) {
       <div className="text-sm font-bold mb-1" style={{ color: "#141414" }}>
         {name}
       </div>
-      <div className="text-xs font-medium" style={{ color: "#119ec8" }}>
+      <div className="text-xs font-medium" style={{ color: "var(--brand-accent-2)" }}>
         {role}
       </div>
     </div>
@@ -2350,6 +2374,17 @@ const CertLockIcon = () => (
   </svg>
 );
 
+// Keyed cert icons so the certification cards are editable by icon key from the
+// admin (the components themselves stay code-defined).
+const CERT_ICONS = {
+  check: <CertCheckIcon />,
+  leaf: <CertLeafIcon />,
+  flag: <CertFlagIcon />,
+  list: <CertListIcon />,
+  build: <CertBuildIcon />,
+  lock: <CertLockIcon />,
+};
+
 /**
  * IPC About page — Phase 4 overhaul with verified dossier data.
  * Sections: page header, verified narrative + sidebar facts, milestone timeline,
@@ -2379,36 +2414,12 @@ const ABOUT_CAPABILITIES = [
   },
 ];
 const ABOUT_CERTS = [
-  {
-    icon: <CertCheckIcon />,
-    title: "ISO 9001:2008",
-    sub: "Registered Quality Management System",
-  },
-  {
-    icon: <CertLeafIcon />,
-    title: "Full RoHS Compliant",
-    sub: "Entire product line",
-  },
-  {
-    icon: <CertFlagIcon />,
-    title: "Made in USA",
-    sub: "Bolingbrook, IL facility",
-  },
-  {
-    icon: <CertListIcon />,
-    title: "UL · CSA · MIL-SPEC · AMS",
-    sub: "Product-level certifications",
-  },
-  {
-    icon: <CertBuildIcon />,
-    title: "PPAP & IMDS Support",
-    sub: "Automotive documentation available",
-  },
-  {
-    icon: <CertLockIcon />,
-    title: "Privately Held",
-    sub: "Independent since July 1, 1974",
-  },
+  { iconKey: "check", title: "ISO 9001:2008", sub: "Registered Quality Management System" },
+  { iconKey: "leaf", title: "Full RoHS Compliant", sub: "Entire product line" },
+  { iconKey: "flag", title: "Made in USA", sub: "Bolingbrook, IL facility" },
+  { iconKey: "list", title: "UL · CSA · MIL-SPEC · AMS", sub: "Product-level certifications" },
+  { iconKey: "build", title: "PPAP & IMDS Support", sub: "Automotive documentation available" },
+  { iconKey: "lock", title: "Privately Held", sub: "Independent since July 1, 1974" },
 ];
 const ABOUT_MILESTONES = [
   {
@@ -2444,10 +2455,10 @@ const ABOUT_MILESTONES = [
 ];
 
 function AboutPage() {
-  // Static arrays now at module level (ABOUT_CAPABILITIES, ABOUT_CERTS, ABOUT_MILESTONES)
-  const capabilities = ABOUT_CAPABILITIES;
-  const certs = ABOUT_CERTS;
-  const milestones = ABOUT_MILESTONES;
+  const site = useSiteInfo();
+  // Timeline, team capabilities, and certifications are all editable via content.json.
+  const { milestones, capabilities, certs, copy } = useContent();
+  const c = copy.aboutHeader;
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -2458,17 +2469,16 @@ function AboutPage() {
             className="text-xs font-bold tracking-widest uppercase mb-2"
             style={{ color: "rgba(255,255,255,0.7)" }}
           >
-            Company
+            {c.eyebrow}
           </div>
           <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
-            About Insulation Products Corporation
+            {c.title}
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
-            A spec-grade stocking distributor of electrical insulation materials
-            since July 1, 1974 — quick, accurate, and courteous service, always.
+            {c.intro}
           </p>
         </div>
       </div>
@@ -2481,52 +2491,27 @@ function AboutPage() {
             style={{ border: "1px solid #e5e9ee" }}
           >
             <h2 className="text-2xl font-bold" style={{ color: "#141414" }}>
-              Our Story
+              {c.storyTitle}
             </h2>
-            <p className="text-sm leading-relaxed" style={{ color: "#4b5563" }}>
-              Insulation Products Corporation was incorporated on July 1, 1974,
-              and has operated from Bolingbrook, Illinois ever since. As a
-              privately held, independent distributor, IPC is a major stocking
-              source for heat-shrinkable and extruded tubing, electrical
-              sleeving, and industrial adhesives — serving engineers, purchasing
-              teams, and OEMs across dozens of industries for over 50 years.
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: "#4b5563" }}>
-              With more than 25 million feet in stock and a $50 minimum order,
-              IPC is built to serve both prototype quantities and full
-              production runs. Most in-stock orders ship the same day or next
-              business day. Our ISO 9001:2008 registered quality system ensures
-              every order is processed accurately — from receiving and
-              inspection through picking, packing, and final shipment.
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: "#4b5563" }}>
-              Beyond standard stocking, IPC's in-house fabrication shop provides
-              cut-to-length, hot-stamp marking, bar code printing, spooling,
-              kitting, slitting, and perforation — all with a typical lead time
-              of one week or less. JIT delivery programs and PPAP / IMDS
-              documentation support are available for automotive and OEM
-              customers.
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: "#4b5563" }}>
-              Our product line includes UL-recognized, CSA-listed, MIL-SPEC,
-              AMS, FDA-compliant, and RoHS-certified materials. The customer is
-              always number one — that commitment has defined IPC since day one
-              and remains our core operating principle today.
-            </p>
+            {(site.about?.paragraphs ?? []).map((para, i) => (
+              <p key={i} className="text-sm leading-relaxed" style={{ color: "#4b5563" }}>
+                {para}
+              </p>
+            ))}
           </div>
 
           {/* 4.4 — Verified sidebar facts */}
           <div className="space-y-3">
             {[
-              { label: "Founded", value: "July 1, 1974" },
-              { label: "Headquarters", value: "Bolingbrook, IL 60440" },
+              { label: "Founded", value: `Since ${site.company.foundedYear}` },
+              { label: "Headquarters", value: `${site.address.city}, ${site.address.state} ${site.address.zip}` },
               { label: "Structure", value: "Privately Held" },
-              { label: "Inventory", value: "25M+ feet in stock" },
-              { label: "Minimum Order", value: "$50" },
-              { label: "Quality", value: "ISO 9001:2008 Registered" },
+              { label: "Inventory", value: `${site.stats.feetInStock} feet in stock` },
+              { label: "Minimum Order", value: site.stats.minimumOrder },
+              { label: "Quality", value: `${site.certifications.iso} Registered` },
               { label: "Custom Lead Time", value: "≤ 1 week" },
-              { label: "Phone", value: "630.771.0700" },
-              { label: "Fax", value: "630.771.0701" },
+              { label: "Phone", value: site.contact.phone },
+              { label: "Fax", value: site.contact.fax },
               { label: "PPAP / IMDS", value: "Available on request" },
             ].map((item) => (
               <div
@@ -2542,12 +2527,12 @@ function AboutPage() {
                 </span>
                 <span
                   className="text-sm font-bold text-right"
-                  style={{ color: "#005da3" }}
+                  style={{ color: "var(--brand-primary)" }}
                 >
                   {item.label === "Phone" ? (
-                    <a href="tel:+16307710700" style={{ color: "#005da3" }}>{item.value}</a>
+                    <a href="tel:+16307710700" style={{ color: "var(--brand-primary)" }}>{item.value}</a>
                   ) : item.label === "Fax" ? (
-                    <a href="tel:+16307710701" style={{ color: "#005da3" }}>{item.value}</a>
+                    <a href="tel:+16307710701" style={{ color: "var(--brand-primary)" }}>{item.value}</a>
                   ) : item.value}
                 </span>
               </div>
@@ -2559,7 +2544,7 @@ function AboutPage() {
         <div>
           <div
             className="text-xs font-bold tracking-widest uppercase mb-8"
-            style={{ color: "#005da3" }}
+            style={{ color: "var(--brand-primary)" }}
           >
             Company Timeline
           </div>
@@ -2588,8 +2573,8 @@ function AboutPage() {
                         borderRadius: 6,
                         fontSize: 11,
                         fontWeight: 700,
-                        background: isLast ? "#005da3" : "rgba(0,93,163,0.08)",
-                        color: isLast ? "#ffffff" : "#005da3",
+                        background: isLast ? "var(--brand-primary)" : "rgba(var(--brand-primary-rgb),0.08)",
+                        color: isLast ? "#ffffff" : "var(--brand-primary)",
                       }}
                     >
                       {m.year}
@@ -2611,8 +2596,8 @@ function AboutPage() {
                         marginTop: 7,
                         flexShrink: 0,
                         zIndex: 1,
-                        background: isLast ? "#005da3" : "#ffffff",
-                        border: `2px solid ${isLast ? "#005da3" : "#d1d9e0"}`,
+                        background: isLast ? "var(--brand-primary)" : "#ffffff",
+                        border: `2px solid ${isLast ? "var(--brand-primary)" : "#d1d9e0"}`,
                         outline: "2px solid #f5f7fa",
                       }}
                     />
@@ -2623,7 +2608,7 @@ function AboutPage() {
                           width: 2,
                           minHeight: 16,
                           background:
-                            "linear-gradient(to bottom, #005da3, #e5e9ee)",
+                            "linear-gradient(to bottom, var(--brand-primary), #e5e9ee)",
                           marginTop: 2,
                         }}
                       />
@@ -2667,9 +2652,9 @@ function AboutPage() {
         <div>
           <div
             className="text-xs font-bold tracking-widest uppercase mb-6"
-            style={{ color: "#005da3" }}
+            style={{ color: "var(--brand-primary)" }}
           >
-            Certifications &amp; Standards
+            {c.certsTitle}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {certs.map((c) => (
@@ -2678,9 +2663,9 @@ function AboutPage() {
                 className="bg-white rounded-xl p-5 flex gap-4 items-start transition-all duration-200"
                 style={{ border: "1px solid #e5e9ee" }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#005da3";
+                  e.currentTarget.style.borderColor = "var(--brand-primary)";
                   e.currentTarget.style.boxShadow =
-                    "0 2px 8px rgba(0,93,163,0.08)";
+                    "0 2px 8px rgba(var(--brand-primary-rgb),0.08)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = "#e5e9ee";
@@ -2692,11 +2677,11 @@ function AboutPage() {
                   style={{
                     width: 38,
                     height: 38,
-                    background: "rgba(0,93,163,0.07)",
-                    border: "1px solid rgba(0,93,163,0.12)",
+                    background: "rgba(var(--brand-primary-rgb),0.07)",
+                    border: "1px solid rgba(var(--brand-primary-rgb),0.12)",
                   }}
                 >
-                  {c.icon}
+                  {CERT_ICONS[c.iconKey] || CERT_ICONS.check}
                 </div>
                 <div>
                   <div
@@ -2718,9 +2703,9 @@ function AboutPage() {
         <div>
           <div
             className="text-xs font-bold tracking-widest uppercase mb-6"
-            style={{ color: "#005da3" }}
+            style={{ color: "var(--brand-primary)" }}
           >
-            Our Team &amp; Capabilities
+            {c.teamTitle}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {capabilities.map((c) => (
@@ -2737,15 +2722,15 @@ function AboutPage() {
         {/* CTA strip */}
         <div
           className="rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6"
-          style={{ background: "#0d2d52" }}
+          style={{ background: "var(--brand-dark)" }}
         >
           <div>
             <div className="text-lg font-extrabold text-white mb-1">
-              Ready to place an order or request a quote?
+              {c.ctaTitle}
             </div>
             <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
-              Call <a href="tel:+16307710700" style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>630.771.0700</a>,
-              email <a href="mailto:sales@insulationproducts.com" style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>sales@insulationproducts.com</a>,
+              Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>{site.contact.phone}</a>,
+              email <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>{site.contact.email}</a>,
               or use our contact form — our team responds quickly and accurately.
             </p>
           </div>
@@ -2754,7 +2739,7 @@ function AboutPage() {
               onClick={() => setSearchParam("page", "contact")}
               className="text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
               style={{
-                background: "#005da3",
+                background: "var(--brand-primary)",
                 color: "#ffffff",
                 border: "none",
                 cursor: "pointer",
@@ -2794,6 +2779,7 @@ function AboutPage() {
  * Uses aria-expanded for accessibility. max-height measured via ref for smooth animation.
  */
 function FaqItem({ question, answer }) {
+  const site = useSiteInfo();
   const [open, setOpen] = useState(false);
   const contentRef = useRef(null);
   const [contentHeight, setContentHeight] = useState(0);
@@ -2815,7 +2801,7 @@ function FaqItem({ question, answer }) {
     <div
       className={`rounded-xl overflow-hidden transition-all duration-200 ${open ? "shadow-md" : ""}`}
       style={{
-        border: `1px solid ${open ? "#005da3" : "#e5e9ee"}`,
+        border: `1px solid ${open ? "var(--brand-primary)" : "#e5e9ee"}`,
         background: "#ffffff",
       }}
     >
@@ -2838,8 +2824,8 @@ function FaqItem({ question, answer }) {
           style={{
             width: 28,
             height: 28,
-            background: open ? "#005da3" : "rgba(0,93,163,0.07)",
-            color: open ? "#ffffff" : "#005da3",
+            background: open ? "var(--brand-primary)" : "rgba(var(--brand-primary-rgb),0.07)",
+            color: open ? "#ffffff" : "var(--brand-primary)",
           }}
         >
           +
@@ -2852,7 +2838,7 @@ function FaqItem({ question, answer }) {
         style={{ maxHeight: open ? `${contentHeight + 40}px` : "0px" }}
       >
         <div ref={contentRef} className="px-6 pb-5 border-t border-gray-100">
-          <p className="text-sm leading-relaxed pt-4 text-gray-600">{answer}</p>
+          <p className="text-sm leading-relaxed pt-4 text-gray-600">{localizeProse(answer, site)}</p>
         </div>
       </div>
     </div>
@@ -2867,10 +2853,8 @@ function FaqItem({ question, answer }) {
 // (The full array declaration stays inside FaqPage for readability; extracted alias prevents
 //  recreation on every render by assigning once at module scope on first function call.
 //  For true module-level extraction: move the full array here and reference in FaqPage.)
-function FaqPage() {
-  // categories is a large static array — defined inline for readability; zero render cost since
-  // this component rarely re-renders (mounted once, stays mounted for the session).
-  const categories = [
+// FAQ content lifted to module scope (flat-grouped by the content system).
+const FAQ_CATEGORIES = [
     {
       name: "Products",
       items: [
@@ -2982,7 +2966,13 @@ function FaqPage() {
         },
       ],
     },
-  ];
+];
+
+function FaqPage() {
+  const site = useSiteInfo();
+  const { faq, copy } = useContent();
+  const c = copy.faqHeader;
+  const categories = groupFaq(faq);
 
   useEffect(() => {
     const el = document.createElement("script");
@@ -2995,7 +2985,7 @@ function FaqPage() {
         cat.items.map((item) => ({
           "@type": "Question",
           "name": item.question,
-          "acceptedAnswer": { "@type": "Answer", "text": item.answer },
+          "acceptedAnswer": { "@type": "Answer", "text": localizeProse(item.answer, site) },
         }))
       ),
     });
@@ -3012,22 +3002,21 @@ function FaqPage() {
             className="text-xs font-bold tracking-widest uppercase mb-2"
             style={{ color: "rgba(255,255,255,0.7)" }}
           >
-            Resources
+            {c.eyebrow}
           </div>
           <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
-            Frequently Asked Questions
+            {c.title}
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
-            Answers to common product, ordering, and service questions. Can't
-            find what you need?{" "}
+            {c.intro}{" "}
             <button
               onClick={() => setSearchParam("page", "contact")}
               className="underline font-semibold"
               style={{
-                color: "#00bef2",
+                color: "var(--brand-accent)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
@@ -3070,18 +3059,18 @@ function FaqPage() {
                 fontSize: 12,
                 fontWeight: 600,
                 background: "#ffffff",
-                color: "#005da3",
-                border: "1px solid #005da3",
+                color: "var(--brand-primary)",
+                border: "1px solid var(--brand-primary)",
                 cursor: "pointer",
                 transition: "all 0.15s",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#005da3";
+                e.currentTarget.style.background = "var(--brand-primary)";
                 e.currentTarget.style.color = "#ffffff";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "#ffffff";
-                e.currentTarget.style.color = "#005da3";
+                e.currentTarget.style.color = "var(--brand-primary)";
               }}
             >
               {cat.name}
@@ -3100,9 +3089,9 @@ function FaqPage() {
             <div className="flex items-center gap-3 mb-5">
               <div
                 className="w-1 h-6 rounded-full"
-                style={{ background: "#005da3" }}
+                style={{ background: "var(--brand-primary)" }}
               />
-              <h2 className="text-base font-bold" style={{ color: "#005da3" }}>
+              <h2 className="text-base font-bold" style={{ color: "var(--brand-primary)" }}>
                 {cat.name}
               </h2>
             </div>
@@ -3129,9 +3118,9 @@ function FaqPage() {
                 className="mt-3 space-y-1.5 text-xs"
                 style={{ color: "rgba(255,255,255,0.5)" }}
               >
-                <div>📞 <a href="tel:+16307710700" style={{ color: "rgba(255,255,255,0.5)" }}>630.771.0700</a></div>
-                <div>📠 <a href="tel:+16307710701" style={{ color: "rgba(255,255,255,0.5)" }}>630.771.0701</a> (Fax)</div>
-                <div>📧 <a href="mailto:sales@insulationproducts.com" style={{ color: "rgba(255,255,255,0.5)" }}>sales@insulationproducts.com</a></div>
+                <div>📞 <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.phone}</a></div>
+                <div>📠 <a href={`tel:${site.contact.fax}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.fax}</a> (Fax)</div>
+                <div>📧 <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.email}</a></div>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -3139,7 +3128,7 @@ function FaqPage() {
                 onClick={() => setSearchParam("page", "contact")}
                 className="w-full py-3 rounded text-sm font-semibold hover:brightness-110 transition-all"
                 style={{
-                  background: "#005da3",
+                  background: "var(--brand-primary)",
                   color: "#ffffff",
                   border: "none",
                   cursor: "pointer",
@@ -3271,6 +3260,12 @@ const CONTACT_CARDS = [
  *   Tab 2: "Send a Message" — general inquiry form
  */
 function ContactPage() {
+  const site = useSiteInfo();
+  const _content = useContent();
+  const _copy = _content.copy;
+  const c = _copy.contactHeader;
+  const cf = _copy.contactForm;
+  const contactTips = _content.contactTips;
   const [activeTab, setActiveTab] = useState("rfq");
   const [submitted, setSubmitted] = useState(false);
   const [submittedTab, setSubmittedTab] = useState("rfq");
@@ -3305,10 +3300,10 @@ function ContactPage() {
         setSubmittedTab("message");
         setSubmitted(true);
       } else {
-        alert(json.error || "Submission failed. Please call 630.771.0700.");
+        alert(json.error || localizeProse(cf.submitError, site));
       }
     } catch {
-      alert("Network error. Please call 630.771.0700 or email sales@insulationproducts.com directly.");
+      alert(localizeProse(cf.networkError, site));
     } finally {
       setSubmitting(false);
     }
@@ -3340,10 +3335,10 @@ function ContactPage() {
         setSubmittedTab("rfq");
         setSubmitted(true);
       } else {
-        alert(json.error || "Submission failed. Please call 630.771.0700.");
+        alert(json.error || localizeProse(cf.submitError, site));
       }
     } catch {
-      alert("Network error. Please call 630.771.0700 or email sales@insulationproducts.com directly.");
+      alert(localizeProse(cf.networkError, site));
     } finally {
       setSubmitting(false);
     }
@@ -3361,16 +3356,22 @@ function ContactPage() {
     boxSizing: "border-box",
   };
   const focusStyle = (e) => {
-    e.target.style.borderColor = "#005da3";
-    e.target.style.boxShadow = "0 0 0 3px rgba(0,93,163,0.1)";
+    e.target.style.borderColor = "var(--brand-primary)";
+    e.target.style.boxShadow = "0 0 0 3px rgba(var(--brand-primary-rgb),0.1)";
   };
   const blurStyle = (e) => {
     e.target.style.borderColor = "#d1d9e0";
     e.target.style.boxShadow = "none";
   };
 
-  // Fix 7: contactCards at module level (CONTACT_CARDS)
-  const contactCards = CONTACT_CARDS;
+  // Icons stay module-level (created once); text is overlaid from live site info.
+  const contactCards = CONTACT_CARDS.map((card) => {
+    if (card.title === "Phone") return { ...card, info: site.contact.phone, href: `tel:${site.contact.phoneDial}`, sub: site.hours.text };
+    if (card.title === "Fax") return { ...card, info: site.contact.fax, href: `tel:${site.contact.fax}` };
+    if (card.title === "Email") return { ...card, info: site.contact.email, href: `mailto:${site.contact.email}` };
+    if (card.title === "Address") return { ...card, info: site.address.street, sub: `${site.address.city}, ${site.address.state} ${site.address.zip}` };
+    return card;
+  });
 
   if (submitted) {
     return (
@@ -3382,8 +3383,8 @@ function ContactPage() {
               style={{ color: "#ffffff" }}
             >
               {submittedTab === "rfq"
-                ? "Quote Request Received"
-                : "Message Received"}
+                ? cf.rfqSuccessTitle
+                : cf.msgSuccessTitle}
             </h1>
           </div>
         </div>
@@ -3393,32 +3394,32 @@ function ContactPage() {
             className="ipc-fade-up-1 text-2xl font-bold mb-3"
             style={{ color: "#141414" }}
           >
-            Thank you!
+            {cf.successThanks}
           </h2>
           <p
             className="ipc-fade-up-2 text-sm mb-4"
             style={{ color: "#4b5563" }}
           >
             {submittedTab === "rfq"
-              ? "Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items."
-              : "Your message has been received. Our sales team will respond within one business day."}
+              ? cf.rfqSuccessBody
+              : cf.msgSuccessBody}
           </p>
           <p
             className="ipc-fade-up-2 text-xs mb-8"
             style={{ color: "#9ca3af" }}
           >
-            For urgent inquiries:{" "}
-            📞 <a href="tel:+16307710700" style={{ color: "#9ca3af" }}>630.771.0700</a>
+            {cf.urgentPrefix}{" "}
+            📞 <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#9ca3af" }}>{site.contact.phone}</a>
             {" · "}
-            📠 <a href="tel:+16307710701" style={{ color: "#9ca3af" }}>630.771.0701</a>
+            📠 <a href={`tel:${site.contact.fax}`} style={{ color: "#9ca3af" }}>{site.contact.fax}</a>
             {" · "}
-            📧 <a href="mailto:sales@insulationproducts.com" style={{ color: "#9ca3af" }}>sales@insulationproducts.com</a>
+            📧 <a href={`mailto:${site.contact.email}`} style={{ color: "#9ca3af" }}>{site.contact.email}</a>
           </p>
           <div className="ipc-fade-up-3 flex gap-3 justify-center">
             <button
               className="text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
               style={{
-                background: "#005da3",
+                background: "var(--brand-primary)",
                 color: "#ffffff",
                 border: "none",
                 cursor: "pointer",
@@ -3454,8 +3455,8 @@ function ContactPage() {
               className="text-sm font-medium px-5 py-2.5 rounded transition-all"
               style={{
                 background: "transparent",
-                color: "#005da3",
-                border: "1px solid #005da3",
+                color: "var(--brand-primary)",
+                border: "1px solid var(--brand-primary)",
                 cursor: "pointer",
               }}
             >
@@ -3476,17 +3477,16 @@ function ContactPage() {
             className="text-xs font-bold tracking-widest uppercase mb-2"
             style={{ color: "rgba(255,255,255,0.7)" }}
           >
-            Contact
+            {c.eyebrow}
           </div>
           <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
-            Get in Touch
+            {c.title}
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
-            Ready to order, need a quote, or have a technical question? Our
-            sales team responds quickly and accurately.
+            {c.intro}
           </p>
         </div>
       </div>
@@ -3496,9 +3496,9 @@ function ContactPage() {
         <div className="space-y-4">
           <h2
             className="text-xs font-bold uppercase tracking-widest mb-4"
-            style={{ color: "#005da3" }}
+            style={{ color: "var(--brand-primary)" }}
           >
-            Direct Contact
+            {c.directTitle}
           </h2>
           {contactCards.map((item) => (
             <div
@@ -3511,8 +3511,8 @@ function ContactPage() {
                 style={{
                   width: 36,
                   height: 36,
-                  background: "rgba(0,93,163,0.07)",
-                  color: "#005da3",
+                  background: "rgba(var(--brand-primary-rgb),0.07)",
+                  color: "var(--brand-primary)",
                 }}
               >
                 {item.icon}
@@ -3530,7 +3530,7 @@ function ContactPage() {
                 >
                   {item.href ? (
                     <a href={item.href} style={{ color: "#141414", textDecoration: "none" }}
-                       onMouseEnter={e => e.currentTarget.style.color = "#005da3"}
+                       onMouseEnter={e => e.currentTarget.style.color = "var(--brand-primary)"}
                        onMouseLeave={e => e.currentTarget.style.color = "#141414"}>
                       {item.info}
                     </a>
@@ -3542,25 +3542,19 @@ function ContactPage() {
               </div>
             </div>
           ))}
-          <div className="rounded-xl p-5" style={{ background: "#0d2d52" }}>
+          <div className="rounded-xl p-5" style={{ background: "var(--brand-dark)" }}>
             <div className="text-xs font-bold text-white mb-3 uppercase tracking-wide">
-              For fastest response, include:
+              {cf.tipsTitle}
             </div>
             <ul className="space-y-1.5">
-              {[
-                "IPC part number or description",
-                "Material type and size needed",
-                "Quantity required",
-                "Required delivery date",
-                "Any special specs or certifications",
-              ].map((tip) => (
+              {contactTips.map(({ text: tip }) => (
                 <li
                   key={tip}
                   className="flex items-start gap-2 text-xs"
                   style={{ color: "rgba(255,255,255,0.60)" }}
                 >
                   <span
-                    style={{ color: "#00bef2", marginTop: 1, flexShrink: 0 }}
+                    style={{ color: "var(--brand-accent)", marginTop: 1, flexShrink: 0 }}
                   >
                     →
                   </span>
@@ -3578,19 +3572,19 @@ function ContactPage() {
             className="flex flex-col sm:flex-row mb-6 rounded-xl overflow-hidden"
             style={{
               border: "1px solid #d1d9e0",
-              boxShadow: "0 1px 4px rgba(0,93,163,0.06)",
+              boxShadow: "0 1px 4px rgba(var(--brand-primary-rgb),0.06)",
             }}
           >
             {[
               {
                 id: "rfq",
-                label: "📋  Request a Quote",
-                sub: "Structured RFQ — fastest for orders",
+                label: cf.rfqTab,
+                sub: cf.rfqTabSub,
               },
               {
                 id: "message",
-                label: "✉️  Send a Message",
-                sub: "General inquiries & questions",
+                label: cf.msgTab,
+                sub: cf.msgTabSub,
               },
             ].map((tab, i) => {
               const active = activeTab === tab.id;
@@ -3605,9 +3599,9 @@ function ContactPage() {
                     padding: "18px 22px",
                     textAlign: "left",
                     cursor: "pointer",
-                    background: active ? "#005da3" : "#f5f7fa",
+                    background: active ? "var(--brand-primary)" : "#f5f7fa",
                     borderTop: active
-                      ? "3px solid #00bef2"
+                      ? "3px solid var(--brand-accent)"
                       : "3px solid transparent",
                     transition: "background 0.15s, border-color 0.15s",
                   }}
@@ -3648,7 +3642,7 @@ function ContactPage() {
               className="bg-white rounded-2xl p-5 sm:p-8 space-y-5"
               style={{
                 border: "1px solid #e5e9ee",
-                boxShadow: "0 4px 24px rgba(0,93,163,0.07)",
+                boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
               }}
             >
               {/* Honeypot — hidden from humans, bots fill it in */}
@@ -3661,11 +3655,10 @@ function ContactPage() {
                   className="text-base font-bold mb-1"
                   style={{ color: "#141414" }}
                 >
-                  Request a Quote
+                  {cf.rfqHeading}
                 </div>
                 <div className="text-xs" style={{ color: "#9ca3af" }}>
-                  Fill in as much as you know — our team will clarify anything
-                  needed.
+                  {cf.rfqIntro}
                 </div>
               </div>
 
@@ -3673,34 +3666,34 @@ function ContactPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   {
-                    label: "Full Name *",
+                    label: cf.nameLabel,
                     name: "name",
                     type: "text",
-                    placeholder: "Your name",
+                    placeholder: cf.namePlaceholder,
                     required: true,
                     autoComplete: "name",
                   },
                   {
-                    label: "Email *",
+                    label: cf.emailLabel,
                     name: "email",
                     type: "email",
-                    placeholder: "you@company.com",
+                    placeholder: cf.emailPlaceholder,
                     required: true,
                     autoComplete: "email",
                   },
                   {
-                    label: "Phone",
+                    label: cf.phoneLabel,
                     name: "phone",
                     type: "tel",
-                    placeholder: "Optional",
+                    placeholder: cf.phonePlaceholder,
                     required: false,
                     autoComplete: "tel",
                   },
                   {
-                    label: "Company",
+                    label: cf.companyLabel,
                     name: "company",
                     type: "text",
-                    placeholder: "Your organization",
+                    placeholder: cf.companyPlaceholder,
                     required: false,
                     autoComplete: "organization",
                   },
@@ -3734,9 +3727,9 @@ function ContactPage() {
               {/* Product details */}
               <div
                 className="text-xs font-bold uppercase tracking-widest mb-1"
-                style={{ color: "#005da3" }}
+                style={{ color: "var(--brand-primary)" }}
               >
-                Product Details
+                {cf.productDetailsTitle}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -3744,14 +3737,14 @@ function ContactPage() {
                     className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                     style={{ color: "#6b7280" }}
                   >
-                    Part Number / SKU
+                    {cf.partLabel}
                   </label>
                   <input
                     type="text"
                     name="partNumber"
                     value={rfqForm.partNumber}
                     onChange={onRfqChange}
-                    placeholder="e.g. IP35KY, IP33PO, or description"
+                    placeholder={cf.partPlaceholder}
                     style={inputStyle}
                     onFocus={focusStyle}
                     onBlur={blurStyle}
@@ -3762,14 +3755,14 @@ function ContactPage() {
                     className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                     style={{ color: "#6b7280" }}
                   >
-                    Material / Type
+                    {cf.materialLabel}
                   </label>
                   <input
                     type="text"
                     name="material"
                     value={rfqForm.material}
                     onChange={onRfqChange}
-                    placeholder="e.g. Polyolefin 2:1, PVDF, Fiberglass"
+                    placeholder={cf.materialPlaceholder}
                     style={inputStyle}
                     onFocus={focusStyle}
                     onBlur={blurStyle}
@@ -3780,7 +3773,7 @@ function ContactPage() {
                     className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                     style={{ color: "#6b7280" }}
                   >
-                    Quantity Required *
+                    {cf.quantityLabel}
                   </label>
                   <input
                     type="text"
@@ -3788,7 +3781,7 @@ function ContactPage() {
                     value={rfqForm.quantity}
                     onChange={onRfqChange}
                     required
-                    placeholder="e.g. 500 ft, 1000 pcs, 10 spools"
+                    placeholder={cf.quantityPlaceholder}
                     style={inputStyle}
                     onFocus={focusStyle}
                     onBlur={blurStyle}
@@ -3799,14 +3792,14 @@ function ContactPage() {
                     className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                     style={{ color: "#6b7280" }}
                   >
-                    Required Delivery Date
+                    {cf.dateLabel}
                   </label>
                   <input
                     type="text"
                     name="requiredDate"
                     value={rfqForm.requiredDate}
                     onChange={onRfqChange}
-                    placeholder="e.g. ASAP, end of month, 6/30/2025"
+                    placeholder={cf.datePlaceholder}
                     style={inputStyle}
                     onFocus={focusStyle}
                     onBlur={blurStyle}
@@ -3818,14 +3811,14 @@ function ContactPage() {
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
-                  Special Requirements
+                  {cf.specialLabel}
                 </label>
                 <input
                   type="text"
                   name="specialReqs"
                   value={rfqForm.specialReqs}
                   onChange={onRfqChange}
-                  placeholder="e.g. C of C required, PPAP, custom marking, specific color, certifications needed"
+                  placeholder={cf.specialPlaceholder}
                   style={inputStyle}
                   onFocus={focusStyle}
                   onBlur={blurStyle}
@@ -3836,14 +3829,14 @@ function ContactPage() {
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
-                  Additional Notes
+                  {cf.notesLabel}
                 </label>
                 <textarea
                   name="additionalNotes"
                   value={rfqForm.additionalNotes}
                   onChange={onRfqChange}
                   rows={3}
-                  placeholder="Any other details that will help us respond accurately…"
+                  placeholder={cf.notesPlaceholder}
                   style={{ ...inputStyle, resize: "none" }}
                   onFocus={focusStyle}
                   onBlur={blurStyle}
@@ -3854,7 +3847,7 @@ function ContactPage() {
                 disabled={submitting}
                 className="w-full py-3.5 rounded-lg font-semibold text-sm text-white transition-all hover:brightness-110"
                 style={{
-                  background: "#005da3",
+                  background: "var(--brand-primary)",
                   border: "none",
                   cursor: submitting ? "not-allowed" : "pointer",
                   opacity: submitting ? 0.85 : 1,
@@ -3863,10 +3856,10 @@ function ContactPage() {
                 {submitting ? (
                   <>
                     <span className="ipc-btn-spinner" />
-                    Sending…
+                    {cf.sendingLabel}
                   </>
                 ) : (
-                  "Submit Quote Request →"
+                  cf.submitRfq
                 )}
               </button>
             </form>
@@ -3879,7 +3872,7 @@ function ContactPage() {
               className="bg-white rounded-2xl p-5 sm:p-8 space-y-5"
               style={{
                 border: "1px solid #e5e9ee",
-                boxShadow: "0 4px 24px rgba(0,93,163,0.07)",
+                boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
               }}
             >
               {/* Honeypot — hidden from humans, bots fill it in */}
@@ -3892,44 +3885,43 @@ function ContactPage() {
                   className="text-base font-bold mb-1"
                   style={{ color: "#141414" }}
                 >
-                  Send a Message
+                  {cf.msgHeading}
                 </div>
                 <div className="text-xs" style={{ color: "#9ca3af" }}>
-                  For general questions, technical guidance, or anything that
-                  doesn't fit the RFQ form.
+                  {cf.msgIntro}
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   {
-                    label: "Full Name *",
+                    label: cf.nameLabel,
                     name: "name",
                     type: "text",
-                    placeholder: "Your name",
+                    placeholder: cf.namePlaceholder,
                     required: true,
                     autoComplete: "name",
                   },
                   {
-                    label: "Email *",
+                    label: cf.emailLabel,
                     name: "email",
                     type: "email",
-                    placeholder: "you@company.com",
+                    placeholder: cf.emailPlaceholder,
                     required: true,
                     autoComplete: "email",
                   },
                   {
-                    label: "Phone",
+                    label: cf.phoneLabel,
                     name: "phone",
                     type: "tel",
-                    placeholder: "Optional",
+                    placeholder: cf.phonePlaceholder,
                     required: false,
                     autoComplete: "tel",
                   },
                   {
-                    label: "Company",
+                    label: cf.companyLabel,
                     name: "company",
                     type: "text",
-                    placeholder: "Your organization",
+                    placeholder: cf.companyPlaceholder,
                     required: false,
                     autoComplete: "organization",
                   },
@@ -3961,7 +3953,7 @@ function ContactPage() {
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
-                  Subject *
+                  {cf.subjectLabel}
                 </label>
                 <input
                   type="text"
@@ -3969,7 +3961,7 @@ function ContactPage() {
                   value={msgForm.subject}
                   onChange={onMsgChange}
                   required
-                  placeholder="What's this about?"
+                  placeholder={cf.subjectPlaceholder}
                   style={inputStyle}
                   onFocus={focusStyle}
                   onBlur={blurStyle}
@@ -3980,7 +3972,7 @@ function ContactPage() {
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
-                  Message *
+                  {cf.messageLabel}
                 </label>
                 <textarea
                   name="message"
@@ -3988,7 +3980,7 @@ function ContactPage() {
                   onChange={onMsgChange}
                   required
                   rows={5}
-                  placeholder="Include any relevant details — product type, application, quantities, certifications needed…"
+                  placeholder={cf.messagePlaceholder}
                   style={{ ...inputStyle, resize: "none" }}
                   onFocus={focusStyle}
                   onBlur={blurStyle}
@@ -3999,7 +3991,7 @@ function ContactPage() {
                 disabled={submitting}
                 className="w-full py-3.5 rounded-lg font-semibold text-sm text-white transition-all hover:brightness-110"
                 style={{
-                  background: "#005da3",
+                  background: "var(--brand-primary)",
                   border: "none",
                   cursor: submitting ? "not-allowed" : "pointer",
                   opacity: submitting ? 0.85 : 1,
@@ -4008,10 +4000,10 @@ function ContactPage() {
                 {submitting ? (
                   <>
                     <span className="ipc-btn-spinner" />
-                    Sending…
+                    {cf.sendingLabel}
                   </>
                 ) : (
-                  "Send Message →"
+                  cf.submitMsg
                 )}
               </button>
             </form>
@@ -4034,7 +4026,12 @@ function ContactPage() {
  * so rebuilding the React app cannot clobber the live catalog on the server.
  * On first deploy, FTP /data/products-all.json into public_html/data/ once.
  */
-const PRODUCTS_JSON_URL = "/products-all.json";
+// DEV ONLY: Vite doesn't serve the top-level data/ folder, so local dev reads
+// the snapshot copy in public/ (served at the web root). Production builds MUST
+// read /data/products-all.json — that's the live file the PHP admin writes.
+const PRODUCTS_JSON_URL = import.meta.env.DEV
+  ? "/products-all.json"
+  : "/data/products-all.json";
 
 /**
  * Global typography CSS — ensures consistent heading scales across all pages.
@@ -4061,7 +4058,7 @@ function GlobalStyles() {
       .ipc-marquee-track:hover,
       .ipc-marquee-track:focus-within { animation-play-state: paused; }
       /* Brand gradient page header — replaces #141414 dark headers on content pages */
-      .ipc-page-header { background: linear-gradient(135deg, #005da3 0%, #119ec8 100%) !important; }
+      .ipc-page-header { background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%) !important; }
       .ipc-page-header > div {
         padding-top: 32px !important;
         padding-bottom: 32px !important;
@@ -4138,24 +4135,24 @@ function GlobalStyles() {
 
       /* Scrollbar thumb (draggable handle) */
       ::-webkit-scrollbar-thumb {
-        background: #005da3;
+        background: var(--brand-primary);
         border-radius: 8px;
         border: 2px solid #f0f4f8; /* gap between thumb and track */
         transition: background 0.2s;
       }
-      ::-webkit-scrollbar-thumb:hover { background: #00bef2; }
-      ::-webkit-scrollbar-thumb:active { background: #119ec8; }
+      ::-webkit-scrollbar-thumb:hover { background: var(--brand-accent); }
+      ::-webkit-scrollbar-thumb:active { background: var(--brand-accent-2); }
 
       /* Corner piece where horizontal and vertical scrollbars meet */
       ::-webkit-scrollbar-corner { background: #f0f4f8; }
 
       /* Firefox */
-      * { scrollbar-width: thin; scrollbar-color: #005da3 #f0f4f8; }
+      * { scrollbar-width: thin; scrollbar-color: var(--brand-primary) #f0f4f8; }
 
       /* Narrower scrollbar for small scroll containers (sidebars, dropdowns) */
       .ipc-scroll-sm::-webkit-scrollbar { width: 4px; height: 4px; }
-      .ipc-scroll-sm::-webkit-scrollbar-thumb { background: rgba(0,93,163,0.4); border: none; }
-      .ipc-scroll-sm::-webkit-scrollbar-thumb:hover { background: #00bef2; }
+      .ipc-scroll-sm::-webkit-scrollbar-thumb { background: rgba(var(--brand-primary-rgb),0.4); border: none; }
+      .ipc-scroll-sm::-webkit-scrollbar-thumb:hover { background: var(--brand-accent); }
     `;
     document.head.appendChild(el);
     return () => {
@@ -4240,6 +4237,506 @@ function useProducts() {
   }, []);
 
   return { products, loading, error };
+}
+
+/* ─── Business details (site-info.json) ──────────────────────────────────────
+ * Editable in the admin ("Business Details"). Fetched at runtime from the same
+ * data/ folder the admin writes to, so edits appear on the site within ~60s.
+ * SITE_DEFAULTS mirrors the current values so the site renders correctly even
+ * if the file is briefly unavailable or a field is missing. */
+const SITE_INFO_URL = "/data/site-info.json";
+
+const SITE_DEFAULTS = {
+  company: {
+    name: "Insulation Products Corporation",
+    shortName: "IPC",
+    slogan: "Materials for the Electrical & Electronic Industry",
+    foundedYear: "1974",
+    description:
+      "A major supplier of heat-shrinkable and extruded tubing, sleeving and adhesives for the electrical and electronic industry since 1974.",
+  },
+  contact: { phone: "630.771.0700", phoneDial: "+16307710700", fax: "630.771.0701", email: "sales@insulationproducts.com" },
+  address: { street: "250 Gibraltar Dr", city: "Bolingbrook", state: "IL", zip: "60440", country: "US" },
+  hours: { text: "Mon–Fri, 8am–5pm CT", opens: "08:00", closes: "17:00", days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] },
+  certifications: { iso: "ISO 9001", other: [] },
+  stats: { feetInStock: "25 million", minimumOrder: "$50" },
+  social: {
+    twitter: "https://twitter.com/InsulProdCorp",
+    facebook: "https://www.facebook.com/insulationproductscorporation",
+    linkedin: "https://www.linkedin.com/company/insulation-products-corporation",
+    youtube: "https://www.youtube.com/channel/UC0JRr_IxMwbRGOFZhbJGbNw",
+    pinterest: "https://www.pinterest.com/insulprodcorp",
+  },
+  about: {
+    paragraphs: [
+      "Insulation Products Corporation was incorporated on July 1, 1974, and has operated from Bolingbrook, Illinois ever since. As a privately held, independent distributor, IPC is a major stocking source for heat-shrinkable and extruded tubing, electrical sleeving, and industrial adhesives — serving engineers, purchasing teams, and OEMs across dozens of industries for over 50 years.",
+      "With more than 25 million feet in stock and a $50 minimum order, IPC is built to serve both prototype quantities and full production runs. Most in-stock orders ship the same day or next business day. Our ISO 9001 registered quality system ensures every order is processed accurately — from receiving and inspection through picking, packing, and final shipment.",
+      "Beyond standard stocking, IPC's in-house fabrication shop provides cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, slitting, and perforation — all with a typical lead time of one week or less. JIT delivery programs and PPAP / IMDS documentation support are available for automotive and OEM customers.",
+      "Our product line includes UL-recognized, CSA-listed, MIL-SPEC, AMS, FDA-compliant, and RoHS-certified materials. The customer is always number one — that commitment has defined IPC since day one and remains our core operating principle today.",
+    ],
+  },
+  theme: {
+    primaryColor: "#005da3",
+    darkColor: "#0d2d52",
+    accentColor: "#00bef2",
+    accent2Color: "#119ec8",
+    logoUrl: "/logo.svg",
+  },
+  catalogPdfUrl: "",
+};
+
+// Shallow-merge each top-level section over the defaults so any missing field
+// falls back rather than rendering blank.
+function mergeSiteInfo(data) {
+  if (!data || typeof data !== "object") return SITE_DEFAULTS;
+  const out = {};
+  for (const k of Object.keys(SITE_DEFAULTS)) {
+    const d = SITE_DEFAULTS[k];
+    const v = data[k];
+    if (d && typeof d === "object" && !Array.isArray(d)) {
+      out[k] = { ...d, ...(v && typeof v === "object" ? v : {}) };
+    } else {
+      out[k] = v != null ? v : d;
+    }
+  }
+  return out;
+}
+
+// Swap the default contact values that appear inside prose (FAQ answers, policy
+// text, etc.) for the current editable ones, so long-form copy stays in sync
+// with the business details without templating every sentence.
+function localizeProse(text, site) {
+  if (!text || typeof text !== "string" || !site) return text;
+  let out = text;
+  const pairs = [
+    [SITE_DEFAULTS.contact.phone, site.contact.phone],
+    [SITE_DEFAULTS.contact.fax, site.contact.fax],
+    [SITE_DEFAULTS.contact.email, site.contact.email],
+    [
+      `${SITE_DEFAULTS.address.street}, ${SITE_DEFAULTS.address.city}, ${SITE_DEFAULTS.address.state} ${SITE_DEFAULTS.address.zip}`,
+      `${site.address.street}, ${site.address.city}, ${site.address.state} ${site.address.zip}`,
+    ],
+  ];
+  for (const [from, to] of pairs) {
+    if (from && to && from !== to) out = out.split(from).join(to);
+  }
+  return out;
+}
+
+const SiteInfoContext = createContext(SITE_DEFAULTS);
+// Let the class-based ErrorBoundary read live business details on its crash screen.
+ErrorBoundary.contextType = SiteInfoContext;
+function useSiteInfo() {
+  return useContext(SiteInfoContext);
+}
+
+function SiteInfoProvider({ children }) {
+  const [info, setInfo] = useState(SITE_DEFAULTS);
+  useEffect(() => {
+    let cancelled = false;
+    const cacheBuster = Math.floor(Date.now() / 60000);
+    fetch(`${SITE_INFO_URL}?v=${cacheBuster}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setInfo(mergeSiteInfo(data));
+      })
+      .catch(() => {
+        /* keep SITE_DEFAULTS — the site still renders correctly */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return <SiteInfoContext.Provider value={info}>{children}</SiteInfoContext.Provider>;
+}
+
+// ---------------------------------------------------------------------------
+// Editable page content (homepage sections, etc.) — same runtime-fetch +
+// fallback pattern as site-info. Defaults are the original hardcoded arrays, so
+// if content.json is missing or malformed the site renders exactly as before.
+// The admin (content.php) writes the whole object, so every section is present.
+// ---------------------------------------------------------------------------
+const CONTENT_URL = "/data/content.json";
+
+// FAQ is stored/edited as a flat list of {category, question, answer}; the page
+// groups it back into categories (preserving first-seen order) for rendering.
+function flattenFaq(categories) {
+  const out = [];
+  (categories || []).forEach((cat) => {
+    (cat.items || []).forEach((it) => {
+      out.push({ category: cat.name, question: it.question, answer: it.answer });
+    });
+  });
+  return out;
+}
+function groupFaq(flat) {
+  const order = [];
+  const byName = {};
+  (flat || []).forEach((row) => {
+    const name = row.category || "General";
+    if (!byName[name]) {
+      byName[name] = { name, items: [] };
+      order.push(name);
+    }
+    byName[name].items.push({ question: row.question, answer: row.answer });
+  });
+  return order.map((n) => byName[n]);
+}
+
+// Built lazily (this is a hoisted function declaration) so it can reference
+// section arrays defined further down the file — SERVICES_DATA, FAQ_CATEGORIES —
+// without any module load-order constraints. Called only at runtime.
+// Fixed page copy — hero, section headings/intros, page banners, CTA text. This
+// is a nested object (not a list); the admin edits it as fixed fields, and it is
+// deep-merged so any single blank field falls back to the default below.
+const COPY_DEFAULTS = {
+  hero: {
+    badge: "Bolingbrook, IL — Made in USA Since 1974",
+    headlineLine1: "25 Million Feet in Stock.",
+    headlineAccent: "Same-Day Shipment.",
+    headlineLine3: "Custom Marking & Fabrication.",
+    subhead:
+      "Insulation Products Corporation is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. UL, CSA, MIL-SPEC, and RoHS compliant product line. Quick, accurate, courteous service since 1974 — the customer is always number one.",
+    ctaPrimaryLabel: "Browse Products →",
+    ctaPrimaryPage: "products",
+    ctaSecondaryLabel: "Request a Quote",
+    ctaSecondaryPage: "contact",
+  },
+  homeFeatures: {
+    eyebrow: "Products & Services",
+    title: "A Complete Insulation Supply Source",
+    ctaText: "Need a custom specification or hard-to-find product?",
+    ctaButton: "Talk to Our Sales Team",
+  },
+  homeMarkets: {
+    eyebrow: "Industries Served",
+    title: "Trusted Across Demanding Markets",
+    subtitle:
+      "IPC stocks specification-grade insulation materials used across every sector that requires reliable, certified wire and component protection.",
+  },
+  servicesHeader: {
+    eyebrow: "Fabrication",
+    title: "Value-Added Services",
+    intro:
+      "Beyond stocking and distributing, IPC offers a full range of fabrication and customization services — all with a typical lead time of one week or less.",
+  },
+  industriesHeader: {
+    eyebrow: "Industries Served",
+    title: "Applications by Industry",
+    intro:
+      "IPC supplies spec-grade insulation materials across demanding industries. Select your sector to see the products and certifications that serve your application.",
+  },
+  aboutHeader: {
+    eyebrow: "Company",
+    title: "About Insulation Products Corporation",
+    intro:
+      "A spec-grade stocking distributor of electrical insulation materials since July 1, 1974 — quick, accurate, and courteous service, always.",
+    storyTitle: "Our Story",
+    certsTitle: "Certifications & Standards",
+    teamTitle: "Our Team & Capabilities",
+    ctaTitle: "Ready to place an order or request a quote?",
+  },
+  faqHeader: {
+    eyebrow: "Resources",
+    title: "Frequently Asked Questions",
+    intro:
+      "Answers to common product, ordering, and service questions. Can't find what you need?",
+  },
+  contactHeader: {
+    eyebrow: "Contact",
+    title: "Get in Touch",
+    intro:
+      "Ready to order, need a quote, or have a technical question? Our sales team responds quickly and accurately.",
+    directTitle: "Direct Contact",
+  },
+  privacyHeader: {
+    eyebrow: "Legal",
+    title: "Privacy Policy",
+    effectiveDate: "January 1, 2025",
+    intro:
+      'Insulation Products Corporation ("IPC", "we", "us", or "our") operates the website at insulationproducts.com. This Privacy Policy explains how we collect, use, and protect information when you visit our site or contact us through it.',
+  },
+  nav: {
+    home: "Home",
+    products: "Products",
+    company: "Company",
+    quoteButton: "Request a Quote",
+    allProducts: "All Products",
+    browseAll: "Browse All Products",
+    productIndex: "Product Index",
+    browseByCategory: "Browse by Category",
+  },
+  footer: {
+    contactTitle: "Contact",
+    quickLinksTitle: "Quick Links",
+    domain: "insulationproducts.com",
+  },
+  contactForm: {
+    rfqTab: "📋  Request a Quote",
+    rfqTabSub: "Structured RFQ — fastest for orders",
+    msgTab: "✉️  Send a Message",
+    msgTabSub: "General inquiries & questions",
+    rfqHeading: "Request a Quote",
+    rfqIntro: "Fill in as much as you know — our team will clarify anything needed.",
+    productDetailsTitle: "Product Details",
+    partLabel: "Part Number / SKU",
+    partPlaceholder: "e.g. IP35KY, IP33PO, or description",
+    materialLabel: "Material / Type",
+    materialPlaceholder: "e.g. Polyolefin 2:1, PVDF, Fiberglass",
+    quantityLabel: "Quantity Required *",
+    quantityPlaceholder: "e.g. 500 ft, 1000 pcs, 10 spools",
+    dateLabel: "Required Delivery Date",
+    datePlaceholder: "e.g. ASAP, end of month, 6/30/2025",
+    specialLabel: "Special Requirements",
+    specialPlaceholder: "e.g. C of C required, PPAP, custom marking, specific color, certifications needed",
+    notesLabel: "Additional Notes",
+    notesPlaceholder: "Any other details that will help us respond accurately…",
+    submitRfq: "Submit Quote Request →",
+    msgHeading: "Send a Message",
+    msgIntro: "For general questions, technical guidance, or anything that doesn't fit the RFQ form.",
+    subjectLabel: "Subject *",
+    subjectPlaceholder: "What's this about?",
+    messageLabel: "Message *",
+    messagePlaceholder: "Include any relevant details — product type, application, quantities, certifications needed…",
+    submitMsg: "Send Message →",
+    sendingLabel: "Sending…",
+    rfqSuccessTitle: "Quote Request Received",
+    msgSuccessTitle: "Message Received",
+    successThanks: "Thank you!",
+    rfqSuccessBody: "Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.",
+    msgSuccessBody: "Your message has been received. Our sales team will respond within one business day.",
+    urgentPrefix: "For urgent inquiries:",
+    networkError: "Network error. Please call 630.771.0700 or email sales@insulationproducts.com directly.",
+    submitError: "Submission failed. Please call 630.771.0700.",
+    nameLabel: "Full Name *",
+    namePlaceholder: "Your name",
+    emailLabel: "Email *",
+    emailPlaceholder: "you@company.com",
+    phoneLabel: "Phone",
+    phonePlaceholder: "Optional",
+    companyLabel: "Company",
+    companyPlaceholder: "Your organization",
+    tipsTitle: "For fastest response, include:",
+  },
+};
+
+// Per-page SEO — browser-tab title + meta description (also used for social
+// share tags). Edited as a list keyed by page; "home" is the site-wide default.
+const SEO_DEFAULT = [
+  {
+    page: "home",
+    title: "Insulation Products Corporation — Heat Shrink Tubing, Sleeving & Adhesives",
+    desc: "IPC is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. Ships same day. ISO 9001 registered.",
+  },
+  { page: "products", title: "Product Catalog — Insulation Products Corporation", desc: "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and data sheets, and request a quote." },
+  { page: "dashboard", title: "Product Index — Insulation Products Corporation", desc: "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and data sheets for every SKU." },
+  { page: "industries", title: "Industries Served — Insulation Products Corporation", desc: "IPC supplies specification-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry." },
+  { page: "services", title: "Value-Added Services — Insulation Products Corporation", desc: "Custom cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, and JIT delivery programs. Typical lead time one week or less." },
+  { page: "about", title: "About — Insulation Products Corporation", desc: "Insulation Products Corporation — a spec-grade stocking distributor in Bolingbrook, IL since July 1, 1974. ISO 9001 registered. $50 minimum order, same-day shipment." },
+  { page: "faq", title: "FAQ & Resources — Insulation Products Corporation", desc: "Answers to common questions about IPC products, certifications, ordering minimums, custom fabrication, and documentation support." },
+  { page: "contact", title: "Contact / Request a Quote — Insulation Products Corporation", desc: "Request a quote, submit a PO, or ask a question. Call 630.771.0700, fax 630.771.0701, email sales@insulationproducts.com, or use our online form." },
+  { page: "privacy", title: "Privacy Policy — Insulation Products Corporation", desc: "Privacy policy for Insulation Products Corporation — how we collect and use information submitted through our website contact forms." },
+];
+
+// Contact-page sidebar "for fastest response" tips.
+const CONTACT_TIPS = [
+  "IPC part number or description",
+  "Material type and size needed",
+  "Quantity required",
+  "Required delivery date",
+  "Any special specs or certifications",
+];
+
+function contentDefaults() {
+  return {
+    features: FEATURES_DATA,
+    stats: STATS_DATA,
+    markets: MKT_MARKETS,
+    industryDetail: INDUSTRY_DETAIL,
+    services: SERVICES_DATA,
+    milestones: ABOUT_MILESTONES,
+    capabilities: ABOUT_CAPABILITIES,
+    certs: ABOUT_CERTS,
+    companyNav: COMPANY_ITEMS,
+    footerLinks: FOOTER_LINKS,
+    faq: flattenFaq(FAQ_CATEGORIES),
+    heroProofPoints: HERO_PROOF,
+    heroTrust: HERO_TRUST.map((t) => ({ text: t })),
+    privacySections: PRIVACY_SECTIONS,
+    contactTips: CONTACT_TIPS.map((t) => ({ text: t })),
+    seo: SEO_DEFAULT,
+    copy: COPY_DEFAULTS,
+  };
+}
+
+// Array sections replace wholesale (blank → default). The `copy` object is
+// deep-merged field-by-field so clearing one heading falls back to its default.
+function mergeContent(data) {
+  const defaults = contentDefaults();
+  if (!data || typeof data !== "object") return defaults;
+  const out = {};
+  for (const k of Object.keys(defaults)) {
+    const dv = defaults[k];
+    const v = data[k];
+    if (Array.isArray(dv)) {
+      out[k] = Array.isArray(v) && v.length ? v : dv;
+    } else if (dv && typeof dv === "object") {
+      out[k] = {};
+      for (const g of Object.keys(dv)) {
+        const dg = dv[g];
+        const vg = v && typeof v === "object" ? v[g] : undefined;
+        if (dg && typeof dg === "object" && !Array.isArray(dg)) {
+          // Drop blank ("") values before spreading so a cleared field in the
+          // admin falls back to its default instead of rendering empty text.
+          const overrides = {};
+          if (vg && typeof vg === "object") {
+            for (const key of Object.keys(vg)) {
+              if (vg[key] != null && vg[key] !== "") overrides[key] = vg[key];
+            }
+          }
+          out[k][g] = { ...dg, ...overrides };
+        } else {
+          out[k][g] = vg != null && vg !== "" ? vg : dg;
+        }
+      }
+    } else {
+      out[k] = v != null ? v : dv;
+    }
+  }
+  return out;
+}
+
+const ContentContext = createContext(null);
+function useContent() {
+  return useContext(ContentContext) || contentDefaults();
+}
+
+function ContentProvider({ children }) {
+  const [content, setContent] = useState(contentDefaults);
+  useEffect(() => {
+    let cancelled = false;
+    const cacheBuster = Math.floor(Date.now() / 60000);
+    fetch(`${CONTENT_URL}?v=${cacheBuster}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setContent(mergeContent(data));
+      })
+      .catch(() => {
+        /* keep CONTENT_DEFAULTS — the site still renders correctly */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return <ContentContext.Provider value={content}>{children}</ContentContext.Provider>;
+}
+
+// Schema.org JSON-LD rendered from the live business details (replaces the old
+// static block in index.html) so structured data stays in sync with the site.
+function StructuredData() {
+  const site = useSiteInfo();
+  useEffect(() => {
+    const data = {
+      "@context": "https://schema.org",
+      "@type": ["Organization", "LocalBusiness"],
+      name: site.company.name,
+      alternateName: site.company.shortName,
+      slogan: site.company.slogan,
+      url: "https://www.insulationproducts.com",
+      logo: "https://www.insulationproducts.com/favicon.svg",
+      description: site.company.description,
+      foundingDate: site.company.foundedYear ? `${site.company.foundedYear}-01-01` : undefined,
+      telephone: site.contact.phoneDial || site.contact.phone,
+      faxNumber: site.contact.fax,
+      email: site.contact.email,
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: site.address.street,
+        addressLocality: site.address.city,
+        addressRegion: site.address.state,
+        postalCode: site.address.zip,
+        addressCountry: site.address.country,
+      },
+      openingHoursSpecification: {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: site.hours.days,
+        opens: site.hours.opens,
+        closes: site.hours.closes,
+      },
+      sameAs: Object.values(site.social || {}).filter(Boolean),
+    };
+    const id = "ipc-structured-data";
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement("script");
+      el.id = id;
+      el.type = "application/ld+json";
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify(data);
+  }, [site]);
+  return null;
+}
+
+// Document <title> + meta description per page, localized from the live business
+// details. Lives inside SiteInfoProvider (App itself sits above it), so it can
+// read useSiteInfo and keep the contact info in the meta description current.
+function PageMeta() {
+  const site = useSiteInfo();
+  const { seo } = useContent();
+  const [page] = useSearchParam("page");
+  useEffect(() => {
+    const list = Array.isArray(seo) ? seo : [];
+    const home = list.find((s) => s.page === "home") || {};
+    const entry = list.find((s) => s.page === (page || "home")) || {};
+    const title = entry.title || home.title || document.title;
+    const desc = localizeProse(entry.desc || home.desc || "", site);
+    document.title = title;
+    // Update <meta name="description"> plus the Open Graph share tags so search
+    // engines and social previews reflect the editable copy.
+    const setMeta = (attr, key, val) => {
+      if (!val) return;
+      let el = document.querySelector(`meta[${attr}="${key}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, key);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", val);
+    };
+    setMeta("name", "description", desc);
+    setMeta("property", "og:title", title);
+    setMeta("property", "og:description", desc);
+  }, [page, site, seo]);
+  return null;
+}
+
+// Applies the editable brand colors to CSS variables at runtime, re-skinning the
+// whole site from data. Defaults live in index.css so the first paint is correct.
+function ThemeInjector() {
+  const site = useSiteInfo();
+  useEffect(() => {
+    const t = site.theme || {};
+    const root = document.documentElement;
+    const map = {
+      "--brand-primary": t.primaryColor,
+      "--brand-dark": t.darkColor,
+      "--brand-accent": t.accentColor,
+      "--brand-accent-2": t.accent2Color,
+    };
+    for (const k in map) if (map[k]) root.style.setProperty(k, map[k]);
+    // Derive the translucent-tint RGB and a darker hover shade from the primary
+    // so tints (rgba) and hover states re-theme along with the solid colors.
+    const m = /^#?([0-9a-f]{6})$/i.exec(t.primaryColor || "");
+    if (m) {
+      const num = parseInt(m[1], 16);
+      const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+      const d = (x) => Math.round(x * 0.82);
+      root.style.setProperty("--brand-primary-rgb", `${r}, ${g}, ${b}`);
+      root.style.setProperty("--brand-primary-hover", `rgb(${d(r)}, ${d(g)}, ${d(b)})`);
+    }
+  }, [site]);
+  return null;
 }
 
 // buildTableData removed — DashboardPage derives rows inline with filtering.
@@ -4342,7 +4839,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                 borderRadius: 20,
                 fontSize: 12,
                 fontWeight: 600,
-                background: !mobileFamily ? "#005da3" : "#ffffff",
+                background: !mobileFamily ? "var(--brand-primary)" : "#ffffff",
                 color: !mobileFamily ? "#ffffff" : "#4b5563",
                 border: !mobileFamily ? "none" : "1px solid #d1d9e0",
                 cursor: "pointer",
@@ -4368,7 +4865,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                     borderRadius: 20,
                     fontSize: 12,
                     fontWeight: 600,
-                    background: active ? "#005da3" : "#ffffff",
+                    background: active ? "var(--brand-primary)" : "#ffffff",
                     color: active ? "#ffffff" : "#4b5563",
                     border: active ? "none" : "1px solid #d1d9e0",
                     cursor: "pointer",
@@ -4402,7 +4899,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                   padding: "10px 12px",
                   minHeight: 44,
                   borderRadius: 8,
-                  background: active ? "#005da3" : "#ffffff",
+                  background: active ? "var(--brand-primary)" : "#ffffff",
                   border: active ? "none" : "1px solid #e5e9ee",
                   cursor: "pointer",
                 }}
@@ -4442,7 +4939,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
         className="ipc-scroll-sm hidden lg:block sticky top-20 rounded-xl overflow-hidden"
         style={{
           border: "1px solid #e5e9ee",
-          boxShadow: "0 1px 4px rgba(0,93,163,0.06)",
+          boxShadow: "0 1px 4px rgba(var(--brand-primary-rgb),0.06)",
           maxHeight: "80vh",
           overflowY: "auto",
         }}
@@ -4450,11 +4947,11 @@ function ProductSidebar({ products, selectedId, onSelect }) {
         {/* Header */}
         <div
           className="px-5 py-4 sticky top-0 z-10"
-          style={{ background: "#0d2d52", borderBottom: "2px solid #00bef2" }}
+          style={{ background: "var(--brand-dark)", borderBottom: "2px solid var(--brand-accent)" }}
         >
           <div
             className="text-xs font-bold tracking-widest uppercase"
-            style={{ color: "#119ec8" }}
+            style={{ color: "var(--brand-accent-2)" }}
           >
             Product Catalog
           </div>
@@ -4474,7 +4971,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                   onClick={() => toggleFamily(family)}
                   className="w-full flex items-center justify-between px-5 py-2.5 text-left"
                   style={{
-                    background: hasActive ? "rgba(0,93,163,0.04)" : "#f8fafc",
+                    background: hasActive ? "rgba(var(--brand-primary-rgb),0.04)" : "#f8fafc",
                     border: "none",
                     borderBottom: "1px solid #e5e9ee",
                     borderTop: "1px solid #e5e9ee",
@@ -4484,7 +4981,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                 >
                   <span
                     className="text-xs font-bold uppercase tracking-widest"
-                    style={{ color: hasActive ? "#005da3" : "#9ca3af" }}
+                    style={{ color: hasActive ? "var(--brand-primary)" : "#9ca3af" }}
                   >
                     {family}
                   </span>
@@ -4492,8 +4989,8 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                     <span
                       className="text-xs font-semibold px-1.5 py-0.5 rounded"
                       style={{
-                        background: "rgba(0,93,163,0.1)",
-                        color: "#005da3",
+                        background: "rgba(var(--brand-primary-rgb),0.1)",
+                        color: "var(--brand-primary)",
                       }}
                     >
                       {items.length}
@@ -4522,10 +5019,10 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                         className="w-full text-left px-5 py-3 transition-all duration-150 block"
                         style={{
                           background: active
-                            ? "rgba(0,93,163,0.05)"
+                            ? "rgba(var(--brand-primary-rgb),0.05)"
                             : "#ffffff",
                           borderLeft: active
-                            ? "3px solid #005da3"
+                            ? "3px solid var(--brand-primary)"
                             : "3px solid transparent",
                           border: "none",
                           borderBottom: "1px solid #f0f3f7",
@@ -4536,7 +5033,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                         onMouseEnter={(e) => {
                           if (!active)
                             e.currentTarget.style.background =
-                              "rgba(0,93,163,0.02)";
+                              "rgba(var(--brand-primary-rgb),0.02)";
                         }}
                         onMouseLeave={(e) => {
                           if (!active)
@@ -4545,7 +5042,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                       >
                         <div
                           className="text-xs font-bold mb-0.5 uppercase tracking-wide"
-                          style={{ color: active ? "#005da3" : "#c4cbd4" }}
+                          style={{ color: active ? "var(--brand-primary)" : "#c4cbd4" }}
                         >
                           {p.sku}
                         </div>
@@ -4581,7 +5078,7 @@ function SpecTable1({ table }) {
     >
       <div
         className="px-4 py-3 text-center text-sm font-bold text-white uppercase tracking-wide"
-        style={{ background: "#0d2d52", borderBottom: "2px solid #00bef2" }}
+        style={{ background: "var(--brand-dark)", borderBottom: "2px solid var(--brand-accent)" }}
       >
         {title}
       </div>
@@ -4589,7 +5086,7 @@ function SpecTable1({ table }) {
         {rows.map((row, i) => (
           <div key={i} className="px-4 py-3 text-sm">
             {row.label && (
-              <span className="font-semibold" style={{ color: "#005da3" }}>
+              <span className="font-semibold" style={{ color: "var(--brand-primary)" }}>
                 {row.label}{" "}
               </span>
             )}
@@ -4636,7 +5133,7 @@ function SpecTable2({ table }) {
                 className="px-3 py-3 text-center text-white whitespace-pre-line text-xs font-semibold leading-snug align-middle"
                 style={{
                   background:
-                    i === 0 ? "#005da3" : i % 2 === 0 ? "#119ec8" : "#005da3",
+                    i === 0 ? "var(--brand-primary)" : i % 2 === 0 ? "var(--brand-accent-2)" : "var(--brand-primary)",
                   border: "1px solid rgba(255,255,255,0.2)",
                 }}
               >
@@ -4655,7 +5152,7 @@ function SpecTable2({ table }) {
                       key={`${gi}-${si}`}
                       className="px-3 py-2 text-center text-white text-xs font-semibold"
                       style={{
-                        background: "#119ec8",
+                        background: "var(--brand-accent-2)",
                         border: "1px solid rgba(255,255,255,0.2)",
                       }}
                     >
@@ -4746,6 +5243,7 @@ const NON_RELATABLE_TYPES = new Set(["Accessory", "Adhesive", "Tape", ""]);
  * related products footer, PDF + quote CTAs.
  */
 function ProductDetail({ product, allProducts }) {
+  const site = useSiteInfo();
   // product.pdfUrl is set by the PHP admin (upload-pdf.php → "/pdfs/<sku>.pdf").
   // When it's missing we render a "Request Data Sheet" button that routes to
   // the contact form instead — there is no external printable-page fallback.
@@ -4784,20 +5282,20 @@ function ProductDetail({ product, allProducts }) {
       className="bg-white rounded-2xl overflow-hidden"
       style={{
         border: "1px solid #e5e9ee",
-        boxShadow: "0 4px 24px rgba(0,93,163,0.07)",
+        boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
       }}
     >
       {/* Header — deep navy with product name, SKU, and action buttons */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0a2a52 0%, #005da3 100%)",
+          background: "linear-gradient(135deg, #0a2a52 0%, var(--brand-primary) 100%)",
         }}
       >
         <div className="px-8 py-5 flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div
               className="text-xs font-bold tracking-widest uppercase mb-1"
-              style={{ color: "#119ec8" }}
+              style={{ color: "var(--brand-accent-2)" }}
             >
               Product Detail
             </div>
@@ -4808,7 +5306,7 @@ function ProductDetail({ product, allProducts }) {
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <span
               className="px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wide"
-              style={{ background: "#005da3", color: "#ffffff" }}
+              style={{ background: "var(--brand-primary)", color: "#ffffff" }}
             >
               {product.sku}
             </span>
@@ -4821,7 +5319,7 @@ function ProductDetail({ product, allProducts }) {
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
                   style={{
-                    background: "#00bef2",
+                    background: "var(--brand-accent)",
                     color: "#141414",
                     textDecoration: "none",
                   }}
@@ -4854,7 +5352,7 @@ function ProductDetail({ product, allProducts }) {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
                       style={{
-                        background: "#00bef2",
+                        background: "var(--brand-accent)",
                         color: "#141414",
                         textDecoration: "none",
                       }}
@@ -4884,7 +5382,7 @@ function ProductDetail({ product, allProducts }) {
                 onClick={() => setSearchParam("page", "contact")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
                 style={{
-                  background: "#00bef2",
+                  background: "var(--brand-accent)",
                   color: "#141414",
                   border: "none",
                   cursor: "pointer",
@@ -4912,7 +5410,7 @@ function ProductDetail({ product, allProducts }) {
               onClick={() => setSearchParam("page", "contact")}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
               style={{
-                background: "#005da3",
+                background: "var(--brand-primary)",
                 color: "#ffffff",
                 border: "none",
                 cursor: "pointer",
@@ -4945,7 +5443,7 @@ function ProductDetail({ product, allProducts }) {
                   className="text-xs font-semibold px-2.5 py-1 rounded"
                   style={{
                     background: "rgba(0,190,242,0.15)",
-                    color: "#00bef2",
+                    color: "var(--brand-accent)",
                     border: "1px solid rgba(0,190,242,0.3)",
                   }}
                 >
@@ -4982,13 +5480,13 @@ function ProductDetail({ product, allProducts }) {
                 border: "1px solid #1a3a5c",
               }}
             >
-              <img src="/logo.svg" alt="IPC logo" width={72} height={72} />
+              <img src={site.theme?.logoUrl || "/logo.svg"} alt="IPC logo" width={72} height={72} />
               <div style={{ textAlign: "center" }}>
                 <div
                   style={{
                     fontSize: 13,
                     fontWeight: 700,
-                    color: "#00bef2",
+                    color: "var(--brand-accent)",
                     letterSpacing: "0.08em",
                   }}
                 >
@@ -5011,7 +5509,7 @@ function ProductDetail({ product, allProducts }) {
           {product.caption && (
             <p
               className="mt-3 text-xs font-semibold"
-              style={{ color: "#005da3" }}
+              style={{ color: "var(--brand-primary)" }}
             >
               {product.caption}
             </p>
@@ -5040,8 +5538,8 @@ function ProductDetail({ product, allProducts }) {
                     key={b}
                     className="px-2.5 py-1 rounded text-xs font-semibold uppercase tracking-wide"
                     style={{
-                      background: "rgba(0,93,163,0.08)",
-                      color: "#005da3",
+                      background: "rgba(var(--brand-primary-rgb),0.08)",
+                      color: "var(--brand-primary)",
                     }}
                   >
                     {b}
@@ -5082,7 +5580,7 @@ function ProductDetail({ product, allProducts }) {
         >
           <div
             className="text-xs font-bold uppercase tracking-widest mb-4"
-            style={{ color: "#005da3" }}
+            style={{ color: "var(--brand-primary)" }}
           >
             Related Products — {product.partType}
           </div>
@@ -5098,7 +5596,7 @@ function ProductDetail({ product, allProducts }) {
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#005da3";
+                  e.currentTarget.style.borderColor = "var(--brand-primary)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = "#e5e9ee";
@@ -5106,7 +5604,7 @@ function ProductDetail({ product, allProducts }) {
               >
                 <div
                   className="text-xs font-bold uppercase mb-1 transition-colors duration-200 group-hover:text-blue-700"
-                  style={{ color: "#005da3" }}
+                  style={{ color: "var(--brand-primary)" }}
                 >
                   {rp.sku}
                 </div>
@@ -5120,7 +5618,7 @@ function ProductDetail({ product, allProducts }) {
                 </div>
                 <div
                   className="mt-2 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-0.5"
-                  style={{ color: "#00bef2" }}
+                  style={{ color: "var(--brand-accent)" }}
                 >
                   View{" "}
                   <span
@@ -5228,7 +5726,7 @@ function ProductPage({ products }) {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div
             className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "#119ec8" }}
+            style={{ color: "var(--brand-accent-2)" }}
           >
             Products
           </div>
@@ -5272,8 +5770,8 @@ function ProductPage({ products }) {
           left: 0,
           right: 0,
           zIndex: 40,
-          background: "#0d2d52",
-          borderTop: "2px solid #00bef2",
+          background: "var(--brand-dark)",
+          borderTop: "2px solid var(--brand-accent)",
           transform: showStickyBar ? "translateY(0)" : "translateY(110%)",
           /* Spring cubic-bezier: overshoots slightly then settles — more personality than ease */
           transition: showStickyBar
@@ -5293,8 +5791,8 @@ function ProductPage({ products }) {
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
                 marginBottom: 1,
-                color: pulseSkuBadge ? "#141414" : "#119ec8",
-                background: pulseSkuBadge ? "#00bef2" : "transparent",
+                color: pulseSkuBadge ? "#141414" : "var(--brand-accent-2)",
+                background: pulseSkuBadge ? "var(--brand-accent)" : "transparent",
                 padding: pulseSkuBadge ? "1px 6px" : "1px 0",
                 borderRadius: 4,
                 transition: "all 0.3s ease",
@@ -5427,17 +5925,17 @@ function ProductPage({ products }) {
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 700,
-                background: "#005da3",
+                background: "var(--brand-primary)",
                 color: "#ffffff",
                 border: "none",
                 cursor: "pointer",
                 transition: "background 0.15s",
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#004e8c")
+                (e.currentTarget.style.background = "var(--brand-primary-hover)")
               }
               onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "#005da3")
+                (e.currentTarget.style.background = "var(--brand-primary)")
               }
             >
               Request a Quote →
@@ -5648,7 +6146,7 @@ function DashboardPage({ products }) {
                   borderRadius: 8,
                   border:
                     activeFamily !== "All"
-                      ? "2px solid #005da3"
+                      ? "2px solid var(--brand-primary)"
                       : "1px solid #d1d9e0",
                   background: "#ffffff",
                   color: "#141414",
@@ -5694,7 +6192,7 @@ function DashboardPage({ products }) {
                   marginTop: 8,
                   fontSize: 11,
                   fontWeight: 600,
-                  color: "#005da3",
+                  color: "var(--brand-primary)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
@@ -5742,8 +6240,8 @@ function DashboardPage({ products }) {
                   fontSize: 16,
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = "#005da3";
-                  e.target.style.boxShadow = "0 0 0 3px rgba(0,93,163,0.1)";
+                  e.target.style.borderColor = "var(--brand-primary)";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(var(--brand-primary-rgb),0.1)";
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = "#d1d9e0";
@@ -5780,8 +6278,8 @@ function DashboardPage({ products }) {
                   borderRadius: 20,
                   fontSize: 12,
                   fontWeight: 600,
-                  border: active ? "2px solid #005da3" : "1px solid #d1d9e0",
-                  background: active ? "#005da3" : "#ffffff",
+                  border: active ? "2px solid var(--brand-primary)" : "1px solid #d1d9e0",
+                  background: active ? "var(--brand-primary)" : "#ffffff",
                   color: active ? "#ffffff" : "#4b5563",
                   cursor: "pointer",
                   display: "inline-flex",
@@ -5792,8 +6290,8 @@ function DashboardPage({ products }) {
                 }}
                 onMouseEnter={(e) => {
                   if (!active) {
-                    e.currentTarget.style.borderColor = "#005da3";
-                    e.currentTarget.style.color = "#005da3";
+                    e.currentTarget.style.borderColor = "var(--brand-primary)";
+                    e.currentTarget.style.color = "var(--brand-primary)";
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -5812,8 +6310,8 @@ function DashboardPage({ products }) {
                     borderRadius: 10,
                     background: active
                       ? "rgba(255,255,255,0.2)"
-                      : "rgba(0,93,163,0.08)",
-                    color: active ? "#ffffff" : "#005da3",
+                      : "rgba(var(--brand-primary-rgb),0.08)",
+                    color: active ? "#ffffff" : "var(--brand-primary)",
                   }}
                 >
                   {count}
@@ -5837,8 +6335,8 @@ function DashboardPage({ products }) {
                 onClick={() => setSearch("")}
                 className="text-xs px-2 py-0.5 rounded"
                 style={{
-                  background: "rgba(0,93,163,0.1)",
-                  color: "#005da3",
+                  background: "rgba(var(--brand-primary-rgb),0.1)",
+                  color: "var(--brand-primary)",
                   border: "none",
                   cursor: "pointer",
                 }}
@@ -5884,8 +6382,8 @@ function DashboardPage({ products }) {
                 fontSize: 16,
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = "#005da3";
-                e.target.style.boxShadow = "0 0 0 3px rgba(0,93,163,0.1)";
+                e.target.style.borderColor = "var(--brand-primary)";
+                e.target.style.boxShadow = "0 0 0 3px rgba(var(--brand-primary-rgb),0.1)";
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = "#d1d9e0";
@@ -5916,7 +6414,7 @@ function DashboardPage({ products }) {
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0">
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#005da3', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)', letterSpacing: '0.04em' }}>
                       {row.partId}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#141414', marginTop: 2, lineHeight: 1.3 }}>
@@ -5934,7 +6432,7 @@ function DashboardPage({ products }) {
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
                         background: 'rgba(17,158,200,0.1)',
-                        color: '#119ec8',
+                        color: 'var(--brand-accent-2)',
                       }}
                     >
                       {row.partType}
@@ -5960,7 +6458,7 @@ function DashboardPage({ products }) {
                     borderRadius: 8,
                     fontSize: 14,
                     fontWeight: 600,
-                    background: '#005da3',
+                    background: 'var(--brand-primary)',
                     color: '#ffffff',
                     border: 'none',
                     cursor: 'pointer',
@@ -5978,7 +6476,7 @@ function DashboardPage({ products }) {
           className="hidden sm:block rounded-xl overflow-hidden"
           style={{
             border: "1px solid #e5e9ee",
-            boxShadow: "0 2px 12px rgba(0,93,163,0.07)",
+            boxShadow: "0 2px 12px rgba(var(--brand-primary-rgb),0.07)",
           }}
         >
           <div style={{ overflowX: "auto" }}>
@@ -5990,7 +6488,7 @@ function DashboardPage({ products }) {
               }}
             >
               <thead>
-                <tr style={{ background: "#0d2d52" }}>
+                <tr style={{ background: "var(--brand-dark)" }}>
                   {cols.map((col) => (
                     <th
                       key={col.key}
@@ -6004,13 +6502,13 @@ function DashboardPage({ products }) {
                         letterSpacing: "0.08em",
                         color:
                           sortCol === col.key
-                            ? "#00bef2"
+                            ? "var(--brand-accent)"
                             : "rgba(255,255,255,0.65)",
                         textTransform: "uppercase",
                         whiteSpace: "nowrap",
                         userSelect: "none",
                         width: col.width || undefined,
-                        borderBottom: "2px solid #005da3",
+                        borderBottom: "2px solid var(--brand-primary)",
                       }}
                     >
                       {col.label}{" "}
@@ -6033,7 +6531,7 @@ function DashboardPage({ products }) {
                       color: "rgba(255,255,255,0.65)",
                       textTransform: "uppercase",
                       whiteSpace: "nowrap",
-                      borderBottom: "2px solid #005da3",
+                      borderBottom: "2px solid var(--brand-primary)",
                       width: 130,
                     }}
                   >
@@ -6064,7 +6562,7 @@ function DashboardPage({ products }) {
                             width: 56,
                             height: 56,
                             borderRadius: 12,
-                            background: "rgba(0,93,163,0.07)",
+                            background: "rgba(var(--brand-primary-rgb),0.07)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -6115,20 +6613,20 @@ function DashboardPage({ products }) {
                             style={{
                               fontSize: 12,
                               fontWeight: 600,
-                              color: "#005da3",
-                              background: "rgba(0,93,163,0.07)",
-                              border: "1px solid rgba(0,93,163,0.2)",
+                              color: "var(--brand-primary)",
+                              background: "rgba(var(--brand-primary-rgb),0.07)",
+                              border: "1px solid rgba(var(--brand-primary-rgb),0.2)",
                               cursor: "pointer",
                               padding: "7px 16px",
                               borderRadius: 6,
                             }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.background =
-                                "rgba(0,93,163,0.12)";
+                                "rgba(var(--brand-primary-rgb),0.12)";
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.background =
-                                "rgba(0,93,163,0.07)";
+                                "rgba(var(--brand-primary-rgb),0.07)";
                             }}
                           >
                             Clear all filters
@@ -6147,7 +6645,7 @@ function DashboardPage({ products }) {
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background =
-                          "rgba(0,93,163,0.04)";
+                          "rgba(var(--brand-primary-rgb),0.04)";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background =
@@ -6176,7 +6674,7 @@ function DashboardPage({ products }) {
                       <td
                         style={{ padding: "13px 18px", whiteSpace: "nowrap" }}
                       >
-                        <span style={{ fontWeight: 700, color: "#005da3" }}>
+                        <span style={{ fontWeight: 700, color: "var(--brand-primary)" }}>
                           {row.partId}
                         </span>
                       </td>
@@ -6194,7 +6692,7 @@ function DashboardPage({ products }) {
                             textTransform: "uppercase",
                             letterSpacing: "0.05em",
                             background: "rgba(17,158,200,0.1)",
-                            color: "#119ec8",
+                            color: "var(--brand-accent-2)",
                           }}
                         >
                           {row.partType || "—"}
@@ -6257,19 +6755,19 @@ function DashboardPage({ products }) {
                             borderRadius: 6,
                             fontSize: 12,
                             fontWeight: 600,
-                            background: "#005da3",
+                            background: "var(--brand-primary)",
                             color: "#ffffff",
                             border: "none",
                             cursor: "pointer",
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#004e8c";
+                            e.currentTarget.style.background = "var(--brand-primary-hover)";
                             const a =
                               e.currentTarget.querySelector(".ipc-btn-arrow");
                             if (a) a.style.transform = "translateX(4px)";
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "#005da3";
+                            e.currentTarget.style.background = "var(--brand-primary)";
                             const a =
                               e.currentTarget.querySelector(".ipc-btn-arrow");
                             if (a) a.style.transform = "translateX(0)";
@@ -6397,13 +6895,15 @@ const IndIcons = {
   ),
 };
 
-function IndustriesPage() {
-  const industries = [
+// Industries page detail — module scope so the content system can supply /
+// override it (edited in the admin under "Page Content" → Industries Page).
+// This array is the seed/fallback used when content.json is missing the section.
+const INDUSTRY_DETAIL = [
     {
       iconKey: "automotive",
       name: "Automotive",
       subhead: "PPAP & IMDS documentation available",
-      color: "#005da3",
+      color: "var(--brand-primary)",
       useCases: [
         "Wire harness insulation and strain relief",
         "Under-hood connector sealing with adhesive-lined tubing",
@@ -6425,7 +6925,7 @@ function IndustriesPage() {
       iconKey: "aerospace",
       name: "Aerospace & Defense",
       subhead: "MIL-SPEC, AMS, QPL products in stock",
-      color: "#005da3",
+      color: "var(--brand-primary)",
       useCases: [
         "MIL-SPEC heat shrink over avionics wiring and connectors",
         "PVDF and FEP tubing for high-temperature compartments",
@@ -6451,7 +6951,7 @@ function IndustriesPage() {
       iconKey: "medical",
       name: "Medical Devices",
       subhead: "USP Class VI · ISO 10993-5 · FDA 21 CFR",
-      color: "#005da3",
+      color: "var(--brand-primary)",
       useCases: [
         "Catheter and surgical instrument handle jacketing",
         "Endoscope component covering with biocompatible tubing",
@@ -6473,7 +6973,7 @@ function IndustriesPage() {
       iconKey: "industrial",
       name: "Industrial & OEM",
       subhead: "Motor leads, transformers, heating elements",
-      color: "#005da3",
+      color: "var(--brand-primary)",
       useCases: [
         "Fiberglass sleeving for motor lead and winding insulation",
         "High-temperature coating options: vinyl, acrylic, silicone",
@@ -6496,7 +6996,7 @@ function IndustriesPage() {
       iconKey: "marine",
       name: "Marine & Outdoor",
       subhead: "UV rated · Waterproof sealing · Corrosion resistant",
-      color: "#005da3",
+      color: "var(--brand-primary)",
       useCases: [
         "Dual-wall adhesive-lined tubing for watertight connector seals",
         "UV-resistant PVC heat shrink for exposed wiring",
@@ -6514,7 +7014,11 @@ function IndustriesPage() {
       ],
       certs: ["UL & CUL Listed (Conduit system)", "UV Rated Material"],
     },
-  ];
+];
+
+function IndustriesPage() {
+  const c = useContent().copy.industriesHeader;
+  const industries = useContent().industryDetail;
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -6525,18 +7029,16 @@ function IndustriesPage() {
             className="text-xs font-bold tracking-widest uppercase mb-2"
             style={{ color: "rgba(255,255,255,0.7)" }}
           >
-            Industries Served
+            {c.eyebrow}
           </div>
           <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
-            Applications by Industry
+            {c.title}
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
-            IPC supplies spec-grade insulation materials across demanding
-            industries. Select your sector to see the products and
-            certifications that serve your application.
+            {c.intro}
           </p>
         </div>
       </div>
@@ -6548,14 +7050,14 @@ function IndustriesPage() {
             className="bg-white rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
             style={{
               border: "1px solid #e5e9ee",
-              boxShadow: "0 2px 12px rgba(0,93,163,0.06)",
+              boxShadow: "0 2px 12px rgba(var(--brand-primary-rgb),0.06)",
             }}
           >
             {/* Industry header */}
             <div
               className="px-5 py-4 md:px-8 md:py-5 flex items-center gap-4"
               style={{
-                background: "linear-gradient(135deg, #003d7a, #005da3)",
+                background: "linear-gradient(135deg, #003d7a, var(--brand-primary))",
                 borderBottom: "none",
               }}
             >
@@ -6564,12 +7066,12 @@ function IndustriesPage() {
                 style={{
                   width: 44,
                   height: 44,
-                  background: "rgba(0,93,163,0.5)",
-                  color: "#00bef2",
+                  background: "rgba(var(--brand-primary-rgb),0.5)",
+                  color: "var(--brand-accent)",
                   border: "1px solid rgba(0,190,242,0.3)",
                 }}
               >
-                {IndIcons[ind.iconKey]}
+                {IndIcons[ind.iconKey] || IndIcons.industrial}
               </div>
               <div>
                 <h2 className="text-xl font-extrabold text-white">
@@ -6577,7 +7079,7 @@ function IndustriesPage() {
                 </h2>
                 <p
                   className="text-xs font-semibold mt-0.5"
-                  style={{ color: "#00bef2" }}
+                  style={{ color: "var(--brand-accent)" }}
                 >
                   {ind.subhead}
                 </p>
@@ -6589,12 +7091,12 @@ function IndustriesPage() {
               <div className="p-7 border-b border-gray-200 lg:border-b-0 lg:border-r lg:border-gray-200">
                 <div
                   className="text-xs font-bold uppercase tracking-widest mb-4"
-                  style={{ color: "#005da3" }}
+                  style={{ color: "var(--brand-primary)" }}
                 >
                   Common Applications
                 </div>
                 <ul className="space-y-2.5">
-                  {ind.useCases.map((uc) => (
+                  {(ind.useCases || []).map((uc) => (
                     <li
                       key={uc}
                       className="flex items-start gap-2.5 text-sm"
@@ -6602,7 +7104,7 @@ function IndustriesPage() {
                     >
                       <span
                         style={{
-                          color: "#00bef2",
+                          color: "var(--brand-accent)",
                           marginTop: 2,
                           flexShrink: 0,
                         }}
@@ -6619,12 +7121,12 @@ function IndustriesPage() {
               <div className="p-7 border-b border-gray-200 lg:border-b-0 lg:border-r lg:border-gray-200">
                 <div
                   className="text-xs font-bold uppercase tracking-widest mb-4"
-                  style={{ color: "#005da3" }}
+                  style={{ color: "var(--brand-primary)" }}
                 >
                   IPC Products
                 </div>
                 <ul className="space-y-2">
-                  {ind.products.map((prod) => (
+                  {(ind.products || []).map((prod) => (
                     <li key={prod.sku}>
                       <button
                         onClick={() =>
@@ -6644,7 +7146,7 @@ function IndustriesPage() {
                       >
                         <span
                           style={{
-                            color: "#119ec8",
+                            color: "var(--brand-accent-2)",
                             marginTop: 3,
                             flexShrink: 0,
                             fontSize: 8,
@@ -6659,7 +7161,7 @@ function IndustriesPage() {
                             style={{
                               fontSize: 12,
                               fontWeight: 700,
-                              color: "#005da3",
+                              color: "var(--brand-primary)",
                               letterSpacing: "0.04em",
                             }}
                           >
@@ -6678,7 +7180,7 @@ function IndustriesPage() {
                           <span
                             style={{
                               fontSize: 10,
-                              color: "#00bef2",
+                              color: "var(--brand-accent)",
                               marginTop: 1,
                               fontWeight: 600,
                             }}
@@ -6697,18 +7199,18 @@ function IndustriesPage() {
                 <div>
                   <div
                     className="text-xs font-bold uppercase tracking-widest mb-4"
-                    style={{ color: "#005da3" }}
+                    style={{ color: "var(--brand-primary)" }}
                   >
                     Certifications
                   </div>
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {ind.certs.map((cert) => (
+                    {(ind.certs || []).map((cert) => (
                       <span
                         key={cert}
                         className="text-xs font-semibold px-2.5 py-1 rounded"
                         style={{
-                          background: "rgba(0,93,163,0.08)",
-                          color: "#005da3",
+                          background: "rgba(var(--brand-primary-rgb),0.08)",
+                          color: "var(--brand-primary)",
                         }}
                       >
                         {cert}
@@ -6721,7 +7223,7 @@ function IndustriesPage() {
                     onClick={() => setSearchParam("page", "contact")}
                     className="w-full py-2.5 rounded text-sm font-semibold transition-all hover:brightness-110"
                     style={{
-                      background: "#005da3",
+                      background: "var(--brand-primary)",
                       color: "#ffffff",
                       border: "none",
                       cursor: "pointer",
@@ -6734,12 +7236,12 @@ function IndustriesPage() {
                     className="w-full py-2.5 rounded text-sm font-medium transition-all"
                     style={{
                       background: "transparent",
-                      color: "#005da3",
-                      border: "1px solid #005da3",
+                      color: "var(--brand-primary)",
+                      border: "1px solid var(--brand-primary)",
                       cursor: "pointer",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(0,93,163,0.05)";
+                      e.currentTarget.style.background = "rgba(var(--brand-primary-rgb),0.05)";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = "transparent";
@@ -6756,7 +7258,7 @@ function IndustriesPage() {
         {/* PPAP / IMDS note */}
         <div
           className="rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4"
-          style={{ background: "#0d2d52" }}
+          style={{ background: "var(--brand-dark)" }}
         >
           <div>
             <div className="text-sm font-bold text-white mb-1">
@@ -6772,7 +7274,7 @@ function IndustriesPage() {
             onClick={() => setSearchParam("page", "contact")}
             className="flex-shrink-0 text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
             style={{
-              background: "#005da3",
+              background: "var(--brand-primary)",
               color: "#ffffff",
               border: "none",
               cursor: "pointer",
@@ -6794,7 +7296,7 @@ function IndustriesPage() {
  */
 function Badge({ children, variant = "primary" }) {
   const styles = {
-    primary: { background: "rgba(0,93,163,0.09)", color: "#005da3" },
+    primary: { background: "rgba(var(--brand-primary-rgb),0.09)", color: "var(--brand-primary)" },
     success: { background: "rgba(22,101,52,0.09)", color: "#166534" },
     neutral: { background: "rgba(107,114,128,0.10)", color: "#6b7280" },
   };
@@ -6918,8 +7420,9 @@ const SvcIcons = {
   ),
 };
 
-function ServicesPage() {
-  const services = [
+// Value-Added Services (fabrication) cards, at module scope so the content
+// system can supply/override them (rendered by ServicesPage via SvcIcons).
+const SERVICES_DATA = [
     {
       iconKey: "cut",
       title: "Cut-to-Length",
@@ -7000,7 +7503,11 @@ function ServicesPage() {
       ],
       leadTime: "≤ 1 week",
     },
-  ];
+];
+
+function ServicesPage() {
+  const { services, copy } = useContent();
+  const c = copy.servicesHeader;
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -7011,18 +7518,16 @@ function ServicesPage() {
             className="text-xs font-bold tracking-widest uppercase mb-2"
             style={{ color: "rgba(255,255,255,0.7)" }}
           >
-            Fabrication
+            {c.eyebrow}
           </div>
           <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
-            Value-Added Services
+            {c.title}
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
-            Beyond stocking and distributing, IPC offers a full range of
-            fabrication and customization services — all with a typical lead
-            time of one week or less.
+            {c.intro}
           </p>
         </div>
       </div>
@@ -7032,8 +7537,8 @@ function ServicesPage() {
         <div
           className="rounded-xl p-5 mb-10 flex flex-wrap items-center justify-between gap-4"
           style={{
-            background: "linear-gradient(135deg, #005da3, #119ec8)",
-            boxShadow: "0 4px 16px rgba(0,93,163,0.20)",
+            background: "linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))",
+            boxShadow: "0 4px 16px rgba(var(--brand-primary-rgb),0.20)",
           }}
         >
           <div className="flex items-center gap-4">
@@ -7080,7 +7585,7 @@ function ServicesPage() {
             className="flex-shrink-0 text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
             style={{
               background: "#ffffff",
-              color: "#005da3",
+              color: "var(--brand-primary)",
               border: "none",
               cursor: "pointer",
             }}
@@ -7097,22 +7602,22 @@ function ServicesPage() {
               className="bg-white rounded-2xl overflow-hidden flex flex-col"
               style={{
                 border: "1px solid #e5e9ee",
-                boxShadow: "0 1px 4px rgba(0,93,163,0.05)",
+                boxShadow: "0 1px 4px rgba(var(--brand-primary-rgb),0.05)",
               }}
             >
               {/* Service header */}
               <div
                 className="px-6 py-5"
-                style={{ borderBottom: "2px solid #005da3" }}
+                style={{ borderBottom: "2px solid var(--brand-primary)" }}
               >
                 <div
                   className="flex items-center justify-center rounded-lg mb-3"
                   style={{
                     width: 42,
                     height: 42,
-                    background: "rgba(0,93,163,0.08)",
-                    color: "#005da3",
-                    border: "1px solid rgba(0,93,163,0.15)",
+                    background: "rgba(var(--brand-primary-rgb),0.08)",
+                    color: "var(--brand-primary)",
+                    border: "1px solid rgba(var(--brand-primary-rgb),0.15)",
                   }}
                 >
                   {SvcIcons[svc.iconKey]}
@@ -7139,7 +7644,7 @@ function ServicesPage() {
                     >
                       <span
                         style={{
-                          color: "#00bef2",
+                          color: "var(--brand-accent)",
                           marginTop: 1,
                           flexShrink: 0,
                         }}
@@ -7162,7 +7667,7 @@ function ServicesPage() {
                   rel="noopener noreferrer"
                   className="px-6 py-4 flex items-center gap-2 text-xs font-semibold transition-colors duration-150"
                   style={{
-                    color: "#005da3",
+                    color: "var(--brand-primary)",
                     borderTop: "1px solid #e5e9ee",
                     background: "#f8fafc",
                     textDecoration: "none",
@@ -7207,7 +7712,7 @@ function ServicesPage() {
         </div>
 
         {/* Capabilities footer strip */}
-        <div className="rounded-2xl p-8" style={{ background: "#0d2d52" }}>
+        <div className="rounded-2xl p-8" style={{ background: "var(--brand-dark)" }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
               <h3 className="text-xl font-extrabold text-white mb-3">
@@ -7228,7 +7733,7 @@ function ServicesPage() {
                 onClick={() => setSearchParam("page", "contact")}
                 className="w-full py-3 rounded text-sm font-semibold hover:brightness-110 transition-all"
                 style={{
-                  background: "#005da3",
+                  background: "var(--brand-primary)",
                   color: "#ffffff",
                   border: "none",
                   cursor: "pointer",
@@ -7260,8 +7765,7 @@ function ServicesPage() {
  * 3.3 — PRIVACY POLICY PAGE
  * GDPR/CCPA-appropriate B2B privacy policy for contact form data collection.
  */
-function PrivacyPage() {
-  const sections = [
+const PRIVACY_SECTIONS = [
     {
       title: "Information We Collect",
       content:
@@ -7297,7 +7801,13 @@ function PrivacyPage() {
       content:
         "If you have questions about this Privacy Policy or how your data is handled, contact Insulation Products Corporation at: 250 Gibraltar Dr, Bolingbrook, IL 60440 · Phone: 630.771.0700 · Email: sales@insulationproducts.com",
     },
-  ];
+];
+
+function PrivacyPage() {
+  const site = useSiteInfo();
+  const { privacySections, copy } = useContent();
+  const sections = privacySections;
+  const c = copy.privacyHeader;
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -7308,16 +7818,16 @@ function PrivacyPage() {
             className="text-xs font-bold tracking-widest uppercase mb-2"
             style={{ color: "rgba(255,255,255,0.7)" }}
           >
-            Legal
+            {c.eyebrow}
           </div>
           <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
-            Privacy Policy
+            {c.title}
           </h1>
           <p
             className="mt-3 text-base"
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
-            Effective Date: January 1, 2025 · Last Updated:{" "}
+            Effective Date: {c.effectiveDate} · Last Updated:{" "}
             {new Date().toLocaleDateString("en-US", {
               month: "long",
               year: "numeric",
@@ -7331,14 +7841,11 @@ function PrivacyPage() {
           className="bg-white rounded-2xl p-8 space-y-8"
           style={{
             border: "1px solid #e5e9ee",
-            boxShadow: "0 2px 12px rgba(0,93,163,0.06)",
+            boxShadow: "0 2px 12px rgba(var(--brand-primary-rgb),0.06)",
           }}
         >
           <p className="text-sm leading-relaxed" style={{ color: "#4b5563" }}>
-            Insulation Products Corporation ("IPC", "we", "us", or "our")
-            operates the website at insulationproducts.com. This Privacy Policy
-            explains how we collect, use, and protect information when you visit
-            our site or contact us through it.
+            {localizeProse(c.intro, site)}
           </p>
           {sections.map((sec, i) => (
             <div key={sec.title}>
@@ -7362,7 +7869,7 @@ function PrivacyPage() {
                     width: 3,
                     height: 20,
                     borderRadius: 2,
-                    background: "#005da3",
+                    background: "var(--brand-primary)",
                     flexShrink: 0,
                   }}
                 />
@@ -7381,15 +7888,15 @@ function PrivacyPage() {
                 className="text-sm leading-relaxed"
                 style={{ color: "#4b5563" }}
               >
-                {sec.content}
+                {localizeProse(sec.content, site)}
               </p>
             </div>
           ))}
         </div>
 
         <p className="mt-6 text-xs text-center" style={{ color: "#9ca3af" }}>
-          © 1974–{new Date().getFullYear()} Insulation Products Corporation ·
-          250 Gibraltar Dr, Bolingbrook, IL 60440
+          © {site.company.foundedYear}–{new Date().getFullYear()} {site.company.name} ·
+          {site.address.street}, {site.address.city}, {site.address.state} {site.address.zip}
         </p>
       </div>
     </div>
@@ -7400,6 +7907,9 @@ function PrivacyPage() {
  * IPC Footer — SVG logo mark + SVG contact icons + verified contact data.
  */
 function Footer() {
+  const site = useSiteInfo();
+  const { footerLinks, copy } = useContent();
+  const fc = copy.footer;
   // Reusable tiny SVG icons for contact items
   const PhoneIcon = () => (
     <svg
@@ -7485,14 +7995,14 @@ function Footer() {
   );
 
   return (
-    <footer style={{ background: "#0a2240", borderTop: "3px solid #00bef2" }}>
+    <footer style={{ background: "#0a2240", borderTop: "3px solid var(--brand-accent)" }}>
       <div className="max-w-7xl mx-auto px-6 py-14">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
           {/* Brand column — SVG logo mark */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
               <img
-                src="/logo.svg"
+                src={site.theme?.logoUrl || "/logo.svg"}
                 alt="IPC logo"
                 width={44}
                 height={44}
@@ -7511,7 +8021,7 @@ function Footer() {
                 </div>
                 <div
                   className="text-xs mt-0.5"
-                  style={{ color: "#119ec8", letterSpacing: "0.08em" }}
+                  style={{ color: "var(--brand-accent-2)", letterSpacing: "0.08em" }}
                 >
                   ESTABLISHED 1974 · ISO 9001 · RoHS COMPLIANT
                 </div>
@@ -7523,7 +8033,7 @@ function Footer() {
             >
               A spec-grade stocking distributor of heat-shrinkable &amp;
               extruded tubing, electrical sleeving, and industrial adhesives.
-              $50 minimum order. Quick, accurate, courteous service — the
+              {site.stats.minimumOrder} minimum order. Quick, accurate, courteous service — the
               customer is always number one.
             </p>
           </div>
@@ -7532,9 +8042,9 @@ function Footer() {
           <div>
             <div
               className="text-xs font-bold uppercase tracking-widest mb-4"
-              style={{ color: "#119ec8" }}
+              style={{ color: "var(--brand-accent-2)" }}
             >
-              Contact
+              {fc.contactTitle}
             </div>
             <div
               className="space-y-2.5 text-xs"
@@ -7542,26 +8052,26 @@ function Footer() {
             >
               <div className="flex items-center gap-2">
                 <PhoneIcon />
-                <a href="tel:+16307710700" style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>630.771.0700</a>
+                <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>{site.contact.phone}</a>
               </div>
               <div className="flex items-center gap-2">
                 <FaxIcon />
-                <a href="tel:+16307710701" style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>630.771.0701 (Fax)</a>
+                <a href={`tel:${site.contact.fax}`} style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>{site.contact.fax} (Fax)</a>
               </div>
               <div className="flex items-center gap-2">
                 <MailIcon />
-                <a href="mailto:sales@insulationproducts.com" style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>sales@insulationproducts.com</a>
+                <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>{site.contact.email}</a>
               </div>
               <div className="flex items-start gap-2">
                 <PinIcon />{" "}
                 <span>
-                  250 Gibraltar Dr
+                  {site.address.street}
                   <br />
-                  Bolingbrook, IL 60440
+                  {site.address.city}, {site.address.state} {site.address.zip}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <ClockIcon /> Mon–Fri, 8am–5pm CT
+                <ClockIcon /> {site.hours.text}
               </div>
             </div>
           </div>
@@ -7570,9 +8080,9 @@ function Footer() {
           <div>
             <div
               className="text-xs font-bold uppercase tracking-widest mb-4"
-              style={{ color: "#119ec8" }}
+              style={{ color: "var(--brand-accent-2)" }}
             >
-              Quick Links
+              {fc.quickLinksTitle}
             </div>
             <div
               style={{
@@ -7581,16 +8091,7 @@ function Footer() {
                 gap: "12px 24px",
               }}
             >
-              {[
-                { label: "Product Catalog", page: "products" },
-                { label: "About IPC", page: "about" },
-                { label: "Product Index", page: "dashboard" },
-                { label: "Resources / FAQ", page: "faq" },
-                { label: "Industries", page: "industries" },
-                { label: "Contact", page: "contact" },
-                { label: "Services", page: "services" },
-                { label: "Privacy Policy", page: "privacy" },
-              ].map((link) => (
+              {footerLinks.map((link) => (
                 <div key={link.label}>
                   <button
                     onClick={() => setSearchParam("page", link.page)}
@@ -7604,7 +8105,7 @@ function Footer() {
                       textAlign: "left",
                     }}
                     onMouseEnter={(e) =>
-                      (e.currentTarget.style.color = "#00bef2")
+                      (e.currentTarget.style.color = "var(--brand-accent)")
                     }
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.color = "rgba(255,255,255,0.45)")
@@ -7623,11 +8124,11 @@ function Footer() {
           style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
         >
           <p className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
-            © 1974–{new Date().getFullYear()} Insulation Products Corporation.
+            © {site.company.foundedYear}–{new Date().getFullYear()} {site.company.name}.
             All rights reserved.
           </p>
           <p className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
-            insulationproducts.com · Bolingbrook, IL 60440
+            {fc.domain} · {site.address.city}, {site.address.state} {site.address.zip}
           </p>
         </div>
       </div>
@@ -7649,39 +8150,10 @@ function App() {
   const { products, loading, error } = useProducts();
 
   // ALL hooks must be called before any conditional return (React rules of hooks).
-  // Scroll to top + update document title and meta description on every page navigation.
+  // Scroll to top on every page navigation. (Title + meta description are handled
+  // by <PageMeta>, which lives inside SiteInfoProvider so it can localize them.)
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
-
-    const titles = {
-      products:   "Product Catalog — Insulation Products Corporation",
-      dashboard:  "Product Index — Insulation Products Corporation",
-      industries: "Industries Served — Insulation Products Corporation",
-      services:   "Value-Added Services — Insulation Products Corporation",
-      about:      "About — Insulation Products Corporation",
-      faq:        "FAQ & Resources — Insulation Products Corporation",
-      contact:    "Contact / Request a Quote — Insulation Products Corporation",
-      privacy:    "Privacy Policy — Insulation Products Corporation",
-    };
-
-    const descriptions = {
-      products:   "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and data sheets, and request a quote.",
-      dashboard:  "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and data sheets for every SKU.",
-      industries: "IPC supplies specification-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry.",
-      services:   "Custom cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, and JIT delivery programs. Typical lead time one week or less.",
-      about:      "Insulation Products Corporation — a spec-grade stocking distributor in Bolingbrook, IL since July 1, 1974. ISO 9001 registered. $50 minimum order, same-day shipment.",
-      faq:        "Answers to common questions about IPC products, certifications, ordering minimums, custom fabrication, and documentation support.",
-      contact:    "Request a quote, submit a PO, or ask a question. Call 630.771.0700, fax 630.771.0701, email sales@insulationproducts.com, or use our online form.",
-      privacy:    "Privacy policy for Insulation Products Corporation — how we collect and use information submitted through our website contact forms.",
-    };
-
-    const defaultTitle = "Insulation Products Corporation — Heat Shrink Tubing, Sleeving & Adhesives";
-    const defaultDesc  = "IPC is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. Ships same day. ISO 9001 registered.";
-
-    document.title = titles[page] || defaultTitle;
-
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute("content", descriptions[page] || defaultDesc);
   }, [page]);
 
   // Animation 7 — Shimmer skeleton replaces the spinner.
@@ -7695,7 +8167,7 @@ function App() {
         {/* Skeleton Navbar */}
         <div
           style={{
-            background: "#0d2d52",
+            background: "var(--brand-dark)",
             height: 64,
             display: "flex",
             alignItems: "center",
@@ -7730,7 +8202,7 @@ function App() {
         <div
           className="grid grid-cols-1 lg:grid-cols-2"
           style={{
-            background: "linear-gradient(135deg, #005da3, #119ec8)",
+            background: "linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))",
             padding: "60px 24px",
             gap: 48,
             maxWidth: 1280,
@@ -7961,7 +8433,7 @@ function App() {
               onClick={() => window.location.reload()}
               className="text-sm font-semibold px-6 py-3 rounded hover:brightness-110 transition-all"
               style={{
-                background: "#005da3",
+                background: "var(--brand-primary)",
                 color: "#ffffff",
                 border: "none",
                 cursor: "pointer",
@@ -7999,16 +8471,24 @@ function App() {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: "#f5f7fa" }}
-    >
-      <GlobalStyles />
-      <Navbar products={products} />
-      <main className="flex-1"><ErrorBoundary>{renderPage()}</ErrorBoundary></main>
-      <Footer />
-    </div>
+    <SiteInfoProvider>
+      <ContentProvider>
+        <ThemeInjector />
+        <StructuredData />
+        <PageMeta />
+        <div
+          className="min-h-screen flex flex-col"
+          style={{ background: "#f5f7fa" }}
+        >
+          <GlobalStyles />
+          <Navbar products={products} />
+          <main className="flex-1"><ErrorBoundary>{renderPage()}</ErrorBoundary></main>
+          <Footer />
+        </div>
+      </ContentProvider>
+    </SiteInfoProvider>
   );
 }
 
 export default App;
+// site-info wiring: Phase 1

@@ -153,6 +153,7 @@ $navActive = 'products';
             <div class="actions">
               <a href="edit.php?sku=<?= urlencode($p['sku'] ?? $p['id'] ?? '') ?>" class="btn btn-sm btn-edit">Edit</a>
               <a href="upload-pdf.php?sku=<?= urlencode($p['sku'] ?? $p['id'] ?? '') ?>" class="btn btn-sm btn-pdf" title="Upload, replace, or remove this product's data sheet PDF">Manage PDF</a>
+              <a href="upload-image.php?sku=<?= urlencode($p['sku'] ?? $p['id'] ?? '') ?>" class="btn btn-sm btn-pdf" title="Upload, replace, or remove this product's photo">Photo</a>
               <a href="/products?productId=<?= urlencode($p['sku'] ?? $p['id'] ?? '') ?>"
                  target="_blank" rel="noopener"
                  class="btn btn-sm btn-edit"

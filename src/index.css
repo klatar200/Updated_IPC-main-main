@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Brand theme variables — defaults match the original IPC palette. The admin's
+   Business Details → Branding editor overrides these at runtime (see
+   ThemeInjector in App.jsx), so the whole site re-skins from data. Defined here
+   (not only in JS) so var() always resolves from the very first paint. */
+:root {
+  --brand-primary: #005da3;
+  --brand-primary-rgb: 0, 93, 163;
+  --brand-primary-hover: #004e8c;
+  --brand-dark: #0d2d52;
+  --brand-accent: #00bef2;
+  --brand-accent-2: #119ec8;
+}
+
+/* A handful of SVG icons still carry the brand color as a presentation
+   attribute (stroke="#005da3"), where CSS var() can't be used. A CSS rule,
+   however, overrides presentation attributes — so this re-themes them too. */
+svg[stroke="#005da3"] {
+  stroke: var(--brand-primary);
+}

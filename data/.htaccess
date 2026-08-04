@@ -13,8 +13,16 @@ AddDefaultCharset UTF-8
   Deny from all
 </FilesMatch>
 
-# Block timestamped backups written by save_products() in admin/config.php.
+# Block timestamped backups written by save_products() / save_site_info().
 <FilesMatch "^products-all\.backup\.">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+<FilesMatch "^site-info\.backup\.">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+<FilesMatch "^content\.backup\.">
   Order Allow,Deny
   Deny from all
 </FilesMatch>
@@ -36,7 +44,7 @@ AddDefaultCharset UTF-8
 # server-side cache and the browser cache both age out within ~60 seconds.
 # This is what makes admin edits visible on the live site within ~1 minute.
 <IfModule mod_headers.c>
-  <FilesMatch "products-all\.json$">
+  <FilesMatch "^(products-all|site-info|content)\.json$">
     Header set Cache-Control "public, max-age=60, must-revalidate"
   </FilesMatch>
 </IfModule>
