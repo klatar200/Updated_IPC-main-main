@@ -39,6 +39,8 @@ $navActive = 'help';
     .btn-danger { background: rgba(220,38,38,0.08); color: #dc2626; }
     .btn-pdf    { background: rgba(0,190,242,0.1); color: #0369a1; }
     .btn-mock { pointer-events: none; cursor: default; }
+    /* Inline reproduction of the badges on the Inquiries page. */
+    .badge-mock { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 9px; border-radius: 20px; background: rgba(107,114,128,0.12); color: #4b5563; white-space: nowrap; }
 
     /* Two-column layout */
     .help-layout { display: flex; align-items: flex-start; gap: 32px; }
@@ -55,11 +57,13 @@ $navActive = 'help';
     section.help-section:has(.eyebrow-manage)    { border-top-color: #16a34a; }
     section.help-section:has(.eyebrow-advanced)  { border-top-color: #7c3aed; }
     section.help-section:has(.eyebrow-reference) { border-top-color: #b45309; }
+    section.help-section:has(.eyebrow-site)      { border-top-color: #0284c7; }
     .help-section .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px; padding: 4px 12px; border-radius: 20px; }
     .eyebrow-start     { background: rgba(0,93,163,0.1);   color: #005da3; }
     .eyebrow-manage    { background: rgba(22,163,74,0.1);  color: #15803d; }
     .eyebrow-advanced  { background: rgba(124,58,237,0.1); color: #6d28d9; }
     .eyebrow-reference { background: rgba(180,83,9,0.1);   color: #b45309; }
+    .eyebrow-site      { background: rgba(2,132,199,0.1);  color: #0369a1; }
     .help-section h2 { font-size: 20px; font-weight: 800; margin: 0 0 12px; }
     .help-section h3 { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: #0d2d52; }
     .help-section p { font-size: 14px; line-height: 1.7; color: #374151; margin: 0 0 14px; }
@@ -157,17 +161,25 @@ $navActive = 'help';
       <a href="#editing">Editing a product</a>
       <a href="#specs">Specifications list</a>
       <a href="#sizechart">Size / dimension chart</a>
+      <a href="#photos">Product photos</a>
       <a href="#pdfs">PDF data sheets</a>
       <a href="#deleting">Deleting a product</a>
       <a href="#walkthrough">Launching a new product, start to finish</a>
 
+      <div class="toc-group">🌐 Your Website</div>
+      <a href="#business">Business Details</a>
+      <a href="#pagecontent">Page Content</a>
+      <a href="#inquiries">Inquiries (contact-form leads)</a>
+
       <div class="toc-group">⚙️ Advanced</div>
+      <a href="#backups">Backups &amp; undo</a>
       <a href="#auditlog">Audit log / change history</a>
 
       <div class="toc-group">📚 Reference</div>
       <a href="#faq">Troubleshooting &amp; FAQ</a>
       <a href="#glossary">Glossary of terms</a>
       <a href="#help">Getting more help</a>
+      <a href="#server-limits">What your server allows</a>
     </nav>
 
     <!-- Content -->
@@ -176,11 +188,14 @@ $navActive = 'help';
       <section class="help-section" id="overview">
         <div class="eyebrow eyebrow-start">Getting Started</div>
         <h2>🧭 How this dashboard works</h2>
-        <p>This admin dashboard is where you manage everything customers see about your parts on the public website: product names, specifications, size charts, photos, and downloadable PDF data sheets. You don't need to know any code to use it — every screen is forms, buttons, and clear confirmations.</p>
-        <p>There are really only two things stored behind this dashboard:</p>
+        <p>This admin dashboard is where you manage the public website: your product catalog, the facts about your business, the wording on the pages, and the leads that come in through the contact form. You don't need to know any code to use it — every screen is forms, buttons, and clear confirmations.</p>
+        <p>What lives behind it:</p>
         <ul class="plain">
-          <li><strong>Your product catalog</strong> — every product's details, in one shared file that both this dashboard and the public website read from.</li>
-          <li><strong>Your PDF data sheets</strong> — the actual PDF files customers download, stored in one shared folder.</li>
+          <li><strong>Your product catalog</strong> — every product's details, in one file that both this dashboard and the public website read from.</li>
+          <li><strong>Your business details</strong> — phone, address, hours, certifications, colours and logo. See <a href="#business">Business Details</a>.</li>
+          <li><strong>Your page content</strong> — headlines, FAQ, services, industries, footer links, policy text. See <a href="#pagecontent">Page Content</a>.</li>
+          <li><strong>Your PDF data sheets and product photos</strong> — the actual files, in two folders on the server.</li>
+          <li><strong>Your inquiry log and change history</strong> — every contact-form lead and every change made here. See <a href="#inquiries">Inquiries</a> and <a href="#auditlog">Audit log</a>.</li>
         </ul>
         <div class="callout callout-tip">
           <b>Good to know</b>
@@ -188,7 +203,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-tip">
           <b>Your safety net</b>
-          Every single time you save a change, the dashboard automatically keeps a timestamped backup copy of your entire catalog on the server (the five most recent are always kept). If something ever gets saved incorrectly, this history means it can be recovered — just contact your web developer and mention you need a catalog backup restored.
+          Every single time you save a change, the dashboard keeps a timestamped copy of the previous version on the server — the <strong><?= (int)BACKUP_KEEP ?> most recent</strong> for each of your catalog, business details and page content. If something gets saved wrong, <strong>you can put it back yourself</strong> from the <strong>Backups</strong> page. See <a href="#backups">Backups &amp; undo</a>.
         </div>
       </section>
 
@@ -199,10 +214,15 @@ $navActive = 'help';
         <table class="field-ref">
           <tr><td>Add a brand-new part to the catalog</td><td>See the full sequence at <a href="#walkthrough">Launching a new product, start to finish</a>, or jump straight to <a href="#adding">Adding a new product</a>.</td></tr>
           <tr><td>Fix a typo, price, or spec on an existing part</td><td><a href="#editing">Editing an existing product</a></td></tr>
-          <tr><td>Add a photo to a product</td><td><a href="#editing">Editing an existing product</a> (Photo URL field)</td></tr>
+          <tr><td>Add a photo to a product</td><td><a href="#photos">Product photos</a> — one click, straight from your computer</td></tr>
           <tr><td>Add or replace a downloadable spec sheet</td><td><a href="#pdfs">Managing PDF data sheets</a></td></tr>
           <tr><td>Change the measurements/size table on a product page</td><td><a href="#sizechart">Building the size / dimension chart</a></td></tr>
           <tr><td>Remove a part that's discontinued</td><td><a href="#deleting">Deleting a product</a></td></tr>
+          <tr><td><strong>Undo a mistake / get something back</strong></td><td><a href="#backups">Backups &amp; undo</a> — you can do this yourself</td></tr>
+          <tr><td><strong>Change your password</strong></td><td><a href="#password">Your admin password</a> — you can do this yourself</td></tr>
+          <tr><td>Change the phone number, address, hours, logo or colours</td><td><a href="#business">Business Details</a></td></tr>
+          <tr><td>Change wording on the site, the FAQ, services or footer links</td><td><a href="#pagecontent">Page Content</a></td></tr>
+          <tr><td>See quote requests and messages from the website</td><td><a href="#inquiries">Inquiries</a></td></tr>
           <tr><td>Check who changed something and when</td><td><a href="#auditlog">Audit log / change history</a></td></tr>
           <tr><td>Something looks wrong or won't save</td><td><a href="#faq">Troubleshooting &amp; FAQ</a></td></tr>
         </table>
@@ -236,12 +256,21 @@ $navActive = 'help';
 
         <div class="credentials-box">
           <div class="credentials-row"><span class="cred-label">Admin dashboard address</span><span class="cred-fill"></span></div>
-          <div class="credentials-row"><span class="cred-label">Password</span><span class="cred-fill"></span></div>
         </div>
 
         <div class="callout callout-tip">
           <b>Keep it safe</b>
-          Store this password somewhere secure, like a password manager. If you'd ever like it changed, ask your web developer — see <a href="#help">Getting more help</a>.
+          Store your password in a password manager. <strong>Don't write it on this page, in a document, or in an email</strong> — anything you can print or attach is something that can be forwarded.
+        </div>
+        <div class="callout callout-tip">
+          <b>You can change it yourself, any time</b>
+          Click <strong>Password</strong> in the top navigation. You'll need your current password, then a new one of at least 12 characters — a short sentence or four random words is both stronger and easier to remember than something like <code>Xk7!p</code>. The change takes effect immediately and you stay signed in. You don't need to call anyone.
+        </div>
+        <div class="callout callout-warning">
+          <b>If you've forgotten it</b>
+          That one does need your FTP or file-manager login. Upload an empty file named <code>ALLOW-PASSWORD-RESET</code> (no file extension) into the <code>admin</code> folder, then open the dashboard address in a browser: instead of the password box you'll get a "Set Admin Password" screen. Set a new password and the file deletes itself.
+          <br><br>
+          <strong>That window is open for one hour</strong> from the moment you upload the file, and while it's open <em>anyone</em> who visits your admin address gets that same screen. Finish the reset straight away, and if you change your mind, delete the file again over FTP. If you're signed in when the file goes up, the dashboard shows a red banner with a <strong>Close it now</strong> button.
         </div>
       </section>
 
@@ -366,7 +395,7 @@ $navActive = 'help';
         </ol>
         <div class="callout callout-tip">
           <b>About the photo</b>
-          The Add Product form doesn't include a photo field — new products start with a branded placeholder image. Once the product is saved, open it with <strong>Edit</strong> and paste a link into the <strong>Photo URL</strong> field described in <a href="#editing">Editing a product</a>.
+          The Add Product form doesn't include a photo field — new products start with a branded placeholder image. Once the product is saved, click <span class="btn btn-sm btn-edit btn-mock">Photo</span> on its row on the dashboard and choose a picture from your computer. See <a href="#photos">Product photos</a>.
         </div>
         <div class="callout callout-warning">
           <b>If Add Product won't save</b>
@@ -381,7 +410,7 @@ $navActive = 'help';
           <li>Find the product on the dashboard (use the search bar if your catalog is long) and click <span class="btn btn-sm btn-edit btn-mock">Edit</span>.</li>
           <li>Change any field you need to. Every field from <a href="#adding">Adding a new product</a> is here, plus a few extra:
             <table class="field-ref">
-              <tr><td>Photo URL</td><td>Paste the full web address of a hosted image (starting with <code>https://</code>, or a path like <code>/images/product.jpg</code> if your developer has set one up). It must link directly to the image file itself — a "share" link from Google Drive, Dropbox, or a photo gallery site opens a viewer webpage instead of the raw image and will <em>not</em> work here; those services usually offer a separate "direct link" or "embed" option you need instead. Leave the field blank to keep the branded placeholder.</td></tr>
+              <tr><td>Photo URL</td><td><strong>You normally never type in this box.</strong> Use the <span class="btn btn-sm btn-edit btn-mock">Photo</span> button on the product's dashboard row to upload a picture from your computer, and this field fills itself in — see <a href="#photos">Product photos</a>. It's here for the rare case where a picture already lives somewhere else on your own site and you want to point at it (<code>/images/product.jpg</code>). Leave it blank to keep the branded placeholder.</td></tr>
               <tr><td>Primary PDF Button Label</td><td>Customizes the text on the main download button, e.g. "Molded Cap" instead of the default "Download PDF." This only changes the button's <em>label</em> — upload the actual file from the <a href="#pdfs">PDF data sheets</a> page.</td></tr>
               <tr><td>Additional PDF Links</td><td>One per line, formatted as <code>/pdfs/filename.pdf | Button Label</code> (the label is optional). Each line adds an extra download button, for products that ship with more than one document.</td></tr>
             </table>
@@ -396,9 +425,9 @@ $navActive = 'help';
           <b>Renaming a SKU</b>
           You can change a product's SKU on this page. If it has a PDF, that file is automatically renamed to match the new SKU, so the download link keeps working. If you try to rename it to a SKU that's already used by another product, the save is blocked with a clear error — just pick a different one.
         </div>
-        <div class="callout callout-warning">
-          <b>Old links won't just break — they can show the wrong product</b>
-          Every product's web address is built from its SKU. If you rename one, any bookmark, printed catalog, or link you've shared before with the old SKU stops pointing at this product — and instead of an error page, it silently shows whatever product happens to be first in the catalog, which can be confusing for a customer. Avoid renaming a SKU once its link has been shared publicly; if you must, ask your web developer about adding a redirect.
+        <div class="callout callout-tip">
+          <b>What happens to old links</b>
+          Every product's web address is built from its SKU, so a bookmark or printed catalog using the old SKU stops pointing at this product. The visitor now gets a clear <em>"We couldn't find part …"</em> message with the full catalog underneath, so nobody is shown the wrong part by mistake. Renaming a SKU is safe — just expect old links to land on that message rather than on the product.
         </div>
         <div class="callout callout-warning">
           <b>"This product was changed by another session" message</b>
@@ -469,6 +498,26 @@ $navActive = 'help';
         </div>
       </section>
 
+      <section class="help-section" id="photos">
+        <div class="eyebrow eyebrow-manage">Managing Products</div>
+        <h2>🖼️ Product photos</h2>
+        <p>Every product on the dashboard has a <span class="btn btn-sm btn-edit btn-mock">Photo</span> button on its row. That is the whole feature — you pick a picture from your own computer and it is uploaded to your server. <strong>You do not need Dropbox, Google Drive, or any image-hosting service</strong>, and you do not need to know what a "direct link" is.</p>
+        <ol class="steps">
+          <li>On the <strong>Products</strong> page, find the product and click <span class="btn btn-sm btn-edit btn-mock">Photo</span>.</li>
+          <li>Click <strong>Choose Image</strong> and pick a <code>.jpg</code>, <code>.png</code>, <code>.gif</code> or <code>.webp</code> file. It must be <strong><?= h(min_upload_label(8)) ?> or smaller</strong>.</li>
+          <li>You'll see a preview. Click <strong>Upload</strong>.</li>
+          <li>That's it — the product's Photo URL field is filled in for you automatically. The new picture appears on the public site within about a minute.</li>
+        </ol>
+        <div class="callout callout-tip">
+          <b>What makes a good product photo</b>
+          A plain, well-lit shot of the part on a white or light background, roughly square, at least 800&nbsp;pixels wide. Photos are shown fairly small on the site, so detail matters less than a clean background and sharp focus.
+        </div>
+        <div class="callout callout-tip">
+          <b>Replacing or removing one</b>
+          Uploading again simply replaces the old picture. To go back to the branded placeholder, open the product with <strong>Edit</strong> and clear the <strong>Photo URL</strong> box, then Save. Removing a photo that no other product uses also deletes the file from the server.
+        </div>
+      </section>
+
       <section class="help-section" id="pdfs">
         <div class="eyebrow eyebrow-manage">Managing Products</div>
         <h2>📄 Managing PDF data sheets</h2>
@@ -476,7 +525,7 @@ $navActive = 'help';
         <h3>Uploading a PDF for the first time</h3>
         <ol class="steps">
           <li>From the dashboard, click <span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span> on the product's row (or the "Upload PDF" link at the top of its Edit page).</li>
-          <li>Click <strong>Select PDF File</strong> and choose the file from your computer. It must be a genuine PDF, 20MB or smaller.</li>
+          <li>Click <strong>Select PDF File</strong> and choose the file from your computer. It must be a genuine PDF, <strong><?= h(min_upload_label(20)) ?> or smaller</strong> — that is the lower of the dashboard's own 20MB limit and what your server accepts (see <a href="#server-limits">What your server allows</a>).</li>
           <li>Click <span class="btn btn-primary btn-mock">Upload PDF →</span>.</li>
           <li>You'll see a green confirmation, and the button on the product's live page switches to "Download PDF" automatically (allow up to 60 seconds, or hard-refresh to see it right away).</li>
         </ol>
@@ -502,9 +551,9 @@ $navActive = 'help';
           <li>Read the confirmation screen carefully — it names the exact product you're about to remove.</li>
           <li>Click <strong>Yes, Delete</strong> to confirm, or <strong>Cancel</strong> to back out.</li>
         </ol>
-        <div class="callout callout-danger">
-          <b>This cannot be undone from the dashboard</b>
-          Deleting a product removes it from the catalog immediately, and its PDF data sheet is deleted from the server too (unless another product still shares that same file). There's no "undo" button. If you delete something by mistake, contact your web developer right away — the automatic backups mentioned in <a href="#overview">How this dashboard works</a> can often restore it, but the sooner you ask, the better.
+        <div class="callout callout-warning">
+          <b>You can undo this yourself</b>
+          Deleting a product removes it from the catalog immediately. Its PDF data sheet is deleted too (unless another product still shares that same file), and so is its uploaded photo (same rule). There's no "undo" button on this screen — but a backup of the whole catalog is written <em>immediately before</em> the deletion, so go to <strong>Backups</strong> and restore the most recent Product Catalog entry. See <a href="#backups">Backups &amp; undo</a>. Do it before you make other changes, since only the <?= (int)BACKUP_KEEP ?> most recent backups are kept.
         </div>
       </section>
 
@@ -556,11 +605,102 @@ $navActive = 'help';
 
         <ol class="steps">
           <li>Go to <a href="#adding">Adding a new product</a> and fill in the Add Product form — SKU, Part Type, Product Name, badges, description, and (if the data is ready) the Specifications list and Size chart. Click <strong>Add Product</strong>.</li>
-          <li>Click <span class="btn btn-sm btn-edit btn-mock">Edit</span> on the product you just created and paste in a <strong>Photo URL</strong> — see <a href="#editing">Editing an existing product</a>. The Add form has no photo field, so this always happens as a second step. Click <strong>Save Changes</strong>.</li>
+          <li>Click <span class="btn btn-sm btn-edit btn-mock">Photo</span> on the product you just created and upload a picture from your computer — see <a href="#photos">Product photos</a>. The Add form has no photo field, so this always happens as a second step.</li>
           <li>Click <span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span> and upload the product's data sheet, if you have one — see <a href="#pdfs">Managing PDF data sheets</a>.</li>
           <li>Open the product with <span class="btn btn-sm btn-edit btn-mock">View ↗</span> and hard-refresh (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>) to check the photo, specs, size chart, and PDF button all look right.</li>
         </ol>
         <div class="visual-note"><span class="vn-icon">✅</span>None of this has to happen in one sitting. A product with no photo or PDF yet is still live and visible on the site — just less complete. Come back and finish it with Edit whenever the missing pieces are ready.</div>
+      </section>
+
+      <section class="help-section" id="business">
+        <div class="eyebrow eyebrow-site">Your Website</div>
+        <h2>🏢 Business Details</h2>
+        <p>Click <strong>Business Details</strong> in the header. This one page controls the facts about your company that appear all over the public site — the phone number in the header, the address in the footer, the copyright year, your hours, your certifications, and the colours and logo.</p>
+        <p>Change something here and it changes <em>everywhere it appears</em>. You never have to hunt for the same phone number on six pages.</p>
+        <table class="field-ref">
+          <tr><td>Company name, short name, slogan</td><td>Header, footer, page titles, and the information search engines read about you.</td></tr>
+          <tr><td>Phone, fax, email</td><td>Header, footer, Contact page, About page. The phone number is also what the "call us" links dial, so type it the way you'd say it — the dialling version is a separate field beside it.</td></tr>
+          <tr><td>Address, hours</td><td>Footer, Contact page, and the map listing search engines build from your site.</td></tr>
+          <tr><td>Founded year</td><td>Drives the "© 1974–<?= date('Y') ?>" line automatically. You never update the second year.</td></tr>
+          <tr><td>Certifications</td><td>ISO registration plus any others, shown in the footer and on the Quality page.</td></tr>
+          <tr><td>Brand colours &amp; logo</td><td>Live preview on the right of the page as you change them.</td></tr>
+          <tr><td>Social links</td><td>Not shown as icons on the site; they tell search engines which accounts are yours.</td></tr>
+          <tr><td>Catalog PDF URL</td><td>Optional. Point it at a full-catalog PDF (e.g. <code>/pdfs/catalog.pdf</code>) and a "Full product catalog (PDF)" link appears in the site footer. Leave blank for no link.</td></tr>
+        </table>
+        <div class="callout callout-warning">
+          <b>Most fields refuse to be left blank — on purpose</b>
+          If you clear the phone number, the company name, the founded year or the address and save, the previous value comes back. That is deliberate: an empty phone number becomes a dead "call us" link and an empty year prints "©&nbsp;–<?= date('Y') ?>" to every visitor. To <em>change</em> one, type the new value over the old one.
+          <br><br>
+          The exceptions — fields you genuinely can clear, because "we don't have one" is a real answer — are <strong>fax number</strong>, the <strong>social links</strong>, <strong>short name</strong> and <strong>slogan</strong>. Clear one of those and it disappears from the site properly.
+        </div>
+        <div class="callout callout-tip">
+          <b>If you have two tabs open</b>
+          Save in one and the other will refuse to save, with a warning, rather than quietly overwriting what you just did. Nothing you typed is lost — it stays on the screen.
+        </div>
+      </section>
+
+      <section class="help-section" id="pagecontent">
+        <div class="eyebrow eyebrow-site">Your Website</div>
+        <h2>📝 Page Content</h2>
+        <p>Click <strong>Page Content</strong> in the header. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the footer links, and the privacy/terms text.</p>
+        <p>Each block is a row. Rows have <strong>↑ ↓</strong> buttons to reorder them, an <strong>✕</strong> to remove them, and a <strong>+ Add</strong> button at the bottom of each section.</p>
+        <div class="callout callout-tip">
+          <b>Deleting every row of a section really does empty it</b>
+          If you remove all eight footer links, the site shows no footer links. Earlier versions quietly put the originals back; this one does what you asked. The same is true for FAQ entries, services, industries, milestones and the privacy text.
+        </div>
+        <div class="callout callout-warning">
+          <b>Headings and labels won't go blank</b>
+          Clearing a heading or a button label restores the previous wording rather than leaving an empty space, because a button with no text is one you can never find again to fix. To change one, type over it. Sub-headings <em>can</em> be cleared, since those are genuinely optional.
+        </div>
+        <div class="callout callout-warning">
+          <b>If the page says it didn't submit completely</b>
+          This form is large. If your server cuts the request short, you'll get a clear red message saying <strong>nothing was saved</strong> — and everything you typed is still on the screen. Remove a few entries, save, and add them back afterwards. If it keeps happening, send your developer the "Max form fields per save" number from <a href="#server-limits">What your server allows</a>.
+        </div>
+        <div class="callout callout-tip">
+          <b>Every error keeps your typing</b>
+          Whatever goes wrong on this page — a stale tab, a cut-off request, a permissions problem — the form comes back with your words in it, not the old ones from the server. You should never have to retype anything.
+        </div>
+      </section>
+
+      <section class="help-section" id="inquiries">
+        <div class="eyebrow eyebrow-site">Your Website</div>
+        <h2>📥 Inquiries — every lead from the contact form</h2>
+        <p>Click <strong>Inquiries</strong> in the header. Every quote request and message submitted through the website is recorded here, <em>including ones the mail server failed to send</em>. This is your safety net: if email breaks, the lead is still on this page.</p>
+        <p>Click any row to expand it and see the full message, the part number, quantities, required date and the visitor's contact details. Reply from your own email program — this page does not send email.</p>
+        <table class="field-ref">
+          <tr><td><span class="badge-mock">Quote</span> / <span class="badge-mock">Message</span></td><td>Which form the visitor used. "Quote" is a full RFQ with part number and quantity.</td></tr>
+          <tr><td><span class="badge-mock">Emailed</span></td><td>The notification reached your inbox. Normal.</td></tr>
+          <tr><td><span class="badge-mock">Email failed</span></td><td>The mail server refused it. <strong>The lead is not lost</strong> — it's right here. If you see several of these, tell your developer.</td></tr>
+          <tr><td><span class="badge-mock">Spam trap</span> / <span class="badge-mock">Rate limited</span> / <span class="badge-mock">Blocked</span></td><td>The website refused the submission. Almost always a bot. These are counted separately and are <em>not</em> an email problem.</td></tr>
+        </table>
+        <div class="callout callout-tip">
+          <b>The two numbers at the top</b>
+          <strong>Total received</strong> is everything ever submitted. <strong>Email delivery failed</strong> counts only genuine send failures — if that number is above zero, something is wrong with mail. Blocked spam is deliberately kept out of it so it can't cause a false alarm.
+        </div>
+        <div class="callout callout-tip">
+          <b>Why a blocked entry might be worth reading</b>
+          "Rate limited" can be a real customer: five people in one office share a single internet connection, and the sixth request inside ten minutes gets refused. Those are recorded here specifically so you can call them back.
+        </div>
+      </section>
+
+      <section class="help-section" id="backups">
+        <div class="eyebrow eyebrow-advanced">Advanced</div>
+        <h2>↩️ Backups &amp; undo</h2>
+        <p>Click <strong>Backups</strong> in the header. <strong>You can undo your own mistakes — you do not need to call anyone.</strong></p>
+        <p>Every time you save products, business details or page content, a dated copy of the previous version is written first. The <?= (int)BACKUP_KEEP ?> most recent are kept for each of the three. Each entry shows what's inside it ("41 products", "17 content rows", your company name and phone) so you're not choosing between identical timestamps.</p>
+        <ol class="steps">
+          <li>Find the entry from just before the change you want to undo.</li>
+          <li>Click <strong>Restore this version</strong> and confirm.</li>
+          <li>Done. The site reflects it within about a minute.</li>
+        </ol>
+        <div class="callout callout-tip">
+          <b>A restore can itself be undone</b>
+          Restoring backs up the <em>current</em> state first, so if you restore the wrong one, the version you just replaced is now the newest entry in the list. You cannot get stuck.
+        </div>
+        <div class="callout callout-warning">
+          <b>Act sooner rather than later</b>
+          Only the <?= (int)BACKUP_KEEP ?> most recent are kept per file, and <em>every</em> save counts — including each photo upload, PDF upload, add and delete. A busy afternoon can push an older mistake off the end of the list.
+        </div>
       </section>
 
       <section class="help-section" id="auditlog">
@@ -614,7 +754,8 @@ $navActive = 'help';
 
         <details class="faq">
           <summary>My product photo isn't showing.</summary>
-          <p>Check that the Photo URL is a direct link to the image itself. Paste that same link into a new browser tab on its own — if it doesn't show just the picture (for example, it opens a webpage instead), the link isn't a direct image link and needs to be fixed. This is the most common cause: a "share" link copied from Google Drive, Dropbox, or a photo gallery site opens a viewer page, not the raw image, so it won't work here — those services usually have a separate "direct link" or "embed" option you need instead. Leaving the field blank shows a branded placeholder image instead of a broken one.</p>
+          <p>First, give it a minute and then hard-refresh the live page (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>). If it still isn't there, upload it again with the <strong>Photo</strong> button on the product's dashboard row — see <a href="#photos">Product photos</a>. If the upload itself is failing, check <a href="#server-limits">What your server allows</a>: the <code>uploads/images</code> row must say Yes, and the file must be <?= h(min_upload_label(8)) ?> or smaller.</p>
+          <p>If the Photo URL box was filled in by hand with an address from somewhere else, clear it and use the Photo button instead. A product with no photo shows a branded placeholder rather than a broken image.</p>
         </details>
 
         <details class="faq">
@@ -623,8 +764,13 @@ $navActive = 'help';
         </details>
 
         <details class="faq">
+          <summary>I want to change my password.</summary>
+          <p>Click <strong>Password</strong> in the header navigation. You'll need your current password and a new one of at least 12 characters. It takes effect immediately and you stay signed in — no developer needed. See <a href="#password">Your admin password</a>.</p>
+        </details>
+
+        <details class="faq">
           <summary>I forgot the admin password entirely.</summary>
-          <p>Resetting it requires direct server access, which is a technical, one-time setup step. Contact your web developer and ask them to rotate the admin password for you.</p>
+          <p>If you have your FTP or file-manager login you can recover it yourself: upload an empty file named <code>ALLOW-PASSWORD-RESET</code> into the <code>admin</code> folder, then open the dashboard — you'll get a "Set Admin Password" screen instead of the password box. The full steps, and the one-hour time limit, are in <a href="#password">Your admin password</a>. If you don't have FTP access, that is the point to call your developer.</p>
         </details>
 
         <details class="faq">
@@ -639,7 +785,22 @@ $navActive = 'help';
 
         <details class="faq">
           <summary>I deleted the wrong product — can I get it back?</summary>
-          <p>Not directly through the dashboard — deletion is immediate and permanent from this side. However, a timestamped backup of your catalog is saved automatically before every change, so contact your web developer as soon as possible; the more recent the mistake, the easier it is to recover.</p>
+          <p><strong>Yes, and you can do it yourself.</strong> A backup of the whole catalog is written immediately before every deletion. Go to <strong>Backups</strong>, find the most recent <em>Product Catalog</em> entry — the one whose product count is one higher than now — and click <strong>Restore this version</strong>. See <a href="#backups">Backups &amp; undo</a>. Do it before making other changes, since only the <?= (int)BACKUP_KEEP ?> most recent backups are kept.</p>
+        </details>
+
+        <details class="faq">
+          <summary>I cleared the fax number (or a social link) and it came back.</summary>
+          <p>Those are clearable and should stay cleared — if one reappears, you may have cleared a different field. Most Business Details fields deliberately refuse to go blank, because an empty phone number or founded year breaks the public site. See the note in <a href="#business">Business Details</a> for exactly which fields can be emptied.</p>
+        </details>
+
+        <details class="faq">
+          <summary>The Inquiries page shows "Email failed" on some entries.</summary>
+          <p>Those leads are safe — the message is stored here regardless. "Email failed" means only that the notification didn't reach your inbox. If several appear, tell your developer. Entries badged <strong>Spam trap</strong>, <strong>Rate limited</strong> or <strong>Blocked</strong> are <em>not</em> mail failures and are counted separately. See <a href="#inquiries">Inquiries</a>.</p>
+        </details>
+
+        <details class="faq">
+          <summary>Page Content said "this page did not submit completely."</summary>
+          <p>Your server cut the request short because the form has grown too large for its field limit. <strong>Nothing was saved, and nothing you typed was lost</strong> — it's all still on the screen. Remove a few entries, save, then add them back. Send your developer the "Max form fields per save" figure from <a href="#server-limits">What your server allows</a> to get the limit raised.</p>
         </details>
       </section>
 
@@ -655,6 +816,10 @@ $navActive = 'help';
           <tr><td>PDF data sheet</td><td>The downloadable spec-sheet document customers can get for a product — see <a href="#pdfs">Managing PDF data sheets</a>.</td></tr>
           <tr><td>Audit log</td><td>The running history of every change made through this dashboard — see <a href="#auditlog">Audit log / change history</a>.</td></tr>
           <tr><td>IP address</td><td>A number identifying the device/network a change came from, shown in the audit log. Since this dashboard uses one shared password, it tells you roughly where a change came from, not which employee made it.</td></tr>
+          <tr><td>Backup</td><td>A dated copy of your catalog, business details or page content, saved automatically just before each change. Restore one yourself from <a href="#backups">Backups</a>.</td></tr>
+          <tr><td>RFQ / Quote request</td><td>The longer contact form, with part number, quantity and required date. Arrives in <a href="#inquiries">Inquiries</a> badged "Quote".</td></tr>
+          <tr><td>Honeypot / spam trap</td><td>A field on the contact form that is invisible to people but which automated spam programs fill in. Anything that fills it is recorded but not emailed to you.</td></tr>
+          <tr><td>FTP</td><td>A way of copying files directly to and from your web server, separate from this dashboard. You only need it to recover a forgotten password — see <a href="#password">Your admin password</a>.</td></tr>
         </table>
       </section>
 
@@ -667,15 +832,37 @@ $navActive = 'help';
           <li>Don't edit the "Advanced" raw-text box in the Specifications or Size chart editors unless you're comfortable with it — the visual editor above it does everything most people need.</li>
           <li>Don't rename a SKU that's already been shared publicly unless you're prepared for old links to stop working (see the warning in <a href="#editing">Editing an existing product</a>).</li>
           <li>Check the <a href="#auditlog">Audit Log</a> before assuming something is a bug — it often shows a change was made on purpose.</li>
-          <li>When in doubt before deleting something, it's always safe to click Cancel and double-check first — deletion can't be undone from the dashboard (see <a href="#deleting">Deleting a product</a>).</li>
+          <li>When in doubt before deleting something, it's always safe to click Cancel and double-check first — and if you do delete the wrong thing, go straight to <a href="#backups">Backups</a>.</li>
         </ul>
-        <p>This guide covers everything you can do from inside the dashboard. A few things sit outside of it on purpose, since they touch the server directly and are best left to your web developer:</p>
+        <p>This guide covers everything you can do from inside the dashboard, which is nearly all of it — including <strong>changing your own password</strong> and <strong>restoring a backup</strong>, both of which used to be developer jobs and are not any more. What genuinely still needs your developer:</p>
         <ul class="plain">
-          <li>Resetting the admin password</li>
-          <li>Restoring a catalog backup</li>
-          <li>Changing the overall look, layout, or features of the public website</li>
+          <li>Recovering a <em>forgotten</em> password, if you don't have your own FTP login (see <a href="#password">Your admin password</a> — you can do it yourself if you do)</li>
+          <li>Adding a second or third PDF <em>file</em> to a product (see <a href="#editing">Editing an existing product</a>)</li>
+          <li>Changing the overall look, layout, or features of the public website beyond what <a href="#business">Business Details</a> and <a href="#pagecontent">Page Content</a> cover</li>
+          <li>Anything in <a href="#server-limits">What your server allows</a> reading a value you were told it shouldn't</li>
         </ul>
         <p>For anything covered on this page that isn't behaving the way it's described, that's worth flagging to your developer too — it may be worth a second look.</p>
+      </section>
+
+      <section class="help-section" id="server-limits">
+        <div class="eyebrow eyebrow-reference">Reference</div>
+        <h2>🖥️ What your server allows</h2>
+        <p>These are read live from the server right now, not typed into the page. If an upload is rejected as "too large", compare the file against the first two numbers. If they read 2M and 8M, the <code>.user.ini</code> file that raises them is not being applied on this host &mdash; send this section to your developer.</p>
+        <table class="field-ref">
+          <tr><th>Largest single file the server accepts</th><td><code><?= h(ini_get('upload_max_filesize') ?: 'unknown') ?></code></td></tr>
+          <tr><th>Largest whole form submission</th><td><code><?= h(ini_get('post_max_size') ?: 'unknown') ?></code></td></tr>
+          <tr><th>Max form fields per save</th><td><code><?= h((string)(ini_get('max_input_vars') ?: 'unknown')) ?></code> (the Page Content form currently posts about 450)</td></tr>
+          <tr><th>Signed-out after inactivity</th><td><code><?= h((string)round(((int)ini_get('session.gc_maxlifetime')) / 60)) ?> minutes</code></td></tr>
+          <tr><th>PHP version</th><td><code><?= h(PHP_VERSION) ?></code></td></tr>
+          <tr><th><code>admin</code> folder writable</th><td><?= admin_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; sales leads are being discarded</strong>' ?></td></tr>
+          <tr><th><code>data</code> folder writable</th><td><?= data_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; nothing you edit can be saved</strong>' ?></td></tr>
+          <tr><th><code>uploads/images</code> writable</th><td><?= (is_dir(IMG_DIR) && is_writable(IMG_DIR)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; photo uploads will fail</strong>' ?></td></tr>
+          <tr><th>Backups kept per file</th><td><code><?= (int)BACKUP_KEEP ?></code></td></tr>
+        </table>
+        <div class="callout callout-tip">
+          <b>The two limits that actually apply to you</b>
+          A data sheet must be a PDF and <strong><?= h(min_upload_label(20)) ?> or smaller</strong>; a product photo must be <strong><?= h(min_upload_label(8)) ?> or smaller</strong>. Those are the <em>lower</em> of the server's figure above and the dashboard's own cap (20MB for PDFs, 8MB for photos), so raising the server number alone will not lift them.
+        </div>
       </section>
 
     </div>

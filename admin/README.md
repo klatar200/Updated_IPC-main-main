@@ -20,9 +20,29 @@ appears on the public website within ~60 seconds.
                                    /pdfs/<sku>.pdf
 ```
 
-The admin reads and writes one file (`data/products-all.json`) and one folder
-(`pdfs/`). The React site reads the same JSON file on every page load. Nothing
-else is shared — the React build is fully static.
+**Full I/O surface** (this used to say "one file and one folder", which is
+wrong and is already recorded as corrected in `CLAUDE.md` — AUDIT_v3 D7):
+
+| Path | Access |
+|---|---|
+| `data/products-all.json` | read / write |
+| `data/site-info.json` | read / write |
+| `data/content.json` | read / write |
+| `data/*.backup.*.json` | write / prune (30 kept per prefix) |
+| `pdfs/` | read / write / delete |
+| `uploads/images/` | read / write / delete (created at runtime if absent) |
+| `admin/admin-log.jsonl` | append |
+| `admin/inquiries.jsonl` | read (written by `public/contact.php`), rotated at 16MB |
+| `admin/inquiries-*.jsonl` | read (rotated archives) |
+| `admin/.login-throttle.json` | read / write |
+| `admin/config.local.php` | read / write (+ `.bak.*`, 5 kept) |
+| `admin/ALLOW-PASSWORD-RESET` | read / delete |
+
+`public/contact.php` is a **second** dynamic piece: it ships into `dist/`,
+calls `mail()`, and appends to `admin/inquiries.jsonl`.
+
+The React site reads the three `data/*.json` files at runtime. The React build
+itself is fully static.
 
 ## Server file layout (on Network Solutions, under `public_html/`)
 
@@ -30,34 +50,64 @@ else is shared — the React build is fully static.
 public_html/
 ├── index.html              ← React app (FTP'd from your local /dist)
 ├── assets/                 ← Hashed JS/CSS from Vite
-├── .htaccess               ← SPA rewrite + cache headers
+├── contact.php             ← Contact/RFQ mail handler (ships inside dist/)
+├── .htaccess               ← SPA rewrite + cache headers + dotfile block
+├── .user.ini               ← PHP limits for public_html/ and everything under it
+├── images/                 ← Static site imagery
 ├── data/
 │   ├── .htaccess           ← Blocks backups, dotfiles, PHP execution
-│   └── products-all.json   ← Live product catalog (admin edits this)
+│   ├── products-all.json   ← Live product catalog (admin edits this)
+│   ├── site-info.json      ← Business details (admin edits this)
+│   ├── content.json        ← Page content (admin edits this)
+│   └── *.backup.*.json     ← Auto-written before every save, 30 kept per prefix
 ├── pdfs/
 │   ├── .htaccess           ← Blocks PHP execution in this folder
 │   └── *.pdf               ← Uploaded data sheets
+├── uploads/
+│   ├── .htaccess           ← Blocks PHP execution in this folder
+│   └── images/             ← Uploaded product photos (created at runtime)
 └── admin/
     ├── .htaccess           ← HTTPS, security headers, file blocks
-    ├── config.php          ← Shared config + admin password hash
+    ├── config.php          ← Shared config, helpers, password hashing, backups
+    ├── config.local.php    ← Admin password hash (hand-deployed, gitignored)
     ├── nav.php             ← Shared header/nav, included on every page
-    ├── auth.php            ← Login / logout
-    ├── index.php           ← Product dashboard
+    ├── auth.php            ← Login / logout / FTP-unlocked password recovery
+    ├── index.php           ← Product dashboard + server-health banner
     ├── add.php / edit.php / delete.php
+    ├── settings.php        ← Business Details editor  (site-info.json)
+    ├── content.php         ← Page Content editor      (content.json)
+    ├── inquiries.php       ← Contact-form lead viewer (inquiries.jsonl)
+    ├── backups.php         ← Self-service restore of any data/*.json backup
+    ├── password.php        ← Signed-in password change
     ├── upload-pdf.php      ← Upload, replace, or remove a PDF
+    ├── upload-image.php    ← Upload or remove a product photo
+    ├── ping.php            ← Session keepalive probe for unsaved.js
     ├── help.php            ← In-app help & documentation
     ├── audit-log.php       ← View every change made through the admin
-    └── admin-log.jsonl     ← Audit log (auto-created on first save)
+    ├── *.js                ← confirm / search / spectable / content / unsaved / help
+    ├── admin-log.jsonl     ← Audit log (auto-created on first save)
+    ├── inquiries.jsonl     ← Contact-form leads (written by contact.php)
+    └── .login-throttle.json ← Per-IP failed-login counters
 ```
 
+(The previous version of this diagram omitted `site-info.json`, `content.json`,
+`uploads/` and 12 of the 18 admin files — AUDIT_v3 D7.)
+
 ## First-time deploy (one-time setup)
+
+> **This site is already live.** The steps below are the historical
+> first-time setup, kept for reference. For the release you are actually
+> shipping, use the manifest in the root [README.md](../README.md) — and note
+> that **`data/` and `pdfs/` are now live customer state and must NOT be
+> uploaded from the repo.** An FTP overwrite creates no backup and destroys
+> every edit the owner has made. (Settled 2026-08-04; AUDIT_v3 D7/D9.)
 
 1. Run `npm run build` in the repo. This produces `/dist`.
 2. FTP four trees into `public_html/`:
    - **Contents of `dist/`** → `public_html/`
    - **`admin/`** folder → `public_html/admin/`
-   - **`pdfs/`** folder → `public_html/pdfs/`
-   - **`data/`** folder → `public_html/data/` (**first deploy only**)
+   - **`pdfs/`** folder → `public_html/pdfs/` (**first deploy only — never again**)
+   - **`data/`** folder → `public_html/data/` (**first deploy only — never again**)
 3. In cPanel File Manager, set permissions:
 
    | Path | Permissions |
@@ -68,9 +118,11 @@ public_html/
    | `public_html/admin/` | 755 |
    | `public_html/admin/config.php` | 644 |
 
-4. **Rotate the admin password** (see below) — the shipped default is
-   documented in this README, which means anyone reading the source can log
-   in until you change it.
+4. **Set the admin password.** There is **no shipped default** — see the
+   section at the bottom of this file. Hand-deploy `admin/config.local.php`,
+   or use the `ALLOW-PASSWORD-RESET` recovery flow. (This step used to claim
+   "the shipped default is documented in this README", contradicting both
+   `config.php:58-63` and this file's own bottom section — AUDIT_v3 D3.)
 5. Visit `https://yourdomain.com/` — the site should load.
 6. Visit `https://yourdomain.com/admin/` — log in with the new password.
 
@@ -121,14 +173,24 @@ server and your local copies are stale.
 1. From the dashboard, click **Delete** on the row.
 2. Confirm.
 3. The product disappears from the public site within ~60 seconds.
-4. **The PDF file (if any) is NOT auto-deleted from `/pdfs/`** — use the
-   **Remove PDF** button on the Upload PDF page first if you want a clean
-   removal, or leave the orphan PDF on disk (it costs almost nothing).
+4. **The PDF files and the uploaded photo ARE auto-deleted**, unless another
+   product still references the same file — `delete.php` calls
+   `pdf_delete_if_unused()` and `image_in_use()` and reports what it removed
+   or kept in the audit log. Earlier revisions of this file said the opposite
+   and told you to clean up manually; following that would now delete a file a
+   second product may still be using.
 
 ### Uploading a data sheet (PDF)
 
 1. From the dashboard, click **PDF** on the row.
-2. Choose a PDF file (max 20 MB).
+2. Choose a PDF file. The real ceiling is
+   **`min(upload_max_filesize, 20MB)`** — `upload-pdf.php:79` hard-rejects
+   anything over 20MB regardless of the ini value, and `upload-image.php:102`
+   caps photos at 8MB the same way. Raising `.user.ini` alone will not lift
+   either. Admin → Help → "What your server allows" prints both the live ini
+   values and the effective limits. (AUDIT_v3 D6)
+   If the upload is rejected for size you now get a message that names the
+   actual limit instead of "Please select a PDF file to upload".
 3. The file is saved as `/pdfs/<sanitized-sku>.pdf` and the product record's
    `pdfUrl` is updated automatically.
 4. On the public site, the product's button switches from **Request Data
@@ -176,7 +238,7 @@ click away no matter where you are in the admin.
 {
   "columnSpans": [
     { "label": "Order\nSize", "colspan": 1, "sub": null },
-    { "label": "Expanded",    "colspan": 2, "sub": "Min / Max" }
+    { "label": "Expanded",    "colspan": 2, "sub": ["Min", "Max"] }
   ],
   "rows": [
     ["3/64", "0.046", "0.062"],
@@ -188,6 +250,18 @@ click away no matter where you are in the admin.
 `columnSpans` lists the column headers (with optional sub-headers); each
 `rows` entry is one data row.
 
+> **`sub` must be an ARRAY, one entry per sub-column — never a string.**
+> Earlier revisions of this file showed `"sub": "Min / Max"`. React requires an
+> array, and the visual editor TRUNCATES EVERY ROW when it sees a non-array
+> `sub`: following the old example turned `["3/64","0.046","0.062"]` into
+> `["3/64","0.046"]`. The documentation was the trigger for a data-loss bug.
+> `colspan` must equal `count(sub)`. For a plain column use
+> `"colspan": 1, "sub": null`.
+
+> **Advanced mode.** The "Advanced" button under the size-chart editor lets you
+> paste raw JSON. It now refuses to save while the text does not parse, instead
+> of silently saving the pre-Advanced table and telling you it worked.
+
 ## Visibility / freshness
 
 - **Public site refresh time**: ~60 seconds after you save. Both the
@@ -198,38 +272,50 @@ click away no matter where you are in the admin.
 
 ## Changing the admin password
 
-The admin password is stored as a **pre-computed bcrypt hash**, not a call
-to `password_hash()`. Calling `password_hash()` inline would generate a new
-random salt on every request and break login.
+**Normal case: use the admin.** Sign in and click **Password** in the top
+navigation. It rewrites `admin/config.local.php` in place, preserving any other
+defines in that file, backs the old one up, and re-verifies the new hash before
+declaring success. `admin/` must be writable by the PHP user for this to work —
+the dashboard shows a red banner if it isn't.
 
-`admin/config.php` ships with the shipped-default hash hard-coded as a
-fallback. To rotate the password, do NOT edit `config.php` — instead
-create a local override file that is gitignored and overrides the constant:
+The old two-step `_hash.php` FTP flow this file used to document is superseded
+and no longer needed.
 
-1. On the server, create a temporary file `public_html/_hash.php` with:
-   ```php
-   <?php echo password_hash('your-new-password', PASSWORD_DEFAULT); ?>
-   ```
-2. Visit `https://yourdomain.com/_hash.php` in a browser. Copy the output —
-   it looks like `$2y$12$…`.
-3. On your machine (or via FTP), create a new file `admin/config.local.php`
-   containing exactly:
-   ```php
-   <?php define('ADMIN_PASSWORD_HASH', '<your-bcrypt-hash>');
-   ```
-   Replace `<your-bcrypt-hash>` with the string you copied in step 2.
-4. FTP `config.local.php` into `public_html/admin/` alongside `config.php`.
-   `config.php` will detect the local override and use that hash instead of
-   the shipped default. **No edit to `config.php` is needed.**
-5. **Delete `_hash.php` from the server.**
+**There is no shipped default password.** `admin/config.php` defines an
+intentionally-unsatisfiable sentinel, so a missing or damaged
+`config.local.php` fails CLOSED: nobody can sign in. That is deliberate — the
+previous "shipped default" was printed in plaintext in four committed documents.
 
-`admin/config.local.php` is listed in `.gitignore`, so the rotated hash
-never enters the repo. Future upgrades that overwrite `admin/` files will
-not touch your local override.
+### If the password is lost
 
-> The shipped default hash in `config.php` corresponds to a documented
-> string and must be rotated before going live. Anyone who knows the
-> shipped default can log in until a local override is in place.
+1. Over FTP, upload an **empty file named `ALLOW-PASSWORD-RESET`** into
+   `public_html/admin/`.
+2. Open `https://yourdomain.com/admin/` in a browser. A one-time
+   **"Set admin password"** screen appears instead of the login box.
+3. Set a new password. You are signed straight in, and the flag file is
+   deleted automatically.
+
+Creating that file requires FTP or file-manager access — a stronger credential
+than the admin password itself — so this is not a login bypass.
+
+**Deleting `config.local.php` on its own does NOT reset anything.** It leaves an
+admin no password can open. Earlier revisions of this file, and the on-screen
+text in `password.php`, both said it resets to "the original password"; there is
+no original password to reset to.
+
+### Hand-editing the hash (rarely needed)
+
+The password is stored as a **pre-computed bcrypt string**, never an inline
+`password_hash()` call — that would regenerate the salt every request and break
+login. To generate one:
+
+```bash
+php -r "echo password_hash('your-new-password', PASSWORD_BCRYPT, ['cost'=>12]);"
+```
+
+Paste the result between the single quotes in `config.local.php`. Note that if
+an opcode cache is enabled, a hand-edit can take a few seconds to apply; the
+admin's own Password page calls `opcache_invalidate()` so it applies at once.
 
 ## Troubleshooting
 
@@ -245,12 +331,16 @@ not touch your local override.
 
 ## Security notes
 
-- **The shipped default password hash is in `admin/config.php`** — rotate before going live by creating an `admin/config.local.php` override.
+- **There is no shipped default password.** `config.php` holds an unsatisfiable
+  sentinel; the real hash lives only in the hand-deployed `config.local.php`.
 - Auth is PHP-session-only, over forced HTTPS (`admin/.htaccess`). Session
   cookies are `HttpOnly`, `Secure`, and `SameSite=Lax`.
-- After 5 failed logins each subsequent attempt sleeps 1–8 seconds — online
-  brute-force is impractical. There is no permanent lockout, so you can't
-  lock yourself out by mistyping.
+- After 5 failed logins each subsequent attempt sleeps 1–8 seconds. This slows
+  a serial attacker but is **not** a strong control: the delay is `sleep()`, so
+  parallel connections sleep concurrently, and the failure counter is a
+  read-modify-write with no lock. Treat a long, random password as the actual
+  defence. (Earlier revisions of this file claimed "online brute-force is
+  impractical"; that is not supported by the implementation.)
 - For an extra layer, add cPanel Basic Auth in front of `/admin/`
   (cPanel → Directory Privacy).
 - The audit log records IPs and User-Agents. `admin/.htaccess` blocks direct
@@ -261,6 +351,9 @@ not touch your local override.
 ## Upgrading the admin
 
 If you receive new admin files (new features, bug fixes), FTP them into
-`public_html/admin/` overwriting the old ones. Your password in `config.php`
-will be preserved as long as you don't overwrite that one file with the
-unmodified copy from the repo.
+`public_html/admin/` overwriting the old ones.
+
+**Overwriting `config.php` is harmless — it contains no password.** The one file
+you must not overwrite (or delete) is **`config.local.php`**: it holds the only
+working hash, and it is gitignored precisely so a repo copy can never clobber
+it. Earlier revisions of this file had this backwards.

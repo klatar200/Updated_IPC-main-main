@@ -1,6 +1,9 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
+**Constraints and invariants only.** Current state lives in
+[WHATS_LEFT.md](WHATS_LEFT.md); the reasoning behind this release's changes is
+in [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md). Re-verified 2026-08-04.
 
 ## Commands
 
@@ -11,59 +14,152 @@ npm run build     # → /dist  (FTP contents to public_html/ on Network Solution
 npm run preview   # serve the built bundle locally
 ```
 
-There is no test runner, linter, or formatter configured — `package.json` only defines `dev`, `build`, and `preview`.
+No test runner, linter, or formatter is configured — `package.json` defines only
+`dev`, `build`, and `preview`. Verification is done by standing the site up:
+`php -S` over a `public_html` mirror plus Playwright. `php -S` ignores
+`.htaccess`, so the `admin/` and `data/` file-blocking rules are NOT exercised
+locally — Apache is the real gate, don't report those as findings.
 
 ### Local dev gotcha
 
-`npm run dev` makes the React app fetch `/data/products-all.json`, but Vite does not serve the top-level `data/` directory. To smoke-test the catalog locally either copy `data/products-all.json` into `public/` and temporarily change `PRODUCTS_JSON_URL` in [src/App.jsx](src/App.jsx) (search for the constant — it's defined inline well below the top of the file), or run `npx serve .` from the repo root (no HMR in that mode).
+`npm run dev` fetches `/data/products-all.json`, which Vite does not serve from
+the repo root. `PRODUCTS_JSON_URL` has an `import.meta.env.DEV` branch;
+`SITE_INFO_URL` and `CONTENT_URL` do not, so theming and editable content run on
+hardcoded defaults in dev and that plumbing is never exercised locally. Run
+`npx serve .` from the repo root to test them (no HMR in that mode).
 
 ## Architecture
 
-This is a **hybrid static + PHP-admin app** with a deliberately narrow contract between the two halves: they share exactly one file (`data/products-all.json`) and one folder (`pdfs/`). Understanding that contract is the key to working on either side without breaking the other.
+A hybrid static + PHP-admin app. Two halves, one contract: three JSON files and
+two upload folders.
 
-### Two deployables, four trees on the server
+### Trees that ship to the server
 
-The repo builds to four independent trees that ship to `public_html/` separately:
+| Local | Server | Built by | Re-deploy when… |
+|---|---|---|---|
+| `dist/*` (from `npm run build`) | `public_html/` | Vite | React source changes |
+| `public/*` | `public_html/` | — | `.htaccess`, `.user.ini`, `contact.php`, images change |
+| `admin/` | `public_html/admin/` | (PHP, copied) | admin code changes |
+| `admin/config.local.php` | `public_html/admin/` | hand-deployed | password changes (gitignored) |
+| `data/` | `public_html/data/` | — | **first deploy only** |
+| `pdfs/` | `public_html/pdfs/` | — | **first deploy only** |
+| `uploads/` | `public_html/uploads/` | — | **first deploy only** |
 
-| Local                            | Server                       | Built by      | Re-deploy when…                              |
-|----------------------------------|------------------------------|---------------|-----------------------------------------------|
-| `dist/*` (from `npm run build`)  | `public_html/`               | Vite          | React source changes                          |
-| `admin/`                         | `public_html/admin/`         | (PHP, copied) | Admin code changes                            |
-| `pdfs/`                          | `public_html/pdfs/`          | —             | First deploy only (admin writes here)         |
-| `data/`                          | `public_html/data/`          | —             | **First deploy only** (admin writes here)     |
-
-After first deploy, `data/` and `pdfs/` are live state on the server — never re-upload them, or you will overwrite catalog edits and uploaded PDFs.
+After first deploy, `data/`, `pdfs/` and `uploads/` are live customer state.
+Re-uploading them destroys his edits and an FTP overwrite creates no backup.
 
 ### React side ([src/App.jsx](src/App.jsx))
 
-- **Single ~7,900-line file is the entire app.** Routing shims, data fetch, every page component, every section component, every icon set — all live in `App.jsx`. There is no per-page split in use. When editing, search for the section/component by name rather than expecting a conventional `pages/` or `components/` tree.
-- **`src/components/`, `src/pages/`, and `src/lib/` exist but are NOT imported.** They are an in-progress extraction (see Phase 4 of [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)). Editing files in those folders has zero effect on the built bundle until `App.jsx` is rewritten to import from them. Treat `App.jsx` as the source of truth for runtime behavior.
-- **Routing shim layer at the top of `App.jsx`.** The app originated on the OverAI platform and was ported to standalone Vite + react-router-dom. The top of the file defines `useSearchParam` / `pathnameToPage` / `pageToPath` / module-level `_navigateRef` to emulate OverAI's globals. The `"page"` key reads/writes the URL pathname; every other key is a normal search param. Preserve this shim shape when editing routing — many call sites depend on `useSearchParam("page")` behaving like the original global. (The extracted but-unused copy lives in [src/lib/routing.js](src/lib/routing.js) for reference.)
-- **Data fetch.** `PRODUCTS_JSON_URL = "/data/products-all.json"` is fetched at runtime with a per-minute cache-buster (`?v=<floor(now/60s)>`). Apache caches the JSON for ~60 s via `data/.htaccess`, so admin edits appear publicly within ~60 s or instantly on hard refresh.
-- **Vite config** sets `base: './'` so assets resolve relatively — the build can be dropped into any subfolder.
+- **One 8,500-line file is the entire app.** Routing shims, data fetch, every
+  page, every component, every icon set. Search by name; there is no per-page
+  split in use.
+- **`src/components/`, `src/pages/` and `src/lib/` exist but nothing imports
+  them.** They are an abandoned extraction. Editing them has zero effect on the
+  bundle. `App.jsx` is the source of truth for runtime behaviour.
+- **Routing shim at the top of `App.jsx`.** Ported from OverAI. The `"page"` key
+  reads/writes the URL **pathname**; every other key is a search param. The
+  setter takes an optional `{ replace: true }` — use it for any
+  "read the param, then strip it" cleanup, or Back gets trapped.
+- **Navigation uses real path segments.** `/products`, `/contact`, `/dashboard`.
+  `public/.htaccess`'s rewrite is therefore **load-bearing**: without it every
+  deep link and every refresh 404s. Do not describe it as a safety net.
+- **Data fetch.** Three files, per-minute cache-buster, 12 s abort timeout,
+  60 s in-memory TTL. `data/.htaccess` caches ~60 s.
+- **Vite config** sets `base: './'`.
 
 ### Admin side (`admin/`)
 
-PHP 7.4+, session auth, no external DB. Every PHP entry point includes [admin/config.php](admin/config.php), which:
+PHP 7.4+, session auth, no DB. Every entry point includes
+[admin/config.php](admin/config.php), which:
 
-- Starts the session with hardened cookies (`HttpOnly`, `Secure` when HTTPS, `SameSite=Lax`, custom name `IPCADMIN`) **before** any output.
-- Defines `load_products()` / `save_products()` — the only two functions that touch `data/products-all.json`. `save_products()` writes timestamped backups (`products-all.backup.<datetime>.json`, keeps 5 most recent), sorts by SKU, and uses `LOCK_EX`.
-- Provides `csrf_token()` / `csrf_check()` — every mutating page must call `csrf_check()` after `require_auth()`.
-- Provides `audit_log($action, $sku, $detail)` writing to `admin/admin-log.jsonl`. Every add/edit/delete/PDF/import flow logs here.
-- Stores `ADMIN_PASSWORD_HASH` as a **pre-computed bcrypt string** — do not replace it with an inline `password_hash()` call (would regenerate the salt per request and break login). If `admin/config.local.php` exists it overrides the shipped default; rotation is a server-side two-step flow documented in [admin/README.md](admin/README.md).
+- Starts the session with hardened cookies (`HttpOnly`, `Secure` on HTTPS,
+  `SameSite=Lax`, name `IPCADMIN`) **before** any output, and raises
+  `session.gc_maxlifetime` to 8 hours.
+- Defines `load_*()` / `save_*()` for all three JSON files. Every save routes
+  through `backup_before_write()`.
+- Provides `csrf_token()` / `csrf_check()`. Every mutating page calls
+  `csrf_check()` after `require_auth()`.
+- Provides `audit_log()`, the IP-keyed login throttle, `admin_password_write()`,
+  and `upload_error_message()`.
 
-The admin's I/O surface is exactly: read/write `data/products-all.json`, read/write/delete files in `pdfs/`, append to `admin/admin-log.jsonl`. No other shared state.
+### Full I/O surface of the admin
 
-### Why this shape
+Read/write `data/products-all.json`, `data/site-info.json`, `data/content.json`;
+read/write/delete files in `pdfs/` and `uploads/images/`; append to
+`admin/admin-log.jsonl`; read `admin/inquiries.jsonl`; read/write
+`admin/.login-throttle.json`; read/write `admin/config.local.php`; create/delete
+`admin/ALLOW-PASSWORD-RESET`. Earlier revisions of this file claimed the surface
+was one JSON file and one folder; it is not.
 
-- **No runtime backend, no external API.** Everything is served from the customer's own Network Solutions hosting. The React app is fully static; the PHP admin is the only dynamic piece and only the customer logs into it.
-- **Single-page app on a single path.** Public navigation uses query params on `/`, so there are no deep routes to 404; the `.htaccess` SPA-rewrite is a safety net, not a primary mechanism.
-- **Catalog round-trip is the entire integration.** If you change the JSON shape, change both the React parsing in [src/App.jsx](src/App.jsx) and the admin form/validation in [admin/edit.php](admin/edit.php) + [admin/add.php](admin/add.php) — they're the same schema by convention only.
+`public/contact.php` is a **second** dynamic piece: it ships into `dist/`, calls
+`mail()`, and appends to `admin/inquiries.jsonl`.
+
+## Invariants — each of these caused a real defect
+
+Do not "simplify" any of them back. Each carries an inline comment naming the
+incident.
+
+1. **`admin_password_write()` uses `preg_replace_callback`, never
+   `preg_replace`.** Every bcrypt hash contains `$2y$12$`; as a replacement
+   string those are backreferences, and the shipped code wrote `y$…`. The
+   password page was 0% functional.
+2. **There is no shipped default admin password.** `config.php` defines an
+   unsatisfiable sentinel. Never put a real hash there — the previous one was
+   the PHP-manual example for the string `password`, and the one before that was
+   printed in four committed docs.
+3. **`mergeContent` treats an empty array as a deletion, not as "unset".**
+   `Array.isArray(v) && v.length ? v : dv` re-seeded hardcoded defaults whenever
+   the owner deleted every row of a section — including `privacySections`, i.e.
+   stale legal text republishing itself after he removed it.
+4. **`mergeSiteInfo` drops blank strings.** `settings.php` rebuilds
+   `site-info.json` wholesale, so a missing field arrives as `""`. Spreading
+   those over the defaults produced `© –2026` and `href="tel:"`.
+5. **`backup_path()` allocates max-used + 1, and `backup_list()` sorts on the
+   parsed (timestamp, sequence).** Neither a name sort nor `filemtime()` orders
+   these correctly — `-01` sorts before `.json`, and mtime is second-granular.
+6. **`content.php`'s `form_complete` hidden field must stay LAST in the form.**
+   It is the `max_input_vars` truncation guard. Adding fields after it defeats
+   the check.
+7. **`ErrorBoundary` is keyed on `page`.** Without the key nothing resets
+   `caught`, so one bad product bricked every page until a manual reload.
+8. **`SiteInfoProvider`, `ContentProvider`, `Navbar` and `Footer` render above
+   the catalog loading/error gate.** They used to sit behind it, so a JSON blip
+   took the phone number off the Contact page.
+9. **`.ipc-skeleton` and `.ipc-page-header` must be defined in `src/index.css`.**
+   `GlobalStyles` mounts inside the tree that only renders *after* loading
+   finishes, so defining the skeleton only there made it styleless in the exact
+   situation it exists for. `.ipc-page-header` is deliberately in **both**
+   (`index.css:49` and `App.jsx`'s `GlobalStyles`) — the two are complementary
+   and nothing is broken. The earlier wording said "not in `GlobalStyles`",
+   which was false as written. (AUDIT_v3_FINDINGS D17)
+10. **`public/contact.php`'s `s()` does not HTML-escape.** Its destinations are a
+    `text/plain` email and a JSONL line. `strip_tags()` ate `<1/4 inch and >`
+    out of a real quote request, and the double-escape showed the owner
+    `&amp;amp;`. Escaping belongs at the render boundary (`h()` in
+    `inquiries.php`). Anything reaching a mail header goes through `hdr()`.
+11. **An absent `Referer` is not a rejection** in `contact.php`. Privacy
+    extensions and corporate proxies strip it; rejecting cost real leads.
+12. **`require_auth()` renders a page on POST instead of redirecting.** A 302
+    turns the POST into a GET and silently discards everything typed.
+
+## Security posture (verified, keep it this way)
+
+`require_auth()` on all admin pages before any output; `csrf_check()` on every
+mutating POST (login excepted); uploads validated by extension **and** sniffed
+MIME with non-user-controlled filenames; `basename()` + `realpath()` containment
+on every read/write/delete; every dynamic echo through `h()`; optimistic-
+concurrency signatures on `edit.php`, `settings.php` and `content.php`.
 
 ## Deploy
 
-Subsequent deploys after first-time setup: `npm run build`, then FTP the **contents** of `/dist` (`index.html` + `assets/`) into `public_html/`. Do not re-upload `data/`, `pdfs/`, or `admin/` unless you intend to change the admin code itself. Full first-deploy steps, permissions table, and password rotation in [README.md](README.md) and [admin/README.md](admin/README.md).
+`npm run build`, then FTP the **contents** of `/dist` into `public_html/`. The
+authoritative manifest, including the do-not-upload list, is
+[DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) §7. `admin/` must be writable by
+the PHP user or the audit log, the inquiry log, the login throttle and password
+changes all fail silently — the dashboard shows a banner when it isn't.
 
-## Planned work
+## Open work
 
-[AUDIT.md](AUDIT.md), [MOBILE_AUDIT.md](MOBILE_AUDIT.md), and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) describe the current bug inventory and a 6-phase plan. Check those before starting non-trivial work — many obvious-looking issues are already triaged with intended fixes.
+[WHATS_LEFT.md](WHATS_LEFT.md) — what is still open, what was deliberately
+deferred, and which decisions are settled. Check it before starting non-trivial
+work.
