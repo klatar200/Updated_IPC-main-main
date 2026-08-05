@@ -102,6 +102,7 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | NB18 | `src/App.jsx`, `admin/*` | 375 px overflow on `IP35KY` and `IP55FL` fixed at the root (`items-start` on a **column** flex container sizes children to max-content; now `items-stretch lg:items-start`) — 42/42 product pages clean. Products mega-menu no longer says "Loading…" forever after a failed catalog fetch. `catalogPdfUrl` wired to a footer link. Double-escaping removed in `add.php` and `upload-pdf.php`. `upload-pdf.php`'s "replace" hint now names the other product when the filename belongs to one. "a image" → "an image". |
 | 4.25 | `src/App.jsx` | The products-cache TTL was inert; now genuinely re-evaluated on tab focus. See the superseded §4 line. |
 | **T3.9** | `admin/content.php` | Found on the 2026-08-05 re-verification pass, after B1 was already reported fixed. The truncation merge restored only sections that arrived **empty**, so the one section straddling PHP's cut — `features`, holding 1 of its 6 rows — was left short on the re-rendered error page. Now compares row counts. Display-only; disk was never written. Evidence in §4c. |
+| **4.24** | `vite.config.js`, `src/App.jsx` | Shipped 2026-08-05 (Plan 0). A dev-only Vite middleware serves the repo's `data/` folder at `/data/*`, so `npm run dev` now exercises the real files and the real code paths — `mergeSiteInfo` and `mergeContent`, which hold invariants 3 and 4, had **never** run locally. The `import.meta.env.DEV` branch is gone; all three URLs are `/data/…` in both modes. Also fixes a regression introduced by `6284708`: deleting `public/products-all.json` (correctly, as one of three duplicate catalogs) orphaned that DEV branch, and Vite's SPA fallback answered the missing path with `index.html` and a **200**, so `res.ok` passed and `/products` rendered "Catalog Unavailable". New `jsonOrThrow()` asserts `Content-Type` on all three fetches so a wrong-content 200 takes the error path instead of throwing deep in a `.then()`. Evidence in §4d. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -125,7 +126,7 @@ Ordered by value. Nothing here blocks the upload.
 - [ ] **4.20** Collapsed FAQ answers use `max-height:0` — still read by screen readers and find-in-page.
 - [ ] **4.21** Navigation is `<button onClick>` throughout: 3–7 `<a href>` vs 14–119 `<button>` per page. No crawlable internal link graph, no Cmd-click.
 - [ ] **4.23** Owner-set brand colors are injected with no contrast guard while headings and primary buttons hardcode `#ffffff`.
-- [ ] **4.24** `SITE_INFO_URL` / `CONTENT_URL` have no `import.meta.env.DEV` branch, so theming and content plumbing are never exercised by `npm run dev`.
+- [x] **4.24** ~~`SITE_INFO_URL` / `CONTENT_URL` have no `import.meta.env.DEV` branch, so theming and content plumbing are never exercised by `npm run dev`.~~ **SHIPPED 2026-08-05 (Plan 0)** — see §1b and §4d.
 - [ ] **4.26** Scroll listeners added inside an inline `ref` callback and never removed.
 - [ ] **4.27** Duplicate React keys reachable from the admin (`key={link.label}`, `key={f.title}`, `key={m.year}`, …). Two footer links both named "Contact" drop a row.
 - [ ] **4.29** `IP75AD`, `VALUE-ADDED`, `VT-1100` have `rows: []` and render an empty bordered table with an invalid `<thead><tr></tr></thead>`.
@@ -475,6 +476,81 @@ banner renders on the dashboard, its "Close it now" button deletes
 is gone.", and writes `Password-reset window closed from the dashboard` to
 `admin-log.jsonl`. The login screen shows the closed-window explanation and
 refuses to offer the reset form.
+
+---
+
+## 4d. Verification evidence for Plan 0 — 4.24 and the dev-loop regression
+
+### The regression, measured before the fix
+
+`6284708` removed `public/products-all.json`. `src/App.jsx:4142`'s
+`import.meta.env.DEV` branch pointed at it. Measured against `npm run dev`:
+
+```
+GET http://localhost:5173/products-all.json?v=29765958  →  200 OK
+body: "<!doctype html>\n<html lang=\"en\">…"   2241 bytes
+console: SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
+/products renders: "⚠️ Catalog Unavailable"
+```
+
+Vite's SPA fallback answers an unknown path with `index.html` and a **200**, so
+`res.ok` was true and the failure only surfaced when `res.json()` threw.
+Production was never affected — the non-DEV branch reads `/data/products-all.json`.
+
+### After the fix — `node _harness/plan0.js`, 9/9
+
+```
+PASS  catalog loads in dev from /data/
+PASS  catalog renders 41 of 42 SKUs (VALUE-ADDED is SIDEBAR_EXCLUDED)   41 products
+PASS  no page/console errors on /products                              none
+PASS  mergeContent runs in dev — edited copy.hero.badge is on the page
+      was "Bolingbrook, IL — Made in USA Since 1974"
+PASS  mergeSiteInfo runs in dev — theme color reaches computed styles
+      #BADA55 (was #005da3)
+PASS  missing catalog → "Catalog Unavailable", not a silent empty list
+PASS  data/content.json restored byte-identical
+PASS  data/site-info.json restored byte-identical
+PASS  data/products-all.json restored byte-identical
+```
+
+The two `merge*` checks are the substance of 4.24: both functions hold invariants
+(3 and 4) and **neither had ever executed against real data outside production.**
+
+### Middleware behaviour, measured in the browser
+
+```
+/data/products-all.json?v=1   200  application/json; charset=utf-8
+/data/site-info.json?v=1      200  application/json; charset=utf-8
+/data/content.json?v=1        200  application/json; charset=utf-8
+/data/nope.json               404  application/json     (a miss 404s like Apache
+                                                         does — it does NOT fall
+                                                         through to the SPA
+                                                         fallback, which is the
+                                                         bug being fixed)
+/data/..%2fpackage.json       403                       (containment holds)
+```
+
+`/data/%2e%2e/package.json` returns 200 — but that request never reaches the
+middleware: Chrome normalises the encoded dot-segments and sends `/package.json`,
+which Vite's dev server serves from the project root by default. That is stock
+Vite dev behaviour, present before this change and unrelated to it. Noted rather
+than dropped.
+
+### Build
+
+```
+npm run build   0 errors, 325.96 kB JS / 21.02 kB CSS
+bundle contains "/data/products-all.json", "/data/site-info.json",
+                "/data/content.json"
+bundle contains NO root-level "/products-all.json"
+```
+
+### Deviation from the plan as written
+
+PLAN-0 §Step 1 said a miss should `next()` into Vite's own handling. It is a
+real **404** instead. `next()` would have re-created the exact failure this plan
+exists to remove — a missing data file answered with HTML and a 200. Production
+404s a missing file, and dev now matches.
 
 ---
 

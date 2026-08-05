@@ -20,13 +20,23 @@ No test runner, linter, or formatter is configured — `package.json` defines on
 `.htaccess`, so the `admin/` and `data/` file-blocking rules are NOT exercised
 locally — Apache is the real gate, don't report those as findings.
 
-### Local dev gotcha
+### Local dev serves the real `data/`
 
-`npm run dev` fetches `/data/products-all.json`, which Vite does not serve from
-the repo root. `PRODUCTS_JSON_URL` has an `import.meta.env.DEV` branch;
-`SITE_INFO_URL` and `CONTENT_URL` do not, so theming and editable content run on
-hardcoded defaults in dev and that plumbing is never exercised locally. Run
-`npx serve .` from the repo root to test them (no HMR in that mode).
+`vite.config.js` carries a dev-only middleware (`serveDataDir`, `apply: 'serve'`)
+that maps `/data/*` onto the repo's top-level `data/` folder, with `..`
+containment and a real 404 on a miss. So `npm run dev` exercises the same three
+files and the same code paths as production — including `mergeSiteInfo` and
+`mergeContent`, which hold invariants 3 and 4 and were previously never run
+locally at all.
+
+There is no `import.meta.env.DEV` branch left: all three URLs are `/data/…` in
+both modes. The old `public/products-all.json` snapshot is gone — it was a fourth
+copy of the catalog that drifted silently, and when it was deleted the DEV branch
+pointed at nothing. The `npx serve .` workaround is obsolete.
+
+Note that Vite's dev server answers an unknown path with `index.html` and a
+**200**, so `res.ok` is not sufficient to detect a missing JSON file. All three
+fetches go through `jsonOrThrow()`, which also asserts the `Content-Type`.
 
 ## Architecture
 

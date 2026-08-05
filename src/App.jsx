@@ -4136,12 +4136,30 @@ function ContactPage() {
  * so rebuilding the React app cannot clobber the live catalog on the server.
  * On first deploy, FTP /data/products-all.json into public_html/data/ once.
  */
-// DEV ONLY: Vite doesn't serve the top-level data/ folder, so local dev reads
-// the snapshot copy in public/ (served at the web root). Production builds MUST
-// read /data/products-all.json — that's the live file the PHP admin writes.
-const PRODUCTS_JSON_URL = import.meta.env.DEV
-  ? "/products-all.json"
-  : "/data/products-all.json";
+// All three runtime JSON files are read from /data/ in BOTH modes. Dev used to
+// point at a public/products-all.json snapshot; that was a fourth copy of the
+// catalog, it drifted from data/ silently, and when it was finally deleted this
+// branch pointed at nothing. vite.config.js now serves the real data/ folder in
+// dev, so there is no special case left to rot. (AUDIT_v3 4.24)
+const PRODUCTS_JSON_URL = "/data/products-all.json";
+
+/**
+ * A missing or misrouted JSON file is not reliably an HTTP error. Vite's dev
+ * server answers an unknown path with index.html and a 200, and a misconfigured
+ * host can do the same, so `res.ok` is true and the only symptom is a JSON
+ * syntax error thrown deep inside a .then(). Assert the content type at the
+ * boundary instead, so the caller's existing error path runs: the catalog shows
+ * its "Catalog Unavailable" screen, and the two providers keep their defaults
+ * so the phone number never disappears (invariant 8).
+ */
+function jsonOrThrow(res, what) {
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${what}`);
+  const type = res.headers.get("content-type") || "";
+  if (!type.includes("application/json")) {
+    throw new Error(`Expected JSON for ${what}, got "${type || "no content-type"}"`);
+  }
+  return res.json();
+}
 
 /**
  * Global typography CSS — ensures consistent heading scales across all pages.
@@ -4304,11 +4322,7 @@ function fetchProductsCached() {
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   const timer = controller ? setTimeout(() => controller.abort(), PRODUCTS_FETCH_TIMEOUT_MS) : null;
   _productsFetchPromise = fetch(url, controller ? { signal: controller.signal } : undefined)
-    .then((res) => {
-      if (!res.ok)
-        throw new Error(`HTTP ${res.status} fetching product catalog`);
-      return res.json();
-    })
+    .then((res) => jsonOrThrow(res, "product catalog"))
     .then((data) => {
       // Null guard: a truncated or partially-written file parses to `null`,
       // and `data.products` on null throws instead of degrading.
@@ -4564,7 +4578,7 @@ function SiteInfoProvider({ children }) {
     let cancelled = false;
     const cacheBuster = Math.floor(Date.now() / 60000);
     fetch(`${SITE_INFO_URL}?v=${cacheBuster}`)
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => jsonOrThrow(res, "site info"))
       .then((data) => {
         if (!cancelled && data) setInfo(mergeSiteInfo(data));
       })
@@ -4873,7 +4887,7 @@ function ContentProvider({ children }) {
     let cancelled = false;
     const cacheBuster = Math.floor(Date.now() / 60000);
     fetch(`${CONTENT_URL}?v=${cacheBuster}`)
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => jsonOrThrow(res, "page content"))
       .then((data) => {
         if (!cancelled && data) setContent(mergeContent(data));
       })
