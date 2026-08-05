@@ -15,7 +15,7 @@ $error = '';
 // Handle logout — must be a POST carrying a valid CSRF token so a malicious
 // page can't force-log-out the admin via a stray <img>/<a> to ?logout=1.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
-    csrf_check();                    // verify token before tearing the session down
+    csrf_check(false);               // verify token before tearing the session down
     $_SESSION = [];                  // clear all session variables
     session_unset();                 // unset individual variables
     session_destroy();               // destroy the session file
@@ -28,7 +28,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
     exit;
 }
 
-// Already logged in
+// Already logged in.
+// This redirect used to hide the reset window from the one person who can
+// close it: upload ALLOW-PASSWORD-RESET while a session is live and you are
+// bounced straight to the dashboard, where nothing mentioned it either. The
+// dashboard now carries a health-banner entry for the flag with a one-click
+// "Close it now" control (index.php), so landing there IS the answer — but the
+// banner is what makes this redirect safe, not the redirect itself.
+// (AUDIT_v3_FINDINGS B2)
 if (is_authenticated()) {
     header('Location: index.php');
     exit;
@@ -37,18 +44,75 @@ if (is_authenticated()) {
 // Brute-force throttle keyed by client IP and persisted to disk (see
 // login_* helpers in config.php). Persisting by IP — rather than in the
 // session — means an attacker can't reset the counter by discarding the
-// session cookie between attempts. Not a substitute for a strong password,
-// but it makes online dictionary attacks impractical.
+// session cookie between attempts.
+//
+// Do NOT overstate this. Measured: attempts 1-5 return in ~280 ms, then 1.4 s,
+// 2.3 s, 3.3 s, capped at 8 s. It is a DELAY, not a lockout; it is per-IP, so a
+// distributed attacker is unaffected; and sleep() means parallel connections
+// sleep concurrently rather than queueing (4.14, still open). The long random
+// password is the actual control here — the throttle only raises the cost of a
+// careless one. (AUDIT_v3_FINDINGS D14)
 $clientIp = login_throttle_client_ip();
 
+// ─── Recovery mode ──────────────────────────────────────────────────────────
+// There is no shipped default password (see config.php). Two states can leave
+// nobody able to sign in: the password was forgotten, or config.local.php was
+// lost. Both are recovered the same way — upload an empty file named
+// admin/ALLOW-PASSWORD-RESET over FTP, which unlocks this one-time form.
+// Creating that file requires FTP/file-manager access, a stronger credential
+// than the admin password, so this is not a login bypass.
+// The window is one hour wide (PASSWORD_RESET_WINDOW in config.php). If the
+// flag is on disk but out of date, say so — otherwise the owner who uploaded it
+// an hour ago reloads, sees an ordinary password box he cannot satisfy, and
+// concludes the documented recovery is broken.
+$resetUnlocked = password_reset_unlocked();
+$resetExpired  = password_reset_expired();
+$notConfigured = !ADMIN_PASSWORD_CONFIGURED;
+$resetErrors   = [];
+
+if ($resetUnlocked && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set_password'])) {
+    csrf_check(false);   // recovery happens before any login exists
+    $new     = (string)($_POST['new_password'] ?? '');
+    $confirm = (string)($_POST['confirm_password'] ?? '');
+    $resetErrors = admin_password_problems($new, $confirm, false);
+    if (empty($resetErrors)) {
+        $res = admin_password_write($new);   // deletes the flag file on success
+        if (!$res['ok']) {
+            $resetErrors[] = $res['error'];
+        } else {
+            audit_log('password', 'admin', 'Admin password set via FTP-unlocked recovery');
+            regenerate_session_id();
+            $_SESSION[ADMIN_SESSION_KEY] = true;
+            login_reset_failures($clientIp);
+            header('Location: index.php');
+            exit;
+        }
+    }
+}
+
+// A reset POST that arrives after the window has already closed — because
+// someone else completed the recovery a moment earlier and admin_password_write()
+// deleted the flag, or because the hour simply ran out. Without this it fell
+// through to the login branch with an empty password and answered a RESET form
+// with "Incorrect password." on a Sign In box, giving no hint that somebody
+// else had just taken the account. (AUDIT_v3_FINDINGS NB16)
+$resetRaced = false;
+if (!$resetUnlocked && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set_password'])) {
+    $resetRaced = true;
+    $error = 'The password-reset window closed before this form was submitted — either it ran out, '
+           . 'or someone else completed the reset first. Your new password was NOT set. '
+           . 'If you did not expect that, upload ALLOW-PASSWORD-RESET again immediately and set a new password.';
+}
+
 // Handle login
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $failures = login_failure_count($clientIp);
     if ($failures >= 5) {
-        // 1-second sleep per extra failure, capped at 8 seconds. Enough to
-        // make an online dictionary attack take longer than the heat death of
-        // the project, without locking out a sleepy admin who fat-fingered.
+        // 1-second sleep per extra failure, capped at 8 seconds — enough to
+        // make a single-threaded guessing run tedious without locking out a
+        // sleepy admin who fat-fingered. It does not stop a parallel or
+        // distributed attacker; see the note above. (AUDIT_v3_FINDINGS D14)
         sleep(min(8, $failures - 4));
     }
     if (password_verify($password, ADMIN_PASSWORD_HASH)) {
@@ -98,16 +162,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="logo-sub">Admin Panel</div>
     </div>
   </div>
-  <h1>Sign In</h1>
-  <p>Enter the admin password to manage products.</p>
-  <?php if ($error): ?>
-    <div class="error"><?= h($error) ?></div>
+  <?php if ($resetUnlocked): ?>
+    <h1>Set Admin Password</h1>
+    <p>Recovery mode is unlocked because <code>ALLOW-PASSWORD-RESET</code> is present in the admin folder. Set a new password below — the file is removed automatically and this screen goes away.</p>
+    <p><strong>This window closes one hour after the file was uploaded.</strong> If it runs out before you finish, upload the file again to reopen it.</p>
+    <?php if ($resetErrors): ?>
+      <div class="error"><?php foreach ($resetErrors as $e): ?><div><?= h($e) ?></div><?php endforeach; ?></div>
+    <?php endif; ?>
+    <form method="POST" autocomplete="off">
+      <label for="new_password">New password</label>
+      <input type="password" id="new_password" name="new_password" autofocus minlength="12" placeholder="At least 12 characters" required />
+      <label for="confirm_password" style="margin-top:14px;">Repeat new password</label>
+      <input type="password" id="confirm_password" name="confirm_password" minlength="12" required />
+      <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+      <input type="hidden" name="set_password" value="1">
+      <button type="submit">Set Password &amp; Sign In →</button>
+    </form>
+  <?php elseif ($notConfigured): ?>
+    <h1>Admin Not Configured</h1>
+    <p>No admin password is set on this server, and there is no built-in default. <code>admin/config.local.php</code> is missing or damaged.</p>
+    <?php if ($resetExpired): ?>
+      <div class="error">
+        <code>ALLOW-PASSWORD-RESET</code> <strong>is</strong> in the admin folder, but it is more than an hour old, so the recovery window has closed. Delete it over FTP and upload it again — that reopens the window for another hour.
+      </div>
+    <?php else: ?>
+    <div class="error">
+      To recover: over FTP, upload an empty file named <code>ALLOW-PASSWORD-RESET</code> into the <code>admin</code> folder, then reload this page. You will be asked to set a new password, and the file is deleted for you. The window stays open for one hour.
+    </div>
+    <?php endif; ?>
+  <?php else: ?>
+    <h1>Sign In</h1>
+    <p>Enter the admin password to manage products.</p>
+    <?php if ($error): ?>
+      <div class="error"><?= h($error) ?></div>
+    <?php endif; ?>
+    <?php if ($resetExpired): ?>
+      <div class="error">
+        <code>ALLOW-PASSWORD-RESET</code> is still in the admin folder, but it is more than an hour old, so the password-reset screen is closed and your normal password works again. <strong>Please delete that file over FTP.</strong> If you still need to reset the password, delete it and upload it again.
+      </div>
+    <?php endif; ?>
+    <form method="POST">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autofocus placeholder="Admin password" required />
+      <button type="submit">Sign In →</button>
+    </form>
   <?php endif; ?>
-  <form method="POST">
-    <label for="password">Password</label>
-    <input type="password" id="password" name="password" autofocus placeholder="Admin password" required />
-    <button type="submit">Sign In →</button>
-  </form>
 </div>
 </body>
 </html>

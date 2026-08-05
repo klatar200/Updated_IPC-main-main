@@ -33,11 +33,16 @@ AddDefaultCharset UTF-8
   Header always set Referrer-Policy "same-origin"
   Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
   # Conservative CSP — the admin uses inline <style> blocks but no external JS.
-  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: https://placehold.co; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 </IfModule>
 
-# Block direct access to sensitive files in this directory
-<FilesMatch "(^|/)(config\.php|config\.local\.php|\.htaccess|admin-log\.jsonl|\.login-throttle\.json|.*\.json|.*\.jsonl|.*\.bak|.*\.bak\..*|.*\.backup\..*)$">
+# Block direct access to sensitive files in this directory.
+#
+# ALLOW-PASSWORD-RESET and README.md are here because neither matched the
+# extension patterns: Apache served the reset flag as an empty 200, which gives
+# a scanner a one-byte probe for "is the password-reset window open right now".
+# (AUDIT_v3_FINDINGS NB14)
+<FilesMatch "(^|/)(config\.php|config\.local\.php|\.htaccess|ALLOW-PASSWORD-RESET|README\.md|admin-log\.jsonl|\.login-throttle\.json|.*\.json|.*\.jsonl|.*\.bak|.*\.bak\..*|.*\.backup\..*)$">
   Order Allow,Deny
   Deny from all
 </FilesMatch>

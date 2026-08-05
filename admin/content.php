@@ -380,8 +380,35 @@ $COPY_GROUPS = [
 $errors = [];
 $saved  = isset($_GET['saved']);
 
+// Optimistic-concurrency signature, same mechanism as edit.php:17-31 and
+// settings.php. Two tabs open on this page used to clobber each other with no
+// warning. (DEPLOY_READINESS_v2 T1.7)
+$storedContent = load_content();
+$storedSig     = sha1(json_encode($storedContent));
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
+
+    // TRUNCATION GUARD (DEPLOY_READINESS_v2 T3.7).
+    // This form posts 450+ input variables. PHP drops everything past
+    // max_input_vars (default 1000) SILENTLY, and the old code rebuilt $out
+    // from whatever arrived and still reported "Content saved" — a data-loss
+    // bug waiting on one more FAQ entry. `form_complete` is rendered as the
+    // LAST field in the form, so if PHP truncated the POST it is missing.
+    // Do not move it, and do not add fields after it.
+    $truncated = false;
+    if (($_POST['form_complete'] ?? '') !== '1') {
+        $truncated = true;
+        $errors[] = 'This page did not submit completely — the server cut the request off partway through (PHP max_input_vars). NOTHING was saved. The entries that did arrive are still filled in below; anything the server never received has been restored from the saved version. Remove a few entries and save again, or ask your developer to raise max_input_vars in .user.ini.';
+    }
+
+    $submittedSig = $_POST['orig_sig'] ?? '';
+    if ($submittedSig !== '' && $submittedSig !== $storedSig) {
+        // Wording matters here: the form below now still holds what Rick typed
+        // (see the repopulation block after this POST handler), so telling him to
+        // "reload" would throw the very work this warning exists to protect.
+        $errors[] = 'This page content was changed by another session (or another browser tab) since you opened this page. Your edits were NOT saved — but they are still filled in below, so nothing you typed is lost. Open the site in another tab to see what the other change was. Pressing Save again will keep what is on this page and overwrite that other change.';
+    }
 
     $out = [];
     foreach ($SECTIONS as $sec => $cfg) {
@@ -396,12 +423,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $raw = $row[$f['key']] ?? '';
                     if ($f['type'] === 'list') {
                         // Newline-separated textarea → array of trimmed, non-empty lines.
-                        $arr = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', (string)$raw))));
+                        // as_str(), not (string)$raw — see NB12 above; an array
+                        // here became a single list item reading "Array".
+                        $arr = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', as_str($raw)))));
                         $r[$f['key']] = $arr;
                         if (!empty($arr)) $hasText = true;
                         continue;
                     }
-                    $v = trim((string)$raw);
+                    // as_str(), not (string)$raw: an array here cast to the
+                    // literal text "Array" and was SAVED under a green
+                    // "✅ Content saved". (AUDIT_v3_FINDINGS NB12)
+                    $v = as_str($raw);
                     if ($f['type'] === 'icon') {
                         if (!isset($cfg['icons'][$v])) $v = array_key_first($cfg['icons']);
                     } elseif ($f['type'] === 'page') {
@@ -443,7 +475,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($COPY_GROUPS as $g => $gcfg) {
         $copyOut[$g] = [];
         foreach ($gcfg['fields'] as $f) {
-            $v = trim((string)($_POST['copy'][$g][$f['key']] ?? ''));
+            $v = as_str($_POST['copy'][$g][$f['key']] ?? '');   // NB12, as above
             if ($f['type'] === 'page' && !isset($PAGE_OPTIONS[$v])) {
                 $v = (string)array_key_first($PAGE_OPTIONS);
             }
@@ -464,7 +496,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Load current content for display (falls back to empty sections if the file
 // is missing — the customer can rebuild from the Add buttons).
-$content = load_content();
+$content = $storedContent;
+
+// On an ERROR, repopulate from what was SUBMITTED, never from disk.
+// This line used to run unconditionally, and all three error paths (stale
+// orig_sig, the form_complete truncation guard, a save_content() failure) fell
+// through it: Rick's 40 minutes of FAQ and About copy were replaced by the
+// stored values, and the error page handed him a REFRESHED, VALID orig_sig — so
+// the retry the message told him to make wrote the disk values back under a
+// green "✅ Content saved". Silent, total, and reported as success.
+// settings.php:134, edit.php:185 and add.php:79 all repopulate from $_POST;
+// this page — the one holding the most irreplaceable typing — did not.
+// (AUDIT_v3_FINDINGS B1)
+//
+// The truncation path is the exception: there $out is not a complete picture,
+// because PHP dropped every variable past max_input_vars, so trailing sections
+// arrive EMPTY rather than edited. Swapping straight to $out would blank the
+// back half of the page and invite Rick to save that. Merge section-wise
+// instead — keep whatever survived the POST, fall back to the stored copy for
+// anything that never arrived. (A section he genuinely emptied in the same
+// truncated POST reappears; nothing was saved either way, and showing rows that
+// are still on disk is the safe direction to be wrong in.)
+//
+// Compare COUNTS, not emptiness. The cut does not fall tidily between sections:
+// measured at max_input_vars=100 against this form's 423 variables, variable 101
+// is features[0][iconKey], so `features` arrives with 1 of its 6 rows and every
+// later section arrives with none. An `empty()` test restores the 15 sections
+// that came back empty and silently leaves the straddling one 5 rows short, on a
+// page whose whole job at that moment is to show Rick his work is still there.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($errors)) {
+    $content = $out;
+    if (!empty($truncated)) {
+        foreach ($SECTIONS as $sec => $cfg) {
+            if (count((array)($content[$sec] ?? [])) < count((array)($storedContent[$sec] ?? []))) {
+                $content[$sec] = $storedContent[$sec];
+            }
+        }
+        foreach ($COPY_GROUPS as $g => $gcfg) {
+            foreach ($gcfg['fields'] as $f) {
+                if (($content['copy'][$g][$f['key']] ?? '') === ''
+                    && ($storedContent['copy'][$g][$f['key']] ?? '') !== '') {
+                    $content['copy'][$g][$f['key']] = $storedContent['copy'][$g][$f['key']];
+                }
+            }
+        }
+    }
+}
 
 /** Render a single field control. Name is also set server-side (JS keeps it
  * numbered after edits) so the form still submits correctly before JS runs. */
@@ -621,6 +698,7 @@ $navActive = 'content';
 
   <form method="POST">
     <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+    <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
 
     <?php foreach ($COPY_GROUPS as $g => $gcfg): ?>
       <div class="card">
@@ -650,8 +728,13 @@ $navActive = 'content';
       <a href="index.php" class="btn btn-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary">Save Content</button>
     </div>
+    <?php /* MUST stay the last field in this form — the truncation guard at the
+             top of this file checks that it survived the POST. Adding fields
+             after it would defeat the check. */ ?>
+    <input type="hidden" name="form_complete" value="1">
   </form>
 </main>
 <script src="content-editor.js"></script>
+<script src="unsaved.js" defer></script>
 </body>
 </html>

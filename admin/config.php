@@ -32,24 +32,194 @@ define('INQUIRIES_FILE', __DIR__ . '/inquiries.jsonl');
 // Admin session key
 define('ADMIN_SESSION_KEY', 'ipc_admin_authenticated');
 
-// ─── IMPORTANT: Rotate the password before deploying! ──────
-// The hash below is the shipped default and must be overridden.
+// ─── Admin password ─────────────────────────────────────────
+// There is NO shipped default password. The real hash lives in
+// admin/config.local.php (gitignored, deployed by hand). This file only
+// defines an intentionally-unsatisfiable sentinel so that a missing or
+// damaged config.local.php fails CLOSED (nobody can sign in) instead of
+// falling back to a password that is printed in the documentation.
 //
-// DO NOT call password_hash() here — it generates a new random salt
-// each time and would break password_verify(). Always store the hash
-// as a fixed string.
+// DO NOT call password_hash() here — it generates a new random salt each
+// time and would break password_verify(). Always store a fixed string.
 //
-// To rotate the password, create an admin/config.local.php override
-// (gitignored) — see admin/README.md for the full flow.
+// RECOVERY (the password is lost, or config.local.php is gone):
+//   1. Over FTP, upload an empty file named  admin/ALLOW-PASSWORD-RESET
+//   2. Visit /admin/ in a browser — it shows a "Set admin password" form
+//   3. Set the new password. The flag file is deleted automatically.
+// Creating that file requires FTP/file-manager access, which is a stronger
+// credential than the admin password itself, so this is not a bypass.
+// The window closes ONE HOUR after the file's timestamp — see
+// PASSWORD_RESET_WINDOW below. Re-upload the file to open a fresh hour.
 // ────────────────────────────────────────────────────────────
-// Load local password override if present (gitignored). Falls back to the
-// shipped default hash. Customers should create config.local.php with their
-// own hash — see admin/README.md.
 if (file_exists(__DIR__ . '/config.local.php')) {
     require_once __DIR__ . '/config.local.php';
 }
+// Sentinel: not a valid bcrypt digest, so password_verify() returns false for
+// every input. ADMIN_PASSWORD_CONFIGURED tells the UI to offer recovery
+// instead of an unpassable login box.
+define('ADMIN_PASSWORD_SENTINEL', '*not-configured*');
 if (!defined('ADMIN_PASSWORD_HASH')) {
-    define('ADMIN_PASSWORD_HASH', '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
+    define('ADMIN_PASSWORD_HASH', ADMIN_PASSWORD_SENTINEL);
+}
+define('ADMIN_PASSWORD_CONFIGURED', ADMIN_PASSWORD_HASH !== ADMIN_PASSWORD_SENTINEL
+    && preg_match('/^\$2[aby]\$\d{2}\$.{53}$/', ADMIN_PASSWORD_HASH) === 1);
+
+// Proof-of-FTP flag that unlocks the one-time password-reset screen.
+define('PASSWORD_RESET_FLAG', __DIR__ . '/ALLOW-PASSWORD-RESET');
+define('LOCAL_CONFIG_PATH', __DIR__ . '/config.local.php');
+
+// The reset window EXPIRES, and it is one hour wide.
+//
+// This used to be a bare file_exists() with no upper bound. Creating the flag
+// needs FTP, so it is not a login bypass — but USING it needs nothing at all:
+// csrf_check(false) binds the token to the requester's own session, so any
+// unauthenticated client on the internet fetches auth.php, takes the token it
+// is handed, POSTs a new password, and owns the account. That was fine as a
+// 60-second window and unacceptable as an unbounded one, and the single most
+// likely reason a reset is needed (an unwritable admin/ folder — the exact
+// condition index.php already banners) is also the reason admin_password_write()
+// fails, leaves the flag in place, and sends the owner to phone the developer
+// with a world-writable password endpoint live on the public site.
+//
+// An hour is plenty to upload a file over FTP and type a password. Re-uploading
+// or touching the file opens a fresh window. (AUDIT_v3_FINDINGS B2)
+define('PASSWORD_RESET_WINDOW', 3600);
+
+function password_reset_unlocked(): bool {
+    if (!file_exists(PASSWORD_RESET_FLAG)) return false;
+    clearstatcache(true, PASSWORD_RESET_FLAG);   // mtime is cached per request
+    $mtime = @filemtime(PASSWORD_RESET_FLAG);
+    if ($mtime === false) return false;
+    return $mtime > (time() - PASSWORD_RESET_WINDOW);
+}
+
+/** The flag file is on disk, whether or not it is still in date. */
+function password_reset_flag_present(): bool {
+    clearstatcache(true, PASSWORD_RESET_FLAG);
+    return file_exists(PASSWORD_RESET_FLAG);
+}
+
+/** Present but past its window: the login screen has to explain why the
+ *  recovery form it promised is not there, or the owner just sees a password
+ *  box he cannot satisfy and assumes the recovery is broken. */
+function password_reset_expired(): bool {
+    return password_reset_flag_present() && !password_reset_unlocked();
+}
+
+/**
+ * Write a new admin password hash into admin/config.local.php.
+ *
+ * Single source of truth — admin/password.php (signed-in change) and
+ * admin/auth.php (FTP-unlocked recovery) both call this. Preserves any other
+ * defines already in the file, backs the old file up, writes, then reads back
+ * and re-verifies; on any mismatch the backup is restored.
+ *
+ * Returns ['ok' => bool, 'error' => string].
+ */
+function admin_password_write(string $newPlain): array {
+    $path = LOCAL_CONFIG_PATH;
+    $hash = password_hash($newPlain, PASSWORD_BCRYPT, ['cost' => 12]);
+    $defineLine = "define('ADMIN_PASSWORD_HASH', '" . $hash . "');";
+    $re = "/define\\(\\s*'ADMIN_PASSWORD_HASH'\\s*,\\s*'[^']*'\\s*\\)\\s*;/";
+
+    if (file_exists($path)) {
+        $body = (string)file_get_contents($path);
+        // preg_replace_callback, NOT preg_replace: every bcrypt hash contains
+        // "$2y$12$", and preg_replace would eat $2/$12 as backreferences and
+        // write a corrupt hash. That bug shipped and made password changes
+        // 0% functional. Do not "simplify" this back.
+        $newBody = preg_replace_callback($re, static function () use ($defineLine) {
+            return $defineLine;
+        }, $body, 1, $replaced);
+        if ($newBody === null) { $replaced = 0; $newBody = $body; }
+        if (!$replaced) {
+            $newBody = rtrim($newBody) . "\n\n// Added by the IPC admin on " . date('Y-m-d H:i:s') . "\n" . $defineLine . "\n";
+        }
+    } else {
+        $newBody = "<?php\n"
+                 . "/**\n"
+                 . " * IPC Admin — LOCAL password override (gitignored).\n"
+                 . " * Generated by the IPC admin on " . date('Y-m-d H:i:s') . ".\n"
+                 . " * config.php loads this file first, so the hash below is the one that counts.\n"
+                 . " * There is no shipped default password to fall back to: if this file is\n"
+                 . " * deleted, nobody can sign in until the ALLOW-PASSWORD-RESET recovery is used.\n"
+                 . " */\n"
+                 . $defineLine . "\n";
+    }
+
+    $backupPath = null;
+    if (file_exists($path)) {
+        $backupPath = $path . '.bak.' . date('Ymd-His');
+        for ($i = 1; file_exists($backupPath) && $i < 100; $i++) {
+            $backupPath = $path . '.bak.' . date('Ymd-His') . '-' . str_pad((string)$i, 2, '0', STR_PAD_LEFT);
+        }
+        @copy($path, $backupPath);
+        $baks = glob($path . '.bak.*');
+        if ($baks && count($baks) > 5) {
+            sort($baks);
+            foreach (array_slice($baks, 0, count($baks) - 5) as $old) @unlink($old);
+        }
+    }
+
+    if (@file_put_contents($path, $newBody, LOCK_EX) === false) {
+        return ['ok' => false, 'error' => 'Could not write admin/config.local.php — the admin/ folder must be writable by the web server.'];
+    }
+
+    // config.local.php is a PHP file, so an opcode cache will keep serving the
+    // OLD compiled hash until it revalidates. Measured in the harness: with
+    // opcache.revalidate_freq=2 the new password did not work for ~2 seconds
+    // after a successful write. On a host with validate_timestamps=Off it
+    // would never work. Invalidate explicitly.
+    if (function_exists('opcache_invalidate')) {
+        @opcache_invalidate($path, true);
+    }
+
+    $check = (string)@file_get_contents($path);
+    $ok = preg_match("/define\\(\\s*'ADMIN_PASSWORD_HASH'\\s*,\\s*'([^']+)'\\s*\\)\\s*;/", $check, $m)
+          && password_verify($newPlain, $m[1]);
+    if (!$ok) {
+        if ($backupPath && file_exists($backupPath)) @copy($backupPath, $path);
+        return ['ok' => false, 'error' => 'Verification of the written file failed — the previous password was restored. Nothing changed.'];
+    }
+    @unlink(PASSWORD_RESET_FLAG); // a successful write closes any open reset window
+    return ['ok' => true, 'error' => ''];
+}
+
+/** Shared password-strength rules for both the change and recovery screens. */
+function admin_password_problems(string $new, string $confirm, bool $compareToCurrent = true): array {
+    $errors = [];
+    if (strlen($new) < 12) {
+        $errors[] = 'The new password must be at least 12 characters. A short sentence or 4+ random words works well.';
+    } elseif (strlen($new) > 200) {
+        $errors[] = 'The new password is too long (200 characters max).';
+    } elseif ($new !== $confirm) {
+        $errors[] = 'The two new-password fields do not match.';
+    } elseif ($compareToCurrent && ADMIN_PASSWORD_CONFIGURED && password_verify($new, ADMIN_PASSWORD_HASH)) {
+        $errors[] = 'The new password must be different from the current one.';
+    }
+    return $errors;
+}
+
+/**
+ * A POST field as a trimmed string, or $default if it is not a string at all.
+ *
+ * `name[]=x` makes $_POST['name'] an ARRAY, and an array must never reach
+ * trim(). On PHP 8 that is an uncaught TypeError — an admin-side 500 with the
+ * server path in it. On the target's PHP 7.4 it is WORSE, not better: a
+ * warning, trim() returns null, and add.php would go on to create a product
+ * with the field silently blank. content.php had the third variant, casting
+ * (string)$array and saving the literal text "Array" under a green
+ * "✅ Content saved". settings.php already guards this way via sf().
+ * (AUDIT_v3_FINDINGS NB12)
+ */
+function post_str(string $key, string $default = ''): string {
+    $v = $_POST[$key] ?? null;
+    return is_string($v) ? trim($v) : $default;
+}
+
+/** Same guard for a value already pulled out of a nested $_POST array. */
+function as_str($v, string $default = ''): string {
+    return is_string($v) ? trim($v) : $default;
 }
 
 // CSRF token helper — call csrf_token() to get/generate, csrf_check() to verify.
@@ -62,11 +232,79 @@ function csrf_token(): string {
     return $_SESSION['csrf_token'];
 }
 
-function csrf_check(): void {
-    $token = $_POST['csrf_token'] ?? '';
-    if (!hash_equals(csrf_token(), $token)) {
-        http_response_code(403);
-        die('Invalid CSRF token. Please go back and try again.');
+// A bare `die('Invalid CSRF token…')` was what an admin saw when his session
+// expired mid-edit: an unstyled white page, no navigation, no mention that his
+// unsaved work was still recoverable, on the one page (long About paragraphs,
+// FAQ answers) where he is most likely to have walked away mid-sentence.
+// (DEPLOY_READINESS_v2 T1.8)
+function csrf_fail_page(string $reason): void {
+    http_response_code(403);
+    header('Content-Type: text/html; charset=UTF-8');
+    $expired  = $reason === 'expired';
+    $tooLarge = $reason === 'toolarge';
+    if ($tooLarge) {
+        $title = 'That upload was too large for this server';
+        $lead  = 'The whole request was rejected before it reached the admin, so <strong>nothing was saved</strong>. '
+               . 'This server accepts up to <strong>' . h(ini_get('post_max_size') ?: '?') . '</strong> per request and '
+               . '<strong>' . h(ini_get('upload_max_filesize') ?: '?') . '</strong> per file. '
+               . 'Use a smaller file, or ask your developer to raise the limits in <code>.user.ini</code>.';
+    } else {
+        $title = $expired ? 'Your sign-in session expired' : 'This form could not be verified';
+        $lead  = $expired
+            ? 'You were signed out while this page was open, so the save was refused. <strong>Your typing is not lost</strong> — it is still in the previous page.'
+            : 'The security token on this form did not match. Nothing was saved.';
+    }
+    echo '<!doctype html><html lang="en"><head><meta charset="UTF-8">'
+       . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+       . '<title>IPC Admin — ' . h($title) . '</title><style>'
+       . '*,*::before,*::after{box-sizing:border-box}'
+       . 'body{font-family:system-ui,sans-serif;background:#f0f4f8;margin:0;color:#141414;'
+       . 'display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}'
+       . '.card{background:#fff;border:1px solid #e5e9ee;border-radius:12px;padding:32px;max-width:560px}'
+       . 'h1{font-size:20px;font-weight:800;margin:0 0 10px}'
+       . 'p{font-size:14px;line-height:1.6;color:#374151;margin:0 0 14px}'
+       . 'ol{font-size:14px;line-height:1.7;color:#374151;padding-left:20px;margin:0 0 20px}'
+       . '.btn{display:inline-block;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600;'
+       . 'text-decoration:none;border:1px solid #d1d9e0;background:#fff;color:#141414;cursor:pointer;margin-right:8px}'
+       . '.btn-primary{background:#005da3;color:#fff;border-color:#005da3}'
+       . '</style></head><body><div class="card"><h1>' . h($title) . '</h1><p>' . $lead . '</p>';
+    if ($expired) {
+        echo '<ol>'
+           . '<li>Click <strong>Back to my unsaved page</strong> below — the browser restores what you typed.</li>'
+           . '<li>Open <a href="auth.php" target="_blank" rel="noopener">the sign-in page</a> in a <strong>new tab</strong> and sign in again.</li>'
+           . '<li>Return to your page and click Save. It will go through.</li>'
+           . '</ol>'
+           . '<p><button type="button" class="btn btn-primary" onclick="history.back()">← Back to my unsaved page</button>'
+           . '<a class="btn" href="auth.php">Sign in again</a></p>';
+    } else {
+        echo '<p><button type="button" class="btn btn-primary" onclick="history.back()">← Go back</button>'
+           . '<a class="btn" href="index.php">Dashboard</a></p>';
+    }
+    echo '</div></body></html>';
+    exit;
+}
+
+// $requireAuth = false for the two pre-login POSTs that still carry a token:
+// the logout form and the FTP-unlocked password-reset form in auth.php.
+function csrf_check(bool $requireAuth = true): void {
+    // A request larger than post_max_size arrives with $_POST AND $_FILES both
+    // empty, so the CSRF check is what fails first and the admin saw a bare
+    // 403 "Invalid CSRF token" for what is really "your file is too big".
+    // (DEPLOY_READINESS_v2 T3.5)
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+        && empty($_POST) && empty($_FILES)
+        && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        csrf_fail_page('toolarge');
+    }
+    $token        = $_POST['csrf_token'] ?? '';
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+    // No session token at all means the session itself is gone (expired or
+    // garbage-collected), which is a different problem from a mismatched one.
+    if ($sessionToken === '' || ($requireAuth && !is_authenticated())) {
+        csrf_fail_page('expired');
+    }
+    if (!hash_equals($sessionToken, $token)) {
+        csrf_fail_page('mismatch');
     }
 }
 
@@ -76,6 +314,13 @@ function csrf_check(): void {
 if (session_status() === PHP_SESSION_NONE) {
     $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    // PHP's default session.gc_maxlifetime is 1440s (24 min). The admin writes
+    // long-form copy — About paragraphs, FAQ answers, product descriptions —
+    // and losing a session mid-sentence is exactly the failure this release is
+    // supposed to remove. 8 hours covers a working day. The session cookie is
+    // still browser-session-scoped (lifetime 0) so closing the browser signs
+    // out. (DEPLOY_READINESS_v2 T1.8)
+    @ini_set('session.gc_maxlifetime', '28800');
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',
@@ -101,12 +346,18 @@ function is_authenticated(): bool {
     return !empty($_SESSION[ADMIN_SESSION_KEY]);
 }
 
-// Helper: redirect to login if not authenticated
+// Helper: redirect to login if not authenticated.
+// On a POST we must NOT redirect: a 302 turns the POST into a GET and throws
+// away everything the admin just typed, with no explanation. Render the
+// styled "your session expired, your typing is still in the previous page"
+// screen instead. (DEPLOY_READINESS_v2 T1.8)
 function require_auth(): void {
-    if (!is_authenticated()) {
-        header('Location: auth.php');
-        exit;
+    if (is_authenticated()) return;
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        csrf_fail_page('expired');
     }
+    header('Location: auth.php');
+    exit;
 }
 
 // Helper: load products array from JSON
@@ -121,6 +372,90 @@ function load_products(): array {
     return $data;
 }
 
+// ─── Backup-on-write: single source of truth ────────────────────────────────
+// Every save_*() routes through backup_before_write(). Two invariants, each of
+// which broke a real restore:
+//   1. date('Ymd-His') is second-granular. Two POSTs in the same second (a
+//      double-click on Save) used to make the second copy() overwrite the
+//      first one's backup with the ALREADY-MODIFIED file, leaving zero copies
+//      of the pre-edit state. A -NN sequence suffix fixes that.
+//   2. Keeping 5 counted *saves*, not *mistakes* — every photo upload, PDF
+//      upload, add, delete and restore is a full-catalog save, so an ordinary
+//      afternoon rotated the pre-mistake state off the disk. Keep 30.
+define('BACKUP_KEEP', 30);
+
+// Returns a path that does not already exist: prefix.backup.YYYYmmdd-His.json,
+// then -01, -02 … within the same second.
+//
+// The sequence is max-already-used + 1, NOT first-free. First-free reuses a
+// slot that rotation has just pruned, which scrambles the ordering — measured:
+// with 44 same-second saves and keep=30, the surviving set came back as
+// seq 1..30 holding a mix of old and new states instead of the newest 30.
+function backup_path(string $dir, string $prefix): string {
+    $stamp = date('Ymd-His');
+    $base  = $dir . '/' . $prefix . '.backup.' . $stamp;
+    $used  = -1;
+    foreach (glob($base . '*.json') ?: [] as $f) {
+        $k = backup_sort_key($f);
+        if ($k[1] > $used) $used = $k[1];
+    }
+    if ($used < 0) return $base . '.json';           // sequence 0 = plain name
+    $next = $used + 1;
+    // Past 99 this used to fall back to bin2hex(random_bytes(3)), which throws
+    // the ordering away entirely: backup_sort_key() cannot rank a random suffix,
+    // scores every one of them 99, and pruning then deletes NEWER backups than
+    // it keeps (measured with 140 saves inside one second: "monotonic in save
+    // order? NO"). Just keep counting — "-100" sorts after "-99" once the
+    // sequence is compared as an integer, which it already is.
+    // (AUDIT_v3_FINDINGS NB13)
+    if ($next > 9999) return $base . '-9999.json';   // absurd; stop allocating
+    return $base . '-' . str_pad((string)$next, 2, '0', STR_PAD_LEFT) . '.json';
+}
+
+// Copy $path aside, then prune to the BACKUP_KEEP most recent. Returns the
+// backup path written, or null if there was nothing to back up / copy failed.
+function backup_before_write(string $path, string $prefix): ?string {
+    $dir = dirname($path);
+    if (!file_exists($path)) return null;
+    $backupPath = backup_path($dir, $prefix);
+    if (!@copy($path, $backupPath)) return null;
+    $backups = backup_list($dir, $prefix); // oldest first, by mtime
+    if (count($backups) > BACKUP_KEEP) {
+        foreach (array_slice($backups, 0, count($backups) - BACKUP_KEEP) as $old) @unlink($old);
+    }
+    return $backupPath;
+}
+
+// All backups for one prefix, OLDEST FIRST.
+//
+// Two orderings that look right and are NOT (both measured, not guessed):
+//   - Plain sort(): the -NN collision suffix makes "…-120000-01.json" sort
+//     BEFORE "…-120000.json", because "-" (0x2D) < "." (0x2E). Pruning by name
+//     would delete the NEWEST file of a same-second pair.
+//   - filemtime(): 1-second resolution, so every file written inside one
+//     second ties and the sort falls back to glob order — the same bug.
+// Sort on the parsed (timestamp, sequence) instead. Sequence 0 is the plain
+// name, which backup_path() always allocates first within a second.
+// The [0-9a-f]{6} alternative is kept only to rank files a PREVIOUS revision
+// already wrote; backup_path() no longer emits them. (AUDIT_v3_FINDINGS NB13)
+function backup_sort_key(string $file): array {
+    if (preg_match('/\.backup\.(\d{8})-(\d{6})(?:-(\d{2,4}|[0-9a-f]{6}))?\.json$/', basename($file), $m)) {
+        $seq = !isset($m[3]) || $m[3] === '' ? 0 : (ctype_digit($m[3]) ? (int)$m[3] : 99);
+        return [$m[1] . $m[2], $seq];
+    }
+    return ['00000000000000', 0]; // unparseable name → treat as oldest
+}
+
+function backup_list(string $dir, string $prefix): array {
+    $files = glob($dir . '/' . $prefix . '.backup.*.json') ?: [];
+    usort($files, static function ($a, $b) {
+        $ka = backup_sort_key($a);
+        $kb = backup_sort_key($b);
+        return $ka[0] === $kb[0] ? $ka[1] <=> $kb[1] : strcmp($ka[0], $kb[0]);
+    });
+    return $files;
+}
+
 // Helper: save products array to JSON
 // Uses LOCK_EX to prevent corruption from concurrent writes.
 // Creates a timestamped backup before overwriting.
@@ -130,18 +465,7 @@ function save_products(array $products): bool {
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
     }
-    // Backup current file before overwriting (#4 — backup-on-write)
-    if (file_exists($path)) {
-        $backupPath = $dir . '/products-all.backup.' . date('Ymd-His') . '.json';
-        @copy($path, $backupPath);
-        // Keep only the 5 most recent backups to avoid disk clutter
-        $backups = glob($dir . '/products-all.backup.*.json');
-        if ($backups && count($backups) > 5) {
-            sort($backups); // oldest first
-            $toDelete = array_slice($backups, 0, count($backups) - 5);
-            foreach ($toDelete as $old) @unlink($old);
-        }
-    }
+    backup_before_write($path, 'products-all');
     // Sort by SKU before saving
     usort($products, fn($a, $b) => strcmp($a['sku'] ?? '', $b['sku'] ?? ''));
     $json = json_encode($products, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -158,19 +482,12 @@ function load_site_info(): array {
 }
 
 // Helper: save business details. Mirrors save_products(): timestamped backup
-// (keep 5), LOCK_EX write. The React site reads this file at runtime.
+// (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
 function save_site_info(array $info): bool {
     $path = SITE_INFO_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
-    if (file_exists($path)) {
-        @copy($path, $dir . '/site-info.backup.' . date('Ymd-His') . '.json');
-        $backups = glob($dir . '/site-info.backup.*.json');
-        if ($backups && count($backups) > 5) {
-            sort($backups);
-            foreach (array_slice($backups, 0, count($backups) - 5) as $old) @unlink($old);
-        }
-    }
+    backup_before_write($path, 'site-info');
     $json = json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     return file_put_contents($path, $json, LOCK_EX) !== false;
 }
@@ -185,25 +502,22 @@ function load_content(): array {
 }
 
 // Helper: save editable page content. Mirrors save_site_info(): timestamped
-// backup (keep 5), LOCK_EX write. The React site reads this file at runtime.
+// backup (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
 function save_content(array $content): bool {
     $path = CONTENT_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
-    if (file_exists($path)) {
-        @copy($path, $dir . '/content.backup.' . date('Ymd-His') . '.json');
-        $backups = glob($dir . '/content.backup.*.json');
-        if ($backups && count($backups) > 5) {
-            sort($backups);
-            foreach (array_slice($backups, 0, count($backups) - 5) as $old) @unlink($old);
-        }
-    }
+    backup_before_write($path, 'content');
     $json = json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     return file_put_contents($path, $json, LOCK_EX) !== false;
 }
 
-// Helper: write a line to the admin audit log (#6 — audit logging)
-function audit_log(string $action, string $sku, string $detail = ''): void {
+// Helper: write a line to the admin audit log (#6 — audit logging).
+// Returns false if the write failed — on a host where the PHP user differs
+// from the FTP user, admin/ is not writable and the log, the inquiry file and
+// the login throttle ALL silently no-op. admin_writable() surfaces that on the
+// dashboard instead of leaving it invisible (DEPLOY_READINESS_v2 §3.3).
+function audit_log(string $action, string $sku, string $detail = ''): bool {
     $logPath = __DIR__ . '/admin-log.jsonl';
     $entry = json_encode([
         'ts'     => date('Y-m-d H:i:s'),
@@ -213,7 +527,20 @@ function audit_log(string $action, string $sku, string $detail = ''): void {
         'ip'     => $_SERVER['REMOTE_ADDR'] ?? '',
         'ua'     => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 120),
     ]) . "\n";
-    file_put_contents($logPath, $entry, FILE_APPEND | LOCK_EX);
+    return @file_put_contents($logPath, $entry, FILE_APPEND | LOCK_EX) !== false;
+}
+
+// True when the admin/ folder can actually be written by the PHP user.
+// Four things depend on it: admin-log.jsonl, inquiries.jsonl,
+// .login-throttle.json, and config.local.php (password changes).
+function admin_writable(): bool {
+    return is_writable(__DIR__);
+}
+
+// True when data/ can be written — product/content/settings saves and every
+// backup depend on it.
+function data_writable(): bool {
+    return is_writable(dirname(PRODUCTS_JSON));
 }
 
 // ─── Login throttle (persistent, IP-keyed) ────────────────────────────────
@@ -366,6 +693,58 @@ function image_in_use(array $products, string $basename): bool {
         if (!empty($p['photoUrl']) && basename($p['photoUrl']) === $basename) return true;
     }
     return false;
+}
+
+// Turn a PHP upload error code into a message that names the actual cause.
+// upload-pdf.php collapsed UPLOAD_ERR_INI_SIZE, _PARTIAL, _NO_TMP_DIR and
+// _CANT_WRITE into "Please select a PDF file to upload", which describes none
+// of them — and did so on a page that promised "20MB or smaller" while the
+// server was rejecting at 2MB. (DEPLOY_READINESS_v2 T3.5)
+/**
+ * The size limit that ACTUALLY applies to an upload, as a display string.
+ *
+ * help.php printed the server's upload_max_filesize ("24M") as though it were
+ * the ceiling. It is not: upload-pdf.php:79 hard-rejects anything over 20MB and
+ * upload-image.php:102 caps photos at 8MB, so the real rule is
+ * min(upload_max_filesize, the page's own cap) — and telling the owner to raise
+ * .user.ini would not have moved either one. (AUDIT_v3_FINDINGS D6)
+ */
+function min_upload_label(int $ownCapMb): string {
+    $ini   = (string)ini_get('upload_max_filesize');
+    $bytes = 0;
+    if (preg_match('/^\s*(\d+(?:\.\d+)?)\s*([KMG])?/i', $ini, $m)) {
+        $mult  = ['' => 1, 'K' => 1024, 'M' => 1048576, 'G' => 1073741824];
+        $bytes = (int)((float)$m[1] * $mult[strtoupper($m[2] ?? '')]);
+    }
+    $iniMb = $bytes > 0 ? $bytes / 1048576 : $ownCapMb;
+    $mb    = min($iniMb, $ownCapMb);
+    return ($mb >= 1 ? (string)round($mb) : rtrim(rtrim(number_format($mb, 1), '0'), '.')) . 'MB';
+}
+
+function upload_error_message(int $code, string $what = 'file'): string {
+    $iniMax = ini_get('upload_max_filesize') ?: '?';
+    $postMax = ini_get('post_max_size') ?: '?';
+    switch ($code) {
+        case UPLOAD_ERR_INI_SIZE:
+            return "That {$what} is larger than this server accepts ({$iniMax} per file, {$postMax} per request). "
+                 . "Shrink the {$what} and try again, or ask your developer to raise the limit in .user.ini.";
+        case UPLOAD_ERR_FORM_SIZE:
+            return "That {$what} is larger than this form accepts. Please use a smaller file.";
+        case UPLOAD_ERR_PARTIAL:
+            return "The upload was interrupted and only part of the {$what} arrived. Please try again.";
+        case UPLOAD_ERR_NO_FILE:
+            // "a image" — pick the article from the word. (AUDIT_v3 NB18)
+            return 'Please choose ' . (strpos('aeiou', strtolower($what[0] ?? 'f')) !== false ? 'an' : 'a')
+                 . " {$what} to upload.";
+        case UPLOAD_ERR_NO_TMP_DIR:
+            return "The server has no temporary upload folder configured. This is a hosting setting — contact your developer.";
+        case UPLOAD_ERR_CANT_WRITE:
+            return "The server could not write the {$what} to disk (permissions). Contact your developer.";
+        case UPLOAD_ERR_EXTENSION:
+            return "A server extension blocked this upload. Contact your developer.";
+        default:
+            return "The {$what} could not be uploaded (error code {$code}). Please try again.";
+    }
 }
 
 // Helper: sanitize a string for display.

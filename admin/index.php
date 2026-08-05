@@ -2,6 +2,24 @@
 require_once 'config.php';
 require_auth();
 
+// Close an open (or stale) password-reset window from the dashboard.
+// Before this, the flag file could only be removed the way it was created —
+// over FTP — so the window opened by a failed recovery stayed open until
+// somebody remembered it existed. Nothing else on the site could see it.
+// (AUDIT_v3_FINDINGS B2)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['close_reset_window'])) {
+    csrf_check();
+    $removed = @unlink(PASSWORD_RESET_FLAG);
+    audit_log('password', 'admin', $removed
+        ? 'Password-reset window closed from the dashboard'
+        : 'Tried to close the password-reset window, but the file could not be deleted');
+    $msg = $removed
+        ? 'The password-reset window is closed and the file is gone.'
+        : 'Could not delete admin/ALLOW-PASSWORD-RESET — the admin folder is not writable by the web server. Please delete that file over FTP.';
+    header('Location: index.php?msg=' . rawurlencode($msg) . '&type=' . ($removed ? 'success' : 'error'));
+    exit;
+}
+
 $products = load_products();
 $message  = $_GET['msg'] ?? '';
 $msgType  = in_array($_GET['type'] ?? '', ['success', 'error']) ? $_GET['type'] : 'success'; // whitelist
@@ -95,6 +113,55 @@ $navActive = 'products';
     </div>
     <a href="add.php" class="btn btn-primary">+ Add Product</a>
   </div>
+
+  <?php
+  /* Server health panel. Three things fail SILENTLY on a host where the PHP
+     user differs from the FTP user, and every one of them is invisible until
+     it matters: the audit log stays empty, every inbound sales lead is dropped
+     (inquiries.jsonl), and password changes cannot be written. Surface it.
+     (DEPLOY_READINESS_v2 T3.3) */
+  $healthProblems = [];
+  if (!admin_writable()) {
+      $healthProblems[] = 'The <code>admin</code> folder is not writable by the web server. '
+        . 'Sales leads from the contact form are being DISCARDED, the activity log cannot record anything, '
+        . 'and the Password page cannot save. Set admin/ to 755 (or 775) over FTP.';
+  }
+  if (!data_writable()) {
+      $healthProblems[] = 'The <code>data</code> folder is not writable by the web server. '
+        . 'Nothing you edit on any page can be saved. Set data/ to 755 (or 775) over FTP.';
+  }
+  if (!is_dir(IMG_DIR) || !is_writable(IMG_DIR)) {
+      $healthProblems[] = 'The <code>uploads/images</code> folder is missing or not writable. '
+        . 'Product photo uploads will fail. Create public_html/uploads/images/ over FTP and set it to 755.';
+  }
+  /* The password-reset window. While it is open, ANY visitor to /admin/ — signed
+     in or not — is served the "Set Admin Password" form and can take the
+     account. It used to be invisible: nothing on any page mentioned it, and
+     auth.php bounces a signed-in admin here before he can see the screen.
+     (AUDIT_v3_FINDINGS B2) */
+  $closeBtn = '<form method="POST" style="display:inline;margin-left:6px">'
+    . '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '">'
+    . '<input type="hidden" name="close_reset_window" value="1">'
+    . '<button type="submit" class="btn btn-sm btn-danger" style="vertical-align:baseline">Close it now</button>'
+    . '</form>';
+  if (password_reset_unlocked()) {
+      $healthProblems[] = '<strong>The password-reset window is OPEN.</strong> '
+        . 'While <code>admin/ALLOW-PASSWORD-RESET</code> is in the admin folder, anyone on the internet who opens '
+        . 'your admin address is shown a "Set Admin Password" form and can lock you out. '
+        . 'It closes by itself one hour after the file was uploaded — close it now if you are done.' . $closeBtn;
+  } elseif (password_reset_expired()) {
+      $healthProblems[] = 'The file <code>admin/ALLOW-PASSWORD-RESET</code> is still in the admin folder. '
+        . 'It is more than an hour old so it no longer does anything, but it should not be left there.' . $closeBtn;
+  }
+  ?>
+  <?php if ($healthProblems): ?>
+    <div class="alert alert-error" role="alert" style="text-align:left">
+      <strong>Server setup problem — please send this to your developer.</strong>
+      <ul style="margin:8px 0 0 18px;padding:0">
+        <?php foreach ($healthProblems as $hp): ?><li style="margin-bottom:6px"><?= $hp ?></li><?php endforeach; ?>
+      </ul>
+    </div>
+  <?php endif; ?>
 
   <?php if ($message): ?>
     <div class="alert alert-<?= h($msgType) ?>"><?= h($message) ?></div>

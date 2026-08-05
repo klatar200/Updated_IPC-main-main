@@ -39,11 +39,25 @@ function ipc_site_info(): array {
 // Every submission (sent or failed) is appended to admin/inquiries.jsonl so a
 // mail() failure never silently loses a lead. Viewable at admin/inquiries.php;
 // blocked from direct web access by admin/.htaccess. Best-effort by design.
+// Rotation ceiling. admin/inquiries.php used to read the whole file with file()
+// and fatalled on memory once it grew (measured: 43MB/20,000 entries still
+// rendered, 65MB exhausted a 128M limit) — so the page Rick relies on as the
+// "no lead is ever lost" safety net went permanently blank, and his only
+// recovery was FTP-deleting the file that also held every real lead. The viewer
+// now reads the tail instead, and this keeps the live file from growing without
+// bound in the first place. Rotated files are never deleted.
+// (AUDIT_v3_FINDINGS B3)
+define('IPC_INQUIRY_ROTATE_BYTES', 16 * 1024 * 1024);
+
 function ipc_log_inquiry(array $entry): void {
     foreach ([__DIR__ . '/admin', __DIR__ . '/../admin'] as $dir) {
         if (is_dir($dir)) {
+            $path = $dir . '/inquiries.jsonl';
+            if (is_file($path) && @filesize($path) >= IPC_INQUIRY_ROTATE_BYTES) {
+                @rename($path, $dir . '/inquiries-' . date('Y-m-d-His') . '.jsonl');
+            }
             @file_put_contents(
-                $dir . '/inquiries.jsonl',
+                $path,
                 json_encode($entry, JSON_UNESCAPED_UNICODE) . "\n",
                 FILE_APPEND | LOCK_EX
             );
@@ -57,7 +71,13 @@ $toRaw     = trim($si['contact']['email'] ?? '');
 $to        = filter_var($toRaw, FILTER_VALIDATE_EMAIL) ? $toRaw : 'sales@insulationproducts.com';
 $bizPhone  = trim($si['contact']['phone'] ?? '') !== '' ? trim($si['contact']['phone']) : '630.771.0700';
 $bizFax    = trim($si['contact']['fax'] ?? '')   !== '' ? trim($si['contact']['fax'])   : '630.771.0701';
-$bizName   = trim($si['company']['name'] ?? '')  !== '' ? trim($si['company']['name'])  : 'Insulation Products Corporation';
+// CRLF-strip: company_name comes from admin/settings.php (only trim()ed there)
+// and is interpolated into the auto-reply's From: header. A newline in it is
+// header injection — verified producing a real Bcc:, which would then silently
+// BCC every future auto-reply. Post-auth, but the blast radius is every lead.
+// (DEPLOY_READINESS_v2 4.16)
+$bizName   = trim(preg_replace('/[\r\n]+/', ' ', (string)($si['company']['name'] ?? '')));
+if ($bizName === '') $bizName = 'Insulation Products Corporation';
 $bizHours  = trim($si['hours']['text'] ?? '')    !== '' ? trim($si['hours']['text'])    : 'Mon-Fri, 8am-5pm CT';
 $ad        = $si['address'] ?? [];
 $bizAddr   = trim(($ad['street'] ?? '250 Gibraltar Dr') . ', ' . ($ad['city'] ?? 'Bolingbrook') . ', '
@@ -70,63 +90,220 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// ── Same-origin referer check ──────────────────────────────────
-// Blocks cross-site form submissions. Not foolproof on its own, but layered
-// with the honeypot it stops the overwhelming majority of abuse.
-$referer = $_SERVER['HTTP_REFERER'] ?? '';
-$host    = $_SERVER['HTTP_HOST']    ?? '';
-if ($host !== '' && strpos($referer, $host) === false) {
-    http_response_code(403);
-    echo json_encode(['ok' => false, 'error' => 'Forbidden']);
-    exit;
+// ── Sanitise helpers ───────────────────────────────────────────
+// Declared before the guards below because those guards log the lead, and the
+// logged values have to be trimmed and capped the same way the accepted ones are.
+//
+// This destination is a text/plain email plus a JSON log line. NEITHER is HTML,
+// so escaping here is wrong twice over:
+//   - strip_tags() ate "<1/4 inch and >" out of a real quote request. This
+//     company sells tubing sized in fractions of an inch; the size spec is
+//     exactly what got deleted, silently, and the quote went out wrong.
+//   - htmlspecialchars() turned  1/2" wall  into  1/2&quot; wall  and
+//     O'Brien & Sons into O&#039;Brien &amp; Sons, which admin/inquiries.php
+//     then escaped AGAIN into  O&amp;#039;Brien &amp;amp; Sons .
+// Escaping belongs at the render boundary, and inquiries.php already has h().
+// Strip only CR/LF and control characters — that is what actually matters here,
+// because these values are interpolated into mail headers and JSONL lines.
+// (DEPLOY_READINESS_v2 T2.5)
+//
+// NO /u MODIFIER. The T2.5 rewrite added one, and preg_replace() returns NULL
+// on any subject that is not valid UTF-8 — so a single malformed byte turned
+// this into an unauthenticated HTTP 500 with an empty body and nothing logged.
+// The character class here is pure ASCII, so byte-wise is not just safe, it is
+// what we actually mean. The ?: '' is belt and braces. (AUDIT_v3_FINDINGS NB6)
+//
+// LENGTH CAPS. .user.ini allows a 32MB POST and nothing here bounded a field:
+// a single 1MB message produced a 1,049,617-byte email and a 1,048,735-byte
+// log line, and a handful of those filled the inquiry log. Truncation is
+// announced in the value itself so nobody quotes half a spec back to a
+// customer without knowing it was cut. (AUDIT_v3_FINDINGS B3)
+define('IPC_MAX_LINE', 200);    // name, email, phone, company, subject, part…
+define('IPC_MAX_TEXT', 5000);   // message, additionalNotes, specialReqs
+
+function s($val, int $max = IPC_MAX_LINE): string {
+    if (is_array($val)) return '';           // 4.17: an array here used to be a fatal
+    if (is_object($val)) return '';
+    $v = trim((string)$val);
+    $v = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $v) ?: '';
+    if ($max > 0 && strlen($v) > $max) {
+        $v = rtrim(substr($v, 0, $max)) . ' … [truncated — the visitor sent more than '
+           . $max . ' characters; please reply and ask for the rest]';
+    }
+    return $v;
 }
 
-// ── Honeypot ───────────────────────────────────────────────────
-// The "website" field is hidden from humans (off-screen CSS in the form).
-// Bots that fill every field will populate it; we silently accept and discard.
-if (!empty($_POST['website'])) {
-    echo json_encode(['ok' => true]);
-    exit;
+// Single-line variant for anything that reaches a mail header (Subject,
+// From, Reply-To). CRLF here is header injection. (4.16)
+function hdr($val): string {
+    return trim(preg_replace('/[\r\n]+/', ' ', s($val)) ?: '');
+}
+
+// Whatever we know about a rejected submission, shaped like a log entry so a
+// lead that hits a guard is still recoverable from admin/inquiries.php.
+function ipc_partial_entry(string $type, string $note, string $ip): array {
+    return [
+        'ts'      => date('Y-m-d H:i:s'),
+        'type'    => $type,
+        'name'    => s($_POST['name'] ?? ''),
+        'company' => s($_POST['company'] ?? ''),
+        'email'   => s($_POST['email'] ?? ''),
+        'phone'   => s($_POST['phone'] ?? ''),
+        'subject' => s($_POST['subject'] ?? ''),
+        'message' => s($_POST['message'] ?? $_POST['additionalNotes'] ?? '', IPC_MAX_TEXT),
+        'ip'      => $ip,
+        'sent'    => false,
+        'note'    => $note,
+    ];
 }
 
 // ── Rate limit: 5 per IP per 10 minutes ───────────────────────
+// This now runs FIRST, ahead of the referer and honeypot checks, because both
+// of those used to exit before ever reaching it: 20 honeypot POSTs created
+// zero rate-limit files and extrapolated to ~5.3 MB/min of inquiry log from a
+// single IP. Every rejected request consumes a slot now.
+// (AUDIT_v3_FINDINGS B3)
+//
+// A rejection is logged too — the file's own comment above says a 403 that
+// exits before ipc_log_inquiry() loses the lead, and the 429 had exactly the
+// same hole: five engineers behind one corporate NAT file RFQs inside ten
+// minutes and the sixth vanishes with no record anywhere. But an unbounded
+// "log every rejection" is the flood the rate limiter exists to stop, so the
+// number of rejections logged per IP per window is itself capped.
+// (AUDIT_v3_FINDINGS NB8)
 $ip       = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 $safeIp   = preg_replace('/[^a-fA-F0-9:.]/', '', $ip);
 $rateFile = sys_get_temp_dir() . '/ipc_rl_' . md5($safeIp) . '.json';
 $now      = time();
 $window   = 600; // seconds
 $maxHits  = 5;
+$maxLogged = 10; // rejected submissions logged per IP per window
 
-$hits = [];
+$state = ['hits' => [], 'blocked' => 0];
 if (file_exists($rateFile)) {
-    $hits = json_decode(file_get_contents($rateFile), true);
-    if (!is_array($hits)) $hits = [];
+    $raw = json_decode((string)@file_get_contents($rateFile), true);
+    if (is_array($raw)) {
+        if (isset($raw['hits']) && is_array($raw['hits'])) {
+            $state['hits']    = $raw['hits'];
+            $state['blocked'] = (int)($raw['blocked'] ?? 0);
+        } else {
+            $state['hits'] = $raw;   // legacy format: a bare array of timestamps
+        }
+    }
 }
 // Drop timestamps outside the window
-$hits = array_values(array_filter($hits, function ($t) use ($now, $window) {
-    return ($now - $t) < $window;
+$state['hits'] = array_values(array_filter($state['hits'], function ($t) use ($now, $window) {
+    return ($now - (int)$t) < $window;
 }));
-if (count($hits) >= $maxHits) {
+if (empty($state['hits'])) $state['blocked'] = 0;   // the window rolled over
+
+/** Persist the limiter state; used by every exit path below. */
+function ipc_rl_save(string $file, array $state): void {
+    @file_put_contents($file, json_encode($state), LOCK_EX);
+}
+
+if (count($state['hits']) >= $maxHits) {
+    if ($state['blocked'] < $maxLogged) {
+        $state['blocked']++;
+        ipc_log_inquiry(ipc_partial_entry(
+            'rate-limited',
+            'Refused by the 5-per-10-minutes rate limit — this may be a real customer sharing an office '
+            . 'internet connection with someone who just submitted. No email was sent. Worth a call back.',
+            $ip
+        ));
+    }
+    ipc_rl_save($rateFile, $state);
     http_response_code(429);
     echo json_encode(['ok' => false, 'error' => "Too many submissions. Please try again in a few minutes, or call {$bizPhone} directly."]);
     exit;
 }
-$hits[] = $now;
-file_put_contents($rateFile, json_encode($hits), LOCK_EX);
+$state['hits'][] = $now;
+ipc_rl_save($rateFile, $state);
 
-// ── Sanitise helper ────────────────────────────────────────────
-function s(string $val): string {
-    return htmlspecialchars(strip_tags(trim($val)), ENT_QUOTES, 'UTF-8');
+// ── Same-origin referer check ──────────────────────────────────
+// An ABSENT Referer is not evidence of abuse. Privacy extensions,
+// `Referrer-Policy: no-referrer` and corporate TLS proxies all strip it, and
+// the old code 403'd those visitors with the literal word "Forbidden" — which
+// the React handler then showed in a browser alert() instead of the friendly
+// fallback containing the phone number, AND the lead was never logged because
+// the 403 exited before ipc_log_inquiry(). A missing header now passes.
+//
+// The old present-header test was `strpos($referer, $host) === false`, a bare
+// substring match: `Referer: https://evil.example/?x=insulationproducts.com`
+// passed it. Compare the parsed HOST instead. (DEPLOY_READINESS_v2 T2.6)
+// An UNPARSEABLE Referer is not evidence of abuse either. `garbage`, a
+// path-only value and `android-app://com.google.android.gm` all have no host,
+// and all three used to 403 — the same reasoning as the absent header above,
+// applied to headers that arrive mangled instead of stripped. Only a Referer
+// that parses to a DIFFERENT host is a cross-site post.
+// (AUDIT_v3_FINDINGS NB9)
+$referer = $_SERVER['HTTP_REFERER'] ?? '';
+$host    = $_SERVER['HTTP_HOST']    ?? '';
+if (is_string($referer) && $referer !== '' && $host !== '') {
+    $refScheme = strtolower((string)parse_url($referer, PHP_URL_SCHEME));
+    $refHost   = parse_url($referer, PHP_URL_HOST);
+    $ownHost   = strtolower(preg_replace('/:\d+$/', '', $host));
+    $refHost   = strtolower((string)$refHost);
+    // Only http(s) referrers describe a web origin we can compare against.
+    // `android-app://com.google.android.gm` parses to a perfectly good host that
+    // is simply not a website — Gmail for Android sends it, and it was being
+    // treated as an attack. Anything that is not http/https is "absent".
+    if ($refScheme !== '' && $refScheme !== 'http' && $refScheme !== 'https') $refHost = '';
+    // Accept the host itself and any subdomain of it (www. ↔ apex).
+    $sameSite = $refHost === '' || (
+        $refHost === $ownHost
+        || substr($refHost, -strlen('.' . $ownHost)) === '.' . $ownHost
+        || substr($ownHost, -strlen('.' . $refHost)) === '.' . $refHost
+    );
+    if (!$sameSite) {
+        // Log BEFORE returning. The comment above names this exact bug and only
+        // the absent-Referer half of it was fixed. (AUDIT_v3_FINDINGS NB8)
+        ipc_log_inquiry(ipc_partial_entry(
+            'blocked-referer',
+            'Refused because the browser said it came from another website (' . s($refHost) . '). '
+            . 'Usually a spam bot, occasionally a real customer behind an unusual proxy. No email was sent.',
+            $ip
+        ));
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'error' => 'This form can only be submitted from the ' . $bizName . ' website. Please call ' . $bizPhone . ' if this keeps happening.']);
+        exit;
+    }
+}
+
+// ── Honeypot ───────────────────────────────────────────────────
+// The "website" field is hidden from humans (off-screen CSS in the form).
+// Bots that fill every field will populate it; we silently accept and discard.
+//
+// This block sits BELOW the rate limiter on purpose. It used to exit above it,
+// so honeypot POSTs never created or consumed a slot and were completely
+// unlimited. (AUDIT_v3_FINDINGS B3)
+if (!empty($_POST['website'])) {
+    // Log it. A human who autofills a hidden field (some password managers do)
+    // used to see the full success page while the lead was thrown away with no
+    // record anywhere that it ever existed. (DEPLOY_READINESS_v2 4.18)
+    ipc_log_inquiry(ipc_partial_entry(
+        'honeypot',
+        'Rejected by the spam honeypot. Almost certainly a bot — but check it before deleting.',
+        $ip
+    ));
+    echo json_encode(['ok' => true]);
+    exit;
 }
 
 // ── Routing ────────────────────────────────────────────────────
-$formType = trim($_POST['form_type'] ?? 'message');
+// 4.17: trim() on an array threw a TypeError → unauthenticated HTTP 500 that
+// leaked the server path when display_errors is on. Guard the type.
+$formType = is_string($_POST['form_type'] ?? null) ? trim($_POST['form_type']) : 'message';
 
 if ($formType === 'rfq') {
 
     // ── RFQ form ───────────────────────────────────────────────
     $name        = s($_POST['name']            ?? '');
-    $rawEmail    = trim($_POST['email']        ?? '');
+    // is_string() guard: `email[]=a@b.test` reached trim() as an array and threw
+    // an uncaught TypeError — an unauthenticated 500 with path disclosure, the
+    // same defect class 4.17 claims to have closed for form_type only.
+    // (AUDIT_v3_FINDINGS NB7)
+    $rawEmail    = s($_POST['email'] ?? '');
     $email       = filter_var($rawEmail, FILTER_VALIDATE_EMAIL) ? $rawEmail : '';
     $phone       = s($_POST['phone']           ?? '');
     $company     = s($_POST['company']         ?? '');
@@ -134,8 +311,8 @@ if ($formType === 'rfq') {
     $material    = s($_POST['material']        ?? '');
     $quantity    = s($_POST['quantity']        ?? '');
     $reqDate     = s($_POST['requiredDate']    ?? '');
-    $specialReqs = s($_POST['specialReqs']     ?? '');
-    $notes       = s($_POST['additionalNotes'] ?? '');
+    $specialReqs = s($_POST['specialReqs']     ?? '', IPC_MAX_TEXT);
+    $notes       = s($_POST['additionalNotes'] ?? '', IPC_MAX_TEXT);
 
     if ($name === '' || $email === '') {
         http_response_code(422);
@@ -143,7 +320,7 @@ if ($formType === 'rfq') {
         exit;
     }
 
-    $subject = 'IPC Quote Request — ' . ($partNumber !== '' ? $partNumber : 'General RFQ') . ' — ' . $name;
+    $subject = hdr('IPC Quote Request — ' . ($partNumber !== '' ? $partNumber : 'General RFQ') . ' — ' . $name);
     $body    = "IPC QUOTE REQUEST\n"
              . "=================\n\n"
              . "Name:            {$name}\n"
@@ -182,12 +359,12 @@ if ($formType === 'rfq') {
 
     // ── General message form ───────────────────────────────────
     $name    = s($_POST['name']    ?? '');
-    $rawEmail = trim($_POST['email'] ?? '');
+    $rawEmail = s($_POST['email'] ?? '');   // is_string() guard — see NB7 above
     $email   = filter_var($rawEmail, FILTER_VALIDATE_EMAIL) ? $rawEmail : '';
     $phone   = s($_POST['phone']   ?? '');
     $company = s($_POST['company'] ?? '');
     $subj    = s($_POST['subject'] ?? '');
-    $message = s($_POST['message'] ?? '');
+    $message = s($_POST['message'] ?? '', IPC_MAX_TEXT);
 
     if ($name === '' || $email === '' || $message === '') {
         http_response_code(422);
@@ -195,7 +372,7 @@ if ($formType === 'rfq') {
         exit;
     }
 
-    $subject = 'IPC Contact Form — ' . ($subj !== '' ? $subj : 'General Inquiry') . ' — ' . $name;
+    $subject = hdr('IPC Contact Form — ' . ($subj !== '' ? $subj : 'General Inquiry') . ' — ' . $name);
     $body    = "IPC CONTACT FORM\n"
              . "================\n\n"
              . "Name:    {$name}\n"
@@ -229,7 +406,7 @@ if ($formType === 'rfq') {
 // address to exist on the account to pass their outbound spam filter, so it
 // stays hardcoded even though the recipient is configurable.
 $headers  = "From: IPC Website <noreply@insulationproducts.com>\r\n";
-$headers .= "Reply-To: {$replyTo}\r\n";
+$headers .= "Reply-To: " . hdr($replyTo) . "\r\n";
 $headers .= "MIME-Version: 1.0\r\n";
 $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
 $headers .= "X-Mailer: PHP/" . PHP_VERSION . "\r\n";
@@ -252,8 +429,34 @@ if (!$sent) {
 
 // ── Auto-reply to visitor ───────────────────────────────────────
 // Best-effort only — we never fail the request if this one doesn't go through.
+//
+// Rate-limited PER RECIPIENT, not just per IP. The old code would mail any
+// address the submitter typed, from this company's domain, capped only by the
+// 5-per-IP window — i.e. a rotating-IP botnet could use the site to email-bomb
+// a third party under IPC's name and burn the domain's sending reputation.
+// (DEPLOY_READINESS_v2 4.15)
+$autoReplyOk = true;
+if ($replyTo !== '') {
+    $arFile = sys_get_temp_dir() . '/ipc_ar_' . md5(strtolower($replyTo)) . '.json';
+    $arWindow = 86400;   // 24 hours
+    $arMax    = 3;
+    $ar = [];
+    if (file_exists($arFile)) {
+        $ar = json_decode((string)@file_get_contents($arFile), true);
+        if (!is_array($ar)) $ar = [];
+    }
+    $ar = array_values(array_filter($ar, function ($t) use ($now, $arWindow) {
+        return ($now - (int)$t) < $arWindow;
+    }));
+    if (count($ar) >= $arMax) {
+        $autoReplyOk = false;      // the sales notification above already went out
+    } else {
+        $ar[] = $now;
+        @file_put_contents($arFile, json_encode($ar), LOCK_EX);
+    }
+}
 if ($formType === 'rfq') {
-    $replySubject = "We received your quote request — {$bizName}";
+    $replySubject = hdr("We received your quote request — {$bizName}");
     $replyBody    = "Hello {$name},\n\n"
                   . "Thank you for submitting a quote request to {$bizName}.\n\n"
                   . "Our sales team will review your request and respond within one business day —\n"
@@ -271,7 +474,7 @@ if ($formType === 'rfq') {
                   . "{$bizName}\n"
                   . "{$bizAddr}\n";
 } else {
-    $replySubject = "We received your message — {$bizName}";
+    $replySubject = hdr("We received your message — {$bizName}");
     $replyBody    = "Hello {$name},\n\n"
                   . "Thank you for contacting {$bizName}.\n\n"
                   . "Our team will respond within one business day.\n\n"
@@ -283,12 +486,14 @@ if ($formType === 'rfq') {
                   . "{$bizAddr}\n";
 }
 
-$replyHeaders  = "From: {$bizName} <noreply@insulationproducts.com>\r\n";
-$replyHeaders .= "Reply-To: {$to}\r\n";
+$replyHeaders  = "From: " . hdr($bizName) . " <noreply@insulationproducts.com>\r\n";
+$replyHeaders .= "Reply-To: " . hdr($to) . "\r\n";
 $replyHeaders .= "MIME-Version: 1.0\r\n";
 $replyHeaders .= "Content-Type: text/plain; charset=UTF-8\r\n";
 $replyHeaders .= "X-Mailer: PHP/" . PHP_VERSION . "\r\n";
 
-@mail($replyTo, $replySubject, $replyBody, $replyHeaders); // best-effort, no error check
+if ($autoReplyOk) {
+    @mail($replyTo, $replySubject, $replyBody, $replyHeaders); // best-effort, no error check
+}
 
 echo json_encode(['ok' => true]);
