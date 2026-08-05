@@ -3053,8 +3053,23 @@ function FaqPage() {
   const site = useSiteInfo();
   const { faq, copy } = useContent();
   const c = copy.faqHeader;
-  const categories = groupFaq(faq);
+  // Memoised on `faq` so the JSON-LD effect below has a STABLE dependency.
+  // groupFaq() returns a fresh array on every render; depending on that directly
+  // would tear down and re-append the <script> on every render instead of only
+  // when the content actually changes.
+  const categories = useMemo(() => groupFaq(faq), [faq]);
 
+  // FAQPage structured data.
+  //
+  // This used to have `[]` deps. ContentProvider initialises to contentDefaults
+  // and renders its children IMMEDIATELY, swapping in the fetched content a
+  // moment later — so the effect ran once, against the defaults, and the empty
+  // deps array guaranteed it never re-ran. The FAQ rich-result markup Google saw
+  // was permanently the hardcoded default set, and every question Rick wrote in
+  // the admin was absent from it. (AUDIT_v3 4.1)
+  //
+  // Note this is built from useContent() data, NOT from the DOM, so collapsing a
+  // FAQ answer in the UI has no effect on what is emitted here.
   useEffect(() => {
     const el = document.createElement("script");
     el.id = "faq-ld";
@@ -3070,9 +3085,13 @@ function FaqPage() {
         }))
       ),
     });
+    // Remove any existing node before appending, so a re-run cannot leave two
+    // #faq-ld scripts behind — duplicate structured data is a worse error than
+    // stale structured data.
+    document.getElementById("faq-ld")?.remove();
     document.head.appendChild(el);
     return () => { document.getElementById("faq-ld")?.remove(); };
-  }, []);
+  }, [categories, site]);
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -4144,6 +4163,20 @@ function ContactPage() {
 const PRODUCTS_JSON_URL = "/data/products-all.json";
 
 /**
+ * The canonical origin, asserted in one place.
+ *
+ * Deliberately a constant and NOT window.location.origin: dev, the php -S
+ * mirror and production would each declare themselves canonical, and a staging
+ * copy that self-canonicalises is worse than one pointing at the wrong host.
+ *
+ * `www` matches every other declaration in the repo — public/sitemap.xml's
+ * <loc> entries, public/robots.txt's Sitemap: line, and index.html's shipped
+ * og:url. If the apex is ever chosen instead, this constant and those three
+ * files must change together.
+ */
+const SITE_ORIGIN = "https://www.insulationproducts.com";
+
+/**
  * A missing or misrouted JSON file is not reliably an HTTP error. Vite's dev
  * server answers an unknown path with index.html and a 200, and a misconfigured
  * host can do the same, so `res.ok` is true and the only symptom is a JSON
@@ -4916,8 +4949,8 @@ function StructuredData() {
       // are the fields the owner is allowed to clear. (AUDIT_v3_FINDINGS NB4)
       alternateName: site.company.shortName || undefined,
       slogan: site.company.slogan || undefined,
-      url: "https://www.insulationproducts.com",
-      logo: "https://www.insulationproducts.com/favicon.svg",
+      url: SITE_ORIGIN,
+      logo: `${SITE_ORIGIN}/favicon.svg`,
       description: site.company.description,
       foundingDate: site.company.foundedYear ? `${site.company.foundedYear}-01-01` : undefined,
       telephone: site.contact.phoneDial || site.contact.phone,
@@ -4959,13 +4992,37 @@ function StructuredData() {
 // read useSiteInfo and keep the contact info in the meta description current.
 function PageMeta() {
   const site = useSiteInfo();
-  const { seo } = useContent();
+  const { seo, copy } = useContent();
   const [page] = useSearchParam("page");
+  const [productId] = useSearchParam("productId");
   useEffect(() => {
     const list = Array.isArray(seo) ? seo : [];
+    const key = page || "home";
     const home = list.find((s) => s.page === "home") || {};
-    const entry = list.find((s) => s.page === (page || "home")) || {};
-    const title = entry.title || home.title || document.title;
+    const entry = list.find((s) => s.page === key) || {};
+
+    // Title fallback. Two things used to go wrong here:
+    //
+    //  1. `|| document.title` meant that emptying the SEO section did NOT clear
+    //     the titles — document.title had already been set from the defaults on
+    //     the first effect pass, so the defaults simply stuck. Deleting every row
+    //     of a section is a deletion (invariant 3), and for `seo` that has to
+    //     mean "stop overriding titles", not "silently keep the old ones" and
+    //     certainly not "blank every page". (AUDIT_v3 §3.8)
+    //  2. `|| home.title` gave every page WITHOUT its own seo row the homepage's
+    //     title. `terms` and `quality` have no row, so three routes shipped the
+    //     same <title> — a duplicate-title signal on the exact pages that need a
+    //     distinct one.
+    //
+    // Both now fall back to the page's own visible heading plus the company
+    // name, so every route stays titled, distinct, and owner-controlled.
+    const heading = ((copy && copy[`${key}Header`]) || {}).title || "";
+    const label =
+      heading ||
+      key.replace(/(^|-)([a-z])/g, (_, sep, ch) => (sep ? " " : "") + ch.toUpperCase());
+    const computed =
+      key === "home" ? site.company.name : `${label} — ${site.company.name}`;
+    const title = entry.title || (key === "home" ? home.title : "") || computed;
     const desc = localizeProse(entry.desc || home.desc || "", site);
     document.title = title;
     // Update <meta name="description"> plus the Open Graph share tags so search
@@ -4983,7 +5040,35 @@ function PageMeta() {
     setMeta("name", "description", desc);
     setMeta("property", "og:title", title);
     setMeta("property", "og:description", desc);
-  }, [page, site, seo]);
+
+    // Canonical URL + og:url, per route.
+    //
+    // index.html ships ONE og:url hardcoded to the site root and no canonical at
+    // all. index.html is the single shell for all nine routes, so every page
+    // announced itself as the homepage: shared links previewed as the homepage,
+    // and crawlers got a duplicate-content signal across the whole site.
+    // (AUDIT_v3 4.3)
+    //
+    // Built from SITE_ORIGIN, not window.location.origin — dev, the php -S
+    // mirror and production would each declare THEMSELVES canonical, which is
+    // strictly worse than a wrong constant.
+    //
+    // productId is included so an individual product page is canonical to
+    // itself. Every other param (?family=, search terms, UI state) is excluded:
+    // those are views of the same page, not separate documents.
+    const canonical =
+      SITE_ORIGIN +
+      pageToPath(page) +
+      (productId ? `?productId=${encodeURIComponent(productId)}` : "");
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
+    }
+    link.setAttribute("href", canonical);
+    setMeta("property", "og:url", canonical);
+  }, [page, productId, site, seo, copy]);
   return null;
 }
 

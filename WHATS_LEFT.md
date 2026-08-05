@@ -103,6 +103,9 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | 4.25 | `src/App.jsx` | The products-cache TTL was inert; now genuinely re-evaluated on tab focus. See the superseded §4 line. |
 | **T3.9** | `admin/content.php` | Found on the 2026-08-05 re-verification pass, after B1 was already reported fixed. The truncation merge restored only sections that arrived **empty**, so the one section straddling PHP's cut — `features`, holding 1 of its 6 rows — was left short on the re-rendered error page. Now compares row counts. Display-only; disk was never written. Evidence in §4c. |
 | **4.24** | `vite.config.js`, `src/App.jsx` | Shipped 2026-08-05 (Plan 0). A dev-only Vite middleware serves the repo's `data/` folder at `/data/*`, so `npm run dev` now exercises the real files and the real code paths — `mergeSiteInfo` and `mergeContent`, which hold invariants 3 and 4, had **never** run locally. The `import.meta.env.DEV` branch is gone; all three URLs are `/data/…` in both modes. Also fixes a regression introduced by `6284708`: deleting `public/products-all.json` (correctly, as one of three duplicate catalogs) orphaned that DEV branch, and Vite's SPA fallback answered the missing path with `index.html` and a **200**, so `res.ok` passed and `/products` rendered "Catalog Unavailable". New `jsonOrThrow()` asserts `Content-Type` on all three fetches so a wrong-content 200 takes the error path instead of throwing deep in a `.then()`. Evidence in §4d. |
+| **4.3** | `src/App.jsx` (`PageMeta`) | Shipped 2026-08-05 (Plan 1). `index.html` is the single shell for all nine routes and shipped **one** `og:url` hardcoded to the site root and **no** canonical at all, so every page announced itself as the homepage. `PageMeta` now upserts a per-route `<link rel="canonical">` and matching `og:url`, built from a new single-source `SITE_ORIGIN` constant (not `window.location.origin` — dev, the mirror and production would each self-canonicalise). `?productId=` is canonical to itself; `?family=` and other view params are canonical to the bare route. Evidence in §4e. |
+| **4.1** | `src/App.jsx` (`FaqPage`) | Shipped 2026-08-05 (Plan 1). The FAQ JSON-LD effect had `[]` deps; `ContentProvider` renders children immediately from `contentDefaults` and swaps content in later, so the effect ran once against the **defaults** and never re-ran — every FAQ Rick wrote was absent from the rich-result markup. Now depends on a `useMemo`-stabilised `categories` (raw `groupFaq()` returns a new array each render and would thrash the `<script>`), and removes any existing `#faq-ld` before appending so a re-run cannot leave duplicates. Evidence in §4e. |
+| **`seo: []`** | `src/App.jsx` (`PageMeta`) | Shipped 2026-08-05 (Plan 1) — supersedes the `AMENDED` note in §4 (T1.4), which recorded this as benign and left as-is. Two faults, not one: `\|\| document.title` meant emptying the section kept the defaults rather than honouring the deletion; and `\|\| home.title` gave every page **without** its own `seo` row the homepage's title — `terms` and `quality` have no row, so three routes shipped the same `<title>`. Both now fall back to the page's own visible heading plus the company name. Measured: 9 of 9 titles distinct, against **7 of 9** with the old logic re-installed. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -116,8 +119,9 @@ Ordered by value. Nothing here blocks the upload.
 - [ ] **NB-copy** `mergeContent` iterates `Object.keys(defaults)` only, so a `copy` key that exists in `content.php` but not in `App.jsx`'s `COPY_DEFAULTS` would have the owner's edit vanish with a success message. ~450 posted keys were never enumerated against the defaults tree. Worth a targeted diff. (AUDIT_v3 §5.)
 - [ ] **`form_complete` position** is enforced *positionally* only. Nothing stops a future field being added after `content.php`'s last input, and there is no test runner to assert it. (AUDIT_v3 invariants note.)
 
-- [ ] **4.1** FAQ JSON-LD `useEffect` has `[]` deps and runs before `content.json` loads, so owner-edited FAQs never reach Google's rich results.
-- [ ] **4.3** No `rel="canonical"` anywhere; `og:url` is hardcoded to the homepage on all 9 pages.
+- [x] **4.1** ~~FAQ JSON-LD `useEffect` has `[]` deps and runs before `content.json` loads, so owner-edited FAQs never reach Google's rich results.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
+- [x] **4.3** ~~No `rel="canonical"` anywhere; `og:url` is hardcoded to the homepage on all 9 pages.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
+- [ ] **sitemap/dashboard** `public/sitemap.xml` lists `/dashboard` with priority 0.8, alongside the nine public routes. Whether that route should be publicly indexed was never established. Noticed 2026-08-05 during Plan 1; not investigated, not changed.
 - [ ] **4.5** Every contact-form error is a browser `alert()` — no inline error, no `aria-live`, no focus move.
 - [ ] **4.12** `content.php` promises the Industries SKU "must match a real product" but validates nothing against `load_products()`.
 - [ ] **4.13** The ✕ that deletes a whole content card has no `data-confirm`, and sits 4 px from the reorder buttons.
@@ -551,6 +555,65 @@ PLAN-0 §Step 1 said a miss should `next()` into Vite's own handling. It is a
 real **404** instead. `next()` would have re-created the exact failure this plan
 exists to remove — a missing data file answered with HTML and a 200. Production
 404s a missing file, and dev now matches.
+
+---
+
+## 4e. Verification evidence for Plan 1 part A — 4.3, 4.1, `seo: []`
+
+`node _harness/plan1a.js` against `npm run dev` — **43 checks, 0 failing.**
+
+```
+4.3   all 9 routes: exactly ONE <link rel=canonical>, href == the route itself,
+      og:url == canonical
+      /products?productId=IP35KY  → canonical to itself
+      /products?family=Heat Shrink → canonical to /products (a view, not a doc)
+      canonical updates after a CLIENT-SIDE navigation, and that navigation was
+      confirmed client-side (a module-scope sentinel survived it)
+4.1   FAQ JSON-LD contains an EDITED question
+      (was: "What types of heat shrink tubing do you …", i.e. defaults only)
+      parses as FAQPage; mainEntity 18 == 18 faq rows in content.json
+      exactly ONE #faq-ld after 5 round trips to /faq and back
+      #faq-ld removed on leaving /faq
+seo:[] every route still titled, 9 of 9 distinct, all computed
+      e.g. "Terms — Insulation Products Corporation"
+      zero page/console errors; data/content.json restored byte-identical
+```
+
+### Negative control — the title checks are not vacuous
+
+Re-installing the old line `entry.title || home.title || document.title`:
+
+```
+FAIL  titles are distinct across all nine routes   7 distinct of 9
+FAIL  seo:[] → titles are still distinct           7 of 9
+```
+
+`terms` and `quality` have no `seo` row in `content.json`, so they inherited the
+homepage's `<title>` — three routes shipping one title. This is the part of the
+`seo` item that the earlier `AMENDED` note did not capture; it recorded the
+`document.title` fallback as benign and missed the `home.title` fallback
+entirely.
+
+One weakness worth recording: the check *"titles are COMPUTED, not the shipped
+defaults"* **passed under the negative control too**, because `document.title`
+had already been set from a populated `seo` earlier in the same page context. It
+passed for the wrong reason. The two distinctness checks are the load-bearing
+ones and they failed correctly.
+
+### Regression, after part A
+
+```
+php -l 19/19 · node --check 8/8 · build 0 errors (326.48 kB)
+B1 20/20 · B2 18/18 · B3 25/25 · help 22/22 · adminsweep 5/5
+NB4 17/17 · invariants 15/15 · TTL 3/3
+sweep 18 loads 0 failing · overflow 0/42 @375px
+```
+
+### Note, not acted on
+
+`public/sitemap.xml` lists `/dashboard` with priority 0.8. Whether that route
+should be publicly indexed was not investigated and is out of Plan 1's scope —
+recorded in §2.
 
 ---
 
