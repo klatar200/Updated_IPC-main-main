@@ -3,7 +3,8 @@ require_once 'config.php';
 require_auth();
 
 /**
- * Backup restore — every save writes a timestamped backup (keep 5 per file);
+ * Backup restore — every save writes a timestamped backup (keep BACKUP_KEEP
+ * per file, see config.php);
  * this page lists them and restores one with a single click. Restoring goes
  * through the same save_*() helpers, so the current state is itself backed up
  * first — a restore can always be undone by restoring the newer backup.
@@ -41,7 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $file = basename($_POST['backup'] ?? ''); // basename() blocks path traversal
 
     // The filename must match exactly one of our known backup patterns.
-    if (!preg_match('/^(products-all|site-info|content)\.backup\.(\d{8}-\d{6})\.json$/', $file, $m)) {
+    // The -NN suffix is the same-second collision guard added in config.php's
+    // backup_path(); accept it or the newer backups become un-restorable.
+    // \d{2,4}: backup_path() counts past 99 now instead of switching to a random
+    // hex suffix (AUDIT_v3_FINDINGS NB13). The hex alternative stays so any file
+    // an earlier revision already wrote is still restorable. This pattern and
+    // backup_sort_key()'s must accept the same set — a mismatch makes a backup
+    // that exists on disk un-restorable through the UI.
+    if (!preg_match('/^(products-all|site-info|content)\.backup\.(\d{8}-\d{6})(?:-\d{2,4}|-[0-9a-f]{6})?\.json$/', $file, $m)) {
         $errors[] = 'Unrecognized backup filename.';
     } else {
         $key  = $m[1];
@@ -54,7 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'The backup file is not valid JSON — restore aborted, nothing was changed.';
             } elseif (($TARGETS[$key]['restore'])($data)) {
                 audit_log('restore', $key, 'Restored ' . $TARGETS[$key]['label'] . ' from ' . $file);
-                $success = $TARGETS[$key]['label'] . ' restored from ' . $m[2]
+                // Name the exact file, not just the second — two backups written
+                // in the same second are otherwise indistinguishable in this
+                // message. (AUDIT_v3_FINDINGS NB17)
+                $success = $TARGETS[$key]['label'] . ' restored from ' . $m[2] . ' (' . $file . ')'
                          . '. The website will reflect it within ~60 seconds.'
                          . ' (The state from just before this restore was backed up too, so you can undo.)';
             } else {
@@ -66,18 +77,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Gather backups per target, newest first.
 function backups_for(string $key, string $dataDir): array {
-    $files = glob($dataDir . '/' . $key . '.backup.*.json') ?: [];
-    rsort($files); // timestamped names sort chronologically
+    // Newest first, by mtime — see backup_list() in config.php for why a name
+    // sort is wrong once the same-second collision suffix exists.
+    $files = array_reverse(backup_list($dataDir, $key));
     $out = [];
+    // A hand-placed file that does not match the pattern is NOT restorable — the
+    // POST handler rejects it with "Unrecognized backup filename". Listing it
+    // with a working-looking Restore button meant the one control on the page
+    // could only ever fail. Mark it and drop the button instead.
+    // The -NN sequence is also surfaced: two backups written in the same second
+    // rendered as the same "2026-08-04 14:03:11" string, so choosing between
+    // them was a coin flip — and each wrong guess is itself a save.
+    // (AUDIT_v3_FINDINGS NB17)
     foreach ($files as $f) {
         $base = basename($f);
-        if (preg_match('/\.backup\.(\d{8})-(\d{6})\.json$/', $base, $m)) {
+        $restorable = true;
+        if (preg_match('/\.backup\.(\d{8})-(\d{6})(?:-(\d{2,4}|[0-9a-f]{6}))?\.json$/', $base, $m)) {
             $nice = substr($m[1], 0, 4) . '-' . substr($m[1], 4, 2) . '-' . substr($m[1], 6, 2)
                   . ' ' . substr($m[2], 0, 2) . ':' . substr($m[2], 2, 2) . ':' . substr($m[2], 4, 2);
+            if (!empty($m[3])) $nice .= ' (#' . ltrim($m[3], '0') . ' that second)';
         } else {
             $nice = $base;
+            $restorable = false;
         }
-        $out[] = ['file' => $base, 'when' => $nice, 'size' => filesize($f)];
+        // Show WHAT is in the backup, not just a byte count. Five near-identical
+        // timestamps from one afternoon are indistinguishable by size, so a
+        // restore was a guess — and each guess is itself a save.
+        $items = null;
+        $decoded = json_decode((string)@file_get_contents($f), true);
+        if (is_array($decoded)) {
+            if ($key === 'products-all') {
+                $arr = isset($decoded['products']) && is_array($decoded['products']) ? $decoded['products'] : $decoded;
+                $items = count($arr) . ' product' . (count($arr) === 1 ? '' : 's');
+            } elseif ($key === 'content') {
+                $n = 0;
+                foreach ($decoded as $k2 => $v2) { if (is_array($v2) && $k2 !== 'copy') $n += count($v2); }
+                $items = $n . ' content row' . ($n === 1 ? '' : 's');
+            } else {
+                $name = $decoded['company']['name'] ?? '';
+                $phone = $decoded['contact']['phone'] ?? '';
+                $items = trim($name . ($phone !== '' ? ' · ' . $phone : ''));
+                if ($items === '') $items = null;
+            }
+        } else {
+            $items = 'unreadable — not valid JSON';
+        }
+        $out[] = ['file' => $base, 'when' => $nice, 'size' => filesize($f), 'items' => $items, 'restorable' => $restorable];
     }
     return $out;
 }
@@ -107,6 +152,7 @@ $navActive = 'backups';
     .row:last-child { border-bottom: none; }
     .when { font-weight: 600; }
     .size { color: #9ca3af; font-size: 12px; }
+    .items { color: #374151; font-size: 12px; background: #f0f4f8; border-radius: 5px; padding: 2px 8px; }
     .row form { margin-left: auto; }
     .btn { display: inline-flex; align-items: center; padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: 1px solid #d1d9e0; background: #fff; color: #141414; }
     .btn:hover { border-color: #005da3; background: #eef4fb; }
@@ -120,7 +166,7 @@ $navActive = 'backups';
 <?php include 'nav.php'; ?>
 <main>
   <h1>Backups</h1>
-  <p class="sub">A backup is saved automatically every time you change products, business details, or page content (the 5 most recent are kept per file). Restore rolls the live file back to that moment — and backs up the current state first, so a restore can always be undone.</p>
+  <p class="sub">A backup is saved automatically every time you change products, business details, or page content (the <?= (int)BACKUP_KEEP ?> most recent are kept per file). Restore rolls the live file back to that moment — and backs up the current state first, so a restore can always be undone. Note that <em>every</em> photo upload, PDF upload, add and delete also counts as a save, so these fill up faster than you would expect.</p>
 
   <?php if (!empty($errors)): ?>
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
@@ -138,12 +184,17 @@ $navActive = 'backups';
       <?php foreach ($list as $b): ?>
       <div class="row">
         <span class="when"><?= h($b['when']) ?></span>
+        <?php if (!empty($b['items'])): ?><span class="items"><?= h($b['items']) ?></span><?php endif; ?>
         <span class="size"><?= h(nice_size((int)$b['size'])) ?></span>
-        <form method="POST" data-confirm="Restore <?= h($t['label']) ?> to its state from <?= h($b['when']) ?>? The current version is backed up first, so this can be undone.">
+        <?php if ($b['restorable']): ?>
+        <form method="POST" data-confirm="Restore <?= h($t['label']) ?> to its state from <?= h($b['when']) ?><?= !empty($b['items']) ? ' (' . h($b['items']) . ')' : '' ?>? The current version is backed up first, so this can be undone.">
           <input type="hidden" name="backup" value="<?= h($b['file']) ?>">
           <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
           <button type="submit" class="btn">Restore this version</button>
         </form>
+        <?php else: ?>
+        <span class="size" style="margin-left:auto;color:#dc2626">Not a backup this page wrote — cannot restore it from here.</span>
+        <?php endif; ?>
       </div>
       <?php endforeach; ?>
     <?php endif; ?>

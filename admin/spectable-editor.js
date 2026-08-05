@@ -25,8 +25,9 @@
     ".ste-add:hover{background:#f0f4f8;}" +
     ".ste-tool{padding:7px 12px;border:1px solid #d1d9e0;background:#fff;border-radius:7px;color:#141414;font-weight:600;font-size:12px;cursor:pointer;}" +
     ".ste-tool:hover{background:#f0f4f8;}" +
-    ".ste-adv{font-size:12px;color:#6b7280;text-decoration:none;margin-left:4px;cursor:pointer;}" +
+    ".ste-adv{font-size:12px;color:#6b7280;text-decoration:none;margin-left:4px;cursor:pointer;background:none;border:0;padding:2px 4px;font-family:inherit;}" +
     ".ste-adv:hover{color:#005da3;text-decoration:underline;}" +
+    ".ste-adv:focus-visible{outline:2px solid #005da3;outline-offset:2px;border-radius:4px;}" +
     ".ste-prevwrap{margin-top:14px;border-top:1px solid #e5e9ee;padding-top:12px;}" +
     ".ste-prevlab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:8px;}" +
     ".ste-splist{border:1px solid #e5e9ee;border-radius:10px;overflow:hidden;}" +
@@ -215,6 +216,10 @@
     var rows = (Array.isArray(start.rows) ? start.rows : []).map(function (r) {
       return (Array.isArray(r) ? r : []).map(function (x) { return x == null ? "" : String(x); });
     });
+    // Advanced-mode state. advMode = the raw-JSON textarea is the live editor;
+    // advInvalid = its text does not parse, so a save must be blocked rather
+    // than silently serializing the stale visual-editor state.
+    var advMode = false, advInvalid = false;
 
     function leafLen(gi) { return groups[gi].subs.length >= 2 ? groups[gi].subs.length : 1; }
     function leafCount() { var n = 0; for (var i = 0; i < groups.length; i++) n += leafLen(i); return n; }
@@ -297,7 +302,7 @@
         bar0.className = "ste-bar";
         bar0.innerHTML =
           '<button type="button" class="ste-add" data-a="col">+ Add column</button>' +
-          '<span class="ste-adv" data-a="adv">Advanced</span>';
+          '<button type="button" class="ste-adv" data-a="adv">Advanced</button>';
         bar0.querySelector('[data-a="col"]').addEventListener("click", function () {
           groups = [{ label: "Column 1", subs: [] }];
           rows = [[""]];
@@ -420,7 +425,7 @@
         '<button type="button" class="ste-add" data-a="row">+ Add row</button>' +
         '<button type="button" class="ste-add" data-a="col">+ Add column</button>' +
         '<button type="button" class="ste-tool" data-a="paste">Paste from Excel</button>' +
-        '<span class="ste-adv" data-a="adv">Advanced</span>';
+        '<button type="button" class="ste-adv" data-a="adv">Advanced</button>';
       bar.querySelector('[data-a="row"]').addEventListener("click", function () {
         var n = leafCount(), nr = [];
         for (var i = 0; i < n; i++) nr.push("");
@@ -480,34 +485,65 @@
       });
     }
 
+    // Adopt raw Advanced-mode JSON into the closure state (groups/rows).
+    // MUST be called on every Advanced edit, not just on "Back": serialize()
+    // rebuilds the hidden field FROM groups/rows, so any Advanced edit that
+    // did not land here was silently thrown away on submit while the page
+    // still said "saved successfully". (DEPLOY_READINESS_v2 T1.5)
+    function adoptFromJson(o) {
+      groups = toGroups(o.columnSpans);
+      rows = (Array.isArray(o.rows) ? o.rows : []).map(function (r) {
+        return (Array.isArray(r) ? r : []).map(function (x) { return x == null ? "" : String(x); });
+      });
+      if (groups.length > 0 && rows.length === 0) rows = [[]];
+      if (groups.length === 0) rows = [];
+      fixRows();
+    }
+
     function buildAdvanced() {
       host.innerHTML = "";
       var note = document.createElement("div");
       note.className = "ste-note2";
-      note.innerHTML = "Advanced mode — edit the raw data directly. The live preview updates as you type.";
+      note.setAttribute("aria-live", "polite");
+      var OK_NOTE = "Advanced mode — edit the raw data directly. The live preview updates as you type.";
+      note.textContent = OK_NOTE;
       host.appendChild(note);
       var box = document.createElement("textarea");
       box.className = "ste-advbox";
       box.rows = 12;
+      box.setAttribute("aria-label", "Size chart data (raw JSON)");
       box.value = ta.value;
-      box.addEventListener("input", function () { ta.value = this.value; renderPreview(); });
+      advMode = true;
+      advInvalid = false;
+      box.addEventListener("input", function () {
+        ta.value = this.value;
+        var o;
+        try { o = JSON.parse(this.value); } catch (err) { o = null; }
+        if (o && typeof o === "object") {
+          adoptFromJson(o);          // keep groups/rows in step with the text
+          advInvalid = false;
+          note.textContent = OK_NOTE;
+        } else {
+          // Leave groups/rows alone but remember the text is unusable, so
+          // submit blocks instead of quietly reverting to the old table.
+          advInvalid = true;
+          note.textContent = "This isn’t valid JSON yet — fix it before saving. Saving is blocked until it parses.";
+        }
+        renderPreview();
+      });
       host.appendChild(box);
       var bar = document.createElement("div");
       bar.className = "ste-bar";
-      bar.innerHTML = '<span class="ste-adv" data-a="back">← Back to the visual editor</span>';
+      bar.innerHTML = '<button type="button" class="ste-adv" data-a="back">← Back to the visual editor</button>';
       bar.querySelector('[data-a="back"]').addEventListener("click", function () {
         var o;
         try { o = JSON.parse(ta.value); } catch (err) {
-          note.innerHTML = "The data isn’t valid JSON yet — fix it before switching back.";
+          note.textContent = "The data isn’t valid JSON yet — fix it before switching back.";
           return;
         }
-        groups = toGroups(o.columnSpans);
-        rows = (Array.isArray(o.rows) ? o.rows : []).map(function (r) {
-          return (Array.isArray(r) ? r : []).map(function (x) { return x == null ? "" : String(x); });
-        });
-        if (groups.length > 0 && rows.length === 0) rows = [[]];
-        if (groups.length === 0) rows = [];
-        fixRows(); serialize(); build(); renderPreview();
+        adoptFromJson(o);
+        advMode = false; advInvalid = false;
+        serialize(); build(); renderPreview();
       });
       host.appendChild(bar);
     }
@@ -516,7 +552,20 @@
     build();
     renderPreview();
     var form = ta.closest("form");
-    if (form) form.addEventListener("submit", serialize);
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        if (advMode && advInvalid) {
+          // Never let a save proceed while the Advanced text is unparseable —
+          // the old code silently serialized the pre-Advanced state instead.
+          e.preventDefault();
+          var b = host.querySelector(".ste-advbox");
+          if (b) b.focus();
+          alert("The size chart data in Advanced mode is not valid JSON yet. Fix it (or click “Back to the visual editor”) before saving — nothing was saved.");
+          return;
+        }
+        serialize();
+      });
+    }
   }
 
   function init() {

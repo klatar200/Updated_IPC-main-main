@@ -35,7 +35,11 @@ function useSearchParam(key) {
   }
 
   const value = searchParams.get(key) || null;
-  const setter = (val) => {
+  // opts.replace=true swaps the current history entry instead of pushing a new
+  // one. Required for "read the param, then strip it from the URL" cleanups:
+  // pushing there traps the Back button, because going back re-enters the
+  // effect and pushes again. (DEPLOY_READINESS_v2 T2.3)
+  const setter = (val, opts) => {
     setSearchParamsFn(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -43,7 +47,7 @@ function useSearchParam(key) {
         else next.set(key, String(val));
         return next;
       },
-      { replace: false },
+      { replace: !!(opts && opts.replace) },
     );
   };
   return [value, setter];
@@ -212,7 +216,7 @@ const FOOTER_LINKS = [
  *
  * Accepts { products } prop — categories derived live from the catalog.
  */
-function Navbar({ products = [] }) {
+function Navbar({ products = [], catalogFailed = false }) {
   const site = useSiteInfo();
   const { companyNav, copy } = useContent();
   const nc = copy.nav;
@@ -340,7 +344,11 @@ function Navbar({ products = [] }) {
                 letterSpacing: "0.02em",
               }}
             >
-              Tubing &amp; Sleeving Solutions
+              {/* No `||` fallback: slogan is clearable in Business Details, and a
+                   hardcoded default here would silently un-do the deletion. An
+                   absent site-info.json still gets the default from
+                   mergeSiteInfo. (AUDIT_v3_FINDINGS NB4) */}
+              {site.company.slogan}
             </div>
           </div>
         </button>
@@ -403,7 +411,26 @@ function Navbar({ products = [] }) {
                 }}
               >
                 <button
+                  type="button"
+                  aria-haspopup="true"
+                  aria-expanded={open}
                   onMouseEnter={() => setOpenDropdown("products")}
+                  onClick={() => setOpenDropdown(open ? null : "products")}
+                  onKeyDown={(e) => {
+                    // Mouse-only bindings locked keyboard users out of the
+                    // ENTIRE category list and the Browse All / Product Index
+                    // links: Enter, Space and ArrowDown all did nothing.
+                    // (DEPLOY_READINESS_v2 T2.4)
+                    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+                      e.preventDefault();
+                      setOpenDropdown(open ? null : "products");
+                    } else if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setOpenDropdown("products");
+                    } else if (e.key === "Escape") {
+                      setOpenDropdown(null);
+                    }
+                  }}
                   style={{
                     background: "none",
                     border: "none",
@@ -580,6 +607,11 @@ function Navbar({ products = [] }) {
                       >
                         {nc.browseByCategory}
                       </div>
+                      {/* "Loading…" was shown forever when the catalog fetch
+                          FAILED, because this only tested for an empty list.
+                          After the 12s abort there is nothing more to wait for,
+                          so say so and give a way through.
+                          (AUDIT_v3_FINDINGS NB18) */}
                       {categories.length === 0 ? (
                         <div
                           style={{
@@ -588,7 +620,28 @@ function Navbar({ products = [] }) {
                             color: "rgba(255,255,255,0.3)",
                           }}
                         >
-                          Loading…
+                          {catalogFailed ? (
+                            <>
+                              Categories unavailable —{" "}
+                              <button
+                                type="button"
+                                onClick={() => window.location.reload()}
+                                style={{
+                                  color: "rgba(255,255,255,0.6)",
+                                  textDecoration: "underline",
+                                  background: "none",
+                                  border: 0,
+                                  padding: 0,
+                                  font: "inherit",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                reload
+                              </button>
+                            </>
+                          ) : (
+                            "Loading…"
+                          )}
                         </div>
                       ) : (
                         categories.map((cat) => (
@@ -659,7 +712,26 @@ function Navbar({ products = [] }) {
                 }}
               >
                 <button
+                  type="button"
+                  aria-haspopup="true"
+                  aria-expanded={open}
                   onMouseEnter={() => setOpenDropdown("company")}
+                  onClick={() => setOpenDropdown(open ? null : "company")}
+                  onKeyDown={(e) => {
+                    // Mouse-only bindings locked keyboard users out of the
+                    // ENTIRE category list and the Browse All / Product Index
+                    // links: Enter, Space and ArrowDown all did nothing.
+                    // (DEPLOY_READINESS_v2 T2.4)
+                    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+                      e.preventDefault();
+                      setOpenDropdown(open ? null : "company");
+                    } else if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setOpenDropdown("company");
+                    } else if (e.key === "Escape") {
+                      setOpenDropdown(null);
+                    }
+                  }}
                   style={{
                     background: "none",
                     border: "none",
@@ -2193,8 +2265,12 @@ function HomePage() {
             </h2>
             <p style={{ color: "rgba(255,255,255,0.75)" }} className="text-sm">
               Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#ffffff", fontWeight: 600 }}>{site.contact.phone}</a>,
-              fax <a href={`tel:${site.contact.fax}`} style={{ color: "#ffffff", fontWeight: 600 }}>{site.contact.fax}</a>,
-              or submit a quote request online — our team responds quickly and accurately.
+              {/* Fax is clearable in Business Details (NB4) — drop the whole clause,
+                  not just the number, or this reads "Call …, fax , or submit". */}
+              {site.contact.fax ? (
+                <> fax <span style={{ color: "#ffffff", fontWeight: 600 }}>{site.contact.fax}</span>,</>
+              ) : null}
+              {" "}or submit a quote request online — our team responds quickly and accurately.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 flex-shrink-0">
@@ -2513,7 +2589,8 @@ function AboutPage() {
               { label: "Phone", value: site.contact.phone },
               { label: "Fax", value: site.contact.fax },
               { label: "PPAP / IMDS", value: "Available on request" },
-            ].map((item) => (
+            ].filter((item) => item.value) /* a cleared Fax drops its row (NB4) */
+              .map((item) => (
               <div
                 key={item.label}
                 className="bg-white rounded-xl px-5 py-3.5 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between"
@@ -2529,10 +2606,14 @@ function AboutPage() {
                   className="text-sm font-bold text-right"
                   style={{ color: "var(--brand-primary)" }}
                 >
-                  {item.label === "Phone" ? (
-                    <a href="tel:+16307710700" style={{ color: "var(--brand-primary)" }}>{item.value}</a>
-                  ) : item.label === "Fax" ? (
-                    <a href="tel:+16307710701" style={{ color: "var(--brand-primary)" }}>{item.value}</a>
+                  {/* These hrefs were hardcoded to +16307710700/01 while the
+                       displayed value came from site-info.json — change the
+                       phone in the admin and the page showed the new number
+                       but dialled the old one. Fax is NOT a tel: link: a
+                       mobile visitor who taps it dials a fax machine.
+                       (DEPLOY_READINESS_v2 4.7, 4.8) */}
+                  {item.label === "Phone" && site.contact.phoneDial ? (
+                    <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary)" }}>{item.value}</a>
                   ) : item.value}
                 </span>
               </div>
@@ -3119,7 +3200,9 @@ function FaqPage() {
                 style={{ color: "rgba(255,255,255,0.5)" }}
               >
                 <div>📞 <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.phone}</a></div>
-                <div>📠 <a href={`tel:${site.contact.fax}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.fax}</a> (Fax)</div>
+                {site.contact.fax ? (
+                  <div style={{ color: "rgba(255,255,255,0.5)" }}>📠 {site.contact.fax} (Fax)</div>
+                ) : null}
                 <div>📧 <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.email}</a></div>
               </div>
             </div>
@@ -3261,6 +3344,8 @@ const CONTACT_CARDS = [
  */
 function ContactPage() {
   const site = useSiteInfo();
+  // ?part=SKU set by the product page's "Request Quote" button. (4.6)
+  const [prefillPart] = useSearchParam("part");
   const _content = useContent();
   const _copy = _content.copy;
   const c = _copy.contactHeader;
@@ -3315,7 +3400,7 @@ function ContactPage() {
     email: "",
     phone: "",
     company: "",
-    partNumber: "",
+    partNumber: prefillPart || "",
     material: "",
     quantity: "",
     requiredDate: "",
@@ -3367,11 +3452,14 @@ function ContactPage() {
   // Icons stay module-level (created once); text is overlaid from live site info.
   const contactCards = CONTACT_CARDS.map((card) => {
     if (card.title === "Phone") return { ...card, info: site.contact.phone, href: `tel:${site.contact.phoneDial}`, sub: site.hours.text };
-    if (card.title === "Fax") return { ...card, info: site.contact.fax, href: `tel:${site.contact.fax}` };
+    // No href: a fax number is not dialable from a phone. (4.8)
+    if (card.title === "Fax") return { ...card, info: site.contact.fax, href: null };
     if (card.title === "Email") return { ...card, info: site.contact.email, href: `mailto:${site.contact.email}` };
     if (card.title === "Address") return { ...card, info: site.address.street, sub: `${site.address.city}, ${site.address.state} ${site.address.zip}` };
     return card;
-  });
+    // A cleared Fax removes the card entirely rather than showing an empty
+    // one with a fax icon and no number. (AUDIT_v3_FINDINGS NB4)
+  }).filter((card) => card.info);
 
   if (submitted) {
     return (
@@ -3410,8 +3498,9 @@ function ContactPage() {
           >
             {cf.urgentPrefix}{" "}
             📞 <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#9ca3af" }}>{site.contact.phone}</a>
-            {" · "}
-            📠 <a href={`tel:${site.contact.fax}`} style={{ color: "#9ca3af" }}>{site.contact.fax}</a>
+            {site.contact.fax ? (
+              <>{" · "}📠 <span style={{ color: "#9ca3af" }}>{site.contact.fax}</span></>
+            ) : null}
             {" · "}
             📧 <a href={`mailto:${site.contact.email}`} style={{ color: "#9ca3af" }}>{site.contact.email}</a>
           </p>
@@ -3699,7 +3788,11 @@ function ContactPage() {
                   },
                 ].map((f) => (
                   <div key={f.name}>
+                    {/* htmlFor/id pairing — all 10 controls on the only revenue
+                        page were unlabelled; the ONLY correctly-labelled input
+                        was the honeypot. (DEPLOY_READINESS_v2 4.4) */}
                     <label
+                      htmlFor={`rfq-${f.name}`}
                       className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                       style={{ color: "#6b7280" }}
                     >
@@ -3707,6 +3800,7 @@ function ContactPage() {
                     </label>
                     <input
                       type={f.type}
+                      id={`rfq-${f.name}`}
                       name={f.name}
                       value={rfqForm[f.name]}
                       onChange={onRfqChange}
@@ -3734,12 +3828,14 @@ function ContactPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label
+                    htmlFor="rfq-partNumber"
                     className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                     style={{ color: "#6b7280" }}
                   >
                     {cf.partLabel}
                   </label>
                   <input
+                    id="rfq-partNumber"
                     type="text"
                     name="partNumber"
                     value={rfqForm.partNumber}
@@ -3752,12 +3848,14 @@ function ContactPage() {
                 </div>
                 <div>
                   <label
+                    htmlFor="rfq-material"
                     className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                     style={{ color: "#6b7280" }}
                   >
                     {cf.materialLabel}
                   </label>
                   <input
+                    id="rfq-material"
                     type="text"
                     name="material"
                     value={rfqForm.material}
@@ -3770,12 +3868,14 @@ function ContactPage() {
                 </div>
                 <div>
                   <label
+                    htmlFor="rfq-quantity"
                     className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                     style={{ color: "#6b7280" }}
                   >
                     {cf.quantityLabel}
                   </label>
                   <input
+                    id="rfq-quantity"
                     type="text"
                     name="quantity"
                     value={rfqForm.quantity}
@@ -3789,12 +3889,14 @@ function ContactPage() {
                 </div>
                 <div>
                   <label
+                    htmlFor="rfq-requiredDate"
                     className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                     style={{ color: "#6b7280" }}
                   >
                     {cf.dateLabel}
                   </label>
                   <input
+                    id="rfq-requiredDate"
                     type="text"
                     name="requiredDate"
                     value={rfqForm.requiredDate}
@@ -3808,12 +3910,14 @@ function ContactPage() {
               </div>
               <div>
                 <label
+                  htmlFor="rfq-specialReqs"
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
                   {cf.specialLabel}
                 </label>
                 <input
+                  id="rfq-specialReqs"
                   type="text"
                   name="specialReqs"
                   value={rfqForm.specialReqs}
@@ -3826,12 +3930,14 @@ function ContactPage() {
               </div>
               <div>
                 <label
+                  htmlFor="rfq-additionalNotes"
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
                   {cf.notesLabel}
                 </label>
                 <textarea
+                  id="rfq-additionalNotes"
                   name="additionalNotes"
                   value={rfqForm.additionalNotes}
                   onChange={onRfqChange}
@@ -3928,6 +4034,7 @@ function ContactPage() {
                 ].map((f) => (
                   <div key={f.name}>
                     <label
+                      htmlFor="rfq-subject"
                       className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                       style={{ color: "#6b7280" }}
                     >
@@ -3956,6 +4063,7 @@ function ContactPage() {
                   {cf.subjectLabel}
                 </label>
                 <input
+                  id="rfq-subject"
                   type="text"
                   name="subject"
                   value={msgForm.subject}
@@ -3969,12 +4077,14 @@ function ContactPage() {
               </div>
               <div>
                 <label
+                  htmlFor="rfq-message"
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
                   {cf.messageLabel}
                 </label>
                 <textarea
+                  id="rfq-message"
                   name="message"
                   value={msgForm.message}
                   onChange={onMsgChange}
@@ -4102,17 +4212,12 @@ function GlobalStyles() {
         vertical-align: middle; margin-right: 6px;
       }
 
-      /* Skeleton shimmer — LinkedIn/Netflix loading pattern */
-      @keyframes ipc-shimmer {
-        0%   { background-position: -700px 0; }
-        100% { background-position:  700px 0; }
-      }
-      .ipc-skeleton {
-        background: linear-gradient(90deg, #e8edf2 25%, #d1dae3 50%, #e8edf2 75%);
-        background-size: 700px 100%;
-        animation: ipc-shimmer 1.4s ease-in-out infinite;
-        border-radius: 6px;
-      }
+      /* .ipc-skeleton and .ipc-page-header now live in src/index.css — they are
+         needed BEFORE this component mounts. GlobalStyles renders inside the
+         tree that only mounts after loading finishes, so defining the skeleton
+         here meant it was styleless in the exact situation it exists for: on a
+         throttled connection the visitor saw 53 invisible skeleton elements,
+         i.e. a blank page. (DEPLOY_READINESS_v2 T2.10) */
 
       /* Contact success fade-in */
       @keyframes ipc-fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
@@ -4169,9 +4274,22 @@ function GlobalStyles() {
  */
 let _productsCache = null;
 let _productsFetchPromise = null;
+// Aborts the catalog fetch rather than hanging on the skeleton forever.
+const PRODUCTS_FETCH_TIMEOUT_MS = 12000;
+// The cache never time-invalidated, so a visitor who left the tab open never
+// saw an admin edit — contradicting the "~60 seconds" promise the admin shows
+// after every save. (DEPLOY_READINESS_v2 4.25)
+//
+// Declaring this constant was not by itself the fix — see the visibilitychange
+// effect at the bottom of useProducts(), which is what actually re-evaluates
+// it. (AUDIT_v3_FINDINGS §3.1)
+const PRODUCTS_CACHE_TTL_MS = 60000;
+let _productsCacheAt = 0;
 
 function fetchProductsCached() {
-  if (_productsCache) return Promise.resolve(_productsCache);
+  if (_productsCache && Date.now() - _productsCacheAt < PRODUCTS_CACHE_TTL_MS) {
+    return Promise.resolve(_productsCache);
+  }
   if (_productsFetchPromise) return _productsFetchPromise;
   // Per-minute cache-buster so admin edits become visible within ~60s. The
   // matching data/.htaccess sets Cache-Control max-age=60 must-revalidate,
@@ -4180,19 +4298,33 @@ function fetchProductsCached() {
   // because both browser and Apache caches keyed by URL stayed warm all day.)
   const cacheBuster = Math.floor(Date.now() / 60000);
   const url = `${PRODUCTS_JSON_URL}?v=${cacheBuster}`;
-  _productsFetchPromise = fetch(url)
+  // Hard timeout. An origin that accepts the connection and then hangs used to
+  // leave the site on the loading skeleton forever, with no error and no retry.
+  // (DEPLOY_READINESS_v2 T2.1)
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), PRODUCTS_FETCH_TIMEOUT_MS) : null;
+  _productsFetchPromise = fetch(url, controller ? { signal: controller.signal } : undefined)
     .then((res) => {
       if (!res.ok)
         throw new Error(`HTTP ${res.status} fetching product catalog`);
       return res.json();
     })
     .then((data) => {
-      const arr = Array.isArray(data) ? data : (data.products ?? []);
+      // Null guard: a truncated or partially-written file parses to `null`,
+      // and `data.products` on null throws instead of degrading.
+      const arr = Array.isArray(data)
+        ? data
+        : data && Array.isArray(data.products)
+          ? data.products
+          : [];
+      if (timer) clearTimeout(timer);
       _productsCache = arr;
+      _productsCacheAt = Date.now();
       _productsFetchPromise = null;
       return arr;
     })
     .catch((err) => {
+      if (timer) clearTimeout(timer);
       _productsFetchPromise = null; // allow retry on next call
       throw err;
     });
@@ -4207,7 +4339,10 @@ function fetchProductsCached() {
 function useProducts() {
   // Fix 13: if cache is empty array, treat as unloaded (allow retry)
   // A legitimately empty catalog shouldn't cache — there's always at least 1 product.
-  const cacheIsValid = _productsCache !== null && _productsCache.length > 0;
+  const cacheIsValid =
+    _productsCache !== null &&
+    _productsCache.length > 0 &&
+    Date.now() - _productsCacheAt < PRODUCTS_CACHE_TTL_MS;
   const [products, setProducts] = useState(() =>
     cacheIsValid ? _productsCache : [],
   );
@@ -4233,6 +4368,41 @@ function useProducts() {
       });
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // PRODUCTS_CACHE_TTL_MS was INERT. It is only read inside fetchProductsCached()
+  // and the guard above, useProducts() has one call site, it mounts once, and
+  // this effect's deps are []. Nothing ever re-evaluated the TTL during a page
+  // session, and across a full reload the module-level cache is reset anyway —
+  // so the ~60 s bound that 4.25 claimed came entirely from the per-minute
+  // cache-buster and data/.htaccess, neither of which is the TTL. Measured:
+  // catalog edited on disk, 100 s of SPA navigation, still the old 41 products.
+  //
+  // Re-check when the tab is brought back to the front, which is exactly the
+  // moment Rick switches from the admin to the live site to confirm his edit.
+  // No polling, no work while the tab is hidden. (AUDIT_v3_FINDINGS §3.1 / NB3)
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    let cancelled = false;
+    const recheck = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - _productsCacheAt < PRODUCTS_CACHE_TTL_MS) return;
+      fetchProductsCached()
+        .then((arr) => {
+          if (!cancelled && arr.length) {
+            setProducts(arr);
+            setError(null);
+          }
+        })
+        .catch(() => { /* keep showing what we have; the next focus retries */ });
+    };
+    document.addEventListener("visibilitychange", recheck);
+    window.addEventListener("focus", recheck);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", recheck);
+      window.removeEventListener("focus", recheck);
     };
   }, []);
 
@@ -4287,6 +4457,39 @@ const SITE_DEFAULTS = {
 
 // Shallow-merge each top-level section over the defaults so any missing field
 // falls back rather than rendering blank.
+//
+// INVARIANT: a blank string from site-info.json must NOT overwrite a default.
+// admin/settings.php rebuilds site-info.json wholesale from $_POST, so any
+// field the form omits arrives as "". Spreading those blanks over the defaults
+// produced "© –2026" in the privacy footer, href="tel:" on all four
+// click-to-call links, and an empty "faxNumber" in the JSON-LD. mergeContent()
+// already dropped blanks; these two disagreed. (DEPLOY_READINESS_v2 T1.7)
+//
+// EXCEPTION LIST. The invariant above is right for anything the site renders as
+// a link or interpolates into a sentence — an empty phone number is href="tel:"
+// and an empty founding year is "© –2026", both worse than a stale value. It is
+// wrong for the handful of fields where BLANK IS THE INTENDED VALUE and there is
+// no way to express "we don't have one of these any more":
+//   contact.fax          renders in 4 places + JSON-LD faxNumber. A distributor
+//                        that drops its fax line could not remove the number.
+//   social.*             JSON-LD sameAs only. A deleted account kept being
+//                        advertised to search engines forever.
+//   company.shortName    plain text, no link, no punctuation around it.
+//   company.slogan       ditto.
+// Clearing any of these in Business Details reported "Saved" and changed
+// nothing. (AUDIT_v3_FINDINGS NB4 — and note NB4 explicitly says do NOT revert
+// the blank-drop for everything else.)
+const SITE_CLEARABLE = new Set([
+  "contact.fax",
+  "social.twitter",
+  "social.facebook",
+  "social.linkedin",
+  "social.youtube",
+  "social.pinterest",
+  "company.shortName",
+  "company.slogan",
+]);
+
 function mergeSiteInfo(data) {
   if (!data || typeof data !== "object") return SITE_DEFAULTS;
   const out = {};
@@ -4294,9 +4497,29 @@ function mergeSiteInfo(data) {
     const d = SITE_DEFAULTS[k];
     const v = data[k];
     if (d && typeof d === "object" && !Array.isArray(d)) {
-      out[k] = { ...d, ...(v && typeof v === "object" ? v : {}) };
+      const overrides = {};
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        for (const key of Object.keys(v)) {
+          const val = v[key];
+          // Keep an explicitly-emptied ARRAY (that is a real deletion), but
+          // drop null/undefined/"" scalars so they fall back to the default —
+          // unless this field is one the owner is allowed to clear.
+          if (val == null) continue;
+          if (
+            typeof val === "string" &&
+            val.trim() === "" &&
+            !SITE_CLEARABLE.has(`${k}.${key}`)
+          ) {
+            continue;
+          }
+          overrides[key] = val;
+        }
+      }
+      out[k] = { ...d, ...overrides };
+    } else if (Array.isArray(d)) {
+      out[k] = Array.isArray(v) ? v : d;
     } else {
-      out[k] = v != null ? v : d;
+      out[k] = v != null && !(typeof v === "string" && v.trim() === "") ? v : d;
     }
   }
   return out;
@@ -4310,15 +4533,20 @@ function localizeProse(text, site) {
   let out = text;
   const pairs = [
     [SITE_DEFAULTS.contact.phone, site.contact.phone],
-    [SITE_DEFAULTS.contact.fax, site.contact.fax],
+    [SITE_DEFAULTS.contact.fax, site.contact.fax, true /* clearable */],
     [SITE_DEFAULTS.contact.email, site.contact.email],
     [
       `${SITE_DEFAULTS.address.street}, ${SITE_DEFAULTS.address.city}, ${SITE_DEFAULTS.address.state} ${SITE_DEFAULTS.address.zip}`,
       `${site.address.street}, ${site.address.city}, ${site.address.state} ${site.address.zip}`,
     ],
   ];
-  for (const [from, to] of pairs) {
-    if (from && to && from !== to) out = out.split(from).join(to);
+  for (const [from, to, clearable] of pairs) {
+    // `to` may legitimately be "" for a clearable field. Without this, clearing
+    // the fax number left the OLD one embedded in every FAQ answer and policy
+    // paragraph that mentions it — the number he just deleted, still on the
+    // site. (AUDIT_v3_FINDINGS NB4)
+    if (!from || from === to) continue;
+    if (to || clearable) out = out.split(from).join(to);
   }
   return out;
 }
@@ -4569,8 +4797,24 @@ function contentDefaults() {
   };
 }
 
-// Array sections replace wholesale (blank → default). The `copy` object is
-// deep-merged field-by-field so clearing one heading falls back to its default.
+// Array sections replace wholesale. The `copy` object is deep-merged
+// field-by-field so clearing one heading falls back to its default.
+//
+// INVARIANT: an EMPTY array is a deletion, not a missing key. The old test was
+// `Array.isArray(v) && v.length ? v : dv`, which re-seeded the hardcoded
+// defaults whenever the owner deleted every row of a section — he removed all
+// 8 footer links, the admin said "Content saved", and the public site still
+// showed all 8. Same for FAQ entries, certifications, milestones, services,
+// industries, nav items, and privacySections (stale legal text republishing
+// itself). Only an ABSENT key falls back. (DEPLOY_READINESS_v2 T1.4)
+//
+// Copy keys the owner is allowed to blank outright. Everything else keeps the
+// blank-drop: a headline, a button label or a field label that renders empty is
+// a broken page he cannot repair, because the control he would type into is the
+// one that vanished. Sub-headings are supplementary by definition — removing
+// one is a real editorial choice. (AUDIT_v3_FINDINGS NB4)
+const COPY_CLEARABLE = /^(subhead|.*Subhead)$/;
+
 function mergeContent(data) {
   const defaults = contentDefaults();
   if (!data || typeof data !== "object") return defaults;
@@ -4579,7 +4823,7 @@ function mergeContent(data) {
     const dv = defaults[k];
     const v = data[k];
     if (Array.isArray(dv)) {
-      out[k] = Array.isArray(v) && v.length ? v : dv;
+      out[k] = Array.isArray(v) ? v : dv;
     } else if (dv && typeof dv === "object") {
       out[k] = {};
       for (const g of Object.keys(dv)) {
@@ -4587,11 +4831,23 @@ function mergeContent(data) {
         const vg = v && typeof v === "object" ? v[g] : undefined;
         if (dg && typeof dg === "object" && !Array.isArray(dg)) {
           // Drop blank ("") values before spreading so a cleared field in the
-          // admin falls back to its default instead of rendering empty text.
+          // admin falls back to its default instead of rendering empty text —
+          // an empty page heading or an empty button label is worse than a
+          // stale one, and there is no way to re-enter a heading you cannot see.
+          //
+          // The exception is copy that is purely supplementary: a subheading or
+          // a helper line the owner deliberately removes should stay removed,
+          // the same asymmetry mergeSiteInfo now handles via SITE_CLEARABLE.
+          // Lower stakes than the site-info case (nothing here becomes an
+          // href), but the same "Saved" that changes nothing.
+          // (AUDIT_v3_FINDINGS NB4)
           const overrides = {};
           if (vg && typeof vg === "object") {
             for (const key of Object.keys(vg)) {
-              if (vg[key] != null && vg[key] !== "") overrides[key] = vg[key];
+              const val = vg[key];
+              if (val == null) continue;
+              if (val === "" && !COPY_CLEARABLE.test(key)) continue;
+              overrides[key] = val;
             }
           }
           out[k][g] = { ...dg, ...overrides };
@@ -4640,14 +4896,18 @@ function StructuredData() {
       "@context": "https://schema.org",
       "@type": ["Organization", "LocalBusiness"],
       name: site.company.name,
-      alternateName: site.company.shortName,
-      slogan: site.company.slogan,
+      // `|| undefined` on the clearable fields: an empty string in JSON-LD is a
+      // claim that the value is blank, which is worse than not asserting it —
+      // the same reason T1.7 stopped emitting an empty faxNumber. These three
+      // are the fields the owner is allowed to clear. (AUDIT_v3_FINDINGS NB4)
+      alternateName: site.company.shortName || undefined,
+      slogan: site.company.slogan || undefined,
       url: "https://www.insulationproducts.com",
       logo: "https://www.insulationproducts.com/favicon.svg",
       description: site.company.description,
       foundingDate: site.company.foundedYear ? `${site.company.foundedYear}-01-01` : undefined,
       telephone: site.contact.phoneDial || site.contact.phone,
-      faxNumber: site.contact.fax,
+      faxNumber: site.contact.fax || undefined,
       email: site.contact.email,
       address: {
         "@type": "PostalAddress",
@@ -4663,7 +4923,9 @@ function StructuredData() {
         opens: site.hours.opens,
         closes: site.hours.closes,
       },
-      sameAs: Object.values(site.social || {}).filter(Boolean),
+      sameAs: Object.values(site.social || {}).filter(Boolean).length
+        ? Object.values(site.social || {}).filter(Boolean)
+        : undefined,
     };
     const id = "ipc-structured-data";
     let el = document.getElementById(id);
@@ -5092,7 +5354,9 @@ function SpecTable1({ table }) {
             )}
             <span
               className="whitespace-pre-line"
-              style={{ color: "#4b5563", fontSize: 12.5 }}
+              // overflowWrap: a spec value can be a single unbroken token
+              // ("-55°C/+175°C(-67°F/+347°F)") longer than a 375px column.
+              style={{ color: "#4b5563", fontSize: 12.5, overflowWrap: "anywhere" }}
             >
               {row.value}
             </span>
@@ -5244,6 +5508,11 @@ const NON_RELATABLE_TYPES = new Set(["Accessory", "Adhesive", "Tape", ""]);
  */
 function ProductDetail({ product, allProducts }) {
   const site = useSiteInfo();
+  // Falls back to the branded placeholder when the photo 404s. The SPA rewrite
+  // returns 200 + index.html for a missing image, so only the browser's own
+  // load failure can detect it. (DEPLOY_READINESS_v2 T2.7)
+  const [photoFailed, setPhotoFailed] = useState(false);
+  useEffect(() => { setPhotoFailed(false); }, [product && product.sku]);
   // product.pdfUrl is set by the PHP admin (upload-pdf.php → "/pdfs/<sku>.pdf").
   // When it's missing we render a "Request Data Sheet" button that routes to
   // the contact form instead — there is no external printable-page fallback.
@@ -5269,7 +5538,12 @@ function ProductDetail({ product, allProducts }) {
       "@type": "Product",
       "name": product.name,
       "sku": product.partNumber || product.id,
-      "description": product.description || product.name,
+      // schema.org/description must be Text. All 42 products store description
+      // as an ARRAY of paragraphs, so this emitted an array and Google dropped
+      // the whole node. (DEPLOY_READINESS_v2 4.2)
+      "description": Array.isArray(product.description)
+        ? product.description.filter(Boolean).join(" ")
+        : product.description || product.name,
       "brand": { "@type": "Brand", "name": "Insulation Products Corporation" },
       "manufacturer": { "@type": "Organization", "name": "Insulation Products Corporation", "url": "https://www.insulationproducts.com" },
     });
@@ -5407,7 +5681,10 @@ function ProductDetail({ product, allProducts }) {
               </button>
             )}
             <button
-              onClick={() => setSearchParam("page", "contact")}
+              // Carry the SKU across, so the RFQ arrives as "— IP35KY —"
+              // instead of "General RFQ" and sales knows what was being
+              // priced. (DEPLOY_READINESS_v2 4.6)
+              onClick={() => setSearchParams({ page: "contact", part: product.sku || product.id || "" })}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
               style={{
                 background: "var(--brand-primary)",
@@ -5463,11 +5740,17 @@ function ProductDetail({ product, allProducts }) {
         {/* Left — photo */}
         <div className="p-5 sm:p-8 border-b border-gray-200 md:border-b-0 md:border-r md:border-gray-200">
           {/* Product image — show real photo if available, branded placeholder if placehold.co */}
-          {product.photoUrl && !product.photoUrl.includes("placehold.co") ? (
+          {product.photoUrl && !product.photoUrl.includes("placehold.co") && !photoFailed ? (
             <img
               src={product.photoUrl}
               alt={product.name}
               loading="lazy"
+              // The SPA rewrite makes a missing image return 200 + index.html,
+              // so nothing in the stack can tell "missing" from "served" — the
+              // browser just renders a broken image. Fall back to the branded
+              // placeholder that already exists two lines below.
+              // (DEPLOY_READINESS_v2 T2.7)
+              onError={() => setPhotoFailed(true)}
               className="w-full rounded-lg object-cover"
               style={{ border: "1px solid #e5e9ee", maxHeight: 260 }}
             />
@@ -5562,12 +5845,18 @@ function ProductDetail({ product, allProducts }) {
         </div>
       </div>
 
-      {/* Spec tables — two column */}
+      {/* Spec tables — two column.
+          minWidth: 0 on both cells. A grid item defaults to min-width:auto, so
+          one long unbroken spec value stretched the TRACK past the viewport and
+          the whole page scrolled sideways at 375px — measured on IP35KY
+          (scrollWidth 377) and IP55FL (381). SpecTable2 already scrolls inside
+          its own container; this is the other half of the same bug.
+          (AUDIT_v3_FINDINGS NB18) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-        <div className="p-5 sm:p-8 border-b border-gray-200 md:border-b-0 md:border-r md:border-gray-200">
+        <div className="p-5 sm:p-8 border-b border-gray-200 md:border-b-0 md:border-r md:border-gray-200" style={{ minWidth: 0 }}>
           <SpecTable1 table={product.specTable1} />
         </div>
-        <div className="p-5 sm:p-8">
+        <div className="p-5 sm:p-8" style={{ minWidth: 0 }}>
           <SpecTable2 table={product.specTable2} />
         </div>
       </div>
@@ -5656,22 +5945,60 @@ function ProductDetail({ product, allProducts }) {
  * IPC Product page — dark page header + sidebar + detail view.
  * Sticky RFQ bar appears after scrolling past the product header.
  */
+// Normalise a SKU for comparison: strip everything that isn't alphanumeric.
+// "IP37SH - IP36TH - IP39LH" and "IP37SH-IP36TH-IP39LH" are the same part; the
+// spaced form in content.json silently rendered a conduit coupling instead.
+// (DEPLOY_READINESS_v2 T2.8)
+function normalizeSku(v) {
+  return String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+// Is `needle` one of the hyphen-separated segments of a compound SKU?
+// Anchored on purpose: the old test was `sku.includes(id) || id.includes(sku)`,
+// which matched ?productId=CC90S against the two-character SKU "CC" and served
+// a different part under an unchanged URL. For a distributor where the SKU IS
+// the product, silently substituting a part is the worst available failure.
+function skuSegmentMatch(sku, needle) {
+  const n = normalizeSku(needle);
+  if (!n) return false;
+  return String(sku || "")
+    .split(/[-\/,]/)
+    .map(normalizeSku)
+    .filter(Boolean)
+    .includes(n);
+}
+
 function ProductPage({ products }) {
   const [selectedId, setSelectedId] = useSearchParam("productId");
-  // C4 fix: exact match first, then compound-SKU fuzzy match for navigation links
-  // that use partial IDs (e.g. "IP71NS" from IndustriesPage → "IP71NS - IP72PS - IP73PP")
-  const product = selectedId
+  // Exact, then whole-SKU-ignoring-punctuation, then whole-segment match.
+  // No blind fall-through to products[0] — see notFound below.
+  const matched = selectedId
     ? products.find((p) => p.id === selectedId || p.sku === selectedId) ||
       products.find(
         (p) =>
-          (p.sku || "").includes(selectedId) ||
-          selectedId.includes(p.sku || ""),
+          normalizeSku(p.sku) === normalizeSku(selectedId) ||
+          normalizeSku(p.id) === normalizeSku(selectedId),
       ) ||
-      products[0]
-    : products[0];
+      products.find(
+        (p) => skuSegmentMatch(p.sku, selectedId) || skuSegmentMatch(p.id, selectedId),
+      ) ||
+      null
+    : products[0] || null;
+  const notFound = !!selectedId && !matched;
+  const product = matched || products[0] || null;
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [pulseSkuBadge, setPulseSkuBadge] = useState(false);
   const prevShowRef = useRef(false);
+  // The sticky RFQ bar is fixed-position and 72px tall. Pad the document, not
+  // just <main> — <Footer> is a sibling, so the old paddingBottom on
+  // ProductPage left the bar sitting on top of the copyright and address on
+  // every product page. Toggled on <body> rather than via CSS :has() so it
+  // does not depend on selector support. (DEPLOY_READINESS_v2 T2.9)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.classList.toggle("ipc-has-sticky-rfq", showStickyBar);
+    return () => document.body.classList.remove("ipc-has-sticky-rfq");
+  }, [showStickyBar]);
   const headerRef = useRef(null);
   const detailRef = useRef(null);
 
@@ -5716,7 +6043,9 @@ function ProductPage({ products }) {
   }
 
   return (
-    <div style={{ background: "#f5f7fa", minHeight: "100vh", paddingBottom: showStickyBar ? 72 : 0, transition: 'padding-bottom 0.3s ease' }}>
+    <div
+      style={{ background: "#f5f7fa", minHeight: "100vh" }}
+    >
       {/* Page header */}
       <div
         ref={headerRef}
@@ -5743,7 +6072,58 @@ function ProductPage({ products }) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8 items-start">
+      {/* Part-not-found banner. An unknown ?productId= used to silently render
+          a DIFFERENT product with the URL unchanged — a customer following a
+          stale link or a typo'd SKU got someone else's part and no signal that
+          anything was wrong. (DEPLOY_READINESS_v2 T2.8) */}
+      {notFound && (
+        <div
+          role="alert"
+          className="max-w-7xl mx-auto px-6 pt-6"
+        >
+          <div
+            style={{
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
+              color: "#92400e",
+              borderRadius: 10,
+              padding: "14px 18px",
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            <strong>We couldn't find part “{selectedId}”.</strong> It may have been
+            renamed or discontinued. Showing the catalog instead — pick a part from
+            the list, or{" "}
+            <button
+              type="button"
+              onClick={() => setSearchParams({ page: "contact" })}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                font: "inherit",
+                color: "var(--brand-primary)",
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+            >
+              ask us about it
+            </button>
+            .
+          </div>
+        </div>
+      )}
+
+      {/* items-stretch below lg. Stacked, this is a COLUMN flex container, and
+          `items-start` there means align-items:flex-start — each child is sized
+          to its own max-content width instead of the viewport. On IP35KY and
+          IP55FL the detail card's widest spec row won and the whole page
+          scrolled sideways (scrollWidth 377 and 381 against a 375 viewport).
+          `min-w-0` cannot help: it bounds shrinking, and nothing was shrinking.
+          items-start is still what we want once the row layout kicks in at lg.
+          (AUDIT_v3_FINDINGS NB18) */}
+      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8 items-stretch lg:items-start">
         <ProductSidebar
           products={products}
           selectedId={product.id}
@@ -5780,7 +6160,12 @@ function ProductPage({ products }) {
           boxShadow: "0 -4px 24px rgba(0,0,0,0.35)",
         }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+        {/* flex-wrap + min-w-0: at 375px on the one product with two datasheets
+            the bar measured 483px wide against a 375px viewport, and because it
+            is position:fixed the overflow creates no scrollbar — "Request a
+            Quote" was simply off-screen and untappable, on the conversion
+            control. (DEPLOY_READINESS_v2 T2.9) */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 sm:gap-4">
           {/* Left: current product name */}
           <div className="min-w-0 hidden sm:block">
             {/* SKU badge — pulses cyan on first appearance to draw the eye */}
@@ -5817,7 +6202,7 @@ function ProductPage({ products }) {
           </div>
 
           {/* Right: action buttons */}
-          <div className="flex items-center gap-3 flex-shrink-0 ml-auto">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 min-w-0 ml-auto">
             {product.pdfUrl ? (
               <>
                 {/* Primary PDF — uses pdfLabel if set, else generic "Data Sheet" */}
@@ -5974,7 +6359,10 @@ function DashboardPage({ products }) {
   useEffect(() => {
     if (familyParam) {
       setActiveFamily(familyParam);
-      setFamilyParam(null); // clean up URL param after reading
+      // REPLACE, never push: this cleanup runs on every render where the param
+      // is present, so pushing made every Back press re-enter it and push
+      // again — the visitor could never leave the Product Index.
+      setFamilyParam(null, { replace: true });
     }
   }, [familyParam]);
 
@@ -7508,6 +7896,16 @@ const SERVICES_DATA = [
 function ServicesPage() {
   const { services, copy } = useContent();
   const c = copy.servicesHeader;
+  // Summarise the (previously dead) per-service leadTime values. Falls back to
+  // the old hardcoded string only when nothing is set. (DEPLOY_READINESS_v2 4.11)
+  const leadTimeSummary = useMemo(() => {
+    const vals = Array.from(
+      new Set((services || []).map((s) => (s.leadTime || "").trim()).filter(Boolean)),
+    );
+    if (vals.length === 0) return "\u2264 1 Week";
+    if (vals.length === 1) return vals[0];
+    return vals.join(" \u00b7 ");
+  }, [services]);
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -7569,7 +7967,9 @@ function ServicesPage() {
             </div>
             <div>
               <div className="text-base font-extrabold text-white">
-                Standard Lead Time: ≤ 1 Week
+                {/* Was hardcoded "≤ 1 Week" while content.json's services[].leadTime
+                    was editable and rendered nowhere. (DEPLOY_READINESS_v2 4.11) */}
+                Standard Lead Time: {leadTimeSummary}
               </div>
               <div
                 className="text-xs font-medium mt-0.5"
@@ -7636,7 +8036,7 @@ function ServicesPage() {
               {/* Details */}
               <div className="px-6 py-5 flex-1">
                 <ul className="space-y-2">
-                  {svc.details.map((d) => (
+                  {(svc.details || []).map((d) => (
                     <li
                       key={d}
                       className="flex items-start gap-2 text-xs"
@@ -7827,11 +8227,12 @@ function PrivacyPage() {
             className="mt-3 text-base"
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
-            Effective Date: {c.effectiveDate} · Last Updated:{" "}
-            {new Date().toLocaleDateString("en-US", {
-              month: "long",
-              year: "numeric",
-            })}
+            {/* Was new Date() — the policy claimed to have been updated today,
+                 every day, regardless of whether a word had changed. A privacy
+                 policy that lies about its own revision date is the one place
+                 that matters. It now shows the editable effective date only.
+                 (DEPLOY_READINESS_v2 4.10) */}
+            Effective Date: {c.effectiveDate}
           </p>
         </div>
       </div>
@@ -7945,6 +8346,25 @@ function Footer() {
       <line x1="17" y1="7" x2="17" y2="17" />
     </svg>
   );
+  const PdfIcon = () => (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#005da3"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+      aria-hidden="true"
+    >
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="12" y1="18" x2="12" y2="12" />
+      <polyline points="9 15 12 18 15 15" />
+    </svg>
+  );
   const MailIcon = () => (
     <svg
       width="13"
@@ -8017,13 +8437,20 @@ function Footer() {
                     letterSpacing: "0.01em",
                   }}
                 >
-                  INSULATION PRODUCTS CORPORATION
+                  {(site.company.name || "Insulation Products Corporation").toUpperCase()}
                 </div>
                 <div
                   className="text-xs mt-0.5"
                   style={{ color: "var(--brand-accent-2)", letterSpacing: "0.08em" }}
                 >
-                  ESTABLISHED 1974 · ISO 9001 · RoHS COMPLIANT
+                  {[
+                    site.company.foundedYear ? `ESTABLISHED ${site.company.foundedYear}` : null,
+                    site.certifications?.iso || null,
+                    ...(site.certifications?.other || []),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                    .toUpperCase()}
                 </div>
               </div>
             </div>
@@ -8054,10 +8481,31 @@ function Footer() {
                 <PhoneIcon />
                 <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>{site.contact.phone}</a>
               </div>
-              <div className="flex items-center gap-2">
-                <FaxIcon />
-                <a href={`tel:${site.contact.fax}`} style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>{site.contact.fax} (Fax)</a>
-              </div>
+              {site.contact.fax ? (
+                <div className="flex items-center gap-2">
+                  <FaxIcon />
+                  <span style={{ color: "rgba(255,255,255,0.55)" }}>{site.contact.fax} (Fax)</span>
+                </div>
+              ) : null}
+              {/* catalogPdfUrl was written by settings.php and read by NOTHING —
+                  App.jsx:4416 was its only other occurrence. Meanwhile the FAQ
+                  answer promises "a link to the full IPC product catalog PDF …
+                  in the site footer". Either the field or the sentence had to
+                  go; the field is the one Rick can fill in.
+                  (AUDIT_v3_FINDINGS NB18) */}
+              {site.catalogPdfUrl ? (
+                <div className="flex items-center gap-2">
+                  <PdfIcon />
+                  <a
+                    href={site.catalogPdfUrl}
+                    target="_blank"
+                    rel="noopener"
+                    style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}
+                  >
+                    Full product catalog (PDF)
+                  </a>
+                </div>
+              ) : null}
               <div className="flex items-center gap-2">
                 <MailIcon />
                 <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>{site.contact.email}</a>
@@ -8140,64 +8588,21 @@ function Footer() {
  * Main App — fetches live product catalog from storage, routes all pages.
  * Shows a loading skeleton and error state while products-all.json is fetching.
  */
-function App() {
-  // Register the module-level setSearchParams/setSearchParam batch ref so that
-  // event-handler calls outside of components route through react-router-dom
-  // and actually trigger a re-render. Without this, URL updates would be
-  // invisible to React.
-  useSetSearchParamRef();
-  const [page] = useSearchParam("page");
-  const { products, loading, error } = useProducts();
-
-  // ALL hooks must be called before any conditional return (React rules of hooks).
-  // Scroll to top on every page navigation. (Title + meta description are handled
-  // by <PageMeta>, which lives inside SiteInfoProvider so it can localize them.)
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, [page]);
-
-  // Animation 7 — Shimmer skeleton replaces the spinner.
-  // Previews the actual page layout so users see an almost-real page resolving.
-  if (loading) {
-    return (
-      <div
-        className="min-h-screen flex flex-col"
-        style={{ background: "#f5f7fa" }}
-      >
-        {/* Skeleton Navbar */}
-        <div
-          style={{
-            background: "var(--brand-dark)",
-            height: 64,
-            display: "flex",
-            alignItems: "center",
-            padding: "0 32px",
-            gap: 16,
-          }}
-        >
-          <div
-            className="ipc-skeleton"
-            style={{ width: 40, height: 40, borderRadius: 8, opacity: 0.4 }}
-          />
-          <div
-            className="ipc-skeleton"
-            style={{ width: 160, height: 16, borderRadius: 4, opacity: 0.3 }}
-          />
-          <div style={{ flex: 1 }} />
-          <div
-            className="ipc-skeleton"
-            style={{ width: 80, height: 14, borderRadius: 4, opacity: 0.25 }}
-          />
-          <div
-            className="ipc-skeleton"
-            style={{ width: 80, height: 14, borderRadius: 4, opacity: 0.25 }}
-          />
-          <div
-            className="ipc-skeleton"
-            style={{ width: 120, height: 36, borderRadius: 6, opacity: 0.35 }}
-          />
-        </div>
-
+/**
+ * Catalog loading / failure states.
+ *
+ * These used to gate the WHOLE app: SiteInfoProvider, ContentProvider, Navbar,
+ * Footer and every page sat behind the products fetch, so one JSON hiccup took
+ * down Contact, About, Services, Industries, FAQ and Privacy — pages that read
+ * no product data at all — along with every phone number and mailto on the
+ * site. For a distributor whose conversion is a phone call that turned a data
+ * blip into a total revenue outage. They are now scoped to the two pages that
+ * actually need the catalog. (DEPLOY_READINESS_v2 T2.1)
+ */
+function CatalogSkeleton() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column" }} aria-busy="true" aria-live="polite">
+      <span className="sr-only">Loading the product catalog…</span>
         {/* Skeleton Hero */}
         <div
           className="grid grid-cols-1 lg:grid-cols-2"
@@ -8402,24 +8807,14 @@ function App() {
             </div>
           ))}
         </div>
-      </div>
-    );
-  }
+    </div>
+  );
+}
 
-  // Error state
-  if (error) {
-    return (
-      <div
-        className="min-h-screen flex flex-col"
-        style={{ background: "#f5f7fa" }}
-      >
-        <div
-          style={{
-            background: "#141414",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
-            height: 64,
-          }}
-        />
+function CatalogError({ error }) {
+  const site = useSiteInfo();
+  return (
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "50vh" }}>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-md px-6">
             <div className="text-5xl mb-4">⚠️</div>
@@ -8443,9 +8838,42 @@ function App() {
             </button>
           </div>
         </div>
+      <div style={{ textAlign: "center", fontSize: 14, paddingBottom: 40 }}>
+        <p style={{ color: "#6b7280", marginBottom: 8 }}>
+          The rest of the site still works — or reach us directly:
+        </p>
+        <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary)", fontWeight: 700, marginRight: 16 }}>
+          📞 {site.contact.phone}
+        </a>
+        <a href={`mailto:${site.contact.email}`} style={{ color: "var(--brand-primary)", fontWeight: 700 }}>
+          📧 {site.contact.email}
+        </a>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+function App() {
+  // Register the module-level setSearchParams/setSearchParam batch ref so that
+  // event-handler calls outside of components route through react-router-dom
+  // and actually trigger a re-render. Without this, URL updates would be
+  // invisible to React.
+  useSetSearchParamRef();
+  const [page] = useSearchParam("page");
+  const { products, loading, error } = useProducts();
+
+  // ALL hooks must be called before any conditional return (React rules of hooks).
+  // Scroll to top on every page navigation. (Title + meta description are handled
+  // by <PageMeta>, which lives inside SiteInfoProvider so it can localize them.)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [page]);
+
+  // Animation 7 — Shimmer skeleton replaces the spinner.
+  // Previews the actual page layout so users see an almost-real page resolving.
+  // Only these two pages read the catalog. Everything else renders even when
+  // products-all.json is slow or unreachable. (DEPLOY_READINESS_v2 T2.1)
+  const needsCatalog = page === "products" || page === "dashboard";
 
   const renderPage = () => {
     switch (page) {
@@ -8481,8 +8909,23 @@ function App() {
           style={{ background: "#f5f7fa" }}
         >
           <GlobalStyles />
-          <Navbar products={products} />
-          <main className="flex-1"><ErrorBoundary>{renderPage()}</ErrorBoundary></main>
+          <Navbar products={products} catalogFailed={Boolean(error) && !loading} />
+          {/* key={page} resets the boundary on navigation. Without it, one bad
+              product bricked EVERY page until the visitor thought to reload:
+              nothing ever set `caught` back to false, so clicking Home
+              navigated correctly and still showed "Something went wrong".
+              (DEPLOY_READINESS_v2 T2.2) */}
+          <main className="flex-1">
+            <ErrorBoundary key={page}>
+              {needsCatalog && loading ? (
+                <CatalogSkeleton />
+              ) : needsCatalog && error ? (
+                <CatalogError error={error} />
+              ) : (
+                renderPage()
+              )}
+            </ErrorBoundary>
+          </main>
           <Footer />
         </div>
       </ContentProvider>

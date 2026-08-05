@@ -33,26 +33,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Build updated product from form
     $updated = $product; // start with existing data
 
-    $updated['name']                  = trim($_POST['name'] ?? '');
-    $updated['sku']                   = trim($_POST['sku'] ?? '');
+    $updated['name']                  = post_str('name');
+    $updated['sku']                   = post_str('sku');
     $updated['id']                    = $updated['sku'];
-    $updated['partType']              = trim($_POST['partType'] ?? '');
-    $updated['caption']               = trim($_POST['caption'] ?? '');
-    $updated['operatingTemp']         = trim($_POST['operatingTemp'] ?? '');
-    $updated['specificationsSummary'] = trim($_POST['specificationsSummary'] ?? '');
-    $updated['photoUrl']              = trim($_POST['photoUrl'] ?? '');
+    $updated['partType']              = post_str('partType');
+    $updated['caption']               = post_str('caption');
+    $updated['operatingTemp']         = post_str('operatingTemp');
+    $updated['specificationsSummary'] = post_str('specificationsSummary');
+    $updated['photoUrl']              = post_str('photoUrl');
 
     // Badges — one per line
-    $badgesRaw = trim($_POST['badges'] ?? '');
+    $badgesRaw = post_str('badges');
     $updated['badges'] = array_values(array_filter(array_map('trim', explode("\n", $badgesRaw))));
 
     // Description paragraphs — one per line
-    $descRaw = trim($_POST['description'] ?? '');
+    $descRaw = post_str('description');
     $updated['description'] = array_values(array_filter(array_map('trim', explode("\n", $descRaw))));
 
     // Primary PDF button label (e.g. "Molded Cap"). Empty → remove the key so
     // the frontend falls back to its default "Download PDF" text.
-    $pdfLabel = trim($_POST['pdfLabel'] ?? '');
+    $pdfLabel = post_str('pdfLabel');
     if ($pdfLabel !== '') {
         $updated['pdfLabel'] = $pdfLabel;
     } else {
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Additional PDF links — one per line, "URL | Label" (label optional).
     // These reference extra data sheets in /pdfs/. We only validate structure
     // here; the file itself is uploaded/managed on the Upload PDF page.
-    $addRaw  = trim($_POST['additionalPdfs'] ?? '');
+    $addRaw  = post_str('additionalPdfs');
     $addList = [];
     if ($addRaw !== '') {
         foreach (preg_split('/\r\n|\r|\n/', $addRaw) as $line) {
@@ -91,23 +91,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // specTable1 rows — stored as JSON textarea. Silently skipping invalid
     // JSON was the old behavior and it meant customers thought they had
     // saved a change when they hadn't. Now we surface the parse error.
-    $st1Raw = trim($_POST['specTable1_rows'] ?? '');
+    $st1Raw = post_str('specTable1_rows');
     if ($st1Raw !== '') {
         $st1Rows = json_decode($st1Raw, true);
         if (is_array($st1Rows)) {
             $updated['specTable1']['rows']  = $st1Rows;
-            $updated['specTable1']['title'] = trim($_POST['specTable1_title'] ?? 'Specifications:');
+            $updated['specTable1']['title'] = post_str('specTable1_title', 'Specifications:');
         } else {
             $errors[] = 'Specifications Table JSON is invalid (' . json_last_error_msg() . '). Fix the syntax or clear the field.';
         }
     } else {
         // Empty field → clear the rows but keep the title.
         $updated['specTable1']['rows']  = [];
-        $updated['specTable1']['title'] = trim($_POST['specTable1_title'] ?? 'Specifications:');
+        $updated['specTable1']['title'] = post_str('specTable1_title', 'Specifications:');
     }
 
     // specTable2 — same treatment.
-    $st2Raw = trim($_POST['specTable2_json'] ?? '');
+    $st2Raw = post_str('specTable2_json');
     if ($st2Raw !== '') {
         $st2 = json_decode($st2Raw, true);
         if (is_array($st2)) {
@@ -204,6 +204,20 @@ if (!empty($product['additionalPdfs']) && is_array($product['additionalPdfs'])) 
 $st1Title   = $product['specTable1']['title'] ?? 'Specifications:';
 $st1Rows    = json_encode($product['specTable1']['rows'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 $st2Json    = json_encode($product['specTable2'] ?? ['columnSpans' => [], 'rows' => []], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+// On a validation error the spec-table textareas must show what was TYPED.
+// When the JSON does not parse, the branches above never assign it to
+// $updated, so these three re-encoded the value still on DISK — under the
+// message "Fix the syntax", pointing at a table the admin could no longer see.
+// A 2,500-character size chart with one trailing comma was unrecoverable.
+// add.php:87-94 already does this correctly; the WHATS_LEFT note claiming
+// add.php was "ported from edit.php" has it exactly backwards.
+// (AUDIT_v3_FINDINGS NB5)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($errors)) {
+    if (is_string($_POST['specTable1_rows'] ?? null)) $st1Rows  = $_POST['specTable1_rows'];
+    if (is_string($_POST['specTable2_json'] ?? null)) $st2Json  = $_POST['specTable2_json'];
+    if (is_string($_POST['specTable1_title'] ?? null)) $st1Title = $_POST['specTable1_title'];
+}
 
 $partTypes = ['Polyolefin Heat Shrink','PVDF Heat Shrink','Dual-Wall Heat Shrink','Medical Grade Heat Shrink','Elastomeric Heat Shrink','Fiberglass Sleeving','Expandable Sleeving','End Cap','Tape','Adhesive','Accessory'];
 ?>

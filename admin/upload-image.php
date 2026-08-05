@@ -63,10 +63,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Branch B — upload / replace.
     elseif (!isset($_FILES['image_file']) || $_FILES['image_file']['error'] !== UPLOAD_ERR_OK) {
-        $errors[] = 'Please select an image file to upload.';
+        $errors[] = upload_error_message($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'image');
     } else {
-        if (!is_dir(IMG_DIR)) {
-            mkdir(IMG_DIR, 0755, true);
+        // The mkdir() return was unchecked, and creating uploads/images/ at
+        // runtime produced a folder WITHOUT the .htaccess that blocks script
+        // execution there. Create both, and fail loudly if we can't.
+        // (DEPLOY_READINESS_v2 T3.2)
+        if (!is_dir(IMG_DIR) && !@mkdir(IMG_DIR, 0755, true) && !is_dir(IMG_DIR)) {
+            $errors[] = 'Could not create the uploads/images folder on the server. Create public_html/uploads/images/ over FTP and make it writable (755).';
+        }
+        $uploadsHt = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
+        if (is_dir(dirname($uploadsHt)) && !file_exists($uploadsHt)) {
+            @file_put_contents($uploadsHt, "# Uploaded files are DATA. Never let the web server execute anything here.\n"
+                . "php_flag engine off\n"
+                . "AddType text/plain .php .php3 .php4 .php5 .phtml .pl .py .cgi .sh .htaccess\n"
+                . "<FilesMatch \"\\.(php|php[3-9]|phtml|pl|py|cgi|sh)$\">\n"
+                . "  Order allow,deny\n"
+                . "  Deny from all\n"
+                . "</FilesMatch>\n");
         }
         $file = $_FILES['image_file'];
         $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));

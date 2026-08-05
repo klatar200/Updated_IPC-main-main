@@ -21,3 +21,52 @@
 svg[stroke="#005da3"] {
   stroke: var(--brand-primary);
 }
+
+/* ── First-paint critical ────────────────────────────────────────────────────
+   These must exist BEFORE React mounts. GlobalStyles (App.jsx) injects its
+   <style> from inside the tree that only renders after the catalog fetch
+   resolves, so anything the loading skeleton needs cannot live there.
+   Measured before this move: 53 .ipc-skeleton elements on screen with
+   background-color rgba(0,0,0,0) and animation "none" — a blank white page on
+   a slow connection. (DEPLOY_READINESS_v2 T2.10) */
+
+@keyframes ipc-shimmer {
+  0%   { background-position: -700px 0; }
+  100% { background-position:  700px 0; }
+}
+
+.ipc-skeleton {
+  background: linear-gradient(90deg, #e8edf2 25%, #d1dae3 50%, #e8edf2 75%);
+  background-size: 700px 100%;
+  animation: ipc-shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ipc-skeleton { animation: none; }
+}
+
+.ipc-page-header {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%);
+}
+
+/* Visually hidden, still announced by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The sticky RFQ bar is position:fixed and 72px tall. Padding only ProductPage
+   left it covering the last ~70px of the FOOTER (copyright, address) on every
+   product page, because <Footer> is a sibling of <main>. Pad the page shell
+   instead. (DEPLOY_READINESS_v2 T2.9) */
+body.ipc-has-sticky-rfq {
+  padding-bottom: 76px;
+}

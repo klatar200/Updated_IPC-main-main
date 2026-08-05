@@ -44,7 +44,12 @@ function action_color(string $a): array {
         case 'delete':      return ['#fee2e2', '#991b1b'];
         case 'upload-pdf':  return ['#cffafe', '#155e75'];
         case 'remove-pdf':  return ['#fde68a', '#92400e'];
-        case 'import':      return ['#ede9fe', '#5b21b6'];
+        case 'upload-image': return ['#ede9fe', '#5b21b6'];
+        case 'remove-image': return ['#fee2e2', '#991b1b'];
+        case 'settings':    return ['#e0f2fe', '#075985'];
+        case 'content':     return ['#e0f2fe', '#075985'];
+        case 'restore':     return ['#fef3c7', '#92400e'];
+        case 'password':    return ['#f3e8ff', '#6b21a8'];
         default:            return ['#f3f4f6', '#374151'];
     }
 }
@@ -103,7 +108,11 @@ function action_color(string $a): array {
     <input type="text" name="sku" placeholder="Filter by SKU…" value="<?= h($filterSku) ?>" />
     <select name="action">
       <option value="">All actions</option>
-      <?php foreach (['add','edit','delete','upload-pdf','remove-pdf','import'] as $a): ?>
+      <?php /* 'import' was listed for a feature that does not exist anywhere in
+               the codebase — the filter always returned "No entries match".
+               Replaced with the actions that are actually written.
+               (DEPLOY_READINESS_v2 4.34) */ ?>
+      <?php foreach (['add','edit','delete','upload-pdf','remove-pdf','upload-image','remove-image','settings','content','restore','password'] as $a): ?>
         <option value="<?= h($a) ?>" <?= $filterAction === $a ? 'selected' : '' ?>><?= h($a) ?></option>
       <?php endforeach; ?>
     </select>

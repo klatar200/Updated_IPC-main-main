@@ -6,62 +6,110 @@ $info   = load_site_info();
 $errors = [];
 $saved  = isset($_GET['saved']);
 
+// Optimistic-concurrency signature, same mechanism as edit.php:17-31. Without
+// it, two tabs open on this page silently clobbered each other: the stale tab's
+// save reverted the other tab's change with no warning at all.
+// (DEPLOY_READINESS_v2 T1.7)
+$storedSig = sha1(json_encode($info));
+
+/**
+ * Read one scalar field from $_POST, falling back to the CURRENTLY STORED
+ * value when the key is absent entirely.
+ *
+ * settings.php used to rebuild site-info.json wholesale from $_POST, so any
+ * field the request did not carry — a truncated POST, a partial form, a
+ * max_input_vars cutoff — was written back as "". That produced
+ * "© –2026" in the privacy footer, href="tel:" on every click-to-call link,
+ * and an empty "faxNumber" in the JSON-LD. An ABSENT key now keeps the stored
+ * value; an EMPTY key is still an intentional clear.
+ */
+function sf(string $key, $current): string {
+    if (!array_key_exists($key, $_POST) || !is_string($_POST[$key])) {
+        return is_string($current) ? $current : '';
+    }
+    return trim($_POST[$key]);
+}
+/** Same, for the newline/comma-separated list fields. */
+function sfList(string $key, $current, string $sep = "\n"): array {
+    if (!array_key_exists($key, $_POST) || !is_string($_POST[$key])) {
+        return is_array($current) ? array_values($current) : [];
+    }
+    $parts = $sep === "\n"
+        ? preg_split('/\r\n|\r|\n/', $_POST[$key])
+        : explode($sep, $_POST[$key]);
+    return array_values(array_filter(array_map('trim', $parts), static function ($v) { return $v !== ''; }));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
 
+    $submittedSig = $_POST['orig_sig'] ?? '';
+    if ($submittedSig !== '' && $submittedSig !== $storedSig) {
+        $errors[] = 'These business details were changed by another session (or another browser tab) since you opened this page. Your edits were NOT saved. Reload to see the current version, then re-apply your changes — submitting again will overwrite the other change.';
+    }
+
+    $cur  = $info['company'] ?? [];
+    $curT = $info['contact'] ?? [];
+    $curA = $info['address'] ?? [];
+    $curH = $info['hours'] ?? [];
+    $curC = $info['certifications'] ?? [];
+    $curS = $info['stats'] ?? [];
+    $curO = $info['social'] ?? [];
+    $curTh = $info['theme'] ?? [];
+
     $updated = [
         'company' => [
-            'name'        => trim($_POST['company_name'] ?? ''),
-            'shortName'   => trim($_POST['company_shortName'] ?? ''),
-            'slogan'      => trim($_POST['company_slogan'] ?? ''),
-            'foundedYear' => trim($_POST['company_foundedYear'] ?? ''),
-            'description' => trim($_POST['company_description'] ?? ''),
+            'name'        => sf('company_name',        $cur['name']        ?? ''),
+            'shortName'   => sf('company_shortName',   $cur['shortName']   ?? ''),
+            'slogan'      => sf('company_slogan',      $cur['slogan']      ?? ''),
+            'foundedYear' => sf('company_foundedYear', $cur['foundedYear'] ?? ''),
+            'description' => sf('company_description', $cur['description'] ?? ''),
         ],
         'contact' => [
-            'phone'     => trim($_POST['contact_phone'] ?? ''),
-            'phoneDial' => trim($_POST['contact_phoneDial'] ?? ''),
-            'fax'       => trim($_POST['contact_fax'] ?? ''),
-            'email'     => trim($_POST['contact_email'] ?? ''),
+            'phone'     => sf('contact_phone',     $curT['phone']     ?? ''),
+            'phoneDial' => sf('contact_phoneDial', $curT['phoneDial'] ?? ''),
+            'fax'       => sf('contact_fax',       $curT['fax']       ?? ''),
+            'email'     => sf('contact_email',     $curT['email']     ?? ''),
         ],
         'address' => [
-            'street'  => trim($_POST['addr_street'] ?? ''),
-            'city'    => trim($_POST['addr_city'] ?? ''),
-            'state'   => trim($_POST['addr_state'] ?? ''),
-            'zip'     => trim($_POST['addr_zip'] ?? ''),
-            'country' => trim($_POST['addr_country'] ?? ''),
+            'street'  => sf('addr_street',  $curA['street']  ?? ''),
+            'city'    => sf('addr_city',    $curA['city']    ?? ''),
+            'state'   => sf('addr_state',   $curA['state']   ?? ''),
+            'zip'     => sf('addr_zip',     $curA['zip']     ?? ''),
+            'country' => sf('addr_country', $curA['country'] ?? ''),
         ],
         'hours' => [
-            'text'   => trim($_POST['hours_text'] ?? ''),
-            'opens'  => trim($_POST['hours_opens'] ?? ''),
-            'closes' => trim($_POST['hours_closes'] ?? ''),
-            'days'   => array_values(array_filter(array_map('trim', explode(',', $_POST['hours_days'] ?? '')))),
+            'text'   => sf('hours_text',   $curH['text']   ?? ''),
+            'opens'  => sf('hours_opens',  $curH['opens']  ?? ''),
+            'closes' => sf('hours_closes', $curH['closes'] ?? ''),
+            'days'   => sfList('hours_days', $curH['days'] ?? [], ','),
         ],
         'certifications' => [
-            'iso'   => trim($_POST['cert_iso'] ?? ''),
-            'other' => array_values(array_filter(array_map('trim', explode("\n", $_POST['cert_other'] ?? '')))),
+            'iso'   => sf('cert_iso', $curC['iso'] ?? ''),
+            'other' => sfList('cert_other', $curC['other'] ?? []),
         ],
         'stats' => [
-            'feetInStock'  => trim($_POST['stats_feet'] ?? ''),
-            'minimumOrder' => trim($_POST['stats_min'] ?? ''),
+            'feetInStock'  => sf('stats_feet', $curS['feetInStock']  ?? ''),
+            'minimumOrder' => sf('stats_min',  $curS['minimumOrder'] ?? ''),
         ],
         'social' => [
-            'twitter'   => trim($_POST['social_twitter'] ?? ''),
-            'facebook'  => trim($_POST['social_facebook'] ?? ''),
-            'linkedin'  => trim($_POST['social_linkedin'] ?? ''),
-            'youtube'   => trim($_POST['social_youtube'] ?? ''),
-            'pinterest' => trim($_POST['social_pinterest'] ?? ''),
+            'twitter'   => sf('social_twitter',   $curO['twitter']   ?? ''),
+            'facebook'  => sf('social_facebook',  $curO['facebook']  ?? ''),
+            'linkedin'  => sf('social_linkedin',  $curO['linkedin']  ?? ''),
+            'youtube'   => sf('social_youtube',   $curO['youtube']   ?? ''),
+            'pinterest' => sf('social_pinterest', $curO['pinterest'] ?? ''),
         ],
         'theme' => [
-            'primaryColor' => trim($_POST['theme_primary'] ?? ''),
-            'darkColor'    => trim($_POST['theme_dark'] ?? ''),
-            'accentColor'  => trim($_POST['theme_accent'] ?? ''),
-            'accent2Color' => trim($_POST['theme_accent2'] ?? ''),
-            'logoUrl'      => trim($_POST['theme_logo'] ?? ''),
+            'primaryColor' => sf('theme_primary', $curTh['primaryColor'] ?? ''),
+            'darkColor'    => sf('theme_dark',    $curTh['darkColor']    ?? ''),
+            'accentColor'  => sf('theme_accent',  $curTh['accentColor']  ?? ''),
+            'accent2Color' => sf('theme_accent2', $curTh['accent2Color'] ?? ''),
+            'logoUrl'      => sf('theme_logo',    $curTh['logoUrl']      ?? ''),
         ],
         'about' => [
-            'paragraphs' => array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $_POST['about_paragraphs'] ?? '')))),
+            'paragraphs' => sfList('about_paragraphs', $info['about']['paragraphs'] ?? []),
         ],
-        'catalogPdfUrl' => trim($_POST['catalogPdfUrl'] ?? ''),
+        'catalogPdfUrl' => sf('catalogPdfUrl', $info['catalogPdfUrl'] ?? ''),
     ];
 
     if ($updated['company']['name'] === '') $errors[] = 'Company name is required.';
@@ -314,6 +362,7 @@ $navActive = 'settings';
       <div class="form-actions">
         <a href="index.php" class="btn btn-secondary">Cancel</a>
         <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
+        <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
         <button type="submit" class="btn btn-primary">Save Business Details</button>
       </div>
     </form>
@@ -327,5 +376,6 @@ $navActive = 'settings';
   </div>
 </main>
 <script src="settings-preview.js"></script>
+<script src="unsaved.js" defer></script>
 </body>
 </html>

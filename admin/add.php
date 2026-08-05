@@ -14,27 +14,60 @@ $product = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check(); // #2
     $products = load_products();
-    $sku = trim($_POST['sku'] ?? '');
+    $sku = post_str('sku');
 
     if (empty($sku)) { $errors[] = 'SKU is required.'; }
-    elseif (find_product($products, $sku) !== -1) { $errors[] = 'A product with SKU "' . htmlspecialchars($sku) . '" already exists.'; }
+    // No htmlspecialchars() here — the error list renders every entry through
+    // h(), so escaping twice showed the admin  O&amp;#039;Brien  in his own
+    // error message. Escape at the render boundary only.
+    // (AUDIT_v3_FINDINGS NB18)
+    elseif (find_product($products, $sku) !== -1) { $errors[] = 'A product with SKU "' . $sku . '" already exists.'; }
 
-    if (empty($_POST['name'])) { $errors[] = 'Product name is required.'; }
-    if (empty($_POST['partType'])) { $errors[] = 'Part type is required.'; }
+    if (post_str('name') === '')     { $errors[] = 'Product name is required.'; }
+    if (post_str('partType') === '') { $errors[] = 'Part type is required.'; }
+
+    // Spec-table JSON validation, ported from edit.php:91-120. The old code
+    // here was `json_decode(...) ?: []`, which SWALLOWED malformed JSON and
+    // saved an empty table while reporting "added successfully" — the exact
+    // harm edit.php's comment names ("customers thought they had saved a
+    // change when they hadn't"). (DEPLOY_READINESS_v2 T1.5)
+    $st1Raw  = post_str('specTable1_rows');
+    $st1Rows = [];
+    if ($st1Raw !== '') {
+        $decoded = json_decode($st1Raw, true);
+        if (is_array($decoded)) {
+            $st1Rows = $decoded;
+        } else {
+            $errors[] = 'Specifications Table JSON is invalid (' . json_last_error_msg() . '). Fix the syntax or clear the field.';
+        }
+    }
+
+    $st2Raw = post_str('specTable2_json');
+    $st2    = ['columnSpans' => [], 'rows' => []];
+    if ($st2Raw !== '') {
+        $decoded = json_decode($st2Raw, true);
+        if (is_array($decoded)) {
+            $st2 = $decoded;
+        } else {
+            $errors[] = 'Size / Dimension Table JSON is invalid (' . json_last_error_msg() . '). Fix the syntax or clear the field.';
+        }
+    }
 
     if (empty($errors)) {
         $new = [
             'id'      => $sku, 'sku'     => $sku,
-            'name'    => trim($_POST['name'] ?? ''),
-            'partType'=> trim($_POST['partType'] ?? ''),
-            'caption' => trim($_POST['caption'] ?? ''),
-            'operatingTemp'          => trim($_POST['operatingTemp'] ?? ''),
-            'specificationsSummary'  => trim($_POST['specificationsSummary'] ?? ''),
-            'photoUrl'=> trim($_POST['photoUrl'] ?? ''),
-            'badges'  => array_values(array_filter(array_map('trim', explode("\n", $_POST['badges'] ?? '')))),
-            'description' => array_values(array_filter(array_map('trim', explode("\n", $_POST['description'] ?? '')))),
-            'specTable1' => ['title' => trim($_POST['specTable1_title'] ?? 'Specifications:'), 'rows' => json_decode(trim($_POST['specTable1_rows'] ?? '[]'), true) ?: []],
-            'specTable2' => json_decode(trim($_POST['specTable2_json'] ?? '{}'), true) ?: ['columnSpans' => [], 'rows' => []],
+            'name'    => post_str('name'),
+            'partType'=> post_str('partType'),
+            'caption' => post_str('caption'),
+            'operatingTemp'          => post_str('operatingTemp'),
+            'specificationsSummary'  => post_str('specificationsSummary'),
+            'photoUrl'=> post_str('photoUrl'),
+            // post_str() first: explode() on an array is a TypeError on PHP 8
+            // and a warning + null on 7.4. (AUDIT_v3_FINDINGS NB12)
+            'badges'  => array_values(array_filter(array_map('trim', explode("\n", post_str('badges'))))),
+            'description' => array_values(array_filter(array_map('trim', explode("\n", post_str('description'))))),
+            'specTable1' => ['title' => post_str('specTable1_title', 'Specifications:'), 'rows' => $st1Rows],
+            'specTable2' => $st2,
         ];
         $products[] = $new;
         if (save_products($products)) {
@@ -45,14 +78,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Failed to save. Check file permissions on products-all.json.';
     }
 
-    $product = array_merge($product, $_POST);
-    $product['badges']      = $_POST['badges'] ?? '';
-    $product['description'] = $_POST['description'] ?? '';
+    // Repopulate from the submitted values. Only scalars — an array-typed field
+    // reaching h() in the form below is another 500. (AUDIT_v3_FINDINGS NB12)
+    foreach ($_POST as $k => $v) {
+        if (is_string($v)) $product[$k] = $v;
+    }
+    $product['badges']      = post_str('badges');
+    $product['description'] = post_str('description');
 }
 
 $partTypes = ['Polyolefin Heat Shrink','PVDF Heat Shrink','Dual-Wall Heat Shrink','Medical Grade Heat Shrink','Elastomeric Heat Shrink','Fiberglass Sleeving','Expandable Sleeving','End Cap','Tape','Adhesive','Accessory'];
+// Repopulate the spec-table textareas from the failed POST rather than
+// resetting them to the empty seed — otherwise a validation error anywhere on
+// the form silently discarded the whole size chart the user had just built.
+// (DEPLOY_READINESS_v2 T1.5)
 $emptyRows = '[]';
 $emptyTable2 = json_encode(['columnSpans' => [['label' => "Order\nSize", 'colspan' => 1, 'sub' => null]], 'rows' => []], JSON_PRETTY_PRINT);
+$st1TitleVal = 'Specifications:';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (is_string($_POST['specTable1_title'] ?? null)) $st1TitleVal = $_POST['specTable1_title'];
+    if (isset($_POST['specTable1_rows']) && is_string($_POST['specTable1_rows']) && trim($_POST['specTable1_rows']) !== '') {
+        $emptyRows = $_POST['specTable1_rows'];
+    }
+    if (isset($_POST['specTable2_json']) && is_string($_POST['specTable2_json']) && trim($_POST['specTable2_json']) !== '') {
+        $emptyTable2 = $_POST['specTable2_json'];
+    }
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -147,8 +198,11 @@ $emptyTable2 = json_encode(['columnSpans' => [['label' => "Order\nSize", 'colspa
     <div class="card">
       <div class="card-title">Specifications</div>
       <div class="form-group">
-        <label>Section heading</label>
-        <input type="text" name="specTable1_title" value="Specifications:" />
+        <label for="specTable1_title">Section heading</label>
+        <?php /* Hardcoded to "Specifications:" — a custom heading was thrown away
+                 by any validation error on the form while the rows beside it
+                 repopulated correctly. (AUDIT_v3_FINDINGS NB11) */ ?>
+        <input type="text" id="specTable1_title" name="specTable1_title" value="<?= h($st1TitleVal) ?>" />
       </div>
       <label>Rows JSON</label>
       <textarea name="specTable1_rows" rows="8" class="mono"><?= h($emptyRows) ?></textarea>
@@ -169,5 +223,6 @@ $emptyTable2 = json_encode(['columnSpans' => [['label' => "Order\nSize", 'colspa
 </main>
 <script src="spectable-editor.js"></script>
 <script src="product-preview.js"></script>
+<script src="unsaved.js" defer></script>
 </body>
 </html>

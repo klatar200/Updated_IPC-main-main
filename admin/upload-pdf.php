@@ -49,7 +49,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Branch B — upload / replace flow (the original behavior).
     elseif (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
-        $errors[] = 'Please select a PDF file to upload.';
+        // One message for four different causes told him none of them: a 2.6MB
+        // file over upload_max_filesize reported "Please select a PDF file to
+        // upload" on a page that simultaneously promised "20MB or smaller", so
+        // he re-selected the same file and looped. (DEPLOY_READINESS_v2 T3.5)
+        $errors[] = upload_error_message($_FILES['pdf_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'PDF');
     } else {
         // Ensure PDF dir exists for the upload path.
         if (!is_dir(PDF_DIR)) {
@@ -88,11 +92,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $filename = pdf_filename_for_sku($sku);
             }
+            // pdf_in_use() exists precisely for this and the upload path never
+            // called it: uploading for one product could overwrite a DIFFERENT
+            // product's datasheet, under a warning that said "This will replace
+            // the existing PDF for this product". (DEPLOY_READINESS_v2 T3.6)
+            $others = array_values(array_filter($products, function ($p) use ($sku) {
+                return ($p['sku'] ?? '') !== $sku;
+            }));
+            if (file_exists(PDF_DIR . $filename) && $filename !== $existingName && pdf_in_use($others, $filename)) {
+                $owner = '';
+                foreach ($others as $p) {
+                    if (!empty($p['pdfUrl']) && basename($p['pdfUrl']) === $filename) { $owner = $p['sku'] ?? ''; break; }
+                }
+                // No h() here — the error list escapes every entry on render, so
+                // escaping now shows the double-escaped text. (AUDIT_v3 NB18)
+                $errors[] = 'A different product' . ($owner !== '' ? ' (' . $owner . ')' : '')
+                          . ' already uses the file ' . $filename . '. Uploading here would overwrite its data sheet.'
+                          . ' Rename this product\'s SKU, or remove the other product\'s PDF first.';
+            }
             $destPath = PDF_DIR . $filename;
             $destUrl  = PDF_URL . $filename;
 
             $isReplacement = file_exists($destPath); // #8 — track if we're replacing
-            if (move_uploaded_file($file['tmp_name'], $destPath)) {
+            if (!empty($errors)) {
+                // in-use collision detected above — do not touch the file
+            } elseif (move_uploaded_file($file['tmp_name'], $destPath)) {
                 // Update the product record with the new PDF URL
                 $products[$idx]['pdfUrl'] = $destUrl;
                 if (save_products($products)) {
@@ -192,10 +216,24 @@ include 'nav.php';
             $pdfName2 = pdf_filename_for_sku($sku);
         }
         $willOverwrite = file_exists(PDF_DIR . $pdfName2);
+        // Whose data sheet is actually sitting at that filename? The warning
+        // said "the existing PDF for this product" unconditionally, including
+        // when the file belongs to a DIFFERENT product — which since T3.6 the
+        // upload will refuse outright, so the hint promised an overwrite that
+        // is about to be blocked. (AUDIT_v3_FINDINGS NB18)
+        $otherOwner = '';
+        if ($willOverwrite) {
+            foreach ($products as $p) {
+                if (($p['sku'] ?? '') === $sku) continue;
+                if (!empty($p['pdfUrl']) && basename($p['pdfUrl']) === $pdfName2) { $otherOwner = $p['sku'] ?? ''; break; }
+            }
+        }
       ?>
       <div class="hint">
         The file will be saved as <code><?= h($pdfName2) ?></code> in the <code>/pdfs/</code> directory.
-        <?php if ($willOverwrite): ?>
+        <?php if ($willOverwrite && $otherOwner !== ''): ?>
+          <span style="color:#dc2626;font-weight:600"> ⚠ That filename is <?= h($otherOwner) ?>'s data sheet. This upload will be refused — remove the PDF from <?= h($otherOwner) ?> first, or change this product's SKU.</span>
+        <?php elseif ($willOverwrite): ?>
           <span style="color:#dc2626;font-weight:600"> ⚠ This will replace the existing PDF for this product.</span>
         <?php endif; ?>
       </div>

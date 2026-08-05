@@ -39,9 +39,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($res === 'removed')   $removed[] = basename($u);
             elseif ($res === 'kept')  $kept[]    = basename($u);
         }
+        // The uploaded photo was never cleaned up — image_in_use() existed and
+        // was never called here, so every deleted product left an orphan in
+        // uploads/images/. (DEPLOY_READINESS_v2 4.33)
+        $photoDetail = '';
+        $photoUrl = (string)($product['photoUrl'] ?? '');
+        if ($photoUrl !== '' && strpos($photoUrl, IMG_URL) === 0) {
+            $photoName = basename($photoUrl);
+            if ($photoName !== '' && $photoName !== '.' && $photoName !== '..') {
+                if (image_in_use($products, $photoName)) {
+                    $photoDetail = ' | Photo kept (used by another product): ' . $photoName;
+                } else {
+                    $realImgDir = realpath(IMG_DIR);
+                    $realFile   = realpath(IMG_DIR . $photoName);
+                    if ($realImgDir && $realFile && strpos($realFile, $realImgDir) === 0) {
+                        @unlink($realFile);
+                        $photoDetail = ' | Photo removed: ' . $photoName;
+                    }
+                }
+            }
+        }
         $pdfDetail = '';
         if ($removed) $pdfDetail .= ' | PDFs removed: ' . implode(', ', $removed);
         if ($kept)    $pdfDetail .= ' | PDFs kept (used by another product): ' . implode(', ', $kept);
+        $pdfDetail .= $photoDetail;
         audit_log('delete', $sku, 'Product deleted: ' . ($product['name'] ?? '') . $pdfDetail); // #6
         header('Location: index.php?msg=' . urlencode($sku . ' deleted successfully') . '&type=success');
         exit;
@@ -81,9 +102,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h1>Delete this product?</h1>
     <p>
       <span class="product-name"><?= h($sku) ?> — <?= h($product['name'] ?? '') ?></span><br><br>
-      This will permanently remove it from <code>products-all.json</code>.
-      The PDF file (if any) will <em>also</em> be deleted from the server.
-      This action cannot be undone.
+      <?php /* Was: "The PDF file (if any) will also be deleted… This action
+               cannot be undone." Both halves were wrong — the uploaded PHOTO is
+               deleted too and went unmentioned, and save_products() writes a
+               backup first, so it CAN be undone from backups.php, which is in
+               his own navigation. (AUDIT_v3_FINDINGS D13 / §3.6) */ ?>
+      This removes it from the catalog. Its PDF data sheet and its uploaded
+      photo are deleted from the server too — unless another product still
+      uses the same file, in which case that file is kept.
+    </p>
+    <p style="font-size:13px;color:#4b5563">
+      <strong>This can be undone.</strong> A backup of the whole catalog is
+      saved immediately before the deletion, so if this is a mistake, go to
+      <a href="backups.php">Backups</a> and restore the most recent
+      <em>Product Catalog</em> entry. Do it before making other changes — only
+      the <?= (int)BACKUP_KEEP ?> most recent backups are kept, and every save
+      counts.
     </p>
     <div class="actions">
       <a href="index.php" class="btn btn-cancel">Cancel</a>
