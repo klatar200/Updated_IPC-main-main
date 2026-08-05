@@ -19,11 +19,29 @@ RewriteCond %{REQUEST_FILENAME} !-d
 # for any direct navigation or refresh on a non-root path.
 RewriteRule ^ index.html [QSA,L]
 
-# Long-cache the hashed assets Vite emits under /assets — filename changes
-# whenever content changes, so it's safe to cache aggressively.
+# Long-cache the hashed assets Vite emits under /assets — the filename changes
+# whenever the content changes, so it is safe to cache those aggressively.
+#
+# SCOPE MATTERS. This was a bare <FilesMatch> on the file extension with no path
+# restriction, so `immutable, max-age=31536000` also covered /images/products/*,
+# /uploads/images/* and /logo.svg — every one of which has a STABLE filename and
+# is written by the admin. `immutable` means the browser will not even
+# revalidate, so a product photo or logo Rick uploads would not reach a
+# returning visitor for a year. "Change your own logo and product photos" is a
+# headline promise of this handoff. (AUDIT_v3_FINDINGS NB1)
+#
+# <Directory> is not allowed in .htaccess, so the scope comes from SetEnvIf on
+# the request path. If mod_setenvif is absent the variable is never set and
+# nothing is long-cached — the safe direction to fail in.
+<IfModule mod_setenvif.c>
+  SetEnvIf Request_URI "^/assets/" IPC_IMMUTABLE=1
+</IfModule>
 <IfModule mod_headers.c>
   <FilesMatch "\.(?:js|css|woff2?|ttf|otf|eot|svg|png|jpg|jpeg|gif|webp|ico)$">
-    Header set Cache-Control "public, max-age=31536000, immutable"
+    Header set Cache-Control "public, max-age=31536000, immutable" env=IPC_IMMUTABLE
+    # Owner-editable images and the logo: cached, but revalidated within the
+    # hour so an FTP'd or admin-uploaded replacement actually lands.
+    Header set Cache-Control "public, max-age=3600" env=!IPC_IMMUTABLE
   </FilesMatch>
   # The HTML shell must NOT be cached — it points to the latest hashed bundle.
   <FilesMatch "\.html$">
@@ -35,3 +53,13 @@ RewriteRule ^ index.html [QSA,L]
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
 </IfModule>
+
+# Dotfiles. Apache's stock <Files ".ht*"> does not cover .user.ini, which this
+# release ships into public_html/ and which would otherwise be web-readable.
+# Same rule data/.htaccess already carries, which is proven on this host.
+# <FilesMatch> tests the final path component, so /.well-known/acme-challenge/…
+# challenge files are unaffected. (AUDIT_v3_FINDINGS NB15)
+<FilesMatch "^\.">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>

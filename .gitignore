@@ -1,6 +1,12 @@
 node_modules/
+dist/
 dist-ssr/
 .vite/
+
+# Snapshot of the currently-deployed site. Kept locally as a diff baseline,
+# never tracked: _localsite/admin/config.local.php contains the LIVE admin
+# password hash and was committed once (169c0d7) — see DEPLOY_READINESS_v2 T1.1.
+_localsite/
 
 # Logs
 npm-debug.log*
@@ -25,6 +31,12 @@ admin/config.local.php.bak.*
 admin/admin-log.jsonl
 admin/.login-throttle.json
 admin/inquiries.jsonl
+admin/ALLOW-PASSWORD-RESET
+
+# Scratch files that got committed once by accident
+_c.cjs
+_check.cjs
+_to_delete/
 
 # Customer-uploaded product photos (live server state, like pdfs/)
 uploads/images/*
@@ -37,3 +49,5 @@ uploads/images/*
 data/products-all.backup.*.json
 data/site-info.backup.*.json
 data/content.backup.*.json
+# Session-3 verification harness (local only, never deployed)
+_harness/

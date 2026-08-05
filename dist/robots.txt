@@ -4,6 +4,7 @@ Allow: /
 # Admin panel and data files — no benefit to indexing these
 Disallow: /admin/
 Disallow: /data/
-Disallow: /_hash.php
+Disallow: /uploads/
+Disallow: /contact.php
 
 Sitemap: https://www.insulationproducts.com/sitemap.xml
