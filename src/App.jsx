@@ -136,6 +136,60 @@ function setSearchParams(updates) {
 
 // ── End of OverAI global shims ───────────────────────────────
 
+// ── PageLink — the one crawlable navigation primitive ────────
+// Every control that CHANGES THE PAGE renders through this. Before it, all
+// navigation was <button onClick={() => nav(...)}> — 63 <button> against 15
+// <a href> in this file — so a crawler found no internal link to follow and
+// every page but the homepage was an orphan URL reachable only from the
+// sitemap. Ctrl/Cmd-click, middle-click and "Copy Link Address" also did
+// nothing, which on a catalog where buyers compare parts side by side is a
+// real cost. (PLAN-1 4.21)
+//
+// Controls that do NOT change the page stay <button>: dropdown/accordion/menu
+// toggles, form submits, the search box and its clear control, sort headers.
+// An anchor needs a meaningful href; giving a toggle a fake one breaks its
+// semantics for screen readers.
+
+/**
+ * The exact URL the router would produce for nav(pageVal, params).
+ * Reuses pageToPath so an href can never drift from the real route and become
+ * a crawlable 404 — which is worse than the button it replaced. The empty-value
+ * filter mirrors _setSearchParamsRef's, so ?part= is omitted rather than blank.
+ */
+function pageHref(pageVal, params) {
+  const path = pageToPath(pageVal);
+  const nonEmpty = Object.entries(params || {}).filter(
+    ([, v]) => v !== null && v !== undefined && v !== "",
+  );
+  const qs = new URLSearchParams(Object.fromEntries(nonEmpty)).toString();
+  return path + (qs ? `?${qs}` : "");
+}
+
+function PageLink({ page = null, params, onNavigate, onClick, children, ...rest }) {
+  const handleClick = (e) => {
+    if (onClick) onClick(e);
+    if (e.defaultPrevented) return;
+    // Anything that is not a plain primary click belongs to the BROWSER.
+    // Ctrl/Cmd-click, Shift-click, Alt-click and any non-primary button must
+    // fall through and open a new tab / window / download exactly as on any
+    // other link — so return WITHOUT preventDefault(). Swallowing these is the
+    // failure mode that reintroduces 4.21 in a form that looks fixed.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (e.button !== 0) return;
+    e.preventDefault();
+    // ONE batched setSearchParams call, exactly as Navbar's nav() did. Two
+    // separate calls lose updates, because react-router v6 reads `prev` from
+    // the current URL each time. (DEPLOY_READINESS_v2 — see useSearchParam)
+    setSearchParams({ ...(params || {}), page });
+    if (onNavigate) onNavigate();
+  };
+  return (
+    <a href={pageHref(page, params)} onClick={handleClick} {...rest}>
+      {children}
+    </a>
+  );
+}
+
 // ── Error boundary ────────────────────────────────────────────
 // Catches render-time exceptions so a broken product record or bad JSON
 // in specTable never blanks the entire site. Shows contact info instead.
@@ -227,11 +281,10 @@ function Navbar({ products = [], catalogFailed = false }) {
 
   const currentPage = page || "home";
 
-  const nav = (p, params = {}) => {
-    // Batch all param updates (page + any extras like ?family=) into ONE
-    // setSearchParams call. Doing them as separate calls would lose updates
-    // because react-router v6 reads `prev` from the current URL each time.
-    setSearchParams({ ...params, page: p });
+  // Every navigational control here is a <PageLink>; the URL update lives in
+  // PageLink (one batched setSearchParams call). This is the side effect the
+  // old nav() also performed, handed to PageLink as onNavigate. (PLAN-1 4.21)
+  const closeMenus = () => {
     setMenuOpen(false);
     setOpenDropdown(null);
     setMobileOpen(null);
@@ -292,8 +345,9 @@ function Navbar({ products = [], catalogFailed = false }) {
         }}
       >
         {/* Logo — SVG mark matching the real IPC circular logo */}
-        <button
-          onClick={() => nav(null)}
+        <PageLink
+          page={null}
+          onNavigate={closeMenus}
           style={{
             display: "flex",
             alignItems: "center",
@@ -351,7 +405,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               {site.company.slogan}
             </div>
           </div>
-        </button>
+        </PageLink>
 
         {/* ── Desktop nav ── */}
         <nav
@@ -364,8 +418,9 @@ function Navbar({ products = [], catalogFailed = false }) {
           }}
         >
           {/* Home */}
-          <button
-            onClick={() => nav(null)}
+          <PageLink
+            page={null}
+            onNavigate={closeMenus}
             style={{
               background: "none",
               border: "none",
@@ -395,7 +450,7 @@ function Navbar({ products = [], catalogFailed = false }) {
             }}
           >
             {nc.home}
-          </button>
+          </PageLink>
 
           {/* ── Products dropdown trigger ── */}
           {(() => {
@@ -544,9 +599,11 @@ function Navbar({ products = [], catalogFailed = false }) {
                       ].map((item) => {
                         const itemActive = currentPage === item.p;
                         return (
-                          <button
+                          <PageLink
                             key={item.p}
-                            onClick={() => nav(item.p, item.params)}
+                            page={item.p}
+                            params={item.params}
+                            onNavigate={closeMenus}
                             style={{
                               display: "flex",
                               flexDirection: "column",
@@ -588,7 +645,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                             >
                               {item.sub}
                             </span>
-                          </button>
+                          </PageLink>
                         );
                       })}
                     </div>
@@ -645,12 +702,12 @@ function Navbar({ products = [], catalogFailed = false }) {
                         </div>
                       ) : (
                         categories.map((cat) => (
-                          <button
+                          // Navigate to dashboard with family param — DashboardPage reads it on mount
+                          <PageLink
                             key={cat}
-                            onClick={() => {
-                              // Navigate to dashboard with family param — DashboardPage reads it on mount
-                              nav("dashboard", { family: cat });
-                            }}
+                            page="dashboard"
+                            params={{ family: cat }}
+                            onNavigate={closeMenus}
                             style={{
                               display: "flex",
                               alignItems: "center",
@@ -688,7 +745,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                             >
                               {cat}
                             </span>
-                          </button>
+                          </PageLink>
                         ))
                       )}
                     </div>
@@ -809,9 +866,10 @@ function Navbar({ products = [], catalogFailed = false }) {
                     {companyNav.map((item) => {
                       const itemActive = currentPage === item.page;
                       return (
-                        <button
+                        <PageLink
                           key={item.page}
-                          onClick={() => nav(item.page)}
+                          page={item.page}
+                          onNavigate={closeMenus}
                           style={{
                             display: "flex",
                             flexDirection: "column",
@@ -854,7 +912,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           >
                             {item.sub}
                           </span>
-                        </button>
+                        </PageLink>
                       );
                     })}
                   </div>
@@ -869,9 +927,14 @@ function Navbar({ products = [], catalogFailed = false }) {
           className="hidden lg:flex"
           style={{ alignItems: "center", gap: 10 }}
         >
-          <button
-            onClick={() => nav("contact")}
+          <PageLink
+            page="contact"
+            onNavigate={closeMenus}
             style={{
+              // <button> defaults to inline-block; <a> to inline. Restated here
+              // and at every other converted call site whose original relied on
+              // the button default. (PLAN-1 4.21 styling risk)
+              display: "inline-block",
               fontSize: 13,
               fontWeight: 600,
               color: "#ffffff",
@@ -886,7 +949,7 @@ function Navbar({ products = [], catalogFailed = false }) {
             onMouseLeave={(e) => (e.currentTarget.style.background = "var(--brand-primary)")}
           >
             {nc.quoteButton}
-          </button>
+          </PageLink>
         </div>
 
         {/* ── Hamburger (mobile only) ── */}
@@ -972,8 +1035,9 @@ function Navbar({ products = [], catalogFailed = false }) {
             }}
           >
             {/* Home */}
-            <button
-              onClick={() => nav(null)}
+            <PageLink
+              page={null}
+              onNavigate={closeMenus}
               style={{
                 display: "flex",
                 width: "100%",
@@ -995,7 +1059,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               }}
             >
               {nc.home}
-            </button>
+            </PageLink>
 
             {/* Products accordion */}
             <div>
@@ -1054,9 +1118,11 @@ function Navbar({ products = [], catalogFailed = false }) {
                     { label: nc.browseAll, p: "products", params: {} },
                     { label: nc.productIndex, p: "dashboard", params: {} },
                   ].map((item) => (
-                    <button
+                    <PageLink
                       key={item.p}
-                      onClick={() => nav(item.p, item.params)}
+                      page={item.p}
+                      params={item.params}
+                      onNavigate={closeMenus}
                       className="ipc-tap"
                       style={{
                         display: "flex",
@@ -1081,7 +1147,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                       >
                         {item.label}
                       </span>
-                    </button>
+                    </PageLink>
                   ))}
                   {/* Category separator */}
                   {categories.length > 0 && (
@@ -1099,9 +1165,11 @@ function Navbar({ products = [], catalogFailed = false }) {
                         By Category
                       </div>
                       {categories.map((cat) => (
-                        <button
+                        <PageLink
                           key={cat}
-                          onClick={() => nav("dashboard", { family: cat })}
+                          page="dashboard"
+                          params={{ family: cat }}
+                          onNavigate={closeMenus}
                           className="ipc-tap"
                           style={{
                             display: "flex",
@@ -1134,7 +1202,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           >
                             {cat}
                           </span>
-                        </button>
+                        </PageLink>
                       ))}
                     </>
                   )}
@@ -1200,9 +1268,10 @@ function Navbar({ products = [], catalogFailed = false }) {
                   }}
                 >
                   {companyNav.map((item) => (
-                    <button
+                    <PageLink
                       key={item.page}
-                      onClick={() => nav(item.page)}
+                      page={item.page}
+                      onNavigate={closeMenus}
                       className="ipc-tap"
                       style={{
                         display: "flex",
@@ -1238,15 +1307,16 @@ function Navbar({ products = [], catalogFailed = false }) {
                       >
                         {item.sub}
                       </span>
-                    </button>
+                    </PageLink>
                   ))}
                 </div>
               )}
             </div>
 
             {/* Contact */}
-            <button
-              onClick={() => nav("contact")}
+            <PageLink
+              page="contact"
+              onNavigate={closeMenus}
               style={{
                 display: "flex",
                 width: "100%",
@@ -1270,12 +1340,17 @@ function Navbar({ products = [], catalogFailed = false }) {
               }}
             >
               Contact
-            </button>
+            </PageLink>
 
             {/* CTA */}
-            <button
-              onClick={() => nav("contact")}
+            <PageLink
+              page="contact"
+              onNavigate={closeMenus}
               style={{
+                // display/textAlign restate the <button> defaults this full-width
+                // control relied on; an <a> is inline and left-aligned.
+                display: "block",
+                textAlign: "center",
                 marginTop: 12,
                 width: "100%",
                 padding: "13px 0",
@@ -1289,7 +1364,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               }}
             >
               {nc.quoteButton}
-            </button>
+            </PageLink>
           </div>
         </div>
         </>
@@ -1390,10 +1465,11 @@ function Hero() {
             {c.subhead}
           </p>
           <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => setSearchParam("page", c.ctaPrimaryPage)}
+            <PageLink
+              page={c.ctaPrimaryPage}
               className="text-sm font-semibold px-6 py-3 rounded transition-all duration-150 hover:brightness-110 hover:shadow-lg"
               style={{
+                display: "inline-block",
                 background: "var(--brand-primary)",
                 color: "#ffffff",
                 border: "none",
@@ -1401,18 +1477,19 @@ function Hero() {
               }}
             >
               {c.ctaPrimaryLabel}
-            </button>
-            <button
-              onClick={() => setSearchParam("page", c.ctaSecondaryPage)}
+            </PageLink>
+            <PageLink
+              page={c.ctaSecondaryPage}
               className="text-sm font-semibold px-6 py-3 rounded transition-colors duration-150 border border-white/40 hover:border-white/80"
               style={{
+                display: "inline-block",
                 background: "transparent",
                 color: "#ffffff",
                 cursor: "pointer",
               }}
             >
               {c.ctaSecondaryLabel}
-            </button>
+            </PageLink>
           </div>
         </div>
 
@@ -1531,16 +1608,19 @@ function Hero() {
  * are driven by onMouseEnter/Leave handlers. Inner text uses .fc-title class for
  * JS-driven color transition. The icon background uses .fc-icon class similarly.
  */
-function FeatureCard({ icon, title, description, onClick }) {
+// The whole card is one navigational control, so the card itself is the anchor
+// — a nested <a> would be invalid and only the inner text would be crawlable.
+// `flex` in the className supplies the display an <a> lacks. (PLAN-1 4.21)
+function FeatureCard({ icon, title, description, page }) {
   return (
-    <div
+    <PageLink
+      page={page}
       className="flex gap-5 p-6 rounded-xl cursor-pointer transition-all duration-200"
       style={{
         background: "#ffffff",
         border: "1px solid #e5e9ee",
         boxShadow: "0 1px 4px rgba(var(--brand-primary-rgb),0.05)",
       }}
-      onClick={onClick}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = "var(--brand-primary)";
         e.currentTarget.style.boxShadow = "0 4px 20px rgba(var(--brand-primary-rgb),0.12)";
@@ -1605,7 +1685,7 @@ function FeatureCard({ icon, title, description, onClick }) {
           {description}
         </p>
       </div>
-    </div>
+    </PageLink>
   );
 }
 
@@ -1614,7 +1694,8 @@ function FeatureCard({ icon, title, description, onClick }) {
  * eyebrow: small all-caps label in var(--brand-primary)
  * title: bold h2 in #141414
  * subtitle: optional muted paragraph
- * action: optional { label, onClick } for a right-aligned CTA button
+ * action: optional { label, page, params } for a right-aligned CTA. It is a
+ *   navigational control, so it renders as a PageLink, not a button. (4.21)
  */
 function SectionHeader({ eyebrow, title, subtitle, action }) {
   return (
@@ -1660,10 +1741,12 @@ function SectionHeader({ eyebrow, title, subtitle, action }) {
         )}
       </div>
       {action && (
-        <button
-          onClick={action.onClick}
+        <PageLink
+          page={action.page}
+          params={action.params}
           className="transition-colors duration-150 hover:bg-blue-700"
           style={{
+            display: "inline-block",
             flexShrink: 0,
             fontSize: 13,
             fontWeight: 600,
@@ -1676,7 +1759,7 @@ function SectionHeader({ eyebrow, title, subtitle, action }) {
           }}
         >
           {action.label}
-        </button>
+        </PageLink>
       )}
     </div>
   );
@@ -1830,10 +1913,7 @@ function Features() {
         <SectionHeader
           eyebrow={c.eyebrow}
           title={c.title}
-          action={{
-            label: "View Full Catalog →",
-            onClick: () => setSearchParam("page", "products"),
-          }}
+          action={{ label: "View Full Catalog →", page: "products" }}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((f) => (
@@ -1846,7 +1926,7 @@ function Features() {
               }
               title={f.title}
               description={f.description}
-              onClick={() => setSearchParam("page", "products")}
+              page="products"
             />
           ))}
         </div>
@@ -1860,10 +1940,11 @@ function Features() {
           >
             {c.ctaText}
           </p>
-          <button
-            onClick={() => setSearchParam("page", "contact")}
+          <PageLink
+            page="contact"
             className="text-sm font-semibold px-5 py-2.5 rounded transition-all duration-150 hover:brightness-110 flex-shrink-0"
             style={{
+              display: "inline-block",
               background: "var(--brand-primary)",
               color: "#ffffff",
               border: "none",
@@ -1871,7 +1952,7 @@ function Features() {
             }}
           >
             {c.ctaButton}
-          </button>
+          </PageLink>
         </div>
       </div>
     </section>
@@ -2180,16 +2261,13 @@ function HomePage() {
             eyebrow={mk.eyebrow}
             title={mk.title}
             subtitle={mk.subtitle}
-            action={{
-              label: "View All Industries →",
-              onClick: () => setSearchParam("page", "industries"),
-            }}
+            action={{ label: "View All Industries →", page: "industries" }}
           />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {markets.map((m) => (
-              <button
+              <PageLink
                 key={m.label}
-                onClick={() => setSearchParam("page", m.page)}
+                page={m.page}
                 className="group rounded-xl p-6 text-left transition-all duration-200 flex flex-col hover:-translate-y-0.5 hover:shadow-lg hover:border-blue-500 hover:bg-blue-50/30"
                 style={{
                   border: "1px solid #e5e9ee",
@@ -2246,7 +2324,7 @@ function HomePage() {
                 >
                   Learn More →
                 </div>
-              </button>
+              </PageLink>
             ))}
           </div>
         </div>
@@ -2274,10 +2352,11 @@ function HomePage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3 flex-shrink-0">
-            <button
-              onClick={() => setSearchParam("page", "contact")}
+            <PageLink
+              page="contact"
               className="text-sm font-semibold px-6 py-3 rounded transition-all duration-150 hover:brightness-110"
               style={{
+                display: "inline-block",
                 background: "#ffffff",
                 color: "var(--brand-primary)",
                 border: "none",
@@ -2285,11 +2364,12 @@ function HomePage() {
               }}
             >
               Request a Quote
-            </button>
-            <button
-              onClick={() => setSearchParam("page", "products")}
+            </PageLink>
+            <PageLink
+              page="products"
               className="text-sm font-semibold px-6 py-3 rounded transition-all duration-150"
               style={{
+                display: "inline-block",
                 background: "transparent",
                 color: "#ffffff",
                 border: "1px solid rgba(255,255,255,0.5)",
@@ -2303,7 +2383,7 @@ function HomePage() {
               }
             >
               Browse Products →
-            </button>
+            </PageLink>
           </div>
         </div>
       </section>
@@ -2816,10 +2896,11 @@ function AboutPage() {
             </p>
           </div>
           <div className="flex gap-3 flex-shrink-0">
-            <button
-              onClick={() => setSearchParam("page", "contact")}
+            <PageLink
+              page="contact"
               className="text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
               style={{
+                display: "inline-block",
                 background: "var(--brand-primary)",
                 color: "#ffffff",
                 border: "none",
@@ -2827,11 +2908,12 @@ function AboutPage() {
               }}
             >
               Contact Sales →
-            </button>
-            <button
-              onClick={() => setSearchParam("page", "services")}
+            </PageLink>
+            <PageLink
+              page="services"
               className="text-sm font-medium px-5 py-2.5 rounded transition-all"
               style={{
+                display: "inline-block",
                 background: "transparent",
                 color: "rgba(255,255,255,0.7)",
                 border: "1px solid rgba(255,255,255,0.3)",
@@ -2847,7 +2929,7 @@ function AboutPage() {
               }}
             >
               View Services
-            </button>
+            </PageLink>
           </div>
         </div>
       </div>
@@ -3112,11 +3194,15 @@ function FaqPage() {
             style={{ color: "rgba(255,255,255,0.65)" }}
           >
             {c.intro}{" "}
-            <button
-              onClick={() => setSearchParam("page", "contact")}
+            <PageLink
+              page="contact"
               className="underline font-semibold"
               style={{
                 color: "var(--brand-accent)",
+                // Stated inline rather than left to the `underline` class, so
+                // this inline link keeps its rule regardless of how Tailwind's
+                // `a { text-decoration: inherit }` preflight reset cascades.
+                textDecoration: "underline",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
@@ -3124,7 +3210,7 @@ function FaqPage() {
               }}
             >
               Contact our team.
-            </button>
+            </PageLink>
           </p>
         </div>
       </div>
@@ -3226,10 +3312,14 @@ function FaqPage() {
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <button
-                onClick={() => setSearchParam("page", "contact")}
+              <PageLink
+                page="contact"
                 className="w-full py-3 rounded text-sm font-semibold hover:brightness-110 transition-all"
                 style={{
+                  // A full-width control: restate the <button> block + centred
+                  // text an <a> does not have. (PLAN-1 4.21 styling risk)
+                  display: "block",
+                  textAlign: "center",
                   background: "var(--brand-primary)",
                   color: "#ffffff",
                   border: "none",
@@ -3237,11 +3327,13 @@ function FaqPage() {
                 }}
               >
                 Contact Sales →
-              </button>
-              <button
-                onClick={() => setSearchParam("page", "products")}
+              </PageLink>
+              <PageLink
+                page="products"
                 className="w-full py-3 rounded text-sm font-medium transition-all"
                 style={{
+                  display: "block",
+                  textAlign: "center",
                   background: "transparent",
                   color: "rgba(255,255,255,0.7)",
                   border: "1px solid rgba(255,255,255,0.2)",
@@ -3257,7 +3349,7 @@ function FaqPage() {
                 }}
               >
                 Browse Products
-              </button>
+              </PageLink>
             </div>
           </div>
         </div>
@@ -3558,10 +3650,11 @@ function ContactPage() {
             >
               Submit Another
             </button>
-            <button
-              onClick={() => setSearchParam("page", "products")}
+            <PageLink
+              page="products"
               className="text-sm font-medium px-5 py-2.5 rounded transition-all"
               style={{
+                display: "inline-block",
                 background: "transparent",
                 color: "var(--brand-primary)",
                 border: "1px solid var(--brand-primary)",
@@ -3569,7 +3662,7 @@ function ContactPage() {
               }}
             >
               Browse Products
-            </button>
+            </PageLink>
           </div>
         </div>
       </div>
@@ -5127,7 +5220,12 @@ const FAMILY_ORDER = [
 // Module-level constant — prevents recreating the Set on every ProductSidebar render (#6 fix)
 const SIDEBAR_EXCLUDED = new Set(["VALUE-ADDED", ""]);
 
-function ProductSidebar({ products, selectedId, onSelect }) {
+// onSelect became onNavigate in 4.21: picking a product here writes ?productId=
+// to the URL, so it is a page change and belongs in a <PageLink>. The callback
+// now carries only the side effects (sticky bar + scroll); PageLink owns the
+// URL. The family filter pills and the family accordion are UI state, not
+// navigation, so they stay <button>. (PLAN-1 4.21)
+function ProductSidebar({ products, selectedId, onNavigate }) {
   const families = useMemo(() => {
     const map = new Map();
     for (const p of products) {
@@ -5252,10 +5350,13 @@ function ProductSidebar({ products, selectedId, onSelect }) {
           {mobileProducts.map((p, i) => {
             const active = p.id === selectedId;
             return (
-              <button
+              <PageLink
                 key={`${p.sku || p.id}-${i}`}
-                onClick={() => onSelect(p.id)}
+                page="products"
+                params={{ productId: p.id }}
+                onNavigate={onNavigate}
                 style={{
+                  display: "block",
                   textAlign: "left",
                   padding: "10px 12px",
                   minHeight: 44,
@@ -5289,7 +5390,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                     ? p.name.slice(0, 32) + "…"
                     : p.name || p.sku}
                 </div>
-              </button>
+              </PageLink>
             );
           })}
         </div>
@@ -5374,9 +5475,11 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                   items.map((p) => {
                     const active = p.id === selectedId;
                     return (
-                      <button
+                      <PageLink
                         key={p.id}
-                        onClick={() => onSelect(p.id)}
+                        page="products"
+                        params={{ productId: p.id }}
+                        onNavigate={onNavigate}
                         className="w-full text-left px-5 py-3 transition-all duration-150 block"
                         style={{
                           background: active
@@ -5415,7 +5518,7 @@ function ProductSidebar({ products, selectedId, onSelect }) {
                             ? p.name.slice(0, 38) + "…"
                             : p.name || p.sku}
                         </div>
-                      </button>
+                      </PageLink>
                     );
                   })}
               </div>
@@ -5751,8 +5854,8 @@ function ProductDetail({ product, allProducts }) {
                   ))}
               </>
             ) : (
-              <button
-                onClick={() => setSearchParam("page", "contact")}
+              <PageLink
+                page="contact"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
                 style={{
                   background: "var(--brand-accent)",
@@ -5777,13 +5880,14 @@ function ProductDetail({ product, allProducts }) {
                   <polyline points="22,6 12,13 2,6" />
                 </svg>
                 Request Data Sheet
-              </button>
+              </PageLink>
             )}
-            <button
+            <PageLink
               // Carry the SKU across, so the RFQ arrives as "— IP35KY —"
               // instead of "General RFQ" and sales knows what was being
               // priced. (DEPLOY_READINESS_v2 4.6)
-              onClick={() => setSearchParams({ page: "contact", part: product.sku || product.id || "" })}
+              page="contact"
+              params={{ part: product.sku || product.id || "" }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
               style={{
                 background: "var(--brand-primary)",
@@ -5793,7 +5897,7 @@ function ProductDetail({ product, allProducts }) {
               }}
             >
               Request Quote
-            </button>
+            </PageLink>
           </div>
         </div>
 
@@ -6068,7 +6172,9 @@ function skuSegmentMatch(sku, needle) {
 }
 
 function ProductPage({ products }) {
-  const [selectedId, setSelectedId] = useSearchParam("productId");
+  // Read-only now: the sidebar's <PageLink>s write ?productId= themselves, so
+  // nothing in this component sets it. (PLAN-1 4.21)
+  const [selectedId] = useSearchParam("productId");
   // Exact, then whole-SKU-ignoring-punctuation, then whole-segment match.
   // No blind fall-through to products[0] — see notFound below.
   const matched = selectedId
@@ -6194,9 +6300,8 @@ function ProductPage({ products }) {
             <strong>We couldn't find part “{selectedId}”.</strong> It may have been
             renamed or discontinued. Showing the catalog instead — pick a part from
             the list, or{" "}
-            <button
-              type="button"
-              onClick={() => setSearchParams({ page: "contact" })}
+            <PageLink
+              page="contact"
               style={{
                 background: "none",
                 border: "none",
@@ -6208,7 +6313,7 @@ function ProductPage({ products }) {
               }}
             >
               ask us about it
-            </button>
+            </PageLink>
             .
           </div>
         </div>
@@ -6226,8 +6331,9 @@ function ProductPage({ products }) {
         <ProductSidebar
           products={products}
           selectedId={product.id}
-          onSelect={(id) => {
-            setSelectedId(id);
+          onNavigate={() => {
+            // PageLink has already written ?productId= to the URL; this is only
+            // the side effect the old onSelect performed alongside it.
             setShowStickyBar(false);
             if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
               detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -6398,8 +6504,8 @@ function ProductPage({ products }) {
                   ))}
               </>
             ) : null}
-            <button
-              onClick={() => setSearchParam("page", "contact")}
+            <PageLink
+              page="contact"
               className="ipc-tap"
               style={{
                 display: "flex",
@@ -6423,7 +6529,7 @@ function ProductPage({ products }) {
               }
             >
               Request a Quote →
-            </button>
+            </PageLink>
           </div>
         </div>
       </div>
@@ -6544,9 +6650,9 @@ function DashboardPage({ products }) {
     }
   };
 
-  const handleViewProduct = (productId) => {
-    setSearchParams({ productId, page: "products" });
-  };
+  // handleViewProduct is gone: both "View Product" controls are <PageLink
+  // page="products" params={{ productId }}> now, so the URL they produce is a
+  // real href a crawler can follow. (PLAN-1 4.21)
 
   // Fix 8: cols references DASHBOARD_COLS (module-level) — not recreated on every keystroke
   const cols = DASHBOARD_COLS;
@@ -6936,10 +7042,14 @@ function DashboardPage({ products }) {
                     Operating temp: <span style={{ color: '#141414', fontWeight: 500 }}>{row.operatingTemp}</span>
                   </div>
                 )}
-                <button
-                  onClick={() => handleViewProduct(row.productId)}
+                <PageLink
+                  page="products"
+                  params={{ productId: row.productId }}
                   style={{
                     display: 'block',
+                    // <a> is left-aligned where <button> centres. Full-width
+                    // control, so this is visible. (PLAN-1 4.21 styling risk)
+                    textAlign: 'center',
                     width: '100%',
                     padding: '12px',
                     borderRadius: 8,
@@ -6952,7 +7062,7 @@ function DashboardPage({ products }) {
                   }}
                 >
                   View Product →
-                </button>
+                </PageLink>
               </div>
             ))
           )}
@@ -7232,8 +7342,9 @@ function DashboardPage({ products }) {
                           whiteSpace: "nowrap",
                         }}
                       >
-                        <button
-                          onClick={() => handleViewProduct(row.productId)}
+                        <PageLink
+                          page="products"
+                          params={{ productId: row.productId }}
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
@@ -7270,7 +7381,7 @@ function DashboardPage({ products }) {
                           >
                             →
                           </span>
-                        </button>
+                        </PageLink>
                       </td>
                     </tr>
                   ))
@@ -7615,13 +7726,9 @@ function IndustriesPage() {
                 <ul className="space-y-2">
                   {(ind.products || []).map((prod) => (
                     <li key={prod.sku}>
-                      <button
-                        onClick={() =>
-                          setSearchParams({
-                            productId: prod.sku,
-                            page: "products",
-                          })
-                        }
+                      <PageLink
+                        page="products"
+                        params={{ productId: prod.sku }}
                         className="flex items-start gap-2.5 w-full text-left group"
                         style={{
                           background: "none",
@@ -7675,7 +7782,7 @@ function IndustriesPage() {
                             View product →
                           </span>
                         </span>
-                      </button>
+                      </PageLink>
                     </li>
                   ))}
                 </ul>
@@ -7706,10 +7813,12 @@ function IndustriesPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <button
-                    onClick={() => setSearchParam("page", "contact")}
+                  <PageLink
+                    page="contact"
                     className="w-full py-2.5 rounded text-sm font-semibold transition-all hover:brightness-110"
                     style={{
+                      display: "block",
+                      textAlign: "center",
                       background: "var(--brand-primary)",
                       color: "#ffffff",
                       border: "none",
@@ -7717,11 +7826,13 @@ function IndustriesPage() {
                     }}
                   >
                     Request a Quote →
-                  </button>
-                  <button
-                    onClick={() => setSearchParam("page", "products")}
+                  </PageLink>
+                  <PageLink
+                    page="products"
                     className="w-full py-2.5 rounded text-sm font-medium transition-all"
                     style={{
+                      display: "block",
+                      textAlign: "center",
                       background: "transparent",
                       color: "var(--brand-primary)",
                       border: "1px solid var(--brand-primary)",
@@ -7735,7 +7846,7 @@ function IndustriesPage() {
                     }}
                   >
                     Browse All Products
-                  </button>
+                  </PageLink>
                 </div>
               </div>
             </div>
@@ -7757,10 +7868,11 @@ function IndustriesPage() {
               details.
             </p>
           </div>
-          <button
-            onClick={() => setSearchParam("page", "contact")}
+          <PageLink
+            page="contact"
             className="flex-shrink-0 text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
             style={{
+              display: "inline-block",
               background: "var(--brand-primary)",
               color: "#ffffff",
               border: "none",
@@ -7768,7 +7880,7 @@ function IndustriesPage() {
             }}
           >
             Contact Sales
-          </button>
+          </PageLink>
         </div>
       </div>
     </div>
@@ -8079,10 +8191,11 @@ function ServicesPage() {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setSearchParam("page", "contact")}
+          <PageLink
+            page="contact"
             className="flex-shrink-0 text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
             style={{
+              display: "inline-block",
               background: "#ffffff",
               color: "var(--brand-primary)",
               border: "none",
@@ -8090,7 +8203,7 @@ function ServicesPage() {
             }}
           >
             Request a Quote →
-          </button>
+          </PageLink>
         </div>
 
         {/* Services grid */}
@@ -8228,10 +8341,12 @@ function ServicesPage() {
               </p>
             </div>
             <div className="flex flex-col gap-3">
-              <button
-                onClick={() => setSearchParam("page", "contact")}
+              <PageLink
+                page="contact"
                 className="w-full py-3 rounded text-sm font-semibold hover:brightness-110 transition-all"
                 style={{
+                  display: "block",
+                  textAlign: "center",
                   background: "var(--brand-primary)",
                   color: "#ffffff",
                   border: "none",
@@ -8239,11 +8354,13 @@ function ServicesPage() {
                 }}
               >
                 Contact Sales →
-              </button>
-              <button
-                onClick={() => setSearchParam("page", "products")}
+              </PageLink>
+              <PageLink
+                page="products"
                 className="w-full py-3 rounded text-sm font-medium transition-colors duration-150 hover:text-white hover:border-white/50"
                 style={{
+                  display: "block",
+                  textAlign: "center",
                   background: "transparent",
                   color: "rgba(255,255,255,0.7)",
                   border: "1px solid rgba(255,255,255,0.2)",
@@ -8251,7 +8368,7 @@ function ServicesPage() {
                 }}
               >
                 Browse All Products
-              </button>
+              </PageLink>
             </div>
           </div>
         </div>
@@ -8640,8 +8757,8 @@ function Footer() {
             >
               {footerLinks.map((link) => (
                 <div key={link.label}>
-                  <button
-                    onClick={() => setSearchParam("page", link.page)}
+                  <PageLink
+                    page={link.page}
                     className="text-xs transition-colors duration-150 ipc-tap"
                     style={{
                       color: "rgba(255,255,255,0.45)",
@@ -8659,7 +8776,7 @@ function Footer() {
                     }
                   >
                     {link.label}
-                  </button>
+                  </PageLink>
                 </div>
               ))}
             </div>

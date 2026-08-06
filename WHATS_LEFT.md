@@ -106,6 +106,7 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **4.3** | `src/App.jsx` (`PageMeta`) | Shipped 2026-08-05 (Plan 1). `index.html` is the single shell for all nine routes and shipped **one** `og:url` hardcoded to the site root and **no** canonical at all, so every page announced itself as the homepage. `PageMeta` now upserts a per-route `<link rel="canonical">` and matching `og:url`, built from a new single-source `SITE_ORIGIN` constant (not `window.location.origin` — dev, the mirror and production would each self-canonicalise). `?productId=` is canonical to itself; `?family=` and other view params are canonical to the bare route. Evidence in §4e. |
 | **4.1** | `src/App.jsx` (`FaqPage`) | Shipped 2026-08-05 (Plan 1). The FAQ JSON-LD effect had `[]` deps; `ContentProvider` renders children immediately from `contentDefaults` and swaps content in later, so the effect ran once against the **defaults** and never re-ran — every FAQ Rick wrote was absent from the rich-result markup. Now depends on a `useMemo`-stabilised `categories` (raw `groupFaq()` returns a new array each render and would thrash the `<script>`), and removes any existing `#faq-ld` before appending so a re-run cannot leave duplicates. Evidence in §4e. |
 | **`seo: []`** | `src/App.jsx` (`PageMeta`) | Shipped 2026-08-05 (Plan 1) — supersedes the `AMENDED` note in §4 (T1.4), which recorded this as benign and left as-is. Two faults, not one: `\|\| document.title` meant emptying the section kept the defaults rather than honouring the deletion; and `\|\| home.title` gave every page **without** its own `seo` row the homepage's title — `terms` and `quality` have no row, so three routes shipped the same `<title>`. Both now fall back to the page's own visible heading plus the company name. Measured: 9 of 9 titles distinct, against **7 of 9** with the old logic re-installed. |
+| **4.21** | `src/App.jsx` (new `PageLink`) | Shipped 2026-08-05 (Plan 1). Navigation was `<button onClick>` throughout — **63 `<button>` against 15 `<a href>`** — so a crawler found no internal link to follow and every route but the homepage was an orphan URL reachable only from the sitemap; Ctrl/Cmd-click, middle-click and "Copy Link Address" all did nothing. One new `PageLink` component now renders a real `<a>` whose `href` comes from the existing `pageToPath` (so it can never drift into a crawlable 404), returns early **without** `preventDefault()` on any modified or non-primary click, and otherwise keeps the single batched `setSearchParams` call. Every page-changing control routes through it: `Navbar` (logo, Home, both dropdowns, category chips, CTA, the whole mobile drawer), `Footer`, hero/CTA buttons, market cards, `FeatureCard`, `SectionHeader`'s action, both "View Product" controls, the industry product lists and **`ProductSidebar`'s two product lists** (its `onSelect` wrote `?productId=` to the URL, so it was navigation). Toggles, form submits, the search box, family filter pills and accordion headers stay `<button>`. Counts after: **30 `<button>`, 51 distinct internal `href`s, all 200 through the real rewrite.** Evidence in §4f. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -128,8 +129,9 @@ Ordered by value. Nothing here blocks the upload.
 - [ ] **4.14** Login throttle uses `sleep()` (parallel connections sleep concurrently) and a read-modify-write with no lock. A long random password is the real control.
 - [ ] **4.19** Product Index sortable headers have no `tabindex`, `scope` or `aria-sort`.
 - [ ] **4.20** Collapsed FAQ answers use `max-height:0` — still read by screen readers and find-in-page.
-- [ ] **4.21** Navigation is `<button onClick>` throughout: 3–7 `<a href>` vs 14–119 `<button>` per page. No crawlable internal link graph, no Cmd-click.
+- [x] **4.21** ~~Navigation is `<button onClick>` throughout: 3–7 `<a href>` vs 14–119 `<button>` per page. No crawlable internal link graph, no Cmd-click.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4f.
 - [ ] **4.23** Owner-set brand colors are injected with no contrast guard while headings and primary buttons hardcode `#ffffff`.
+- [ ] **sidebar-active-border** `ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.
 - [x] **4.24** ~~`SITE_INFO_URL` / `CONTENT_URL` have no `import.meta.env.DEV` branch, so theming and content plumbing are never exercised by `npm run dev`.~~ **SHIPPED 2026-08-05 (Plan 0)** — see §1b and §4d.
 - [ ] **4.26** Scroll listeners added inside an inline `ref` callback and never removed.
 - [ ] **4.27** Duplicate React keys reachable from the admin (`key={link.label}`, `key={f.title}`, `key={m.year}`, …). Two footer links both named "Contact" drop a row.
@@ -614,6 +616,151 @@ sweep 18 loads 0 failing · overflow 0/42 @375px
 `public/sitemap.xml` lists `/dashboard` with priority 0.8. Whether that route
 should be publicly indexed was not investigated and is out of Plan 1's scope —
 recorded in §2.
+
+---
+
+## 4f. Verification evidence for Plan 1 part B — 4.21, the crawlable link graph
+
+Suite: `node _harness/plan1b.js` — **45 checks, 0 failing**. Client-side
+behaviour is measured against `npm run dev` on `:5173`; the link graph, the
+crawl and a repeat of the click semantics are measured against the `php -S`
+mirror on `:8123`, which applies the real `.htaccess` SPA rewrite.
+
+### The suite failed first, against the unmodified tree
+
+Run at `a0b07e1` before any edit — this is what 4.21 actually was:
+
+```
+FAIL  A1 / links to /            0 distinct paths on the page
+FAIL  A1 / links to /products    0 distinct paths on the page
+… all nine routes …
+FAIL  A1 / has a real link graph (≥ 12 internal anchors)   0 internal anchors
+FAIL  A3 product links carry ?productId=                   0 product hrefs
+FAIL  A4 / — no <button> changes the page (27 buttons clicked)
+        #4 "Request a Quote" → /contact | #6 "Browse Products →" → /products
+        #7 "Request a Quote" → /contact | #8 "View Full Catalog →" → /products
+FAIL  A4 /products — no <button> changes the page (119 buttons clicked)
+        #0 "INSULATION PRODUCTS…" → / | #1 "Home" → /
+        #17 "IP29CG…" → /products?productId=IP29CG
+FAIL  A5 a /products anchor exists to ctrl-click            null
+```
+
+Zero internal anchors on the homepage. A4 is the honest form of "no remaining
+button calls `nav`": every `<button>` is clicked one at a time from a fresh
+load, and the check fails if the URL moves.
+
+### After — `node _harness/plan1b.js`, 45/45
+
+```
+PASS  A1 / links to / · /products · /dashboard · /industries · /services
+      · /about · /faq · /contact · /privacy        (all nine renderPage() routes)
+PASS  A1 / has a real link graph (≥ 12 internal anchors)   30 internal anchors
+PASS  A2 every internal href resolves to a route renderPage() handles   51 hrefs
+PASS  A2 no href has a trailing slash (pageToPath never emits one)
+PASS  A3 product links carry ?productId=   41 product hrefs, e.g. /products?productId=IP29CG
+PASS  A4 / — no <button> changes the page (3 buttons clicked)
+PASS  A4 /products — no <button> changes the page (24 buttons clicked)
+PASS  A5 ctrl-click opened a new tab   http://localhost:5173/products
+PASS  A5 the new tab is at the correct URL
+PASS  A5 ctrl-click left the current page URL unchanged   / → /
+PASS  A6 middle-click opened a new tab at the correct URL  /contact
+PASS  A6 middle-click left the current page URL unchanged
+PASS  A7 plain click navigated   /about
+PASS  A7 that navigation was client-side (sentinel survived, no full reload)
+PASS  A8 five navigations: /products /about /services /contact, then into
+      /products?productId=CC from the Product Index
+PASS  A8 Back returns to the Product Index · Forward returns to the product page
+PASS  A9 the BUILT bundle also emits a link graph   51 internal anchors in dist/
+PASS  A9 all 51 hrefs return 200 through the real rewrite
+PASS  A10 dist: ctrl-click opens a new tab at the right URL, current URL unchanged
+PASS  A10 dist: plain click navigated and was client-side (sentinel survived)
+PASS  A11 a category chip is an <a href="/dashboard?family=Polyolefin+Heat+Shrink">
+PASS  A11 it lands on the Product Index with ?family= consumed and stripped
+PASS  A11 the Product Index rendered a filtered table   12 rows
+PASS  A11 Back leaves the Index (the { replace: true } cleanup did not trap it)
+PASS  no page/console errors across the run   none
+```
+
+A11 exists because the navbar category chips are the **only** feed into
+`DashboardPage`'s `?family=` cleanup, which is the one place the routing shim
+uses `{ replace: true }` — pushing there traps Back on the Product Index
+forever. The chips are `PageLink`s now, so the whole path is re-proved: the
+`href` the anchor exposes, the filter it applies, the param being consumed and
+stripped, and Back still leaving the page.
+
+A4's button count on `/products` fell from **119 to 24**; the 24 that remain are
+the family filter pills, the family accordion headers, the search box and its
+clear control, and the sort headers — none of which change the page.
+
+### Counts
+
+```
+<button   in src/App.jsx     63  →  30
+<a href / <PageLink          15  →  59
+distinct internal hrefs       0  →  51   (9 routes + 41 ?productId= + /)
+```
+
+### No visual change — screenshots, byte-identical
+
+`node _harness/shots.js before` was captured against the **unmodified** `dist/`
+before any edit; `… after` against the rebuilt bundle in the same mirror.
+
+```
+IDENTICAL  1440-home-header          IDENTICAL  375-home-header
+IDENTICAL  1440-products-header      IDENTICAL  375-menu-closed-accordions
+IDENTICAL  1440-home-footer          IDENTICAL  375-menu-products-open
+IDENTICAL  1440-products-footer      IDENTICAL  375-menu-company-open
+IDENTICAL  1440-dropdown-products    IDENTICAL  375-home-footer
+```
+
+`ProductSidebar` was **not** in that before/after set — it was converted after
+the "before" shots were taken, so no pair exists for it. Verified instead by
+measuring the built bundle in the browser (`_harness/out/after/1440-sidebar.png`,
+`375-sidebar.png`): the desktop rows compute to `display: block`,
+`text-align: left`, `text-decoration: none`, width 276 of a 288 px aside,
+height 60, padding `12px 20px` — the same box the `<button>` produced from
+`w-full text-left px-5 py-3 block` — and the mobile pill grid still highlights
+the active product. The one difference found there is pre-existing and recorded
+in §2 as `sidebar-active-border`.
+
+### What was deliberately left as `<button>`
+
+Dropdown and accordion toggles (including every `setOpenDropdown`), the
+hamburger, the catalog-failure reload link, form submits, the search box and its
+clear control, "Submit Another", the sidebar family filter pills and family
+headers, and the sort headers (Plan 4 owns those). None of them change the page;
+an anchor would need a meaningless `href` and would break their semantics for
+screen readers.
+
+### Styling technique, for the next reader
+
+Tailwind's preflight already resets `a { color: inherit; text-decoration:
+inherit }`, so colour and underline needed no work. The two real deltas from
+`<button>` are `display` (`inline-block` vs `inline`) and `text-align: center`.
+Both are restated inline at each converted call site whose original relied on
+the button default — and only there, because a blanket inline `display` would
+have overridden the Tailwind `flex` / `hidden lg:flex` classes several call
+sites depend on. No rule was added to `src/index.css` or `GlobalStyles`: the
+scope boundary is `src/App.jsx` and `index.html`.
+
+### Regression, after part B
+
+```
+php -l 19/19 · node --check 8/8 · JSON 17/10/42 · build 0 errors (326.80 kB JS / 21.02 kB CSS)
+B1 20/20 · B1-trunc 5/5 · B2 18/18 · B3 25/25 · NB2 10/10 · NB4 17/17
+help 22/22 · invariants 15/15 · TTL 3/3 · adminsweep 5/5
+sweep 18 loads 0 failing · overflow 42 pages 0 overflow @375px
+plan0 9/9 · plan1a 43/43 · plan1b 45/45
+```
+
+`data/content.json`, `data/site-info.json` and `data/products-all.json` all
+`cmp` byte-identical against `_harness/pristine/` after the run.
+
+### `[UNVERIFIED]`
+
+Nothing in 4.21 depends on `.htaccess` or `.user.ini` beyond the SPA rewrite,
+which `_harness/router.php` emulates and A9 exercises against all 51 hrefs. The
+standing `php -S` limitations from GUARDRAILS §4.3 are unchanged by this item.
 
 ---
 
