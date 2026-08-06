@@ -16,6 +16,7 @@
     ".ste-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;}" +
     ".ste-in{padding:8px 10px;border:1px solid #d1d9e0;border-radius:7px;font-size:13px;font-family:inherit;color:#141414;width:100%;background:#fff;outline:none;}" +
     ".ste-in:focus{border-color:#005da3;box-shadow:0 0 0 3px rgba(0,93,163,0.1);}" +
+    ".vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}" +
     ".ste-lab{flex:0 0 32%;}" +
     ".ste-val{flex:1;resize:vertical;line-height:1.4;overflow:hidden;min-height:34px;}" +
     ".ste-x{flex:0 0 auto;width:32px;height:34px;border:1px solid #e5e9ee;background:#fff;border-radius:7px;color:#9ca3af;cursor:pointer;font-size:17px;line-height:1;}" +
@@ -69,6 +70,22 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
     });
   }
+  /* 4.30 — a polite live region per editor. Every structural change here is
+   * invisible to a screen reader otherwise: the rows are rebuilt with
+   * innerHTML, so nothing is announced and focus lands on the document. */
+  function makeAnnouncer(host) {
+    var live = document.createElement("div");
+    live.className = "vh ste-live";
+    live.setAttribute("aria-live", "polite");
+    live.setAttribute("aria-atomic", "true");
+    host.appendChild(live);
+    return function (msg) {
+      // Same text twice in a row is not re-announced, so clear first.
+      live.textContent = "";
+      window.setTimeout(function () { live.textContent = msg; }, 30);
+    };
+  }
+
   function autoGrow(t) {
     t.style.height = "auto";
     t.style.height = Math.max(t.classList.contains("ste-head") ? 32 : 34, t.scrollHeight) + "px";
@@ -118,6 +135,7 @@
     wrap.appendChild(prevWrap);
     ta.parentNode.insertBefore(wrap, ta);
     var preview = prevWrap.querySelector(".ste-splist");
+    var announce = makeAnnouncer(wrap);
 
     function serialize() {
       ta.value = JSON.stringify(
@@ -138,21 +156,39 @@
           })
           .join("") || '<div class="ste-sprow ste-note">No specifications yet.</div>';
     }
-    function buildRows() {
+    /* 4.30 — every remove button said "Remove row". Twenty identical names in a
+     * row list is no name at all, so each carries its position and, when the
+     * owner has typed one, its label. Recomputed on every rebuild AND whenever
+     * the label is edited, or the name goes stale the moment he types. */
+    function nameRemove(btn, idx, label) {
+      var who = "specification row " + (idx + 1);
+      var t = (label || "").trim();
+      btn.setAttribute("aria-label", "Remove " + who + (t ? ": " + t : " (no label)"));
+    }
+
+    /* Rows are rebuilt with innerHTML, which throws focus to the document on
+     * every structural change — building a 20-row table meant 20 round trips
+     * back. Callers say where focus should land instead. */
+    function buildRows(focus) {
       rows.innerHTML = "";
-      data.forEach(function (r) {
+      data.forEach(function (r, idx) {
         var row = document.createElement("div");
         row.className = "ste-row";
         row.innerHTML =
           '<input class="ste-in ste-lab" placeholder="Label (leave blank for a note)">' +
           '<textarea class="ste-in ste-val" rows="1" placeholder="Value"></textarea>' +
-          '<button type="button" class="ste-x" aria-label="Remove row">×</button>';
+          '<button type="button" class="ste-x">×</button>';
         var lab = row.querySelector(".ste-lab");
         var val = row.querySelector(".ste-val");
+        var del = row.querySelector(".ste-x");
         lab.value = r.label;
         val.value = r.value;
+        lab.setAttribute("aria-label", "Label, specification row " + (idx + 1));
+        val.setAttribute("aria-label", "Value, specification row " + (idx + 1));
+        nameRemove(del, idx, r.label);
         lab.addEventListener("input", function () {
           r.label = this.value;
+          nameRemove(del, idx, this.value);
           serialize();
           renderPreview();
         });
@@ -162,24 +198,32 @@
           serialize();
           renderPreview();
         });
-        row.querySelector(".ste-x").addEventListener("click", function () {
-          data.splice(data.indexOf(r), 1);
+        del.addEventListener("click", function () {
+          var at = data.indexOf(r);
+          data.splice(at, 1);
           if (data.length === 0) data.push({ label: "", value: "" });
-          buildRows();
+          // Land on the nearest SURVIVING row's equivalent control, so a
+          // keyboard user can delete several in a row without hunting.
+          buildRows({ row: Math.min(at, data.length - 1), sel: ".ste-x" });
           serialize();
           renderPreview();
+          announce("Row " + (at + 1) + " removed. " + data.length + " row" + (data.length === 1 ? "" : "s") + " remaining.");
         });
         rows.appendChild(row);
       });
       growAll(rows);
+      if (focus) {
+        var target = rows.querySelectorAll(".ste-row")[focus.row];
+        var el = target && target.querySelector(focus.sel);
+        if (el) el.focus();
+      }
     }
     addBtn.addEventListener("click", function () {
       data.push({ label: "", value: "" });
-      buildRows();
+      buildRows({ row: data.length - 1, sel: ".ste-lab" });
       serialize();
       renderPreview();
-      var last = rows.querySelector(".ste-row:last-child .ste-lab");
-      if (last) last.focus();
+      announce("Row " + data.length + " added.");
     });
 
     buildRows();
@@ -248,6 +292,7 @@
     wrap.appendChild(prevWrap);
     ta.parentNode.insertBefore(wrap, ta);
     var previewTable = prevWrap.querySelector(".ste-gt");
+    var announce = makeAnnouncer(wrap);
 
     function serialize() {
       ta.value = JSON.stringify(
@@ -332,7 +377,11 @@
         var hd = cell.querySelector(".ste-head");
         hd.value = g.label;
         hd.addEventListener("input", function () { g.label = this.value; autoGrow(this); serialize(); renderPreview(); });
-        cell.querySelector('[data-act="delgrp"]').addEventListener("click", function () {
+        var delgrp = cell.querySelector('[data-act="delgrp"]');
+        delgrp.setAttribute("aria-label",
+          "Remove column " + (gi + 1) + ((g.label || "").trim() ? ": " + (g.label || "").trim() : " (unnamed)"));
+        hd.setAttribute("aria-label", "Heading for column " + (gi + 1));
+        delgrp.addEventListener("click", function () {
           var s = leafStart(gi), l = leafLen(gi);
           rows.forEach(function (r) { r.splice(s, l); });
           groups.splice(gi, 1);
@@ -369,9 +418,22 @@
               c.className = "ste-subcell";
               c.innerHTML =
                 '<textarea class="ste-cell" rows="1" placeholder="Sub heading"></textarea>' +
-                '<button type="button" class="ste-x sm" aria-label="Remove sub-column">×</button>';
+                '<button type="button" class="ste-x sm">×</button>';
               var t = c.querySelector("textarea");
               t.value = subLabel;
+              // 4.30 — every one of these was "Remove sub-column". Name it by
+              // the column it belongs to and its own position, and keep the
+              // name current as the heading is typed.
+              var subWho = function () {
+                var g0 = (g.label || "").trim();
+                var s0 = (g.subs[si] || "").trim();
+                return "Remove sub-column " + (si + 1) + (s0 ? " (" + s0 + ")" : "")
+                     + " of " + (g0 || "column " + (gi + 1));
+              };
+              var subX = c.querySelector(".ste-x");
+              subX.setAttribute("aria-label", subWho());
+              t.addEventListener("input", function () { subX.setAttribute("aria-label", subWho()); });
+              t.setAttribute("aria-label", "Sub heading " + (si + 1) + " of column " + (gi + 1));
               t.addEventListener("input", function () { g.subs[si] = this.value; autoGrow(this); serialize(); renderPreview(); });
               c.querySelector(".ste-x").addEventListener("click", function () {
                 var s = leafStart(gi);
@@ -393,6 +455,9 @@
       rows.forEach(function (r, ri) {
         var dr = document.createElement("div");
         dr.className = "ste-grid";
+        // The header rows use .ste-grid too, so mark the DATA rows — the
+        // post-delete focus target has to be a surviving data row, not a header.
+        dr.setAttribute("data-srow", String(ri));
         dr.style.gridTemplateColumns = tpl();
         var n = leafCount();
         for (var li = 0; li < n; li++) {
@@ -401,6 +466,7 @@
             c.innerHTML = '<input class="ste-cell">';
             var inp = c.querySelector("input");
             inp.value = r[li] || "";
+            inp.setAttribute("aria-label", "Size row " + (ri + 1) + ", column " + (li + 1));
             inp.addEventListener("input", function () { r[li] = this.value; serialize(); renderPreview(); });
             dr.appendChild(c);
           })(li);
@@ -408,12 +474,22 @@
         var del = document.createElement("button");
         del.type = "button";
         del.className = "ste-x";
-        del.setAttribute("aria-label", "Remove row");
+        // 4.30 — was "Remove row" on every one of them, in a grid that can run
+        // to twenty. The first cell is the size, which is what identifies the
+        // row to the person reading it.
+        del.setAttribute("aria-label",
+          "Remove size row " + (ri + 1) + ((r[0] || "").trim() ? ": " + (r[0] || "").trim() : " (empty)"));
         del.innerHTML = "×";
         del.addEventListener("click", function () {
           rows.splice(ri, 1);
           if (rows.length === 0) rows = [[]];
           fixRows(); serialize(); build(); renderPreview();
+          // build() rebuilds host.innerHTML, so focus is on the document unless
+          // it is put back deliberately — land on the nearest surviving row.
+          var all = host.querySelectorAll("[data-srow] .ste-x");
+          var next = all[Math.min(ri, all.length - 1)];
+          if (next) next.focus();
+          announce("Size row " + (ri + 1) + " removed. " + rows.length + " row" + (rows.length === 1 ? "" : "s") + " remaining.");
         });
         dr.appendChild(del);
         host.appendChild(dr);

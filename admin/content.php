@@ -593,34 +593,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($errors)) {
     }
 }
 
-/** Render a single field control. Name is also set server-side (JS keeps it
- * numbered after edits) so the form still submits correctly before JS runs. */
-function render_field(string $section, int $i, array $f, array $row): string {
+/**
+ * A stable, unique DOM id for a control, derived from the same name the field
+ * already posts under. Deriving it from the name (rather than a counter) is
+ * what makes it survive reordering: content-editor.js renumbers names on every
+ * structural change and recomputes the id with the identical rule. (4.31)
+ */
+function field_id(string $name): string {
+    return 'f-' . trim((string)preg_replace('/[^A-Za-z0-9]+/', '-', $name), '-');
+}
+
+/**
+ * Render a single field control. Name is also set server-side (JS keeps it
+ * numbered after edits) so the form still submits correctly before JS runs.
+ *
+ * 4.31 — this page rendered 418 controls and 418 <label> elements, and not one
+ * label carried `for` nor one control an `id`: visually labelled, and to a
+ * screen reader 397 anonymous edit boxes (the other 21 were named by their
+ * PLACEHOLDER, "One item per line", which is not a label). This is the page
+ * holding the most irreplaceable typing on the site — the page B1 was about.
+ *
+ * The row context is appended INSIDE the label and visually hidden, rather than
+ * set as an aria-label on the control. An aria-label would replace the visible
+ * text, and WCAG 2.5.3 wants the accessible name to contain what is on screen;
+ * this way "Icon" stays visible and the screen reader hears
+ * "Icon — row 3 of Industries Grid", which is what makes 18 boxes all called
+ * "Icon" distinguishable.
+ *
+ * Nothing here adds a POSTED variable: <label>, id and for do not post. That is
+ * load-bearing — the max_input_vars truncation guard is built on that count.
+ */
+function render_field(string $section, int $i, array $f, array $row, string $sectionTitle = ''): string {
     $key  = $f['key'];
     $raw  = $row[$key] ?? '';
     $val  = is_array($raw) ? $raw : (string)$raw;
     $name = $section . '[' . $i . '][' . $key . ']';
+    $id   = field_id($name);
     $full = !empty($f['full']) ? ' full' : '';
-    $out  = '<div class="form-group' . $full . '"><label>' . $f['label'] . '</label>';
+    $ctx  = '<span class="vh" data-rowctx> &#8212; row ' . ($i + 1)
+          . ($sectionTitle !== '' ? ' of ' . h($sectionTitle) : '') . '</span>';
+    $out  = '<div class="form-group' . $full . '"><label for="' . h($id) . '">' . $f['label'] . $ctx . '</label>';
     if ($f['type'] === 'icon') {
-        $out .= '<select class="ci" data-field="' . h($key) . '" name="' . h($name) . '">';
+        $out .= '<select class="ci" id="' . h($id) . '" data-field="' . h($key) . '" name="' . h($name) . '">';
         foreach ($f['icons'] as $ik => $il) {
             $out .= '<option value="' . h($ik) . '"' . ($val === $ik ? ' selected' : '') . '>' . h($il) . '</option>';
         }
         $out .= '</select>';
     } elseif ($f['type'] === 'page') {
-        $out .= '<select class="ci" data-field="' . h($key) . '" name="' . h($name) . '">';
+        $out .= '<select class="ci" id="' . h($id) . '" data-field="' . h($key) . '" name="' . h($name) . '">';
         foreach (($f['options'] ?? []) as $pk => $pl) {
             $out .= '<option value="' . h($pk) . '"' . ($val === $pk ? ' selected' : '') . '>' . h($pl) . '</option>';
         }
         $out .= '</select>';
     } elseif ($f['type'] === 'list') {
         $txt = is_array($val) ? implode("\n", $val) : (string)$val;
-        $out .= '<textarea class="ci" rows="4" data-field="' . h($key) . '" name="' . h($name) . '" placeholder="One item per line">' . h($txt) . '</textarea>';
+        $out .= '<textarea class="ci" id="' . h($id) . '" rows="4" data-field="' . h($key) . '" name="' . h($name) . '" placeholder="One item per line">' . h($txt) . '</textarea>';
     } elseif ($f['type'] === 'textarea') {
-        $out .= '<textarea class="ci" rows="2" data-field="' . h($key) . '" name="' . h($name) . '">' . h((string)$val) . '</textarea>';
+        $out .= '<textarea class="ci" id="' . h($id) . '" rows="2" data-field="' . h($key) . '" name="' . h($name) . '">' . h((string)$val) . '</textarea>';
     } else {
-        $out .= '<input type="text" class="ci" data-field="' . h($key) . '" name="' . h($name) . '" value="' . h((string)$val) . '">';
+        $out .= '<input type="text" class="ci" id="' . h($id) . '" data-field="' . h($key) . '" name="' . h($name) . '" value="' . h((string)$val) . '">';
     }
     return $out . '</div>';
 }
@@ -658,12 +689,19 @@ function render_row(string $section, int $i, array $cfg, array $row): string {
         return $f;
     }, $cfg['fields']);
     $row = prep_row($section, $row);
+    $title = (string)($cfg['title'] ?? '');
     $out  = '<div class="content-row">';
     $out .= '<div class="row-head"><span class="row-num">#' . ($i + 1) . '</span>'
           . '<span class="row-tools">'
           . '<span class="row-move">'
-          . '<button type="button" class="rbtn" data-action="up" title="Move up">↑</button>'
-          . '<button type="button" class="rbtn" data-action="down" title="Move down">↓</button>'
+          // Row identity in the name for the same reason as the field labels:
+          // 18 buttons all called "Move up" tell a screen-reader user nothing
+          // about which row they are on. content-editor.js rewrites these on
+          // every reorder alongside the names and ids. (4.31)
+          . '<button type="button" class="rbtn" data-action="up" title="Move up"'
+          . ' aria-label="Move row ' . ($i + 1) . ' of ' . h($title) . ' up">↑</button>'
+          . '<button type="button" class="rbtn" data-action="down" title="Move down"'
+          . ' aria-label="Move row ' . ($i + 1) . ' of ' . h($title) . ' down">↓</button>'
           . '</span>'
           // 4.13 — this ✕ removes an entire card and used to sit 6px from ↓ with
           // no confirmation, while every other destructive admin action has one.
@@ -672,32 +710,40 @@ function render_row(string $section, int $i, array $cfg, array $row): string {
           // The prompt names the row (see confirm.js's {it}); the spacing is in
           // .row-move / .rbtn.danger below.
           . '<button type="button" class="rbtn danger" data-action="remove" title="Remove"'
+          . ' aria-label="Remove row ' . ($i + 1) . ' of ' . h($title) . '"'
           . ' data-confirm="Remove {it} from this page?&#10;&#10;The row disappears now and is deleted for good when you click “Save Content”. If you save by mistake, you can put it back from Backups."'
           . ' data-confirm-scope=".content-row"'
           . ' data-confirm-from="input.ci[type=text], textarea.ci">✕</button>'
           . '</span></div>';
     $out .= '<div class="grid-2">';
-    foreach ($fields as $f) $out .= render_field($section, $i, $f, $row);
+    foreach ($fields as $f) $out .= render_field($section, $i, $f, $row, $title);
     $out .= '</div></div>';
     return $out;
 }
 
 /** Render one fixed copy field (hero text, section headings, page banners).
  * These are fixed (not repeatable), so names are static — no JS involved. */
-function render_copy_field(string $group, array $f, $val, array $pageOptions): string {
+function render_copy_field(string $group, array $f, $val, array $pageOptions, string $groupTitle = ''): string {
     $name = 'copy[' . $group . '][' . $f['key'] . ']';
+    $id   = field_id($name);
     $v = (string)$val;
-    $out = '<div class="form-group full"><label>' . h($f['label']) . '</label>';
+    // The group goes in the accessible name, not only in the <legend>. A legend
+    // reaches the AX tree as the GROUP, which some screen-reader modes announce
+    // on entry and a "list all form fields" view does not — and eight boxes all
+    // called "Title" in that list is the same defect as eighteen called "Icon".
+    // Measured: "TITLE" appeared 8 times before this. (4.31)
+    $ctx = $groupTitle !== '' ? '<span class="vh"> &#8212; ' . $groupTitle . '</span>' : '';
+    $out = '<div class="form-group full"><label for="' . h($id) . '">' . h($f['label']) . $ctx . '</label>';
     if ($f['type'] === 'page') {
-        $out .= '<select class="ci" name="' . h($name) . '">';
+        $out .= '<select class="ci" id="' . h($id) . '" name="' . h($name) . '">';
         foreach ($pageOptions as $pk => $pl) {
             $out .= '<option value="' . h($pk) . '"' . ($v === $pk ? ' selected' : '') . '>' . h($pl) . '</option>';
         }
         $out .= '</select>';
     } elseif ($f['type'] === 'textarea') {
-        $out .= '<textarea class="ci" rows="3" name="' . h($name) . '">' . h($v) . '</textarea>';
+        $out .= '<textarea class="ci" id="' . h($id) . '" rows="3" name="' . h($name) . '">' . h($v) . '</textarea>';
     } else {
-        $out .= '<input type="text" class="ci" name="' . h($name) . '" value="' . h($v) . '">';
+        $out .= '<input type="text" class="ci" id="' . h($id) . '" name="' . h($name) . '" value="' . h($v) . '">';
     }
     return $out . '</div>';
 }
@@ -717,7 +763,18 @@ $navActive = 'content';
     main { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
     h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
     .sub { font-size: 13px; color: #6b7280; margin: 0 0 24px; }
-    .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    /* 4.31 — each section is now a <fieldset> so the grouping reaches the
+       accessibility tree. A fieldset carries UA border/padding/min-width of its
+       own; reset them so the card looks exactly as it did. min-width:0 matters:
+       without it a fieldset refuses to shrink and the grid overflows. */
+    .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; min-width: 0; }
+    fieldset.card { display: block; }
+    legend.card-title { display: block; width: 100%; float: left; }
+    legend.card-title + * { clear: both; }
+    /* Visually hidden, still announced. Carries the row identity appended to a
+       repeated field label ("Icon — row 3 of Industries Grid"). */
+    .vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+          overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     .card > .sub { margin-top: -8px; margin-bottom: 18px; }
     .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -792,27 +849,27 @@ $navActive = 'content';
     <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
 
     <?php foreach ($COPY_GROUPS as $g => $gcfg): ?>
-      <div class="card">
-        <div class="card-title"><?= $gcfg['title'] ?></div>
+      <fieldset class="card">
+        <legend class="card-title"><?= $gcfg['title'] ?></legend>
         <div class="grid-2">
-          <?php foreach ($gcfg['fields'] as $f) echo render_copy_field($g, $f, ($content['copy'][$g][$f['key']] ?? ''), $PAGE_OPTIONS); ?>
+          <?php foreach ($gcfg['fields'] as $f) echo render_copy_field($g, $f, ($content['copy'][$g][$f['key']] ?? ''), $PAGE_OPTIONS, (string)($gcfg['title'] ?? '')); ?>
         </div>
-      </div>
+      </fieldset>
     <?php endforeach; ?>
 
     <?php foreach ($SECTIONS as $sec => $cfg):
         $rows = $content[$sec] ?? [];
         if (!is_array($rows)) $rows = [];
     ?>
-      <div class="card" data-section="<?= h($sec) ?>">
-        <div class="card-title"><?= $cfg['title'] ?></div>
+      <fieldset class="card" data-section="<?= h($sec) ?>" data-section-title="<?= h((string)($cfg['title'] ?? '')) ?>">
+        <legend class="card-title"><?= $cfg['title'] ?></legend>
         <p class="sub"><?= $cfg['sub'] ?></p>
         <div class="rows">
           <?php foreach ($rows as $i => $row) echo render_row($sec, (int)$i, $cfg, is_array($row) ? $row : []); ?>
         </div>
         <button type="button" class="btn btn-secondary" data-action="add" data-section="<?= h($sec) ?>">+ Add <?= h($cfg['addLabel']) ?></button>
         <template id="tpl-<?= h($sec) ?>"><?= render_row($sec, 0, $cfg, []) ?></template>
-      </div>
+      </fieldset>
     <?php endforeach; ?>
 
     <div class="save-bar">
