@@ -112,6 +112,7 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **4.13** | `admin/content.php`, `admin/confirm.js` | Shipped 2026-08-06 (Plan 2). The ✕ that deletes an entire content card had no confirmation while every other destructive admin action has one, and the measured gap to the nearest reorder arrow was **6.0 px** (§2 said 4 px). The existing `data-confirm` mechanism was extended to `<button>` and given a `{it}` placeholder resolved **at click time** from the row's own first text field, so the prompt names the row Rick can see; cancelling is reliable because `confirm.js` stops the event in the capture phase before `content-editor.js`'s bubble-phase remove handler runs. Gap now **34 px** at 1440 and 375, **30 px** and a **44×44** hit target on a coarse pointer. Evidence in §4g. |
 | **4.23** | `src/App.jsx`, `src/index.css`, `admin/settings.php`, `admin/config.php`, `admin/contrast-guard.js` | Shipped 2026-08-06 (Plan 2), **partially — see `brand-ink-translucent` in §2.** Owner-set brand colors were injected with no contrast guard while headings and primary buttons hardcoded `#ffffff`, so a pale color shipped white-on-white with nothing warning him. Two layers: (1) three new `--brand-{primary,dark,header}-ink` variables, recomputed by WCAG luminance in `ThemeInjector` and defaulted in `index.css` for the first paint, replacing the hardcoded white at **35 brand-colored call sites**; the banner ink is scored on the *worse* of the gradient's two stops. (2) `settings.php` prints a plain-language readability note with the computed ratio under each color, server-rendered and updated live by `contrast-guard.js` as the picker moves. **The save is never blocked** — it is his brand. Measured ≥4.5:1 on every brand-painted element for four colors spanning light to dark. Note the auto-ink changes the premise: a *pale* color is no longer the failure case (`#FFE600` scores 14.5:1 with dark text); the warning band is the mid-tones where neither ink clears AA. Evidence in §4g. |
 | **`form_complete` position** | `admin/content.php`, `_harness/` | Shipped 2026-08-06 (Plan 2). The `max_input_vars` truncation sentinel was enforced positionally with nothing asserting it at runtime. The sentinel is unchanged (deliberately — a count-based scheme was rejected); what is new is enforcement: `plan2-formlast.js` asserts it is the last of **421** named controls in the **rendered DOM**, including after the editor adds and removes rows, and `plan2-trunc.js` drives a genuinely truncated POST against a real `max_input_vars=100` server with a working `display_errors` negative control. The inline comment now names the DEPLOY_READINESS_v2 T3.7 incident and says explicitly that new fields go above the line. Evidence in §4g. |
+| **brand-ink-translucent** | `src/App.jsx`, `src/index.css` | Shipped 2026-08-06, the follow-on to 4.23. 4.23 replaced the hardcoded white on *solid* brand surfaces; the **de-emphasised** text on those same surfaces — nav links, banner sub-lines, dropdown captions, sidebar chrome — still used `rgba(255,255,255,α)` and went invisible on a pale brand color. Three new `--brand-*-ink-rgb` triples let those say `rgba(var(--brand-dark-ink-rgb), 0.6)` and follow the ink (deliberately not `color-mix()`, whose absence would invalidate the declaration and fall back to `inherit` — failing toward unreadable, which is the bug). **77 inline sites** converted, plus **12** Tailwind `text-white` classes swapped to new `.ipc-ink-*` utilities. Surfaces were **measured in the browser**, not inferred: a source scan both misses a background declared after the className in the same element and attributes one from 12,000 characters away, and it produced three real mis-classifications that a new empirical auditor caught — including `#141414` text on a `#141414` background at 1:1. Result: **357 → 274** brand-sensitive contrast failures, with **zero** white-on-brand-surface remaining. Evidence in §4h. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -136,8 +137,9 @@ Ordered by value. Nothing here blocks the upload.
 - [ ] **4.20** Collapsed FAQ answers use `max-height:0` — still read by screen readers and find-in-page.
 - [x] **4.21** ~~Navigation is `<button onClick>` throughout: 3–7 `<a href>` vs 14–119 `<button>` per page. No crawlable internal link graph, no Cmd-click.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4f.
 - [x] **4.23** ~~Owner-set brand colors are injected with no contrast guard while headings and primary buttons hardcode `#ffffff`.~~ **SHIPPED 2026-08-06 (Plan 2)** for headings, primary buttons and the other solid brand surfaces — see §1b and §4g. **The de-emphasised text on those same surfaces is NOT covered — see `brand-ink-translucent` below.**
-- [ ] **brand-ink-translucent** The 4.23 ink mechanism is in place but **47 translucent-white foregrounds on owner-controlled brand surfaces still hardcode `rgba(255,255,255,α)`** and go invisible when the owner picks a pale color. Found 2026-08-06 while verifying 4.23; **deliberately not fixed** — classifying each site's surface is a heuristic, and a wrong guess applies the wrong ink and creates a *new* contrast bug that the 4.23 suite (which measures only elements painted with `--brand-primary`) would not catch. Evidence: `_harness/out/contrast/pale-yellow-1440.png` shows the fixed surfaces (heading and buttons correctly dark) beside the unfixed ones — the nav links, the banner sub-line and the sidebar chrome all wash out. Pre-classified by `_harness/findtranslucent.js`: **header 17, primary 14, dark 8, navbar 8**; correctly left white are hero-scrim 1 and footer-fixed 5 (that footer is a hardcoded `#0a2240`, not a brand variable). The clean fix is `--brand-*-ink-rgb` variables consumed as `rgba(var(--brand-dark-ink-rgb), 0.6)`, then per-site verification. Not started.
-- [ ] **brand-color-as-foreground** Related but distinct from the above: brand colors are also used as *text on white* (product feature chips, eyebrow labels, `color: "var(--brand-primary)"` at ~30 sites). A pale brand color makes those unreadable too, and the 4.23 ink variables do not help — that case needs the color darkened for text use, not a foreground swapped. Visible in the same screenshot (the "UL & CUL LISTED" chips). Found 2026-08-06; not investigated further, not changed.
+- [x] **brand-ink-translucent** ~~The 4.23 ink mechanism is in place but 47 translucent-white foregrounds on owner-controlled brand surfaces still hardcode `rgba(255,255,255,α)` and go invisible when the owner picks a pale color.~~ **SHIPPED 2026-08-06** — see §1b and §4h. The count was **77 inline sites plus 12 Tailwind `text-white` classes**, not 47; the original estimate came from a source scan that only looked at `rgba(255,255,255,α)` and missed both the solid `#ffffff` conditionals and the class-based colors. Measured before/after with a new empirical auditor: **357 → 274 brand-sensitive contrast failures, and zero of the remainder are white-on-a-brand-surface.**
+- [ ] **brand-color-as-foreground** Brand colors used as *text on white or on another brand surface* — product feature chips, eyebrow labels, the sidebar's "PRODUCT CATALOG" / family headings, `color: "var(--brand-primary)"` and `var(--brand-accent-2)` at ~30 sites. A pale brand color makes these unreadable and the ink variables do not help: this case needs the brand color **darkened for text use**, not a foreground swapped. **Now quantified** (2026-08-06, `_harness/inkaudit.js`): **262 of the 274 remaining brand-sensitive failures** — 252 at `rgb(255,230,0)` (primary as text) and 10 at `rgb(255,247,192)` (accent as text on `--brand-dark`). This is now the single largest brand-color defect. Visible in `_harness/out/contrast/pale-yellow-1440.png` as the washed-out "UL & CUL LISTED" chips and sidebar headings. Not started.
+- [ ] **brand-gradient-mixed-ends** Found 2026-08-06 while fixing `brand-ink-translucent`. Two heading strips use a gradient running from a **hardcoded dark** color to an **owner-controlled** one — `linear-gradient(135deg, #0a2a52, var(--brand-primary))` on the product-detail header (`src/App.jsx:5885`) and `linear-gradient(135deg, #003d7a, var(--brand-primary))` on the industry section headers (`:7789`). No single ink can serve both ends: white is right over the fixed navy, dark is right over a pale primary. Left as `text-white`, which is correct for the default palette and for where the left-aligned heading actually sits, and both carry an inline comment saying so. Accounts for the last **12** of the 274 remaining failures. The real fix is a design decision — either make the fixed end `var(--brand-dark)` so one ink can serve the whole band (a visible change to the current look, `#003d7a` is notably brighter than `#0d2d52`), or stop putting text across a two-owner gradient. **Escalate before changing.**
 - [ ] **sidebar-active-border** `ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.
 - [x] **4.24** ~~`SITE_INFO_URL` / `CONTENT_URL` have no `import.meta.env.DEV` branch, so theming and content plumbing are never exercised by `npm run dev`.~~ **SHIPPED 2026-08-05 (Plan 0)** — see §1b and §4d.
 - [ ] **4.26** Scroll listeners added inside an inline `ref` callback and never removed.
@@ -1073,6 +1075,114 @@ The suites listed in the previous baseline that were not reconstructed —
 `adminsweep`, `plan0`, `plan1a`, `plan1b` — **were not run and nothing is
 claimed about them.** `plan2-trunc.js` covers part of what `b1trunc`/`nb2`
 covered; the rest is genuinely unmeasured this session.
+
+---
+
+## 4h. Verification evidence for `brand-ink-translucent` (2026-08-06)
+
+**Base:** `8699279` (Plan 2 merged). **Build:** 0 errors, **329.53 kB JS /
+21.35 kB CSS** (from 328.42 / 21.11 — the ink-rgb triples and three utility
+classes).
+
+### The auditor was built first, and it is what made this safe
+
+The risk in this item was never the edit; it was **mis-classification** —
+deciding by source inspection which brand surface a call site sits on, getting
+it wrong, and swapping in an ink that creates a *new* contrast bug. A source
+scan cannot detect that. `_harness/inkaudit.js` can:
+
+- renders all 8 public routes at 1440 and 375 under **two palettes**, the
+  shipped navy and a pale one, by intercepting `/data/site-info.json` (nothing
+  on disk is touched, so there is no restore step and no per-minute
+  cache-buster to fight);
+- for every element that paints its own text, resolves the **effective**
+  background — walks ancestors to the first opaque color, expands a
+  `linear-gradient` into its stops and keeps the worst, composites any
+  translucent layer over what is behind it;
+- composites the (usually translucent) foreground over that background and
+  applies the WCAG threshold, 3:1 for large text and 4.5:1 otherwise.
+
+It reports the **difference** between the two palettes: elements that pass on
+navy and fail on pale. Anything failing under both is a pre-existing, non-brand
+contrast problem and is counted separately rather than folded in — this audit
+is not a licence to go and restyle the site.
+
+```
+examined 1855 text-painting elements across 8 routes × 2 viewports
+BRAND-SENSITIVE (pass on navy, FAIL on pale):  357   ->   274
+pre-existing, fail on both (NOT this item):    643   ->   609
+```
+
+### Three mis-classifications, all caught by measurement
+
+Every one of these was produced by the "nearest preceding background" heuristic
+and would have shipped silently:
+
+| Site | Wrongly given | Actually | Measured |
+|---|---|---|---|
+| FAQ "Still have questions?" card | `--brand-primary-ink` / `--brand-dark-ink` | background is a **hardcoded `#141414`** | `#141414` text on `#141414` — **1:1** |
+| Mega-menu panels `#0e2847`, mobile drawer `#0a2444` | `--brand-dark-ink` | hardcoded, not owner-controlled | reverted, 23 sites |
+| Three transparent outline buttons | `--brand-primary-ink` (from a **sibling** button's background) | painted on the **container** | reverted to `--brand-dark-ink` / white |
+
+The lesson for the next reader: the scan is wrong in both directions — it
+misses a background declared *after* the className in the same element (both
+Submit buttons), and it happily attributes one from 12,000 characters away.
+`_harness/whitesurfaces.js` asks the browser instead, which is how the final 15
+`text-white` elements were classified.
+
+### What changed
+
+- **77 inline sites** — `rgba(255,255,255,α)` → `rgba(var(--brand-*-ink-rgb), α)`,
+  and the solid/conditional `#ffffff` on brand surfaces → `var(--brand-*-ink)`.
+- **12 Tailwind `text-white` classes** → new `.ipc-ink-primary` /
+  `.ipc-ink-dark` / `.ipc-ink-header` utilities in `index.css`. An inline-style
+  patch cannot reach a class-based color.
+- **`--brand-{primary,dark,header}-ink-rgb`** set by `ThemeInjector`, defaulted
+  in `index.css` for the first paint. `rgba(var(--x), a)` rather than
+  `color-mix()`: an unsupported `color-mix()` invalidates the declaration and
+  the color falls back to `inherit`, i.e. it fails **toward** unreadable, which
+  is precisely the defect. The one `color-mix()` left by 4.23 was converted too.
+- One de-emphasised sub-line raised from `0.55` to `0.75` alpha: the ink was
+  right but the opacity diluted it to **3.95:1** against a pale `--brand-dark`.
+
+### Left white on purpose, and why
+
+| Surface | Reason |
+|---|---|
+| the hero | its brand gradient sits under an `rgba(20,20,20,0.72)` scrim, so white is legible at any brand color |
+| the footer `#0a2240` | hardcoded, not a brand variable |
+| FAQ card `#141414`, mega-menus `#0e2847`, drawer `#0a2444` | hardcoded darks |
+| the two mixed-end gradient headings | see `brand-gradient-mixed-ends` in §2 — no single ink serves both ends |
+
+### What is left, and it is NOT this item
+
+All 274 remaining brand-sensitive failures are other defects:
+
+```
+252  rgb(255, 230, 0)    brand primary used as TEXT on white    -> brand-color-as-foreground
+ 10  rgb(255, 247, 192)  brand accent used as TEXT on dark      -> brand-color-as-foreground
+ 12  rgb(255, 255, 255)  the two mixed-end gradients            -> brand-gradient-mixed-ends
+```
+
+**Zero white-on-a-brand-surface failures remain.**
+
+### Regression
+
+```
+php -l 18/0 · node --check 9/0 · JSON 17/10/42 · copy drift 96 matched
+invariants 17/17 · invariants-selftest 15/15 · contrastparity 28/28
+copyroundtrip 15/15 · plan2-sku 14/14 · plan2-delete 18/18
+plan2-contrast 42/42 · plan2-formlast 8/8 · plan2-trunc 13/13
+```
+
+`plan2-contrast` still measures 14.54 / 7.65 / 6.79 / 17.89:1 across the four
+sampled palettes, so 4.23's guarantees are intact and the navy default is
+unchanged. `data/` byte-identical to pristine.
+
+`_harness/out/contrast/pale-yellow-1440.png` is regenerated: the nav links,
+sidebar "41 products" and banner sub-line are now readable where they were
+invisible. The pale text still visible in that shot is
+`brand-color-as-foreground`.
 
 ---
 

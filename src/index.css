@@ -23,7 +23,26 @@
   --brand-primary-ink: #ffffff;
   --brand-dark-ink: #ffffff;
   --brand-header-ink: #ffffff;
+
+  /* The same three as bare "r, g, b" triples, for de-emphasised text:
+     rgba(var(--brand-dark-ink-rgb), 0.6) instead of rgba(255,255,255,0.6).
+     ~50 call sites used the hardcoded form and all of them went invisible on a
+     pale brand color. */
+  --brand-primary-ink-rgb: 255, 255, 255;
+  --brand-dark-ink-rgb: 255, 255, 255;
+  --brand-header-ink-rgb: 255, 255, 255;
 }
+
+/* Ink utilities, for elements that set their color through a class rather than
+   an inline style. Tailwind's `text-white` on a brand-colored surface is the
+   same defect as a hardcoded "#ffffff" — it just could not be reached by an
+   inline-style patch. Which surface each element actually sits on was measured
+   in the browser (`_harness/whitesurfaces.js`), not inferred from the source:
+   a backward scan both misses a background declared after the className in the
+   same element and happily attributes one from 12,000 characters away. */
+.ipc-ink-primary { color: var(--brand-primary-ink); }
+.ipc-ink-dark    { color: var(--brand-dark-ink); }
+.ipc-ink-header  { color: var(--brand-header-ink); }
 
 /* A handful of SVG icons still carry the brand color as a presentation
    attribute (stroke="#005da3"), where CSS var() can't be used. A CSS rule,
