@@ -211,9 +211,9 @@ class ErrorBoundary extends Component {
           <p style={{ fontSize: 14, color: "#6b7280", maxWidth: 400, marginBottom: 24 }}>
             An unexpected error occurred. Please refresh the page, or contact us directly.
           </p>
-          <div style={{ fontSize: 14, color: "var(--brand-primary)" }}>
-            <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary)", display: "block", marginBottom: 6 }}>📞 {site.contact.phone}</a>
-            <a href={`mailto:${site.contact.email}`} style={{ color: "var(--brand-primary)" }}>📧 {site.contact.email}</a>
+          <div style={{ fontSize: 14, color: "var(--brand-primary-text)" }}>
+            <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary-text)", display: "block", marginBottom: 6 }}>📞 {site.contact.phone}</a>
+            <a href={`mailto:${site.contact.email}`} style={{ color: "var(--brand-primary-text)" }}>📧 {site.contact.email}</a>
           </div>
           <button
             onClick={() => window.location.reload()}
@@ -393,7 +393,7 @@ function Navbar({ products = [], catalogFailed = false }) {
             <div
               style={{
                 fontSize: 11,
-                color: "var(--brand-accent-2)",
+                color: "var(--brand-accent-on-dark)",
                 marginTop: 1,
                 letterSpacing: "0.02em",
               }}
@@ -1656,7 +1656,7 @@ function FeatureCard({ icon, title, description, page }) {
           width: 48,
           height: 48,
           background: "rgba(var(--brand-primary-rgb),0.07)",
-          color: "var(--brand-primary)",
+          color: "var(--brand-primary-text)",
           border: "1px solid transparent",
           transition: "background 0.2s, border-color 0.2s",
         }}
@@ -1711,7 +1711,7 @@ function SectionHeader({ eyebrow, title, subtitle, action }) {
               fontWeight: 700,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
-              color: "var(--brand-primary)",
+              color: "var(--brand-primary-text)",
               marginBottom: 8,
             }}
           >
@@ -1923,7 +1923,7 @@ function Features() {
             <FeatureCard
               key={f.title}
               icon={
-                <div style={{ color: "var(--brand-primary)" }}>
+                <div style={{ color: "var(--brand-primary-text)" }}>
                   {FEATURES_ICONS[f.iconKey]}
                 </div>
               }
@@ -2086,7 +2086,7 @@ function StatsBar() {
             <div>
               <div
                 className="font-extrabold leading-tight"
-                style={{ fontSize: 20, color: "var(--brand-primary)" }}
+                style={{ fontSize: 20, color: "var(--brand-primary-text)" }}
               >
                 {s.value}
               </div>
@@ -2285,7 +2285,7 @@ function HomePage() {
                     height: 40,
                     borderRadius: 8,
                     background: "rgba(var(--brand-primary-rgb),0.07)",
-                    color: "var(--brand-primary)",
+                    color: "var(--brand-primary-text)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -2321,7 +2321,7 @@ function HomePage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: "var(--brand-primary)",
+                    color: "var(--brand-primary-text)",
                     marginTop: 12,
                   }}
                 >
@@ -2361,7 +2361,7 @@ function HomePage() {
               style={{
                 display: "inline-block",
                 background: "#ffffff",
-                color: "var(--brand-primary)",
+                color: "var(--brand-primary-text)",
                 border: "none",
                 cursor: "pointer",
               }}
@@ -2432,7 +2432,7 @@ function TeamCard({ name, role, avatar }) {
       <div className="text-sm font-bold mb-1" style={{ color: "#141414" }}>
         {name}
       </div>
-      <div className="text-xs font-medium" style={{ color: "var(--brand-accent-2)" }}>
+      <div className="text-xs font-medium" style={{ color: "var(--brand-accent-text)" }}>
         {role}
       </div>
     </div>
@@ -2687,7 +2687,7 @@ function AboutPage() {
                 </span>
                 <span
                   className="text-sm font-bold text-right"
-                  style={{ color: "var(--brand-primary)" }}
+                  style={{ color: "var(--brand-primary-text)" }}
                 >
                   {/* These hrefs were hardcoded to +16307710700/01 while the
                        displayed value came from site-info.json — change the
@@ -2696,7 +2696,7 @@ function AboutPage() {
                        mobile visitor who taps it dials a fax machine.
                        (DEPLOY_READINESS_v2 4.7, 4.8) */}
                   {item.label === "Phone" && site.contact.phoneDial ? (
-                    <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary)" }}>{item.value}</a>
+                    <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary-text)" }}>{item.value}</a>
                   ) : item.value}
                 </span>
               </div>
@@ -2708,7 +2708,7 @@ function AboutPage() {
         <div>
           <div
             className="text-xs font-bold tracking-widest uppercase mb-8"
-            style={{ color: "var(--brand-primary)" }}
+            style={{ color: "var(--brand-primary-text)" }}
           >
             Company Timeline
           </div>
@@ -2738,7 +2738,7 @@ function AboutPage() {
                         fontSize: 11,
                         fontWeight: 700,
                         background: isLast ? "var(--brand-primary)" : "rgba(var(--brand-primary-rgb),0.08)",
-                        color: isLast ? "var(--brand-dark-ink)" : "var(--brand-primary)",
+                        color: isLast ? "var(--brand-dark-ink)" : "var(--brand-primary-text)",
                       }}
                     >
                       {m.year}
@@ -2816,7 +2816,7 @@ function AboutPage() {
         <div>
           <div
             className="text-xs font-bold tracking-widest uppercase mb-6"
-            style={{ color: "var(--brand-primary)" }}
+            style={{ color: "var(--brand-primary-text)" }}
           >
             {c.certsTitle}
           </div>
@@ -2867,7 +2867,7 @@ function AboutPage() {
         <div>
           <div
             className="text-xs font-bold tracking-widest uppercase mb-6"
-            style={{ color: "var(--brand-primary)" }}
+            style={{ color: "var(--brand-primary-text)" }}
           >
             {c.teamTitle}
           </div>
@@ -2991,7 +2991,7 @@ function FaqItem({ question, answer }) {
             width: 28,
             height: 28,
             background: open ? "var(--brand-primary)" : "rgba(var(--brand-primary-rgb),0.07)",
-            color: open ? "var(--brand-dark-ink)" : "var(--brand-primary)",
+            color: open ? "var(--brand-dark-ink)" : "var(--brand-primary-text)",
           }}
         >
           +
@@ -3248,7 +3248,7 @@ function FaqPage() {
                 fontSize: 12,
                 fontWeight: 600,
                 background: "#ffffff",
-                color: "var(--brand-primary)",
+                color: "var(--brand-primary-text)",
                 border: "1px solid var(--brand-primary)",
                 cursor: "pointer",
                 transition: "all 0.15s",
@@ -3259,7 +3259,7 @@ function FaqPage() {
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "#ffffff";
-                e.currentTarget.style.color = "var(--brand-primary)";
+                e.currentTarget.style.color = "var(--brand-primary-text)";
               }}
             >
               {cat.name}
@@ -3280,7 +3280,7 @@ function FaqPage() {
                 className="w-1 h-6 rounded-full"
                 style={{ background: "var(--brand-primary)" }}
               />
-              <h2 className="text-base font-bold" style={{ color: "var(--brand-primary)" }}>
+              <h2 className="text-base font-bold" style={{ color: "var(--brand-primary-text)" }}>
                 {cat.name}
               </h2>
             </div>
@@ -3659,7 +3659,7 @@ function ContactPage() {
               style={{
                 display: "inline-block",
                 background: "transparent",
-                color: "var(--brand-primary)",
+                color: "var(--brand-primary-text)",
                 border: "1px solid var(--brand-primary)",
                 cursor: "pointer",
               }}
@@ -3700,7 +3700,7 @@ function ContactPage() {
         <div className="space-y-4">
           <h2
             className="text-xs font-bold uppercase tracking-widest mb-4"
-            style={{ color: "var(--brand-primary)" }}
+            style={{ color: "var(--brand-primary-text)" }}
           >
             {c.directTitle}
           </h2>
@@ -3716,7 +3716,7 @@ function ContactPage() {
                   width: 36,
                   height: 36,
                   background: "rgba(var(--brand-primary-rgb),0.07)",
-                  color: "var(--brand-primary)",
+                  color: "var(--brand-primary-text)",
                 }}
               >
                 {item.icon}
@@ -3734,7 +3734,7 @@ function ContactPage() {
                 >
                   {item.href ? (
                     <a href={item.href} style={{ color: "#141414", textDecoration: "none" }}
-                       onMouseEnter={e => e.currentTarget.style.color = "var(--brand-primary)"}
+                       onMouseEnter={e => e.currentTarget.style.color = "var(--brand-primary-text)"}
                        onMouseLeave={e => e.currentTarget.style.color = "#141414"}>
                       {item.info}
                     </a>
@@ -3758,7 +3758,7 @@ function ContactPage() {
                   style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.60)" }}
                 >
                   <span
-                    style={{ color: "var(--brand-accent)", marginTop: 1, flexShrink: 0 }}
+                    style={{ color: "var(--brand-accent1-on-dark)", marginTop: 1, flexShrink: 0 }}
                   >
                     →
                   </span>
@@ -3936,7 +3936,7 @@ function ContactPage() {
               {/* Product details */}
               <div
                 className="text-xs font-bold uppercase tracking-widest mb-1"
-                style={{ color: "var(--brand-primary)" }}
+                style={{ color: "var(--brand-primary-text)" }}
               >
                 {cf.productDetailsTitle}
               </div>
@@ -5236,6 +5236,70 @@ function inkFor(backgrounds) {
   return worst(INK_LIGHT) >= worst(INK_DARK) ? INK_LIGHT : INK_DARK;
 }
 
+// ── Text-safe brand colors (brand-color-as-foreground) ──────────────────────
+// Separate defect from the ink variables, and the larger one: the brand colors
+// are ALSO used as text — feature chips, eyebrow labels, sidebar headings,
+// inline links — at ~59 call sites. `inkFor()` cannot help there; that picks a
+// foreground FOR a brand background. Here the brand color IS the foreground,
+// and a pale one is unreadable on white no matter what ink logic runs.
+//
+// The fix darkens (or lightens) the brand color only as far as legibility
+// requires, in HSL so hue and saturation survive. Critically it is a NO-OP when
+// the color already passes: the shipped navy #005DA3 scores 6.79:1 on white, so
+// the default site is byte-identical and nothing about the brand "reads"
+// differently. The adjustment only engages for a palette that is already
+// broken, which is the same philosophy as the ink variables.
+function rgbToHsl({ r, g, b }) {
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+  else if (max === gn) h = ((bn - rn) / d + 2) / 6;
+  else h = ((rn - gn) / d + 4) / 6;
+  return { h, s, l };
+}
+
+function hslToHex({ h, s, l }) {
+  const f = (n) => {
+    const k = (n + h * 12) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const v = l - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
+    return Math.round(255 * v);
+  };
+  const hex = (v) => v.toString(16).padStart(2, "0");
+  return `#${hex(f(0))}${hex(f(8))}${hex(f(4))}`;
+}
+
+/**
+ * `color` adjusted just far enough to reach `target` contrast on `bg`.
+ * Returns `color` untouched when it already passes.
+ */
+function textSafeOn(color, bg, target = 4.5) {
+  const c = parseHexColor(color);
+  const b = parseHexColor(bg);
+  if (!c || !b) return color;
+  if (contrastRatio(color, bg) >= target) return color;   // no-op: already fine
+
+  // Move away from the background's luminance: darken on a light background,
+  // lighten on a dark one.
+  const darken = relativeLuminance(b) > 0.5;
+  const { h, s, l } = rgbToHsl(c);
+  for (let step = 1; step <= 100; step++) {
+    const nl = darken ? l - step / 100 : l + step / 100;
+    if (nl < 0 || nl > 1) break;
+    const cand = hslToHex({ h, s, l: nl });
+    if (contrastRatio(cand, bg) >= target) return cand;
+  }
+  // Nothing in the hue works (a fully saturated yellow on white cannot reach
+  // 4.5:1 without going brown). Fall back to the plain ink rather than ship
+  // something unreadable.
+  return darken ? INK_DARK : INK_LIGHT;
+}
+
 function ThemeInjector() {
   const site = useSiteInfo();
   useEffect(() => {
@@ -5284,6 +5348,35 @@ function ThemeInjector() {
     root.style.setProperty("--brand-primary-ink-rgb", inkRgb(primaryInk));
     root.style.setProperty("--brand-dark-ink-rgb", inkRgb(darkInk));
     root.style.setProperty("--brand-header-ink-rgb", inkRgb(headerInk));
+
+    // brand-color-as-foreground: the brand colors used as TEXT rather than as a
+    // background. Page copy sits on white or a near-white tint, so that is the
+    // background to clear; the accent is used as text on --brand-dark instead.
+    // Both are no-ops for the shipped palette.
+    // TEXT_TARGET, not a bare 4.5: page copy does not sit only on pure white.
+    // It also sits on #f5f7fa, #f8fafc and on rgba(brand, 0.08) tints, all of
+    // which are slightly DARKER than white and therefore give slightly LESS
+    // contrast to dark text. Solving for exactly 4.5:1 on white measured 4.48:1
+    // on #f5f7fa — a fail, by 0.02. The margin covers the tints.
+    // The margin applies ONLY to the white-background variants. On a dark
+    // background the surrounding tints are lighter, not darker, so they give
+    // MORE contrast, not less — carrying the margin over there just moves a
+    // color that was already fine. Measured: it shifted the shipped
+    // --brand-accent-2 from #119EC8 to #12a9d6 for no reason.
+    const TEXT_TARGET = 5.0;   // on white and near-white tints
+    const DARK_TARGET = 4.5;   // on a dark surface, plain AA
+    root.style.setProperty("--brand-primary-text", textSafeOn(primary, "#ffffff", TEXT_TARGET));
+    root.style.setProperty("--brand-accent-text", textSafeOn(accent2, "#ffffff", TEXT_TARGET));
+    root.style.setProperty("--brand-accent-on-dark", textSafeOn(accent2, dark, DARK_TARGET));
+    // The footer's background is a hardcoded #0a2240, not --brand-dark, so it
+    // needs its own variant: when the owner picks a pale --brand-dark the
+    // on-dark variant darkens, which would be exactly wrong down there.
+    root.style.setProperty("--brand-accent-on-footer", textSafeOn(accent2, "#0a2240", TEXT_TARGET));
+    // --brand-accent (not accent-2) is used for the contact sidebar's arrow
+    // glyphs, which sit on a --brand-dark card. Its own variant rather than the
+    // plain ink, so the accent hue survives.
+    const accent = t.accentColor || "#00bef2";
+    root.style.setProperty("--brand-accent1-on-dark", textSafeOn(accent, dark, DARK_TARGET));
   }, [site]);
   return null;
 }
@@ -5516,7 +5609,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
         >
           <div
             className="text-xs font-bold tracking-widest uppercase"
-            style={{ color: "var(--brand-accent-2)" }}
+            style={{ color: "var(--brand-accent-on-dark)" }}
           >
             Product Catalog
           </div>
@@ -5546,7 +5639,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                 >
                   <span
                     className="text-xs font-bold uppercase tracking-widest"
-                    style={{ color: hasActive ? "var(--brand-primary)" : "#9ca3af" }}
+                    style={{ color: hasActive ? "var(--brand-primary-text)" : "#9ca3af" }}
                   >
                     {family}
                   </span>
@@ -5555,7 +5648,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                       className="text-xs font-semibold px-1.5 py-0.5 rounded"
                       style={{
                         background: "rgba(var(--brand-primary-rgb),0.1)",
-                        color: "var(--brand-primary)",
+                        color: "var(--brand-primary-text)",
                       }}
                     >
                       {items.length}
@@ -5609,7 +5702,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                       >
                         <div
                           className="text-xs font-bold mb-0.5 uppercase tracking-wide"
-                          style={{ color: active ? "var(--brand-primary)" : "#c4cbd4" }}
+                          style={{ color: active ? "var(--brand-primary-text)" : "#c4cbd4" }}
                         >
                           {p.sku}
                         </div>
@@ -5653,7 +5746,7 @@ function SpecTable1({ table }) {
         {rows.map((row, i) => (
           <div key={i} className="px-4 py-3 text-sm">
             {row.label && (
-              <span className="font-semibold" style={{ color: "var(--brand-primary)" }}>
+              <span className="font-semibold" style={{ color: "var(--brand-primary-text)" }}>
                 {row.label}{" "}
               </span>
             )}
@@ -6109,7 +6202,7 @@ function ProductDetail({ product, allProducts }) {
           {product.caption && (
             <p
               className="mt-3 text-xs font-semibold"
-              style={{ color: "var(--brand-primary)" }}
+              style={{ color: "var(--brand-primary-text)" }}
             >
               {product.caption}
             </p>
@@ -6139,7 +6232,7 @@ function ProductDetail({ product, allProducts }) {
                     className="px-2.5 py-1 rounded text-xs font-semibold uppercase tracking-wide"
                     style={{
                       background: "rgba(var(--brand-primary-rgb),0.08)",
-                      color: "var(--brand-primary)",
+                      color: "var(--brand-primary-text)",
                     }}
                   >
                     {b}
@@ -6186,7 +6279,7 @@ function ProductDetail({ product, allProducts }) {
         >
           <div
             className="text-xs font-bold uppercase tracking-widest mb-4"
-            style={{ color: "var(--brand-primary)" }}
+            style={{ color: "var(--brand-primary-text)" }}
           >
             Related Products — {product.partType}
           </div>
@@ -6210,7 +6303,7 @@ function ProductDetail({ product, allProducts }) {
               >
                 <div
                   className="text-xs font-bold uppercase mb-1 transition-colors duration-200 group-hover:text-blue-700"
-                  style={{ color: "var(--brand-primary)" }}
+                  style={{ color: "var(--brand-primary-text)" }}
                 >
                   {rp.sku}
                 </div>
@@ -6374,7 +6467,7 @@ function ProductPage({ products }) {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div
             className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "var(--brand-accent-2)" }}
+            style={{ color: "var(--brand-accent-text)" }}
           >
             Products
           </div>
@@ -6421,7 +6514,7 @@ function ProductPage({ products }) {
                 border: "none",
                 padding: 0,
                 font: "inherit",
-                color: "var(--brand-primary)",
+                color: "var(--brand-primary-text)",
                 textDecoration: "underline",
                 cursor: "pointer",
               }}
@@ -6899,7 +6992,7 @@ function DashboardPage({ products }) {
                   marginTop: 8,
                   fontSize: 11,
                   fontWeight: 600,
-                  color: "var(--brand-primary)",
+                  color: "var(--brand-primary-text)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
@@ -6998,7 +7091,7 @@ function DashboardPage({ products }) {
                 onMouseEnter={(e) => {
                   if (!active) {
                     e.currentTarget.style.borderColor = "var(--brand-primary)";
-                    e.currentTarget.style.color = "var(--brand-primary)";
+                    e.currentTarget.style.color = "var(--brand-primary-text)";
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -7018,7 +7111,7 @@ function DashboardPage({ products }) {
                     background: active
                       ? "rgba(255,255,255,0.2)"
                       : "rgba(var(--brand-primary-rgb),0.08)",
-                    color: active ? "var(--brand-dark-ink)" : "var(--brand-primary)",
+                    color: active ? "var(--brand-dark-ink)" : "var(--brand-primary-text)",
                   }}
                 >
                   {count}
@@ -7043,7 +7136,7 @@ function DashboardPage({ products }) {
                 className="text-xs px-2 py-0.5 rounded"
                 style={{
                   background: "rgba(var(--brand-primary-rgb),0.1)",
-                  color: "var(--brand-primary)",
+                  color: "var(--brand-primary-text)",
                   border: "none",
                   cursor: "pointer",
                 }}
@@ -7121,7 +7214,7 @@ function DashboardPage({ products }) {
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0">
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary-text)', letterSpacing: '0.04em' }}>
                       {row.partId}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#141414', marginTop: 2, lineHeight: 1.3 }}>
@@ -7324,7 +7417,7 @@ function DashboardPage({ products }) {
                             style={{
                               fontSize: 12,
                               fontWeight: 600,
-                              color: "var(--brand-primary)",
+                              color: "var(--brand-primary-text)",
                               background: "rgba(var(--brand-primary-rgb),0.07)",
                               border: "1px solid rgba(var(--brand-primary-rgb),0.2)",
                               cursor: "pointer",
@@ -7385,7 +7478,7 @@ function DashboardPage({ products }) {
                       <td
                         style={{ padding: "13px 18px", whiteSpace: "nowrap" }}
                       >
-                        <span style={{ fontWeight: 700, color: "var(--brand-primary)" }}>
+                        <span style={{ fontWeight: 700, color: "var(--brand-primary-text)" }}>
                           {row.partId}
                         </span>
                       </td>
@@ -7403,7 +7496,7 @@ function DashboardPage({ products }) {
                             textTransform: "uppercase",
                             letterSpacing: "0.05em",
                             background: "rgba(17,158,200,0.1)",
-                            color: "var(--brand-accent-2)",
+                            color: "var(--brand-accent-text)",
                           }}
                         >
                           {row.partType || "—"}
@@ -7615,7 +7708,7 @@ const INDUSTRY_DETAIL = [
       iconKey: "automotive",
       name: "Automotive",
       subhead: "PPAP & IMDS documentation available",
-      color: "var(--brand-primary)",
+      color: "var(--brand-primary-text)",
       useCases: [
         "Wire harness insulation and strain relief",
         "Under-hood connector sealing with adhesive-lined tubing",
@@ -7637,7 +7730,7 @@ const INDUSTRY_DETAIL = [
       iconKey: "aerospace",
       name: "Aerospace & Defense",
       subhead: "MIL-SPEC, AMS, QPL products in stock",
-      color: "var(--brand-primary)",
+      color: "var(--brand-primary-text)",
       useCases: [
         "MIL-SPEC heat shrink over avionics wiring and connectors",
         "PVDF and FEP tubing for high-temperature compartments",
@@ -7663,7 +7756,7 @@ const INDUSTRY_DETAIL = [
       iconKey: "medical",
       name: "Medical Devices",
       subhead: "USP Class VI · ISO 10993-5 · FDA 21 CFR",
-      color: "var(--brand-primary)",
+      color: "var(--brand-primary-text)",
       useCases: [
         "Catheter and surgical instrument handle jacketing",
         "Endoscope component covering with biocompatible tubing",
@@ -7685,7 +7778,7 @@ const INDUSTRY_DETAIL = [
       iconKey: "industrial",
       name: "Industrial & OEM",
       subhead: "Motor leads, transformers, heating elements",
-      color: "var(--brand-primary)",
+      color: "var(--brand-primary-text)",
       useCases: [
         "Fiberglass sleeving for motor lead and winding insulation",
         "High-temperature coating options: vinyl, acrylic, silicone",
@@ -7708,7 +7801,7 @@ const INDUSTRY_DETAIL = [
       iconKey: "marine",
       name: "Marine & Outdoor",
       subhead: "UV rated · Waterproof sealing · Corrosion resistant",
-      color: "var(--brand-primary)",
+      color: "var(--brand-primary-text)",
       useCases: [
         "Dual-wall adhesive-lined tubing for watertight connector seals",
         "UV-resistant PVC heat shrink for exposed wiring",
@@ -7808,7 +7901,7 @@ function IndustriesPage() {
               <div className="p-7 border-b border-gray-200 lg:border-b-0 lg:border-r lg:border-gray-200">
                 <div
                   className="text-xs font-bold uppercase tracking-widest mb-4"
-                  style={{ color: "var(--brand-primary)" }}
+                  style={{ color: "var(--brand-primary-text)" }}
                 >
                   Common Applications
                 </div>
@@ -7838,7 +7931,7 @@ function IndustriesPage() {
               <div className="p-7 border-b border-gray-200 lg:border-b-0 lg:border-r lg:border-gray-200">
                 <div
                   className="text-xs font-bold uppercase tracking-widest mb-4"
-                  style={{ color: "var(--brand-primary)" }}
+                  style={{ color: "var(--brand-primary-text)" }}
                 >
                   IPC Products
                 </div>
@@ -7859,7 +7952,7 @@ function IndustriesPage() {
                       >
                         <span
                           style={{
-                            color: "var(--brand-accent-2)",
+                            color: "var(--brand-accent-text)",
                             marginTop: 3,
                             flexShrink: 0,
                             fontSize: 8,
@@ -7874,7 +7967,7 @@ function IndustriesPage() {
                             style={{
                               fontSize: 12,
                               fontWeight: 700,
-                              color: "var(--brand-primary)",
+                              color: "var(--brand-primary-text)",
                               letterSpacing: "0.04em",
                             }}
                           >
@@ -7912,7 +8005,7 @@ function IndustriesPage() {
                 <div>
                   <div
                     className="text-xs font-bold uppercase tracking-widest mb-4"
-                    style={{ color: "var(--brand-primary)" }}
+                    style={{ color: "var(--brand-primary-text)" }}
                   >
                     Certifications
                   </div>
@@ -7923,7 +8016,7 @@ function IndustriesPage() {
                         className="text-xs font-semibold px-2.5 py-1 rounded"
                         style={{
                           background: "rgba(var(--brand-primary-rgb),0.08)",
-                          color: "var(--brand-primary)",
+                          color: "var(--brand-primary-text)",
                         }}
                       >
                         {cert}
@@ -7953,7 +8046,7 @@ function IndustriesPage() {
                       display: "block",
                       textAlign: "center",
                       background: "transparent",
-                      color: "var(--brand-primary)",
+                      color: "var(--brand-primary-text)",
                       border: "1px solid var(--brand-primary)",
                       cursor: "pointer",
                     }}
@@ -8018,7 +8111,7 @@ function IndustriesPage() {
  */
 function Badge({ children, variant = "primary" }) {
   const styles = {
-    primary: { background: "rgba(var(--brand-primary-rgb),0.09)", color: "var(--brand-primary)" },
+    primary: { background: "rgba(var(--brand-primary-rgb),0.09)", color: "var(--brand-primary-text)" },
     success: { background: "rgba(22,101,52,0.09)", color: "#166534" },
     neutral: { background: "rgba(107,114,128,0.10)", color: "#6b7280" },
   };
@@ -8320,7 +8413,7 @@ function ServicesPage() {
             style={{
               display: "inline-block",
               background: "#ffffff",
-              color: "var(--brand-primary)",
+              color: "var(--brand-primary-text)",
               border: "none",
               cursor: "pointer",
             }}
@@ -8351,7 +8444,7 @@ function ServicesPage() {
                     width: 42,
                     height: 42,
                     background: "rgba(var(--brand-primary-rgb),0.08)",
-                    color: "var(--brand-primary)",
+                    color: "var(--brand-primary-text)",
                     border: "1px solid rgba(var(--brand-primary-rgb),0.15)",
                   }}
                 >
@@ -8402,7 +8495,7 @@ function ServicesPage() {
                   rel="noopener noreferrer"
                   className="px-6 py-4 flex items-center gap-2 text-xs font-semibold transition-colors duration-150"
                   style={{
-                    color: "var(--brand-primary)",
+                    color: "var(--brand-primary-text)",
                     borderTop: "1px solid #e5e9ee",
                     background: "#f8fafc",
                     textDecoration: "none",
@@ -8780,7 +8873,7 @@ function Footer() {
                 </div>
                 <div
                   className="text-xs mt-0.5"
-                  style={{ color: "var(--brand-accent-2)", letterSpacing: "0.08em" }}
+                  style={{ color: "var(--brand-accent-on-footer)", letterSpacing: "0.08em" }}
                 >
                   {[
                     site.company.foundedYear ? `ESTABLISHED ${site.company.foundedYear}` : null,
@@ -8808,7 +8901,7 @@ function Footer() {
           <div>
             <div
               className="text-xs font-bold uppercase tracking-widest mb-4"
-              style={{ color: "var(--brand-accent-2)" }}
+              style={{ color: "var(--brand-accent-on-footer)" }}
             >
               {fc.contactTitle}
             </div>
@@ -8867,7 +8960,7 @@ function Footer() {
           <div>
             <div
               className="text-xs font-bold uppercase tracking-widest mb-4"
-              style={{ color: "var(--brand-accent-2)" }}
+              style={{ color: "var(--brand-accent-on-footer)" }}
             >
               {fc.quickLinksTitle}
             </div>
@@ -9181,10 +9274,10 @@ function CatalogError({ error }) {
         <p style={{ color: "#6b7280", marginBottom: 8 }}>
           The rest of the site still works — or reach us directly:
         </p>
-        <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary)", fontWeight: 700, marginRight: 16 }}>
+        <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary-text)", fontWeight: 700, marginRight: 16 }}>
           📞 {site.contact.phone}
         </a>
-        <a href={`mailto:${site.contact.email}`} style={{ color: "var(--brand-primary)", fontWeight: 700 }}>
+        <a href={`mailto:${site.contact.email}`} style={{ color: "var(--brand-primary-text)", fontWeight: 700 }}>
           📧 {site.contact.email}
         </a>
       </div>
