@@ -31,6 +31,17 @@
   --brand-primary-ink-rgb: 255, 255, 255;
   --brand-dark-ink-rgb: 255, 255, 255;
   --brand-header-ink-rgb: 255, 255, 255;
+
+  /* The brand colors used as TEXT rather than as a background
+     (brand-color-as-foreground). ThemeInjector darkens or lightens these only
+     as far as legibility requires, and only when the owner's own color fails —
+     for the shipped palette below they are the brand colors unchanged, which is
+     why the default site looks exactly as it did. */
+  --brand-primary-text: #005da3;
+  --brand-accent-text: #119ec8;
+  --brand-accent-on-dark: #119ec8;
+  --brand-accent-on-footer: #119ec8;
+  --brand-accent1-on-dark: #00bef2;
 }
 
 /* Ink utilities, for elements that set their color through a class rather than
