@@ -49,5 +49,21 @@ uploads/images/*
 data/products-all.backup.*.json
 data/site-info.backup.*.json
 data/content.backup.*.json
-# Session-3 verification harness (local only, never deployed)
-_harness/
+# Verification harness. The CODE is tracked — those suites are the executable
+# form of this release's acceptance criteria, and a blanket ignore meant every
+# session rebuilt them from nothing. Never deployed; nothing here ships.
+#
+# The three generated directories stay out, and two of them are not merely
+# noise:
+#   site/     ~21 MB mirror of dist/ + admin/ + data/, rebuilt by sync.sh. It
+#             also holds admin/config.local.php, which carries a WORKING ADMIN
+#             CREDENTIAL — and this repo is public.
+#   pristine/ a copy of data/*.json. Tracking it would create a second source
+#             of truth for live customer state that can drift from the first,
+#             which is exactly the public/products-all.json incident.
+#   out/      screenshots and measurements, regenerable by re-running a suite.
+#
+# Bootstrap after a fresh clone: npm run build && sh _harness/sync.sh
+_harness/site/
+_harness/pristine/
+_harness/out/

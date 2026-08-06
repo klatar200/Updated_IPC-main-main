@@ -146,6 +146,21 @@ Ordered by value. Nothing here blocks the upload.
 - [x] **4.23** ~~Owner-set brand colors are injected with no contrast guard while headings and primary buttons hardcode `#ffffff`.~~ **SHIPPED 2026-08-06 (Plan 2)** for headings, primary buttons and the other solid brand surfaces — see §1b and §4g. **The de-emphasised text on those same surfaces is NOT covered — see `brand-ink-translucent` below.**
 - [x] **brand-ink-translucent** ~~The 4.23 ink mechanism is in place but 47 translucent-white foregrounds on owner-controlled brand surfaces still hardcode `rgba(255,255,255,α)` and go invisible when the owner picks a pale color.~~ **SHIPPED 2026-08-06** — see §1b and §4h. The count was **77 inline sites plus 12 Tailwind `text-white` classes**, not 47; the original estimate came from a source scan that only looked at `rgba(255,255,255,α)` and missed both the solid `#ffffff` conditionals and the class-based colors. Measured before/after with a new empirical auditor: **357 → 274 brand-sensitive contrast failures, and zero of the remainder are white-on-a-brand-surface.**
 - [x] **brand-color-as-foreground** ~~Brand colors used as *text on white or on another brand surface*~~ **SHIPPED 2026-08-06** — see §1b and §4i. **274 → 12 brand-sensitive failures**, and all 12 remaining are `brand-gradient-mixed-ends` below. ⚠️ **One visible change to the shipped design**, called out because it is not a no-op: `--brand-accent-2` used as text on white moves `#119EC8 → #0d7594`. The shipped accent measures **3.1:1 on white**, a genuine WCAG AA failure, so it could not be left alone and still called fixed — but reverting is a one-line change to `TEXT_TARGET` if the original cyan is preferred. `--brand-primary` as text (258 of the sites) is **unchanged**. Original wording kept below for the record: Brand colors used as *text on white or on another brand surface* — product feature chips, eyebrow labels, the sidebar's "PRODUCT CATALOG" / family headings, `color: "var(--brand-primary)"` and `var(--brand-accent-2)` at ~30 sites. A pale brand color makes these unreadable and the ink variables do not help: this case needs the brand color **darkened for text use**, not a foreground swapped. **Now quantified** (2026-08-06, `_harness/inkaudit.js`): **262 of the 274 remaining brand-sensitive failures** — 252 at `rgb(255,230,0)` (primary as text) and 10 at `rgb(255,247,192)` (accent as text on `--brand-dark`). This is now the single largest brand-color defect. Visible in `_harness/out/contrast/pale-yellow-1440.png` as the washed-out "UL & CUL LISTED" chips and sidebar headings. Not started.
+- [ ] **page-header-eyebrow-contrast** Found 2026-08-06 while answering a question about `--brand-accent-text`. The small uppercase eyebrow above each page title (`"Products"`, `src/App.jsx:6615`) sits on `.ipc-page-header`, whose background is `linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))` — **a gradient, not white.** Every candidate was measured against both stops on the shipped navy palette; none reaches AA for 12 px text:
+
+  | candidate | left stop | right stop | worst |
+  |---|---|---|---|
+  | `#119EC8` `--brand-accent-2` (shipped until 2026-08-06) | 2.18:1 | **1.00:1** | FAIL |
+  | `#0d7594` `--brand-accent-text` (current) | 1.29:1 | 1.69:1 | FAIL |
+  | `#00BEF2` `--brand-accent1-on-dark` | 3.12:1 | 1.43:1 | FAIL |
+  | `#ffffff` `--brand-header-ink` | 6.79:1 | 3.11:1 | large-text only |
+
+  The `<h1>` beside it survives on the same gradient **only because 36 px extrabold is large text**, where the AA bar drops to 3:1. The eyebrow is 12 px and needs 4.5:1. Note the pre-existing value was **1.00:1** — the accent used as text on a gradient *ending in that same accent*, i.e. invisible at the right-hand end.
+
+  **Partly self-inflicted, stated plainly:** commit `4ab7f7f` (`brand-color-as-foreground`) changed this line from `var(--brand-accent-2)` to `var(--brand-accent-text)`. That variable is solved for **white**, so it was the wrong one for a gradient surface. It moved the worst case from 1.00:1 to 1.29:1 — still failing. It slipped through because `_harness/fgsurfaces.js` enumerated **solid** backgrounds only and skipped gradient-backed elements entirely; that is a gap in the auditor, not just in the patch.
+
+  The real fix is a design decision on the page header — darken the gradient's right stop, put the eyebrow on a solid chip, or drop the eyebrow to the same ink as the title and accept losing the two-tone. **Logged, not changed, by Keagan's decision 2026-08-06 (§3).** Affects all nine page headers.
+
 - [ ] **brand-gradient-mixed-ends** Found 2026-08-06 while fixing `brand-ink-translucent`. Two heading strips use a gradient running from a **hardcoded dark** color to an **owner-controlled** one — `linear-gradient(135deg, #0a2a52, var(--brand-primary))` on the product-detail header (`src/App.jsx:5885`) and `linear-gradient(135deg, #003d7a, var(--brand-primary))` on the industry section headers (`:7789`). No single ink can serve both ends: white is right over the fixed navy, dark is right over a pale primary. Left as `text-white`, which is correct for the default palette and for where the left-aligned heading actually sits, and both carry an inline comment saying so. Accounts for the last **12** of the 274 remaining failures. The real fix is a design decision — either make the fixed end `var(--brand-dark)` so one ink can serve the whole band (a visible change to the current look, `#003d7a` is notably brighter than `#0d2d52`), or stop putting text across a two-owner gradient. **Escalate before changing.**
 - [ ] **sidebar-active-border** `ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.
 - [x] **4.24** ~~`SITE_INFO_URL` / `CONTENT_URL` have no `import.meta.env.DEV` branch, so theming and content plumbing are never exercised by `npm run dev`.~~ **SHIPPED 2026-08-05 (Plan 0)** — see §1b and §4d.
@@ -234,6 +249,33 @@ Ordered by value. Nothing here blocks the upload.
   applicable and was not met: there is no rejected save on this path.** The
   substituted assertion is that `content.json` *does* change, the warning names
   the SKU, and a valid SKU produces no warning. See §4g.
+
+### Decisions taken 2026-08-06 (Plans 3–4 session, on the brand-color questions)
+
+- **`--brand-accent-text` stays at `#0d7594`.** The shipped `#119EC8` measures
+  **3.11:1** on white and **2.71:1** on the Product Index chip tint — below AA at
+  all four sites where the variable is actually used. Keeping the derived value
+  fixes 45 occurrences; the visible change is a slightly deeper blue on the About
+  service-card sublines, the type chips and the sidebar arrows.
+  (Comparison rendered in `_harness/out/accent-side-by-side.png`.)
+
+- **`brand-gradient-mixed-ends` is NOT being changed.** Measured at a pale
+  palette, the failing end of both strips is the **empty** end: the heading and
+  sub-line are left-aligned over the hardcoded navy, where white stays at
+  10.78:1. Option A (make the fixed end `var(--brand-dark)`) passes at every
+  palette — 14.54:1 worst at pale yellow — but costs a visible deepening of
+  `#003d7a → #0d2d52` on the shipped navy and turns the strip into an entirely
+  owner-controlled band that stops anchoring the page at a light palette.
+  Judged a certain visual cost against a hypothetical failure.
+  (Rendered at both palettes in `_harness/out/gradient-{navy,pale}-compare.png`.)
+
+- **`page-header-eyebrow-contrast` is logged, not fixed** — see §2. Nothing
+  passes AA there without changing the page-header design, so it is not a colour
+  pick.
+
+- **The harness code is now tracked.** `.gitignore` no longer ignores
+  `_harness/` wholesale; it ignores `_harness/site/`, `_harness/pristine/` and
+  `_harness/out/`. Rationale and bootstrap in `_harness/README.md`.
 
 ### Still awaiting Keagan (restated, not re-derived)
 
