@@ -126,6 +126,7 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **4.14** | `admin/config.php`, `admin/auth.php` | Shipped 2026-08-06 (Plan 5). `sleep(min(8, failures - 4))` is per-connection, and the counter was a read-modify-write with no lock held across both halves. **Neither fault is observable on a single `php -S`**, which answers one request at a time; `PHP_CLI_SERVER_WORKERS` is not enough either (8 workers served 8 concurrent `sleep(2)` in 6 s). A **fleet of ten independent servers over one docroot** shows both. Before: 10 parallel failures counted **5 of 10**; 12 serial guesses 30,681 ms / 12 evaluated; 12 parallel guesses **757 ms / 12 evaluated**. After: **10 of 10** counted; serial 1,368 ms / 6 evaluated; parallel 364 ms / **6 evaluated** — the same number. That last part is not just the lock: counting *failures* under the lock still let a cold-start burst through, so `login_attempt_gate()` takes a slot on **entry** and the decision and the increment happen inside one `flock`. 5 free attempts, then 15/30/60/120/240s capped at **300 s**, enforced by a stored timestamp instead of sleeping. **Not stranding Rick was the binding constraint**: an attempt made during a cool-off is refused *without being counted and without extending the window*, so retrying cannot dig a deeper hole. The comment at `auth.php:49-54` was rewritten only where it became untrue and still says, in as many words, that this is per-IP so a distributed attacker is unaffected and that the long random password is the actual control. Evidence in §4k. |
 | **4.11b** | `src/App.jsx` (new `FooterSocial`), `src/index.css` | Shipped 2026-08-06 (Plan 5). v2 4.11 promised footer social icons and nobody built them: `social.*` fed JSON-LD `sameAs` and nothing else, so five fields Rick can edit in Business Details had **no visible effect on the site at all**. Five inline-SVG icons now render in the footer's brand column. The load-bearing half is NB4 / invariant 4 — all five are in `SITE_CLEARABLE` and the docs promise a cleared field "disappears from the site properly" — so all five empty renders **no container**, asserted as element **absent**, not element-empty (a "has no children" check would pass against an empty row that still eats 40 px of footer). Accessible names read from the real AX tree (5/5); `rel="noopener noreferrer"` on all five; focus ring driven by **real Tab presses**, because Chromium will not match `:focus-visible` for programmatic focus. **9/19 → 31/31.** Deliberately **no heading**: every other footer heading is a `copy` key that must exist on both sides of the content contract, and adding one moves `content.php`'s posted-variable count away from the asserted 421. Evidence in §4k. |
 | **4.32** | `public/images/`, `src/App.jsx` | Shipped 2026-08-06 (Plan 5). **9,357,354 → 2,668,995 bytes, `du -sh` 9.1M → 2.7M (71.5% smaller), largest single file 198,726 B, zero over 300 KB.** Nothing cropped, nothing retouched, **not one filename changed** (`diff` of the tracked list against the tree is empty). Three measurements drove it: every product photo is painted at most **390 × 260 CSS px** at 1440 *and* 375, so 800 px on the long edge is already 2×; **27 of 60 files are painted on no route at all**; and **every product PNG's alpha channel is fully opaque** — they are 32-bit RGBA photographs whose fourth channel does nothing, which is most of why a 340 × 260 image weighed 190 KB. Quality is not asserted by eye: every output is PSNR-scored against its original *at the output resolution*, painted photos are held to **38 dB** (worst shipped: 38.1), and a file that cannot clear its floor at q95 keeps its original. As rendered, before-vs-after page screenshots score **53–60 dB** on the product pages. Also: the product detail photo was `loading="lazy"` while sitting **above the fold at 1440** (top 490 in a 900 px viewport) — it is the LCP element, so it is now eager; the footer logo, which is below the fold everywhere, is now lazy. Evidence in §4k. |
+| **photoUrl case** | `data/products-all.json` | Shipped 2026-08-06 (Plan 5, after handback, on Keagan's explicit instruction). Four `photoUrl`s differed from the file on disk only by case, so on a case-sensitive filesystem the SPA rewrite answered the miss with `index.html` and a **200** and the T2.7 `onError` fallback swapped in the branded placeholder: **4 of 42 product pages showed a placeholder instead of a photograph that exists**. Corrected to the on-disk names. **The only edit to `data/products-all.json` in this release** — four changed lines, verified by `diff`, made under an explicit owner override of the standing "never modify `data/*.json`" rule. 33 → **37 of 42** pages paint a real photo. ⚠️ **Does not reach production by itself** — the deployed copy is server-owned; the same four edits must be made there, ideally through the admin. Evidence in §4k. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -142,7 +143,28 @@ Ordered by value. Nothing here blocks the upload.
 - [x] **4.1** ~~FAQ JSON-LD `useEffect` has `[]` deps and runs before `content.json` loads, so owner-edited FAQs never reach Google's rich results.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [x] **4.3** ~~No `rel="canonical"` anywhere; `og:url` is hardcoded to the homepage on all 9 pages.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [ ] **4.27 residual reorder cost** Recorded here because PLAN-5 requires it. The keys chosen are `` `${index}-${value}` ``, **not** a stable per-row id assigned in `admin/content.php` and carried in `content.json`. A per-row id has to be posted from that form, which currently posts **421** named controls under a positionally-enforced `max_input_vars` sentinel; ~90 more hidden fields moves that number and the invariant asserted against it, and existing rows would have no id until Rick re-saved, so a fallback would be needed anyway. The cost of the cheaper option is that an index-bearing key reorders poorly — React would reuse a fiber by position rather than by row. **Measured, that cost is currently zero**: `content.json` is fetched exactly once per page load (`ContentProvider`, `[]` deps), no owner-editable list is reordered in place at runtime, and a reorder in the admin reaches the public site as a fresh page load. It becomes real the day the 4.25 `visibilitychange` refetch is extended from products to content, or any live-refresh of `content.json` is added — at which point the per-row id is the fix. Asserted today by `plan5-keys.js` phase C (reorder in the admin, save, public order matches). (Logged 2026-08-06, Plan 5.)
-- [ ] **photoUrl case mismatch — 4 products show the placeholder** Found 2026-08-06 while measuring for 4.32. `data/products-all.json` gives `IP12GA` → `/images/products/IP12GA.jpg`, `IP52EC` → `IP52EC.png`, `IP63ES` → `IP63ES.jpg` and `VALUE-ADDED` → `VALUE-ADDED.png`, but the files on disk are `ip12ga.jpg`, `ip52ec.png`, `ip63es.jpg` and `value-added.png`. On a case-sensitive filesystem — which the deploy target is — the SPA rewrite answers the miss with `index.html` and a **200**, so the browser is handed HTML where it asked for an image and the T2.7 `onError` fallback swaps in the branded placeholder. Measured: `curl /images/products/IP52EC.png` → `200 text/html; charset=UTF-8`, 2,094 bytes. So **4 of 42 product pages show a placeholder instead of the photograph that exists**, on top of the 5 that legitimately point at `placehold.co`. **Not fixed, deliberately:** both available fixes are forbidden by PLAN-5's scope boundary — renaming the files ("Keep filenames identical … renaming breaks the mapping silently") and editing `products-all.json` ("You are **not** … altering `products-all.json` to point at renamed images"). The set is pinned in `plan5-images.js` so it cannot silently grow. **Needs a decision: rename the four files, or correct the four `photoUrl` values.** The second is the safer one — it is a data edit the admin itself can make.
+- [x] **photoUrl case mismatch — 4 products show the placeholder** ~~Found 2026-08-06 while measuring for 4.32.~~ **FIXED 2026-08-06 by Keagan's instruction** — see the closing note at the end of this item. Original wording kept for the record. Found 2026-08-06 while measuring for 4.32. `data/products-all.json` gives `IP12GA` → `/images/products/IP12GA.jpg`, `IP52EC` → `IP52EC.png`, `IP63ES` → `IP63ES.jpg` and `VALUE-ADDED` → `VALUE-ADDED.png`, but the files on disk are `ip12ga.jpg`, `ip52ec.png`, `ip63es.jpg` and `value-added.png`. On a case-sensitive filesystem — which the deploy target is — the SPA rewrite answers the miss with `index.html` and a **200**, so the browser is handed HTML where it asked for an image and the T2.7 `onError` fallback swaps in the branded placeholder. Measured: `curl /images/products/IP52EC.png` → `200 text/html; charset=UTF-8`, 2,094 bytes. So **4 of 42 product pages show a placeholder instead of the photograph that exists**, on top of the 5 that legitimately point at `placehold.co`. **Not fixed, deliberately:** both available fixes are forbidden by PLAN-5's scope boundary — renaming the files ("Keep filenames identical … renaming breaks the mapping silently") and editing `products-all.json` ("You are **not** … altering `products-all.json` to point at renamed images"). The set is pinned in `plan5-images.js` so it cannot silently grow. **Needed a decision: rename the four files, or correct the four `photoUrl` values.** The second is the safer one — it is a data edit the admin itself can make.
+
+  **RESOLVED 2026-08-06 by Keagan: correct the four `photoUrl` values.** Done —
+  `IP12GA.jpg → ip12ga.jpg`, `IP52EC.png → ip52ec.png`, `IP63ES.jpg →
+  ip63es.jpg`, `VALUE-ADDED.png → value-added.png`. **This is the only edit ever
+  made to `data/products-all.json` in this release**, it was made on explicit
+  owner instruction overriding the standing prohibition, and `diff` shows
+  exactly four changed lines and nothing else. All 37 local `photoUrl`s now
+  resolve to a file on disk; the five `placehold.co` URLs are untouched.
+  Measured: **33 → 37 of 42 product pages paint a real photograph**, and
+  `plan5-images.js` no longer carries an exception list — "every `/images/`
+  response is a 2xx with an `image/*` content type" is now a plain zero.
+  `_harness/pristine/products-all.json` was re-seeded from `data/`
+  **deliberately**, which is the one circumstance that justifies it: the change
+  came from the owner, not from a test writing to `data/`.
+
+  ⚠️ **THIS DOES NOT REACH THE LIVE SITE ON ITS OWN.** `data/products-all.json`
+  has been server-owned since the last deploy and §3 settles that the repo copy
+  is not to be uploaded. The same four corrections have to be applied to the
+  **deployed** copy — the least risky route is Rick's own admin (Edit Product →
+  Photo URL) for each of `IP12GA`, `IP52EC`, `IP63ES` and `VALUE-ADDED`, which
+  also writes a backup first. **Still outstanding.**
 - [ ] **27 of 60 images are painted on no route** Found 2026-08-06 during 4.32. The whole of `public/images/site/` (`Front-Cover.jpg`, `Marker-Sample-2.jpg`, `Heat-Shrink-Tape-Product-photo-2.jpg`, `Slide1.png`, `staff-image.png`, `staff.jpg`, the three `featured-category-*.jpg`, both `main-banner-*.jpg`, …), plus `_unmatched/adhesiveLined.webp` and the four case-mismatched product files, are referenced by **nothing** in `src/`, `data/`, `admin/`, `public/` or `index.html`. They still deploy. They were re-encoded rather than deleted (deletion is not in PLAN-5's scope, and the admin may reference them later), and they are ~1.1 MB of the remaining 2.7 MB. **Deleting them is a decision, not a cleanup** — some are the customer's photography and the only copy may be here.
 - [ ] **product photo has no `width`/`height`** Found 2026-08-06 during 4.32. Every logo `<img>` carries both; the product detail photo cannot, because the component is handed a URL and never the intrinsic dimensions — those live in `products-all.json`, which PLAN-5 forbids altering. Setting a fixed pair (e.g. 390 × 260) would give the element a fixed aspect ratio, and combined with the existing `object-cover` that **crops** every photo whose natural ratio is wider — `CT.jpg` is painted 390 × 217 today and would be cut to 260. Cropping the customer's product photography to win a layout metric is the wrong trade. Measured cost of leaving it: **CLS 0.021** on a product page at 1440 and **0** at 375, against Google's "good" bar of 0.1. The fix, if it is ever wanted, is intrinsic dimensions in the catalog data.
 - [ ] **`admin/password.php` still sleeps** Noted 2026-08-06 while shipping 4.14. It shares the per-IP throttle record and still calls `sleep(min(8, $failures - 4))` on a wrong current-password. It is behind `require_auth()` and outside PLAN-5's scope boundary ("`admin/auth.php` (throttle only), `admin/config.php` (`login_*` helpers only)"), so it was left alone. It **does** now benefit from the lock, because `login_register_failure()` routes through `login_throttle_mutate()`. Two consequences worth knowing: the sleep there is still amortised by parallelism, and six wrong current-password attempts can arm a login cool-off of up to 300 s for that IP.
@@ -1884,9 +1906,10 @@ lazy. `public/` ↔ `dist/` image parity confirmed by `diff` on names and sizes.
 
 #### Things this plan did not do
 
-- **The four case-mismatched `photoUrl`s are not fixed.** Both available fixes
-  are forbidden by the scope boundary. Logged in §2 with the `curl` evidence;
-  the set is pinned in `plan5-images.js` so it cannot silently grow.
+- **The four case-mismatched `photoUrl`s were not fixed in the plan itself** —
+  both available fixes are forbidden by the scope boundary, so they were logged
+  in §2 with the `curl` evidence and pinned in `plan5-images.js`. **Keagan then
+  instructed the `photoUrl` fix directly; see the follow-up block below.**
 - **The 27 unreferenced images are not deleted.** Logged in §2 — some are the
   customer's photography and this may be the only copy.
 - **The product photo still has no `width`/`height`.** A fixed ratio would crop
@@ -1901,6 +1924,52 @@ lazy. `public/` ↔ `dist/` image parity confirmed by `diff` on names and sizes.
   console cleanliness across every route, the NB4 cleared-field behaviour,
   375 px overflow across all 42 product pages, the admin login path — is inside
   them.
+
+#### Follow-up, same day: the four `photoUrl` values (owner-instructed)
+
+Keagan's call, overriding the standing prohibition on editing `data/*.json`.
+
+```
+                                        before   after
+local photoUrls resolving to a file      33/37    37/37
+product pages painting a real photo      33/42    37/42   (5 placehold.co, unchanged)
+/images/ responses that are not image/*      4        0
+plan5-images                             12/12    12/12
+```
+
+`diff` against the pre-edit copy shows **exactly four changed lines** and
+nothing else:
+
+```
+1040  "/images/products/IP12GA.jpg"       -> "/images/products/ip12ga.jpg"
+5715  "/images/products/IP52EC.png"       -> "/images/products/ip52ec.png"
+6587  "/images/products/IP63ES.jpg"       -> "/images/products/ip63es.jpg"
+7160  "/images/products/VALUE-ADDED.png"  -> "/images/products/value-added.png"
+```
+
+Served and decoded, measured through the mirror: `ip12ga.jpg` 200 image/jpeg
+8,541 B; `ip52ec.png` 200 image/png 52,148 B; `ip63es.jpg` 200 image/jpeg
+13,768 B; `value-added.png` 200 image/png 198,726 B — and all four render on
+their product pages (`naturalWidth` 317/335/317/708, `complete` true).
+Screenshots in `_harness/out/plan5-images/case-fixed/`.
+
+`plan5-images.js` lost its exception list: "every `/images/` response is a 2xx
+with an `image/*` content type" is now unqualified, and the placeholder count is
+asserted as exactly **5** rather than "no more than 9", so a `photoUrl` that
+stops resolving fails the suite.
+
+`_harness/pristine/products-all.json` was re-seeded from `data/`. That is
+normally exactly what `sync.sh`'s comment warns against — "refreshing it from
+`data/` each time would silently launder exactly the corruption it exists to
+detect" — and it is justified here for the one reason that applies: the change
+came from the owner, deliberately, not from a test writing to `data/`. Every
+suite was re-run against the new reference and is green.
+
+⚠️ **This does not reach the live site.** `data/products-all.json` has been
+server-owned since the last deploy and §3 settles that the repo copy is not to
+be uploaded. The same four corrections must be applied to the **deployed** copy,
+best through Rick's own admin (Edit Product → Photo URL), which writes a backup
+first. **Outstanding.**
 
 #### Limits of this evidence
 

@@ -52,6 +52,11 @@ const EXPECTED_FILES = 60;
 
 const products = JSON.parse(fs.readFileSync(path.join(__dirname, 'pristine', 'products-all.json'), 'utf8'));
 const PAINTED = JSON.parse(fs.readFileSync(path.join(__dirname, 'painted-images.json'), 'utf8'));
+// The four files whose photoUrl was case-corrected are painted now and were not
+// when painted-images.json was generated, so they are added here rather than
+// silently regenerating that list.
+PAINTED.push('images/products/ip12ga.jpg', 'images/products/ip52ec.png',
+             'images/products/ip63es.jpg', 'images/products/value-added.png');
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -124,30 +129,27 @@ function walk(dir) {
     note(broken.length === 0,
       `zero broken images across all ${products.length} product pages`,
       broken.join(', '));
-    // Four photoUrls in products-all.json differ from the file on disk only by
-    // CASE (IP52EC.png vs ip52ec.png, and three more). On a case-sensitive
-    // filesystem the SPA rewrite answers the miss with index.html and a 200,
-    // so the browser gets HTML where it asked for an image and falls back to
-    // the branded placeholder. That is PRE-EXISTING and untouched by the
-    // re-encode: fixing it means either renaming files or editing
-    // products-all.json, and PLAN-5 forbids both. Logged in WHATS_LEFT.md §2.
-    // Pinned here so the set cannot silently GROW.
-    const KNOWN_CASE_MISMATCH = [
-      '/images/products/IP12GA.jpg', '/images/products/IP52EC.png',
-      '/images/products/IP63ES.jpg', '/images/products/VALUE-ADDED.png',
-    ];
-    const unexpected = [...new Set(badType)]
-      .filter((b) => !KNOWN_CASE_MISMATCH.some((k) => b.endsWith(k)));
+    // Four photoUrls used to differ from the file on disk only by CASE
+    // (IP52EC.png vs ip52ec.png, IP12GA, IP63ES, VALUE-ADDED). On a
+    // case-sensitive filesystem the SPA rewrite answers the miss with
+    // index.html and a 200, so the browser was handed HTML where it asked for
+    // an image and fell back to the branded placeholder — 4 of 42 product
+    // pages showing a placeholder instead of a photograph that exists.
+    // Corrected in data/products-all.json on Keagan's instruction (the only
+    // change to that file, and it is server-owned in production — the same
+    // four edits have to be made on the deployed copy). This is now a plain
+    // zero, with no exceptions carried.
+    const unexpected = [...new Set(badType)];
     note(unexpected.length === 0,
-      'every /images/ response is a 2xx with an image/* content type, apart from the ' +
-      `${KNOWN_CASE_MISMATCH.length} known pre-existing case-mismatched photoUrls`,
+      'every /images/ response is a 2xx with an image/* content type — no exceptions',
       unexpected.join('\n         '));
-    // The four case-mismatched photoUrls fall back to the branded placeholder
-    // and always did — pre-existing, logged in WHATS_LEFT.md §2, NOT caused by
-    // the re-encode. What matters here is that the count did not grow.
-    note(noPhoto.length <= 9,
+    // Only the five products whose photoUrl legitimately points at placehold.co
+    // fall back now. The four case-mismatched ones were fixed in
+    // products-all.json; if this ever reads more than 5 again, a photoUrl has
+    // stopped resolving.
+    note(noPhoto.length === 5,
       `${products.length - noPhoto.length} of ${products.length} product pages paint a real photo ` +
-      `(${noPhoto.length} on the branded placeholder: 5 placehold.co URLs + 4 case-mismatched filenames, all pre-existing)`,
+      `(${noPhoto.length} on the branded placeholder, all of them placehold.co URLs in the catalog)`,
       noPhoto.join(', '));
     note(PAINTED.every((rel) => painted.has(rel)),
       `all ${PAINTED.length} product images that were painted before are still painted`,
