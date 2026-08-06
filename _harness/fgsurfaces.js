@@ -11,6 +11,14 @@
  * Runs under the shipped navy palette, where --brand-primary is rgb(0, 93, 163)
  * and --brand-accent-2 is rgb(17, 158, 200).
  *
+ * SUPERSEDED for reporting by _harness/brandtext.js (2026-08-06). This file is
+ * kept because WHATS_LEFT.md §4i cites its numbers. Its limitation, stated
+ * plainly: for a gradient-backed element it returns the string 'GRADIENT' and
+ * prints "check by hand". It DID surface four such sites during the
+ * brand-color-as-foreground work; the by-hand check never happened, and
+ * page-header-eyebrow-contrast is what survived. A finding a tool defers to a
+ * human is a finding a tool loses. brandtext.js scores them instead.
+ *
  * Usage: node _harness/fgsurfaces.js
  */
 const { launch } = require('./browser');
