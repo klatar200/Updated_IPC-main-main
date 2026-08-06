@@ -13,6 +13,16 @@
   --brand-dark: #0d2d52;
   --brand-accent: #00bef2;
   --brand-accent-2: #119ec8;
+
+  /* 4.23 — the readable foreground for each brand-colored surface. These used
+     to be a hardcoded #ffffff at ~30 call sites, so a pale owner-chosen brand
+     color shipped white-on-white to every visitor. ThemeInjector recomputes
+     them by WCAG luminance whenever the owner changes a color; the values here
+     are the defaults for the shipped navy palette and for the first paint,
+     before React has mounted. */
+  --brand-primary-ink: #ffffff;
+  --brand-dark-ink: #ffffff;
+  --brand-header-ink: #ffffff;
 }
 
 /* A handful of SVG icons still carry the brand color as a presentation

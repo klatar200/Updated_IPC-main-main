@@ -605,6 +605,115 @@ function login_reset_failures(string $ip): void {
     login_throttle_write($map);
 }
 
+// ─── Contrast math for the owner-set brand colors (4.23) ────────────────────
+// MIRRORS src/App.jsx's parseHexColor / relativeLuminance / contrastRatio /
+// inkFor. The two must agree: settings.php warns the owner with a number, and
+// ThemeInjector picks the foreground that number describes. If one side
+// changes, change the other — _harness/contrastparity.js asserts they match.
+//
+// WCAG 2.1 relative luminance. Ratios run 1 (identical) to 21 (black on white);
+// 4.5:1 is the AA threshold for body text, 3:1 for large text and UI.
+define('IPC_INK_DARK', '#141414');    // the site's body text color
+define('IPC_INK_LIGHT', '#ffffff');
+define('IPC_CONTRAST_AA', 4.5);
+define('IPC_CONTRAST_LARGE', 3.0);
+
+/** '#abc' or '#aabbcc' -> [r,g,b], or null if it is not a hex color. */
+function ipc_parse_hex_color(string $v): ?array {
+    if (!preg_match('/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i', trim($v), $m)) return null;
+    $h = $m[1];
+    if (strlen($h) === 3) $h = $h[0].$h[0].$h[1].$h[1].$h[2].$h[2];
+    $n = hexdec($h);
+    return [($n >> 16) & 255, ($n >> 8) & 255, $n & 255];
+}
+
+function ipc_relative_luminance(array $rgb): float {
+    $ch = static function ($c) {
+        $s = $c / 255;
+        return $s <= 0.03928 ? $s / 12.92 : pow(($s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * $ch($rgb[0]) + 0.7152 * $ch($rgb[1]) + 0.0722 * $ch($rgb[2]);
+}
+
+/** WCAG contrast ratio between two hex colors, 1..21. 0.0 on bad input. */
+function ipc_contrast_ratio(string $a, string $b): float {
+    $ca = ipc_parse_hex_color($a);
+    $cb = ipc_parse_hex_color($b);
+    if ($ca === null || $cb === null) return 0.0;
+    $la = ipc_relative_luminance($ca);
+    $lb = ipc_relative_luminance($cb);
+    return (max($la, $lb) + 0.05) / (min($la, $lb) + 0.05);
+}
+
+/**
+ * The foreground the site will actually use on these background(s).
+ *
+ * Takes a LIST because the page headers and the homepage CTA band are a
+ * gradient: the ink must be legible at both ends, so each candidate is scored
+ * by its WORST contrast across the stops.
+ */
+function ipc_ink_for($backgrounds): string {
+    $bgs = array_values(array_filter(
+        is_array($backgrounds) ? $backgrounds : [$backgrounds],
+        static fn($b) => ipc_parse_hex_color((string)$b) !== null
+    ));
+    if (!$bgs) return IPC_INK_LIGHT;
+    $worst = static function (string $ink) use ($bgs): float {
+        $r = [];
+        foreach ($bgs as $bg) $r[] = ipc_contrast_ratio($ink, (string)$bg);
+        return min($r);
+    };
+    return $worst(IPC_INK_LIGHT) >= $worst(IPC_INK_DARK) ? IPC_INK_LIGHT : IPC_INK_DARK;
+}
+
+// ─── Does a product reference resolve on the public site? ───────────────────
+// MIRRORS src/App.jsx:6155-6188. The two must agree — if the React lookup
+// changes, change this with it.
+//
+// The site does NOT match product references exactly. It falls back through
+// three tiers, and the shipped content.json depends on the second one: the
+// Industries page carries references like "IP44A2 & IP45A3" against a catalog
+// SKU of "IP44A2-IP45A3". Both normalize to IP44A2IP45A3, so the link works.
+//
+// An exact-match check here would have flagged 5 of the 18 shipped industry
+// references as broken when every one of them resolves — measured, and the
+// reason this helper exists instead of an isset() on a SKU map. Warning an
+// owner about links that work is worse than not warning at all: he learns to
+// ignore the banner. (PLAN-2 4.12)
+function ipc_normalize_sku(string $v): string {
+    return (string)preg_replace('/[^A-Z0-9]/', '', strtoupper($v));
+}
+
+/** True if any "-", "/" or "," separated segment of $sku equals $needle. */
+function ipc_sku_segment_match(string $sku, string $needle): bool {
+    $n = ipc_normalize_sku($needle);
+    if ($n === '') return false;
+    foreach (preg_split('/[-\/,]/', $sku) ?: [] as $seg) {
+        if (ipc_normalize_sku($seg) === $n) return true;
+    }
+    return false;
+}
+
+/** True if $needle would resolve to a product on the public site. */
+function product_reference_resolves(array $products, string $needle): bool {
+    if (trim($needle) === '') return false;
+    // Tier 1 — exact id or sku.
+    foreach ($products as $p) {
+        if (($p['sku'] ?? null) === $needle || ($p['id'] ?? null) === $needle) return true;
+    }
+    // Tier 2 — normalized (strips spaces, dashes, slashes, ampersands, case).
+    $n = ipc_normalize_sku($needle);
+    foreach ($products as $p) {
+        if (ipc_normalize_sku((string)($p['sku'] ?? '')) === $n) return true;
+    }
+    // Tier 3 — the needle is one segment of a multi-part SKU.
+    foreach ($products as $p) {
+        if (ipc_sku_segment_match((string)($p['sku'] ?? ''), $needle)
+            || ipc_sku_segment_match((string)($p['id'] ?? ''), $needle)) return true;
+    }
+    return false;
+}
+
 // Helper: find a product by SKU
 function find_product(array $products, string $sku): int {
     foreach ($products as $i => $p) {
