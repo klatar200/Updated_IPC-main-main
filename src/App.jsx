@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback, Component, createContext, useContext } from "react";
+import { useState, useEffect, useMemo, useRef, useId, useCallback, Component, createContext, useContext } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 
 // ── OverAI global shims ──────────────────────────────────────
@@ -2949,19 +2949,63 @@ function FaqItem({ question, answer }) {
   const [open, setOpen] = useState(false);
   const contentRef = useRef(null);
   const [contentHeight, setContentHeight] = useState(0);
+  const uid = useId();
+  const panelId = `faq-panel-${uid}`;
+  const triggerId = `faq-trigger-${uid}`;
 
-  // Fix 11: [answer] dep simplified to [] — answer is a prop that never changes for a
-  // given FaqItem instance (items are rendered from a static array at module level).
-  // ResizeObserver handles dynamic height changes if the viewport resizes.
+  // 4.20 — `max-height: 0` hides the answer from EYES ONLY. It stayed in the
+  // accessibility tree and in find-in-page, so a screen-reader user heard every
+  // answer to every question continuously with no way to tell which were
+  // collapsed, and Ctrl-F matched invisible text. Measured before this change:
+  // window.find() on a collapsed answer returned true.
+  //
+  // Two states, not one, because they have different timing. `hidden` is the
+  // accessibility gate (display:none, so the panel genuinely leaves the tree);
+  // `expanded` drives the height transition. The panel must be un-hidden BEFORE
+  // starts to open, and must stay un-hidden UNTIL the collapse has finished
+  // animating — collapsing them into one state loses the animation.
+  const [hidden, setHidden] = useState(true);
+  // Deliberately NOT named after what it does. Tailwind's extractor scans raw
+  // source text, so a bare identifier that is also a utility class name emits
+  // that whole rule into the shipped CSS — the first draft of this state added
+  // one, and so did the first draft of the comment explaining it. Caught by
+  // diffing the emitted selectors, not by reading the build summary.
+  const [expanded, setExpanded] = useState(false);
+
   useEffect(() => {
     const el = contentRef.current;
-    if (!el) return;
-    const measure = () => setContentHeight(el.scrollHeight);
-    measure(); // immediate measure on mount
-    const ro = new ResizeObserver(measure);
+    if (!open) {
+      setExpanded(false);
+      // Belt and braces for the transitionend handler below: a zero-duration
+      // transition, a background tab or `prefers-reduced-motion` can mean the
+      // event never arrives, and the panel would then never leave the tree —
+      // silently reinstating the exact bug this fixes.
+      const t = setTimeout(() => setHidden(true), 400);
+      return () => clearTimeout(t);
+    }
+    setHidden(false);
+    let raf2;
+    const raf1 = requestAnimationFrame(() => {
+      // Measure only now. `hidden` is display:none, where scrollHeight is 0, so
+      // the old mount-time measurement would give the panel no target height.
+      if (el) setContentHeight(el.scrollHeight);
+      raf2 = requestAnimationFrame(() => setExpanded(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+    };
+  }, [open]);
+
+  // Keep the measured height current while open (viewport resize, late font
+  // swap) so a long answer never clips itself.
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el || !open) return;
+    const ro = new ResizeObserver(() => setContentHeight(el.scrollHeight));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps — answer is static per item
+  }, [open]);
 
   return (
     <div
@@ -2971,12 +3015,15 @@ function FaqItem({ question, answer }) {
         background: "#ffffff",
       }}
     >
-      {/* Trigger button — aria-expanded for screen readers */}
+      {/* Trigger button — aria-expanded plus aria-controls, so the panel is
+          reachable from the control rather than merely adjacent to it. */}
       <button
+        id={triggerId}
         className="w-full flex items-center justify-between px-6 py-5 text-left"
         style={{ background: "none", border: "none", cursor: "pointer" }}
         onClick={() => setOpen(!open)}
         aria-expanded={open}
+        aria-controls={panelId}
       >
         <span
           className="text-sm font-semibold pr-4"
@@ -2998,10 +3045,19 @@ function FaqItem({ question, answer }) {
         </span>
       </button>
 
-      {/* Content panel — smooth max-height animation via inline style + Tailwind transition */}
+      {/* Content panel — same max-height animation as before, but `hidden` now
+          takes it out of the accessibility tree and out of find-in-page once
+          the collapse has finished animating. (4.20) */}
       <div
+        id={panelId}
+        role="region"
+        aria-labelledby={triggerId}
+        hidden={hidden}
+        onTransitionEnd={(e) => {
+          if (!open && e.propertyName === "max-height") setHidden(true);
+        }}
         className="transition-all duration-300 ease-in-out overflow-hidden"
-        style={{ maxHeight: open ? `${contentHeight + 40}px` : "0px" }}
+        style={{ maxHeight: expanded ? `${contentHeight + 40}px` : "0px" }}
       >
         <div ref={contentRef} className="px-6 pb-5 border-t border-gray-100">
           <p className="text-sm leading-relaxed pt-4 text-gray-600">{localizeProse(answer, site)}</p>
@@ -7382,14 +7438,28 @@ function DashboardPage({ products }) {
             >
               <thead>
                 <tr style={{ background: "var(--brand-dark)" }}>
+                  {/* 4.19 — these were bare <th onClick>: no tabindex, no
+                      scope, no aria-sort. A keyboard user could not sort at
+                      all, and a screen-reader user was told neither that the
+                      table was sortable nor which column was active.
+                      The control is a real <button> INSIDE the th, not a
+                      tabindex on the th — sorting changes state, not the page,
+                      so this is the one place in Plan 1's aftermath where a
+                      button is the right element. */}
                   {cols.map((col) => (
                     <th
                       key={col.key}
-                      onClick={() => handleSort(col.key)}
+                      scope="col"
+                      aria-sort={
+                        sortCol === col.key
+                          ? sortDir === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : undefined
+                      }
                       style={{
-                        padding: "13px 18px",
+                        padding: 0,
                         textAlign: "left",
-                        cursor: "pointer",
                         fontSize: 11,
                         fontWeight: 700,
                         letterSpacing: "0.08em",
@@ -7404,17 +7474,29 @@ function DashboardPage({ products }) {
                         borderBottom: "2px solid var(--brand-primary)",
                       }}
                     >
-                      {col.label}{" "}
-                      <span style={{ fontSize: 9 }}>
-                        {sortCol === col.key
-                          ? sortDir === "asc"
-                            ? "▲"
-                            : "▼"
-                          : "⇅"}
-                      </span>
+                      <button
+                        type="button"
+                        className="ipc-sort-btn"
+                        data-sort-key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        style={{ padding: "13px 18px" }}
+                      >
+                        {col.label}{" "}
+                        {/* The glyph is decoration: aria-sort on the th already
+                            states the direction, and announcing "black up
+                            pointing triangle" after it helps nobody. */}
+                        <span style={{ fontSize: 9 }} aria-hidden="true">
+                          {sortCol === col.key
+                            ? sortDir === "asc"
+                              ? "▲"
+                              : "▼"
+                            : "⇅"}
+                        </span>
+                      </button>
                     </th>
                   ))}
                   <th
+                    scope="col"
                     style={{
                       padding: "13px 18px",
                       textAlign: "center",

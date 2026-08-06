@@ -90,6 +90,33 @@ svg[stroke="#005da3"] {
   background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%);
 }
 
+/* Product-index sort controls (4.19). The button has to look exactly like the
+   <th> text it replaced, so it inherits everything typographic and drops the
+   UA button chrome. `width: 100%` keeps the whole header cell clickable, which
+   is the affordance the old <th onClick> had.
+
+   The focus indicator is on :focus-visible so it appears for Tab and not for a
+   mouse click, and it is 3px of --brand-accent, which is the one palette color
+   guaranteed to sit on the dark header row. Defined here rather than inline
+   because an inline style cannot express a pseudo-class. */
+.ipc-sort-btn {
+  display: block;
+  width: 100%;
+  text-align: inherit;
+  background: none;
+  border: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.ipc-sort-btn:focus-visible {
+  outline: 3px solid var(--brand-accent);
+  outline-offset: -3px;
+}
+
 /* Visually hidden, still announced by screen readers. */
 .sr-only {
   position: absolute;

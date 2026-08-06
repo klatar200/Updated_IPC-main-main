@@ -16,12 +16,39 @@
     return wrap ? wrap.querySelectorAll(':scope > .content-row') : [];
   }
 
+  // Must match content.php's field_id() exactly. The id is derived from the
+  // posted name rather than a counter, so it survives reordering — but only if
+  // both sides compute it the same way. (4.31)
+  function fieldId(name) {
+    return 'f-' + name.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  function titleOf(section) {
+    var host = document.querySelector('[data-section="' + section + '"]');
+    return (host && host.getAttribute('data-section-title')) || '';
+  }
+
   // Renumber every row's fields (and its visible label) after any change.
   function reindex(section) {
     var rows = rowsOf(section);
+    var title = titleOf(section);
     Array.prototype.forEach.call(rows, function (row, i) {
       row.querySelectorAll('[data-field]').forEach(function (el) {
-        el.name = section + '[' + i + '][' + el.getAttribute('data-field') + ']';
+        var name = section + '[' + i + '][' + el.getAttribute('data-field') + ']';
+        el.name = name;
+        // The id, the label's `for`, and the visually-hidden row context all
+        // have to move with the name. Leaving any of them behind is worse than
+        // never having labelled the form: a stale `for` points a screen reader
+        // at a control in a different row. (4.31)
+        var id = fieldId(name);
+        el.id = id;
+        var group = el.closest('.form-group');
+        var lab = group && group.querySelector('label');
+        if (lab) {
+          lab.setAttribute('for', id);
+          var ctx = lab.querySelector('[data-rowctx]');
+          if (ctx) ctx.textContent = ' — row ' + (i + 1) + (title ? ' of ' + title : '');
+        }
       });
       var num = row.querySelector('.row-num');
       if (num) num.textContent = '#' + (i + 1);
@@ -29,6 +56,13 @@
       var down = row.querySelector('[data-action="down"]');
       if (up) up.disabled = i === 0;
       if (down) down.disabled = i === rows.length - 1;
+      // Same reasoning for the row controls: "Move up" eighteen times over is
+      // not a name.
+      var where = 'row ' + (i + 1) + (title ? ' of ' + title : '');
+      if (up) up.setAttribute('aria-label', 'Move ' + where + ' up');
+      if (down) down.setAttribute('aria-label', 'Move ' + where + ' down');
+      var rm = row.querySelector('[data-action="remove"]');
+      if (rm) rm.setAttribute('aria-label', 'Remove ' + where);
     });
   }
 

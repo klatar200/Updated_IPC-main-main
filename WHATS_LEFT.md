@@ -116,6 +116,10 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **brand-color-as-foreground** | `src/App.jsx`, `src/index.css` | Shipped 2026-08-06. The brand colors are also used as **text** — feature chips, eyebrow labels, sidebar headings, inline links, footer captions — at ~59 call sites, where the ink variables cannot help: there the brand color *is* the foreground. A new `textSafeOn()` darkens (on a light background) or lightens (on a dark one) in HSL, so hue and saturation survive, and only as far as legibility requires. Five derived variables — `--brand-primary-text`, `--brand-accent-text`, `--brand-accent-on-dark`, `--brand-accent-on-footer`, `--brand-accent1-on-dark` — because the same accent lands on white, on `--brand-dark`, and on the footer's hardcoded `#0a2240`, which need **opposite** adjustments; every one of those surfaces was measured in the browser first. **274 → 12** brand-sensitive failures. ⚠️ Not a pure no-op: the shipped `--brand-accent-2` on white was **3.1:1**, a real AA failure, so it moves `#119EC8 → #0d7594`; `--brand-primary` as text (258 of the sites) is unchanged. Evidence in §4i. |
 | **4.5** | `src/App.jsx` (`ContactPage`) | Shipped 2026-08-06 (Plan 3). Every contact-form failure was a browser `alert()` — four call sites, two per form. A native dialog on mobile reads as "this site is broken", leaves no trace of what went wrong once dismissed, points at no field, announces nothing inside the form to a screen reader, and **some mobile browsers suppress it entirely during certain interactions, so the failure could be completely silent.** Replaced with one inline region rendered inside the form directly above the submit control: `role="alert"`, `aria-live="polite"`, `aria-atomic`, `tabIndex={-1}`, focused and scrolled into view on failure. The server's own specific message is shown **verbatim** (`cf.submitError` is only the fallback for a response that carried none), passed as a JSX text child so invariant 10 holds at the render boundary — `<1/4 inch and >2 inch ID, 1/2" wall` is asserted to arrive as a **text node with zero element children**. Network failure is a separate `kind` carrying `cf.networkError`, so "check your connection" and "your email looks wrong" cannot collapse into one message; both copy keys stay owner-editable. The panel's colors are fixed rather than brand-derived (measured 7.7:1) so an error stays legible whatever is set in Branding. **Adds zero CSS** — verified byte-identical bundle. Evidence in §4j. |
 | **4.15b** | `public/contact.php` | Shipped 2026-08-06 (Plan 3). The per-recipient auto-reply cap keyed on the address **as submitted**, which Gmail's own addressing rules defeat: `a@gmail.com`, `a+1@gmail.com` and `a.b@gmail.com` are one mailbox, so a sender cycling `+1/+2/+3` drew a fresh auto-reply every time — the site could be used to mail a third party under IPC's `From:`. New `ipc_ar_cap_key()` lowercases, drops the `+tag`, and strips dots **for `gmail.com`/`googlemail.com` only**; dots stay significant everywhere else, because collapsing them would merge different people at one company onto one cap and silently deny a real prospect their confirmation. **Only the cap key changes** — the reply is still sent to the address as typed and `inquiries.jsonl` still records it as typed, both asserted. The sales notification is asserted to fire for **every** submission, including the capped one. Evidence in §4j. |
+| **4.20** | `src/App.jsx` (`FaqItem`) | Shipped 2026-08-06 (Plan 4). Collapsed answers used `max-height: 0`, which hides them from EYES ONLY — they stayed in the accessibility tree and in find-in-page, so a screen-reader user heard every answer to every question continuously with no way to tell which were collapsed. Measured before the change: `window.find()` on a collapsed answer returned **true**, and the answer text was present in the CDP accessibility tree. The panel now carries `hidden`, set at the END of the collapse transition so the animation is unchanged, plus `aria-controls`/`aria-labelledby` and a stable `useId` pair. Two states rather than one (`hidden` gates the tree, the other drives the height) because the panel must be un-hidden *before* it opens and stay so *until* the collapse finishes. A timeout backs up the `transitionend` handler — reduced motion, a background tab or a zero-duration transition would otherwise leave the panel in the tree forever, silently reinstating the bug. `#faq-ld` still carries every answer regardless of collapse state (4.1 builds it from data, not the DOM — confirmed). Evidence in §4j. |
+| **4.19** | `src/App.jsx` (`DashboardPage`), `src/index.css` | Shipped 2026-08-06 (Plan 4). The product-index sort headers were bare `<th onClick>`: no `tabindex`, no `scope`, no `aria-sort`. A keyboard user could not sort at all, and a screen-reader user was told neither that the table was sortable nor which column was active. Each sortable header now holds a real `<button>` **inside** the `th` (not a `tabindex` on the `th` — sorting changes state, not the page, so this is the one place in Plan 1's aftermath where a button is right), every `th` has `scope="col"`, and `aria-sort` sits on exactly one column and matches the glyph, which is now `aria-hidden`. Focus indicator is `:focus-visible` only, 3 px of `--brand-accent`, measured **≥3:1** against the dark header row. Asserted with real Tab presses, not programmatic focus — Chromium will not match `:focus-visible` for the latter, so a working indicator would have read as absent. Evidence in §4j. |
+| **4.31** | `admin/content.php`, `admin/content-editor.js` | Shipped 2026-08-06 (Plan 4). The page holding the most irreplaceable typing on the site rendered **418 controls and 418 `<label>` elements, with zero `for` attributes and zero ids** — visually labelled, programmatically not. Measured over the real accessibility tree: **397 of 418 had no accessible name**, and the other 21 were named by their *placeholder* ("One item per line"), which is not a label. Every control now has an id derived from the name it already posts under (so it survives reordering), a bound `<label for>`, and — for row-repeated fields — the row's identity appended inside the label and visually hidden, so "Icon" stays on screen and the screen reader hears "Icon — row 3 of Industries Grid". Sections became `<fieldset>`/`<legend>`. `content-editor.js`'s `reindex()` moves the id, the `for` and the hidden row text on every add/remove/reorder — a stale `for` is worse than no label, and that is asserted after a live mutation and proven to fail when broken. **The posted variable count is unchanged at 421** (the plan says 423; measured is 421 — same over-count the §2 `NB-copy` AMENDED note corrected). Evidence in §4j. |
+| **4.30** | `admin/spectable-editor.js` | Shipped 2026-08-06 (Plan 4). Both editors in this file rebuild their rows with `innerHTML` on every structural change, so focus went to the **document**: building a 20-row spec table meant 20 round trips back. Measured before: after removing a row, `document.activeElement` was `body`. Removing now lands on the nearest surviving row's equivalent control; adding lands in the new row. Every remove button said "Remove row" — **21 buttons shared 3 names**; they now carry position and identity ("Remove specification row 3: Material", "Remove sub-column 2 (Wall) of Nominal ID", "Remove size row 4: 3/8″"), kept current as the owner types. A polite live region announces adds and removes. No re-architecture. Round-trip proven: five typed rows survive save + reload, and the mirror's `data/` is restored and shown byte-identical afterwards. Evidence in §4j. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -136,8 +140,8 @@ Ordered by value. Nothing here blocks the upload.
 - [x] **4.12** ~~`content.php` promises the Industries SKU "must match a real product" but validates nothing against `load_products()`.~~ **SHIPPED 2026-08-06 (Plan 2)** — warns and still saves, by Keagan's decision (see §3). See §1b and §4g.
 - [x] **4.13** ~~The ✕ that deletes a whole content card has no `data-confirm`, and sits 4 px from the reorder buttons.~~ **SHIPPED 2026-08-06 (Plan 2)** — measured gap was **6.0 px**, not 4 px; now 34 px. See §1b and §4g.
 - [ ] **4.14** Login throttle uses `sleep()` (parallel connections sleep concurrently) and a read-modify-write with no lock. A long random password is the real control.
-- [ ] **4.19** Product Index sortable headers have no `tabindex`, `scope` or `aria-sort`.
-- [ ] **4.20** Collapsed FAQ answers use `max-height:0` — still read by screen readers and find-in-page.
+- [x] **4.19** ~~Product Index sortable headers have no `tabindex`, `scope` or `aria-sort`.~~ **SHIPPED 2026-08-06 (Plan 4)** — a real `<button>` inside each `th`, `scope="col"` on all seven, `aria-sort` on exactly one column, and a `:focus-visible` indicator measured ≥3:1. Verified with real Tab presses. See §1b and §4j.
+- [x] **4.20** ~~Collapsed FAQ answers use `max-height:0` — still read by screen readers and find-in-page.~~ **SHIPPED 2026-08-06 (Plan 4)** — measured before: `window.find()` returned **true** on collapsed answer text and the text was in the CDP accessibility tree. Now `hidden` is applied at the end of the collapse transition, so the animation is unchanged and the answer genuinely leaves both. See §1b and §4j.
 - [x] **4.21** ~~Navigation is `<button onClick>` throughout: 3–7 `<a href>` vs 14–119 `<button>` per page. No crawlable internal link graph, no Cmd-click.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4f.
 - [x] **4.23** ~~Owner-set brand colors are injected with no contrast guard while headings and primary buttons hardcode `#ffffff`.~~ **SHIPPED 2026-08-06 (Plan 2)** for headings, primary buttons and the other solid brand surfaces — see §1b and §4g. **The de-emphasised text on those same surfaces is NOT covered — see `brand-ink-translucent` below.**
 - [x] **brand-ink-translucent** ~~The 4.23 ink mechanism is in place but 47 translucent-white foregrounds on owner-controlled brand surfaces still hardcode `rgba(255,255,255,α)` and go invisible when the owner picks a pale color.~~ **SHIPPED 2026-08-06** — see §1b and §4h. The count was **77 inline sites plus 12 Tailwind `text-white` classes**, not 47; the original estimate came from a source scan that only looked at `rgba(255,255,255,α)` and missed both the solid `#ffffff` conditionals and the class-based colors. Measured before/after with a new empirical auditor: **357 → 274 brand-sensitive contrast failures, and zero of the remainder are white-on-a-brand-surface.**
@@ -148,8 +152,8 @@ Ordered by value. Nothing here blocks the upload.
 - [ ] **4.26** Scroll listeners added inside an inline `ref` callback and never removed.
 - [ ] **4.27** Duplicate React keys reachable from the admin (`key={link.label}`, `key={f.title}`, `key={m.year}`, …). Two footer links both named "Contact" drop a row.
 - [ ] **4.29** `IP75AD`, `VALUE-ADDED`, `VT-1100` have `rows: []` and render an empty bordered table with an invalid `<thead><tr></tr></thead>`.
-- [ ] **4.30** `spectable-editor.js` blows away focus on every structural change; all remove buttons share `aria-label="Remove row"`.
-- [ ] **4.31** `content.php` renders 418 unlabelled form controls.
+- [x] **4.30** ~~`spectable-editor.js` blows away focus on every structural change; all remove buttons share `aria-label="Remove row"`.~~ **SHIPPED 2026-08-06 (Plan 4)** — focus was measured landing on `body`; it now lands on the new row (add) or the nearest survivor (remove). **21 remove buttons shared 3 names**; all are distinct now, and a polite live region announces the change. See §1b and §4j.
+- [x] **4.31** ~~`content.php` renders 418 unlabelled form controls.~~ **SHIPPED 2026-08-06 (Plan 4)** — **`AMENDED`: the precise figures are 418 controls with zero `for`/`id` association, of which 397 had no accessible name at all** (the remaining 21 were named by their placeholder). All now labelled, ids unique and stable across reordering, sections are `<fieldset>`/`<legend>`. **Posted variable count unchanged at 421 — the plan's "423" was itself an over-count.** See §1b and §4j.
 - [ ] **4.32** 9.3 MB of unoptimised images (`Front-Cover.jpg` 1.5 MB, `VALUE-ADDED.png` 683 KB, …). **PARTIALLY SHIPPED 2026-08-05:** the second half of this item — "served `immutable, max-age=31536000`, so an FTP'd photo fix won't reach returning visitors for a year" — was misfiled here as an image-weight problem. It was a mis-scoped `FilesMatch` in `public/.htaccess` with no path restriction, and it is fixed (NB1). **The image-weight work remains open.**
 
 ---
@@ -1389,6 +1393,138 @@ build: 0 errors, 331.91 kB JS / 21.51 kB CSS
   already true of the pre-existing cap and is not changed by 4.15b.
 - `mail()` itself is stubbed. What is verified is **who contact.php addresses
   and in what order**, not that Network Solutions delivers it.
+
+---
+
+## 4j. Verification evidence for Plan 4 — accessibility (2026-08-06)
+
+Items **4.31**, **4.30**, **4.19**, **4.20**. Two audiences: Rick on the admin
+(4.31, 4.30) and a buyer using assistive technology on the public site (4.19,
+4.20). Both suites were written and shown to **fail** before any file changed.
+
+### The suites failed first
+
+```
+plan4-public   8/23   ->  27/27
+plan4-admin    9/16   ->  19/19
+```
+
+The pre-fix failures are the defects themselves, measured rather than inferred:
+
+```
+FAIL 4.20: find-in-page does not match a collapsed answer  -> window.find() returned true
+FAIL 4.20: a COLLAPSED answer is absent from the accessibility tree
+FAIL 4.19: every <th> has scope="col"                      -> 0/7
+FAIL 4.19: aria-sort is present on exactly ONE column      -> found 0
+FAIL 4.31: every control has an id                         -> 0/418
+FAIL 4.31: ZERO controls without an accessible name        -> 397 of 418 unnamed
+FAIL 4.31: no two controls share an accessible name        -> "One item per line" x21
+FAIL 4.30: removing a row puts focus on a surviving neighbour -> activeElement = body
+FAIL 4.30: no two remove buttons share an accessible name  -> 21 buttons, 3 distinct names
+```
+
+### Accessible names are read from the AX tree, not from the markup
+
+Every name assertion goes through CDP `Accessibility.getFullAXTree`. This is not
+a detail: content.php **already had 418 `<label>` elements**, so any check that
+inferred a name from "is there a label nearby" would have reported the page
+fully labelled while 397 controls were anonymous. The tree is the only thing
+that knows a `<label>` without `for` labels nothing.
+
+The same reasoning drove the 4.20 method. Playwright's own visibility heuristic
+calls a zero-height element hidden, so `toBeHidden()` would have **passed
+against the bug**. The tree and `window.find()` — which matches
+clipped-but-rendered text and not `display:none` text — are what actually
+distinguish "invisible" from "not exposed".
+
+### Two measurement corrections
+
+- **The plan says `content.php` posts 423 variables. It posts 421.** Asserted as
+  measured. This is the same over-count the §2 `NB-copy` note already corrected
+  once; the figure that matters is unchanged before and after this work, which
+  is the check that stops 4.31 from breaking B1.
+- **"418 unlabelled controls" is two different true statements.** 418 have no
+  `id`/`for` association; **397** have no accessible name. The other 21 were
+  named by their `placeholder`, which browsers accept as a last-resort name and
+  which is not a label.
+
+### The riskiest part of 4.31, and how it was proven
+
+`content-editor.js` renumbers every field name on add, remove and reorder. The
+`id`, the label's `for` and the visually-hidden row text all have to move with
+it — **a stale `for` is worse than no label at all**, because it points a screen
+reader at a control in a different row. So the suite mutates the live form (add
+a row, then move it up) and re-checks id uniqueness, `for` correctness and the
+row text. That assertion was then mutation-tested against the mirror:
+
+```
+MUTANT (for-attribute not updated):
+  FAIL 4.31: every label[for] still points at ITS OWN control after a reorder
+      -> 6 labels point elsewhere
+RESTORED:
+  ok   4.31: every label[for] still points at ITS OWN control after a reorder
+```
+
+### The Tailwind prose hazard, twice more
+
+`.grow` appeared in the shipped CSS from a **variable name** (`grow`/`setGrow`)
+— Tailwind's extractor scans raw source text, and a bare identifier that is also
+a utility class emits that rule. Renamed to `expanded`. The comment written to
+explain it then reproduced the bug by containing `.grow{flex-grow:1}` literally,
+exactly as the `.ring` comment did in §4j's predecessor. Final emitted-selector
+diff against the committed baseline:
+
+```
+ADDED:   .ipc-sort-btn, .ipc-sort-btn:focus-visible
+REMOVED: none
+```
+
+i.e. the only new CSS in this plan is the two rules 4.19 actually needs. **Never
+write the literal utility name in `src/App.jsx`, in code or in prose.**
+
+### A flaky harness condition, fixed rather than retried
+
+`plan2-formlast-selftest` failed once, at step 3 (restore the mirror, expect
+green). Cause: `opcache.revalidate_freq = 2`. The restore landed inside the
+two-second window and PHP served the **still-mutated bytecode** — the suite was
+measuring the previous file. Not a regression from this work. All three harness
+inis now set `opcache.revalidate_freq = 0`; three consecutive clean runs.
+
+### Deliberately beyond the letter of the plan
+
+The plan scopes 4.31 to labelling form controls. The row `↑ ↓ ✕` buttons are not
+form controls, but eighteen buttons all named "Move up" is the same defect, so
+they carry row identity too — and `render_copy_field`'s labels carry their group,
+because eight boxes called "Title" in a "list all form fields" view are as
+ambiguous as eighteen called "Icon" (a `<legend>` reaches the tree as the group,
+which that view does not announce). None of it posts a variable.
+
+### Regression
+
+```
+php -l 18/0 · node --check 9/0 · JSON 17/10/42 · copy drift 96 matched
+invariants 17/17 · invariants-selftest 15/15 · contrastparity 28/28
+copyroundtrip 15/15 · copydrift-selftest 5/5 · skuparity 33/33
+plan2-sku 14/14 · plan2-delete 18/18 · plan2-contrast 42/42
+plan2-formlast 8/8 · plan2-formlast-selftest PASS · plan2-trunc 13/13
+plan3-contact 51/51 · plan3-autoreply 10/10
+plan4-public 27/27 · plan4-admin 19/19 · deadlinks 0 of 18 dead
+build: 0 errors, 332.61 kB JS / 21.78 kB CSS
+admin/content.php: 0 horizontal overflow at 1440 and 375
+```
+
+`data/`, `pdfs/` and `uploads/` byte-identical to pristine and untouched in git.
+4.30's round-trip does save; it restores the mirror from `_harness/pristine` and
+proves byte-identity with `cmp` as its own final assertion.
+
+### `[UNVERIFIED]`
+
+- No real screen reader was run. Every claim here is about the accessibility
+  **tree** and about focus, which is what the tree is built from — but NVDA and
+  VoiceOver each have their own announcement rules, and "the name is correct"
+  is not the same as "it reads well aloud".
+- `:focus-visible` behaviour is Chromium's. Firefox and Safari apply their own
+  heuristics for when a programmatic focus counts as keyboard-initiated.
 
 ---
 
