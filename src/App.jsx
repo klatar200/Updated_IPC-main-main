@@ -3470,6 +3470,83 @@ function ContactPage() {
   const [submittedTab, setSubmittedTab] = useState("rfq");
   const [submitting, setSubmitting] = useState(false); // Animation 8: button loading state
 
+  // Submission failures used to be four browser alert dialogs. A native dialog
+  // on mobile reads as "this site is broken", leaves no trace of what went
+  // wrong once dismissed, points at no field, announces nothing inside the form
+  // to a screen reader — and some mobile browsers suppress window.alert during
+  // certain interactions entirely, so the failure could be COMPLETELY SILENT.
+  // Every one of those costs a sales enquiry. (4.5)
+  //
+  // kind is "validation" (the server rejected the content) or "network" (we
+  // never reached it) — they need different responses from the visitor, so they
+  // must not collapse into one message.
+  const [formError, setFormError] = useState(null); // { kind, message } | null
+  const errorRef = useRef(null);
+  useEffect(() => {
+    if (!formError || !errorRef.current) return;
+    // Focus, not just scroll: a screen-reader user who tabbed to Submit is left
+    // at the bottom of the form otherwise, with the announcement already gone.
+    errorRef.current.focus();
+    errorRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [formError]);
+
+  /**
+   * The inline replacement for the alert dialog. Rendered inside the form, above the
+   * submit control, so the message sits where the visitor is looking.
+   *
+   * The message is passed as a JSX text child, never dangerouslySetInnerHTML:
+   * contact.php deliberately does NOT HTML-escape, because its destinations are
+   * a text/plain email and a JSONL line (invariant 10). Escaping belongs at the
+   * render boundary, and this is the render boundary — a quote request reading
+   * `<1/4 inch and >2 inch ID` has to display literally.
+   */
+  const errorRegion = formError ? (
+    <div
+      ref={errorRef}
+      role="alert"
+      aria-live="polite"
+      aria-atomic="true"
+      tabIndex={-1}
+      data-error-kind={formError.kind}
+      className="rounded-lg px-4 py-3 text-sm flex items-start gap-2.5"
+      style={{
+        // Fixed colors, not brand-derived: an error must stay legible no matter
+        // what the owner sets in Branding. Measured 7.7:1. (asserted by
+        // _harness/plan3-contact.js)
+        background: "#fef2f2",
+        border: "1px solid #fca5a5",
+        color: "#991b1b",
+        // tabIndex is -1, so this is never keyboard-reachable — a focus outline
+        // would only ever appear on a programmatic focus of a block of text,
+        // where it reads as a glitch. The panel is already the loudest thing on
+        // screen.
+        //
+        // Careful writing prose in this file: Tailwind's extractor scans raw
+        // text, comments included, so a bare utility-class word in a sentence
+        // emits that whole rule into the shipped CSS. An earlier draft of this
+        // very comment added one.
+        outline: "none",
+      }}
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        aria-hidden="true"
+        style={{ flexShrink: 0, marginTop: 1 }}
+      >
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span>{formError.message}</span>
+    </div>
+  ) : null;
+
   // H-4 fix: stable handler factory — useCallback prevents new function refs every render
   const makeOnChange = useCallback(
     (setter) => (e) =>
@@ -3490,6 +3567,7 @@ function ContactPage() {
   const onMsgSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setFormError(null);
     try {
       const body = new FormData(e.target);
       body.append("form_type", "message");
@@ -3499,10 +3577,13 @@ function ContactPage() {
         setSubmittedTab("message");
         setSubmitted(true);
       } else {
-        alert(json.error || localizeProse(cf.submitError, site));
+        // The server's message is specific — which field, or which guard was
+        // hit, with the phone number in it. Keep it verbatim; cf.submitError is
+        // only the fallback for a response that carried none.
+        setFormError({ kind: "validation", message: json.error || localizeProse(cf.submitError, site) });
       }
     } catch {
-      alert(localizeProse(cf.networkError, site));
+      setFormError({ kind: "network", message: localizeProse(cf.networkError, site) });
     } finally {
       setSubmitting(false);
     }
@@ -3525,6 +3606,7 @@ function ContactPage() {
   const onRfqSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setFormError(null);
     try {
       const body = new FormData(e.target);
       body.append("form_type", "rfq");
@@ -3534,10 +3616,10 @@ function ContactPage() {
         setSubmittedTab("rfq");
         setSubmitted(true);
       } else {
-        alert(json.error || localizeProse(cf.submitError, site));
+        setFormError({ kind: "validation", message: json.error || localizeProse(cf.submitError, site) });
       }
     } catch {
-      alert(localizeProse(cf.networkError, site));
+      setFormError({ kind: "network", message: localizeProse(cf.networkError, site) });
     } finally {
       setSubmitting(false);
     }
@@ -3795,7 +3877,10 @@ function ContactPage() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setFormError(null);   // the other form's failure is not this form's
+                  }}
                   aria-pressed={active}
                   className="border-b sm:border-b-0 sm:border-r border-gray-200 last:border-b-0 sm:last:border-r-0"
                   style={{
@@ -4063,6 +4148,9 @@ function ContactPage() {
                   onBlur={blurStyle}
                 />
               </div>
+              {/* Above the submit control, inside the form — where the visitor
+                  already is when it fails. Replaces the alert dialog. (4.5) */}
+              {errorRegion}
               <button
                 type="submit"
                 disabled={submitting}
@@ -4211,6 +4299,7 @@ function ContactPage() {
                   onBlur={blurStyle}
                 />
               </div>
+              {errorRegion}
               <button
                 type="submit"
                 disabled={submitting}
