@@ -432,7 +432,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               display: "flex",
               alignItems: "center",
               color:
-                currentPage === "home" ? "#ffffff" : "rgba(255,255,255,0.6)",
+                currentPage === "home" ? "var(--brand-dark-ink)" : "rgba(var(--brand-dark-ink-rgb), 0.6)",
               borderBottom:
                 currentPage === "home"
                   ? "2px solid var(--brand-accent)"
@@ -497,7 +497,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                     display: "flex",
                     alignItems: "center",
                     gap: 5,
-                    color: active || open ? "#ffffff" : "rgba(255,255,255,0.6)",
+                    color: active || open ? "var(--brand-dark-ink)" : "rgba(var(--brand-dark-ink-rgb), 0.6)",
                     borderBottom: active
                       ? "2px solid var(--brand-accent)"
                       : open
@@ -740,7 +740,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                               style={{
                                 fontSize: 12,
                                 fontWeight: 500,
-                                color: "rgba(255,255,255,0.75)",
+                                color: "rgba(var(--brand-primary-ink-rgb), 0.75)",
                               }}
                             >
                               {cat}
@@ -800,7 +800,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                     display: "flex",
                     alignItems: "center",
                     gap: 5,
-                    color: active || open ? "#ffffff" : "rgba(255,255,255,0.6)",
+                    color: active || open ? "var(--brand-dark-ink)" : "rgba(var(--brand-dark-ink-rgb), 0.6)",
                     borderBottom: active
                       ? "2px solid var(--brand-accent)"
                       : open
@@ -937,6 +937,9 @@ function Navbar({ products = [], catalogFailed = false }) {
               display: "inline-block",
               fontSize: 13,
               fontWeight: 600,
+              // The navbar's quote CTA. Its background is --brand-primary, so
+              // the label follows that ink — not the navbar's --brand-dark one,
+              // and not a hardcoded white. (brand-ink-translucent)
               color: "var(--brand-primary-ink)",
               background: "var(--brand-primary)",
               border: "none",
@@ -1197,7 +1200,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                             style={{
                               fontSize: 12,
                               fontWeight: 500,
-                              color: "rgba(255,255,255,0.70)",
+                              color: "rgba(var(--brand-primary-ink-rgb), 0.70)",
                             }}
                           >
                             {cat}
@@ -1228,8 +1231,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                   fontSize: 14,
                   fontWeight: 500,
                   color: groupActive(["industries", "services", "about", "faq"])
-                    ? "#ffffff"
-                    : "rgba(255,255,255,0.65)",
+                    ? "var(--brand-dark-ink)"
+                    : "rgba(var(--brand-dark-ink-rgb), 0.65)",
                   borderBottom:
                     mobileOpen === "company"
                       ? "none"
@@ -1293,7 +1296,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontSize: 13,
                           fontWeight: 600,
                           color:
-                            currentPage === item.page ? "var(--brand-accent)" : "#ffffff",
+                            currentPage === item.page ? "var(--brand-accent)" : "var(--brand-dark-ink)",
                         }}
                       >
                         {item.label}
@@ -1301,7 +1304,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                       <span
                         style={{
                           fontSize: 11,
-                          color: "rgba(255,255,255,0.40)",
+                          color: "rgba(var(--brand-dark-ink-rgb), 0.40)",
                           marginTop: 1,
                         }}
                       >
@@ -1329,8 +1332,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                 fontWeight: 500,
                 color:
                   currentPage === "contact"
-                    ? "#ffffff"
-                    : "rgba(255,255,255,0.65)",
+                    ? "var(--brand-dark-ink)"
+                    : "rgba(var(--brand-dark-ink-rgb), 0.65)",
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
                 borderLeft:
                   currentPage === "contact"
@@ -1484,7 +1487,7 @@ function Hero() {
               style={{
                 display: "inline-block",
                 background: "transparent",
-                color: "#ffffff",
+                color: "var(--brand-primary-ink)",
                 cursor: "pointer",
               }}
             >
@@ -1520,7 +1523,7 @@ function Hero() {
                 className="font-semibold"
                 style={{
                   fontSize: "clamp(11px, 1.5vw, 14px)",
-                  color: "#ffffff",
+                  color: "var(--brand-dark-ink)",
                   marginBottom: 2,
                 }}
               >
@@ -1529,7 +1532,7 @@ function Hero() {
               <div
                 style={{
                   fontSize: "clamp(10px, 1.2vw, 12px)",
-                  color: "rgba(255,255,255,0.5)",
+                  color: "rgba(var(--brand-dark-ink-rgb), 0.5)",
                 }}
               >
                 {p.sub}
@@ -1583,7 +1586,7 @@ function Hero() {
                 key={idx}
                 className="flex items-center gap-1.5 flex-shrink-0"
                 style={{
-                  color: "rgba(255,255,255,0.60)",
+                  color: "rgba(var(--brand-dark-ink-rgb), 0.60)",
                   fontSize: 12,
                   fontWeight: 500,
                   paddingRight: 48,
@@ -1936,7 +1939,7 @@ function Features() {
         >
           <p
             className="text-sm font-semibold"
-            style={{ color: "rgba(255,255,255,0.9)" }}
+            style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.9)" }}
           >
             {c.ctaText}
           </p>
@@ -2338,10 +2341,10 @@ function HomePage() {
       >
         <div className="max-w-7xl mx-auto px-6 py-14 flex flex-col md:flex-row items-center justify-between gap-8">
           <div>
-            <h2 className="text-2xl font-extrabold text-white mb-2">
+            <h2 className="text-2xl font-extrabold ipc-ink-header mb-2">
               {site.stats.minimumOrder} minimum order. {site.stats.feetInStock} feet in stock. Ships today.
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.75)" }} className="text-sm">
+            <p style={{ color: "rgba(var(--brand-header-ink-rgb), 0.75)" }} className="text-sm">
               Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-header-ink)", fontWeight: 600 }}>{site.contact.phone}</a>,
               {/* Fax is clearable in Business Details (NB4) — drop the whole clause,
                   not just the number, or this reads "Call …, fax , or submit". */}
@@ -2623,7 +2626,7 @@ function AboutPage() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div
             className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
           >
             {c.eyebrow}
           </div>
@@ -2632,7 +2635,7 @@ function AboutPage() {
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
-            style={{ color: "rgba(255,255,255,0.65)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
             {c.intro}
           </p>
@@ -2735,7 +2738,7 @@ function AboutPage() {
                         fontSize: 11,
                         fontWeight: 700,
                         background: isLast ? "var(--brand-primary)" : "rgba(var(--brand-primary-rgb),0.08)",
-                        color: isLast ? "#ffffff" : "var(--brand-primary)",
+                        color: isLast ? "var(--brand-dark-ink)" : "var(--brand-primary)",
                       }}
                     >
                       {m.year}
@@ -2886,12 +2889,12 @@ function AboutPage() {
           style={{ background: "var(--brand-dark)" }}
         >
           <div>
-            <div className="text-lg font-extrabold text-white mb-1">
+            <div className="text-lg font-extrabold ipc-ink-dark mb-1">
               {c.ctaTitle}
             </div>
-            <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
-              Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>{site.contact.phone}</a>,
-              email <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>{site.contact.email}</a>,
+            <p className="text-sm" style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.6)" }}>
+              Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.9)", fontWeight: 600 }}>{site.contact.phone}</a>,
+              email <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.9)", fontWeight: 600 }}>{site.contact.email}</a>,
               or use our contact form — our team responds quickly and accurately.
             </p>
           </div>
@@ -2915,7 +2918,7 @@ function AboutPage() {
               style={{
                 display: "inline-block",
                 background: "transparent",
-                color: "rgba(255,255,255,0.7)",
+                color: "rgba(var(--brand-dark-ink-rgb), 0.7)",
                 border: "1px solid rgba(255,255,255,0.3)",
                 cursor: "pointer",
               }}
@@ -2988,7 +2991,7 @@ function FaqItem({ question, answer }) {
             width: 28,
             height: 28,
             background: open ? "var(--brand-primary)" : "rgba(var(--brand-primary-rgb),0.07)",
-            color: open ? "#ffffff" : "var(--brand-primary)",
+            color: open ? "var(--brand-dark-ink)" : "var(--brand-primary)",
           }}
         >
           +
@@ -3182,7 +3185,7 @@ function FaqPage() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div
             className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
           >
             {c.eyebrow}
           </div>
@@ -3191,7 +3194,7 @@ function FaqPage() {
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
-            style={{ color: "rgba(255,255,255,0.65)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
             {c.intro}{" "}
             <PageLink
@@ -3676,7 +3679,7 @@ function ContactPage() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div
             className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
           >
             {c.eyebrow}
           </div>
@@ -3685,7 +3688,7 @@ function ContactPage() {
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
-            style={{ color: "rgba(255,255,255,0.65)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
             {c.intro}
           </p>
@@ -3744,7 +3747,7 @@ function ContactPage() {
             </div>
           ))}
           <div className="rounded-xl p-5" style={{ background: "var(--brand-dark)" }}>
-            <div className="text-xs font-bold text-white mb-3 uppercase tracking-wide">
+            <div className="text-xs font-bold ipc-ink-dark mb-3 uppercase tracking-wide">
               {cf.tipsTitle}
             </div>
             <ul className="space-y-1.5">
@@ -3752,7 +3755,7 @@ function ContactPage() {
                 <li
                   key={tip}
                   className="flex items-start gap-2 text-xs"
-                  style={{ color: "rgba(255,255,255,0.60)" }}
+                  style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.60)" }}
                 >
                   <span
                     style={{ color: "var(--brand-accent)", marginTop: 1, flexShrink: 0 }}
@@ -3817,7 +3820,7 @@ function ContactPage() {
                     style={{
                       fontSize: 14,
                       fontWeight: 700,
-                      color: active ? "#ffffff" : "#141414",
+                      color: active ? "var(--brand-primary-ink)" : "#141414",
                     }}
                   >
                     {tab.label}
@@ -3826,7 +3829,7 @@ function ContactPage() {
                     style={{
                       fontSize: 11,
                       marginTop: 3,
-                      color: active ? "rgba(255,255,255,0.70)" : "#6b7280",
+                      color: active ? "rgba(var(--brand-primary-ink-rgb), 0.70)" : "#6b7280",
                     }}
                   >
                     {tab.sub}
@@ -4063,7 +4066,7 @@ function ContactPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3.5 rounded-lg font-semibold text-sm text-white transition-all hover:brightness-110"
+                className="w-full py-3.5 rounded-lg font-semibold text-sm ipc-ink-primary transition-all hover:brightness-110"
                 style={{
                   background: "var(--brand-primary)",
                   border: "none",
@@ -4211,7 +4214,7 @@ function ContactPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3.5 rounded-lg font-semibold text-sm text-white transition-all hover:brightness-110"
+                className="w-full py-3.5 rounded-lg font-semibold text-sm ipc-ink-primary transition-all hover:brightness-110"
                 style={{
                   background: "var(--brand-primary)",
                   border: "none",
@@ -5218,6 +5221,12 @@ function contrastRatio(a, b) {
  * at both ends, so we score each candidate by its WORST contrast across the
  * stops and keep the better candidate.
  */
+/** "#ffffff" -> "255, 255, 255", for use inside rgba(). */
+function inkRgb(ink) {
+  const c = parseHexColor(ink);
+  return c ? `${c.r}, ${c.g}, ${c.b}` : "255, 255, 255";
+}
+
 function inkFor(backgrounds) {
   const bgs = (Array.isArray(backgrounds) ? backgrounds : [backgrounds]).filter(
     (b) => parseHexColor(b)
@@ -5256,10 +5265,25 @@ function ThemeInjector() {
     const primary = t.primaryColor || "#005da3";
     const dark = t.darkColor || "#0d2d52";
     const accent2 = t.accent2Color || "#119ec8";
-    root.style.setProperty("--brand-primary-ink", inkFor(primary));
-    root.style.setProperty("--brand-dark-ink", inkFor(dark));
+    const primaryInk = inkFor(primary);
+    const darkInk = inkFor(dark);
     // The gradient runs primary -> accent-2; the ink must survive both ends.
-    root.style.setProperty("--brand-header-ink", inkFor([primary, accent2]));
+    const headerInk = inkFor([primary, accent2]);
+    root.style.setProperty("--brand-primary-ink", primaryInk);
+    root.style.setProperty("--brand-dark-ink", darkInk);
+    root.style.setProperty("--brand-header-ink", headerInk);
+    // The same three inks as bare "r, g, b" triples, so de-emphasised text can
+    // say rgba(var(--brand-dark-ink-rgb), 0.6) and follow the ink instead of
+    // hardcoding rgba(255,255,255,0.6). That opacity idiom is used at ~50 call
+    // sites — nav links, banner sub-lines, sidebar captions — and every one of
+    // them went invisible on a pale brand color.
+    //
+    // Deliberately NOT color-mix(): rgba(var(--x), a) works everywhere, and an
+    // unsupported color-mix() makes the declaration invalid, which drops the
+    // color to `inherit` — failing toward unreadable, which is the whole bug.
+    root.style.setProperty("--brand-primary-ink-rgb", inkRgb(primaryInk));
+    root.style.setProperty("--brand-dark-ink-rgb", inkRgb(darkInk));
+    root.style.setProperty("--brand-header-ink-rgb", inkRgb(headerInk));
   }, [site]);
   return null;
 }
@@ -5397,7 +5421,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                     fontSize: 12,
                     fontWeight: 600,
                     background: active ? "var(--brand-primary)" : "#ffffff",
-                    color: active ? "#ffffff" : "#4b5563",
+                    color: active ? "var(--brand-primary-ink)" : "#4b5563",
                     border: active ? "none" : "1px solid #d1d9e0",
                     cursor: "pointer",
                     whiteSpace: "nowrap",
@@ -5443,11 +5467,12 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                     fontSize: 10,
                     fontWeight: 700,
                     // 4.23: the active pill's background is --brand-primary, so
-                    // the label has to follow the ink, not a fixed white.
-                    // color-mix keeps the original 70% de-emphasis against
-                    // whichever ink was chosen.
+                    // the label has to follow the ink, not a fixed white. The
+                    // -ink-rgb triple keeps the original 70% de-emphasis against
+                    // whichever ink was chosen — and unlike color-mix() it is
+                    // supported everywhere, so it cannot fail to `inherit`.
                     color: active
-                      ? "color-mix(in srgb, var(--brand-primary-ink) 70%, transparent)"
+                      ? "rgba(var(--brand-primary-ink-rgb), 0.7)"
                       : "#9ca3af",
                     textTransform: "uppercase",
                     letterSpacing: "0.06em",
@@ -5495,7 +5520,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
           >
             Product Catalog
           </div>
-          <div className="text-sm font-semibold text-white mt-0.5">
+          <div className="text-sm font-semibold ipc-ink-dark mt-0.5">
             {products.filter((p) => !SIDEBAR_EXCLUDED.has(p.sku || "")).length}{" "}
             products
           </div>
@@ -5859,6 +5884,11 @@ function ProductDetail({ product, allProducts }) {
             >
               Product Detail
             </div>
+            {/* Stays white: this strip's gradient starts at a HARDCODED #0a2a52
+                and only its far end is owner-controlled, so no single ink works
+                across both. The heading is left-aligned, i.e. over the fixed
+                dark end, where white is correct. Recorded as
+                brand-gradient-mixed-ends. */}
             <h2 className="text-xl font-extrabold text-white uppercase leading-tight">
               {product.name}
             </h2>
@@ -5994,7 +6024,7 @@ function ProductDetail({ product, allProducts }) {
                 fontWeight: 700,
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                color: "rgba(255,255,255,0.4)",
+                color: "rgba(var(--brand-primary-ink-rgb), 0.4)",
                 marginBottom: 8,
               }}
             >
@@ -6353,7 +6383,7 @@ function ProductPage({ products }) {
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
-            style={{ color: "rgba(255,255,255,0.65)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
             Select a product to view full specifications, data sheet, and
             request a quote.
@@ -6748,7 +6778,7 @@ function DashboardPage({ products }) {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div
             className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
           >
             Product Index
           </div>
@@ -6757,10 +6787,10 @@ function DashboardPage({ products }) {
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
-            style={{ color: "rgba(255,255,255,0.65)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
             Browse all {tableRows.length} products with key specifications.
-            Click <strong className="text-white">View Product</strong> for full
+            Click <strong className="ipc-ink-header">View Product</strong> for full
             data sheets and quote requests.
           </p>
         </div>
@@ -6957,7 +6987,7 @@ function DashboardPage({ products }) {
                   fontWeight: 600,
                   border: active ? "2px solid var(--brand-primary)" : "1px solid #d1d9e0",
                   background: active ? "var(--brand-primary)" : "#ffffff",
-                  color: active ? "#ffffff" : "#4b5563",
+                  color: active ? "var(--brand-primary-ink)" : "#4b5563",
                   cursor: "pointer",
                   display: "inline-flex",
                   alignItems: "center",
@@ -6988,7 +7018,7 @@ function DashboardPage({ products }) {
                     background: active
                       ? "rgba(255,255,255,0.2)"
                       : "rgba(var(--brand-primary-rgb),0.08)",
-                    color: active ? "#ffffff" : "var(--brand-primary)",
+                    color: active ? "var(--brand-dark-ink)" : "var(--brand-primary)",
                   }}
                 >
                   {count}
@@ -7184,7 +7214,7 @@ function DashboardPage({ products }) {
                         color:
                           sortCol === col.key
                             ? "var(--brand-accent)"
-                            : "rgba(255,255,255,0.65)",
+                            : "rgba(var(--brand-dark-ink-rgb), 0.65)",
                         textTransform: "uppercase",
                         whiteSpace: "nowrap",
                         userSelect: "none",
@@ -7209,7 +7239,7 @@ function DashboardPage({ products }) {
                       fontSize: 11,
                       fontWeight: 700,
                       letterSpacing: "0.08em",
-                      color: "rgba(255,255,255,0.65)",
+                      color: "rgba(var(--brand-dark-ink-rgb), 0.65)",
                       textTransform: "uppercase",
                       whiteSpace: "nowrap",
                       borderBottom: "2px solid var(--brand-primary)",
@@ -7709,7 +7739,7 @@ function IndustriesPage() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div
             className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
           >
             {c.eyebrow}
           </div>
@@ -7718,7 +7748,7 @@ function IndustriesPage() {
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
-            style={{ color: "rgba(255,255,255,0.65)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
             {c.intro}
           </p>
@@ -7756,6 +7786,11 @@ function IndustriesPage() {
                 {IndIcons[ind.iconKey] || IndIcons.industrial}
               </div>
               <div>
+                {/* Stays white: this strip's gradient starts at a HARDCODED
+                    #003d7a and only its far end is owner-controlled, so no
+                    single ink works across both. The heading is left-aligned,
+                    i.e. over the fixed dark end, where white is correct.
+                    Recorded as brand-gradient-mixed-ends. */}
                 <h2 className="text-xl font-extrabold text-white">
                   {ind.name}
                 </h2>
@@ -7943,10 +7978,14 @@ function IndustriesPage() {
           style={{ background: "var(--brand-dark)" }}
         >
           <div>
-            <div className="text-sm font-bold text-white mb-1">
+            <div className="text-sm font-bold ipc-ink-dark mb-1">
               PPAP &amp; IMDS Documentation Available
             </div>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
+            {/* 0.55 was the original de-emphasis and it measured 3.95:1 against
+                a pale --brand-dark — correct ink, but the opacity diluted it
+                under AA. 0.75 keeps the sub-line visibly secondary and clears
+                4.5:1 at both ends of the palette. (brand-ink-translucent) */}
+            <p className="text-xs" style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.75)" }}>
               IPC can support automotive supplier requirements for PPAP packages
               and IMDS material data submissions. Contact our sales team for
               details.
@@ -8209,7 +8248,7 @@ function ServicesPage() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div
             className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
           >
             {c.eyebrow}
           </div>
@@ -8218,7 +8257,7 @@ function ServicesPage() {
           </h1>
           <p
             className="mt-3 max-w-2xl text-base"
-            style={{ color: "rgba(255,255,255,0.65)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
             {c.intro}
           </p>
@@ -8261,14 +8300,14 @@ function ServicesPage() {
               </svg>
             </div>
             <div>
-              <div className="text-base font-extrabold text-white">
+              <div className="text-base font-extrabold ipc-ink-header">
                 {/* Was hardcoded "≤ 1 Week" while content.json's services[].leadTime
                     was editable and rendered nowhere. (DEPLOY_READINESS_v2 4.11) */}
                 Standard Lead Time: {leadTimeSummary}
               </div>
               <div
                 className="text-xs font-medium mt-0.5"
-                style={{ color: "rgba(255,255,255,0.75)" }}
+                style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.75)" }}
               >
                 All fabrication services listed below. Rush service available —
                 contact sales for details.
@@ -8411,12 +8450,12 @@ function ServicesPage() {
         <div className="rounded-2xl p-8" style={{ background: "var(--brand-dark)" }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
-              <h3 className="text-xl font-extrabold text-white mb-3">
+              <h3 className="text-xl font-extrabold ipc-ink-dark mb-3">
                 Need something not listed?
               </h3>
               <p
                 className="text-sm leading-relaxed"
-                style={{ color: "rgba(255,255,255,0.60)" }}
+                style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.60)" }}
               >
                 Our engineering team can create custom solutions. Whether it's a
                 unique marking specification, a non-standard cut tolerance, or a
@@ -8446,7 +8485,7 @@ function ServicesPage() {
                   display: "block",
                   textAlign: "center",
                   background: "transparent",
-                  color: "rgba(255,255,255,0.7)",
+                  color: "rgba(var(--brand-dark-ink-rgb), 0.7)",
                   border: "1px solid rgba(255,255,255,0.2)",
                   cursor: "pointer",
                 }}
@@ -8516,7 +8555,7 @@ function PrivacyPage() {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div
             className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(255,255,255,0.7)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
           >
             {c.eyebrow}
           </div>
@@ -8525,7 +8564,7 @@ function PrivacyPage() {
           </h1>
           <p
             className="mt-3 text-base"
-            style={{ color: "rgba(255,255,255,0.65)" }}
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
             {/* Was new Date() — the policy claimed to have been updated today,
                  every day, regardless of whether a word had changed. A privacy
