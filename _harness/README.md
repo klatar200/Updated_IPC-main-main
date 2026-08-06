@@ -36,6 +36,12 @@ The mirror's admin password is `audit-pass-123`, written by `setpw.php` into
 `_harness/site/admin/config.local.php`. That file is gitignored and should be
 deleted when you finish a session.
 
+**If you deleted it and then run an admin suite, it will time out waiting for
+`input[type="password"]`** — with no password configured, `auth.php` correctly
+renders its "no password set" state instead of a login box, so the failure looks
+like a broken selector and is not. Re-run `php _harness/setpw.php` (or
+`sh _harness/sync.sh`, which calls it).
+
 ## What is generated, and why it is ignored
 
 | Directory | Size | Rebuilt by |
@@ -56,6 +62,7 @@ deleted when you finish a session.
 | `contrastparity.js` / `.php` | the PHP and JS contrast implementations agree on 23 colors |
 | `skuparity.js` / `.php` | the PHP and JS SKU matching agree on 32 needles |
 | `deadlinks.js` | every Industries product reference resolves to a real product |
+| `brandtext.js` | every element painting its own text in a brand colour, scored against the background it really sits on — gradients sampled **at the element's own position**, translucent layers composited, WCAG large-text honoured. Supersedes `fgsurfaces.js`'s reporting. **Currently 34/54 — see `brand-text-on-brand-surface` in `WHATS_LEFT.md` §2.** |
 
 ## Per-plan acceptance
 
