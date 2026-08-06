@@ -107,6 +107,11 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **4.1** | `src/App.jsx` (`FaqPage`) | Shipped 2026-08-05 (Plan 1). The FAQ JSON-LD effect had `[]` deps; `ContentProvider` renders children immediately from `contentDefaults` and swaps content in later, so the effect ran once against the **defaults** and never re-ran — every FAQ Rick wrote was absent from the rich-result markup. Now depends on a `useMemo`-stabilised `categories` (raw `groupFaq()` returns a new array each render and would thrash the `<script>`), and removes any existing `#faq-ld` before appending so a re-run cannot leave duplicates. Evidence in §4e. |
 | **`seo: []`** | `src/App.jsx` (`PageMeta`) | Shipped 2026-08-05 (Plan 1) — supersedes the `AMENDED` note in §4 (T1.4), which recorded this as benign and left as-is. Two faults, not one: `\|\| document.title` meant emptying the section kept the defaults rather than honouring the deletion; and `\|\| home.title` gave every page **without** its own `seo` row the homepage's title — `terms` and `quality` have no row, so three routes shipped the same `<title>`. Both now fall back to the page's own visible heading plus the company name. Measured: 9 of 9 titles distinct, against **7 of 9** with the old logic re-installed. |
 | **4.21** | `src/App.jsx` (new `PageLink`) | Shipped 2026-08-05 (Plan 1). Navigation was `<button onClick>` throughout — **63 `<button>` against 15 `<a href>`** — so a crawler found no internal link to follow and every route but the homepage was an orphan URL reachable only from the sitemap; Ctrl/Cmd-click, middle-click and "Copy Link Address" all did nothing. One new `PageLink` component now renders a real `<a>` whose `href` comes from the existing `pageToPath` (so it can never drift into a crawlable 404), returns early **without** `preventDefault()` on any modified or non-primary click, and otherwise keeps the single batched `setSearchParams` call. Every page-changing control routes through it: `Navbar` (logo, Home, both dropdowns, category chips, CTA, the whole mobile drawer), `Footer`, hero/CTA buttons, market cards, `FeatureCard`, `SectionHeader`'s action, both "View Product" controls, the industry product lists and **`ProductSidebar`'s two product lists** (its `onSelect` wrote `?productId=` to the URL, so it was navigation). Toggles, form submits, the search box, family filter pills and accordion headers stay `<button>`. Counts after: **30 `<button>`, 51 distinct internal `href`s, all 200 through the real rewrite.** Evidence in §4f. |
+| **NB-copy** | `_harness/copydrift.js`, `_harness/lint.php` | Shipped 2026-08-06 (Plan 2). The two sides of the page-copy contract — `admin/content.php`'s `$COPY_GROUPS` and `src/App.jsx`'s `COPY_DEFAULTS` — had never been compared, and `mergeContent` iterates `Object.keys(defaults)`, so any PHP-only key was a silent data-loss path with a green banner on it. Enumerated mechanically (PHP side by eval'ing the isolated literal, JS side by brace-matching and eval'ing): **96 fields, 12 groups, matched 96, PHP-only 0, JS-only 0.** No drift existed. The comparison is now a **failing check** in `lint.php`, proven to fail on a bogus key, a bogus group, and a removed default. Round-trip proven end to end for 4 keys across 4 groups. Evidence in §4g. |
+| **4.12** | `admin/content.php`, `admin/config.php` | Shipped 2026-08-06 (Plan 2). The Industries product-code field validated against nothing while the help text promised "the SKU must match a real product so the link works". Now checked on save against `load_products()` via a new `product_reference_resolves()` that **mirrors the site's three-tier lookup** (exact → `normalizeSku` → `skuSegmentMatch`), not an exact match — exact matching flagged 5 of the 18 shipped industry references as broken when **all 18 resolve** (`IP44A2 & IP45A3` and the catalog's `IP44A2-IP45A3` both normalize to `IP44A2IP45A3`). Warns and **still saves**, by Keagan's decision (§3), so the card-before-product workflow survives; the warning is carried across the `?saved=1` redirect as a one-shot session flash. Evidence in §4g. |
+| **4.13** | `admin/content.php`, `admin/confirm.js` | Shipped 2026-08-06 (Plan 2). The ✕ that deletes an entire content card had no confirmation while every other destructive admin action has one, and the measured gap to the nearest reorder arrow was **6.0 px** (§2 said 4 px). The existing `data-confirm` mechanism was extended to `<button>` and given a `{it}` placeholder resolved **at click time** from the row's own first text field, so the prompt names the row Rick can see; cancelling is reliable because `confirm.js` stops the event in the capture phase before `content-editor.js`'s bubble-phase remove handler runs. Gap now **34 px** at 1440 and 375, **30 px** and a **44×44** hit target on a coarse pointer. Evidence in §4g. |
+| **4.23** | `src/App.jsx`, `src/index.css`, `admin/settings.php`, `admin/config.php`, `admin/contrast-guard.js` | Shipped 2026-08-06 (Plan 2), **partially — see `brand-ink-translucent` in §2.** Owner-set brand colors were injected with no contrast guard while headings and primary buttons hardcoded `#ffffff`, so a pale color shipped white-on-white with nothing warning him. Two layers: (1) three new `--brand-{primary,dark,header}-ink` variables, recomputed by WCAG luminance in `ThemeInjector` and defaulted in `index.css` for the first paint, replacing the hardcoded white at **35 brand-colored call sites**; the banner ink is scored on the *worse* of the gradient's two stops. (2) `settings.php` prints a plain-language readability note with the computed ratio under each color, server-rendered and updated live by `contrast-guard.js` as the picker moves. **The save is never blocked** — it is his brand. Measured ≥4.5:1 on every brand-painted element for four colors spanning light to dark. Note the auto-ink changes the premise: a *pale* color is no longer the failure case (`#FFE600` scores 14.5:1 with dark text); the warning band is the mid-tones where neither ink clears AA. Evidence in §4g. |
+| **`form_complete` position** | `admin/content.php`, `_harness/` | Shipped 2026-08-06 (Plan 2). The `max_input_vars` truncation sentinel was enforced positionally with nothing asserting it at runtime. The sentinel is unchanged (deliberately — a count-based scheme was rejected); what is new is enforcement: `plan2-formlast.js` asserts it is the last of **421** named controls in the **rendered DOM**, including after the editor adds and removes rows, and `plan2-trunc.js` drives a genuinely truncated POST against a real `max_input_vars=100` server with a working `display_errors` negative control. The inline comment now names the DEPLOY_READINESS_v2 T3.7 incident and says explicitly that new fields go above the line. Evidence in §4g. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -117,20 +122,22 @@ Ordered by value. Nothing here blocks the upload.
 
 - [ ] **4.11b** Footer social icons were promised by v2 4.11 and never built — `social.*` still feeds JSON-LD `sameAs` only. (Split out 2026-08-05, AUDIT_v3 D18.)
 - [ ] **4.15b** Auto-reply per-recipient cap is defeated by plus- and dot-addressing (`a+1@gmail.com`, `a.b@gmail.com`). Normalising Gmail-style addresses is the fix; the per-IP cap still bounds the damage. (Split out 2026-08-05, AUDIT_v3 §3.3.)
-- [ ] **NB-copy** `mergeContent` iterates `Object.keys(defaults)` only, so a `copy` key that exists in `content.php` but not in `App.jsx`'s `COPY_DEFAULTS` would have the owner's edit vanish with a success message. ~450 posted keys were never enumerated against the defaults tree. Worth a targeted diff. (AUDIT_v3 §5.)
-- [ ] **`form_complete` position** is enforced *positionally* only. Nothing stops a future field being added after `content.php`'s last input, and there is no test runner to assert it. (AUDIT_v3 invariants note.)
+- [x] **NB-copy** ~~`mergeContent` iterates `Object.keys(defaults)` only, so a `copy` key that exists in `content.php` but not in `App.jsx`'s `COPY_DEFAULTS` would have the owner's edit vanish with a success message. ~450 posted keys were never enumerated against the defaults tree.~~ **ENUMERATED AND CLOSED 2026-08-06 (Plan 2)** — the two sides **match exactly**: 96 fields, 12 groups, zero PHP-only and zero JS-only. The mechanism was real but had never actually drifted. Drift is now a failing check (`_harness/copydrift.js`, wired into `lint.php`). **`AMENDED`: the "~450 posted keys" figure was wrong** — it conflated the whole form (421 named controls, which is what `max_input_vars` truncates) with the `copy` subset, which is 96. See §1b and §4g.
+- [x] **`form_complete` position** ~~is enforced *positionally* only. Nothing stops a future field being added after `content.php`'s last input, and there is no test runner to assert it.~~ **SHIPPED 2026-08-06 (Plan 2)** — now asserted three ways: `invariants.js` INV6 (source order), `_harness/plan2-formlast.js` (the **rendered DOM**, which is what actually sets POST order, including after the editor adds/removes rows), and `_harness/plan2-trunc.js` (the guard firing against a real `max_input_vars=100` server). See §1b and §4g.
 
 - [x] **4.1** ~~FAQ JSON-LD `useEffect` has `[]` deps and runs before `content.json` loads, so owner-edited FAQs never reach Google's rich results.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [x] **4.3** ~~No `rel="canonical"` anywhere; `og:url` is hardcoded to the homepage on all 9 pages.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [ ] **sitemap/dashboard** `public/sitemap.xml` lists `/dashboard` with priority 0.8, alongside the nine public routes. Whether that route should be publicly indexed was never established. Noticed 2026-08-05 during Plan 1; not investigated, not changed.
 - [ ] **4.5** Every contact-form error is a browser `alert()` — no inline error, no `aria-live`, no focus move.
-- [ ] **4.12** `content.php` promises the Industries SKU "must match a real product" but validates nothing against `load_products()`.
-- [ ] **4.13** The ✕ that deletes a whole content card has no `data-confirm`, and sits 4 px from the reorder buttons.
+- [x] **4.12** ~~`content.php` promises the Industries SKU "must match a real product" but validates nothing against `load_products()`.~~ **SHIPPED 2026-08-06 (Plan 2)** — warns and still saves, by Keagan's decision (see §3). See §1b and §4g.
+- [x] **4.13** ~~The ✕ that deletes a whole content card has no `data-confirm`, and sits 4 px from the reorder buttons.~~ **SHIPPED 2026-08-06 (Plan 2)** — measured gap was **6.0 px**, not 4 px; now 34 px. See §1b and §4g.
 - [ ] **4.14** Login throttle uses `sleep()` (parallel connections sleep concurrently) and a read-modify-write with no lock. A long random password is the real control.
 - [ ] **4.19** Product Index sortable headers have no `tabindex`, `scope` or `aria-sort`.
 - [ ] **4.20** Collapsed FAQ answers use `max-height:0` — still read by screen readers and find-in-page.
 - [x] **4.21** ~~Navigation is `<button onClick>` throughout: 3–7 `<a href>` vs 14–119 `<button>` per page. No crawlable internal link graph, no Cmd-click.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4f.
-- [ ] **4.23** Owner-set brand colors are injected with no contrast guard while headings and primary buttons hardcode `#ffffff`.
+- [x] **4.23** ~~Owner-set brand colors are injected with no contrast guard while headings and primary buttons hardcode `#ffffff`.~~ **SHIPPED 2026-08-06 (Plan 2)** for headings, primary buttons and the other solid brand surfaces — see §1b and §4g. **The de-emphasised text on those same surfaces is NOT covered — see `brand-ink-translucent` below.**
+- [ ] **brand-ink-translucent** The 4.23 ink mechanism is in place but **47 translucent-white foregrounds on owner-controlled brand surfaces still hardcode `rgba(255,255,255,α)`** and go invisible when the owner picks a pale color. Found 2026-08-06 while verifying 4.23; **deliberately not fixed** — classifying each site's surface is a heuristic, and a wrong guess applies the wrong ink and creates a *new* contrast bug that the 4.23 suite (which measures only elements painted with `--brand-primary`) would not catch. Evidence: `_harness/out/contrast/pale-yellow-1440.png` shows the fixed surfaces (heading and buttons correctly dark) beside the unfixed ones — the nav links, the banner sub-line and the sidebar chrome all wash out. Pre-classified by `_harness/findtranslucent.js`: **header 17, primary 14, dark 8, navbar 8**; correctly left white are hero-scrim 1 and footer-fixed 5 (that footer is a hardcoded `#0a2240`, not a brand variable). The clean fix is `--brand-*-ink-rgb` variables consumed as `rgba(var(--brand-dark-ink-rgb), 0.6)`, then per-site verification. Not started.
+- [ ] **brand-color-as-foreground** Related but distinct from the above: brand colors are also used as *text on white* (product feature chips, eyebrow labels, `color: "var(--brand-primary)"` at ~30 sites). A pale brand color makes those unreadable too, and the 4.23 ink variables do not help — that case needs the color darkened for text use, not a foreground swapped. Visible in the same screenshot (the "UL & CUL LISTED" chips). Found 2026-08-06; not investigated further, not changed.
 - [ ] **sidebar-active-border** `ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.
 - [x] **4.24** ~~`SITE_INFO_URL` / `CONTENT_URL` have no `import.meta.env.DEV` branch, so theming and content plumbing are never exercised by `npm run dev`.~~ **SHIPPED 2026-08-05 (Plan 0)** — see §1b and §4d.
 - [ ] **4.26** Scroll listeners added inside an inline `ref` callback and never removed.
@@ -172,6 +179,52 @@ Ordered by value. Nothing here blocks the upload.
   text separately"). `help.php`'s equivalent credentials box has had its
   Password row deleted and now explicitly says not to write the password down
   in any document.
+
+### Escalation raised 2026-08-06 (Plan 2, item 4.12)
+
+- **Should an unmatched Industries SKU hard-block the save, or warn and let it
+  through?** *Raised before writing the gating code, per GUARDRAILS §5.*
+
+  ```
+  decision-needed | recommended | why | trade-off | blocked
+  ```
+
+  - **decision-needed** — `admin/content.php` parses `industryDetail.products`
+    from `"SKU | Display name"` lines (`:451-459`) and validates the SKU against
+    nothing. A typo ships a card linking to a product page that does not exist,
+    under a green success banner. The fix must decide whether the save is
+    *refused* or merely *flagged*.
+  - **recommended** — **warn, do not block.** Render the message in the same
+    block as the concurrency and truncation warnings, naming the offending SKU,
+    but still write `content.json`.
+  - **why** — Rick may legitimately add an industry card before the product
+    exists in the catalog. Hard-blocking makes that ordering impossible: he
+    cannot save the card at all until he has gone and created the product, on a
+    page that also holds his FAQ and About copy. PLAN-2's own prose says
+    "Prefer a warning that still allows the save over a hard block if the SKU is
+    merely unmatched."
+  - **trade-off** — a warning can be ignored, so a dead product link can still
+    reach the public Industries page and cost a lead. Blocking guarantees the
+    link is live but breaks the card-before-product workflow.
+  - **blocked** — **PLAN-2 is internally inconsistent here and this had to go to
+    the owner.** The prose prefers a warning, but the implementation instruction
+    ("add the message to the existing `$errors` array") and the acceptance
+    criterion ("`content.json` is byte-identical to pristine after the rejected
+    save") both describe a *hard block* — `content.php:487` only calls
+    `save_content()` when `empty($errors)`, so anything appended to `$errors`
+    blocks by construction. Warning-without-blocking needs a second array that
+    renders but does not gate the save.
+
+  **RESOLVED 2026-08-06 by Keagan: warn, still save.** Implemented with a
+  separate `$warnings` array that never gates `save_content()`. Because the
+  successful save redirects to `content.php?saved=1`, the warning is carried
+  across the redirect in `$_SESSION['content_warnings']` (a one-shot flash,
+  unset on read) — otherwise the redirect would swallow the very message the
+  item exists to show. **The PLAN-2 acceptance criterion "`content.json` is
+  byte-identical to pristine after the rejected save" is therefore not
+  applicable and was not met: there is no rejected save on this path.** The
+  substituted assertion is that `content.json` *does* change, the warning names
+  the SKU, and a valid SKU produces no warning. See §4g.
 
 ### Still awaiting Keagan (restated, not re-derived)
 
@@ -761,6 +814,265 @@ plan0 9/9 · plan1a 43/43 · plan1b 45/45
 Nothing in 4.21 depends on `.htaccess` or `.user.ini` beyond the SPA rewrite,
 which `_harness/router.php` emulates and A9 exercises against all 51 hrefs. The
 standing `php -S` limitations from GUARDRAILS §4.3 are unchanged by this item.
+
+---
+
+## 4g. Verification evidence for Plan 2 — owner safety (2026-08-06)
+
+**Base:** `e0c6b54`. **Build:** 0 errors, **328.42 kB JS / 21.11 kB CSS**
+(from 326.80 / 21.02 — the delta is the three ink variables and the 35 call
+sites that now read them).
+
+### The harness had to be rebuilt from nothing
+
+`_harness/` is gitignored (`.gitignore:59`) and was never committed, so it did
+not survive the clone. Every suite named in the previous session's baseline —
+`b1`, `b1trunc`, `b2`, `b3`, `nb2`, `nb4`, `help`, `ttl`, `sweep`, `overflow`,
+`adminsweep`, `plan0`, `plan1a`, `plan1b`, `lint.php`, `setpw.php`,
+`pristine/`, the three `php-*.ini` — was gone. Rebuilt this session: the
+`public_html` mirror, `router.php` (SPA rewrite), the three ini files,
+`setpw.php`, `lint.php`, and `invariants.js`. **The other suites were not
+reconstructed and their results are NOT claimed anywhere in this document.**
+
+`invariants.js` is a **reconstruction, not the original**, and its count is its
+own: **17 checks**, not the 15 earlier sessions reported. Every check asserts
+CODE, never an incident comment — GUARDRAILS §4.4 records two session-3 checks
+that passed falsely by matching comment prose quoting the old buggy pattern.
+
+`invariants-selftest.js` proves each one can fail, by re-introducing the actual
+defect into a **temp copy** of the tree (the real source is never written to):
+
+```
+ok   INV1a   goes red on: the shipped bug: preg_replace instead of preg_replace_callback  (also INV1b, expected)
+ok   INV2a   goes red on: a real bcrypt hash back in config.php (shipped twice)  (also INV2b, expected)
+ok   INV3    goes red on: the "&& v.length" re-seed — stale legal text republishing itself
+ok   INV4a   goes red on: blank strings spread over the defaults — "© –2026", href="tel:"  (also INV4b, expected)
+ok   INV5a   goes red on: first-free sequence allocation, which scrambles backup ordering
+ok   INV5b   goes red on: ordering backups by filemtime() — 1-second resolution ties
+ok   INV6    goes red on: a field added AFTER the truncation sentinel
+ok   INV7    goes red on: the unkeyed ErrorBoundary — one bad product bricked every page
+ok   INV8    goes red on: Footer moved above the catalog gate (chrome behind the gate)
+ok   INV9    goes red on: the skeleton defined only in GlobalStyles — styleless while loading
+ok   INV10a  goes red on: strip_tags() in s() — ate "<1/4 inch and >" out of a quote request
+ok   INV10b  goes red on: hdr() no longer stripping CRLF — mail header injection
+ok   INV11   goes red on: an absent Referer treated as a rejection — cost real leads
+ok   INV12   goes red on: require_auth() redirecting on POST — turns it into a GET, discards typing
+ok   control  the unmutated copy is fully green
+invariants-selftest 15/15
+```
+
+### NB-copy — the two sides match, and drift is now a failing check
+
+The enumeration, in full. PHP side by eval'ing the isolated `$COPY_GROUPS`
+literal, JS side by brace-matching and eval'ing `COPY_DEFAULTS` — not by eye,
+and not by regex:
+
+```
+NB-copy — admin/content.php $COPY_GROUPS  vs  src/App.jsx COPY_DEFAULTS
+
+  PHP fields offered : 96  in 12 groups
+  JS defaults        : 96  in 12 groups
+  matched            : 96
+  PHP-only (BROKEN)  : 0
+  JS-only (uneditable): 0
+
+copydrift OK — every offered field has a default (96 matched, 0 JS-only)
+```
+
+`$out['copy']` is built strictly from `$COPY_GROUPS` (`content.php:475-485`), so
+that array **is** the complete posted set — the comparison is the right one.
+
+**The "~450 posted keys" in the old §2 line was wrong.** It conflated the whole
+form with the `copy` subset. The form has **421** named controls (measured, see
+below); the `copy` subset is **96**.
+
+The check fails in both directions and on both sides:
+
+```
+ok   control  unmutated tree is clean (96 matched, exit 0)
+ok   bogus key added to $COPY_GROUPS (PHP-only drift)   -> exit 1, names "homeFeatures.bogusDriftKey"
+ok   whole bogus group added to $COPY_GROUPS            -> exit 1, names "whole groups PHP-only: bogusGroup"
+ok   key removed from COPY_DEFAULTS (same defect, JS side) -> exit 1, names "homeFeatures.ctaButton"
+ok   default with no editor (JS-only) is reported but does NOT fail -> exit 0
+copydrift-selftest 5/5
+```
+
+A static key match is only a claim about declarations, so the whole path was
+driven end to end — admin form → POST → `content.json` → `mergeContent` →
+rendered DOM — for 4 keys across 4 groups (`copyroundtrip 15/15`).
+
+Wired into `lint.php`, so drift is a failing check rather than a future audit
+finding.
+
+### 4.12 — Industries product codes
+
+Watched fail against the **pre-fix** `content.php` still in the mirror, then
+pass after the sync. Before **10/13**, all three failures reporting
+`no .warn-list element on the page`; after **14/14**.
+
+One assertion passed *vacuously* in the first run — the industry name also
+appears in the form field below, so a page-wide `includes()` matched against
+code that emitted no warning at all. Every warning assertion is now scoped to
+the `.warn-list` element.
+
+The important correction is in the matcher. An exact SKU check flagged **5 of
+the 18** shipped industry references as broken. They are not:
+
+```
+18 industry product references, catalog of 42
+  ok    IP44A2 & IP45A3            -> IP44A2-IP45A3
+  ok    IP71NS - IP72PS - IP73PP   -> IP71NS-IP72PS-IP73PP
+  ok    IP41NE / IP43VT            -> IP41NE-IP43VT
+  ok    IP61ES & IP62EF            -> IP61ES-IP62EF
+  …
+0 of 18 resolve to nothing
+```
+
+The site resolves through three tiers (`App.jsx:6181-6188`) and the shipped data
+depends on the second: `IP44A2 & IP45A3` and `IP44A2-IP45A3` both normalize to
+`IP44A2IP45A3`. `product_reference_resolves()` mirrors all three tiers, and
+`skuparity 33/33 (32 needles)` asserts the PHP and JS answers agree — including
+a non-degeneracy check (26 resolve, 6 do not), because a parity suite where
+everything answers the same way proves nothing.
+
+**Warning a busy owner about five links that work is worse than not warning at
+all** — he learns to ignore the banner. That is why this is a three-tier check
+and not an `isset()` on a SKU map.
+
+### 4.13 — the delete ✕
+
+Before **0/18**, after **18/18**. The before run is the whole defect in one
+table: gap **6.0 px** (§2 said 4 px), hit target **28×28**, no prompt, and the
+row already gone on the click that was meant to be cancellable (108 → 107 rows
+on "cancel", because there was nothing to cancel).
+
+```
+ok   1440px: gap between ✕ and nearest reorder control is 34.0px (>= 24)
+ok   1440px: the confirmation names the row ("Heat Shrink Tubing")
+ok   1440px: the confirmation is not a bare "Are you sure?"
+ok   1440px: the confirmation points at Backups as the undo path
+ok   1440px: cancelling leaves the row in place (108 rows before, 108 after)
+ok   1440px: cancelling leaves the row's fields untouched
+ok   1440px: accepting removes exactly one row (108 -> 107)
+   …identical at 375px…
+ok   touch: ✕ hit target is 44×44px (>= 44×44)
+ok   touch: gap is 30.0px (>= 24)
+plan2-delete 18/18
+```
+
+Cancel is reliable because `confirm.js` stops the event in the **capture**
+phase, which always completes before `content-editor.js`'s bubble-phase remove
+handler. That ordering comes from the event phases, not from script order — an
+earlier version of the comment claimed the latter and was wrong.
+
+### 4.23 — brand-color contrast
+
+`contrastparity 28/28` — the math exists in three places (`admin/config.php`,
+`admin/contrast-guard.js`, `src/App.jsx`) and all three agree across 23 colors,
+anchored to the WCAG reference values so agreeing on a *wrong* number still
+fails:
+
+```
+ok   anchor #000000 on #ffffff = 21.000:1
+ok   anchor #ffffff on #ffffff = 1.000:1
+ok   anchor #777777 on #ffffff = 4.478:1
+ok   anchor #767676 on #ffffff = 4.542:1
+ok   color set exercises both inks: 9 white, 14 dark
+```
+
+`plan2-contrast 42/42`. Every element the browser actually paints with the brand
+color, measured by computed style (not by CSS selector), at 1440 and 375:
+
+| brand primary | ink chosen | worst measured contrast | admin note |
+|---|---|---|---|
+| `#FFE600` pale yellow | **dark** | **14.54:1** | ok |
+| `#1ABC9C` mid teal | **dark** | **7.65:1** | ok |
+| `#005DA3` shipped navy | white | **6.79:1** | ok |
+| `#101820` near black | white | **17.89:1** | ok |
+
+**The auto-ink changes the item's premise, and the plan's acceptance criterion
+"a pale brand color produces a visible admin warning" no longer holds — by
+design.** `#FFE600` is not a problem once the ink switches; it scores 14.5:1. A
+warning there would be false. Scanning 45 colors, the band where *neither* ink
+clears AA is narrow — `#787878` at 4.42:1 and `#7c7c7c` at 4.41:1 — and nothing
+single-colored reaches the `cnote-bad` threshold at all. `cnote-bad` is reachable
+only through the **banner gradient**, whose two stops can need opposite inks. All
+three severities are therefore exercised explicitly, live, through the picker:
+
+```
+ok   mid grey #787878: #cnote_primary is cnote-warn
+ok   shipped navy: #cnote_primary is cnote-ok
+ok   clashing banner black→white: #cnote_header is cnote-bad
+```
+
+The measurement had a false positive worth recording: the first version measured
+any element with the brand background, including wrappers whose text comes
+entirely from children. That reported "black on brand" for the mobile product
+pill, whose two children both set their own color — nothing painted that black.
+It now only measures elements with a **direct** text node.
+
+**Screenshots: `_harness/out/contrast/`.** `pale-yellow-1440.png` is the honest
+artifact for this item — it shows the heading and buttons correctly dark **and**
+the nav links, banner sub-line and sidebar chrome washed out, which is the
+`brand-ink-translucent` item now open in §2.
+
+### `form_complete`
+
+`plan2-formlast 8/8` — the sentinel is the last of **421** named controls in the
+rendered DOM, appears exactly once, and stays last after the editor adds a row
+(424 controls) and removes one (421).
+
+Proven to fail, against the real server, by adding a field after the sentinel in
+the **mirror's** copy only:
+
+```
+[1] unmodified mirror        -> exit 0  plan2-formlast 8/8
+[2] field after the sentinel -> exit 1  plan2-formlast 5/8
+    caught it: → last was "added_after_the_sentinel"; 1 control(s) follow the sentinel
+[3] field removed            -> exit 0  plan2-formlast 8/8
+```
+
+`plan2-trunc 13/13` drives a **genuinely** truncated POST — 421 variables into a
+`max_input_vars=100` server, so PHP itself discards the sentinel; the test does
+not remove it. The save is refused, `content.json` is byte-identical, the message
+names `max_input_vars`, B1 repopulation holds, and no PHP warning leaks with
+`display_errors=Off`. The `:8125` negative control (same truncation,
+`display_errors=On`) **does** surface the warning, so that last assertion is not
+vacuous, and `:8123` saves the same form, so "refused" does not just mean
+"broken everywhere".
+
+### Two test bugs, both from the same cause
+
+`nav.php` renders the Sign Out form **before** the page's own form, so
+`button[type="submit"]` logged the suite out and `form[method="POST"]` matched a
+2-control form. Both cost a debugging round and are now anchored on content
+unique to the target form. Noted here because the next suite will hit it too.
+
+### Live state
+
+```
+data/content.json:      byte-identical to pristine
+data/site-info.json:    byte-identical to pristine
+data/products-all.json: byte-identical to pristine
+```
+
+All writes went to `_harness/site/data/`; every suite restores from
+`_harness/pristine/` in a `finally` block and asserts the restore.
+
+### `[UNVERIFIED]`
+
+`php -S` ignores `.htaccess` and `.user.ini` (GUARDRAILS §4.3), so these are
+reasoned from the rule text, not measured: the `SetEnvIf`-scoped cache (NB1),
+the dotfile block (NB15), the `ALLOW-PASSWORD-RESET` block (NB14), and every
+limit in `public/.user.ini`. The `display_errors=Off` behaviour the truncation
+guard depends on **was** exercised, but via `_harness/php-trunc.ini` rather than
+via `.user.ini` — the production mechanism itself is still unverified locally.
+
+The suites listed in the previous baseline that were not reconstructed —
+`b1`, `b2`, `b3`, `nb2`, `nb4`, `help`, `ttl`, `sweep`, `overflow`,
+`adminsweep`, `plan0`, `plan1a`, `plan1b` — **were not run and nothing is
+claimed about them.** `plan2-trunc.js` covers part of what `b1trunc`/`nb2`
+covered; the rest is genuinely unmeasured this session.
 
 ---
 

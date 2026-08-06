@@ -217,7 +217,7 @@ class ErrorBoundary extends Component {
           </div>
           <button
             onClick={() => window.location.reload()}
-            style={{ marginTop: 24, padding: "10px 24px", background: "var(--brand-primary)", color: "#fff", border: "none", borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+            style={{ marginTop: 24, padding: "10px 24px", background: "var(--brand-primary)", color: "var(--brand-primary-ink)", border: "none", borderRadius: 7, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
           >
             Refresh Page
           </button>
@@ -374,7 +374,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                 fontWeight: 800,
                 fontSize: 13,
                 lineHeight: 1.2,
-                color: "#ffffff",
+                color: "var(--brand-dark-ink)",
                 letterSpacing: "0.01em",
               }}
             >
@@ -385,7 +385,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                 fontWeight: 700,
                 fontSize: 12,
                 lineHeight: 1.2,
-                color: "#ffffff",
+                color: "var(--brand-dark-ink)",
               }}
             >
               CORPORATION
@@ -937,7 +937,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               display: "inline-block",
               fontSize: 13,
               fontWeight: 600,
-              color: "#ffffff",
+              color: "var(--brand-primary-ink)",
               background: "var(--brand-primary)",
               border: "none",
               cursor: "pointer",
@@ -1355,7 +1355,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                 width: "100%",
                 padding: "13px 0",
                 background: "var(--brand-primary)",
-                color: "#ffffff",
+                color: "var(--brand-primary-ink)",
                 border: "none",
                 cursor: "pointer",
                 borderRadius: 8,
@@ -1471,7 +1471,7 @@ function Hero() {
               style={{
                 display: "inline-block",
                 background: "var(--brand-primary)",
-                color: "#ffffff",
+                color: "var(--brand-primary-ink)",
                 border: "none",
                 cursor: "pointer",
               }}
@@ -1750,7 +1750,7 @@ function SectionHeader({ eyebrow, title, subtitle, action }) {
             flexShrink: 0,
             fontSize: 13,
             fontWeight: 600,
-            color: "#ffffff",
+            color: "var(--brand-primary-ink)",
             background: "var(--brand-primary)",
             border: "none",
             cursor: "pointer",
@@ -1946,7 +1946,7 @@ function Features() {
             style={{
               display: "inline-block",
               background: "var(--brand-primary)",
-              color: "#ffffff",
+              color: "var(--brand-primary-ink)",
               border: "none",
               cursor: "pointer",
             }}
@@ -2342,11 +2342,11 @@ function HomePage() {
               {site.stats.minimumOrder} minimum order. {site.stats.feetInStock} feet in stock. Ships today.
             </h2>
             <p style={{ color: "rgba(255,255,255,0.75)" }} className="text-sm">
-              Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#ffffff", fontWeight: 600 }}>{site.contact.phone}</a>,
+              Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-header-ink)", fontWeight: 600 }}>{site.contact.phone}</a>,
               {/* Fax is clearable in Business Details (NB4) — drop the whole clause,
                   not just the number, or this reads "Call …, fax , or submit". */}
               {site.contact.fax ? (
-                <> fax <span style={{ color: "#ffffff", fontWeight: 600 }}>{site.contact.fax}</span>,</>
+                <> fax <span style={{ color: "var(--brand-header-ink)", fontWeight: 600 }}>{site.contact.fax}</span>,</>
               ) : null}
               {" "}or submit a quote request online — our team responds quickly and accurately.
             </p>
@@ -2371,7 +2371,7 @@ function HomePage() {
               style={{
                 display: "inline-block",
                 background: "transparent",
-                color: "#ffffff",
+                color: "var(--brand-header-ink)",
                 border: "1px solid rgba(255,255,255,0.5)",
                 cursor: "pointer",
               }}
@@ -2627,7 +2627,7 @@ function AboutPage() {
           >
             {c.eyebrow}
           </div>
-          <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
           <p
@@ -2902,7 +2902,7 @@ function AboutPage() {
               style={{
                 display: "inline-block",
                 background: "var(--brand-primary)",
-                color: "#ffffff",
+                color: "var(--brand-primary-ink)",
                 border: "none",
                 cursor: "pointer",
               }}
@@ -3186,7 +3186,7 @@ function FaqPage() {
           >
             {c.eyebrow}
           </div>
-          <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
           <p
@@ -3321,7 +3321,7 @@ function FaqPage() {
                   display: "block",
                   textAlign: "center",
                   background: "var(--brand-primary)",
-                  color: "#ffffff",
+                  color: "var(--brand-primary-ink)",
                   border: "none",
                   cursor: "pointer",
                 }}
@@ -3579,7 +3579,7 @@ function ContactPage() {
           <div className="max-w-7xl mx-auto px-6 py-12">
             <h1
               className="text-4xl font-extrabold"
-              style={{ color: "#ffffff" }}
+              style={{ color: "var(--brand-header-ink)" }}
             >
               {submittedTab === "rfq"
                 ? cf.rfqSuccessTitle
@@ -3620,7 +3620,7 @@ function ContactPage() {
               className="text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
               style={{
                 background: "var(--brand-primary)",
-                color: "#ffffff",
+                color: "var(--brand-primary-ink)",
                 border: "none",
                 cursor: "pointer",
               }}
@@ -3680,7 +3680,7 @@ function ContactPage() {
           >
             {c.eyebrow}
           </div>
-          <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
           <p
@@ -5167,6 +5167,66 @@ function PageMeta() {
 
 // Applies the editable brand colors to CSS variables at runtime, re-skinning the
 // whole site from data. Defaults live in index.css so the first paint is correct.
+// ── Contrast math (WCAG 2.1 relative luminance) ─────────────────────────────
+// 4.23: owner-set brand colors used to be injected with NO contrast guard while
+// headings and primary buttons hardcoded #ffffff. "Business Details" invites
+// Rick to pick a color and re-skin the whole site — pick a pale one and
+// white-on-white shipped to every visitor, with nothing warning him and the
+// damage on the public site rather than in the admin.
+//
+// MIRRORED IN admin/config.php (ipc_contrast_ratio / ipc_ink_for). The two must
+// agree: the admin warns with a number, and the site picks the ink that number
+// describes. If one changes, change the other — _harness/contrastparity.js
+// asserts they still match.
+const INK_DARK = "#141414";   // the site's body text color
+const INK_LIGHT = "#ffffff";
+
+function parseHexColor(v) {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(v || "").trim());
+  if (!m) return null;
+  let h = m[1];
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  const n = parseInt(h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function relativeLuminance(rgb) {
+  const ch = (c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * ch(rgb.r) + 0.7152 * ch(rgb.g) + 0.0722 * ch(rgb.b);
+}
+
+/** WCAG contrast ratio between two hex colors, 1..21. Returns 0 on bad input. */
+function contrastRatio(a, b) {
+  const ca = parseHexColor(a);
+  const cb = parseHexColor(b);
+  if (!ca || !cb) return 0;
+  const la = relativeLuminance(ca);
+  const lb = relativeLuminance(cb);
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * The readable foreground for one or more background colors.
+ *
+ * Takes a LIST because the page headers and the homepage CTA band are a
+ * gradient from --brand-primary to --brand-accent-2: the ink has to be legible
+ * at both ends, so we score each candidate by its WORST contrast across the
+ * stops and keep the better candidate.
+ */
+function inkFor(backgrounds) {
+  const bgs = (Array.isArray(backgrounds) ? backgrounds : [backgrounds]).filter(
+    (b) => parseHexColor(b)
+  );
+  if (!bgs.length) return INK_LIGHT;
+  const worst = (ink) => Math.min(...bgs.map((bg) => contrastRatio(ink, bg)));
+  return worst(INK_LIGHT) >= worst(INK_DARK) ? INK_LIGHT : INK_DARK;
+}
+
 function ThemeInjector() {
   const site = useSiteInfo();
   useEffect(() => {
@@ -5189,6 +5249,17 @@ function ThemeInjector() {
       root.style.setProperty("--brand-primary-rgb", `${r}, ${g}, ${b}`);
       root.style.setProperty("--brand-primary-hover", `rgb(${d(r)}, ${d(g)}, ${d(b)})`);
     }
+    // 4.23 — the readable foreground for each brand surface, recomputed
+    // whenever the owner changes a color. These back the --brand-*-ink vars
+    // that replaced the hardcoded #ffffff at every brand-colored call site.
+    // Defaults in index.css cover the first paint and the navy palette.
+    const primary = t.primaryColor || "#005da3";
+    const dark = t.darkColor || "#0d2d52";
+    const accent2 = t.accent2Color || "#119ec8";
+    root.style.setProperty("--brand-primary-ink", inkFor(primary));
+    root.style.setProperty("--brand-dark-ink", inkFor(dark));
+    // The gradient runs primary -> accent-2; the ink must survive both ends.
+    root.style.setProperty("--brand-header-ink", inkFor([primary, accent2]));
   }, [site]);
   return null;
 }
@@ -5299,7 +5370,8 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                 fontSize: 12,
                 fontWeight: 600,
                 background: !mobileFamily ? "var(--brand-primary)" : "#ffffff",
-                color: !mobileFamily ? "#ffffff" : "#4b5563",
+                // 4.23: follow the ink when this pill is the brand-colored one.
+                color: !mobileFamily ? "var(--brand-primary-ink)" : "#4b5563",
                 border: !mobileFamily ? "none" : "1px solid #d1d9e0",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
@@ -5370,7 +5442,13 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
-                    color: active ? "rgba(255,255,255,0.7)" : "#9ca3af",
+                    // 4.23: the active pill's background is --brand-primary, so
+                    // the label has to follow the ink, not a fixed white.
+                    // color-mix keeps the original 70% de-emphasis against
+                    // whichever ink was chosen.
+                    color: active
+                      ? "color-mix(in srgb, var(--brand-primary-ink) 70%, transparent)"
+                      : "#9ca3af",
                     textTransform: "uppercase",
                     letterSpacing: "0.06em",
                     marginBottom: 2,
@@ -5382,7 +5460,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: active ? "#ffffff" : "#141414",
+                    color: active ? "var(--brand-primary-ink)" : "#141414",
                     lineHeight: 1.3,
                   }}
                 >
@@ -5541,8 +5619,8 @@ function SpecTable1({ table }) {
       style={{ border: "1px solid #e5e9ee" }}
     >
       <div
-        className="px-4 py-3 text-center text-sm font-bold text-white uppercase tracking-wide"
-        style={{ background: "var(--brand-dark)", borderBottom: "2px solid var(--brand-accent)" }}
+        className="px-4 py-3 text-center text-sm font-bold uppercase tracking-wide"
+        style={{ background: "var(--brand-dark)", color: "var(--brand-dark-ink)", borderBottom: "2px solid var(--brand-accent)" }}
       >
         {title}
       </div>
@@ -5596,8 +5674,13 @@ function SpecTable2({ table }) {
                 key={i}
                 colSpan={col.colspan > 1 ? col.colspan : 1}
                 rowSpan={col.colspan > 1 ? 1 : hasSubHeaders ? 2 : 1}
-                className="px-3 py-3 text-center text-white whitespace-pre-line text-xs font-semibold leading-snug align-middle"
+                className="px-3 py-3 text-center whitespace-pre-line text-xs font-semibold leading-snug align-middle"
                 style={{
+                  // 4.23: these cells alternate between --brand-primary and
+                  // --brand-accent-2, the same two stops as the page-banner
+                  // gradient, so --brand-header-ink (scored on the worse of the
+                  // pair) is the ink that works across the whole row.
+                  color: "var(--brand-header-ink)",
                   background:
                     i === 0 ? "var(--brand-primary)" : i % 2 === 0 ? "var(--brand-accent-2)" : "var(--brand-primary)",
                   border: "1px solid rgba(255,255,255,0.2)",
@@ -5616,8 +5699,9 @@ function SpecTable2({ table }) {
                   c.sub.map((s, si) => (
                     <th
                       key={`${gi}-${si}`}
-                      className="px-3 py-2 text-center text-white text-xs font-semibold"
+                      className="px-3 py-2 text-center text-xs font-semibold"
                       style={{
+                        color: "var(--brand-header-ink)",
                         background: "var(--brand-accent-2)",
                         border: "1px solid rgba(255,255,255,0.2)",
                       }}
@@ -5782,7 +5866,7 @@ function ProductDetail({ product, allProducts }) {
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <span
               className="px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wide"
-              style={{ background: "var(--brand-primary)", color: "#ffffff" }}
+              style={{ background: "var(--brand-primary)", color: "var(--brand-primary-ink)" }}
             >
               {product.sku}
             </span>
@@ -5891,7 +5975,7 @@ function ProductDetail({ product, allProducts }) {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
               style={{
                 background: "var(--brand-primary)",
-                color: "#ffffff",
+                color: "var(--brand-primary-ink)",
                 border: "none",
                 cursor: "pointer",
               }}
@@ -6231,7 +6315,7 @@ function ProductPage({ products }) {
           <div className="max-w-7xl mx-auto px-6 py-12">
             <h1
               className="text-4xl font-extrabold"
-              style={{ color: "#ffffff" }}
+              style={{ color: "var(--brand-header-ink)" }}
             >
               Product Catalog
             </h1>
@@ -6264,7 +6348,7 @@ function ProductPage({ products }) {
           >
             Products
           </div>
-          <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             Product Catalog
           </h1>
           <p
@@ -6395,7 +6479,7 @@ function ProductPage({ products }) {
               style={{
                 fontSize: 13,
                 fontWeight: 600,
-                color: "#ffffff",
+                color: "var(--brand-dark-ink)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -6425,7 +6509,7 @@ function ProductPage({ products }) {
                     fontSize: 12,
                     fontWeight: 600,
                     background: "rgba(255,255,255,0.1)",
-                    color: "#ffffff",
+                    color: "var(--brand-dark-ink)",
                     border: "1px solid rgba(255,255,255,0.2)",
                     textDecoration: "none",
                   }}
@@ -6472,7 +6556,7 @@ function ProductPage({ products }) {
                         fontSize: 12,
                         fontWeight: 600,
                         background: "rgba(255,255,255,0.1)",
-                        color: "#ffffff",
+                        color: "var(--brand-dark-ink)",
                         border: "1px solid rgba(255,255,255,0.2)",
                         textDecoration: "none",
                       }}
@@ -6516,7 +6600,7 @@ function ProductPage({ products }) {
                 fontSize: 12,
                 fontWeight: 700,
                 background: "var(--brand-primary)",
-                color: "#ffffff",
+                color: "var(--brand-primary-ink)",
                 border: "none",
                 cursor: "pointer",
                 transition: "background 0.15s",
@@ -6668,7 +6752,7 @@ function DashboardPage({ products }) {
           >
             Product Index
           </div>
-          <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             Product Index
           </h1>
           <p
@@ -7354,7 +7438,7 @@ function DashboardPage({ products }) {
                             fontSize: 12,
                             fontWeight: 600,
                             background: "var(--brand-primary)",
-                            color: "#ffffff",
+                            color: "var(--brand-primary-ink)",
                             border: "none",
                             cursor: "pointer",
                           }}
@@ -7629,7 +7713,7 @@ function IndustriesPage() {
           >
             {c.eyebrow}
           </div>
-          <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
           <p
@@ -7820,7 +7904,7 @@ function IndustriesPage() {
                       display: "block",
                       textAlign: "center",
                       background: "var(--brand-primary)",
-                      color: "#ffffff",
+                      color: "var(--brand-primary-ink)",
                       border: "none",
                       cursor: "pointer",
                     }}
@@ -7874,7 +7958,7 @@ function IndustriesPage() {
             style={{
               display: "inline-block",
               background: "var(--brand-primary)",
-              color: "#ffffff",
+              color: "var(--brand-primary-ink)",
               border: "none",
               cursor: "pointer",
             }}
@@ -8129,7 +8213,7 @@ function ServicesPage() {
           >
             {c.eyebrow}
           </div>
-          <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
           <p
@@ -8348,7 +8432,7 @@ function ServicesPage() {
                   display: "block",
                   textAlign: "center",
                   background: "var(--brand-primary)",
-                  color: "#ffffff",
+                  color: "var(--brand-primary-ink)",
                   border: "none",
                   cursor: "pointer",
                 }}
@@ -8436,7 +8520,7 @@ function PrivacyPage() {
           >
             {c.eyebrow}
           </div>
-          <h1 className="text-4xl font-extrabold" style={{ color: "#ffffff" }}>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
           <p
@@ -9045,7 +9129,7 @@ function CatalogError({ error }) {
               className="text-sm font-semibold px-6 py-3 rounded hover:brightness-110 transition-all"
               style={{
                 background: "var(--brand-primary)",
-                color: "#ffffff",
+                color: "var(--brand-primary-ink)",
                 border: "none",
                 cursor: "pointer",
               }}

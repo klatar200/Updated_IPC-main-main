@@ -378,7 +378,23 @@ $COPY_GROUPS = [
 ];
 
 $errors = [];
+
+// 4.12 — unmatched-product-code notices. These render alongside $errors but
+// MUST NOT be appended to it: $errors gates save_content() at the bottom of the
+// POST handler, and the owner's decision (WHATS_LEFT §3, 2026-08-06) is that an
+// unmatched SKU warns and still saves, so Rick can add an industry card before
+// the product exists. Keep the two arrays separate.
+$warnings = [];
+
 $saved  = isset($_GET['saved']);
+
+// A successful save redirects to ?saved=1, which would swallow any warning that
+// save produced — the one message this feature exists to show. Carry them over
+// as a one-shot flash, unset on read.
+if ($saved && !empty($_SESSION['content_warnings'])) {
+    $warnings = (array)$_SESSION['content_warnings'];
+    unset($_SESSION['content_warnings']);
+}
 
 // Optimistic-concurrency signature, same mechanism as edit.php:17-31 and
 // settings.php. Two tabs open on this page used to clobber each other with no
@@ -470,6 +486,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $out[$sec] = $clean;
     }
 
+    // ── 4.12: the Industries product codes are checked against the catalog ───
+    // This field used to validate against NOTHING, while the help text above it
+    // promises "the SKU must match a real product so the link works". A typo
+    // shipped an industry card linking to a product page that does not exist,
+    // and Rick got a green success banner.
+    //
+    // WARNS and still saves, by owner decision (WHATS_LEFT §3, 2026-08-06):
+    // adding the card before the product is a legitimate order of work. That is
+    // why this appends to $warnings and never to $errors.
+    // product_reference_resolves() mirrors the site's three-tier lookup, NOT an
+    // exact SKU match — see the comment on it in config.php. Exact matching
+    // flagged 5 of the 18 shipped industry references as broken when all 18
+    // resolve.
+    $catalogProducts = load_products();
+    // An unreadable or empty catalog must not flag every card on the page —
+    // that would bury the real signal under 40 false warnings.
+    if (!empty($catalogProducts)) {
+        foreach (($out['industryDetail'] ?? []) as $row) {
+            $industry = trim((string)($row['name'] ?? ''));
+            if ($industry === '') $industry = 'an industry section';
+            foreach (($row['products'] ?? []) as $prod) {
+                $sku = trim((string)($prod['sku'] ?? ''));
+                if ($sku === '' || product_reference_resolves($catalogProducts, $sku)) continue;
+                $warnings[] = 'The product code “' . $sku . '” in “' . $industry . '” does not match any '
+                    . 'product in your catalog, so that link will send visitors to a “product not found” page. '
+                    . 'Check the spelling against the Products page, or add the product. '
+                    . 'If you are adding this card before the product itself, you can ignore this.';
+            }
+        }
+    }
+
     // Fixed page copy — saved as a nested object under "copy".
     $copyOut = [];
     foreach ($COPY_GROUPS as $g => $gcfg) {
@@ -486,7 +533,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         if (save_content($out)) {
-            audit_log('content', 'homepage', 'Homepage content updated');
+            audit_log('content', 'homepage', 'Homepage content updated'
+                . (!empty($warnings) ? ' — ' . count($warnings) . ' unmatched product code(s)' : ''));
+            // 4.12: survive the redirect. See the flash read near $saved.
+            if (!empty($warnings)) $_SESSION['content_warnings'] = $warnings;
             header('Location: content.php?saved=1');
             exit;
         }
@@ -611,9 +661,20 @@ function render_row(string $section, int $i, array $cfg, array $row): string {
     $out  = '<div class="content-row">';
     $out .= '<div class="row-head"><span class="row-num">#' . ($i + 1) . '</span>'
           . '<span class="row-tools">'
+          . '<span class="row-move">'
           . '<button type="button" class="rbtn" data-action="up" title="Move up">↑</button>'
           . '<button type="button" class="rbtn" data-action="down" title="Move down">↓</button>'
-          . '<button type="button" class="rbtn danger" data-action="remove" title="Remove">✕</button>'
+          . '</span>'
+          // 4.13 — this ✕ removes an entire card and used to sit 6px from ↓ with
+          // no confirmation, while every other destructive admin action has one.
+          // Rick reorders far more often than he deletes, on a touch-capable
+          // laptop, and a mis-click during reordering did not announce itself.
+          // The prompt names the row (see confirm.js's {it}); the spacing is in
+          // .row-move / .rbtn.danger below.
+          . '<button type="button" class="rbtn danger" data-action="remove" title="Remove"'
+          . ' data-confirm="Remove {it} from this page?&#10;&#10;The row disappears now and is deleted for good when you click “Save Content”. If you save by mistake, you can put it back from Backups."'
+          . ' data-confirm-scope=".content-row"'
+          . ' data-confirm-from="input.ci[type=text], textarea.ci">✕</button>'
           . '</span></div>';
     $out .= '<div class="grid-2">';
     foreach ($fields as $f) $out .= render_field($section, $i, $f, $row);
@@ -669,14 +730,35 @@ $navActive = 'content';
     .content-row { border: 1px solid #e5e9ee; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; background: #fafcff; }
     .row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     .row-num { font-size: 12px; font-weight: 800; color: #005da3; }
-    .row-tools { display: flex; gap: 6px; }
+    .row-tools { display: flex; gap: 6px; align-items: center; }
+    /* 4.13 — ↑/↓ are one visual group; ✕ is deliberately pushed away from them.
+       The two used to be 6px apart, and the ✕ deletes the whole card while the
+       arrows are the control Rick uses most. 28px of margin puts the measured
+       edge-to-edge gap at 34px, comfortably over the 24px floor, at both 1440
+       and 375. Do not collapse this back into a single evenly-spaced row. */
+    .row-move { display: flex; gap: 6px; align-items: center; }
+    .row-tools .rbtn.danger { margin-left: 28px; }
     .rbtn { width: 28px; height: 28px; border: 1px solid #d1d9e0; background: #fff; border-radius: 6px; font-size: 13px; cursor: pointer; color: #374151; line-height: 1; }
+    /* On a touch device the 28px box is below the 44px minimum target, and
+       these three controls sit side by side. Grow them where the pointer is
+       coarse; the desktop density is unchanged. */
+    @media (pointer: coarse) {
+      .rbtn { width: 44px; height: 44px; font-size: 15px; }
+      .row-tools .rbtn.danger { margin-left: 24px; }
+    }
     .rbtn:hover:not(:disabled) { background: #eef4fb; border-color: #005da3; }
     .rbtn:disabled { opacity: 0.35; cursor: default; }
     .rbtn.danger:hover:not(:disabled) { background: #fef2f2; border-color: #dc2626; color: #dc2626; }
     .error-list { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
     .error-list li { font-size: 13px; margin-bottom: 4px; }
     .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+    /* 4.12 — amber, distinct from the red .error-list (nothing was lost) and
+       from the green banner it sits under. The left bar is what makes it read
+       as a callout rather than more body copy. */
+    .warn-list { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+    .warn-list strong { display: block; font-size: 13px; margin-bottom: 6px; }
+    .warn-list ul { margin: 0; padding-left: 20px; }
+    .warn-list li { font-size: 13px; margin-bottom: 4px; line-height: 1.5; }
     .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
     .btn-primary { background: #005da3; color: #fff; }
     .btn-primary:hover { background: #004e8c; }
@@ -694,6 +776,15 @@ $navActive = 'content';
   <?php if ($saved): ?><div class="alert-success">✅ Content saved. The website will reflect the changes within ~60 seconds.</div><?php endif; ?>
   <?php if (!empty($errors)): ?>
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
+  <?php endif; ?>
+  <?php /* 4.12: unmatched product codes. Deliberately BELOW the green "saved"
+           banner — the save did happen, and the sequence "saved, but…" is the
+           honest reading order. Amber, not red: nothing was lost. */ ?>
+  <?php if (!empty($warnings)): ?>
+    <div class="warn-list">
+      <strong>⚠️ Check these product codes</strong>
+      <ul><?php foreach ($warnings as $w): ?><li><?= h($w) ?></li><?php endforeach; ?></ul>
+    </div>
   <?php endif; ?>
 
   <form method="POST">
@@ -728,12 +819,39 @@ $navActive = 'content';
       <a href="index.php" class="btn btn-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary">Save Content</button>
     </div>
-    <?php /* MUST stay the last field in this form — the truncation guard at the
-             top of this file checks that it survived the POST. Adding fields
-             after it would defeat the check. */ ?>
+    <?php /* ─────────────────────────────────────────────────────────────────
+             ANY NEW FIELD GOES ABOVE THIS LINE. NOTHING GOES BELOW IT.
+
+             `form_complete` is the max_input_vars truncation sentinel and it is
+             enforced POSITIONALLY: the guard at the top of this file (the
+             $truncated block) only detects a cut-off POST because this is the
+             LAST variable the browser sends. A field added after it arrives in
+             the same truncated POST, PHP drops both, and the guard sees nothing
+             — which is the DEPLOY_READINESS_v2 T3.7 incident restored: this form
+             posts 450+ variables, PHP drops everything past max_input_vars
+             SILENTLY, and the old code rebuilt $out from whatever arrived and
+             still reported "Content saved". Data loss under a green banner.
+
+             Do not replace the sentinel with a count-based scheme either. This
+             one is proven by _harness/plan2-trunc.js against a real
+             max_input_vars=100 server; a count is one more thing to keep in
+             sync with the form.
+
+             Asserted three ways: invariants.js INV6 (source order),
+             _harness/plan2-formlast.js (the rendered DOM, which is what
+             actually determines POST order), and plan2-trunc.js (the guard
+             firing on a genuinely truncated request).
+             ───────────────────────────────────────────────────────────────── */ ?>
     <input type="hidden" name="form_complete" value="1">
   </form>
 </main>
+<?php /* 4.13: confirm.js powers the ✕ delete prompt. It cancels by calling
+         stopPropagation() from a CAPTURE-phase listener on document, and
+         content-editor.js removes the row from a BUBBLE-phase listener — the
+         capture phase always completes first, so "Cancel" reliably prevents the
+         removal. That ordering comes from the event phases, not from the order
+         of these two script tags. */ ?>
+<script src="confirm.js"></script>
 <script src="content-editor.js"></script>
 <script src="unsaved.js" defer></script>
 </body>

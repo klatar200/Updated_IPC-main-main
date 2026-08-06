@@ -174,6 +174,13 @@ $navActive = 'settings';
     .form-group.full { grid-column: 1 / -1; }
     label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 5px; }
     .hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+    /* 4.23 — contrast readout under each brand color. Three states: ok (quiet,
+       so the page is not shouting when nothing is wrong), warn, and bad. */
+    .cnote { font-size: 11px; margin-top: 6px; line-height: 1.45; border-radius: 6px; padding: 6px 8px; }
+    .cnote-ok   { color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .cnote-warn { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; }
+    .cnote-bad  { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
+    .cnote b { font-weight: 700; }
     input[type=text], textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; }
     input[type=text]:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     textarea { resize: vertical; line-height: 1.5; }
@@ -204,10 +211,62 @@ $navActive = 'settings';
       <div class="card">
         <div class="card-title">Branding &amp; Theme</div>
         <div class="grid-2">
-          <div class="form-group"><label for="theme_primary">Primary color</label><input type="color" id="theme_primary" name="theme_primary" value="<?= h($th['primaryColor'] ?? '#005da3') ?>" style="height:44px;padding:4px;width:100%;"></div>
-          <div class="form-group"><label for="theme_dark">Dark (headers &amp; footer)</label><input type="color" id="theme_dark" name="theme_dark" value="<?= h($th['darkColor'] ?? '#0d2d52') ?>" style="height:44px;padding:4px;width:100%;"></div>
+          <?php
+          /**
+           * 4.23 — the readability readout for one brand surface.
+           *
+           * Owner-set colors used to be injected with no contrast guard at all
+           * while the site hardcoded white text, so a pale color shipped
+           * white-on-white to every visitor with nothing warning him. The site
+           * now picks the readable ink automatically (ThemeInjector), so what
+           * matters here is whether the BEST available ink still clears the
+           * WCAG thresholds — if it does not, no automatic choice can save it.
+           *
+           * Rendered server-side so it is correct on load and without JS;
+           * contrast-guard.js recomputes the same thing live as the picker
+           * moves. Both sides must agree — _harness/contrastparity.js checks it.
+           */
+          function contrast_note(array $bgs, string $surfaceLabel, string $id): string {
+              $ink   = ipc_ink_for($bgs);
+              $ratios = [];
+              foreach ($bgs as $bg) $ratios[] = ipc_contrast_ratio($ink, (string)$bg);
+              $ratio = $ratios ? min($ratios) : 0.0;
+              $inkWord = strtolower($ink) === strtolower(IPC_INK_LIGHT) ? 'white' : 'dark';
+
+              if ($ratio >= IPC_CONTRAST_AA) {
+                  $cls = 'cnote-ok';
+                  $msg = 'Readable. The site will put <b>' . $inkWord . ' text</b> on ' . $surfaceLabel
+                       . ' — contrast <b>' . number_format($ratio, 1) . ':1</b> (4.5:1 or more is the standard).';
+              } elseif ($ratio >= IPC_CONTRAST_LARGE) {
+                  $cls = 'cnote-warn';
+                  $msg = '⚠️ Borderline. The best text color for ' . $surfaceLabel . ' is <b>' . $inkWord
+                       . '</b>, but it only reaches <b>' . number_format($ratio, 1) . ':1</b>. Large headings will be '
+                       . 'readable; smaller text on this color will be hard work. The standard is 4.5:1. '
+                       . 'A darker or stronger shade fixes it.';
+              } else {
+                  $cls = 'cnote-bad';
+                  $msg = '⚠️ Hard to read. Even the best text color for ' . $surfaceLabel . ' (<b>' . $inkWord
+                       . '</b>) only reaches <b>' . number_format($ratio, 1) . ':1</b>, well under the 4.5:1 standard. '
+                       . 'Visitors will struggle to read this, and so will search engines. '
+                       . 'Please pick a deeper shade. Your changes still save — this is a warning, not a block.';
+              }
+              return '<div class="cnote ' . $cls . '" id="' . h($id) . '">' . $msg . '</div>';
+          }
+
+          $cPrimary = $th['primaryColor'] ?? '#005da3';
+          $cDark    = $th['darkColor']    ?? '#0d2d52';
+          $cAccent2 = $th['accent2Color'] ?? '#119ec8';
+          ?>
+          <div class="form-group"><label for="theme_primary">Primary color</label><input type="color" id="theme_primary" name="theme_primary" value="<?= h($cPrimary) ?>" style="height:44px;padding:4px;width:100%;">
+            <?= contrast_note([$cPrimary], 'buttons and highlights', 'cnote_primary') ?></div>
+          <div class="form-group"><label for="theme_dark">Dark (headers &amp; footer)</label><input type="color" id="theme_dark" name="theme_dark" value="<?= h($cDark) ?>" style="height:44px;padding:4px;width:100%;">
+            <?= contrast_note([$cDark], 'the navigation bar', 'cnote_dark') ?></div>
           <div class="form-group"><label for="theme_accent">Accent</label><input type="color" id="theme_accent" name="theme_accent" value="<?= h($th['accentColor'] ?? '#00bef2') ?>" style="height:44px;padding:4px;width:100%;"></div>
-          <div class="form-group"><label for="theme_accent2">Secondary accent</label><input type="color" id="theme_accent2" name="theme_accent2" value="<?= h($th['accent2Color'] ?? '#119ec8') ?>" style="height:44px;padding:4px;width:100%;"></div>
+          <div class="form-group"><label for="theme_accent2">Secondary accent</label><input type="color" id="theme_accent2" name="theme_accent2" value="<?= h($cAccent2) ?>" style="height:44px;padding:4px;width:100%;">
+            <?php /* The page banners are a gradient from Primary to Secondary
+                     accent, so one ink has to work at BOTH ends — this note is
+                     scored on the worse of the two. */ ?>
+            <?= contrast_note([$cPrimary, $cAccent2], 'the page banners', 'cnote_header') ?></div>
           <div class="form-group full">
             <label for="theme_logo">Logo URL</label>
             <input type="text" id="theme_logo" name="theme_logo" value="<?= h($th['logoUrl'] ?? '') ?>" placeholder="/logo.svg or https://…" />
@@ -376,6 +435,9 @@ $navActive = 'settings';
   </div>
 </main>
 <script src="settings-preview.js"></script>
+<?php /* 4.23 — live contrast readout as the color picker moves. The same notes
+         are already rendered server-side above, so this only keeps them current. */ ?>
+<script src="contrast-guard.js"></script>
 <script src="unsaved.js" defer></script>
 </body>
 </html>
