@@ -139,6 +139,35 @@ function hdr($val): string {
     return trim(preg_replace('/[\r\n]+/', ' ', s($val)) ?: '');
 }
 
+// The auto-reply cap's key — the MAILBOX, not the string that was typed.
+//
+// This value is used for ONE thing: md5()'d into the per-recipient cap
+// filename. The auto-reply is still SENT to the address exactly as submitted,
+// and ipc_log_inquiry() still records it exactly as submitted. Rewriting either
+// of those would corrupt the lead record Rick works from — the whole point of
+// inquiries.jsonl is that it is what the customer actually typed. (4.15b)
+//
+// Dot-stripping is GMAIL-FAMILY ONLY, deliberately. Dots are significant almost
+// everywhere else, and collapsing them would merge genuinely different people
+// at the same company onto one cap — silently denying a real prospect their
+// confirmation email to fix a spam nuisance, which is the worse trade.
+function ipc_ar_cap_key(string $email): string {
+    $email = strtolower(trim($email));
+    // rstrpos: an @ is legal inside a quoted local part, so the domain is what
+    // follows the LAST one.
+    $at = strrpos($email, '@');
+    if ($at === false) return $email;          // not an address shape; key on it as-is
+    $local  = substr($email, 0, $at);
+    $domain = substr($email, $at + 1);
+    // Everything from the first "+" to the "@" is a sub-address tag.
+    $plus = strpos($local, '+');
+    if ($plus !== false) $local = substr($local, 0, $plus);
+    if ($domain === 'gmail.com' || $domain === 'googlemail.com') {
+        $local = str_replace('.', '', $local);
+    }
+    return $local . '@' . $domain;
+}
+
 // Whatever we know about a rejected submission, shaped like a log entry so a
 // lead that hits a guard is still recoverable from admin/inquiries.php.
 function ipc_partial_entry(string $type, string $note, string $ip): array {
@@ -435,9 +464,15 @@ if (!$sent) {
 // 5-per-IP window — i.e. a rotating-IP botnet could use the site to email-bomb
 // a third party under IPC's name and burn the domain's sending reputation.
 // (DEPLOY_READINESS_v2 4.15)
+//
+// The cap keyed on the address AS SUBMITTED, which Gmail's own addressing
+// rules defeat: a@gmail.com, a+1@gmail.com and a.b@gmail.com are one mailbox,
+// so a sender cycling +1/+2/+3 got a fresh auto-reply every time and the
+// per-recipient cap bounded nothing. ipc_ar_cap_key() normalises for the KEY
+// ONLY — see the function. (4.15b)
 $autoReplyOk = true;
 if ($replyTo !== '') {
-    $arFile = sys_get_temp_dir() . '/ipc_ar_' . md5(strtolower($replyTo)) . '.json';
+    $arFile = sys_get_temp_dir() . '/ipc_ar_' . md5(ipc_ar_cap_key($replyTo)) . '.json';
     $arWindow = 86400;   // 24 hours
     $arMax    = 3;
     $ar = [];

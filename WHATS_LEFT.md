@@ -114,6 +114,8 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **`form_complete` position** | `admin/content.php`, `_harness/` | Shipped 2026-08-06 (Plan 2). The `max_input_vars` truncation sentinel was enforced positionally with nothing asserting it at runtime. The sentinel is unchanged (deliberately — a count-based scheme was rejected); what is new is enforcement: `plan2-formlast.js` asserts it is the last of **421** named controls in the **rendered DOM**, including after the editor adds and removes rows, and `plan2-trunc.js` drives a genuinely truncated POST against a real `max_input_vars=100` server with a working `display_errors` negative control. The inline comment now names the DEPLOY_READINESS_v2 T3.7 incident and says explicitly that new fields go above the line. Evidence in §4g. |
 | **brand-ink-translucent** | `src/App.jsx`, `src/index.css` | Shipped 2026-08-06, the follow-on to 4.23. 4.23 replaced the hardcoded white on *solid* brand surfaces; the **de-emphasised** text on those same surfaces — nav links, banner sub-lines, dropdown captions, sidebar chrome — still used `rgba(255,255,255,α)` and went invisible on a pale brand color. Three new `--brand-*-ink-rgb` triples let those say `rgba(var(--brand-dark-ink-rgb), 0.6)` and follow the ink (deliberately not `color-mix()`, whose absence would invalidate the declaration and fall back to `inherit` — failing toward unreadable, which is the bug). **77 inline sites** converted, plus **12** Tailwind `text-white` classes swapped to new `.ipc-ink-*` utilities. Surfaces were **measured in the browser**, not inferred: a source scan both misses a background declared after the className in the same element and attributes one from 12,000 characters away, and it produced three real mis-classifications that a new empirical auditor caught — including `#141414` text on a `#141414` background at 1:1. Result: **357 → 274** brand-sensitive contrast failures, with **zero** white-on-brand-surface remaining. Evidence in §4h. |
 | **brand-color-as-foreground** | `src/App.jsx`, `src/index.css` | Shipped 2026-08-06. The brand colors are also used as **text** — feature chips, eyebrow labels, sidebar headings, inline links, footer captions — at ~59 call sites, where the ink variables cannot help: there the brand color *is* the foreground. A new `textSafeOn()` darkens (on a light background) or lightens (on a dark one) in HSL, so hue and saturation survive, and only as far as legibility requires. Five derived variables — `--brand-primary-text`, `--brand-accent-text`, `--brand-accent-on-dark`, `--brand-accent-on-footer`, `--brand-accent1-on-dark` — because the same accent lands on white, on `--brand-dark`, and on the footer's hardcoded `#0a2240`, which need **opposite** adjustments; every one of those surfaces was measured in the browser first. **274 → 12** brand-sensitive failures. ⚠️ Not a pure no-op: the shipped `--brand-accent-2` on white was **3.1:1**, a real AA failure, so it moves `#119EC8 → #0d7594`; `--brand-primary` as text (258 of the sites) is unchanged. Evidence in §4i. |
+| **4.5** | `src/App.jsx` (`ContactPage`) | Shipped 2026-08-06 (Plan 3). Every contact-form failure was a browser `alert()` — four call sites, two per form. A native dialog on mobile reads as "this site is broken", leaves no trace of what went wrong once dismissed, points at no field, announces nothing inside the form to a screen reader, and **some mobile browsers suppress it entirely during certain interactions, so the failure could be completely silent.** Replaced with one inline region rendered inside the form directly above the submit control: `role="alert"`, `aria-live="polite"`, `aria-atomic`, `tabIndex={-1}`, focused and scrolled into view on failure. The server's own specific message is shown **verbatim** (`cf.submitError` is only the fallback for a response that carried none), passed as a JSX text child so invariant 10 holds at the render boundary — `<1/4 inch and >2 inch ID, 1/2" wall` is asserted to arrive as a **text node with zero element children**. Network failure is a separate `kind` carrying `cf.networkError`, so "check your connection" and "your email looks wrong" cannot collapse into one message; both copy keys stay owner-editable. The panel's colors are fixed rather than brand-derived (measured 7.7:1) so an error stays legible whatever is set in Branding. **Adds zero CSS** — verified byte-identical bundle. Evidence in §4j. |
+| **4.15b** | `public/contact.php` | Shipped 2026-08-06 (Plan 3). The per-recipient auto-reply cap keyed on the address **as submitted**, which Gmail's own addressing rules defeat: `a@gmail.com`, `a+1@gmail.com` and `a.b@gmail.com` are one mailbox, so a sender cycling `+1/+2/+3` drew a fresh auto-reply every time — the site could be used to mail a third party under IPC's `From:`. New `ipc_ar_cap_key()` lowercases, drops the `+tag`, and strips dots **for `gmail.com`/`googlemail.com` only**; dots stay significant everywhere else, because collapsing them would merge different people at one company onto one cap and silently deny a real prospect their confirmation. **Only the cap key changes** — the reply is still sent to the address as typed and `inquiries.jsonl` still records it as typed, both asserted. The sales notification is asserted to fire for **every** submission, including the capped one. Evidence in §4j. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -123,14 +125,14 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 Ordered by value. Nothing here blocks the upload.
 
 - [ ] **4.11b** Footer social icons were promised by v2 4.11 and never built — `social.*` still feeds JSON-LD `sameAs` only. (Split out 2026-08-05, AUDIT_v3 D18.)
-- [ ] **4.15b** Auto-reply per-recipient cap is defeated by plus- and dot-addressing (`a+1@gmail.com`, `a.b@gmail.com`). Normalising Gmail-style addresses is the fix; the per-IP cap still bounds the damage. (Split out 2026-08-05, AUDIT_v3 §3.3.)
+- [x] **4.15b** ~~Auto-reply per-recipient cap is defeated by plus- and dot-addressing (`a+1@gmail.com`, `a.b@gmail.com`). Normalising Gmail-style addresses is the fix; the per-IP cap still bounds the damage. (Split out 2026-08-05, AUDIT_v3 §3.3.)~~ **SHIPPED 2026-08-06 (Plan 3)** — measured before the fix: four spellings of one Gmail mailbox produced **four** distinct cap files and **four** auto-replies. After: **one** cap key, three auto-replies then the cap holds. `a.b@example.com` and `ab@example.com` stay distinct and both get theirs. See §1b and §4j.
 - [x] **NB-copy** ~~`mergeContent` iterates `Object.keys(defaults)` only, so a `copy` key that exists in `content.php` but not in `App.jsx`'s `COPY_DEFAULTS` would have the owner's edit vanish with a success message. ~450 posted keys were never enumerated against the defaults tree.~~ **ENUMERATED AND CLOSED 2026-08-06 (Plan 2)** — the two sides **match exactly**: 96 fields, 12 groups, zero PHP-only and zero JS-only. The mechanism was real but had never actually drifted. Drift is now a failing check (`_harness/copydrift.js`, wired into `lint.php`). **`AMENDED`: the "~450 posted keys" figure was wrong** — it conflated the whole form (421 named controls, which is what `max_input_vars` truncates) with the `copy` subset, which is 96. See §1b and §4g.
 - [x] **`form_complete` position** ~~is enforced *positionally* only. Nothing stops a future field being added after `content.php`'s last input, and there is no test runner to assert it.~~ **SHIPPED 2026-08-06 (Plan 2)** — now asserted three ways: `invariants.js` INV6 (source order), `_harness/plan2-formlast.js` (the **rendered DOM**, which is what actually sets POST order, including after the editor adds/removes rows), and `_harness/plan2-trunc.js` (the guard firing against a real `max_input_vars=100` server). See §1b and §4g.
 
 - [x] **4.1** ~~FAQ JSON-LD `useEffect` has `[]` deps and runs before `content.json` loads, so owner-edited FAQs never reach Google's rich results.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [x] **4.3** ~~No `rel="canonical"` anywhere; `og:url` is hardcoded to the homepage on all 9 pages.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [ ] **sitemap/dashboard** `public/sitemap.xml` lists `/dashboard` with priority 0.8, alongside the nine public routes. Whether that route should be publicly indexed was never established. Noticed 2026-08-05 during Plan 1; not investigated, not changed.
-- [ ] **4.5** Every contact-form error is a browser `alert()` — no inline error, no `aria-live`, no focus move.
+- [x] **4.5** ~~Every contact-form error is a browser `alert()` — no inline error, no `aria-live`, no focus move.~~ **SHIPPED 2026-08-06 (Plan 3)** — see §1b and §4j. All four call sites replaced by one inline `role="alert"` region that is focused on failure and carries the server's own message verbatim. `grep -c "alert(" src/App.jsx` is **0**, checked literally as the plan states.
 - [x] **4.12** ~~`content.php` promises the Industries SKU "must match a real product" but validates nothing against `load_products()`.~~ **SHIPPED 2026-08-06 (Plan 2)** — warns and still saves, by Keagan's decision (see §3). See §1b and §4g.
 - [x] **4.13** ~~The ✕ that deletes a whole content card has no `data-confirm`, and sits 4 px from the reorder buttons.~~ **SHIPPED 2026-08-06 (Plan 2)** — measured gap was **6.0 px**, not 4 px; now 34 px. See §1b and §4g.
 - [ ] **4.14** Login throttle uses `sleep()` (parallel connections sleep concurrently) and a read-modify-write with no lock. A long random password is the real control.
@@ -1274,6 +1276,119 @@ plan2-contrast 42/42 · plan2-formlast 8/8
 ```
 
 `data/` byte-identical to pristine.
+
+---
+
+## 4j. Verification evidence for Plan 3 — lead capture (2026-08-06)
+
+Items **4.5** and **4.15b**. Every defect here costs a sales enquiry, so both
+suites were written and shown to **fail** before either file was touched.
+
+### The suites failed first
+
+```
+plan3-contact    1/46      (the only pass: "cf.networkError is readable")
+plan3-autoreply  7/10
+```
+
+`plan3-contact`'s failures were not "no element found" noise — Playwright
+**captured the dialogs**, which is what proves the suite was driving the real
+code path rather than a selector that never matched:
+
+```
+FAIL rfq@1440: no browser alert() raised
+   → raised: ["Name and a valid email address are required."]
+```
+
+`plan3-autoreply`'s three failures were exactly the defect, and the seven
+passes were the things that **must not break** — so they were guarding the fix
+from the start, not scored after it:
+
+```
+FAIL gmail: the four spellings collapse to ONE cap key   → distinct cap files: 4
+FAIL gmail: exactly 3 auto-replies went out              → all four were replied to
+FAIL gmail: the 4th spelling was refused an auto-reply   → ca.pa@gmail.com autoReplied=true
+ok   gmail: the SALES NOTIFICATION fired for every submission
+ok   inquiries.jsonl records every address EXACTLY as submitted
+```
+
+### Two harness pieces this needed
+
+- **`_harness/fakemail.sh` + `php-mail.ini`.** `mail()` cannot succeed in the
+  container, and `contact.php` **exits 500 at the "mail server could not send"
+  branch, which is above the auto-reply cap** — so 4.15b was untestable end to
+  end until `sendmail_path` was pointed at a capturing stub that exits 0. The
+  stub logs the full message, headers included, so every `To:` is assertable:
+  that is how "the sales notification fired for every submission" is measured
+  rather than assumed.
+- **Bypassing the browser's own validation.** The forms carry `required`, so
+  Chrome blocks the submit and the server's message never comes back. The suite
+  sets `form.noValidate` to reach the server path — a state real submissions do
+  reach (an older browser, a paste-then-submit, a direct POST).
+
+### After
+
+```
+plan3-contact    51/51     (both forms × 1440 and 375)
+plan3-autoreply  10/10
+```
+
+`plan3-contact` asserts, per form per width: no dialog raised, an inline
+`role="alert"` region present **and visibly rendered**, the server's exact
+string, focus landed inside it, the spec string as a **text node with zero
+element children** (`&lt;1/4` in the DOM, nothing parsed as markup), the network
+message distinct and machine-distinguishable via `data-error-kind`, and the
+panel's own measured contrast ≥4.5:1.
+
+### Three things worth recording
+
+1. **The escaping assertion was mis-scoped first.** It tested `innerHTML` of the
+   whole region, which legitimately contains the decorative `<svg>` — so it was
+   really asserting against the icon. Re-scoped to the message node and made
+   strictly stronger: `children.length === 0` plus the escaped text. A test that
+   fails for the wrong reason is not evidence.
+2. **`grep -c "alert(" src/App.jsx` was 4 after the fix — all four in the new
+   comments explaining it.** The defect was gone, but the plan's acceptance is a
+   literal grep, so the comments were reworded to avoid the token and the suite
+   now checks **both** the literal count and a stricter call-site regex.
+3. **A comment added a CSS rule to the shipped bundle.** The first draft of the
+   `outline: none` comment contained the bare word for a focus indicator, which
+   is also a Tailwind utility; the extractor scans **raw file text, comments
+   included**, and emitted a `.ring` rule — CSS grew 21.51 → 21.82 kB. Caught by
+   diffing the emitted selectors rather than trusting the build summary. The
+   replacement comment mentioned the token again and reproduced it. Now worded
+   around, and the bundle is **byte-identical** to the pre-change CSS
+   (`index-CM7Qbeyx.css`, 21.51 kB, added: none / removed: none) — i.e. the
+   whole of 4.5 ships **zero** new CSS. This is a live hazard for anyone writing
+   prose in `src/App.jsx`.
+
+### `dist/contact.php` parity
+
+`cmp public/contact.php dist/contact.php` silent after the rebuild, as the plan
+requires — `dist/contact.php` is what actually ships.
+
+### Regression
+
+```
+php -l 18/0 · node --check 9/0 · JSON 17/10/42 · copy drift 96 matched
+invariants 17/17 · invariants-selftest 15/15 · contrastparity 28/28
+copyroundtrip 15/15 · copydrift-selftest 5/5 · skuparity 33/33
+plan2-sku 14/14 · plan2-delete 18/18 · plan2-contrast 42/42
+plan2-formlast 8/8 · plan2-formlast-selftest PASS · plan2-trunc 13/13
+plan3-contact 51/51 · plan3-autoreply 10/10 · deadlinks 0 of 18 dead
+build: 0 errors, 331.91 kB JS / 21.51 kB CSS
+```
+
+`data/`, `pdfs/` and `uploads/` byte-identical to pristine and untouched in git.
+
+### `[UNVERIFIED]`
+
+- The auto-reply cap is exercised against `sys_get_temp_dir()` under `php -S`.
+  On the shared Network Solutions host the temp dir is real but may be swept on
+  a schedule unknown to this repo; a sweep resets the cap window early. That was
+  already true of the pre-existing cap and is not changed by 4.15b.
+- `mail()` itself is stubbed. What is verified is **who contact.php addresses
+  and in what order**, not that Network Solutions delivers it.
 
 ---
 
