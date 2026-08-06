@@ -552,6 +552,37 @@ function data_writable(): bool {
 define('LOGIN_THROTTLE_FILE', __DIR__ . '/.login-throttle.json');
 define('LOGIN_THROTTLE_WINDOW', 900); // forget failures older than 15 minutes
 
+// 4.14 — the throttle used to be sleep(min(8, failures - 4)) on each attempt.
+// Two measured problems with that:
+//
+//   * sleep() is per-connection, so ten simultaneous attempts all slept AT THE
+//     SAME TIME and finished together. The delay bounded a single-threaded
+//     guessing run and bounded nothing at all against a parallel one.
+//   * the counter was a read-modify-write with no lock held ACROSS both
+//     halves. login_throttle_write() passed LOCK_EX, but two requests could
+//     each read c=3 and each write c=4, so failures went uncounted under
+//     exactly the load the throttle exists for.
+//
+// It is now a cool-off enforced by the clock: past LOGIN_FREE_ATTEMPTS
+// failures, further attempts from that IP are refused until a stored
+// timestamp passes. Ten parallel connections read the same timestamp and are
+// all refused, so there is nothing for parallelism to amortise.
+//
+// The ceiling is deliberate and low. There is no "forgot password" email; the
+// recovery path is FTP, which Rick uses reluctantly, so a permanent lockout is
+// a worse outcome than a slow brute force. The window caps at
+// LOGIN_COOLOFF_MAX, and a refused attempt is NOT counted and does NOT extend
+// it — retrying impatiently cannot dig a deeper hole. If he simply stops for
+// LOGIN_THROTTLE_WINDOW the record expires and he has his five free attempts
+// back.
+//
+// What has NOT changed, and must not be claimed otherwise: this is per-IP, so
+// a distributed attacker is unaffected, and the long random password is still
+// the actual control here. (AUDIT_v3_FINDINGS D14)
+define('LOGIN_FREE_ATTEMPTS', 5);   // failures allowed before a cool-off starts
+define('LOGIN_COOLOFF_BASE', 15);   // seconds after the first over-limit failure
+define('LOGIN_COOLOFF_MAX', 300);   // hard ceiling — Rick must never be stranded
+
 function login_throttle_client_ip(): string {
     // Default: REMOTE_ADDR — correct and unspoofable on direct hosting (F4).
     // If the site is later fronted by a trusted reverse proxy/CDN that presents
@@ -567,13 +598,9 @@ function login_throttle_client_ip(): string {
     return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 }
 
-// Read the throttle map, dropping entries whose last failure is outside the
-// window so the file can't grow without bound.
-function login_throttle_read(): array {
-    if (!file_exists(LOGIN_THROTTLE_FILE)) return [];
-    $raw = @file_get_contents(LOGIN_THROTTLE_FILE);
-    $map = $raw ? json_decode($raw, true) : [];
-    if (!is_array($map)) return [];
+// Drop entries whose last failure is outside the window so the file can't grow
+// without bound.
+function login_throttle_prune(array $map): array {
     $now = time();
     foreach ($map as $ip => $rec) {
         if (!is_array($rec) || ($now - (int)($rec['t'] ?? 0)) > LOGIN_THROTTLE_WINDOW) {
@@ -583,8 +610,49 @@ function login_throttle_read(): array {
     return $map;
 }
 
-function login_throttle_write(array $map): void {
-    @file_put_contents(LOGIN_THROTTLE_FILE, json_encode($map), LOCK_EX);
+// Read-only view of the throttle map. Callers that MUTATE must go through
+// login_throttle_mutate() instead — reading here and writing separately is the
+// unlocked read-modify-write 4.14 is about.
+function login_throttle_read(): array {
+    if (!file_exists(LOGIN_THROTTLE_FILE)) return [];
+    $raw = @file_get_contents(LOGIN_THROTTLE_FILE);
+    $map = $raw ? json_decode($raw, true) : [];
+    if (!is_array($map)) return [];
+    return login_throttle_prune($map);
+}
+
+/**
+ * 4.14 — read, modify and write the throttle map with ONE exclusive lock held
+ * across all three. `$mutator` receives the pruned map by reference and may
+ * return a value, which is returned from here.
+ *
+ * The previous shape read with file_get_contents() and wrote with
+ * file_put_contents(..., LOCK_EX): the write was atomic but the read-then-write
+ * pair was not, so two concurrent failures could both read c=3 and both store
+ * c=4. Opening 'c+' creates the file without truncating it, so the lock can be
+ * taken BEFORE anything is read.
+ *
+ * Returns null and changes nothing when the file cannot be opened — admin/ not
+ * being writable already degrades the audit log and the inquiry log silently
+ * and raises the dashboard health banner (T3.3); it must not also stop the
+ * owner signing in.
+ */
+function login_throttle_mutate(callable $mutator) {
+    $fh = @fopen(LOGIN_THROTTLE_FILE, 'c+');
+    if ($fh === false) return null;
+    if (!flock($fh, LOCK_EX)) { fclose($fh); return null; }
+    $raw = stream_get_contents($fh);
+    $map = ($raw !== false && $raw !== '') ? json_decode($raw, true) : [];
+    if (!is_array($map)) $map = [];
+    $map = login_throttle_prune($map);
+    $out = $mutator($map);
+    rewind($fh);
+    ftruncate($fh, 0);
+    fwrite($fh, json_encode($map));
+    fflush($fh);
+    flock($fh, LOCK_UN);
+    fclose($fh);
+    return $out;
 }
 
 // How many recent failures this IP has accumulated (0 if none / expired).
@@ -593,16 +661,95 @@ function login_failure_count(string $ip): int {
     return (int)($map[$ip]['c'] ?? 0);
 }
 
-function login_register_failure(string $ip): void {
+/**
+ * When may this IP try again? Epoch seconds; 0 means "now".
+ *
+ * The step doubles from LOGIN_COOLOFF_BASE and stops at LOGIN_COOLOFF_MAX:
+ * 15s, 30s, 60s, 120s, 240s, then 300s forever. The shift is clamped so a
+ * hand-edited counter can't overflow it into a negative.
+ */
+function login_cooloff_until(int $failures): int {
+    if ($failures <= LOGIN_FREE_ATTEMPTS) return 0;
+    $steps = min(20, $failures - LOGIN_FREE_ATTEMPTS - 1);
+    return time() + (int)min(LOGIN_COOLOFF_MAX, LOGIN_COOLOFF_BASE * (1 << $steps));
+}
+
+/** Seconds this IP must still wait before an attempt is even looked at. */
+function login_cooloff_remaining(string $ip): int {
     $map = login_throttle_read();
-    $map[$ip] = ['c' => (int)($map[$ip]['c'] ?? 0) + 1, 't' => time()];
-    login_throttle_write($map);
+    $until = (int)($map[$ip]['r'] ?? 0);
+    $now = time();
+    return $until > $now ? $until - $now : 0;
+}
+
+/**
+ * Take one attempt slot for this IP, atomically. Returns the seconds the caller
+ * must wait; 0 means "go ahead and check the password".
+ *
+ * The counter is bumped on ENTRY, not after a failed check, and the decision
+ * and the bump happen under ONE lock. That is what makes the cool-off hold
+ * under parallelism: twelve simultaneous connections queue on the lock and each
+ * gets its own number, so only the ones inside the free allowance are ever
+ * checked against the hash. Counting failures instead let all twelve read
+ * "none so far" and all twelve be checked — measured on a ten-server fleet in
+ * _harness/plan5-throttle.js, which is the only way either fault shows at all
+ * (one `php -S` answers one request at a time).
+ *
+ * A refused attempt is NOT counted and does NOT extend the window. Retrying
+ * impatiently must not make the wait longer: there is no reset email and the
+ * recovery path is FTP.
+ */
+function login_attempt_gate(string $ip): int {
+    $wait = 0;
+    login_throttle_mutate(function (array &$map) use ($ip, &$wait) {
+        $now   = time();
+        $until = (int)($map[$ip]['r'] ?? 0);
+        if ($until > $now) { $wait = $until - $now; return; }   // refused, unchanged
+        $count = (int)($map[$ip]['c'] ?? 0) + 1;
+        $map[$ip] = ['c' => $count, 't' => $now, 'r' => login_cooloff_until($count)];
+    });
+    return $wait;
+}
+
+/**
+ * Count one failed attempt and return the seconds the caller must now wait
+ * (0 if still inside the free allowance).
+ *
+ * Used by admin/password.php, which checks the CURRENT password behind an
+ * already-authenticated session and is outside PLAN-5's scope boundary. The
+ * login form uses login_attempt_gate() instead.
+ */
+function login_register_failure(string $ip): int {
+    $wait = 0;
+    login_throttle_mutate(function (array &$map) use ($ip, &$wait) {
+        $count = (int)($map[$ip]['c'] ?? 0) + 1;
+        $until = login_cooloff_until($count);
+        $map[$ip] = ['c' => $count, 't' => time(), 'r' => $until];
+        $wait = $until > time() ? $until - time() : 0;
+    });
+    return $wait;
 }
 
 function login_reset_failures(string $ip): void {
-    $map = login_throttle_read();
-    unset($map[$ip]);
-    login_throttle_write($map);
+    login_throttle_mutate(function (array &$map) use ($ip) {
+        unset($map[$ip]);
+    });
+}
+
+/**
+ * The cool-off explained to Rick, who is not going to guess that a silent
+ * rejection means "wait". It names the number of seconds and says explicitly
+ * that waiting is the whole fix, because the alternative reading — "I am
+ * locked out, I need the FTP recovery" — sends him to the one procedure this
+ * release is trying to keep him away from.
+ */
+function login_cooloff_message(int $seconds): string {
+    $wait = $seconds >= 60
+        ? (int)ceil($seconds / 60) . ' ' . ((int)ceil($seconds / 60) === 1 ? 'minute' : 'minutes')
+        : max(1, $seconds) . ' seconds';
+    return 'Too many failed sign-in attempts from this computer. Please wait about '
+         . $wait . ' and try again. Waiting is all that is needed — this clears itself, '
+         . 'and reloading the page sooner will not make it shorter.';
 }
 
 // ─── Contrast math for the owner-set brand colors (4.23) ────────────────────

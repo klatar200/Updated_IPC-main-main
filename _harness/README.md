@@ -32,6 +32,22 @@ php -S 127.0.0.1:8125 -t _harness/site -c _harness/php-nb2-off.ini _harness/rout
 so `php -S` serves it, and it serves it from the **docroot**, not from the
 router's own directory.
 
+`plan5-throttle.js` additionally needs a **fleet** of ten servers, because one
+`php -S` answers one request at a time and neither of 4.14's faults — a lost
+count in an unlocked read-modify-write, and a `sleep()` that several
+connections serve concurrently — can appear without genuine parallelism.
+`PHP_CLI_SERVER_WORKERS` was tried and is not enough: measured, 8 workers
+served 8 concurrent `sleep(2)` requests in 6 s, about three at a time. Ten
+independent servers over one docroot (and therefore one
+`admin/.login-throttle.json`) served the same load in 2.1 s across 10 PIDs.
+
+```sh
+for p in 8130 8131 8132 8133 8134 8135 8136 8137 8138 8139; do
+  php -S 127.0.0.1:$p -t _harness/site -c _harness/php-mail.ini \
+      _harness/router.php >/dev/null 2>&1 &
+done
+```
+
 The mirror's admin password is `audit-pass-123`, written by `setpw.php` into
 `_harness/site/admin/config.local.php`. That file is gitignored and should be
 deleted when you finish a session.
@@ -77,6 +93,12 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `plan3-autoreply.js` | 4.15b — the auto-reply cap key, and that the sales notification always fires |
 | `plan4-public.js` | 4.19 sort headers, 4.20 FAQ accessibility tree |
 | `plan4-admin.js` | 4.31 labels + posted-variable count, 4.30 focus and naming |
+| `plan5-keys.js` | 4.27 — duplicate React keys. Needs a **development-React** bundle, which it builds itself via `vite.devreact.js`; production strips the message, so a console sweep over the shipped bundle cannot fail. Restores the production bundle on the way out. |
+| `plan5-spectable.js` | 4.29 — a spec table with no rows renders nothing, across all 42 product pages |
+| `plan5-listeners.js` | 4.26 — the ref-callback listener leak, counted over CDP `DOMDebugger.getEventListeners` |
+| `plan5-throttle.js` | 4.14 — the login throttle. **Needs the ten-server fleet on :8130–:8139** (below) |
+| `plan5-social.js` | 4.11b — footer social icons, and the "all five cleared ⇒ no container" half of NB4 |
+| `plan5-images.js` | 4.32 — image weight, dimension attributes, lazy-loading, and every product photo still reaching the page |
 
 ## Investigative tools (one-shot, kept as evidence)
 
