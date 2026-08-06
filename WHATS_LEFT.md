@@ -120,6 +120,12 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **4.19** | `src/App.jsx` (`DashboardPage`), `src/index.css` | Shipped 2026-08-06 (Plan 4). The product-index sort headers were bare `<th onClick>`: no `tabindex`, no `scope`, no `aria-sort`. A keyboard user could not sort at all, and a screen-reader user was told neither that the table was sortable nor which column was active. Each sortable header now holds a real `<button>` **inside** the `th` (not a `tabindex` on the `th` — sorting changes state, not the page, so this is the one place in Plan 1's aftermath where a button is right), every `th` has `scope="col"`, and `aria-sort` sits on exactly one column and matches the glyph, which is now `aria-hidden`. Focus indicator is `:focus-visible` only, 3 px of `--brand-accent`, measured **≥3:1** against the dark header row. Asserted with real Tab presses, not programmatic focus — Chromium will not match `:focus-visible` for the latter, so a working indicator would have read as absent. Evidence in §4j. |
 | **4.31** | `admin/content.php`, `admin/content-editor.js` | Shipped 2026-08-06 (Plan 4). The page holding the most irreplaceable typing on the site rendered **418 controls and 418 `<label>` elements, with zero `for` attributes and zero ids** — visually labelled, programmatically not. Measured over the real accessibility tree: **397 of 418 had no accessible name**, and the other 21 were named by their *placeholder* ("One item per line"), which is not a label. Every control now has an id derived from the name it already posts under (so it survives reordering), a bound `<label for>`, and — for row-repeated fields — the row's identity appended inside the label and visually hidden, so "Icon" stays on screen and the screen reader hears "Icon — row 3 of Industries Grid". Sections became `<fieldset>`/`<legend>`. `content-editor.js`'s `reindex()` moves the id, the `for` and the hidden row text on every add/remove/reorder — a stale `for` is worse than no label, and that is asserted after a live mutation and proven to fail when broken. **The posted variable count is unchanged at 421** (the plan says 423; measured is 421 — same over-count the §2 `NB-copy` AMENDED note corrected). Evidence in §4j. |
 | **4.30** | `admin/spectable-editor.js` | Shipped 2026-08-06 (Plan 4). Both editors in this file rebuild their rows with `innerHTML` on every structural change, so focus went to the **document**: building a 20-row spec table meant 20 round trips back. Measured before: after removing a row, `document.activeElement` was `body`. Removing now lands on the nearest surviving row's equivalent control; adding lands in the new row. Every remove button said "Remove row" — **21 buttons shared 3 names**; they now carry position and identity ("Remove specification row 3: Material", "Remove sub-column 2 (Wall) of Nominal ID", "Remove size row 4: 3/8″"), kept current as the owner types. A polite live region announces adds and removes. No re-architecture. Round-trip proven: five typed rows survive save + reload, and the mirror's `data/` is restored and shown byte-identical afterwards. Evidence in §4j. |
+| **4.27** | `src/App.jsx` | Shipped 2026-08-06 (Plan 5). 23 React keys were derived from owner-editable text (`key={link.label}`, `key={f.title}`, `key={m.year}`, `key={svc.title}`, `key={item.question}`, …), so two footer links both named "Contact" produced two identical keys. **The plan's evidence — "silently drop a row" — does NOT reproduce on the shipped production bundle**: both links render with their own hrefs, the second navigates to its own page, two same-year milestones both render, two identically-worded FAQs open the one that was clicked. What IS real is the console, and React emits it as a **`console.error`**, not a warn — which answers 4.27's open question and means a zero-console-errors sweep catches it on a development bundle and can NEVER catch it on the shipped one, because production strips the message entirely. Measured against an adversarial `content.json`: **53 → 0** duplicate-key errors across 9 routes + 3 product pages. **Choice, as the plan requires it be stated: `` `${index}-${value}` ``, not a per-row id** — see the residual-cost note in §2. Three sites (`stats`, `milestones`, `privacySections`) were missed on the first pass because their `.map` already took an index, and were caught by the suite reading 53 → **4** rather than 53 → 0. Evidence in §4k. |
+| **4.29** | `src/App.jsx` | Shipped 2026-08-06 (Plan 5). `IP75AD`, `VALUE-ADDED` and `VT-1100` carry `specTable2: {rows: []}`, and `SpecTable2` drew its chrome unconditionally: `<thead><tr></tr></thead>` — a `<tr>` with no cells, which is invalid — inside a bordered panel **measured at 391 × 508 px on IP75AD at 1440**. Both table components now return `null` on an empty `rows`, and the call site drops the padded wrapper with them and collapses the two-column grid to one, so the surviving specs use the full width instead of sitting beside a blank half. The neighbouring case is covered too: a table with a **title** and no rows emitted its heading bar on its own. **3/13 → 13/13**, and the control product's screenshot is byte-identical before and after. Evidence in §4k. |
+| **4.26** | `src/App.jsx` (new `RelatedArrow`) | Shipped 2026-08-06 (Plan 5). **The item is titled "scroll listeners" and they are not.** `App.jsx` had exactly one `scroll` listener and it was already a `useEffect` with a cleanup and `{passive:true}`. The leak was the related-product card's "View →" glyph attaching `mouseenter`/`mouseleave` to its parent `<button>` from inside an inline `ref={(el) => …}`; the mechanism 4.26 describes is exactly right. `ProductDetail` re-renders every time the sticky quote bar crosses its scroll threshold, so scrolling a product page is what drives it. Measured over CDP on ONE card: **`{mouseenter:1, mouseleave:1}` → `{mouseenter:51, mouseleave:51}` after 20 scroll cycles.** Now a small dedicated component with `[]` deps and a cleanup that removes both. Proven able to fail — the inline `ref` was reinstalled and the check went red at 1 → 51. Evidence in §4k. |
+| **4.14** | `admin/config.php`, `admin/auth.php` | Shipped 2026-08-06 (Plan 5). `sleep(min(8, failures - 4))` is per-connection, and the counter was a read-modify-write with no lock held across both halves. **Neither fault is observable on a single `php -S`**, which answers one request at a time; `PHP_CLI_SERVER_WORKERS` is not enough either (8 workers served 8 concurrent `sleep(2)` in 6 s). A **fleet of ten independent servers over one docroot** shows both. Before: 10 parallel failures counted **5 of 10**; 12 serial guesses 30,681 ms / 12 evaluated; 12 parallel guesses **757 ms / 12 evaluated**. After: **10 of 10** counted; serial 1,368 ms / 6 evaluated; parallel 364 ms / **6 evaluated** — the same number. That last part is not just the lock: counting *failures* under the lock still let a cold-start burst through, so `login_attempt_gate()` takes a slot on **entry** and the decision and the increment happen inside one `flock`. 5 free attempts, then 15/30/60/120/240s capped at **300 s**, enforced by a stored timestamp instead of sleeping. **Not stranding Rick was the binding constraint**: an attempt made during a cool-off is refused *without being counted and without extending the window*, so retrying cannot dig a deeper hole. The comment at `auth.php:49-54` was rewritten only where it became untrue and still says, in as many words, that this is per-IP so a distributed attacker is unaffected and that the long random password is the actual control. Evidence in §4k. |
+| **4.11b** | `src/App.jsx` (new `FooterSocial`), `src/index.css` | Shipped 2026-08-06 (Plan 5). v2 4.11 promised footer social icons and nobody built them: `social.*` fed JSON-LD `sameAs` and nothing else, so five fields Rick can edit in Business Details had **no visible effect on the site at all**. Five inline-SVG icons now render in the footer's brand column. The load-bearing half is NB4 / invariant 4 — all five are in `SITE_CLEARABLE` and the docs promise a cleared field "disappears from the site properly" — so all five empty renders **no container**, asserted as element **absent**, not element-empty (a "has no children" check would pass against an empty row that still eats 40 px of footer). Accessible names read from the real AX tree (5/5); `rel="noopener noreferrer"` on all five; focus ring driven by **real Tab presses**, because Chromium will not match `:focus-visible` for programmatic focus. **9/19 → 31/31.** Deliberately **no heading**: every other footer heading is a `copy` key that must exist on both sides of the content contract, and adding one moves `content.php`'s posted-variable count away from the asserted 421. Evidence in §4k. |
+| **4.32** | `public/images/`, `src/App.jsx` | Shipped 2026-08-06 (Plan 5). **9,357,354 → 2,668,995 bytes, `du -sh` 9.1M → 2.7M (71.5% smaller), largest single file 198,726 B, zero over 300 KB.** Nothing cropped, nothing retouched, **not one filename changed** (`diff` of the tracked list against the tree is empty). Three measurements drove it: every product photo is painted at most **390 × 260 CSS px** at 1440 *and* 375, so 800 px on the long edge is already 2×; **27 of 60 files are painted on no route at all**; and **every product PNG's alpha channel is fully opaque** — they are 32-bit RGBA photographs whose fourth channel does nothing, which is most of why a 340 × 260 image weighed 190 KB. Quality is not asserted by eye: every output is PSNR-scored against its original *at the output resolution*, painted photos are held to **38 dB** (worst shipped: 38.1), and a file that cannot clear its floor at q95 keeps its original. As rendered, before-vs-after page screenshots score **53–60 dB** on the product pages. Also: the product detail photo was `loading="lazy"` while sitting **above the fold at 1440** (top 490 in a 900 px viewport) — it is the LCP element, so it is now eager; the footer logo, which is below the fold everywhere, is now lazy. Evidence in §4k. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -128,18 +134,23 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 
 Ordered by value. Nothing here blocks the upload.
 
-- [ ] **4.11b** Footer social icons were promised by v2 4.11 and never built — `social.*` still feeds JSON-LD `sameAs` only. (Split out 2026-08-05, AUDIT_v3 D18.)
+- [x] **4.11b** ~~Footer social icons were promised by v2 4.11 and never built — `social.*` still feeds JSON-LD `sameAs` only. (Split out 2026-08-05, AUDIT_v3 D18.)~~ **SHIPPED 2026-08-06 (Plan 5)** — five inline-SVG icons in the footer brand column, only the non-empty ones, and **no container at all** when all five are cleared (asserted absent, not empty). 9/19 → 31/31. See §1b and §4k.
 - [x] **4.15b** ~~Auto-reply per-recipient cap is defeated by plus- and dot-addressing (`a+1@gmail.com`, `a.b@gmail.com`). Normalising Gmail-style addresses is the fix; the per-IP cap still bounds the damage. (Split out 2026-08-05, AUDIT_v3 §3.3.)~~ **SHIPPED 2026-08-06 (Plan 3)** — measured before the fix: four spellings of one Gmail mailbox produced **four** distinct cap files and **four** auto-replies. After: **one** cap key, three auto-replies then the cap holds. `a.b@example.com` and `ab@example.com` stay distinct and both get theirs. See §1b and §4j.
 - [x] **NB-copy** ~~`mergeContent` iterates `Object.keys(defaults)` only, so a `copy` key that exists in `content.php` but not in `App.jsx`'s `COPY_DEFAULTS` would have the owner's edit vanish with a success message. ~450 posted keys were never enumerated against the defaults tree.~~ **ENUMERATED AND CLOSED 2026-08-06 (Plan 2)** — the two sides **match exactly**: 96 fields, 12 groups, zero PHP-only and zero JS-only. The mechanism was real but had never actually drifted. Drift is now a failing check (`_harness/copydrift.js`, wired into `lint.php`). **`AMENDED`: the "~450 posted keys" figure was wrong** — it conflated the whole form (421 named controls, which is what `max_input_vars` truncates) with the `copy` subset, which is 96. See §1b and §4g.
 - [x] **`form_complete` position** ~~is enforced *positionally* only. Nothing stops a future field being added after `content.php`'s last input, and there is no test runner to assert it.~~ **SHIPPED 2026-08-06 (Plan 2)** — now asserted three ways: `invariants.js` INV6 (source order), `_harness/plan2-formlast.js` (the **rendered DOM**, which is what actually sets POST order, including after the editor adds/removes rows), and `_harness/plan2-trunc.js` (the guard firing against a real `max_input_vars=100` server). See §1b and §4g.
 
 - [x] **4.1** ~~FAQ JSON-LD `useEffect` has `[]` deps and runs before `content.json` loads, so owner-edited FAQs never reach Google's rich results.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [x] **4.3** ~~No `rel="canonical"` anywhere; `og:url` is hardcoded to the homepage on all 9 pages.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
+- [ ] **4.27 residual reorder cost** Recorded here because PLAN-5 requires it. The keys chosen are `` `${index}-${value}` ``, **not** a stable per-row id assigned in `admin/content.php` and carried in `content.json`. A per-row id has to be posted from that form, which currently posts **421** named controls under a positionally-enforced `max_input_vars` sentinel; ~90 more hidden fields moves that number and the invariant asserted against it, and existing rows would have no id until Rick re-saved, so a fallback would be needed anyway. The cost of the cheaper option is that an index-bearing key reorders poorly — React would reuse a fiber by position rather than by row. **Measured, that cost is currently zero**: `content.json` is fetched exactly once per page load (`ContentProvider`, `[]` deps), no owner-editable list is reordered in place at runtime, and a reorder in the admin reaches the public site as a fresh page load. It becomes real the day the 4.25 `visibilitychange` refetch is extended from products to content, or any live-refresh of `content.json` is added — at which point the per-row id is the fix. Asserted today by `plan5-keys.js` phase C (reorder in the admin, save, public order matches). (Logged 2026-08-06, Plan 5.)
+- [ ] **photoUrl case mismatch — 4 products show the placeholder** Found 2026-08-06 while measuring for 4.32. `data/products-all.json` gives `IP12GA` → `/images/products/IP12GA.jpg`, `IP52EC` → `IP52EC.png`, `IP63ES` → `IP63ES.jpg` and `VALUE-ADDED` → `VALUE-ADDED.png`, but the files on disk are `ip12ga.jpg`, `ip52ec.png`, `ip63es.jpg` and `value-added.png`. On a case-sensitive filesystem — which the deploy target is — the SPA rewrite answers the miss with `index.html` and a **200**, so the browser is handed HTML where it asked for an image and the T2.7 `onError` fallback swaps in the branded placeholder. Measured: `curl /images/products/IP52EC.png` → `200 text/html; charset=UTF-8`, 2,094 bytes. So **4 of 42 product pages show a placeholder instead of the photograph that exists**, on top of the 5 that legitimately point at `placehold.co`. **Not fixed, deliberately:** both available fixes are forbidden by PLAN-5's scope boundary — renaming the files ("Keep filenames identical … renaming breaks the mapping silently") and editing `products-all.json` ("You are **not** … altering `products-all.json` to point at renamed images"). The set is pinned in `plan5-images.js` so it cannot silently grow. **Needs a decision: rename the four files, or correct the four `photoUrl` values.** The second is the safer one — it is a data edit the admin itself can make.
+- [ ] **27 of 60 images are painted on no route** Found 2026-08-06 during 4.32. The whole of `public/images/site/` (`Front-Cover.jpg`, `Marker-Sample-2.jpg`, `Heat-Shrink-Tape-Product-photo-2.jpg`, `Slide1.png`, `staff-image.png`, `staff.jpg`, the three `featured-category-*.jpg`, both `main-banner-*.jpg`, …), plus `_unmatched/adhesiveLined.webp` and the four case-mismatched product files, are referenced by **nothing** in `src/`, `data/`, `admin/`, `public/` or `index.html`. They still deploy. They were re-encoded rather than deleted (deletion is not in PLAN-5's scope, and the admin may reference them later), and they are ~1.1 MB of the remaining 2.7 MB. **Deleting them is a decision, not a cleanup** — some are the customer's photography and the only copy may be here.
+- [ ] **product photo has no `width`/`height`** Found 2026-08-06 during 4.32. Every logo `<img>` carries both; the product detail photo cannot, because the component is handed a URL and never the intrinsic dimensions — those live in `products-all.json`, which PLAN-5 forbids altering. Setting a fixed pair (e.g. 390 × 260) would give the element a fixed aspect ratio, and combined with the existing `object-cover` that **crops** every photo whose natural ratio is wider — `CT.jpg` is painted 390 × 217 today and would be cut to 260. Cropping the customer's product photography to win a layout metric is the wrong trade. Measured cost of leaving it: **CLS 0.021** on a product page at 1440 and **0** at 375, against Google's "good" bar of 0.1. The fix, if it is ever wanted, is intrinsic dimensions in the catalog data.
+- [ ] **`admin/password.php` still sleeps** Noted 2026-08-06 while shipping 4.14. It shares the per-IP throttle record and still calls `sleep(min(8, $failures - 4))` on a wrong current-password. It is behind `require_auth()` and outside PLAN-5's scope boundary ("`admin/auth.php` (throttle only), `admin/config.php` (`login_*` helpers only)"), so it was left alone. It **does** now benefit from the lock, because `login_register_failure()` routes through `login_throttle_mutate()`. Two consequences worth knowing: the sleep there is still amortised by parallelism, and six wrong current-password attempts can arm a login cool-off of up to 300 s for that IP.
 - [ ] **sitemap/dashboard** `public/sitemap.xml` lists `/dashboard` with priority 0.8, alongside the nine public routes. Whether that route should be publicly indexed was never established. Noticed 2026-08-05 during Plan 1; not investigated, not changed.
 - [x] **4.5** ~~Every contact-form error is a browser `alert()` — no inline error, no `aria-live`, no focus move.~~ **SHIPPED 2026-08-06 (Plan 3)** — see §1b and §4j. All four call sites replaced by one inline `role="alert"` region that is focused on failure and carries the server's own message verbatim. `grep -c "alert(" src/App.jsx` is **0**, checked literally as the plan states.
 - [x] **4.12** ~~`content.php` promises the Industries SKU "must match a real product" but validates nothing against `load_products()`.~~ **SHIPPED 2026-08-06 (Plan 2)** — warns and still saves, by Keagan's decision (see §3). See §1b and §4g.
 - [x] **4.13** ~~The ✕ that deletes a whole content card has no `data-confirm`, and sits 4 px from the reorder buttons.~~ **SHIPPED 2026-08-06 (Plan 2)** — measured gap was **6.0 px**, not 4 px; now 34 px. See §1b and §4g.
-- [ ] **4.14** Login throttle uses `sleep()` (parallel connections sleep concurrently) and a read-modify-write with no lock. A long random password is the real control.
+- [x] **4.14** ~~Login throttle uses `sleep()` (parallel connections sleep concurrently) and a read-modify-write with no lock. A long random password is the real control.~~ **SHIPPED 2026-08-06 (Plan 5)** — measured on a ten-server fleet: 10 parallel failures counted **5 of 10** before, **10 of 10** after; 12 parallel guesses took 757 ms and evaluated all 12 before, and evaluate exactly the same **6** as a serial run after. Capped at 300 s and self-clearing, and a refused attempt neither counts nor extends — the last sentence is still true: this is per-IP and the long random password is the real control. See §1b and §4k.
 - [x] **4.19** ~~Product Index sortable headers have no `tabindex`, `scope` or `aria-sort`.~~ **SHIPPED 2026-08-06 (Plan 4)** — a real `<button>` inside each `th`, `scope="col"` on all seven, `aria-sort` on exactly one column, and a `:focus-visible` indicator measured ≥3:1. Verified with real Tab presses. See §1b and §4j.
 - [x] **4.20** ~~Collapsed FAQ answers use `max-height:0` — still read by screen readers and find-in-page.~~ **SHIPPED 2026-08-06 (Plan 4)** — measured before: `window.find()` returned **true** on collapsed answer text and the text was in the CDP accessibility tree. Now `hidden` is applied at the end of the collapse transition, so the animation is unchanged and the answer genuinely leaves both. See §1b and §4j.
 - [x] **4.21** ~~Navigation is `<button onClick>` throughout: 3–7 `<a href>` vs 14–119 `<button>` per page. No crawlable internal link graph, no Cmd-click.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4f.
@@ -179,12 +190,12 @@ Ordered by value. Nothing here blocks the upload.
 - [ ] **brand-gradient-mixed-ends** Found 2026-08-06 while fixing `brand-ink-translucent`. Two heading strips use a gradient running from a **hardcoded dark** color to an **owner-controlled** one — `linear-gradient(135deg, #0a2a52, var(--brand-primary))` on the product-detail header (`src/App.jsx:5885`) and `linear-gradient(135deg, #003d7a, var(--brand-primary))` on the industry section headers (`:7789`). No single ink can serve both ends: white is right over the fixed navy, dark is right over a pale primary. Left as `text-white`, which is correct for the default palette and for where the left-aligned heading actually sits, and both carry an inline comment saying so. Accounts for the last **12** of the 274 remaining failures. The real fix is a design decision — either make the fixed end `var(--brand-dark)` so one ink can serve the whole band (a visible change to the current look, `#003d7a` is notably brighter than `#0d2d52`), or stop putting text across a two-owner gradient. **Escalate before changing.**
 - [ ] **sidebar-active-border** `ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.
 - [x] **4.24** ~~`SITE_INFO_URL` / `CONTENT_URL` have no `import.meta.env.DEV` branch, so theming and content plumbing are never exercised by `npm run dev`.~~ **SHIPPED 2026-08-05 (Plan 0)** — see §1b and §4d.
-- [ ] **4.26** Scroll listeners added inside an inline `ref` callback and never removed.
-- [ ] **4.27** Duplicate React keys reachable from the admin (`key={link.label}`, `key={f.title}`, `key={m.year}`, …). Two footer links both named "Contact" drop a row.
-- [ ] **4.29** `IP75AD`, `VALUE-ADDED`, `VT-1100` have `rows: []` and render an empty bordered table with an invalid `<thead><tr></tr></thead>`.
+- [x] **4.26** ~~Scroll listeners added inside an inline `ref` callback and never removed.~~ **SHIPPED 2026-08-06 (Plan 5)** — **`AMENDED`: they are not scroll listeners.** The only `scroll` listener in `App.jsx` was already a `useEffect` with a cleanup and `{passive:true}`; the leak was `mouseenter`/`mouseleave` on the related-product card. Measured 1 → **51** of each after 20 scroll cycles. See §1b and §4k.
+- [x] **4.27** ~~Duplicate React keys reachable from the admin (`key={link.label}`, `key={f.title}`, `key={m.year}`, …). Two footer links both named "Contact" drop a row.~~ **SHIPPED 2026-08-06 (Plan 5)** — **`AMENDED`: the row is not dropped.** On the shipped production bundle both links render with their own hrefs and both navigate correctly; so do two same-year milestones and two identically-titled services. The real, measurable defect is **53 `console.error`s** across 9 routes + 3 product pages on a development bundle, now **0**. See §1b and §4k.
+- [x] **4.29** ~~`IP75AD`, `VALUE-ADDED`, `VT-1100` have `rows: []` and render an empty bordered table with an invalid `<thead><tr></tr></thead>`.~~ **SHIPPED 2026-08-06 (Plan 5)** — the empty panel measured **391 × 508 px** on IP75AD at 1440. Nothing is rendered now, wrapper included, and the layout collapses to one column. 3/13 → 13/13. See §1b and §4k.
 - [x] **4.30** ~~`spectable-editor.js` blows away focus on every structural change; all remove buttons share `aria-label="Remove row"`.~~ **SHIPPED 2026-08-06 (Plan 4)** — focus was measured landing on `body`; it now lands on the new row (add) or the nearest survivor (remove). **21 remove buttons shared 3 names**; all are distinct now, and a polite live region announces the change. See §1b and §4j.
 - [x] **4.31** ~~`content.php` renders 418 unlabelled form controls.~~ **SHIPPED 2026-08-06 (Plan 4)** — **`AMENDED`: the precise figures are 418 controls with zero `for`/`id` association, of which 397 had no accessible name at all** (the remaining 21 were named by their placeholder). All now labelled, ids unique and stable across reordering, sections are `<fieldset>`/`<legend>`. **Posted variable count unchanged at 421 — the plan's "423" was itself an over-count.** See §1b and §4j.
-- [ ] **4.32** 9.3 MB of unoptimised images (`Front-Cover.jpg` 1.5 MB, `VALUE-ADDED.png` 683 KB, …). **PARTIALLY SHIPPED 2026-08-05:** the second half of this item — "served `immutable, max-age=31536000`, so an FTP'd photo fix won't reach returning visitors for a year" — was misfiled here as an image-weight problem. It was a mis-scoped `FilesMatch` in `public/.htaccess` with no path restriction, and it is fixed (NB1). **The image-weight work remains open.**
+- [x] **4.32** ~~9.3 MB of unoptimised images (`Front-Cover.jpg` 1.5 MB, `VALUE-ADDED.png` 683 KB, …).~~ **SHIPPED 2026-08-06 (Plan 5)** — 9,357,354 → 2,668,995 bytes, `du -sh` **9.1M → 2.7M**, largest file 198,726 B, zero over 300 KB, no filename changed, no crop, no retouch. `AMENDED`: the measured total was 9.1 MB / 9,357,354 bytes, not 9.3 MB. Original wording and the earlier partial note kept below for the record. **PARTIALLY SHIPPED 2026-08-05:** the second half of this item — "served `immutable, max-age=31536000`, so an FTP'd photo fix won't reach returning visitors for a year" — was misfiled here as an image-weight problem. It was a mis-scoped `FilesMatch` in `public/.htaccess` with no path restriction, and it is fixed (NB1). **The image-weight work remains open.**
 
 ---
 
@@ -1582,6 +1593,330 @@ proves byte-identity with `cmp` as its own final assertion.
   is not the same as "it reads well aloud".
 - `:focus-visible` behaviour is Chromium's. Firefox and Safari apply their own
   heuristics for when a programmatic focus counts as keyboard-initiated.
+
+---
+
+### §4k — Plan 5 (2026-08-06): 4.27, 4.29, 4.26, 4.14, 4.11b, 4.32
+
+Every suite was written first and run against the unmodified tree; the failing
+numbers are the left-hand column throughout. Two of the six items' stated
+evidence did not reproduce as written, and that is recorded here rather than
+quietly worked around.
+
+#### Regression baseline, before and after
+
+Identical, and green in both columns except where a Plan-5 suite is new:
+
+```
+                          before      after
+php -l                    18 / 0      18 / 0
+node --check               9 / 0       9 / 0
+JSON parse            17/10/42    17/10/42
+copy-key drift              96          96
+invariants               17/17       17/17
+invariants-selftest      15/15       15/15
+contrastparity           28/28       28/28
+copyroundtrip            15/15       15/15
+copydrift-selftest         5/5         5/5
+skuparity                33/33       33/33
+plan2-sku                14/14       14/14
+plan2-delete             18/18       18/18
+plan2-contrast           42/42       42/42
+plan2-formlast             8/8         8/8   + selftest PASS
+plan2-trunc              13/13       13/13
+plan3-contact            51/51       51/51
+plan3-autoreply          10/10       10/10
+plan4-public             27/27       27/27
+plan4-admin              19/19       19/19
+deadlinks           0 of 18 dead  0 of 18 dead
+brandtext                34/54       34/54   (logged open item, did not drift)
+plan5-keys                  --       11/11   (10/11 pre-fix, phase A at 53 errors)
+plan5-spectable           3/13       13/13
+plan5-listeners             --       11/11   (mutation-proven)
+plan5-throttle            3/12       12/12
+plan5-social              9/19       31/31
+plan5-images                --       12/12
+```
+
+`data/`, `pdfs/` and `uploads/` are byte-identical to `_harness/pristine/`
+(`cmp` clean on all three) and `git status --porcelain data pdfs uploads` is
+empty. The emitted CSS selector set went **320 → 323**: exactly
+`.ipc-social-link` and its `:hover` and `:focus-visible`, nothing else — the
+Tailwind extractor picked up nothing from the new comments, which is the trap
+that has bitten twice before.
+
+#### 4.27 — what the item said, and what is actually true
+
+The plan's evidence says two footer links both named "Contact" "silently drop a
+row". **Measured on the shipped production bundle, that does not happen.** Both
+render, both keep their own `href`, clicking the second lands on `/about`; two
+milestones in the same year both render; two industry cards with the same name
+both render; expanding one of two identically-worded FAQ rows opens the one
+that was clicked. React 18 tolerates these lists better than the folklore.
+
+What is real is the console — and the answer to the item's open question is
+that React emits it as **`console.error`**, not `console.warn`:
+
+```
+Warning: Encountered two children with the same key, `%s`. Keys should be
+unique so that components maintain their identity across updates. Non-unique
+keys may cause children to be duplicated and/or omitted — the behavior is
+unsupported and could change in a future version.
+```
+
+That has a consequence worth stating plainly: **the shipped bundle is a
+production React build, which strips the message entirely.** A console sweep
+over the real bundle therefore sees an empty console whether or not the defect
+is present — a check that cannot fail. `_harness/vite.devreact.js` exists so it
+can: a production-shaped build that links development React. Against an
+adversarial `content.json` that collides every owner-editable list the way
+`content.php` allows:
+
+```
+9 routes + 3 product pages     before  53 duplicate-key console errors
+                               after    0
+```
+
+23 key sites changed. Three of them — `stats`, `milestones`, `privacySections`
+— were missed on the first pass because their `.map` already took an index
+parameter and so were not in the batch that needed one added. They were caught
+by the suite reading **53 → 4**, not by re-reading the diff.
+
+#### 4.29 — the empty spec table
+
+```
+                                        before   after
+<tr> with no cells, 42 product pages         3       0
+<table> with no data rows                    3       0
+empty bordered panel at 1440          391x508,   none
+                                      391x277,
+                                      391x507
+plan5-spectable                           3/13   13/13
+```
+
+The control product's screenshot (`IP52EC-1440.png`) is **byte-identical**
+before and after — 450,282 bytes both times. IP75AD's page got 147 px shorter
+and its surviving spec table now uses the full width.
+
+**A mistake worth recording:** the first draft of the empty-box check ran at
+375 px, where the single-column grid gives `h-full` nothing to stretch against
+and the panel collapses to 0 px high — it **passed against the unfixed code**.
+It runs at 1440 now, which is where the box is actually visible. A second
+draft's milestone check used `/^(19|20)\d\d$/` and reported "3 of 7 rendered",
+which looks exactly like the dropped-row defect this plan is about; the shipped
+milestones are `1980s`/`1990s`/`2000s`/`2010s` as well as `1974`/`2024`. The
+code was fine, the assertion was wrong.
+
+#### 4.26 — not scroll listeners
+
+`App.jsx` contained exactly one `scroll` listener and it was **already** a
+`useEffect` with a cleanup and `{passive:true}`. The leak was the
+related-product card's "View →" glyph attaching `mouseenter`/`mouseleave` to
+its parent `<button>` from inside an inline `ref={(el) => …}`. The mechanism
+4.26 describes is exactly right — an arrow function written in the markup is a
+new identity every render, so React tears the ref down and sets it up again on
+each pass, and nothing removed the previous pass's work.
+
+`ProductDetail` re-renders whenever the sticky quote bar crosses its scroll
+threshold, so scrolling a product page is what drives the accumulation.
+Counted over CDP `DOMDebugger.getEventListeners` on ONE card
+(`/products?productId=IP29CG`, 1440):
+
+```
+after first mount          {"click":1,"mouseenter":1, "mouseleave":1}
+after 20 scroll cycles     {"click":1,"mouseenter":51,"mouseleave":51}
+after the fix              {"click":1,"mouseenter":1, "mouseleave":1}
+```
+
+React's own `onMouseEnter`/`onMouseLeave` props are delegated to the root
+container and never appear on the element, so every pointer listener counted
+here is one this code attached by hand. Proven able to fail: the inline `ref`
+was reinstalled, rebuilt, and the check went red at 1 → 51, then restored.
+
+`{passive:true}` was considered and deliberately not applied to the two new
+listeners — it only relaxes scroll-blocking and these are pointer events.
+Neither handler calls `preventDefault()`; the one genuine scroll listener has
+carried `{passive:true}` all along and the suite asserts it still does.
+
+#### 4.14 — why the harness had to grow a fleet
+
+**Neither fault is observable on the harness as it stood.** One `php -S`
+answers one request at a time, so there is no read-modify-write to interleave
+and no two connections to sleep concurrently. Run against `:8123` the UNFIXED
+code scores "10 parallel failures produce 10 counts" and "serial and parallel
+take the same time" — both green, both worthless. `PHP_CLI_SERVER_WORKERS` was
+tried and is not enough either: measured, 8 workers served 8 concurrent
+`sleep(2)` requests in **6 s**, about three at a time. Ten independent `php -S`
+instances over one docroot — and therefore one `.login-throttle.json`, which is
+what the lock protects — served the same load in **2.1 s across 10 PIDs**.
+
+```
+                                   before                after
+10 parallel failed attempts    counted  5 of 10     counted 10 of 10
+12 serial guesses              30,681 ms, 12 eval    1,368 ms, 6 eval
+12 parallel guesses               757 ms, 12 eval      364 ms, 6 eval
+plan5-throttle                       3/12                12/12
+```
+
+The two runs now evaluate **the same number of guesses**. That is not just the
+lock: the first version counted *failures* under the lock, which still let a
+cold-start burst through, because every connection reads "none so far" before
+any of them writes. `login_attempt_gate()` takes a slot on **entry**, and the
+decision and the increment happen inside the same `flock`, so simultaneous
+connections queue and only the ones inside the free allowance ever reach
+`password_verify()`.
+
+Shape: 5 free attempts, then 15 s, 30 s, 60 s, 120 s, 240 s, capped at
+**300 s**, enforced by a stored timestamp rather than by sleeping. The record
+still expires after the existing 15-minute window.
+
+**Not stranding Rick was the binding constraint, not the brute-force bound.**
+There is no "forgot password" email and the recovery path is FTP, so an attempt
+made *during* a cool-off is refused without being counted and without extending
+the window — hammering Reload cannot dig a deeper hole. Demonstrated: the
+correct password is refused during the window (no oracle) and works the moment
+it passes.
+
+The comment at `auth.php:49-54` was rewritten **only where it became untrue**.
+It still says, in as many words, that this is per-IP so a distributed attacker
+is unaffected and that the long random password is the actual control. That did
+not change and is not claimed to have.
+
+#### 4.11b — footer social icons
+
+```
+                                        before   after
+plan5-social (1440 and 375)               9/19   31/31
+```
+
+All ten pre-fix failures were "this does not exist". Measured after: five icons
+each linking to exactly the configured URL; accessible names read from the real
+AX tree, 5/5; `target="_blank"` with `rel="noopener noreferrer"` on all five;
+two cleared → exactly three icons with steps of `[48, 48]` between them for
+40 px icons at an 8 px gap; **all five cleared → the container is absent from
+the DOM**, and JSON-LD omits `sameAs` entirely. The focus ring is driven by
+**real `Tab` presses** — Chromium will not match `:focus-visible` for
+programmatic focus, so `el.focus()` would report a working indicator as absent.
+
+**Two of my own assertions were wrong and are recorded in the suite.** The
+contrast check fed the `rgba()` string straight into the luminance helper,
+which takes the first three numbers and drops the alpha — it scored plain white
+on navy and reported **15.96:1** for a colour that is nothing like white.
+Composited properly (55% white glyph over a 6% white chip over the footer's
+`#0a2240`) it is **5.19:1**, which matches the hand calculation. And the
+"no gap" check measured the **row's** width; the row is a block-level flex
+container and stretches to the footer column whether it holds three icons or
+five, so its width says nothing.
+
+No heading was added above the row, deliberately: every other footer heading is
+a `copy` key that must exist on both sides of the content contract, so adding
+one means a new field in `admin/content.php` and a change to the **421** posted
+variables the `max_input_vars` sentinel is asserted against. Confirmed
+unchanged — `plan2-formlast 8/8`, `plan2-trunc 13/13`.
+
+#### 4.32 — image weight
+
+```
+du -sh public/images            before  9.1M      after  2.7M
+  public/images/products                4.9M             1.7M
+  public/images/site                    4.3M             1.1M
+exact bytes                       9,357,354        2,668,995   (-71.5%)
+largest single file               1,520,217          198,726
+files over 300 KB                         7                0
+file count / names                       60               60   (diff empty)
+```
+
+Three measurements drove the whole thing, and none of them was a guess:
+
+1. **Every product photo is painted at most 390 × 260 CSS px**, at 1440 *and*
+   375 (`_harness/imgsizes.js`, all 9 routes + all 42 product pages). So 800 px
+   on the long edge is already 2× for a retina display, and `CC.jpg` at
+   2252 × 1784 was carrying about 8× the pixels it can ever show.
+2. **27 of the 60 files are painted on no route at all** — the whole of
+   `images/site/`. They were re-encoded, not deleted (see §2).
+3. **Every product PNG's alpha channel is fully opaque** (`_harness/imgalpha.js`:
+   min alpha 255, 0.0% translucent on all 23). They are 32-bit RGBA
+   photographs whose fourth channel does nothing, which is most of why a
+   340 × 260 image weighed 190 KB. Only `site/staff-image.png` has real
+   transparency, and it keeps its alpha.
+
+Format is pinned by the filename, so a `.png` photograph could not become a
+`.jpg`; for those, dropping the dead alpha and quantising to a palette was the
+whole budget, which suits these images because they are a product on a plain
+sweep and genuinely hold few colours.
+
+**Quality was not asserted by eye.** Every output is PSNR-scored against its
+original *at the output resolution*; painted product photos are held to a
+**38 dB** floor (worst shipped: **38.1 dB**), never-painted files to 35, and a
+file that cannot clear its floor even at q95 keeps its original — which is why
+`featured-category-3.jpg` (best 33.1 dB), `IP17TW-IP18SW-IP19LW.jpg` (31.4) and
+`header-logo.jpg` (32.3) are untouched, along with a dozen small JPEGs whose
+re-encode came out *larger*.
+
+As **rendered**, before-vs-after full-page screenshots score **53–60 dB** on the
+product pages, with 0.02–0.10% of pixels differing by more than 8/255. The
+worst page in the set is `IP33PO` at 375 (35.8 dB); cropped to the photo and
+enlarged 3× with nearest-neighbour, the two are indistinguishable — the blue
+tubing, the black cable braid and the fabric texture all survive, with no
+banding, blocking or colour shift. Screenshots at 1440 and 375 for every page
+carrying a changed image are in `_harness/out/plan5-images/{before,after}/`,
+with the crop at `IP33PO-375-sidebyside.png`.
+
+**A PSNR mistake, recorded because it nearly cost the item.** The first version
+compared at the **original** resolution, scaling the output back up to meet it.
+That measures the resampling, not the encoding: `CC.jpg` went 2252 × 1784 →
+800 × 634 and scored 36.5 dB purely because 800 px of detail cannot be
+re-inflated to 2252 px, and **21 files were flagged as degraded when most were
+nothing of the kind**. Deliberately downscaling to a size the page never paints
+above is the *point* of the item; what has to be policed is loss at the size
+that actually ships.
+
+`sharp` did the re-encoding and is **not** a new dependency: installed with
+`--no-save`, absent from `package.json`, used once, outputs committed. No image
+CDN and no build-time plugin were added, per the scope boundary.
+
+Also under 4.32, from the fold measurement: the product detail photo carried
+`loading="lazy"` while sitting **above the fold at 1440** (top 490 in a 900 px
+viewport). It is the product page's largest contentful paint, which is exactly
+what the item says not to lazy-load, so it is now eager; the footer logo, below
+the fold on every route (top 2075 on the shortest page, 5218 at 375), is now
+lazy. `public/` ↔ `dist/` image parity confirmed by `diff` on names and sizes.
+
+#### Things this plan did not do
+
+- **The four case-mismatched `photoUrl`s are not fixed.** Both available fixes
+  are forbidden by the scope boundary. Logged in §2 with the `curl` evidence;
+  the set is pinned in `plan5-images.js` so it cannot silently grow.
+- **The 27 unreferenced images are not deleted.** Logged in §2 — some are the
+  customer's photography and this may be the only copy.
+- **The product photo still has no `width`/`height`.** A fixed ratio would crop
+  photos that currently fit. Measured cost: CLS 0.021 at 1440, 0 at 375. In §2.
+- **`admin/password.php` still sleeps.** Outside the scope boundary. In §2.
+- **`brandtext` is still 34/54.** Untouched, as instructed, and did not drift.
+- Several PLAN-5 acceptance lines name suites lost with the old harness —
+  `sweep.js`, `nb4.js`, `b2.js`, `overflow.js`, `ttl.js`, `adminsweep.js`. They
+  were not faked. What each item actually needed was built under its own name
+  (`plan5-keys`, `plan5-spectable`, `plan5-listeners`, `plan5-throttle`,
+  `plan5-social`, `plan5-images`), and the coverage those names stood for —
+  console cleanliness across every route, the NB4 cleared-field behaviour,
+  375 px overflow across all 42 product pages, the admin login path — is inside
+  them.
+
+#### Limits of this evidence
+
+- `php -S` ignores `.htaccess` and `.user.ini`. The throttle work is not
+  affected by either, but the four case-mismatched images were confirmed
+  against the harness router, which emulates the SPA rewrite; on Apache the
+  same rule applies and the result is the same, but that is reasoning from the
+  rule text. **[UNVERIFIED on Apache]**
+- The duplicate-key count is Chromium's, from a development React build. The
+  shipped bundle emits nothing either way — that is the point of the item, not
+  a gap in the measurement.
+- PSNR is a proxy for perceived quality. It is backed here by rendered-page
+  screenshots and a 3× crop of the worst case, but no human other than the
+  author has looked at the product photographs yet. **That approval is still
+  outstanding**, and the originals are recoverable from git and from
+  `_harness/out/images-original/`.
 
 ---
 

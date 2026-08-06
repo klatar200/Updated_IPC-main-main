@@ -109,6 +109,17 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 migrations. They are cited in `WHATS_LEFT.md` §4h/§4i and are how the numbers
 there were produced.
 
+Plan 5 added:
+
+| File | What it measured |
+|---|---|
+| `imgsizes.js` | the box every image is actually PAINTED at, over all 9 routes and all 42 product pages at 1440 and 375 — the numbers that set the resize targets. Also lists the 27 files painted on no route. |
+| `imgalpha.js` | whether the product PNGs USE their alpha. All 23 are fully opaque; only `site/staff-image.png` is not. |
+| `imgopt.js` | the one-shot re-encoder itself. PSNR-scored at the OUTPUT resolution, with a quality floor per file class and "keep the original" as the fallback. `--dry` reports without writing. Needs `npm i --no-save sharp`. |
+| `imgshotdiff.js` | PSNR between the before and after page screenshots — what a visitor would actually see, rather than what the encoder did to a file in isolation. |
+| `probe-listeners.js` | the 4.26 leak, counted over CDP `DOMDebugger.getEventListeners`: 1 → 51 after 20 scroll cycles. |
+| `painted-images.json` | the output of `imgsizes.js`, consumed by `imgopt.js` and `plan5-images.js`. |
+
 ## Two things that have bitten before
 
 - **`sync.sh` after every build and every `admin/` edit.** Otherwise the suites

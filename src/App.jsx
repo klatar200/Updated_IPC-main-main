@@ -6374,7 +6374,15 @@ function ProductDetail({ product, allProducts }) {
             <img
               src={product.photoUrl}
               alt={product.name}
-              loading="lazy"
+              // 4.32 — eager, deliberately. This was loading="lazy", and it is
+              // the product page's largest contentful paint: measured at 1440
+              // it sits at top=490 in a 900px viewport, i.e. ABOVE THE FOLD,
+              // so lazy-loading it kept the one image the buyer came for out
+              // of the preload scanner's reach. Do not put lazy back. It costs
+              // an early fetch at 375, where the stacked layout does push it
+              // below the fold — a fair trade now the photos are ~3x smaller
+              // (the whole folder went 9.1 MB -> 2.7 MB).
+              loading="eager"
               // The SPA rewrite makes a missing image return 200 + index.html,
               // so nothing in the stack can tell "missing" from "served" — the
               // browser just renders a broken image. Fall back to the branded
@@ -9174,6 +9182,11 @@ function Footer() {
               <img
                 src={site.theme?.logoUrl || "/logo.svg"}
                 alt="IPC logo"
+                // 4.32 — below the fold on every route (measured: top=2075 on
+                // the shortest page, 5218 at 375), so this one IS a lazy
+                // candidate. The navbar copy above is not, and keeps its
+                // default eager loading.
+                loading="lazy"
                 width={44}
                 height={44}
                 style={{ flexShrink: 0, display: "block" }}
