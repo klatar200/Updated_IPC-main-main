@@ -863,11 +863,11 @@ function Navbar({ products = [], catalogFailed = false }) {
                         }}
                       />
                     </div>
-                    {companyNav.map((item) => {
+                    {companyNav.map((item, i) => {
                       const itemActive = currentPage === item.page;
                       return (
                         <PageLink
-                          key={item.page}
+                          key={`${i}-${item.page}`}
                           page={item.page}
                           onNavigate={closeMenus}
                           style={{
@@ -1270,9 +1270,9 @@ function Navbar({ products = [], catalogFailed = false }) {
                     borderBottom: "1px solid rgba(255,255,255,0.06)",
                   }}
                 >
-                  {companyNav.map((item) => (
+                  {companyNav.map((item, i) => (
                     <PageLink
-                      key={item.page}
+                      key={`${i}-${item.page}`}
                       page={item.page}
                       onNavigate={closeMenus}
                       className="ipc-tap"
@@ -1498,9 +1498,9 @@ function Hero() {
 
         {/* Right — proof cards: 2×2 grid on desktop, stacked 2×2 with tighter padding on mobile */}
         <div className="grid grid-cols-2 gap-3">
-          {proofPoints.map((p) => (
+          {proofPoints.map((p, i) => (
             <div
-              key={p.label}
+              key={`${i}-${p.label}`}
               className="rounded-xl"
               style={{
                 padding: "clamp(12px, 2vw, 20px)",
@@ -1919,9 +1919,9 @@ function Features() {
           action={{ label: "View Full Catalog →", page: "products" }}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((f) => (
+          {features.map((f, i) => (
             <FeatureCard
-              key={f.title}
+              key={`${i}-${f.title}`}
               icon={
                 <div style={{ color: "var(--brand-primary-text)" }}>
                   {FEATURES_ICONS[f.iconKey]}
@@ -2069,7 +2069,7 @@ function StatsBar() {
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4">
         {stats.map((s, i) => (
           <div
-            key={s.label}
+            key={`${i}-${s.label}`}
             className={`py-5 px-4 md:py-7 md:px-6 flex items-center gap-4
               ${i < 2 ? "ipc-stat-bottom-border" : ""}
               ${i % 2 === 0 ? "border-r border-gray-200" : ""}
@@ -2267,9 +2267,9 @@ function HomePage() {
             action={{ label: "View All Industries →", page: "industries" }}
           />
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {markets.map((m) => (
+            {markets.map((m, i) => (
               <PageLink
-                key={m.label}
+                key={`${i}-${m.label}`}
                 page={m.page}
                 className="group rounded-xl p-6 text-left transition-all duration-200 flex flex-col hover:-translate-y-0.5 hover:shadow-lg hover:border-blue-500 hover:bg-blue-50/30"
                 style={{
@@ -2719,7 +2719,7 @@ function AboutPage() {
               const isLast = i === milestones.length - 1;
               return (
                 <div
-                  key={m.year}
+                  key={`${i}-${m.year}`}
                   style={{
                     display: "grid",
                     gridTemplateColumns: "auto 24px 1fr",
@@ -2821,9 +2821,9 @@ function AboutPage() {
             {c.certsTitle}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {certs.map((c) => (
+            {certs.map((c, i) => (
               <div
-                key={c.title}
+                key={`${i}-${c.title}`}
                 className="bg-white rounded-xl p-5 flex gap-4 items-start transition-all duration-200"
                 style={{ border: "1px solid #e5e9ee" }}
                 onMouseEnter={(e) => {
@@ -2872,9 +2872,9 @@ function AboutPage() {
             {c.teamTitle}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {capabilities.map((c) => (
+            {capabilities.map((c, i) => (
               <TeamCard
-                key={c.name}
+                key={`${i}-${c.name}`}
                 name={c.name}
                 role={c.role}
                 avatar={c.avatar}
@@ -3341,8 +3341,8 @@ function FaqPage() {
               </h2>
             </div>
             <div className="space-y-3">
-              {cat.items.map((item) => (
-                <FaqItem key={item.question} {...item} />
+              {cat.items.map((item, i) => (
+                <FaqItem key={`${i}-${item.question}`} {...item} />
               ))}
             </div>
           </div>
@@ -3889,9 +3889,9 @@ function ContactPage() {
               {cf.tipsTitle}
             </div>
             <ul className="space-y-1.5">
-              {contactTips.map(({ text: tip }) => (
+              {contactTips.map(({ text: tip }, i) => (
                 <li
-                  key={tip}
+                  key={`${i}-${tip}`}
                   className="flex items-start gap-2 text-xs"
                   style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.60)" }}
                 >
@@ -5871,11 +5871,25 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
   );
 }
 
+/**
+ * 4.29 — does this spec table have anything to show? Kept next to the two
+ * table components so the caller's layout condition and the components' own
+ * early return can never disagree about what "empty" means.
+ */
+function specHasRows(table) {
+  return Array.isArray(table?.rows) && table.rows.length > 0;
+}
+
 /** IPC Left spec table — dark header, clean row list */
 function SpecTable1({ table }) {
   // #1 fix: guard against null/undefined rows — PHP admin may produce empty specTable1
   const rows = Array.isArray(table?.rows) ? table.rows : [];
   const title = table?.title ?? "Specifications:";
+  // 4.29 — no rows means no table AT ALL. The heading bar used to render on
+  // its own, announcing a section that is not there; a title Rick has typed
+  // into an as-yet-unfilled table is not a reason to draw one. Callers also
+  // test this condition (specHasRows) so the padded wrapper goes with it.
+  if (!rows.length) return null;
   return (
     <div
       className="rounded-xl overflow-hidden h-full"
@@ -5921,6 +5935,14 @@ function SpecTable2({ table }) {
   const hasSubHeaders = colSpans.some(
     (c) => c.colspan > 1 && Array.isArray(c.sub),
   );
+  // 4.29 — IP75AD, VALUE-ADDED and VT-1100 all ship `specTable2: {rows: []}`.
+  // With no rows this emitted <table><thead><tr></tr></thead></table>: a <tr>
+  // with no cells, which is invalid (the content model for `tr` requires at
+  // least one td/th), inside a bordered box measured at 391 x 508 px on
+  // IP75AD at 1440 — an empty panel next to the real specs on a page a buyer
+  // is using to evaluate a part. Header cells without data rows are not a
+  // table, so this bails before any of the chrome is drawn.
+  if (!rows.length) return null;
 
   return (
     <div
@@ -6051,6 +6073,59 @@ function extractComplianceBadges(product) {
 const NON_RELATABLE_TYPES = new Set(["Accessory", "Adhesive", "Tape", ""]);
 
 /**
+ * 4.26 — the "View →" glyph on a related-product card, which slides right
+ * while the card is hovered.
+ *
+ * This was `ref={(el) => { el.closest("button").addEventListener("mouseenter",
+ * …) }}` written straight into the JSX. An arrow function written in the
+ * markup is a NEW function identity on every render, so React tears the ref
+ * down (calls it with null) and sets it up again (calls it with the node) on
+ * each pass — and nothing ever removed what the previous pass had attached.
+ * ProductDetail re-renders whenever the sticky quote bar crosses its scroll
+ * threshold, so just moving up and down a product page piled them up:
+ * measured over CDP on ONE card, 1 -> 51 mouseenter and 1 -> 51 mouseleave
+ * after 20 scroll cycles, every one of them still running.
+ *
+ * A useEffect with `[]` runs once per mount and its cleanup takes both
+ * listeners back off. `passive` is deliberately not set: it only relaxes
+ * scroll-blocking, and these are pointer events. The page's one genuine
+ * scroll listener (in ProductPage) has carried `{passive:true}` all along,
+ * and neither handler calls preventDefault().
+ */
+function RelatedArrow() {
+  const glyphRef = useRef(null);
+  useEffect(() => {
+    const el = glyphRef.current;
+    const card = el && el.closest("button");
+    if (!card) return undefined;
+    const enter = () => {
+      el.style.transform = "translateX(4px)";
+    };
+    const leave = () => {
+      el.style.transform = "translateX(0)";
+    };
+    card.addEventListener("mouseenter", enter);
+    card.addEventListener("mouseleave", leave);
+    return () => {
+      card.removeEventListener("mouseenter", enter);
+      card.removeEventListener("mouseleave", leave);
+    };
+  }, []);
+  return (
+    <span
+      ref={glyphRef}
+      style={{
+        display: "inline-block",
+        transition: "transform 0.2s ease",
+        transform: "translateX(0)",
+      }}
+    >
+      →
+    </span>
+  );
+}
+
+/**
  * IPC Product detail view — authority layout matching catalog format.
  * Dark header bar, two-column body, compliance badge row, dual spec tables,
  * related products footer, PDF + quote CTAs.
@@ -6172,9 +6247,9 @@ function ProductDetail({ product, allProducts }) {
                 </a>
                 {/* Additional PDF variants (e.g. IP52EC plugged-cap) — same styling */}
                 {Array.isArray(product.additionalPdfs) &&
-                  product.additionalPdfs.map((extra) => (
+                  product.additionalPdfs.map((extra, i) => (
                     <a
-                      key={extra.url}
+                      key={`${i}-${extra.url}`}
                       href={extra.url}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -6299,7 +6374,15 @@ function ProductDetail({ product, allProducts }) {
             <img
               src={product.photoUrl}
               alt={product.name}
-              loading="lazy"
+              // 4.32 — eager, deliberately. This was loading="lazy", and it is
+              // the product page's largest contentful paint: measured at 1440
+              // it sits at top=490 in a 900px viewport, i.e. ABOVE THE FOLD,
+              // so lazy-loading it kept the one image the buyer came for out
+              // of the preload scanner's reach. Do not put lazy back. It costs
+              // an early fetch at 375, where the stacked layout does push it
+              // below the fold — a fair trade now the photos are ~3x smaller
+              // (the whole folder went 9.1 MB -> 2.7 MB).
+              loading="eager"
               // The SPA rewrite makes a missing image return 200 + index.html,
               // so nothing in the stack can tell "missing" from "served" — the
               // browser just renders a broken image. Fall back to the branded
@@ -6371,9 +6454,9 @@ function ProductDetail({ product, allProducts }) {
                 Product Features
               </div>
               <div className="flex flex-wrap gap-2">
-                {product.badges.map((b) => (
+                {product.badges.map((b, i) => (
                   <span
-                    key={b}
+                    key={`${i}-${b}`}
                     className="px-2.5 py-1 rounded text-xs font-semibold uppercase tracking-wide"
                     style={{
                       background: "rgba(var(--brand-primary-rgb),0.08)",
@@ -6407,14 +6490,26 @@ function ProductDetail({ product, allProducts }) {
           (scrollWidth 377) and IP55FL (381). SpecTable2 already scrolls inside
           its own container; this is the other half of the same bug.
           (AUDIT_v3_FINDINGS NB18) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-        <div className="p-5 sm:p-8 border-b border-gray-200 md:border-b-0 md:border-r md:border-gray-200" style={{ minWidth: 0 }}>
+      {/* 4.29 — an absent table takes its wrapper with it. SpecTable1/2 return
+          null on an empty `rows`, but the padded, half-width, right-bordered
+          cell around them is drawn here, so hiding only the table left the
+          empty panel behind. When just one table survives the grid collapses
+          to a single column and the divider is dropped, so the remaining
+          specs use the full width instead of sitting beside a blank half. */}
+      {(specHasRows(product.specTable1) || specHasRows(product.specTable2)) && (
+      <div className={`grid grid-cols-1 gap-0${specHasRows(product.specTable1) && specHasRows(product.specTable2) ? " md:grid-cols-2" : ""}`}>
+        {specHasRows(product.specTable1) && (
+        <div className={`p-5 sm:p-8${specHasRows(product.specTable2) ? " border-b border-gray-200 md:border-b-0 md:border-r md:border-gray-200" : ""}`} style={{ minWidth: 0 }}>
           <SpecTable1 table={product.specTable1} />
         </div>
+        )}
+        {specHasRows(product.specTable2) && (
         <div className="p-5 sm:p-8" style={{ minWidth: 0 }}>
           <SpecTable2 table={product.specTable2} />
         </div>
+        )}
       </div>
+      )}
 
       {/* 2.4 — Related Products */}
       {related.length > 0 && (
@@ -6464,28 +6559,7 @@ function ProductDetail({ product, allProducts }) {
                   className="mt-2 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-0.5"
                   style={{ color: "var(--brand-accent)" }}
                 >
-                  View{" "}
-                  <span
-                    style={{
-                      display: "inline-block",
-                      transition: "transform 0.2s ease",
-                      transform: "translateX(0)",
-                    }}
-                    ref={(el) => {
-                      if (el) {
-                        el.closest("button")?.addEventListener(
-                          "mouseenter",
-                          () => (el.style.transform = "translateX(4px)"),
-                        );
-                        el.closest("button")?.addEventListener(
-                          "mouseleave",
-                          () => (el.style.transform = "translateX(0)"),
-                        );
-                      }
-                    }}
-                  >
-                    →
-                  </span>
+                  View <RelatedArrow />
                 </div>
               </button>
             ))}
@@ -6808,9 +6882,9 @@ function ProductPage({ products }) {
                 </a>
                 {/* Additional PDF variants — same styling */}
                 {Array.isArray(product.additionalPdfs) &&
-                  product.additionalPdfs.map((extra) => (
+                  product.additionalPdfs.map((extra, i) => (
                     <a
-                      key={extra.url}
+                      key={`${i}-${extra.url}`}
                       href={extra.url}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -8020,9 +8094,9 @@ function IndustriesPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-14 space-y-10">
-        {industries.map((ind) => (
+        {industries.map((ind, i) => (
           <div
-            key={ind.name}
+            key={`${i}-${ind.name}`}
             className="bg-white rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
             style={{
               border: "1px solid #e5e9ee",
@@ -8077,9 +8151,9 @@ function IndustriesPage() {
                   Common Applications
                 </div>
                 <ul className="space-y-2.5">
-                  {(ind.useCases || []).map((uc) => (
+                  {(ind.useCases || []).map((uc, i) => (
                     <li
-                      key={uc}
+                      key={`${i}-${uc}`}
                       className="flex items-start gap-2.5 text-sm"
                       style={{ color: "#4b5563" }}
                     >
@@ -8107,8 +8181,8 @@ function IndustriesPage() {
                   IPC Products
                 </div>
                 <ul className="space-y-2">
-                  {(ind.products || []).map((prod) => (
-                    <li key={prod.sku}>
+                  {(ind.products || []).map((prod, i) => (
+                    <li key={`${i}-${prod.sku}`}>
                       <PageLink
                         page="products"
                         params={{ productId: prod.sku }}
@@ -8181,9 +8255,9 @@ function IndustriesPage() {
                     Certifications
                   </div>
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {(ind.certs || []).map((cert) => (
+                    {(ind.certs || []).map((cert, i) => (
                       <span
-                        key={cert}
+                        key={`${i}-${cert}`}
                         className="text-xs font-semibold px-2.5 py-1 rounded"
                         style={{
                           background: "rgba(var(--brand-primary-rgb),0.08)",
@@ -8595,9 +8669,9 @@ function ServicesPage() {
 
         {/* Services grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {services.map((svc) => (
+          {services.map((svc, i) => (
             <div
-              key={svc.title}
+              key={`${i}-${svc.title}`}
               className="bg-white rounded-2xl overflow-hidden flex flex-col"
               style={{
                 border: "1px solid #e5e9ee",
@@ -8635,9 +8709,9 @@ function ServicesPage() {
               {/* Details */}
               <div className="px-6 py-5 flex-1">
                 <ul className="space-y-2">
-                  {(svc.details || []).map((d) => (
+                  {(svc.details || []).map((d, i) => (
                     <li
-                      key={d}
+                      key={`${i}-${d}`}
                       className="flex items-start gap-2 text-xs"
                       style={{ color: "#4b5563" }}
                     >
@@ -8852,7 +8926,7 @@ function PrivacyPage() {
             {localizeProse(c.intro, site)}
           </p>
           {sections.map((sec, i) => (
-            <div key={sec.title}>
+            <div key={`${i}-${sec.title}`}>
               {i > 0 && (
                 <div
                   style={{
@@ -8910,6 +8984,87 @@ function PrivacyPage() {
 /**
  * IPC Footer — SVG logo mark + SVG contact icons + verified contact data.
  */
+/**
+ * 4.11b — the footer social icons v2 4.11 promised and nobody built.
+ *
+ * `site.social.*` fed the JSON-LD `sameAs` array and nothing else, so five
+ * fields Rick can edit in Business Details had no visible effect on the site at
+ * all.
+ *
+ * All five are in SITE_CLEARABLE (invariant 4 / NB4): he is explicitly allowed
+ * to empty them, and Editing-Your-Site-Content.md promises a cleared field
+ * "disappears from the site properly". So an empty value renders no link, and
+ * ALL FIVE empty renders no container — the whole element is absent, not
+ * present-and-empty. A leftover row would be a visible gap in the footer and
+ * would make that promise false.
+ *
+ * Deliberately has no heading. A heading would be owner-facing copy, and every
+ * other footer heading comes from a `copy` key that must exist on BOTH sides of
+ * the content contract — adding one means a new field in admin/content.php,
+ * which moves the form's posted-variable count away from the 421 the
+ * max_input_vars sentinel is asserted against. Not worth it for one word.
+ *
+ * Icon glyphs are inline SVG paths. No icon font, no CDN: the admin CSP and
+ * the $0-budget rule both rule those out.
+ */
+const SOCIAL_CHANNELS = [
+  {
+    key: "twitter",
+    label: "X (formerly Twitter)",
+    path: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z",
+  },
+  {
+    key: "facebook",
+    label: "Facebook",
+    path: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z",
+  },
+  {
+    key: "linkedin",
+    label: "LinkedIn",
+    path: "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z",
+  },
+  {
+    key: "youtube",
+    label: "YouTube",
+    path: "M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z",
+  },
+  {
+    key: "pinterest",
+    label: "Pinterest",
+    path: "M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z",
+  },
+];
+
+function FooterSocial({ social }) {
+  const live = SOCIAL_CHANNELS.filter((c) => {
+    const url = social && social[c.key];
+    return typeof url === "string" && url.trim() !== "";
+  });
+  // No container at all when every field is empty — not an empty container.
+  if (!live.length) return null;
+  return (
+    <div
+      data-testid="footer-social"
+      style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 18 }}
+    >
+      {live.map((c) => (
+        <a
+          key={c.key}
+          href={social[c.key].trim()}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${c.label} (opens in a new window)`}
+          className="ipc-social-link"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d={c.path} />
+          </svg>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function Footer() {
   const site = useSiteInfo();
   const { footerLinks, copy } = useContent();
@@ -9027,6 +9182,11 @@ function Footer() {
               <img
                 src={site.theme?.logoUrl || "/logo.svg"}
                 alt="IPC logo"
+                // 4.32 — below the fold on every route (measured: top=2075 on
+                // the shortest page, 5218 at 375), so this one IS a lazy
+                // candidate. The navbar copy above is not, and keeps its
+                // default eager loading.
+                loading="lazy"
                 width={44}
                 height={44}
                 style={{ flexShrink: 0, display: "block" }}
@@ -9066,6 +9226,7 @@ function Footer() {
               {site.stats.minimumOrder} minimum order. Quick, accurate, courteous service — the
               customer is always number one.
             </p>
+            <FooterSocial social={site.social} />
           </div>
 
           {/* Contact column — SVG icons */}
@@ -9142,8 +9303,16 @@ function Footer() {
                 gap: "12px 24px",
               }}
             >
-              {footerLinks.map((link) => (
-                <div key={link.label}>
+              {/* 4.27 — every owner-editable list is keyed `${index}-${value}`,
+                  never on the owner's typing alone. Two footer links both
+                  named "Contact" gave React two identical keys; React calls
+                  that unsupported and emits a console error for each one
+                  (24 of them across the nine routes, measured on a dev
+                  bundle). `content.json` carries no per-row identity, so the
+                  index is what makes the key unique — see the reorder note
+                  in WHATS_LEFT.md §2. */}
+              {footerLinks.map((link, i) => (
+                <div key={`${i}-${link.label}`}>
                   <PageLink
                     page={link.page}
                     className="text-xs transition-colors duration-150 ipc-tap"

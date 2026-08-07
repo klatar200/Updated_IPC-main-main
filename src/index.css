@@ -117,6 +117,31 @@ svg[stroke="#005da3"] {
   outline-offset: -3px;
 }
 
+/* Footer social icons (4.11b). Declared here rather than inline because an
+   inline style cannot express :hover or :focus-visible. The footer background
+   is a hardcoded #0a2240, NOT an owner-set color, so plain white is safe here
+   and none of the --brand-*-ink machinery applies; --brand-accent is likewise
+   safe against it at every palette. */
+.ipc-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.06);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.ipc-social-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+}
+.ipc-social-link:focus-visible {
+  outline: 3px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
 /* Visually hidden, still announced by screen readers. */
 .sr-only {
   position: absolute;

@@ -46,12 +46,20 @@ if (is_authenticated()) {
 // session — means an attacker can't reset the counter by discarding the
 // session cookie between attempts.
 //
-// Do NOT overstate this. Measured: attempts 1-5 return in ~280 ms, then 1.4 s,
-// 2.3 s, 3.3 s, capped at 8 s. It is a DELAY, not a lockout; it is per-IP, so a
-// distributed attacker is unaffected; and sleep() means parallel connections
-// sleep concurrently rather than queueing (4.14, still open). The long random
-// password is the actual control here — the throttle only raises the cost of a
-// careless one. (AUDIT_v3_FINDINGS D14)
+// Do NOT overstate this. It used to be sleep(min(8, failures - 4)) per attempt:
+// measured, attempts 1-5 returned in ~280 ms, then 1.4 s, 2.3 s, 3.3 s, capped
+// at 8 s — and because sleep() is per-connection, ten simultaneous attempts all
+// slept together and finished together, so it bounded a single-threaded run and
+// nothing else. It is now a cool-off enforced by a stored timestamp
+// (login_cooloff_* in config.php), which every parallel connection reads the
+// same value of.
+//
+// What that does NOT change, and must not be claimed otherwise: this is still
+// per-IP, so a distributed attacker is unaffected, and the long random password
+// is still the actual control here. The throttle only raises the cost of a
+// careless one. It is also deliberately capped and self-clearing — there is no
+// "forgot password" email and the recovery path is FTP, so stranding the owner
+// would be a worse outcome than a slow brute force. (AUDIT_v3_FINDINGS D14, 4.14)
 $clientIp = login_throttle_client_ip();
 
 // ─── Recovery mode ──────────────────────────────────────────────────────────
@@ -105,17 +113,23 @@ if (!$resetUnlocked && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['se
 }
 
 // Handle login
+$cooloff = 0;
+
 if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
-    $failures = login_failure_count($clientIp);
-    if ($failures >= 5) {
-        // 1-second sleep per extra failure, capped at 8 seconds — enough to
-        // make a single-threaded guessing run tedious without locking out a
-        // sleepy admin who fat-fingered. It does not stop a parallel or
-        // distributed attacker; see the note above. (AUDIT_v3_FINDINGS D14)
-        sleep(min(8, $failures - 4));
-    }
-    if (password_verify($password, ADMIN_PASSWORD_HASH)) {
+    // Take an attempt slot BEFORE the password is looked at. The count and the
+    // decision happen under one lock, so simultaneous connections queue and
+    // only the ones inside the free allowance ever reach password_verify().
+    $cooloff = login_attempt_gate($clientIp);
+    if ($cooloff > 0) {
+        // 4.14 — refused by the clock, without sleeping. Nothing here is
+        // counted and nothing extends the window: hammering Reload during a
+        // cool-off must not make it longer, or an impatient owner locks
+        // himself out of his own admin with no reset email to fall back on.
+        // password_verify() is deliberately not reached, so a correct password
+        // is refused too and the response cannot be used as an oracle.
+        $error = login_cooloff_message($cooloff);
+    } elseif (password_verify($password, ADMIN_PASSWORD_HASH)) {
         // Defeat session fixation: rotate the session id the moment auth
         // succeeds so any pre-set IPCADMIN cookie is invalidated.
         regenerate_session_id();
@@ -123,9 +137,15 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
         login_reset_failures($clientIp);   // clear this IP's failure streak
         header('Location: index.php');
         exit;
+    } else {
+        // The gate above already counted this attempt — do NOT count it again.
+        // Ask only whether that attempt armed a window, so the message can say
+        // so in the same breath as "wrong password" instead of leaving the next
+        // page load to explain it.
+        $cooloff = login_cooloff_remaining($clientIp);
+        $error = 'Incorrect password. Please try again.';
+        if ($cooloff > 0) $error .= ' ' . login_cooloff_message($cooloff);
     }
-    login_register_failure($clientIp);
-    $error = 'Incorrect password. Please try again.';
 }
 ?>
 <!doctype html>
