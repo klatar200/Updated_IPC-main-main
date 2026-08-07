@@ -31,15 +31,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Throttle current-password guesses exactly like the login form — an
     // attacker who hijacks a session shouldn't get free brute-force attempts.
+    //
+    // This used to be its own sleep(min(8, $failures - 4)), which 4.14 replaced
+    // on the login form and left here because password.php was outside that
+    // plan's scope boundary. It carried both of 4.14's faults: sleep() is
+    // per-connection, so simultaneous attempts all slept at the same time and
+    // finished together, and the count was read separately from the write.
+    // It now takes a slot from the SAME gate auth.php uses — one flock around
+    // the decision and the increment — so the two forms share one budget and
+    // neither can be parallelised.
     $clientIp = login_throttle_client_ip();
-    $failures = login_failure_count($clientIp);
-    if ($failures >= 5) {
-        sleep(min(8, $failures - 4));
-    }
+    $cooloff  = login_attempt_gate($clientIp);
 
-    if (!ADMIN_PASSWORD_CONFIGURED || !password_verify($current, ADMIN_PASSWORD_HASH)) {
-        login_register_failure($clientIp);
+    if ($cooloff > 0) {
+        // Refused by the clock, without sleeping. Not counted, and it does not
+        // extend the window: an owner who mistypes his current password a few
+        // times must not be able to lock himself further out by retrying.
+        // password_verify() is deliberately not reached.
+        $errors[] = login_cooloff_message($cooloff, 'incorrect current-password attempts');
+    } elseif (!ADMIN_PASSWORD_CONFIGURED || !password_verify($current, ADMIN_PASSWORD_HASH)) {
+        // The gate already counted this attempt — do NOT count it again.
         $errors[] = 'The current password is incorrect.';
+        $armed = login_cooloff_remaining($clientIp);
+        if ($armed > 0) {
+            $errors[] = login_cooloff_message($armed, 'incorrect current-password attempts');
+        }
     } else {
         login_reset_failures($clientIp);
         $errors = array_merge($errors, admin_password_problems($new, $confirm));

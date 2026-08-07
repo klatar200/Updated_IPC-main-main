@@ -49,4 +49,17 @@
     <priority>0.8</priority>
   </url>
 
+  <!-- /privacy was missing while the other eight routes were listed. It is a
+       real public route with its own SEO title and description in SEO_DEFAULT,
+       its own self-canonical, and a link from the footer's Quick Links, so it
+       was already crawlable — it simply was not declared. Low priority and
+       yearly on purpose: it is a legal page, not a page anyone searches for.
+       _harness/plan5b-sitemap.js diffs this file against SEO_DEFAULT so a
+       tenth route cannot be added without being listed. -->
+  <url>
+    <loc>https://www.insulationproducts.com/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
 </urlset>
