@@ -35,6 +35,61 @@ function ipc_site_info(): array {
     return [];
 }
 
+// ── Editable copy (content.json) ───────────────────────────────
+// Same two-path lookup as ipc_site_info(), for the same reason.
+//
+// PLAN-6 item 3: the auto-reply's promise ("respond within one business day")
+// was a string literal while everything around it — business name, phone, fax,
+// email, hours, address — already came from site-info.json. That is a
+// customer-facing service-level commitment the owner could not soften for a
+// holiday shutdown or a week without an estimator.
+//
+// RETURNS [] ON ANY PROBLEM, DELIBERATELY. This function runs for every
+// enquiry. A missing, unreadable or malformed content.json must cost the
+// nicety, never the lead — the sales notification above has already been sent
+// by the time this is read, and every caller below falls back to the built-in
+// text. Asserted both ways in _harness/plan3-autoreply.js.
+function ipc_contact_copy(): array {
+    foreach ([__DIR__ . '/data/content.json', __DIR__ . '/../data/content.json'] as $p) {
+        if (!is_file($p)) continue;
+        $d = json_decode((string)@file_get_contents($p), true);
+        if (!is_array($d)) return [];
+        $c = $d['copy']['contactForm'] ?? null;
+        return is_array($c) ? $c : [];
+    }
+    return [];
+}
+
+/**
+ * One editable line of auto-reply prose, or the built-in default.
+ *
+ * Body-only by design, so this does NOT go through hdr().
+ *
+ * The CR/LF strip is NOT what stops header injection, and it was originally
+ * commented as though it were. Measured: mail() takes the body and the headers
+ * as separate arguments, so a field carrying "Promise\r\nBcc: x" puts that text
+ * on its own line INSIDE the body, in both directions — with the strip and
+ * without it. The header block is untouched either way. (Contrast 4.16 above,
+ * where company_name really was interpolated into a From: header and really did
+ * produce a live Bcc:.)
+ *
+ * It is kept for two smaller, real reasons: a stray newline in a plain-text
+ * email can produce a line that reads like a header to a naive client or a
+ * forwarding chain, and if any of these fields is ever moved into a SUBJECT the
+ * value is already single-line — at which point it must ALSO go through hdr().
+ * `plan3-autoreply.js` asserts the normalisation itself, which is falsifiable,
+ * rather than an injection that cannot happen here.
+ */
+function ipc_copy_line(array $copy, string $key, string $default): string {
+    $v = $copy[$key] ?? null;
+    if (!is_string($v)) return $default;
+    $v = trim(preg_replace('/[\r\n]+/', ' ', $v));
+    // An empty string is a real answer — "say nothing here" — for the optional
+    // notice. The two promise fields pass a non-empty default and are guarded
+    // at the call site.
+    return $v;
+}
+
 // ── Inquiry log ────────────────────────────────────────────────
 // Every submission (sent or failed) is appended to admin/inquiries.jsonl so a
 // mail() failure never silently loses a lead. Viewable at admin/inquiries.php;
@@ -490,12 +545,32 @@ if ($replyTo !== '') {
         @file_put_contents($arFile, json_encode($ar), LOCK_EX);
     }
 }
+// PLAN-6 item 3. The prose is editable; the REQUEST SUMMARY below is not, and
+// that split is deliberate — the summary is data, and a templating syntax in an
+// admin textarea is a way to produce broken emails. The subject stays built by
+// the code for the same reason, which is also why none of these needs hdr().
+$arCopy    = ipc_contact_copy();
+$rfqPromise = ipc_copy_line($arCopy, 'autoReplyRfqPromise',
+    'Our sales team will review your request and respond within one business day — often the same day for in-stock items.');
+$msgPromise = ipc_copy_line($arCopy, 'autoReplyMsgPromise',
+    'Our team will respond within one business day.');
+// Optional and empty by default: a temporary line for a shutdown or a backlog.
+// An empty value must add NOTHING — not a blank paragraph, not a stray rule —
+// or every auto-reply carries a gap for the 51 weeks a notice is not needed.
+$notice     = ipc_copy_line($arCopy, 'autoReplyNotice', '');
+$noticePara = $notice === '' ? '' : "{$notice}\n\n";
+// A promise cleared to empty falls back rather than leaving the reader with no
+// idea when to expect an answer. Clearing it is almost certainly a mistake, and
+// unlike the notice there is no reading under which "say nothing" is right.
+if ($rfqPromise === '') $rfqPromise = 'Our sales team will review your request and respond within one business day — often the same day for in-stock items.';
+if ($msgPromise === '') $msgPromise = 'Our team will respond within one business day.';
+
 if ($formType === 'rfq') {
     $replySubject = hdr("We received your quote request — {$bizName}");
     $replyBody    = "Hello {$name},\n\n"
                   . "Thank you for submitting a quote request to {$bizName}.\n\n"
-                  . "Our sales team will review your request and respond within one business day —\n"
-                  . "often the same day for in-stock items.\n\n"
+                  . "{$rfqPromise}\n\n"
+                  . $noticePara
                   . "YOUR REQUEST SUMMARY\n"
                   . "--------------------\n"
                   . "Part Number:   {$partNumber}\n"
@@ -512,7 +587,8 @@ if ($formType === 'rfq') {
     $replySubject = hdr("We received your message — {$bizName}");
     $replyBody    = "Hello {$name},\n\n"
                   . "Thank you for contacting {$bizName}.\n\n"
-                  . "Our team will respond within one business day.\n\n"
+                  . "{$msgPromise}\n\n"
+                  . $noticePara
                   . "For urgent needs, reach us directly:\n"
                   . "  Phone: {$bizPhone} ({$bizHours})\n"
                   . "  Fax:   {$bizFax}\n"

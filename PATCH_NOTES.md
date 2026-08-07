@@ -28,6 +28,7 @@ Changes since the site went live, **2026-07-08 → 2026-08-07** (`8902180` → `
 - Inline per-field errors with focus management, replacing one generic message.
 - Fields capped (5,000 / 200 chars) with truncation announced; inquiry log rotates at 16 MB and is read from the tail.
 - `company_name` CRLF-stripped before the `From:` header; non-string `form_type`/`email` no longer 500s.
+- **The auto-reply's response promise is now editable**, plus an optional temporary notice for a shutdown or a backlog. A corrupt or missing `content.json` falls back to the built-in text and never stops a lead.
 
 ## Admin — not losing the owner's work
 
@@ -109,7 +110,8 @@ lists:
 - Page headers for Home, Services, Industries, About, FAQ, Contact and Privacy
 - Navigation labels and footer headings
 - 45 fields covering every label, placeholder, hint and error message on the
-  contact form
+  contact form, plus the auto-reply's two response promises and an optional
+  temporary notice
 - Products & Services cards, trust-bar stats, industries grid — each with an icon
   picker
 - Industries detail blocks: applications, linked products (`SKU | Name`,

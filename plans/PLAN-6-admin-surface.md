@@ -134,7 +134,7 @@ New suite `plan6-families.js`, plus one addition to `lint.php`:
 
 ---
 
-## 3. The auto-reply makes a promise the owner cannot change
+## 3. The auto-reply makes a promise the owner cannot change — ✅ SHIPPED 2026-08-07
 
 ### Evidence
 
@@ -297,7 +297,7 @@ Out of scope, and deliberately:
 | item | state |
 |---|---|
 | 4 — social platforms | ✅ **shipped** 2026-08-07. `plan5-social` 31 → 35. See `WHATS_LEFT.md` §1b. |
-| 3 — auto-reply copy | open |
+| 3 — auto-reply copy | ✅ **shipped** 2026-08-07. `plan3-autoreply` 10 → 22, posted count 421 → 424. Third field is `autoReplyNotice`, not the `autoReplySignoff` this plan named — a temporary-closure line is worth more than renaming the urgent-contact lead-in. See `WHATS_LEFT.md` §4m. |
 | 1 — product families | open |
 
 ## Order I would take them

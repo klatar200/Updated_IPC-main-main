@@ -132,6 +132,7 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **product URLs in the sitemap** | `public/sitemap.php` (new), `public/.htaccess`, `public/robots.txt` unchanged | Shipped 2026-08-07 (Plan 5c, on Keagan's decision). `public/sitemap.xml` is **deleted**; `sitemap.php` generates the document from `data/products-all.json` on every request and `.htaccess` rewrites `/sitemap.xml` to it, so the advertised address never changes. **9 → 51 URLs.** The item's objection to a hand-written list was right and applies equally to a build-time generator — the build runs from the repo's `data/` on a laptop and the catalog is owned by the admin on the server, so the two diverge at Rick's first save. Reading per request is the only version that cannot be stale, and it is asserted by *adding and deleting a product in a live catalog* and watching the document track it with no rebuild. All 42 product `<loc>`s were compared against the canonical each page declares for itself — including the five ids containing spaces and ampersands (`IP44A2 & IP45A3`), where `rawurlencode()` and `encodeURIComponent()` had to agree exactly. A corrupt or missing catalog degrades to the 9 static routes, still clean XML. Evidence in §4l. |
 | **`brandtext.js` ink extent** | `_harness/backdrop.js` (new), `_harness/brandtext.js` | The measurement fix behind the two rows above, landed 2026-08-07. Gradient sampling and alpha compositing moved out of `brandtext.js` into a shared module the moment a second suite needed the same answer — `contrastparity.js` exists because two contrast implementations had already drifted once. The extraction was proved to be a no-op by diffing the full `--verbose` output before and after. **Known property, recorded rather than hidden:** two homepage `✓` rows wobble ±1 in the reported background between runs, because the hero animates and the ink extent is small enough to be position-sensitive. Verdicts are unaffected (the nearest is 5.5 against a 4.5 bar), but the *count* of distinct combinations can move by one. |
 | **PLAN-6 item 4** — social platforms | `src/App.jsx`, `admin/settings.php` | Shipped 2026-08-07. Social links were fixed at five with no way to add one; Instagram and TikTok bring it to **seven**, each with its real single-path brand mark. **Both default to `""`, deliberately** — a guessed URL would put a footer link to a non-existent profile on a real business's site and feed it to search engines through JSON-LD `sameAs`, so day one renders the same five icons it does today and `data/site-info.json` needed no edit at all (verified against the untouched live file). **Not a repeater**, and that was the call worth making: a generic platform+URL list needs a globe fallback for platforms with no icon, and the icon is the whole point of a footer social row. `plan5-social.js` **31 → 35**, with every count now derived from `KEYS` so an eighth platform does not mean editing the suite in six places. The four new assertions are the **admin half**, which nothing covered before: the suite wrote `site-info.json` directly and so proved only that the site renders what the file says — a field that renders correctly and cannot be saved is not a feature. Mutation-proven twice: deleting the save-array line takes it to 33/35, and rendering the container when empty takes it to 29/31. Icons visually checked at 96px (`_harness/out/plan6-icons.png`) because no assertion can catch a mistyped SVG path — it renders a garbled shape and still passes every check. |
+| **PLAN-6 item 3** — auto-reply copy | `public/contact.php`, `admin/content.php`, `src/App.jsx` | Shipped 2026-08-07. Everything *around* the auto-reply's promise already came from `site-info.json` — name, phone, fax, email, hours, address — but the commitment itself (*"respond within one business day"*) was a string literal, so the owner could not soften it for a holiday shutdown or a week without an estimator. Three new copy fields: the two promises, plus an optional temporary **notice** that is empty by default and adds *nothing at all* when unset (no blank paragraph — asserted, because every auto-reply would otherwise carry a gap for the 51 weeks it is not needed). The prose is editable; the **request summary is not**, deliberately — it is data, and a templating syntax in an admin textarea is a way to produce broken emails. `contact.php` gained `ipc_contact_copy()`, its first content reader; it returns `[]` on any problem and every caller falls back to the built-in text, so a corrupt or missing `content.json` costs the nicety and never the lead. **§0 of PLAN-6 applied: posted variables 421 → 424**, `POSTED_BEFORE` updated in this commit and `plan2-trunc` re-run against a real `max_input_vars=100` server at the new count (13/13). `plan3-autoreply` **10 → 22**. ⚠️ **A comment and an assertion were both overstated and are corrected here** — see §4m. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -2360,6 +2361,81 @@ plan5c-sitemap      17/17  (was 12/16)
   `sitemap.xml`.
 - **The 18 + 18 ratcheted failures are not fixed**, only bounded and printed on
   every run. Both are escalations awaiting a brand decision, above.
+
+---
+
+## 4m. Verification evidence for PLAN-6 items 4 and 3 (2026-08-07)
+
+**Base:** `79cdf6e` / `e05d11e`. Emitted CSS selectors **312 → 312** across both.
+`data/`, `pdfs/` and `uploads/` untouched and `cmp`-identical to
+`_harness/pristine` throughout.
+
+### Item 4 — social platforms, five → seven
+
+Both new fields default to `""`. Measured against the **untouched live file**,
+the footer renders the same five icons in the same order, so `site-info.json`
+needed no edit and day one is a visual no-op.
+
+`plan5-social` **31 → 35**. The four new assertions are the **admin half**,
+which nothing covered before: the suite wrote `site-info.json` directly, so it
+only ever proved the site renders what the file says. A field that renders
+correctly and cannot be saved is not a feature.
+
+| mutation | result |
+|---|---|
+| delete the `instagram` line from the save array | **33/35** |
+| render the container when `live` is empty | **29/31** |
+
+Icons checked by eye at 96px (`_harness/out/plan6-icons.png`), because no
+assertion catches a mistyped SVG path — it renders a garbled shape and still
+passes the one-inline-svg, contrast, AX-name and `rel` checks.
+
+### Item 3 — the auto-reply's promise
+
+`plan3-autoreply` **10 → 22**. Posted variables **421 → 424**; `plan2-formlast`
+derives its count and passed unchanged, `POSTED_BEFORE` was updated in the same
+commit, and `plan2-trunc` re-run against the real `max_input_vars=100` server:
+**13/13**. That last one is the assertion that matters — the other two are
+bookkeeping (PLAN-6 §0).
+
+| mutation | expected | actual |
+|---|---|---|
+| remove `ipc_contact_copy()`'s `is_array` guard | corrupt-JSON assertions red | **22/22 — passed** |
+| remove the CR/LF strip | injection assertion red | **22/22 — passed**, then **21/22** after the fix below |
+
+### ⚠️ A claim I made and then had to withdraw
+
+The first version of this work carried a docblock saying the CR/LF strip in
+`ipc_copy_line()` prevented header injection, and an assertion named
+*"a CRLF in the copy fields cannot inject a mail header"*. **Both were wrong,
+and the mutation round is what caught it.**
+
+`mail()` takes the body and the headers as **separate arguments**. Measured both
+ways, with the strip and without it:
+
+```
+with the strip     line 47:  Promise Bcc: attacker@example.com
+without the strip  line 47:  Promise
+                   line 48:  Bcc: attacker@example.com
+```
+
+In both cases that text is in the **body**. The header block is untouched
+either way, so the assertion passed with the protection removed — it was
+measuring nothing. 4.16 was a genuine injection because `company_name` really
+was interpolated into a `From:` header; this is not that, and describing it as
+though it were would have left a comment in the tree claiming protection nobody
+had added.
+
+The strip is **kept**, for the two smaller reasons that are true: a stray
+newline can produce a line that reads like a header to a naive client or a
+forwarding chain, and the value stays safe if one of these fields is ever moved
+into a subject. The assertion now checks the **normalisation**, which is
+falsifiable — and fails at 21/22 when the strip is removed.
+
+The `is_array` mutation passing is the *sitemap `lastmod` lesson repeating*: the
+guard's absence is not observable because `foreach` over a non-array is a
+warning, not a fatal, and the fallback path produces the same output. It is kept
+as defence-in-depth and the suite does not claim to cover it.
 
 ---
 
