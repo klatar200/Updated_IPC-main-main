@@ -98,6 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'linkedin'  => sf('social_linkedin',  $curO['linkedin']  ?? ''),
             'youtube'   => sf('social_youtube',   $curO['youtube']   ?? ''),
             'pinterest' => sf('social_pinterest', $curO['pinterest'] ?? ''),
+            'instagram' => sf('social_instagram', $curO['instagram'] ?? ''),
+            'tiktok'    => sf('social_tiktok',    $curO['tiktok']    ?? ''),
         ],
         'theme' => [
             'primaryColor' => sf('theme_primary', $curTh['primaryColor'] ?? ''),
@@ -414,6 +416,8 @@ $navActive = 'settings';
           <div class="form-group"><label for="social_twitter">Twitter / X</label><input type="text" id="social_twitter" name="social_twitter" value="<?= h($so['twitter'] ?? '') ?>" placeholder="https://twitter.com/…" /></div>
           <div class="form-group"><label for="social_youtube">YouTube</label><input type="text" id="social_youtube" name="social_youtube" value="<?= h($so['youtube'] ?? '') ?>" placeholder="https://youtube.com/…" /></div>
           <div class="form-group"><label for="social_pinterest">Pinterest</label><input type="text" id="social_pinterest" name="social_pinterest" value="<?= h($so['pinterest'] ?? '') ?>" placeholder="https://pinterest.com/…" /></div>
+          <div class="form-group"><label for="social_instagram">Instagram</label><input type="text" id="social_instagram" name="social_instagram" value="<?= h($so['instagram'] ?? '') ?>" placeholder="https://instagram.com/…" /></div>
+          <div class="form-group"><label for="social_tiktok">TikTok</label><input type="text" id="social_tiktok" name="social_tiktok" value="<?= h($so['tiktok'] ?? '') ?>" placeholder="https://tiktok.com/@…" /></div>
           <div class="form-group"><label for="catalogPdfUrl">Catalog PDF URL</label><input type="text" id="catalogPdfUrl" name="catalogPdfUrl" value="<?= h($info['catalogPdfUrl'] ?? '') ?>" placeholder="/pdfs/catalog.pdf" /></div>
         </div>
       </div>
