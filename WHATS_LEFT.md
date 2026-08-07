@@ -210,7 +210,38 @@ Ordered by value. Nothing here blocks the upload.
   Not started, and **not** a one-line change: `--brand-accent` (`#00BEF2`) is the *bright* accent and darkening it enough for white (needs ~4.5:1) moves it a long way from the brand. Options are a text-safe `--brand-accent-text-strong`, or accepting that these glyphs are decorative and giving them `aria-hidden` plus a non-brand colour. **Escalate the colour question before changing.** Baseline to beat: `node _harness/brandtext.js` → 34/54.
 
 - [ ] **brand-gradient-mixed-ends** Found 2026-08-06 while fixing `brand-ink-translucent`. Two heading strips use a gradient running from a **hardcoded dark** color to an **owner-controlled** one — `linear-gradient(135deg, #0a2a52, var(--brand-primary))` on the product-detail header (`src/App.jsx:5885`) and `linear-gradient(135deg, #003d7a, var(--brand-primary))` on the industry section headers (`:7789`). No single ink can serve both ends: white is right over the fixed navy, dark is right over a pale primary. Left as `text-white`, which is correct for the default palette and for where the left-aligned heading actually sits, and both carry an inline comment saying so. Accounts for the last **12** of the 274 remaining failures. The real fix is a design decision — either make the fixed end `var(--brand-dark)` so one ink can serve the whole band (a visible change to the current look, `#003d7a` is notably brighter than `#0d2d52`), or stop putting text across a two-owner gradient. **Escalate before changing.**
-- [ ] **sidebar-active-border** `ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.
+- [x] **sidebar-active-border** ~~`ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.~~
+
+  **SHIPPED 2026-08-07.** `border: "none"` deleted; `borderLeft` and
+  `borderBottom` are now the only border declarations on the row. Measured on
+  the built bundle at 1440: the selected row's `border-left` went
+  **`0px none rgb(0, 0, 0)` → `3px solid rgb(0, 93, 163)`**, and React's
+  style-conflict complaint went **4 per selection change → 0** (counted on a
+  development bundle; production strips the message, so the shipped bundle
+  cannot fail that check — same reason `plan5-keys` builds its own).
+
+  **`AMENDED` — the symptom was asymmetric, and that is what hid it.** The
+  original note says the indicator is simply absent. Measured, it is absent on
+  a **fresh load** and *present* after an **in-page selection change**: on a
+  re-render React writes only the style keys that CHANGED, so `border` was not
+  re-applied and stopped clobbering `borderLeft`. Click around the catalog and
+  it works; arrive by link or refresh and it is gone. Recorded because it
+  explains why the defect survived three sessions of review.
+
+  The shorthand was **deleted rather than moved above** the longhands: the row
+  has been an `<a>` since 4.21 and has no UA border to reset, and keeping a
+  shorthand beside its longhand in one style object is exactly what React warns
+  about. Asserted that no UA border returns on the top or right edge.
+
+  ⚠️ **Not a pure no-op, called out because it is visible.** Restoring the
+  indicator also restores the 3 px gutter the inactive rows' `transparent`
+  border was always meant to reserve, so every sidebar row's text is 3 px
+  narrower than it was while the bug was live. On the longest product names
+  that can pull one word onto a second line — visible on `IP29CG` in
+  `_harness/out/plan5b-sidebar/sidebar-1440-BEFORE.png` vs `sidebar-1440.png`.
+  The transparent border is load-bearing and was kept: without it the text
+  would shift sideways as the selection moves. Suite: `plan5b-sidebar.js`,
+  **4/9 → 9/9**, mutation-proven by reinstating the shorthand.
 - [x] **4.24** ~~`SITE_INFO_URL` / `CONTENT_URL` have no `import.meta.env.DEV` branch, so theming and content plumbing are never exercised by `npm run dev`.~~ **SHIPPED 2026-08-05 (Plan 0)** — see §1b and §4d.
 - [x] **4.26** ~~Scroll listeners added inside an inline `ref` callback and never removed.~~ **SHIPPED 2026-08-06 (Plan 5)** — **`AMENDED`: they are not scroll listeners.** The only `scroll` listener in `App.jsx` was already a `useEffect` with a cleanup and `{passive:true}`; the leak was `mouseenter`/`mouseleave` on the related-product card. Measured 1 → **51** of each after 20 scroll cycles. See §1b and §4k.
 - [x] **4.27** ~~Duplicate React keys reachable from the admin (`key={link.label}`, `key={f.title}`, `key={m.year}`, …). Two footer links both named "Contact" drop a row.~~ **SHIPPED 2026-08-06 (Plan 5)** — **`AMENDED`: the row is not dropped.** On the shipped production bundle both links render with their own hrefs and both navigate correctly; so do two same-year milestones and two identically-titled services. The real, measurable defect is **53 `console.error`s** across 9 routes + 3 product pages on a development bundle, now **0**. See §1b and §4k.

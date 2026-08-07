@@ -5826,10 +5826,36 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                           background: active
                             ? "rgba(var(--brand-primary-rgb),0.05)"
                             : "#ffffff",
+                          // sidebar-active-border: there used to be a
+                          // `border: "none"` on the NEXT line, and React writes
+                          // style keys into element.style in order, so the
+                          // shorthand reset all four sides and wiped the left
+                          // indicator that had just been set. borderBottom
+                          // survived only by sitting after it, which is why the
+                          // row dividers looked right and nobody noticed.
+                          //
+                          // The symptom was asymmetric and that is what hid it:
+                          // on a FRESH load no row had any left border, but
+                          // after an in-page selection change the indicator
+                          // appeared — on a re-render React only writes the
+                          // keys that CHANGED, so `border` was not re-applied
+                          // and stopped clobbering `borderLeft`. Click around
+                          // the catalog and it works; arrive by link or refresh
+                          // and it is gone.
+                          //
+                          // The shorthand is deleted rather than moved above:
+                          // this has been an <a> since 4.21 and has no UA
+                          // border to reset, and keeping both a shorthand and
+                          // its longhand in one style object is what React
+                          // warns about ("...can lead to styling bugs") — 4 of
+                          // those per selection change, measured.
+                          //
+                          // The inactive 3px TRANSPARENT border is load-bearing:
+                          // without it the text would shift 3px sideways as the
+                          // selection moves.
                           borderLeft: active
                             ? "3px solid var(--brand-primary)"
                             : "3px solid transparent",
-                          border: "none",
                           borderBottom: "1px solid #f0f3f7",
                           cursor: "pointer",
                           width: "100%",
