@@ -12,11 +12,15 @@
  * A check written as "the container has no children" would pass against an
  * empty row that still eats 40px of footer.
  *
+ * PLAN-6 item 4 (2026-08-07) added instagram and tiktok, taking this to seven.
+ * The counts below are derived from KEYS rather than written out, so an eighth
+ * platform does not need this file edited in six places.
+ *
  * Asserts, at 1440 and 375:
- *   - all five set        -> five icons, each href exactly the configured URL
- *   - two cleared         -> three icons, no gap, no placeholder, and the
- *                            surviving three are the RIGHT three
- *   - all five cleared    -> the element is absent from the DOM entirely
+ *   - all seven set       -> seven icons, each href exactly the configured URL
+ *   - two cleared         -> five icons, no gap, no placeholder, and the
+ *                            survivors are the RIGHT ones
+ *   - all seven cleared   -> the element is absent from the DOM entirely
  *   - every icon has an accessible name, read from the real AX tree over CDP
  *   - every icon is target=_blank WITH rel containing noopener and noreferrer
  *   - every icon is keyboard reachable and shows a focus ring on Tab (real key
@@ -26,6 +30,9 @@
  *   - JSON-LD sameAs still tracks the same fields (the NB4 behaviour this
  *     builds on top of)
  *   - no horizontal overflow at 375
+ *   - and the ADMIN half: Business Details offers both new fields, saving
+ *     writes them, the other five survive that save, and both reach the public
+ *     footer with no rebuild
  *
  * Writes the MIRROR's data/site-info.json only, restores it from pristine/ and
  * proves byte-identity at the end. The repo's data/ is never touched.
@@ -43,7 +50,18 @@ const BASE = 'http://127.0.0.1:8123';
 const OUT = path.join(__dirname, 'out', 'plan5-social');
 const MIRROR = path.join(__dirname, 'site', 'data', 'site-info.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'site-info.json');
-const KEYS = ['twitter', 'facebook', 'linkedin', 'youtube', 'pinterest'];
+const KEYS = ['twitter', 'facebook', 'linkedin', 'youtube', 'pinterest', 'instagram', 'tiktok'];
+
+/**
+ * PLAN-6 item 4 added instagram and tiktok. Their URLs are supplied HERE rather
+ * than read from pristine/site-info.json, because that file is a copy of live
+ * customer state and the owner has not set them — the suite must not need a
+ * data edit to test a code path.
+ */
+const NEW_URLS = {
+  instagram: 'https://www.instagram.com/insulprodcorp',
+  tiktok: 'https://www.tiktok.com/@insulprodcorp',
+};
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -134,19 +152,20 @@ const sameAs = (page) =>
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await launch();
-  const full = JSON.parse(fs.readFileSync(PRISTINE, 'utf8')).social;
+  const full = { ...JSON.parse(fs.readFileSync(PRISTINE, 'utf8')).social, ...NEW_URLS };
 
   try {
     for (const w of [1440, 375]) {
       const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
       const page = await ctx.newPage();
 
-      // ── all five set ────────────────────────────────────────────────────
+      // ── all seven set ───────────────────────────────────────────────────
       writeSocial({ ...full });
       await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
       let got = await readIcons(page);
-      note(got !== null && got.links.length === 5,
-        `${w}px: all five set -> five icons render`, JSON.stringify(got && got.links.length));
+      note(got !== null && got.links.length === KEYS.length,
+        `${w}px: all ${KEYS.length} set -> ${KEYS.length} icons render`,
+        JSON.stringify(got && got.links.length));
       if (got) {
         note(KEYS.every((k) => got.links.some((l) => l.href === full[k])),
           `${w}px: each icon links to exactly the configured URL`,
@@ -160,8 +179,9 @@ const sameAs = (page) =>
 
         const names = await axNames(page);
         const named = got.links.filter((l) => names.some((n) => n === l.aria));
-        note(named.length === 5,
-          `${w}px: all five icons have an accessible name in the real AX tree (${named.length}/5)`,
+        note(named.length === KEYS.length,
+          `${w}px: all ${KEYS.length} icons have an accessible name in the real AX tree ` +
+          `(${named.length}/${KEYS.length})`,
           JSON.stringify(got.links.map((l) => l.aria)));
 
         const footerBg = await page.$eval('footer', (f) => getComputedStyle(f).backgroundColor);
@@ -175,8 +195,8 @@ const sameAs = (page) =>
           `glyph ${got.links[0].color} on chip ${got.links[0].bg} on footer ${footerBg}`);
 
         const sa = await sameAs(page);
-        note(Array.isArray(sa) && sa.length === 5,
-          `${w}px: JSON-LD sameAs still carries all five (NB4 behaviour intact)`,
+        note(Array.isArray(sa) && sa.length === KEYS.length,
+          `${w}px: JSON-LD sameAs still carries all ${KEYS.length} (NB4 behaviour intact)`,
           JSON.stringify(sa));
       }
 
@@ -219,7 +239,7 @@ const sameAs = (page) =>
         `${w}px: the icons are keyboard reachable and show a visible focus ring on Tab`,
         JSON.stringify(ring));
 
-      await page.screenshot({ path: path.join(OUT, `five-${w}.png`), fullPage: false });
+      await page.screenshot({ path: path.join(OUT, `all-${w}.png`), fullPage: false });
 
       // ── two cleared ─────────────────────────────────────────────────────
       const partial = { ...full, twitter: '', youtube: '' };
@@ -227,11 +247,12 @@ const sameAs = (page) =>
       await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
       got = await readIcons(page);
       const want = KEYS.filter((k) => partial[k]);
-      note(got !== null && got.links.length === 3,
-        `${w}px: two cleared -> exactly three icons`, JSON.stringify(got && got.links.length));
+      note(got !== null && got.links.length === KEYS.length - 2,
+        `${w}px: two cleared -> exactly ${KEYS.length - 2} icons`,
+        JSON.stringify(got && got.links.length));
       note(got !== null && want.every((k) => got.links.some((l) => l.href === partial[k])) &&
            !got.links.some((l) => !l.href),
-        `${w}px: the surviving three are the right three, with no placeholder`,
+        `${w}px: the survivors are the right ones, with no placeholder`,
         JSON.stringify(got && got.links.map((l) => l.href)));
       // "No gaps" measured between the icons themselves, NOT from the row's
       // width: the row is a block-level flex container and stretches to the
@@ -240,24 +261,24 @@ const sameAs = (page) =>
       // rendered-but-empty slot would double one of the steps.
       const steps = got === null ? [] :
         got.links.slice(1).map((l, i) => l.left - got.links[i].left);
-      note(got !== null && got.links.length === 3 &&
+      note(got !== null && got.links.length === KEYS.length - 2 &&
            steps.every((d) => d === got.links[0].w + 8),
         `${w}px: no gap where the cleared icons were — steps between icons are ` +
         `${JSON.stringify(steps)} for ${got && got.links[0] && got.links[0].w}px icons at an 8px gap`,
         JSON.stringify(steps));
-      await page.screenshot({ path: path.join(OUT, `three-${w}.png`), fullPage: false });
+      await page.screenshot({ path: path.join(OUT, `partial-${w}.png`), fullPage: false });
 
-      // ── all five cleared ────────────────────────────────────────────────
-      writeSocial({ twitter: '', facebook: '', linkedin: '', youtube: '', pinterest: '' });
+      // ── all cleared ─────────────────────────────────────────────────────
+      writeSocial(Object.fromEntries(KEYS.map((k) => [k, ''])));
       await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
       const present = await page.evaluate(() =>
         document.querySelectorAll('[data-testid="footer-social"]').length);
       note(present === 0,
-        `${w}px: all five cleared -> the container is ABSENT from the DOM (not empty)`,
+        `${w}px: all ${KEYS.length} cleared -> the container is ABSENT from the DOM (not empty)`,
         `${present} element(s) still in the document`);
       const sa0 = await sameAs(page);
       note(sa0 === null || sa0 === undefined,
-        `${w}px: all five cleared -> JSON-LD omits sameAs entirely (NB4)`, JSON.stringify(sa0));
+        `${w}px: all ${KEYS.length} cleared -> JSON-LD omits sameAs entirely (NB4)`, JSON.stringify(sa0));
       const overflow0 = await page.evaluate(() =>
         document.documentElement.scrollWidth - document.documentElement.clientWidth);
       note(overflow0 <= 0, `${w}px: no horizontal overflow with none`, `${overflow0}px`);
@@ -268,6 +289,64 @@ const sameAs = (page) =>
   } finally {
     fs.copyFileSync(PRISTINE, MIRROR);
     await browser.close();
+  }
+
+  /**
+   * The ADMIN half. Everything above writes site-info.json directly, which
+   * proves the site renders what the file says — but the item is "the owner can
+   * set these", and nothing above goes anywhere near settings.php. A field that
+   * renders correctly and cannot be saved is not a feature.
+   *
+   * Restores the mirror afterwards; the byte-identity check below covers it.
+   */
+  const admin = await launch();
+  try {
+    const ctx = await admin.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/admin/auth.php`, { waitUntil: 'domcontentloaded' });
+    await page.fill('input[type="password"]', 'audit-pass-123');
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState('domcontentloaded');
+
+    await page.goto(`${BASE}/admin/settings.php`, { waitUntil: 'domcontentloaded' });
+    const present = await page.evaluate(() =>
+      ['social_instagram', 'social_tiktok'].filter((id) => document.getElementById(id)));
+    note(present.length === 2,
+      'Business Details offers an Instagram and a TikTok field',
+      `found: ${JSON.stringify(present)}`);
+
+    for (const [id, v] of [['social_instagram', NEW_URLS.instagram], ['social_tiktok', NEW_URLS.tiktok]]) {
+      await page.fill(`#${id}`, v);
+    }
+    await Promise.all([
+      page.waitForLoadState('domcontentloaded'),
+      // nav.php renders a Sign Out form ABOVE this one, so a bare
+      // button[type=submit] matches the wrong form.
+      page.click('form:has(#social_instagram) button:has-text("Save")'),
+    ]);
+
+    const saved = JSON.parse(fs.readFileSync(MIRROR, 'utf8')).social || {};
+    note(saved.instagram === NEW_URLS.instagram && saved.tiktok === NEW_URLS.tiktok,
+      'saving Business Details writes both new URLs to site-info.json',
+      JSON.stringify({ instagram: saved.instagram, tiktok: saved.tiktok }));
+    // settings.php rebuilds the file wholesale (invariant 4) — the five that
+    // were already there must survive a save that only touched the new two.
+    note(['twitter', 'facebook', 'linkedin', 'youtube', 'pinterest']
+           .every((k) => saved[k] === full[k]),
+      'the original five are untouched by that save',
+      JSON.stringify(saved));
+
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    const live = await readIcons(page);
+    note(live !== null && live.links.some((l) => l.href === NEW_URLS.instagram) &&
+         live.links.some((l) => l.href === NEW_URLS.tiktok),
+      'both reach the public footer from the admin, with no rebuild',
+      JSON.stringify(live && live.links.map((l) => l.href)));
+
+    await ctx.close();
+  } finally {
+    fs.copyFileSync(PRISTINE, MIRROR);
+    await admin.close();
   }
 
   const identical = fs.readFileSync(PRISTINE).equals(fs.readFileSync(MIRROR));

@@ -56,7 +56,7 @@ Changes since the site went live, **2026-07-08 → 2026-08-07** (`8902180` → `
 
 ## Owner-editable data reaching the site
 
-- **Footer social icons built.** Five fields in Business Details had no visible effect on the site at all.
+- **Footer social icons built.** Five fields in Business Details had no visible effect on the site at all. Instagram and TikTok added since (**seven**), both defaulting to empty so nothing new appears until the accounts exist.
 - **No text field in Business Details could ever be cleared** — a blank arrived as `""` and the hardcoded default rendered. Clearing now works where it makes sense, while still blocking the blanks that produced `© –2026` and `href="tel:"`.
 - **Deleting every row of a section re-seeded the hardcoded defaults**, including republishing stale privacy text after the owner removed it.
 - Services lead time, certifications, catalog PDF link, company name, slogan and founded year all wired through.
@@ -95,7 +95,7 @@ folders, and every save takes a backup first.
 **Business Details** → 36 fields: company name, short name, slogan, founded year,
 description; phone, dial string, fax, email; full street address; opening hours
 and days; ISO line plus any number of other certifications; feet-in-stock and
-minimum-order figures; five social links; any number of About paragraphs; the
+minimum-order figures; seven social links; any number of About paragraphs; the
 four brand colours and the logo; full-catalogue PDF link. These feed the navbar,
 footer, contact page, About page, search-engine structured data, and every
 `tel:` / `mailto:` link on the site. **The contact form's recipient address is

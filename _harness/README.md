@@ -98,7 +98,7 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `plan5-spectable.js` | 4.29 — a spec table with no rows renders nothing, across all 42 product pages |
 | `plan5-listeners.js` | 4.26 — the ref-callback listener leak, counted over CDP `DOMDebugger.getEventListeners` |
 | `plan5-throttle.js` | 4.14 — the login throttle. **Needs the ten-server fleet on :8130–:8139** (below) |
-| `plan5-social.js` | 4.11b — footer social icons, and the "all five cleared ⇒ no container" half of NB4 |
+| `plan5-social.js` | 4.11b — footer social icons (**seven** since PLAN-6 item 4), the "all cleared ⇒ no container" half of NB4, and the admin round-trip: Business Details offers the fields, saving writes them, and both reach the footer with no rebuild. Counts derive from `KEYS`, so an eighth platform does not need this file edited in six places |
 | `plan5-images.js` | 4.32 — image weight, dimension attributes, lazy-loading, and every product photo still reaching the page |
 | `plan5b-sidebar.js` | `sidebar-active-border` — the selected product's left indicator, measured as **computed style**, plus React's style-conflict warning on a development bundle |
 | `plan5b-sitemap.js` | `sitemap/dashboard` — the served `/sitemap.xml` diffed against `SEO_DEFAULT`, checked against `robots.txt`, and every route `<loc>` rendered and matched to its own canonical. **Fetches over HTTP**, not off disk: the sitemap is generated now, and a rewrite that fails delivers the SPA shell with a 200, so it fails loudly on a non-XML content-type |

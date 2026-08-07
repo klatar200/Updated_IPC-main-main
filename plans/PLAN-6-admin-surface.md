@@ -211,7 +211,7 @@ Extend `plan3-autoreply.js`:
 
 ---
 
-## 4. Social platforms are fixed at five
+## 4. Social platforms are fixed at five — ✅ SHIPPED 2026-08-07
 
 ### Evidence
 
@@ -291,6 +291,14 @@ Out of scope, and deliberately:
   for no business benefit. The `noreply@insulationproducts.com` literal appears
   twice in `contact.php` and should become one constant the day the domain
   changes — that is a config change, not an admin field.
+
+## Status
+
+| item | state |
+|---|---|
+| 4 — social platforms | ✅ **shipped** 2026-08-07. `plan5-social` 31 → 35. See `WHATS_LEFT.md` §1b. |
+| 3 — auto-reply copy | open |
+| 1 — product families | open |
 
 ## Order I would take them
 
