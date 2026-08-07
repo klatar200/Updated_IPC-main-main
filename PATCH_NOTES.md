@@ -87,6 +87,60 @@ Changes since the site went live, **2026-07-08 → 2026-08-07** (`8902180` → `
 - The product photo is the largest element painted — switched to eager; the footer logo to lazy.
 - Long-cache scoped to `/assets/` only. It had covered owner-uploaded images and the logo, meaning a replacement would not reach a returning visitor for a year.
 
+## What the owner can now change without a developer
+
+Nine admin tabs. Everything below writes to one of three JSON files or two upload
+folders, and every save takes a backup first.
+
+**Business Details** → 36 fields: company name, short name, slogan, founded year,
+description; phone, dial string, fax, email; full street address; opening hours
+and days; ISO line plus any number of other certifications; feet-in-stock and
+minimum-order figures; five social links; any number of About paragraphs; the
+four brand colours and the logo; full-catalogue PDF link. These feed the navbar,
+footer, contact page, About page, search-engine structured data, and every
+`tel:` / `mailto:` link on the site. **The contact form's recipient address is
+this record's email field** — changing it redirects every future lead.
+
+**Page Content** → 96 fixed copy fields in 12 groups, plus 16 add/remove/reorder
+lists:
+
+- Hero: badge, three headline lines, sub-headline, both button labels **and which
+  page each button goes to**
+- Page headers for Home, Services, Industries, About, FAQ, Contact and Privacy
+- Navigation labels and footer headings
+- 45 fields covering every label, placeholder, hint and error message on the
+  contact form
+- Products & Services cards, trust-bar stats, industries grid — each with an icon
+  picker
+- Industries detail blocks: applications, linked products (`SKU | Name`,
+  validated against the real catalogue so a typo cannot ship a dead link),
+  certification chips
+- Value-added services: description, lead time, bullet points, optional brochure
+- About timeline, team & capabilities, certifications
+- FAQ questions, grouped by category
+- Company menu, footer quick links, hero proof points, hero trust ticker
+- Privacy policy sections
+- **Search-engine title and description for all nine pages**
+- Contact page sidebar tips
+
+**Products** → add, edit and delete. Per product: SKU, name, caption, part type,
+description, specifications summary, operating temperature, badges, photo, data
+sheet label, two spec tables (row editor or raw JSON), and additional PDFs.
+
+**Uploads** → product photos land in `/uploads/images/` named after the SKU with
+the product's photo link set automatically; data sheets replace in place in
+`/pdfs/` so existing links keep working, and the upload refuses to overwrite
+another product's sheet.
+
+**Read-only tabs** → Inquiries, Audit Log, Backups (restore any of the last 30),
+Change Password, Help.
+
+Two behaviours worth knowing. Changing a brand colour re-skins the whole site and
+the readable text colour is recomputed automatically — the picker shows a live
+contrast ratio and a plain-language warning, but never blocks the save. And
+clearing a field now genuinely removes it from the site rather than falling back
+to a hardcoded default, which was broken until this release.
+
 ## Infrastructure and documentation
 
 - SPA rewrite in `.htaccess` — without it every deep link and refresh 404'd.
