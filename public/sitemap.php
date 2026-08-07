@@ -8,7 +8,7 @@
  *
  * ── Why this is PHP and not a file ──────────────────────────────────────────
  *
- * The site has 9 routes and 42 product pages, each of which is canonical to
+ * The site has 10 routes and 42 product pages, each of which is canonical to
  * itself (`/products?productId=<id>`). The static sitemap listed the 9 and none
  * of the 42. Writing the 42 out by hand was rejected, and rightly: Rick adds and
  * deletes products from the admin, the file lives in the deploy tree, and the
@@ -28,7 +28,7 @@
  *
  * ── Failure behaviour ───────────────────────────────────────────────────────
  *
- * If the catalog is missing, unreadable or unparseable this still emits the 9
+ * If the catalog is missing, unreadable or unparseable this still emits the 10
  * static routes and a 200. The alternatives are both worse: a 500 tells the
  * crawler the whole sitemap is broken, and an empty <urlset> tells it the site
  * has no pages. Degrading to what we know for certain is the safe direction,
@@ -39,7 +39,7 @@
  */
 
 /**
- * The editorial half — the 9 public routes, their crawl hints, and nothing
+ * The editorial half — the 10 public routes, their crawl hints, and nothing
  * derived. This list is the one thing here a human maintains; it must stay in
  * step with SEO_DEFAULT in src/App.jsx, which is what _harness/plan5c-sitemap.js
  * diffs it against.
@@ -48,6 +48,7 @@ $ROUTES = [
     ['/',           'weekly',  '1.0'],
     ['/products',   'daily',   '0.9'],
     ['/dashboard',  'daily',   '0.8'],
+    ['/datasheets', 'weekly',  '0.8'],
     ['/industries', 'monthly', '0.7'],
     ['/services',   'monthly', '0.7'],
     ['/about',      'monthly', '0.6'],
@@ -148,7 +149,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 
   <url>
     <loc><?= sitemap_loc($ORIGIN, $path) ?></loc>
-<?php if ($lastmod !== null && ($path === '/products' || $path === '/dashboard')): ?>
+<?php if ($lastmod !== null && ($path === '/products' || $path === '/dashboard' || $path === '/datasheets')): ?>
     <lastmod><?= $lastmod ?></lastmod>
 <?php endif; ?>
     <changefreq><?= $freq ?></changefreq>

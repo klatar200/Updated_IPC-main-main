@@ -23,7 +23,7 @@
  *     a sitemap whose URLs the pages disown is worse than no sitemap
  *   - ADDING a product to the live catalog adds its URL, with no rebuild
  *   - DELETING one removes its URL
- *   - a corrupt or missing catalog degrades to the 9 static routes instead of
+ *   - a corrupt or missing catalog degrades to the 10 static routes instead of
  *     500ing or emitting an empty urlset, and the document stays clean XML with
  *     no PHP diagnostic printed ahead of the declaration
  *   - nothing listed is Disallow'd by robots.txt
@@ -124,7 +124,7 @@ const writeMirror = (obj) => fs.writeFileSync(MIRROR, JSON.stringify(obj, null, 
       'no PHP diagnostic leaked into the document',
       (s.body.match(/.{0,80}(Warning|Notice|Fatal error|Deprecated):.{0,80}/i) || [''])[0]);
 
-    // ── the 9 routes, still ──────────────────────────────────────────────
+    // ── the 10 routes, still ──────────────────────────────────────────────
     const declared = declaredRoutes();
     const missingRoutes = declared.filter((r) => !s.routes.includes(r));
     note(missingRoutes.length === 0,
@@ -198,7 +198,7 @@ const writeMirror = (obj) => fs.writeFileSync(MIRROR, JSON.stringify(obj, null, 
     // so. What IS proved is that a corrupt catalog cannot take the sitemap down.
     note(broken.status === 200 && broken.routes.length === declared.length && broken.ids.length === 0
          && intact(broken),
-      'an unparseable catalog degrades to the 9 static routes — not a 500, not an empty urlset, ' +
+      'an unparseable catalog degrades to the 10 static routes — not a 500, not an empty urlset, ' +
       'and the document is still clean XML',
       `status ${broken.status}, ${broken.routes.length} routes, ${broken.ids.length} products` +
       (intact(broken) ? '' : ` — document not intact: ${firstDiagnostic(broken)}`));

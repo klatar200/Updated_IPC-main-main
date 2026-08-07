@@ -49,7 +49,7 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // `plan2-trunc.js` is re-run against a real max_input_vars=100 server at the new
 // count — that is the assertion that matters; this one is bookkeeping.
 // (PLAN-6 §0, invariant 6.)
-const POSTED_BEFORE = 435;
+const POSTED_BEFORE = 439;
 
 const results = [];
 const note = (ok, what, detail = '') => {

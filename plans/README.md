@@ -4,9 +4,14 @@
 see `WHATS_LEFT.md` §1b and `PATCH_NOTES.md`. They are kept as the record of how
 each was approached and what each was measured against.
 
-**[PLAN-6](PLAN-6-admin-surface.md) is the only open plan.** It is not a
-bug-closing plan like the others: it widens what the owner can change without a
-developer, from a review of the admin's editable surface on 2026-08-07.
+**PLAN-6 is complete and merged** (items 4, 3 and 1, 2026-08-07).
+
+**[PLAN-7](PLAN-7-marketing-imagery.md) is the only open plan.** It is item 2 of
+the same 2026-08-07 admin-surface review — the one held back for a scope
+decision. Like PLAN-6 it is not a bug-closing plan, with one exception: item 1
+closes a real hazard in `_harness/backdrop.js`, which silently skips a raster
+background layer and would report a passing contrast number for text sitting on
+a photograph.
 
 ---
 
@@ -51,15 +56,34 @@ Plan 5 was followed by two unplanned rounds recorded only in `WHATS_LEFT.md`:
 
 ---
 
-## Plan 6 — widening the admin surface (open)
+## Plan 6 — widening the admin surface (complete)
 
 | Plan | Items | Effort | Risk | Why here |
 |---|---|---|---|---|
 | **[6 — Admin surface](PLAN-6-admin-surface.md)** | product families, auto-reply copy, social platforms | M | Med | Not defects. Three places where routine business change currently needs a developer. Item 1 is also a **latent defect** — the eleven category names are three separate literals that agree today and nothing keeps them agreeing |
 
-Take them **4, then 3, then 1** — ascending risk and blast radius. Items 1 and 3
-both add fields under `content.php`'s `max_input_vars` sentinel; read §0 of the
-plan before either.
+Shipped **4, then 3, then 1** — ascending risk and blast radius. Items 1 and 3
+both added fields under `content.php`'s `max_input_vars` sentinel; the posted
+variable count moved 421 → 424 → **435**, each step re-run against a real
+`max_input_vars=100` server. §0 of that plan is the procedure for any future
+field.
+
+---
+
+## Plan 7 — marketing imagery (open)
+
+| Plan | Items | Effort | Risk | Why here |
+|---|---|---|---|---|
+| **[7 — Marketing imagery](PLAN-7-marketing-imagery.md)** | harness raster gap, four image slots, owner-selectable images | M | Med | The homepage, About and Services pages paint no photography at all while the customer's own photographs ship to the server unused. Item 1 is a **latent harness defect** — a `url()` background layer is silently skipped by the contrast core, so the first photo behind text would be scored as if it were not there |
+
+**Item 3b (the datasheet index) shipped 2026-08-07** — it was not in the original
+plan, needed no data-shape change and no design decision, and turned up a live
+broken `pdfUrl` plus the fact that nothing in the harness had ever checked one.
+
+Take item **1 first** — it is the measurement that makes item 2 checkable, and
+it is worth landing whether or not any image ships. Item 3 adds fields under the
+same `max_input_vars` sentinel; read PLAN-6 §0 before it. Item 2 needs a scope
+decision (PLAN-7 §5).
 
 A fourth candidate — owner-editable marketing imagery — was reviewed and left
 out. It needs a scope decision first and may need photography rather than code.

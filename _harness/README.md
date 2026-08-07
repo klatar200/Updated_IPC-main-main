@@ -28,6 +28,10 @@ php -S 127.0.0.1:8124 -t _harness/site -c _harness/php-trunc.ini   _harness/rout
 php -S 127.0.0.1:8125 -t _harness/site -c _harness/php-nb2-off.ini _harness/router.php &   # plan2-trunc only
 ```
 
+`sync.sh` also mirrors `pdfs/` (8 MB, copied only when newer). Without it every
+`pdfUrl` 404s for a reason that has nothing to do with the site and
+`plan7-datasheets.js` measures the harness instead of the page.
+
 `-t _harness/site` is not optional: `router.php` returns `false` for a real file
 so `php -S` serves it, and it serves it from the **docroot**, not from the
 router's own directory.

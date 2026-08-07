@@ -29,7 +29,7 @@
  * catalog and is reached through an .htaccess rewrite at the same address. This
  * suite therefore FETCHES /sitemap.xml over HTTP instead of reading the file —
  * which is what a crawler does anyway, and it now also proves the rewrite is
- * wired. Its own subject is unchanged: the 9 declared routes and whether
+ * wired. Its own subject is unchanged: the 10 declared routes and whether
  * /dashboard belongs among them. The product half is `plan5c-sitemap.js`.
  *
  * Usage: node _harness/plan5b-sitemap.js
@@ -90,7 +90,7 @@ const disallowed = () =>
   const listed = await sitemapPaths();
   const blocked = disallowed();
 
-  note(declared.length === 9,
+  note(declared.length === 10,
     `SEO_DEFAULT declares ${declared.length} public routes`, JSON.stringify(declared));
 
   const missing = declared.filter((r) => !listed.includes(r));
