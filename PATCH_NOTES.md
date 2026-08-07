@@ -112,6 +112,8 @@ lists:
 - 45 fields covering every label, placeholder, hint and error message on the
   contact form, plus the auto-reply's two response promises and an optional
   temporary notice
+- Product families: the categories the catalogue groups by, in order, with the
+  product count beside each
 - Products & Services cards, trust-bar stats, industries grid — each with an icon
   picker
 - Industries detail blocks: applications, linked products (`SKU | Name`,

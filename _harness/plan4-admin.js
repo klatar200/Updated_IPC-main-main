@@ -40,15 +40,16 @@ const PRISTINE = path.join(__dirname, 'pristine');
 
 // Measured on the unmodified page. 2026-08-06: 421 (the PLAN-4 doc says 423 —
 // the same over-count the WHATS_LEFT §2 AMENDED note corrected for the copy-key
-// figure; asserted as measured, not as documented). 2026-08-07: **424**, after
-// PLAN-6 item 3 added three auto-reply copy fields.
+// figure; asserted as measured, not as documented). 2026-08-07: **424** after
+// PLAN-6 item 3 added three auto-reply copy fields, then **435** after item 1
+// added the eleven-row Product Families section.
 //
 // This number is allowed to move. What is NOT allowed is moving it silently, so
 // it is updated in the same commit as any field that changes it, and
 // `plan2-trunc.js` is re-run against a real max_input_vars=100 server at the new
 // count — that is the assertion that matters; this one is bookkeeping.
 // (PLAN-6 §0, invariant 6.)
-const POSTED_BEFORE = 424;
+const POSTED_BEFORE = 435;
 
 const results = [];
 const note = (ok, what, detail = '') => {

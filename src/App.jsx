@@ -307,7 +307,9 @@ const FOOTER_LINKS = [
  */
 function Navbar({ products = [], catalogFailed = false }) {
   const site = useSiteInfo();
-  const { companyNav, copy } = useContent();
+  const content = useContent();
+  const { companyNav, copy } = content;
+  const order = useMemo(() => familyOrder(content), [content]);
   const nc = copy.nav;
   const [page] = useSearchParam("page");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -326,7 +328,8 @@ function Navbar({ products = [], catalogFailed = false }) {
   };
 
   // Derive unique, sorted product categories from live catalog.
-  // Uses FAMILY_ORDER (module-level) — single source of truth, cannot drift.
+  // Ordered by the OWNER's family list (PLAN-6 item 1), read through
+  // familyOrder() so an empty list falls back instead of losing the order.
   const categories = useMemo(() => {
     // CR-2 fix: reuse SIDEBAR_EXCLUDED (module-level) — single source of truth
     const seen = new Set();
@@ -334,13 +337,14 @@ function Navbar({ products = [], catalogFailed = false }) {
       if (!SIDEBAR_EXCLUDED.has(p.sku || "") && p.partType)
         seen.add(p.partType);
     }
-    // Sort by FAMILY_ORDER first, then alphabetically for any unlisted
-    const result = FAMILY_ORDER.filter((f) => seen.has(f));
+    // Sort by the configured order first, then append anything unlisted — a
+    // product whose family the owner removed must still be reachable.
+    const result = order.filter((f) => seen.has(f));
     for (const f of seen) {
       if (!result.includes(f)) result.push(f);
     }
     return result;
-  }, [products]);
+  }, [products, order]);
 
   // Fix 2: companyItems is static — reference module-level COMPANY_ITEMS constant
 
@@ -5117,6 +5121,65 @@ const CONTACT_TIPS = [
   "Any special specs or certifications",
 ];
 
+/**
+ * The built-in product families, in catalogue order.
+ *
+ * PLAN-6 item 1 made this owner-editable: the live list is
+ * `content.json`'s `productFamilies`, edited from Page Content, and this array
+ * is now the DEFAULT rather than the only copy. It used to exist three times —
+ * here, in `admin/add.php` and in `admin/edit.php` — three literals that agreed
+ * only by luck. Both PHP copies are gone; they read this list through
+ * `load_content()` now.
+ *
+ * Read it through `familyOrder(content)`, never directly, or an owner edit is
+ * silently ignored at that call site.
+ */
+const FAMILY_ORDER = [
+  "Polyolefin Heat Shrink",
+  "PVDF Heat Shrink",
+  "Dual-Wall Heat Shrink",
+  "Medical Grade Heat Shrink",
+  "Elastomeric Heat Shrink",
+  "Fiberglass Sleeving",
+  "Expandable Sleeving",
+  "End Cap",
+  "Tape",
+  "Adhesive",
+  "Accessory",
+];
+
+/**
+ * The family order to render with: the owner's list if he has one, otherwise
+ * the built-in defaults.
+ *
+ * AN EMPTY LIST FALLS BACK, and that is a deliberate departure from invariant 3.
+ * Everywhere else an empty array is a real deletion — deleting every privacy row
+ * must not republish stale legal text, which is the incident that invariant
+ * exists for.
+ *
+ * The reason it is wrong HERE is not the obvious one, and the obvious one is
+ * false: grouping happens on each product's own `partType`, so every family
+ * heading still renders with an empty list. Nothing lands in "Other". What
+ * breaks is `openFamilies` below, which initialises to
+ * `new Set(order.concat(["Other"]))` — an empty order leaves every accordion
+ * CLOSED. Measured: 41 reachable product links in the sidebar become 0, and the
+ * curated order degrades to catalogue order. `plan6-families.js` asserts both,
+ * and an earlier assertion built on the "all under Other" story passed with
+ * this fallback removed.
+ *
+ * `mergeContent` is untouched; the departure lives here, at the one call site
+ * that needs it, so it cannot leak into any other section.
+ *
+ * Rows with a blank name are dropped rather than rendered as an empty heading.
+ */
+function familyOrder(content) {
+  const rows = content && Array.isArray(content.productFamilies) ? content.productFamilies : null;
+  const names = (rows || [])
+    .map((r) => (r && typeof r.name === "string" ? r.name.trim() : ""))
+    .filter(Boolean);
+  return names.length ? names : FAMILY_ORDER;
+}
+
 function contentDefaults() {
   return {
     features: FEATURES_DATA,
@@ -5133,7 +5196,11 @@ function contentDefaults() {
     heroProofPoints: HERO_PROOF,
     heroTrust: HERO_TRUST.map((t) => ({ text: t })),
     privacySections: PRIVACY_SECTIONS,
-    contactTips: CONTACT_TIPS.map((t) => ({ text: t })),
+    // PLAN-6 item 1. Built from FAMILY_ORDER so there is still exactly one copy
+  // of the eleven names in the tree; content.php offers them as an ordered,
+  // repeatable list. Read via familyOrder(), which handles the empty case.
+  productFamilies: FAMILY_ORDER.map((name) => ({ name })),
+  contactTips: CONTACT_TIPS.map((t) => ({ text: t })),
     seo: SEO_DEFAULT,
     copy: COPY_DEFAULTS,
   };
@@ -5585,19 +5652,6 @@ function ThemeInjector() {
 /**
  * Product family order and display labels for sidebar grouping.
  */
-const FAMILY_ORDER = [
-  "Polyolefin Heat Shrink",
-  "PVDF Heat Shrink",
-  "Dual-Wall Heat Shrink",
-  "Medical Grade Heat Shrink",
-  "Elastomeric Heat Shrink",
-  "Fiberglass Sleeving",
-  "Expandable Sleeving",
-  "End Cap",
-  "Tape",
-  "Adhesive",
-  "Accessory",
-];
 
 /**
  * IPC Product selector sidebar — grouped by product family, collapsible sections.
@@ -5613,6 +5667,7 @@ const SIDEBAR_EXCLUDED = new Set(["VALUE-ADDED", ""]);
 // URL. The family filter pills and the family accordion are UI state, not
 // navigation, so they stay <button>. (PLAN-1 4.21)
 function ProductSidebar({ products, selectedId, onNavigate }) {
+  const order = familyOrder(useContent());
   const families = useMemo(() => {
     const map = new Map();
     for (const p of products) {
@@ -5622,17 +5677,21 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
       map.get(fam).push(p);
     }
     const ordered = new Map();
-    for (const key of FAMILY_ORDER) {
+    for (const key of order) {
       if (map.has(key)) ordered.set(key, map.get(key));
     }
+    // Anything the configured order does not mention still gets a heading. A
+    // family renamed out from under its products must never make them vanish —
+    // partType is stored per product and is NOT rewritten by a content save.
     for (const [key, val] of map) {
       if (!ordered.has(key)) ordered.set(key, val);
     }
     return ordered;
-  }, [products]);
+  }, [products, order]);
 
+  // Every family open on first paint, including any not in the configured list.
   const [openFamilies, setOpenFamilies] = useState(
-    () => new Set(FAMILY_ORDER.concat(["Other"])),
+    () => new Set(order.concat(["Other"])),
   );
   const [mobileFamily, setMobileFamily] = useState(null); // null = "All"
 
@@ -5837,6 +5896,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                   }}
                 >
                   <span
+                    data-testid="family-heading"
                     className="text-xs font-bold uppercase tracking-widest"
                     style={{ color: hasActive ? "var(--brand-primary-text)" : "#9ca3af" }}
                   >

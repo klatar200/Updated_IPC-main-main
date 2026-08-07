@@ -115,4 +115,52 @@
       reindex(s.getAttribute('data-section'));
     });
   });
+
+  /**
+   * PLAN-6 item 1 — warn before a family rename orphans the products in it.
+   *
+   * Each product stores its OWN partType. Renaming "Tape" to "Tapes" in this
+   * list does not touch the catalogue, so every taped product keeps saying
+   * "Tape" and drops out of the renamed family on the public site. That is the
+   * correct behaviour — a content save must never bulk-rewrite
+   * products-all.json behind the owner — but it is not what anyone expects, so
+   * it gets said out loud before the save commits.
+   *
+   * The server rendered the original name and the product count onto each row,
+   * so this compares against what was on disk, not against another input.
+   *
+   * Deliberately a warning and not a block: it is his catalogue, and the fix
+   * (re-save those products under the new name) is one he may well be about to
+   * do. Confirming proceeds; cancelling leaves the form exactly as typed.
+   */
+  // ANCHOR ON THE FORM'S OWN CONTENT, not on method="POST". nav.php renders a
+  // Sign Out form 850 lines earlier, so querySelector('form[method="POST"]')
+  // returns THAT one and this listener silently attaches to the wrong form —
+  // which is exactly what happened, and the suite caught it. form_complete is
+  // unique to the content form and is the field this whole page is built
+  // around, so it is the right thing to match on.
+  var completeField = document.querySelector('[name="form_complete"]');
+  var form = completeField ? completeField.closest('form') : null;
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      var orphaned = [];
+      document.querySelectorAll('[data-ipc-family-count]').forEach(function (row) {
+        var was = row.getAttribute('data-ipc-family-name') || '';
+        var n = parseInt(row.getAttribute('data-ipc-family-count'), 10) || 0;
+        var input = row.querySelector('input[type="text"]');
+        var now = input ? input.value.trim() : was;
+        if (was !== '' && n > 0 && now !== was) {
+          orphaned.push('  • "' + was + '" \u2192 "' + (now || '(removed)') + '" — ' +
+                        n + ' product' + (n === 1 ? '' : 's'));
+        }
+      });
+      if (!orphaned.length) return;
+      var msg = 'Renaming a product family does not rename the products in it.\n\n' +
+                orphaned.join('\n') + '\n\n' +
+                'Those products keep their old category until you re-save each one, ' +
+                'so they will appear under the old name on the site.\n\n' +
+                'Save anyway?';
+      if (!window.confirm(msg)) e.preventDefault();
+    });
+  }
 })();

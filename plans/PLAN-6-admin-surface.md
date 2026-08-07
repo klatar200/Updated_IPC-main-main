@@ -40,7 +40,7 @@ The sentinel is.
 
 ---
 
-## 1. Product families are hardcoded in three places
+## 1. Product families are hardcoded in three places — ✅ SHIPPED 2026-08-07
 
 ### Evidence (measured 2026-08-07)
 
@@ -99,11 +99,20 @@ Then:
 ### Non-negotiable constraints
 
 - **An empty family list must not empty the catalogue.** If the owner deletes
-  every row, the site must fall back to the hardcoded default rather than
-  rendering 42 products under `"Other"`. This is the one place the plan
-  deliberately departs from invariant 3, and the departure needs its own inline
-  comment saying so, because it looks like the `mergeContent` bug being
-  reintroduced.
+  every row, the site must fall back to the hardcoded default. This is the one
+  place the plan deliberately departs from invariant 3, and the departure needs
+  its own inline comment saying so, because it looks like the `mergeContent` bug
+  being reintroduced.
+
+  > **CORRECTED 2026-08-07 during execution.** This paragraph said an empty list
+  > would render "42 products under `Other`". **It does not** — grouping is on
+  > each product's own `partType`, so every heading still renders, and an
+  > assertion built on that story passed with the fallback removed. The real
+  > cost, measured: `openFamilies` initialises to
+  > `new Set(order.concat(["Other"]))`, so an empty order leaves every accordion
+  > CLOSED — **41 reachable product links become 0** — and the curated order
+  > degrades to catalogue order. The fallback is still right; the reason was
+  > wrong.
 - **Renaming a family does not rename products.** `partType` is stored per
   product; renaming `"Tape"` to `"Tapes"` orphans every taped product into
   `"Other"`. The editor must say how many products use a family, next to its
@@ -112,14 +121,16 @@ Then:
   is exactly the kind of thing this codebase has been removing.
 - `"Other"` stays reserved and is not editable (`SIDEBAR_EXCLUDED`,
   `App.jsx:5614`).
-- §0 applies: 11 new fields, so the count moves 421 → 432. Measure, don't assume.
+- §0 applies: 11 new fields. Predicted 421 → 432; **measured 424 → 435** (item 3 had already moved it by three). Measure, don't assume — which is the point.
 
 ### Acceptance
 
 New suite `plan6-families.js`, plus one addition to `lint.php`:
 
-- the three literals are down to one — a source scan finds `$partTypes` in
-  neither `add.php` nor `edit.php`, and no second copy of the list anywhere
+- the three literals are down to **two** — a source scan finds `$partTypes` in
+  neither `add.php` nor `edit.php`. **Not one**: a single copy across PHP and JS
+  is not achievable without a build step, so the pattern is `copydrift`'s —
+  two defaults, and `lint.php` fails when they disagree or when a third returns
 - a family added in the admin appears in the public sidebar, in the position it
   was placed, without a rebuild
 - reordering rows reorders the public sidebar
@@ -298,7 +309,7 @@ Out of scope, and deliberately:
 |---|---|
 | 4 — social platforms | ✅ **shipped** 2026-08-07. `plan5-social` 31 → 35. See `WHATS_LEFT.md` §1b. |
 | 3 — auto-reply copy | ✅ **shipped** 2026-08-07. `plan3-autoreply` 10 → 22, posted count 421 → 424. Third field is `autoReplyNotice`, not the `autoReplySignoff` this plan named — a temporary-closure line is worth more than renaming the urgent-contact lead-in. See `WHATS_LEFT.md` §4m. |
-| 1 — product families | open |
+| 1 — product families | ✅ **shipped** 2026-08-07. New suite `plan6-families` 13/13, posted count 424 → 435. Two defaults remain (PHP + JS) held together by a new `lint.php` drift check — one copy across two languages needs a build step. See `WHATS_LEFT.md` §4n. |
 
 ## Order I would take them
 

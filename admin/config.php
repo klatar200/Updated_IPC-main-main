@@ -501,6 +501,54 @@ function load_content(): array {
     return is_array($data) ? $data : [];
 }
 
+/**
+ * The built-in product families, in catalogue order.
+ *
+ * THIS IS A SECOND COPY OF src/App.jsx's FAMILY_ORDER, and that is deliberate.
+ * One copy across two languages is not achievable without a build step, and
+ * this codebase already has an answer for exactly this shape of problem:
+ * `$COPY_GROUPS` here and `COPY_DEFAULTS` in App.jsx are two copies kept honest
+ * by `_harness/copydrift.js`, which FAILS the build when they diverge. The same
+ * check now covers this list (`lint.php` -> "family drift"), so the pair cannot
+ * drift silently the way the three `$partTypes`/FAMILY_ORDER literals could.
+ *
+ * What changed is not the number of copies — it is that a copy which disagrees
+ * is now a build failure instead of an invisible defect.
+ */
+const IPC_DEFAULT_FAMILIES = [
+    'Polyolefin Heat Shrink', 'PVDF Heat Shrink', 'Dual-Wall Heat Shrink',
+    'Medical Grade Heat Shrink', 'Elastomeric Heat Shrink', 'Fiberglass Sleeving',
+    'Expandable Sleeving', 'End Cap', 'Tape', 'Adhesive', 'Accessory',
+];
+
+/**
+ * The product family names, in order — the owner's list if he has one,
+ * otherwise the built-in defaults.
+ *
+ * MIRRORS familyOrder() in src/App.jsx, and the fallback behaviour must match:
+ * an EMPTY list falls back rather than being honoured as a deletion. That is a
+ * deliberate departure from the "empty array is a real deletion" rule the other
+ * content sections follow (invariant 3). Measured reason: with no order the
+ * catalogue sidebar initialises every family accordion CLOSED and its 41
+ * reachable product links become 0. (It does NOT drop everything into "Other" —
+ * that was the first guess and it is wrong; see familyOrder() in src/App.jsx.)
+ *
+ * These eleven names used to be a literal in add.php and another in edit.php,
+ * alongside App.jsx's. `_harness/plan6-families.js` asserts there is now exactly
+ * one copy in the tree; `_harness/lint.php` fails the build if a second appears.
+ */
+function ipc_product_families(): array {
+    $rows = load_content()['productFamilies'] ?? null;
+    $names = [];
+    if (is_array($rows)) {
+        foreach ($rows as $r) {
+            $n = is_array($r) ? trim((string)($r['name'] ?? '')) : '';
+            if ($n !== '' && !in_array($n, $names, true)) $names[] = $n;
+        }
+    }
+    return $names ?: IPC_DEFAULT_FAMILIES;
+}
+
 // Helper: save editable page content. Mirrors save_site_info(): timestamped
 // backup (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
 function save_content(array $content): bool {
