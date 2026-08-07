@@ -223,6 +223,27 @@ Ordered by value. Nothing here blocks the upload.
 
   The real fix is a design decision on the page header — darken the gradient's right stop, put the eyebrow on a solid chip, or drop the eyebrow to the same ink as the title and accept losing the two-tone. **Logged, not changed, by Keagan's decision 2026-08-06 (§3).** Affects all nine page headers.
 
+  **`CORRECTED` 2026-08-07 — the table above is measured over the wrong extent,
+  and the conclusion drawn from it is wrong.** `brandtext.js` samples a gradient
+  across the **element's box**. The eyebrow's `<div>` is **1232 px wide and its
+  text ink is 83 px** (7%), so 1150 px of gradient the glyphs never touch was
+  being scored. Sampled under the actual glyphs the background barely moves —
+  `rgb(1,99,166)` → `rgb(3,103,169)` — and **white measures 5.97–6.29:1**,
+  comfortably AA at 12 px. The `#ffffff` row above reads "large-text only" only
+  because it was scored to the far end of a box the eyebrow does not occupy.
+
+  The **failure** was never wrong: the shipped colour scores 1.13–1.20 either
+  way, and the eyebrow really is close to invisible. What was wrong was the
+  evaluation of the **candidates**, and therefore the claim that "nothing passes
+  AA there without changing the page-header design". **The fix is one line:
+  white ink.** Rendered against the real page in
+  `_harness/out/mockups/eyebrow-*.png` (A current, B white, C solid chip,
+  D darker gradient, E removed) by `_harness/mockup-brandtext.js`.
+
+  **This affects `brandtext.js` generally.** Any gradient-backed failure whose
+  text does not fill its box is a candidate for re-measurement; anything on a
+  solid background is unaffected. Measuring ink extent is the outstanding fix.
+
 - [ ] **brand-text-on-brand-surface** Found 2026-08-06 by `_harness/brandtext.js`, the gradient-aware replacement for `fgsurfaces.js`. Scoring every element that paints its own text in a brand colour against its **real** composited background gives **34 of 54 (colour × background) combinations meeting AA** — a materially different picture from the "12 remaining, all `brand-gradient-mixed-ends`" recorded in §4i, which was produced by a tool that deferred every gradient. Worst first:
 
   | ratio | needs | what | where |
@@ -237,6 +258,35 @@ Ordered by value. Nothing here blocks the upload.
   The `→` glyphs and the type chips are the volume, and neither is a gradient case — they are plain `--brand-accent` / `--brand-accent-2` used as text on light surfaces, i.e. exactly what `brand-color-as-foreground` was meant to catch. They were missed because that work converted the sites it found by **source scan for `var(--brand-primary)` / `var(--brand-accent-2)` in a `color:` position** and these use `--brand-accent`, a variable that was never in the target list.
 
   Not started, and **not** a one-line change: `--brand-accent` (`#00BEF2`) is the *bright* accent and darkening it enough for white (needs ~4.5:1) moves it a long way from the brand. Options are a text-safe `--brand-accent-text-strong`, or accepting that these glyphs are decorative and giving them `aria-hidden` plus a non-brand colour. **Escalate the colour question before changing.** Baseline to beat: `node _harness/brandtext.js` → 34/54.
+
+  **`AMENDED` 2026-08-07 — the population splits, and most of it needs no new
+  colour at all.** Measured against the surfaces the text really sits on:
+
+  | what | where | on | now | `--brand-accent-text` `#0d7594` |
+  |---|---|---|---|---|
+  | 124 `→` bullets | `/industries`, `/services` | **white** (solid) | 2.18 | **5.26 PASS** |
+  | 41 type chips | `/dashboard` | **flat tint** (solid) | 2.79 | **4.72 PASS** |
+  | ~15 accent sub-lines | `/industries`, `/products` | dark navy | 3.25–4.46 | 1.34 — needs a *lighter* accent, not darker (`#7fdcf7` → 4.54, white → 7.07) |
+  | 2 hero stat figures | `/` | hero | 2.78–2.94 | large text, bar is 3.0 — marginal |
+
+  So **165 of the failing elements are covered by a variable that already
+  exists**, and `--brand-accent` itself does not move: it stays bright
+  everywhere it is a background or a border, and only the *text* call sites
+  change. That is the completion of `brand-color-as-foreground` — which missed
+  these because it scanned for `var(--brand-primary)` / `var(--brand-accent-2)`
+  and these use `var(--brand-accent)` — rather than the new design decision the
+  paragraph above assumes. The dark-surface group does need a lighter
+  derivative, which `textSafeOn()` already knows how to produce.
+
+  The remaining judgement is **taste, not compliance**: the bullets go from
+  bright cyan to teal. Rendered at `_harness/out/mockups/arrows-{A,B,C}-*.png`
+  (current / teal / neutral grey). The chip change is imperceptible at 10 px —
+  41 recoloured and the before/after is indistinguishable.
+
+  ⚠️ Some of the *other* entries in the 34/54 sit on gradients and may be
+  over-reported — see the `CORRECTED` note under
+  `page-header-eyebrow-contrast`. The four rows above are all on **solid**
+  backgrounds, so those numbers are accurate.
 
 - [ ] **brand-gradient-mixed-ends** Found 2026-08-06 while fixing `brand-ink-translucent`. Two heading strips use a gradient running from a **hardcoded dark** color to an **owner-controlled** one — `linear-gradient(135deg, #0a2a52, var(--brand-primary))` on the product-detail header (`src/App.jsx:5885`) and `linear-gradient(135deg, #003d7a, var(--brand-primary))` on the industry section headers (`:7789`). No single ink can serve both ends: white is right over the fixed navy, dark is right over a pale primary. Left as `text-white`, which is correct for the default palette and for where the left-aligned heading actually sits, and both carry an inline comment saying so. Accounts for the last **12** of the 274 remaining failures. The real fix is a design decision — either make the fixed end `var(--brand-dark)` so one ink can serve the whole band (a visible change to the current look, `#003d7a` is notably brighter than `#0d2d52`), or stop putting text across a two-owner gradient. **Escalate before changing.**
 - [x] **sidebar-active-border** ~~`ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.~~

@@ -123,6 +123,16 @@ Plan 5 added:
 | `probe-listeners.js` | the 4.26 leak, counted over CDP `DOMDebugger.getEventListeners`: 1 → 51 after 20 scroll cycles. |
 | `painted-images.json` | the output of `imgsizes.js`, consumed by `imgopt.js` and `plan5-images.js`. |
 
+`mockup-brandtext.js` (2026-08-07) renders the open brand-colour decisions
+against the **real** pages so they can be judged by eye. Running it found that
+`brandtext.js` scores a gradient across the **element's box** rather than the
+text's ink extent — the page eyebrow's box is 1232 px wide and its text is
+83 px, and that difference is the whole of `WHATS_LEFT.md` §2's claim that
+"nothing passes AA there". Under the actual glyphs, white measures 5.97–6.29:1.
+**Measuring ink extent is the outstanding fix for `brandtext.js`**; until it
+lands, treat any gradient-backed failure as a candidate for re-measurement and
+any solid-background failure as accurate.
+
 ## Two things that have bitten before
 
 - **`sync.sh` after every build and every `admin/` edit.** Otherwise the suites
