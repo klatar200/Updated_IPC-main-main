@@ -190,6 +190,41 @@ function PageLink({ page = null, params, onNavigate, onClick, children, ...rest 
   );
 }
 
+/**
+ * The small uppercase label above each page title.
+ *
+ * ONE component for all eight of them, because they were eight copies of the
+ * same declaration and seven of them were wrong in the same way. The colour is
+ * `--brand-header-ink` at FULL opacity, and both halves of that matter:
+ *
+ *   - `--brand-header-ink` (4.23) is recomputed per palette against the WORSE
+ *     stop of `.ipc-page-header`'s gradient, so it is the only value here that
+ *     stays readable when Rick picks a pale brand colour.
+ *   - full opacity, because translucency gives that guarantee straight back.
+ *     These were `rgba(var(--brand-header-ink-rgb), 0.7)`, which composites to
+ *     rgb(179,208,228) over the navy header and measures **3.33-3.80:1** — an
+ *     AA failure at 12px on every page. The eighth, on /products, had been set
+ *     to `--brand-accent-text` by `brand-color-as-foreground`; that variable is
+ *     solved for text on WHITE, and here it measured **1.04:1**. The accent is
+ *     also one of this gradient's own stops, so painting the eyebrow in it is
+ *     invisible-by-construction at the far end of the band.
+ *
+ * The eyebrow now matches the <h1> beside it. The hierarchy is carried by size
+ * and weight, which is what was doing the work anyway.
+ * `_harness/plan5c-eyebrow.js` scores every element in the header block on two
+ * palettes and holds this at AA.
+ */
+function PageEyebrow({ children }) {
+  return (
+    <div
+      className="text-xs font-bold tracking-widest uppercase mb-2"
+      style={{ color: "var(--brand-header-ink)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
 // ── Error boundary ────────────────────────────────────────────
 // Catches render-time exceptions so a broken product record or bad JSON
 // in specTable never blanks the entire site. Shows contact info instead.
@@ -2624,12 +2659,9 @@ function AboutPage() {
       {/* Page header */}
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div
-            className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
-          >
+          <PageEyebrow>
             {c.eyebrow}
-          </div>
+          </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
@@ -3239,12 +3271,9 @@ function FaqPage() {
       {/* Page header */}
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div
-            className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
-          >
+          <PageEyebrow>
             {c.eyebrow}
-          </div>
+          </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
@@ -3257,7 +3286,14 @@ function FaqPage() {
               page="contact"
               className="underline font-semibold"
               style={{
-                color: "var(--brand-accent)",
+                // NOT --brand-accent, and not --brand-accent-text either. This
+                // link sits INSIDE .ipc-page-header, on the same owner-controlled
+                // gradient as the title: the accent measured 1.69:1 here and
+                // --brand-accent-text is solved for white, which is not what is
+                // behind it. --brand-header-ink is the variable scored against
+                // this surface. The link stays obviously a link because it is
+                // underlined and semibold, which is how it already read.
+                color: "var(--brand-header-ink)",
                 // Stated inline rather than left to the `underline` class, so
                 // this inline link keeps its rule regardless of how Tailwind's
                 // `a { text-decoration: inherit }` preflight reset cascades.
@@ -3815,12 +3851,9 @@ function ContactPage() {
       {/* Page header */}
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div
-            className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
-          >
+          <PageEyebrow>
             {c.eyebrow}
-          </div>
+          </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
@@ -4410,10 +4443,10 @@ const PRODUCTS_JSON_URL = "/data/products-all.json";
  * mirror and production would each declare themselves canonical, and a staging
  * copy that self-canonicalises is worse than one pointing at the wrong host.
  *
- * `www` matches every other declaration in the repo — public/sitemap.xml's
- * <loc> entries, public/robots.txt's Sitemap: line, and index.html's shipped
- * og:url. If the apex is ever chosen instead, this constant and those three
- * files must change together.
+ * `www` matches every other declaration in the repo — the $ORIGIN in
+ * public/sitemap.php (which generates every <loc>), public/robots.txt's
+ * Sitemap: line, and index.html's shipped og:url. If the apex is ever chosen
+ * instead, this constant and those three files must change together.
  */
 const SITE_ORIGIN = "https://www.insulationproducts.com";
 
@@ -6710,12 +6743,9 @@ function ProductPage({ products }) {
         style={{ borderBottom: "none" }}
       >
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div
-            className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "var(--brand-accent-text)" }}
-          >
+          <PageEyebrow>
             Products
-          </div>
+          </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             Product Catalog
           </h1>
@@ -7114,12 +7144,9 @@ function DashboardPage({ products }) {
       {/* Page header */}
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div
-            className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
-          >
+          <PageEyebrow>
             Product Index
-          </div>
+          </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             Product Index
           </h1>
@@ -7477,7 +7504,13 @@ function DashboardPage({ products }) {
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
                         background: 'rgba(17,158,200,0.1)',
-                        color: 'var(--brand-accent-2)',
+                        // The MOBILE card's type chip. Its desktop twin at the
+                        // <td> below already says --brand-accent-text; this one
+                        // was left on the bright accent and measures 2.79:1 over
+                        // the tint, against 4.72:1 for the text-safe variant.
+                        // Both are visible at their own viewport, so testing at
+                        // one width only would have found one of the two.
+                        color: 'var(--brand-accent-text)',
                       }}
                     >
                       {row.partType}
@@ -8101,12 +8134,9 @@ function IndustriesPage() {
       {/* Page header */}
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div
-            className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
-          >
+          <PageEyebrow>
             {c.eyebrow}
-          </div>
+          </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
@@ -8185,7 +8215,15 @@ function IndustriesPage() {
                     >
                       <span
                         style={{
-                          color: "var(--brand-accent)",
+                          // Bright accent as ink on WHITE is 2.18:1.
+                          // --brand-accent-text is the darkened-for-text variant
+                          // and measures 5.26:1 on the same surface. The bright
+                          // accent is untouched everywhere it is a background or
+                          // a border — this is a call-site fix, not a repalette.
+                          // `brand-color-as-foreground` missed every one of
+                          // these because it scanned for --brand-primary and
+                          // --brand-accent-2 and these say --brand-accent.
+                          color: "var(--brand-accent-text)",
                           marginTop: 2,
                           flexShrink: 0,
                         }}
@@ -8257,7 +8295,8 @@ function IndustriesPage() {
                           <span
                             style={{
                               fontSize: 10,
-                              color: "var(--brand-accent)",
+                              // On white — see the note on the → bullets above.
+                              color: "var(--brand-accent-text)",
                               marginTop: 1,
                               fontWeight: 600,
                             }}
@@ -8610,12 +8649,9 @@ function ServicesPage() {
       {/* Page header */}
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div
-            className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
-          >
+          <PageEyebrow>
             {c.eyebrow}
-          </div>
+          </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>
@@ -8743,7 +8779,9 @@ function ServicesPage() {
                     >
                       <span
                         style={{
-                          color: "var(--brand-accent)",
+                          // On white — see the note on the → bullets in the
+                          // Industries detail panel.
+                          color: "var(--brand-accent-text)",
                           marginTop: 1,
                           flexShrink: 0,
                         }}
@@ -8917,12 +8955,9 @@ function PrivacyPage() {
       {/* Page header */}
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div
-            className="text-xs font-bold tracking-widest uppercase mb-2"
-            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.7)" }}
-          >
+          <PageEyebrow>
             {c.eyebrow}
-          </div>
+          </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
           </h1>

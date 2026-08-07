@@ -10,6 +10,14 @@ Options -MultiViews +FollowSymLinks
 RewriteEngine On
 RewriteBase /
 
+# The sitemap is generated from the live catalog (see sitemap.php) but keeps its
+# conventional address, so robots.txt, Search Console and any existing
+# submission never have to learn that it became dynamic. This must come BEFORE
+# the SPA catch-all below, and there is deliberately no sitemap.xml FILE in the
+# deploy tree — if one existed, the `!-f` condition on the catch-all would serve
+# it and this rule would look like it worked while a stale file shipped.
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
 # Serve existing files and directories normally (assets, JSON, .well-known, etc.)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

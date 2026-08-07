@@ -48,7 +48,7 @@ two upload folders.
 | Local | Server | Built by | Re-deploy when… |
 |---|---|---|---|
 | `dist/*` (from `npm run build`) | `public_html/` | Vite | React source changes |
-| `public/*` | `public_html/` | — | `.htaccess`, `.user.ini`, `contact.php`, images change |
+| `public/*` | `public_html/` | — | `.htaccess`, `.user.ini`, `contact.php`, `sitemap.php`, images change |
 | `admin/` | `public_html/admin/` | (PHP, copied) | admin code changes |
 | `admin/config.local.php` | `public_html/admin/` | hand-deployed | password changes (gitignored) |
 | `data/` | `public_html/data/` | — | **first deploy only** |
@@ -103,6 +103,13 @@ was one JSON file and one folder; it is not.
 
 `public/contact.php` is a **second** dynamic piece: it ships into `dist/`, calls
 `mail()`, and appends to `admin/inquiries.jsonl`.
+
+`public/sitemap.php` is a **third**: it ships into `dist/`, reads
+`data/products-all.json` on every request, and is served at `/sitemap.xml`
+through a rewrite in `public/.htaccess`. There is deliberately **no
+`sitemap.xml` file** — if one existed, the catch-all's `!-f` condition would
+serve it and the rewrite would look like it worked while a stale file shipped.
+It reads only; it starts no session and does not include `admin/config.php`.
 
 ## Invariants — each of these caused a real defect
 
@@ -164,7 +171,9 @@ concurrency signatures on `edit.php`, `settings.php` and `content.php`.
 
 `npm run build`, then FTP the **contents** of `/dist` into `public_html/`. The
 authoritative manifest, including the do-not-upload list, is
-[DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) §7. `admin/` must be writable by
+[DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) §7 — which is frozen and is now
+**stale by one row**: it lists `sitemap.xml`, which no longer exists. Read
+`sitemap.php` for it. `README.md`'s two deploy tables are correct as written. `admin/` must be writable by
 the PHP user or the audit log, the inquiry log, the login throttle and password
 changes all fail silently — the dashboard shows a banner when it isn't.
 

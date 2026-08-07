@@ -27,7 +27,8 @@ Updated_IPC-main-main/
 │   ├── .htaccess           SPA rewrite + cache headers  (LOAD-BEARING, see below)
 │   ├── .user.ini           PHP upload / form limits for the admin
 │   ├── contact.php         Contact + RFQ handler (mail() + inquiry log)
-│   ├── favicon.svg, logo.svg, manifest.json, robots.txt, sitemap.xml
+│   ├── sitemap.php         Sitemap, generated from the live catalog per request
+│   ├── favicon.svg, logo.svg, manifest.json, robots.txt
 │   └── images/             Product and marketing imagery
 ├── src/
 │   ├── main.jsx
@@ -106,7 +107,7 @@ hand-deployed password file.
 | Upload to `public_html/` | From | When |
 |---|---|---|
 | `index.html`, `assets/` | `dist/` | every frontend deploy |
-| `.htaccess`, `.user.ini`, `contact.php`, `favicon.svg`, `logo.svg`, `manifest.json`, `robots.txt`, `sitemap.xml` | `dist/` (copied from `public/`) | when changed |
+| `.htaccess`, `.user.ini`, `contact.php`, `sitemap.php`, `favicon.svg`, `logo.svg`, `manifest.json`, `robots.txt` | `dist/` (copied from `public/`) | when changed |
 | `images/` | `dist/images/` (copied from `public/images/`) | when changed |
 | `admin/` | `admin/` | this release |
 | `admin/config.local.php` | (hand-deployed, gitignored) | this release — carries the password |

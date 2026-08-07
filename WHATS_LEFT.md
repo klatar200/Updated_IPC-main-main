@@ -127,6 +127,10 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **4.11b** | `src/App.jsx` (new `FooterSocial`), `src/index.css` | Shipped 2026-08-06 (Plan 5). v2 4.11 promised footer social icons and nobody built them: `social.*` fed JSON-LD `sameAs` and nothing else, so five fields Rick can edit in Business Details had **no visible effect on the site at all**. Five inline-SVG icons now render in the footer's brand column. The load-bearing half is NB4 / invariant 4 — all five are in `SITE_CLEARABLE` and the docs promise a cleared field "disappears from the site properly" — so all five empty renders **no container**, asserted as element **absent**, not element-empty (a "has no children" check would pass against an empty row that still eats 40 px of footer). Accessible names read from the real AX tree (5/5); `rel="noopener noreferrer"` on all five; focus ring driven by **real Tab presses**, because Chromium will not match `:focus-visible` for programmatic focus. **9/19 → 31/31.** Deliberately **no heading**: every other footer heading is a `copy` key that must exist on both sides of the content contract, and adding one moves `content.php`'s posted-variable count away from the asserted 421. Evidence in §4k. |
 | **4.32** | `public/images/`, `src/App.jsx` | Shipped 2026-08-06 (Plan 5). **9,357,354 → 2,668,995 bytes, `du -sh` 9.1M → 2.7M (71.5% smaller), largest single file 198,726 B, zero over 300 KB.** Nothing cropped, nothing retouched, **not one filename changed** (`diff` of the tracked list against the tree is empty). Three measurements drove it: every product photo is painted at most **390 × 260 CSS px** at 1440 *and* 375, so 800 px on the long edge is already 2×; **27 of 60 files are painted on no route at all**; and **every product PNG's alpha channel is fully opaque** — they are 32-bit RGBA photographs whose fourth channel does nothing, which is most of why a 340 × 260 image weighed 190 KB. Quality is not asserted by eye: every output is PSNR-scored against its original *at the output resolution*, painted photos are held to **38 dB** (worst shipped: 38.1), and a file that cannot clear its floor at q95 keeps its original. As rendered, before-vs-after page screenshots score **53–60 dB** on the product pages. Also: the product detail photo was `loading="lazy"` while sitting **above the fold at 1440** (top 490 in a 900 px viewport) — it is the LCP element, so it is now eager; the footer logo, which is below the fold everywhere, is now lazy. Evidence in §4k. |
 | **photoUrl case** | `data/products-all.json` | Shipped 2026-08-06 (Plan 5, after handback, on Keagan's explicit instruction). Four `photoUrl`s differed from the file on disk only by case, so on a case-sensitive filesystem the SPA rewrite answered the miss with `index.html` and a **200** and the T2.7 `onError` fallback swapped in the branded placeholder: **4 of 42 product pages showed a placeholder instead of a photograph that exists**. Corrected to the on-disk names. **The only edit to `data/products-all.json` in this release** — four changed lines, verified by `diff`, made under an explicit owner override of the standing "never modify `data/*.json`" rule. 33 → **37 of 42** pages paint a real photo. ⚠️ **Does not reach production by itself** — the deployed copy is server-owned; the same four edits must be made there, ideally through the admin. Evidence in §4k. |
+| **page-header-eyebrow-contrast** | `src/App.jsx` (new `PageEyebrow`) | Shipped 2026-08-07 (Plan 5c, on Keagan's decision: "white ink"). The item said one element on `/products` was at 1.20:1 and that "nothing passes AA there without changing the page-header design". Both halves were wrong in the reader's favour and against it. **The measurement was over the wrong extent** — `brandtext.js` sampled the gradient across the element's 1232 px box while the glyphs occupy 83 px of it, so 1150 px of gradient the text never touches governed the score; ink-extent sampling now lives in `_harness/backdrop.js` and full-opacity header ink measures **5.14:1 at its worst across 9 routes × 2 viewports × 2 palettes**. **And it was never one element** — measuring the whole header block found the other **seven** eyebrows at `rgba(var(--brand-header-ink-rgb), 0.7)`, composited rgb(179,208,228), scoring **3.33–3.80:1**. All eight are now one `PageEyebrow` component on `var(--brand-header-ink)` at full opacity: 4.23 recomputes that variable per palette against the *worse* gradient stop, and translucency is precisely what gives that guarantee back. The `/faq` header's inline "Contact our team." link moved off `--brand-accent` for the same reason (1.69 → 3.68 at 375, → passing at 1440). **39 → 18** failing elements in the header block. The residue is not a colour choice and is logged as `page-header-sublines-on-gradient` in §2. Evidence in §4l. |
+| **brand-text-on-brand-surface** (light half) | `src/App.jsx` | Shipped 2026-08-07 (Plan 5c, arrow colour chosen by Keagan: teal). The **165** elements painting a bright accent as text on a light surface — 124 `→` and `✓` bullet glyphs on white at 2.18:1, 41 product-type chips on a pale tint at 2.79:1 — now use `--brand-accent-text` (`#0d7594`), which already existed and needed no new colour. Four call sites: the Industries use-case bullets, its "View product →" links, the Services detail checks, and the **mobile** card's type chip, whose desktop twin in the same table had already been converted — the two are visible at different viewports, so a single-width sweep finds one of them. `--brand-accent` itself is **unchanged** and stays bright at all 10 background and 40 border uses; this is a call-site fix, not a repalette, and `plan5c-brandink.js` asserts both halves. `brandtext.js` **35/53 → 35/51** (the two worst combinations gone entirely). The **dark**-surface half is untouched and still open — there `--brand-accent-text` measures 1.34:1, i.e. the same change would make it four times worse. |
+| **product URLs in the sitemap** | `public/sitemap.php` (new), `public/.htaccess`, `public/robots.txt` unchanged | Shipped 2026-08-07 (Plan 5c, on Keagan's decision). `public/sitemap.xml` is **deleted**; `sitemap.php` generates the document from `data/products-all.json` on every request and `.htaccess` rewrites `/sitemap.xml` to it, so the advertised address never changes. **9 → 51 URLs.** The item's objection to a hand-written list was right and applies equally to a build-time generator — the build runs from the repo's `data/` on a laptop and the catalog is owned by the admin on the server, so the two diverge at Rick's first save. Reading per request is the only version that cannot be stale, and it is asserted by *adding and deleting a product in a live catalog* and watching the document track it with no rebuild. All 42 product `<loc>`s were compared against the canonical each page declares for itself — including the five ids containing spaces and ampersands (`IP44A2 & IP45A3`), where `rawurlencode()` and `encodeURIComponent()` had to agree exactly. A corrupt or missing catalog degrades to the 9 static routes, still clean XML. Evidence in §4l. |
+| **`brandtext.js` ink extent** | `_harness/backdrop.js` (new), `_harness/brandtext.js` | The measurement fix behind the two rows above, landed 2026-08-07. Gradient sampling and alpha compositing moved out of `brandtext.js` into a shared module the moment a second suite needed the same answer — `contrastparity.js` exists because two contrast implementations had already drifted once. The extraction was proved to be a no-op by diffing the full `--verbose` output before and after. **Known property, recorded rather than hidden:** two homepage `✓` rows wobble ±1 in the reported background between runs, because the hero animates and the ink extent is small enough to be position-sensitive. Verdicts are unaffected (the nearest is 5.5 against a 4.5 bar), but the *count* of distinct combinations can move by one. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -142,7 +146,7 @@ Ordered by value. Nothing here blocks the upload.
 
 - [x] **4.1** ~~FAQ JSON-LD `useEffect` has `[]` deps and runs before `content.json` loads, so owner-edited FAQs never reach Google's rich results.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [x] **4.3** ~~No `rel="canonical"` anywhere; `og:url` is hardcoded to the homepage on all 9 pages.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
-- [ ] **product detail URLs are in no sitemap** Noticed 2026-08-07 while closing `sitemap/dashboard`. `public/sitemap.xml` lists the 9 routes and none of the **42** `?productId=` pages, each of which 4.3 made canonical to itself. They are not orphans — 4.21 made every internal link a real `<a href>`, so a crawler reaches them from `/products` and `/dashboard` — but they are not declared either. **Deliberately not fixed, and this is the reason:** `sitemap.xml` is a static file in `public/` that Rick cannot edit from the admin, so a hand-written list of 42 product URLs goes stale the moment he adds or deletes a product, and a sitemap that advertises a dead URL is worse than one that omits a live one. Doing this properly means generating the sitemap from `products-all.json` at build time — which is a real feature, not a fix, and it would need a decision about what happens when the built sitemap and the server-owned catalog disagree. **Needs a decision before anyone writes it.**
+- [x] **product detail URLs are in no sitemap** ~~Noticed 2026-08-07 while closing `sitemap/dashboard`. `public/sitemap.xml` lists the 9 routes and none of the **42** `?productId=` pages, each of which 4.3 made canonical to itself. They are not orphans — 4.21 made every internal link a real `<a href>`, so a crawler reaches them from `/products` and `/dashboard` — but they are not declared either. **Deliberately not fixed, and this is the reason:** `sitemap.xml` is a static file in `public/` that Rick cannot edit from the admin, so a hand-written list of 42 product URLs goes stale the moment he adds or deletes a product, and a sitemap that advertises a dead URL is worse than one that omits a live one. Doing this properly means generating the sitemap from `products-all.json` at build time — which is a real feature, not a fix, and it would need a decision about what happens when the built sitemap and the server-owned catalog disagree.~~ **SHIPPED 2026-08-07 (Plan 5c), decision made by Keagan: `sitemap.php`, not a build-time generator.** The objection above was right and the build-time option does not answer it — the build runs from the repo's `data/` on a laptop, the catalog is server-owned and edited in the admin, and `npm run build` is not part of adding a product, so the generated file would be correct exactly until Rick's first save. `public/sitemap.xml` is deleted and `public/sitemap.php` renders the document from `data/products-all.json` per request; `.htaccess` rewrites `/sitemap.xml` to it so `robots.txt`, any Search Console submission and every external reference keep working. **9 → 51 URLs.** See §1b and §4l.
 - [ ] **4.27 residual reorder cost** Recorded here because PLAN-5 requires it. The keys chosen are `` `${index}-${value}` ``, **not** a stable per-row id assigned in `admin/content.php` and carried in `content.json`. A per-row id has to be posted from that form, which currently posts **421** named controls under a positionally-enforced `max_input_vars` sentinel; ~90 more hidden fields moves that number and the invariant asserted against it, and existing rows would have no id until Rick re-saved, so a fallback would be needed anyway. The cost of the cheaper option is that an index-bearing key reorders poorly — React would reuse a fiber by position rather than by row. **Measured, that cost is currently zero**: `content.json` is fetched exactly once per page load (`ContentProvider`, `[]` deps), no owner-editable list is reordered in place at runtime, and a reorder in the admin reaches the public site as a fresh page load. It becomes real the day the 4.25 `visibilitychange` refetch is extended from products to content, or any live-refresh of `content.json` is added — at which point the per-row id is the fix. Asserted today by `plan5-keys.js` phase C (reorder in the admin, save, public order matches). (Logged 2026-08-06, Plan 5.)
 - [x] **photoUrl case mismatch — 4 products show the placeholder** ~~Found 2026-08-06 while measuring for 4.32.~~ **FIXED 2026-08-06 by Keagan's instruction** — see the closing note at the end of this item. Original wording kept for the record. Found 2026-08-06 while measuring for 4.32. `data/products-all.json` gives `IP12GA` → `/images/products/IP12GA.jpg`, `IP52EC` → `IP52EC.png`, `IP63ES` → `IP63ES.jpg` and `VALUE-ADDED` → `VALUE-ADDED.png`, but the files on disk are `ip12ga.jpg`, `ip52ec.png`, `ip63es.jpg` and `value-added.png`. On a case-sensitive filesystem — which the deploy target is — the SPA rewrite answers the miss with `index.html` and a **200**, so the browser is handed HTML where it asked for an image and the T2.7 `onError` fallback swaps in the branded placeholder. Measured: `curl /images/products/IP52EC.png` → `200 text/html; charset=UTF-8`, 2,094 bytes. So **4 of 42 product pages show a placeholder instead of the photograph that exists**, on top of the 5 that legitimately point at `placehold.co`. **Not fixed, deliberately:** both available fixes are forbidden by PLAN-5's scope boundary — renaming the files ("Keep filenames identical … renaming breaks the mapping silently") and editing `products-all.json` ("You are **not** … altering `products-all.json` to point at renamed images"). The set is pinned in `plan5-images.js` so it cannot silently grow. **Needed a decision: rename the four files, or correct the four `photoUrl` values.** The second is the safer one — it is a data edit the admin itself can make.
 
@@ -166,8 +170,8 @@ Ordered by value. Nothing here blocks the upload.
   **deployed** copy — the least risky route is Rick's own admin (Edit Product →
   Photo URL) for each of `IP12GA`, `IP52EC`, `IP63ES` and `VALUE-ADDED`, which
   also writes a backup first. **Still outstanding.**
-- [ ] **27 of 60 images are painted on no route** Found 2026-08-06 during 4.32. The whole of `public/images/site/` (`Front-Cover.jpg`, `Marker-Sample-2.jpg`, `Heat-Shrink-Tape-Product-photo-2.jpg`, `Slide1.png`, `staff-image.png`, `staff.jpg`, the three `featured-category-*.jpg`, both `main-banner-*.jpg`, …), plus `_unmatched/adhesiveLined.webp` and the four case-mismatched product files, are referenced by **nothing** in `src/`, `data/`, `admin/`, `public/` or `index.html`. They still deploy. They were re-encoded rather than deleted (deletion is not in PLAN-5's scope, and the admin may reference them later), and they are ~1.1 MB of the remaining 2.7 MB. **Deleting them is a decision, not a cleanup** — some are the customer's photography and the only copy may be here.
-- [ ] **product photo has no `width`/`height`** Found 2026-08-06 during 4.32. Every logo `<img>` carries both; the product detail photo cannot, because the component is handed a URL and never the intrinsic dimensions — those live in `products-all.json`, which PLAN-5 forbids altering. Setting a fixed pair (e.g. 390 × 260) would give the element a fixed aspect ratio, and combined with the existing `object-cover` that **crops** every photo whose natural ratio is wider — `CT.jpg` is painted 390 × 217 today and would be cut to 260. Cropping the customer's product photography to win a layout metric is the wrong trade. Measured cost of leaving it: **CLS 0.021** on a product page at 1440 and **0** at 375, against Google's "good" bar of 0.1. The fix, if it is ever wanted, is intrinsic dimensions in the catalog data.
+- [x] **27 of 60 images are painted on no route** ~~Found 2026-08-06 during 4.32. The whole of `public/images/site/` (`Front-Cover.jpg`, `Marker-Sample-2.jpg`, `Heat-Shrink-Tape-Product-photo-2.jpg`, `Slide1.png`, `staff-image.png`, `staff.jpg`, the three `featured-category-*.jpg`, both `main-banner-*.jpg`, …), plus `_unmatched/adhesiveLined.webp` and the four case-mismatched product files, are referenced by **nothing** in `src/`, `data/`, `admin/`, `public/` or `index.html`. They still deploy. They were re-encoded rather than deleted (deletion is not in PLAN-5's scope, and the admin may reference them later), and they are ~1.1 MB of the remaining 2.7 MB. **Deleting them is a decision, not a cleanup** — some are the customer's photography and the only copy may be here.~~ **DECIDED 2026-08-07 (Plan 5c): keep them, and this is settled.** They cost nothing at runtime — no route requests them, so no visitor ever downloads one; the only cost is ~1.1 MB of FTP space and one slower first upload. Against that, some are the customer's own photography and this repo may hold the only copy, and the admin can be pointed at any of them later from Business Details or Page Content without a redeploy. Deleting to reclaim a megabyte of disk that nobody is paying for is a bad trade against destroying an original. ⚠️ **The one operational consequence**, which is the real content of this item: `images/site/` is in the deploy manifest, so **after the first deploy do not re-upload it wholesale** — the same reasoning that protects `data/`, `pdfs/` and `uploads/` applies the moment the admin starts referencing a file there.
+- [x] **product photo has no `width`/`height`** ~~Found 2026-08-06 during 4.32. Every logo `<img>` carries both; the product detail photo cannot, because the component is handed a URL and never the intrinsic dimensions — those live in `products-all.json`, which PLAN-5 forbids altering. Setting a fixed pair (e.g. 390 × 260) would give the element a fixed aspect ratio, and combined with the existing `object-cover` that **crops** every photo whose natural ratio is wider — `CT.jpg` is painted 390 × 217 today and would be cut to 260. Cropping the customer's product photography to win a layout metric is the wrong trade. Measured cost of leaving it: **CLS 0.021** on a product page at 1440 and **0** at 375, against Google's "good" bar of 0.1. The fix, if it is ever wanted, is intrinsic dimensions in the catalog data.~~ **WON'T FIX, decided 2026-08-07 (Plan 5c).** The measured cost is **CLS 0.021** at 1440 and **0** at 375, against Google's "good" threshold of **0.1** — so this is already inside the bar by roughly 5×, and it is the only Core Web Vital the attribute affects. The available fix is worse than the defect: the component is handed a URL and never the intrinsic dimensions, so a fixed pair plus the existing `object-cover` **crops** every photo whose natural ratio is wider than the box — `CT.jpg` is painted 390 × 217 and would be cut to 260. Cropping the customer's product photography to improve a metric that already passes is not a trade worth making, and 4.32's brief said in as many words not to alter the content of these images. **If it is ever wanted, the fix is intrinsic `width`/`height` in `products-all.json`**, written by `admin/upload-photo.php` at upload time from `getimagesize()`, so the component is given the real ratio instead of a guessed one. That is a data-shape change and a new admin field, i.e. a feature.
 - [x] **`admin/password.php` still sleeps** ~~ Noted 2026-08-06 while shipping 4.14. It shares the per-IP throttle record and still calls `sleep(min(8, $failures - 4))` on a wrong current-password. It is behind `require_auth()` and outside PLAN-5's scope boundary ("`admin/auth.php` (throttle only), `admin/config.php` (`login_*` helpers only)"), so it was left alone. It **does** now benefit from the lock, because `login_register_failure()` routes through `login_throttle_mutate()`. Two consequences worth knowing: the sleep there is still amortised by parallelism, and six wrong current-password attempts can arm a login cool-off of up to 300 s for that IP.~~
 
   **SHIPPED 2026-08-07.** It now takes a slot from the same `login_attempt_gate()` the login form uses, so both surfaces share one budget and neither can be parallelised. Measured through the real form, signed in:
@@ -208,7 +212,7 @@ Ordered by value. Nothing here blocks the upload.
 - [x] **4.23** ~~Owner-set brand colors are injected with no contrast guard while headings and primary buttons hardcode `#ffffff`.~~ **SHIPPED 2026-08-06 (Plan 2)** for headings, primary buttons and the other solid brand surfaces — see §1b and §4g. **The de-emphasised text on those same surfaces is NOT covered — see `brand-ink-translucent` below.**
 - [x] **brand-ink-translucent** ~~The 4.23 ink mechanism is in place but 47 translucent-white foregrounds on owner-controlled brand surfaces still hardcode `rgba(255,255,255,α)` and go invisible when the owner picks a pale color.~~ **SHIPPED 2026-08-06** — see §1b and §4h. The count was **77 inline sites plus 12 Tailwind `text-white` classes**, not 47; the original estimate came from a source scan that only looked at `rgba(255,255,255,α)` and missed both the solid `#ffffff` conditionals and the class-based colors. Measured before/after with a new empirical auditor: **357 → 274 brand-sensitive contrast failures, and zero of the remainder are white-on-a-brand-surface.**
 - [x] **brand-color-as-foreground** ~~Brand colors used as *text on white or on another brand surface*~~ **SHIPPED 2026-08-06** — see §1b and §4i. **274 → 12 brand-sensitive failures**, and all 12 remaining are `brand-gradient-mixed-ends` below. ⚠️ **One visible change to the shipped design**, called out because it is not a no-op: `--brand-accent-2` used as text on white moves `#119EC8 → #0d7594`. The shipped accent measures **3.1:1 on white**, a genuine WCAG AA failure, so it could not be left alone and still called fixed — but reverting is a one-line change to `TEXT_TARGET` if the original cyan is preferred. `--brand-primary` as text (258 of the sites) is **unchanged**. Original wording kept below for the record: Brand colors used as *text on white or on another brand surface* — product feature chips, eyebrow labels, the sidebar's "PRODUCT CATALOG" / family headings, `color: "var(--brand-primary)"` and `var(--brand-accent-2)` at ~30 sites. A pale brand color makes these unreadable and the ink variables do not help: this case needs the brand color **darkened for text use**, not a foreground swapped. **Now quantified** (2026-08-06, `_harness/inkaudit.js`): **262 of the 274 remaining brand-sensitive failures** — 252 at `rgb(255,230,0)` (primary as text) and 10 at `rgb(255,247,192)` (accent as text on `--brand-dark`). This is now the single largest brand-color defect. Visible in `_harness/out/contrast/pale-yellow-1440.png` as the washed-out "UL & CUL LISTED" chips and sidebar headings. Not started.
-- [ ] **page-header-eyebrow-contrast** Found 2026-08-06 while answering a question about `--brand-accent-text`. The small uppercase eyebrow above each page title (`"Products"`, `src/App.jsx:6615`) sits on `.ipc-page-header`, whose background is `linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))` — **a gradient, not white.** Every candidate was measured against both stops on the shipped navy palette; none reaches AA for 12 px text:
+- [x] **page-header-eyebrow-contrast** *(shipped 2026-08-07 — the close-out is at the end of this entry; the original wording and both corrections are kept above it, unedited)* Found 2026-08-06 while answering a question about `--brand-accent-text`. The small uppercase eyebrow above each page title (`"Products"`, `src/App.jsx:6615`) sits on `.ipc-page-header`, whose background is `linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))` — **a gradient, not white.** Every candidate was measured against both stops on the shipped navy palette; none reaches AA for 12 px text:
 
   | candidate | left stop | right stop | worst |
   |---|---|---|---|
@@ -223,7 +227,52 @@ Ordered by value. Nothing here blocks the upload.
 
   The real fix is a design decision on the page header — darken the gradient's right stop, put the eyebrow on a solid chip, or drop the eyebrow to the same ink as the title and accept losing the two-tone. **Logged, not changed, by Keagan's decision 2026-08-06 (§3).** Affects all nine page headers.
 
-- [ ] **brand-text-on-brand-surface** Found 2026-08-06 by `_harness/brandtext.js`, the gradient-aware replacement for `fgsurfaces.js`. Scoring every element that paints its own text in a brand colour against its **real** composited background gives **34 of 54 (colour × background) combinations meeting AA** — a materially different picture from the "12 remaining, all `brand-gradient-mixed-ends`" recorded in §4i, which was produced by a tool that deferred every gradient. Worst first:
+  **`CORRECTED` 2026-08-07 — the table above is measured over the wrong extent,
+  and the conclusion drawn from it is wrong.** `brandtext.js` samples a gradient
+  across the **element's box**. The eyebrow's `<div>` is **1232 px wide and its
+  text ink is 83 px** (7%), so 1150 px of gradient the glyphs never touch was
+  being scored. Sampled under the actual glyphs the background barely moves —
+  `rgb(1,99,166)` → `rgb(3,103,169)` — and **white measures 5.97–6.29:1**,
+  comfortably AA at 12 px. The `#ffffff` row above reads "large-text only" only
+  because it was scored to the far end of a box the eyebrow does not occupy.
+
+  The **failure** was never wrong: the shipped colour scores 1.13–1.20 either
+  way, and the eyebrow really is close to invisible. What was wrong was the
+  evaluation of the **candidates**, and therefore the claim that "nothing passes
+  AA there without changing the page-header design". **The fix is one line:
+  white ink.** Rendered against the real page in
+  `_harness/out/mockups/eyebrow-*.png` (A current, B white, C solid chip,
+  D darker gradient, E removed) by `_harness/mockup-brandtext.js`.
+
+  **This affects `brandtext.js` generally.** Any gradient-backed failure whose
+  text does not fill its box is a candidate for re-measurement; anything on a
+  solid background is unaffected. Measuring ink extent is the outstanding fix.
+
+  **SHIPPED 2026-08-07 (Plan 5c), on Keagan's decision: white ink.** Measuring
+  ink extent landed with it (`_harness/backdrop.js`), so the correction above is
+  no longer a note — it is what the suite now does.
+
+  Two things were found on the way in, and both changed the size of the job:
+
+  1. **It was never one element.** The item, and every note under it, described
+     the `/products` eyebrow. Scoring the whole `.ipc-page-header` block found
+     the other **seven** eyebrows at `rgba(var(--brand-header-ink-rgb), 0.7)` —
+     composited `rgb(179,208,228)` over the navy header — at **3.33–3.80:1**.
+     They were invisible to `brandtext.js` because that suite only scores text
+     painted in a *brand* colour, and a translucent white is not one. All eight
+     are now a single `PageEyebrow` component.
+  2. **Full opacity is the load-bearing half, not whiteness.** `--brand-header-ink`
+     is recomputed by 4.23 against the *worse* stop of this gradient, so it is
+     the one value here that survives a pale palette; `rgba(…-rgb, α)` hands
+     that guarantee straight back. Asserted on two palettes for exactly that
+     reason.
+
+  **39 → 18** failing elements in the header block; the eyebrow's worst case
+  across 9 routes × 2 viewports × 2 palettes is **5.14:1**. What remains is the
+  sub-line text further down the same gradient and is a genuinely different
+  problem — see `page-header-sublines-on-gradient` below. Evidence in §4l.
+
+- [x] **brand-text-on-brand-surface** *(light half shipped 2026-08-07; the dark half is split out below as `brand-accent-on-dark-surfaces`. Original wording and the amendment kept unedited)* Found 2026-08-06 by `_harness/brandtext.js`, the gradient-aware replacement for `fgsurfaces.js`. Scoring every element that paints its own text in a brand colour against its **real** composited background gives **34 of 54 (colour × background) combinations meeting AA** — a materially different picture from the "12 remaining, all `brand-gradient-mixed-ends`" recorded in §4i, which was produced by a tool that deferred every gradient. Worst first:
 
   | ratio | needs | what | where |
   |---|---|---|---|
@@ -238,7 +287,58 @@ Ordered by value. Nothing here blocks the upload.
 
   Not started, and **not** a one-line change: `--brand-accent` (`#00BEF2`) is the *bright* accent and darkening it enough for white (needs ~4.5:1) moves it a long way from the brand. Options are a text-safe `--brand-accent-text-strong`, or accepting that these glyphs are decorative and giving them `aria-hidden` plus a non-brand colour. **Escalate the colour question before changing.** Baseline to beat: `node _harness/brandtext.js` → 34/54.
 
-- [ ] **brand-gradient-mixed-ends** Found 2026-08-06 while fixing `brand-ink-translucent`. Two heading strips use a gradient running from a **hardcoded dark** color to an **owner-controlled** one — `linear-gradient(135deg, #0a2a52, var(--brand-primary))` on the product-detail header (`src/App.jsx:5885`) and `linear-gradient(135deg, #003d7a, var(--brand-primary))` on the industry section headers (`:7789`). No single ink can serve both ends: white is right over the fixed navy, dark is right over a pale primary. Left as `text-white`, which is correct for the default palette and for where the left-aligned heading actually sits, and both carry an inline comment saying so. Accounts for the last **12** of the 274 remaining failures. The real fix is a design decision — either make the fixed end `var(--brand-dark)` so one ink can serve the whole band (a visible change to the current look, `#003d7a` is notably brighter than `#0d2d52`), or stop putting text across a two-owner gradient. **Escalate before changing.**
+  **`AMENDED` 2026-08-07 — the population splits, and most of it needs no new
+  colour at all.** Measured against the surfaces the text really sits on:
+
+  | what | where | on | now | `--brand-accent-text` `#0d7594` |
+  |---|---|---|---|---|
+  | 124 `→` bullets | `/industries`, `/services` | **white** (solid) | 2.18 | **5.26 PASS** |
+  | 41 type chips | `/dashboard` | **flat tint** (solid) | 2.79 | **4.72 PASS** |
+  | ~15 accent sub-lines | `/industries`, `/products` | dark navy | 3.25–4.46 | 1.34 — needs a *lighter* accent, not darker (`#7fdcf7` → 4.54, white → 7.07) |
+  | 2 hero stat figures | `/` | hero | 2.78–2.94 | large text, bar is 3.0 — marginal |
+
+  So **165 of the failing elements are covered by a variable that already
+  exists**, and `--brand-accent` itself does not move: it stays bright
+  everywhere it is a background or a border, and only the *text* call sites
+  change. That is the completion of `brand-color-as-foreground` — which missed
+  these because it scanned for `var(--brand-primary)` / `var(--brand-accent-2)`
+  and these use `var(--brand-accent)` — rather than the new design decision the
+  paragraph above assumes. The dark-surface group does need a lighter
+  derivative, which `textSafeOn()` already knows how to produce.
+
+  The remaining judgement is **taste, not compliance**: the bullets go from
+  bright cyan to teal. Rendered at `_harness/out/mockups/arrows-{A,B,C}-*.png`
+  (current / teal / neutral grey). The chip change is imperceptible at 10 px —
+  41 recoloured and the before/after is indistinguishable.
+
+  ⚠️ Some of the *other* entries in the 34/54 sit on gradients and may be
+  over-reported — see the `CORRECTED` note under
+  `page-header-eyebrow-contrast`. The four rows above are all on **solid**
+  backgrounds, so those numbers are accurate.
+
+  **LIGHT HALF SHIPPED 2026-08-07 (Plan 5c). Arrow colour chosen by Keagan: teal
+  (`--brand-accent-text`, `#0d7594`).** All **165** elements painting a bright
+  accent as text on a light surface now use it — the 124 `→`/`✓` bullets and the
+  41 type chips. Four call sites, and the fourth is the one worth recording: the
+  **mobile** card's type chip, whose **desktop twin in the same table already
+  said `--brand-accent-text`**. One of the pair had been converted and the other
+  missed, and because only one is visible at a time a sweep at a single viewport
+  finds exactly one of them.
+
+  `--brand-accent` itself did not move: it is still the brand's bright cyan at
+  all 10 background and 40 border uses measured across the sweep, and
+  `plan5c-brandink.js` asserts that too — a "fix" that redefined the variable
+  would turn every button and rule on the site teal and still show green on a
+  text-only check. `brandtext.js` **35/53 → 35/51**: both worst combinations
+  gone, not moved.
+
+  The ⚠️ above is now resolved rather than outstanding: ink-extent sampling
+  shipped with the eyebrow fix, so the gradient rows were re-measured, and the
+  four solid-background rows the amendment relied on were never affected.
+
+- [ ] **page-header-sublines-on-gradient** Found 2026-08-07 (Plan 5c) while fixing `page-header-eyebrow-contrast` — the residue that fix could not reach, with the numbers that show why it is a different problem. **18 elements**: the 16 intro `<p>` sub-lines at `rgba(var(--brand-header-ink-rgb), 0.65)` (2.25–3.14:1), the `/dashboard` header's `<strong>"View Product"</strong>`, and the `/faq` header's inline link. **The last two are already at FULL-opacity header ink and still measure 3.68:1**, which is the whole point: there is nothing left to choose. `.ipc-page-header` is `linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))` at 135°, so text further down the block sits further along the axis, and on the shipped navy the far end is `#119EC8` — where **white is 3.12:1 and dark ink is 2.72:1 at the near end**. No single ink clears 4.5:1 across that band, so this one really is the "change the page-header design" case the eyebrow was wrongly accused of being. **Pre-existing, not introduced here** — on the navy palette `rgba(ink, 0.65)` composites identically to the `rgba(255,255,255,0.65)` it replaced, and `inkaudit.js` already counted these in its 609 "fail on both palettes" bucket. The `<h1>` is unaffected: 36 px extrabold is large text and 3.11:1 clears its 3:1 bar. Options, in the order I would take them: **(a)** darken the gradient's right stop so one ink serves the whole band — this is mockup `eyebrow-D-darker-gradient.png`, already rendered against the real page, and it is a visible change to the shipped look; **(b)** raise the sub-lines to full opacity, which improves them but does **not** reach AA at 375 and costs the visual hierarchy; **(c)** accept it and record that the page-header sub-line is decorative. **Escalate before changing** — this is a design decision, not a colour pick. Held on a ratchet at 18 by `_harness/plan5c-eyebrow.js`, which lists every one on every run.
+- [ ] **brand-accent-on-dark-surfaces** Split out of `brand-text-on-brand-surface` on 2026-08-07 when its light half shipped. **18 elements** paint a bright accent as text on a dark navy surface and miss AA: the Industries panel sub-lines (3.26–4.29:1), `/products`'s "UL Listed" and "PRODUCT DETAIL" labels (3.34–4.46:1), and the homepage's "BOLINGBROOK, IL" and "ISO 9001" lines. **The fix that closed the light half is the exact wrong move here**: `--brand-accent-text` is `textSafeOn(accent2, "#ffffff")`, solved for white, and on these panels it measures **1.34:1** — four times worse than what is there now. They need a *lighter* derivative (`#7fdcf7` reaches 4.54, white 7.07), which `textSafeOn()` can already produce against a dark surface; what does not exist is a decision about whether a lighter cyan is still the brand, or whether these labels should simply be white. Most are within 0.2–1.2 of the bar, so this is legibility polish, not a defect anyone will report. **Escalate the colour question before changing.** Held on a ratchet at 18 by `_harness/plan5c-brandink.js`, which lists every one on every run.
+- [x] **brand-gradient-mixed-ends** ~~while fixing `brand-ink-translucent`. Two heading strips use a gradient running from a **hardcoded dark** color to an **owner-controlled** one — `linear-gradient(135deg, #0a2a52, var(--brand-primary))` on the product-detail header (`src/App.jsx:5885`) and `linear-gradient(135deg, #003d7a, var(--brand-primary))` on the industry section headers (`:7789`). No single ink can serve both ends: white is right over the fixed navy, dark is right over a pale primary. Left as `text-white`, which is correct for the default palette and for where the left-aligned heading actually sits, and both carry an inline comment saying so. Accounts for the last **12** of the 274 remaining failures. The real fix is a design decision — either make the fixed end `var(--brand-dark)` so one ink can serve the whole band (a visible change to the current look, `#003d7a` is notably brighter than `#0d2d52`), or stop putting text across a two-owner gradient.~~ **CLOSED 2026-08-07 (Plan 5c) — decision confirmed, not deferred again.** The escalation was made and answered: **leave both strips as they are.** The reasoning is already recorded in §3 and is unchanged by this session's measurement work — the two headings are left-aligned over the *hardcoded* dark end, where white measures 10.78:1, so the failing end of each gradient is the empty end. Option A (`var(--brand-dark)` as the fixed stop) passes at every palette but costs a visible deepening of `#003d7a → #0d2d52` on the shipped navy and turns an anchoring band into a fully owner-controlled one. A certain visual cost against a hypothetical failure. This item is closed rather than left open because re-asking a settled question every session is how the eyebrow survived two of them.
 - [x] **sidebar-active-border** ~~`ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.~~
 
   **SHIPPED 2026-08-07.** `border: "none"` deleted; `borderLeft` and
@@ -377,9 +477,27 @@ Ordered by value. Nothing here blocks the upload.
   Judged a certain visual cost against a hypothetical failure.
   (Rendered at both palettes in `_harness/out/gradient-{navy,pale}-compare.png`.)
 
+  > **CONFIRMED 2026-08-07 (Plan 5c).** Re-put to Keagan alongside the other
+  > five open brand items and settled: the decision stands, and the §2 entry is
+  > closed against it rather than left open re-asking the same question. Note
+  > the ink-extent correction does **not** apply here — it moved the eyebrow's
+  > numbers because that text occupies 7% of its box; these two headings are
+  > left-aligned over the *hardcoded* end, which is the end the original
+  > measurement already said they sit on, and white there is 10.78:1.
+
 - **`page-header-eyebrow-contrast` is logged, not fixed** — see §2. Nothing
   passes AA there without changing the page-header design, so it is not a colour
   pick.
+
+  > **SUPERSEDED-BY 2026-08-07:** the second sentence is wrong, and it was wrong
+  > because of a measurement error, not a judgement call. `brandtext.js` scored
+  > the gradient across the eyebrow's 1232 px **box** while the glyphs occupy
+  > 83 px of it. Sampled under the actual ink, full-opacity `--brand-header-ink`
+  > measures **5.14:1 at its worst** across 9 routes × 2 viewports × 2 palettes.
+  > It *was* a colour pick, it was a one-line one, and it shipped 2026-08-07 —
+  > see §1b and §4l. What genuinely cannot be fixed by picking a colour is the
+  > **sub-line** text further down the same gradient, which is now its own item
+  > (`page-header-sublines-on-gradient`) with the numbers that show why.
 
 - **The harness code is now tracked.** `.gitignore` no longer ignores
   `_harness/` wholesale; it ignores `_harness/site/`, `_harness/pristine/` and
@@ -2046,6 +2164,201 @@ first. **Outstanding.**
   author has looked at the product photographs yet. **That approval is still
   outstanding**, and the originals are recoverable from git and from
   `_harness/out/images-original/`.
+
+---
+
+## 4l. Verification evidence for Plan 5c — the six open decisions (2026-08-07)
+
+**Base:** `d059033` (PR #11). **Build:** 0 errors, **335.41 kB JS / 22.13 kB CSS**
+(from 335.39 / 22.13). Emitted CSS selectors **312 → 312, byte-identical file
+hash** across every `src/` change in this session — the Tailwind-extractor trap
+did not fire, checked by diffing the selector list after each build and not by
+reading the source.
+
+`data/`, `pdfs/` and `uploads/` untouched: `git status` clean for all three, and
+all three JSON files `cmp`-identical across `data/` → `_harness/pristine/` →
+`_harness/site/data/` after every suite that writes to the mirror.
+
+### The measurement was fixed before anything was decided on it
+
+Two of this session's six items were brand-colour judgements, and the tool that
+produced the numbers behind them was scoring the wrong rectangle. `brandtext.js`
+sampled a gradient across the **element's box**; the page eyebrow's `<div>` is
+1232 px wide and its glyphs occupy 83 px of it, so 1150 px of gradient the text
+never touches governed the result.
+
+Ink-extent sampling now lives in `_harness/backdrop.js` (`inkRect()`, a union of
+`Range.getClientRects()` per line box), shared by `brandtext.js`,
+`plan5c-eyebrow.js` and `plan5c-brandink.js`. One implementation on purpose:
+`contrastparity.js` exists because two contrast implementations had already
+drifted once, and adding a third the week after writing that down would have
+been absurd.
+
+```
+eyebrow background, /products, sampled across the element's BOX
+   rgb(2,99,166) → rgb(14,148,195)      white scores 3.11 at the far end
+eyebrow background, /products, sampled under the GLYPHS
+   rgb(2,99,166) → rgb(3,103,169)  @1440
+   rgb(2,99,166) → rgb(4,110,173)  @375   white scores 5.47 at the worse end
+```
+
+The extraction was proved to be a no-op: full `--verbose` output diffed before
+and after. **Recorded because it is a real property of the suite, not hidden:**
+two homepage `✓` rows differ by ±1 in the reported background *between two runs
+of the same code* — the hero animates and a small ink extent is
+position-sensitive. Verdicts are unaffected (nearest is 5.5 against a 4.5 bar)
+but the count of distinct combinations can move by one.
+
+### `page-header-eyebrow-contrast` — the item was wrong in both directions
+
+| | before | after |
+|---|---|---|
+| failing elements in `.ipc-page-header` | **39** | **18** |
+| eyebrow, worst of 9 routes × 2 viewports × 2 palettes | **1.04:1** | **5.14:1** |
+| eyebrows below AA | 8 of 8 | **0 of 8** |
+| `/faq` header link | 1.69:1 @375 | 3.68:1 @375, passing @1440 |
+
+The item described **one** element. Scoring the whole header block found the
+other **seven** eyebrows at `rgba(var(--brand-header-ink-rgb), 0.7)` —
+composited `rgb(179,208,228)` — at **3.33–3.80:1**. `brandtext.js` had never
+seen them: it scores text painted in a *brand* colour, and a translucent white
+is not one. Eight copies of one declaration became one `PageEyebrow`.
+
+Full opacity is the load-bearing half, not whiteness. 4.23 recomputes
+`--brand-header-ink` against the **worse** stop of this gradient, so it is the
+only value in the header that survives a pale palette; `rgba(…-rgb, α)` gives
+that guarantee back. `plan5c-eyebrow.js` therefore runs both palettes by
+intercepting `site-info.json`, as `inkaudit.js` does — nothing on disk is
+touched.
+
+### `brand-text-on-brand-surface`, light half — teal, per Keagan
+
+```
+before:  165 elements paint a BRIGHT accent as text on a light background
+after:     0 elements paint a BRIGHT accent as text on a light background
+         250 paint the text-safe accent there, all ≥ AA
+brandtext.js:  35/53  →  35/51     (both worst combinations gone, not moved)
+```
+
+124 `→`/`✓` bullets on white 2.18 → **5.26**; 41 type chips on the tint
+2.79 → **4.72**. Four call sites. The fourth is the one worth writing down: the
+**mobile** card's type chip, whose **desktop twin in the same table already used
+`--brand-accent-text`**. Half the pair had been converted; only one is visible at
+a time, so a sweep at one viewport finds exactly one of them.
+
+`--brand-accent` did not move — still the bright cyan at **10 background and 40
+border** uses across the sweep, asserted, because a "fix" that redefined the
+variable would go green on a text-only check while turning every button on the
+site teal.
+
+### `sitemap.php` — 9 → 51 URLs, and it tracks the live catalog
+
+`public/sitemap.xml` deleted; `public/sitemap.php` renders from
+`data/products-all.json` per request; `.htaccess` rewrites `/sitemap.xml` to it
+so `robots.txt`, Search Console and every external reference keep working. The
+rewrite is emulated in `_harness/router.php` — without it `/sitemap.xml` falls
+through to the SPA shell with a **200**, which is exactly what a broken rewrite
+looks like in production, so `plan5b-sitemap.js` now fails loudly on a non-XML
+content-type rather than diffing an HTML page.
+
+The decisive assertions do not inspect the code, they change the catalog:
+
+```
+add    HARNESS-NEW-SKU to the live catalog  ->  43 product URLs, no rebuild
+delete CC from the live catalog             ->  41 product URLs, CC gone
+corrupt the catalog                         ->  9 static routes, clean XML, 200
+remove the catalog                          ->  9 static routes, clean XML, 200
+all 42 product <loc>s vs the canonical each page declares for itself: 42/42
+```
+
+That last line is not a sample. Five ids contain spaces or ampersands
+(`IP12GA - IP1274`, `IP44A2 & IP45A3`), and PHP's `rawurlencode()` and
+JavaScript's `encodeURIComponent()` differ on `!*'()` — no id contains one, but
+the suite compares all 42 against the rendered canonical rather than trusting
+that.
+
+### The mutation round found two real gaps, and that is the point of it
+
+Three mutations were run. Two behaved as designed; the first did not, and it was
+the useful one.
+
+| mutation | expected | actual | outcome |
+|---|---|---|---|
+| `PageEyebrow` back to `rgba(ink, 0.7)` | eyebrow suite red | **2/4** | as designed |
+| mobile chip back to `--brand-accent-2` | brandink suite red | **3/5**, 41 bright-on-light | as designed |
+| `sitemap.php`: drop the `is_array()` guard, fake `<lastmod>` | sitemap suite red | **16/16 — passed** | two gaps found |
+
+The third mutation passing is recorded because it was a genuine hole, not a
+formality:
+
+1. **`<lastmod>` was never asserted to be the catalog's mtime.** The suite
+   checked the ISO *shape* only, so replacing the mtime with `gmdate('Y-m-d')`
+   passed — a sitemap claiming every page changed today, every day, which is the
+   same defect the privacy page's date had. The suite now **backdates the mirror
+   catalog to 2025-03-04** and requires the document to follow.
+2. **The document-integrity checks only ran on the happy path.** Deleting the
+   guard leaves `foreach (null)`, which under this mirror's `display_errors = On`
+   prints a PHP warning *ahead of the XML declaration* — and nothing looked. The
+   integrity check now runs on the degraded responses too, which is precisely
+   when you need to know the document is still a document.
+
+With both fixed, the same mutation fails **16/17** on the unparseable-catalog
+assertion, and the restored file is back to **17/17**.
+
+### The three items that needed no code
+
+- **`brand-gradient-mixed-ends`** — decision re-put and confirmed: unchanged.
+  The ink-extent correction does not reach it; those two headings are
+  left-aligned over the *hardcoded* end, which is where the original measurement
+  already placed them, and white there is 10.78:1.
+- **27 unreferenced images** — keep. No route requests them, so no visitor pays
+  for them; some are the customer's photography and this may be the only copy.
+  The operational half is the part that matters: **do not re-upload
+  `images/site/` after the first deploy.**
+- **product photo `width`/`height`** — won't fix. **CLS 0.021** at 1440 and **0**
+  at 375 against a 0.1 bar, and the available fix crops the customer's
+  photography (`CT.jpg` is painted 390 × 217 and would be cut to 260). The real
+  fix is intrinsic dimensions written into the catalog at upload time, which is
+  a feature.
+
+### Full regression, after
+
+```
+lint.php            php -l 19 files 0 failing · node --check 9 files 0 failing
+                    JSON 17/10/42 · copydrift 96 matched, 0 JS-only
+invariants          17/17          invariants-selftest  15/15
+copydrift-selftest   5/5           copyroundtrip        15/15
+contrastparity      28/28          skuparity            33/33
+deadlinks           0 of 18 resolve to nothing
+plan2-formlast       8/8  (+ selftest PASS)   plan2-sku        14/14
+plan2-delete        18/18                     plan2-contrast   42/42
+plan2-trunc         13/13                     plan3-contact    51/51
+plan3-autoreply     10/10                     plan4-admin      19/19
+plan4-public        27/27                     plan5-keys       11/11
+plan5-spectable     13/13                     plan5-listeners  11/11
+plan5-social        31/31                     plan5-images     12/12
+plan5-throttle      12/12                     plan5b-sidebar    9/9
+plan5b-sitemap       9/9                      plan5b-pwthrottle 10/10
+plan5c-eyebrow       4/4   (was 1/4)
+plan5c-brandink      5/5   (was 3/4 on the pre-fix shape of the suite)
+plan5c-sitemap      17/17  (was 12/16)
+```
+
+### What this does NOT cover
+
+- **`.htaccess` is not exercised locally.** `php -S` ignores it, so the
+  `^sitemap\.xml$` rewrite is verified only through `_harness/router.php`'s
+  emulation of it. The rule itself is [UNVERIFIED] until it runs on Apache, and
+  it is the one new deploy-time dependency in this change. First thing to check
+  after upload: `curl -sI https://www.insulationproducts.com/sitemap.xml` should
+  answer `Content-Type: application/xml`, not `text/html`.
+- **`DEPLOY_READINESS_v2.md` §7's manifest is now stale by one row** — it lists
+  `sitemap.xml` under the files copied from `public/`. That file is frozen by
+  instruction and was not edited; `README.md`'s two deploy tables were updated
+  instead and are correct. When following §7, read `sitemap.php` for
+  `sitemap.xml`.
+- **The 18 + 18 ratcheted failures are not fixed**, only bounded and printed on
+  every run. Both are escalations awaiting a brand decision, above.
 
 ---
 

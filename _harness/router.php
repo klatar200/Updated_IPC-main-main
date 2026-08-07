@@ -3,9 +3,16 @@
  * Router for `php -S` that emulates the parts of public/.htaccess that matter
  * to the test suites:
  *
+ *   RewriteRule ^sitemap\.xml$ sitemap.php [L]
+ *
  *   RewriteCond %{REQUEST_FILENAME} !-f
  *   RewriteCond %{REQUEST_FILENAME} !-d
  *   RewriteRule ^ index.html [QSA,L]
+ *
+ * The sitemap rule is emulated because the sitemap is generated from the live
+ * catalog and `plan5c-sitemap.js` fetches it at its real address. Without it
+ * /sitemap.xml falls through to the SPA shell and every assertion in that suite
+ * fails for the wrong reason.
  *
  * i.e. an existing file or directory is served as-is; anything else falls
  * through to the SPA shell. Without this a direct load of /products or
@@ -21,6 +28,14 @@
 $root = __DIR__ . '/site';
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path = rawurldecode($path);
+
+// [L] before the catch-all, exactly as in .htaccess.
+if ($path === '/sitemap.xml' && is_file($root . '/sitemap.php')) {
+    $path = '/sitemap.php';
+    $_SERVER['SCRIPT_FILENAME'] = $root . '/sitemap.php';
+    require $root . '/sitemap.php';
+    return true;
+}
 
 // Containment: never let ".." climb out of the mirror.
 $full = realpath($root . $path);
