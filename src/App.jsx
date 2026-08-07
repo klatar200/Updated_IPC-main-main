@@ -5079,6 +5079,14 @@ const COPY_DEFAULTS = {
     companyLabel: "Company",
     companyPlaceholder: "Your organization",
     tipsTitle: "For fastest response, include:",
+    // PLAN-6 item 3. These three are read by public/contact.php, not by any
+    // React component — they are here because content.php offers them and
+    // `_harness/copydrift.js` requires both sides of the copy contract to
+    // match exactly. contact.php carries the same two defaults inline so a
+    // missing or corrupt content.json still sends a sensible auto-reply.
+    autoReplyRfqPromise: "Our sales team will review your request and respond within one business day — often the same day for in-stock items.",
+    autoReplyMsgPromise: "Our team will respond within one business day.",
+    autoReplyNotice: "",
   },
 };
 

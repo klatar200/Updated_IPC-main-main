@@ -374,6 +374,13 @@ $COPY_GROUPS = [
         ['key' => 'companyLabel',        'type' => 'text',     'label' => 'Field: Company — label'],
         ['key' => 'companyPlaceholder',  'type' => 'text',     'label' => 'Field: Company — placeholder'],
         ['key' => 'tipsTitle',           'type' => 'text',     'label' => 'Sidebar tips — heading'],
+        // PLAN-6 item 3 — the auto-reply body. Prose only: the request summary
+        // (part number, material, quantity, required-by) is built by
+        // contact.php and is deliberately NOT editable, because a templating
+        // syntax in a textarea is a way to produce broken emails.
+        ['key' => 'autoReplyRfqPromise', 'type' => 'textarea', 'label' => 'Auto-reply — response promise (quote requests)'],
+        ['key' => 'autoReplyMsgPromise', 'type' => 'textarea', 'label' => 'Auto-reply — response promise (messages)'],
+        ['key' => 'autoReplyNotice',     'type' => 'textarea', 'label' => 'Auto-reply — temporary notice (optional, e.g. holiday closure). Leave empty for none.'],
     ]],
 ];
 
