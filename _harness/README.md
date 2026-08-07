@@ -99,6 +99,7 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `plan5-throttle.js` | 4.14 — the login throttle. **Needs the ten-server fleet on :8130–:8139** (below) |
 | `plan5-social.js` | 4.11b — footer social icons, and the "all five cleared ⇒ no container" half of NB4 |
 | `plan5-images.js` | 4.32 — image weight, dimension attributes, lazy-loading, and every product photo still reaching the page |
+| `plan5b-sidebar.js` | `sidebar-active-border` — the selected product's left indicator, measured as **computed style**, plus React's style-conflict warning on a development bundle |
 
 ## Investigative tools (one-shot, kept as evidence)
 
