@@ -24,6 +24,14 @@
  * Reads only. Nothing under data/ is written.
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
+ * UPDATED 2026-08-07: the sitemap is no longer a file. `public/sitemap.xml` was
+ * replaced by `public/sitemap.php`, which generates the document from the live
+ * catalog and is reached through an .htaccess rewrite at the same address. This
+ * suite therefore FETCHES /sitemap.xml over HTTP instead of reading the file —
+ * which is what a crawler does anyway, and it now also proves the rewrite is
+ * wired. Its own subject is unchanged: the 9 declared routes and whether
+ * /dashboard belongs among them. The product half is `plan5c-sitemap.js`.
+ *
  * Usage: node _harness/plan5b-sitemap.js
  */
 
@@ -32,7 +40,6 @@ const path = require('path');
 const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
-const SITEMAP = path.join(__dirname, '..', 'public', 'sitemap.xml');
 const ROBOTS = path.join(__dirname, '..', 'public', 'robots.txt');
 const APP = path.join(__dirname, '..', 'src', 'App.jsx');
 
@@ -51,10 +58,25 @@ function declaredRoutes() {
     .map((m) => (m[1] === 'home' ? '/' : `/${m[1]}`));
 }
 
-const sitemapPaths = () => {
-  const xml = fs.readFileSync(SITEMAP, 'utf8');
+/**
+ * The ROUTE paths in the served sitemap. Product URLs carry ?productId= and are
+ * plan5c-sitemap.js's subject; folding them in here would make `extra` below
+ * report 42 false positives against a 9-route SEO_DEFAULT.
+ */
+const sitemapPaths = async () => {
+  const res = await fetch(`${BASE}/sitemap.xml?t=${process.hrtime.bigint()}`);
+  if (!res.ok) throw new Error(`GET /sitemap.xml -> ${res.status}`);
+  const type = res.headers.get('content-type') || '';
+  if (!/xml/i.test(type)) {
+    // The rewrite not firing looks exactly like this: the SPA shell, 200, HTML.
+    throw new Error(`GET /sitemap.xml served "${type}", not XML — is the ` +
+      `^sitemap\\.xml$ rewrite present in public/.htaccess and _harness/router.php?`);
+  }
+  const xml = await res.text();
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
-    .map((m) => new URL(m[1].trim()).pathname.replace(/\/$/, '') || '/');
+    .map((m) => new URL(m[1].trim()))
+    .filter((u) => !u.search)
+    .map((u) => u.pathname.replace(/\/$/, '') || '/');
 };
 
 const disallowed = () =>
@@ -65,7 +87,7 @@ const disallowed = () =>
 
 (async () => {
   const declared = declaredRoutes();
-  const listed = sitemapPaths();
+  const listed = await sitemapPaths();
   const blocked = disallowed();
 
   note(declared.length === 9,

@@ -78,7 +78,8 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `contrastparity.js` / `.php` | the PHP and JS contrast implementations agree on 23 colors |
 | `skuparity.js` / `.php` | the PHP and JS SKU matching agree on 32 needles |
 | `deadlinks.js` | every Industries product reference resolves to a real product |
-| `brandtext.js` | every element painting its own text in a brand colour, scored against the background it really sits on — gradients sampled **at the element's own position**, translucent layers composited, WCAG large-text honoured. Supersedes `fgsurfaces.js`'s reporting. **Currently 34/54 — see `brand-text-on-brand-surface` in `WHATS_LEFT.md` §2.** |
+| `backdrop.js` | the shared measurement core: gradient sampling **under the glyphs**, alpha compositing to the first opaque paint, WCAG luminance. A source string, not a function — Playwright serialises a function without its closure. Used by `brandtext.js`, `plan5c-eyebrow.js` and `plan5c-brandink.js`; it is one implementation on purpose, because `contrastparity.js` exists to catch two contrast implementations drifting apart |
+| `brandtext.js` | every element painting its own text in a brand colour, scored against the background it really sits on — gradients sampled **under the text's own ink**, translucent layers composited, WCAG large-text honoured. Supersedes `fgsurfaces.js`'s reporting. **Currently 35/51.** ⚠️ Two homepage `✓` rows wobble ±1 in the reported background between runs of the same code — the hero animates and a small ink extent is position-sensitive. Verdicts are unaffected; the count of distinct combinations can move by one |
 
 ## Per-plan acceptance
 
@@ -100,8 +101,11 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `plan5-social.js` | 4.11b — footer social icons, and the "all five cleared ⇒ no container" half of NB4 |
 | `plan5-images.js` | 4.32 — image weight, dimension attributes, lazy-loading, and every product photo still reaching the page |
 | `plan5b-sidebar.js` | `sidebar-active-border` — the selected product's left indicator, measured as **computed style**, plus React's style-conflict warning on a development bundle |
-| `plan5b-sitemap.js` | `sitemap/dashboard` — `sitemap.xml` diffed against `SEO_DEFAULT`, checked against `robots.txt`, and every `<loc>` rendered and matched to its own canonical |
+| `plan5b-sitemap.js` | `sitemap/dashboard` — the served `/sitemap.xml` diffed against `SEO_DEFAULT`, checked against `robots.txt`, and every route `<loc>` rendered and matched to its own canonical. **Fetches over HTTP**, not off disk: the sitemap is generated now, and a rewrite that fails delivers the SPA shell with a 200, so it fails loudly on a non-XML content-type |
 | `plan5b-pwthrottle.js` | `admin/password.php still sleeps` — the change-password form goes through `login_attempt_gate()`, does not sleep, and cannot be deepened by retrying |
+| `plan5c-eyebrow.js` | `page-header-eyebrow-contrast` — every text-painting element in `.ipc-page-header`, on **two palettes**, scored under its own ink. The eyebrow is held at AA; the rest is a printed ratchet at 18 |
+| `plan5c-brandink.js` | `brand-text-on-brand-surface` — bright accents used as text, classified by **measured background luminance** rather than by route, so darken-on-light and lighten-on-dark cannot be confused. Also asserts `--brand-accent` is still in use as a surface, which is what tells a call-site fix apart from a repalette |
+| `plan5c-sitemap.js` | `product detail URLs are in no sitemap` — adds and deletes a product **in a live catalog** and requires the served document to track it, compares all 42 product `<loc>`s against the canonical each page declares, and checks the degraded responses are still clean XML |
 
 ## Investigative tools (one-shot, kept as evidence)
 
@@ -125,13 +129,16 @@ Plan 5 added:
 
 `mockup-brandtext.js` (2026-08-07) renders the open brand-colour decisions
 against the **real** pages so they can be judged by eye. Running it found that
-`brandtext.js` scores a gradient across the **element's box** rather than the
+`brandtext.js` scored a gradient across the **element's box** rather than the
 text's ink extent — the page eyebrow's box is 1232 px wide and its text is
-83 px, and that difference is the whole of `WHATS_LEFT.md` §2's claim that
-"nothing passes AA there". Under the actual glyphs, white measures 5.97–6.29:1.
-**Measuring ink extent is the outstanding fix for `brandtext.js`**; until it
-lands, treat any gradient-backed failure as a candidate for re-measurement and
-any solid-background failure as accurate.
+83 px, and that difference was the whole of `WHATS_LEFT.md` §2's claim that
+"nothing passes AA there".
+
+**That fix landed the same day** and lives in `backdrop.js`; the earlier warning
+to re-measure gradient-backed failures by hand is obsolete. Two of the mockups
+were acted on (white eyebrow, teal arrows) and `eyebrow-D-darker-gradient.png`
+is still live evidence for the one decision this left open,
+`page-header-sublines-on-gradient`.
 
 ## Two things that have bitten before
 
