@@ -1,4 +1,16 @@
-# Plans — closing out `WHATS_LEFT.md` §2
+# Plans
+
+**Plans 0–5 are complete and merged.** All 21 items they covered are closed —
+see `WHATS_LEFT.md` §1b and `PATCH_NOTES.md`. They are kept as the record of how
+each was approached and what each was measured against.
+
+**[PLAN-6](PLAN-6-admin-surface.md) is the only open plan.** It is not a
+bug-closing plan like the others: it widens what the owner can change without a
+developer, from a review of the admin's editable surface on 2026-08-07.
+
+---
+
+## Plans 0–5 — closing out `WHATS_LEFT.md` §2 (complete)
 
 Six plans covering **all 21 open items**, plus the `seo: []` amendment and one
 regression introduced by commit `6284708`.
@@ -32,6 +44,25 @@ A plan may add constraints. It may never relax one from GUARDRAILS.
 
 Plans 2, 3 and 5 are independent of each other and of Plan 1. Plan 0 gates
 everything; Plan 4 follows Plan 1; Plan 5 goes last.
+
+Plan 5 was followed by two unplanned rounds recorded only in `WHATS_LEFT.md`:
+**5b** (`sidebar-active-border`, `password.php`'s throttle, the sitemap) and
+**5c** (the page-header eyebrow, the teal accent text, and `sitemap.php`).
+
+---
+
+## Plan 6 — widening the admin surface (open)
+
+| Plan | Items | Effort | Risk | Why here |
+|---|---|---|---|---|
+| **[6 — Admin surface](PLAN-6-admin-surface.md)** | product families, auto-reply copy, social platforms | M | Med | Not defects. Three places where routine business change currently needs a developer. Item 1 is also a **latent defect** — the eleven category names are three separate literals that agree today and nothing keeps them agreeing |
+
+Take them **4, then 3, then 1** — ascending risk and blast radius. Items 1 and 3
+both add fields under `content.php`'s `max_input_vars` sentinel; read §0 of the
+plan before either.
+
+A fourth candidate — owner-editable marketing imagery — was reviewed and left
+out. It needs a scope decision first and may need photography rather than code.
 
 ---
 
