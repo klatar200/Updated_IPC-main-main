@@ -715,9 +715,17 @@ function login_attempt_gate(string $ip): int {
  * Count one failed attempt and return the seconds the caller must now wait
  * (0 if still inside the free allowance).
  *
- * Used by admin/password.php, which checks the CURRENT password behind an
- * already-authenticated session and is outside PLAN-5's scope boundary. The
- * login form uses login_attempt_gate() instead.
+ * ⚠️ NOT FOR PAGES. Both surfaces that check a password — admin/auth.php and
+ * admin/password.php — go through login_attempt_gate() instead, because
+ * counting only *failures* still lets a burst of simultaneous connections all
+ * read "none so far" and all reach password_verify(). This counts
+ * unconditionally and gates nothing, which is exactly the hole 4.14 closed.
+ *
+ * It survives because _harness/plan5-throttle.js's probe needs a helper that
+ * increments without refusing, in order to prove the flock around the
+ * read-modify-write actually holds (10 parallel calls must produce 10 counts —
+ * before the lock it produced 5). If you are writing a page, you want
+ * login_attempt_gate().
  */
 function login_register_failure(string $ip): int {
     $wait = 0;
@@ -743,11 +751,11 @@ function login_reset_failures(string $ip): void {
  * locked out, I need the FTP recovery" — sends him to the one procedure this
  * release is trying to keep him away from.
  */
-function login_cooloff_message(int $seconds): string {
+function login_cooloff_message(int $seconds, string $attempts = 'failed sign-in attempts'): string {
     $wait = $seconds >= 60
         ? (int)ceil($seconds / 60) . ' ' . ((int)ceil($seconds / 60) === 1 ? 'minute' : 'minutes')
         : max(1, $seconds) . ' seconds';
-    return 'Too many failed sign-in attempts from this computer. Please wait about '
+    return 'Too many ' . $attempts . ' from this computer. Please wait about '
          . $wait . ' and try again. Waiting is all that is needed — this clears itself, '
          . 'and reloading the page sooner will not make it shorter.';
 }
