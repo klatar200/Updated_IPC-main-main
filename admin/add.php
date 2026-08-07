@@ -64,6 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'photoUrl'=> post_str('photoUrl'),
             // post_str() first: explode() on an array is a TypeError on PHP 8
             // and a warning + null on 7.4. (AUDIT_v3_FINDINGS NB12)
+            // Whitelisted against the vocabulary. A NEW product always gets an
+            // explicit list — even an empty one — so it is never re-derived
+            // from its own prose later.
+            'approvals' => is_array($_POST['approvals'] ?? null)
+                ? array_values(array_intersect(IPC_APPROVALS, $_POST['approvals']))
+                : [],
             'badges'  => array_values(array_filter(array_map('trim', explode("\n", post_str('badges'))))),
             'description' => array_values(array_filter(array_map('trim', explode("\n", post_str('description'))))),
             'specTable1' => ['title' => post_str('specTable1_title', 'Specifications:'), 'rows' => $st1Rows],
@@ -187,6 +193,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label for="specificationsSummary">Specifications Summary</label>
           <input type="text" id="specificationsSummary" name="specificationsSummary" value="<?= h($product['specificationsSummary'] ?? '') ?>" placeholder="U/L 224 · RoHS · -55°C to 135°C" />
         </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Approvals &amp; Certifications</div>
+      <div class="hint" style="margin-bottom:10px">
+        Tick every approval this product holds. These drive the
+        <strong>Filter by approval</strong> controls on the Product Index.
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px 14px">
+        <?php $addAp = is_array($_POST['approvals'] ?? null) ? $_POST['approvals'] : []; ?>
+        <?php foreach (IPC_APPROVALS as $ap): ?>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;text-transform:none">
+            <input type="checkbox" name="approvals[]" value="<?= h($ap) ?>" <?= in_array($ap, $addAp, true) ? 'checked' : '' ?> />
+            <?= h($ap) ?>
+          </label>
+        <?php endforeach; ?>
       </div>
     </div>
 

@@ -120,6 +120,39 @@ if (!$phpFam || !$jsFam) {
     echo "family drift              " . count($jsFam) . " families, PHP and JS identical\n";
 }
 
+// ── approval drift ──────────────────────────────────────────────────────────
+// The same copydrift problem as the families: twelve approval names exist in
+// admin/config.php (IPC_APPROVALS) and in src/App.jsx (APPROVALS), and PHP and
+// JS cannot share a constant without a build step. This checks the NAMES and
+// their order. It deliberately does not compare the regexes — those are
+// checked by behaviour, in plan7-approvals.js, which diffs what each side
+// derives for all 42 products. Comparing pattern source across two languages
+// would fail on spelling differences that change nothing and pass on ones that
+// change everything (it already caught PHP's json_encode escaping "U/L" to
+// "U\/L", which no source diff would have shown).
+$phpAp = [];
+if (preg_match('/const IPC_APPROVALS = \[(.*?)\];/s', (string)@file_get_contents(__DIR__ . '/../admin/config.php'), $m)) {
+    preg_match_all("/'([^']+)'/", $m[1], $mm);
+    $phpAp = $mm[1];
+}
+$jsAp = [];
+if (preg_match('/const APPROVALS = \[(.*?)\n\];/s', (string)@file_get_contents(__DIR__ . '/../src/App.jsx'), $m)) {
+    preg_match_all('/\["([^"]+)",/', $m[1], $mm);
+    $jsAp = $mm[1];
+}
+if (!$phpAp || !$jsAp) {
+    $fail++;
+    echo "FAIL  approval drift\n      could not read one of the two lists (php "
+       . count($phpAp) . ", js " . count($jsAp) . ") — has one been renamed?\n";
+} elseif ($phpAp !== $jsAp) {
+    $fail++;
+    echo "FAIL  approval drift\n      admin/config.php IPC_APPROVALS and src/App.jsx APPROVALS disagree\n"
+       . "      php: " . json_encode($phpAp) . "\n"
+       . "      js : " . json_encode($jsAp) . "\n";
+} else {
+    echo "approval drift            " . count($jsAp) . " approvals, PHP and JS identical\n";
+}
+
 // The two $partTypes literals this item removed must not come back.
 $reintroduced = [];
 foreach (['add.php', 'edit.php'] as $f) {

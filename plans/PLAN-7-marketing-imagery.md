@@ -300,6 +300,67 @@ through the admin, exactly as with the four `photoUrl` values.
 
 ---
 
+## 3c. ✅ SHIPPED 2026-08-07 — approvals became a field
+
+Certifications lived only in free text: **112 distinct badge strings across 42
+products**, ~20 carrying an approval in 20 different spellings (`U/L CSA`,
+`U/L CSA MIL-Spec.`, `U/L CSA and MIL-SPEC`, `U/L, MIL-Spec.`,
+`UL & CSA Approved`). Nothing could count, filter or list them.
+
+**The badge field also understated the catalogue.** Read the whole record —
+badges, `specificationsSummary`, `description`, `specTable1` — and:
+
+| | badges | whole record |
+|---|---|---|
+| UL VW-1 | 1 | **11** |
+| MIL-SPEC | 5 | **12** |
+| FDA | 2 | **6** |
+| ≥ 1 approval | 23 | **30** |
+
+A buyer filtering for MIL-SPEC would have seen 5 products where **12** qualify.
+
+Shipped: a twelve-name vocabulary, checkbox grids on Add/Edit Product, filter
+chips on the Product Index (they intersect — 41 → MIL-SPEC 12 → +CSA 7),
+approval marks on product detail pages and datasheet cards.
+
+**The migration is progressive, not a bulk rewrite.**
+`data/products-all.json` is server-owned in production, so a 30-product edit
+made in this repo would not travel and the owner would have to redo it anyway.
+Instead the field materialises when he saves a product; until then the site
+derives from the same text the admin pre-ticks from. Both states render the
+same page, and both are asserted.
+
+**Two traps, both caught by the harness rather than by reading.**
+
+1. **An explicit empty list must stay empty.** `approvals` is read by
+   *presence* (`Array.isArray` / `array_key_exists`), never truthiness. A
+   product whose owner unticked every box stores `approvals: []`, and that
+   means *no approvals* — re-deriving there resurrects exactly what he removed.
+   This is invariant 3's lesson applied to a new field, and **the first draft
+   had the bug**: `Array.isArray(p.approvals) && p.approvals.length`. Mutating
+   it back fails the suite 10/11.
+2. **PHP and JS disagreed, invisibly.** PHP's `json_encode` escapes `/` by
+   default, so `"U/L Recognized"` inside `specTable1` became `"U\/L
+   Recognized"` and `\bU\/?L\b` stopped matching — PHP derived one fewer
+   approval than JS for `IP17TW-IP18SW-IP19LW`. Fixed with
+   `JSON_UNESCAPED_SLASHES`. **No source diff would have shown this**, which is
+   why parity is compared *behaviourally*: `plan7-approvals.js` diffs what each
+   side derives for all 42 products. `lint.php`'s `approval drift` check covers
+   the names only, and says so.
+
+Word boundaries are load-bearing: two real badge strings are `Ultra Clear` and
+`Encapsulating`, both containing *ul*, and a naive `/ul/i` reports both as UL
+approvals. The boundary test runs the deriver against those bare strings — an
+earlier indirect version ("does any product with an Encapsulating badge derive
+a UL approval") flagged `IP42MW`, which carries `Encapsulating` **and** a
+genuine `U/L Approved`.
+
+`_harness/plan7-approvals.js` **11/11**. The `content.php` posted-variable count
+is **unchanged at 439** — these fields are on the product editor, not the
+content editor, so the `max_input_vars` sentinel is untouched.
+
+---
+
 ## 3. Give the owner the controls
 
 The point of the review item was not "put photos on the site". It was that the

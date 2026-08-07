@@ -42,6 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updated['specificationsSummary'] = post_str('specificationsSummary');
     $updated['photoUrl']              = post_str('photoUrl');
 
+    // Whitelisted against the vocabulary — a posted value that is not an
+    // approval never reaches the catalogue. array_intersect also deduplicates
+    // and restores canonical order.
+    $postedAp = $_POST['approvals'] ?? [];
+    $updated['approvals'] = is_array($postedAp)
+        ? array_values(array_intersect(IPC_APPROVALS, $postedAp))
+        : [];
+
     // Badges — one per line
     $badgesRaw = post_str('badges');
     $updated['badges'] = array_values(array_filter(array_map('trim', explode("\n", $badgesRaw))));
@@ -187,6 +195,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Format helpers for form display
 $badgesStr  = implode("\n", $product['badges'] ?? []);
+
+/* Seed the checkboxes: the stored field if the product has one, otherwise a
+ * one-time read of its existing text. `$approvalSeeded` drives the warning —
+ * the owner must be told the ticks were guessed, every time, until he saves. */
+$approvalSet    = ipc_product_approvals($product);
+$approvalSeeded = !array_key_exists('approvals', $product);
+
 $descStr    = implode("\n", $product['description'] ?? []);
 
 // Additional PDFs → one "URL | Label" line each for the textarea.
@@ -336,6 +351,39 @@ include 'nav.php';
           <input type="text" id="specificationsSummary" name="specificationsSummary" value="<?= h($product['specificationsSummary'] ?? '') ?>" placeholder="e.g. U/L 224 VW-1 · RoHS · -55°C to 135°C · 600V" />
           <div class="hint">Comma/bullet-separated summary. Keep under 120 characters.</div>
         </div>
+      </div>
+    </div>
+
+    <!-- Approvals & Certifications -->
+    <div class="card">
+      <div class="card-title">Approvals &amp; Certifications</div>
+      <div class="form-group">
+        <div class="hint" style="margin-bottom:10px">
+          Tick every approval this product holds. These drive the
+          <strong>Filter by approval</strong> controls on the Product Index and the
+          marks on the Datasheets page. The free-text badges below cannot do that
+          &mdash; &ldquo;U/L CSA MIL-Spec.&rdquo; and &ldquo;U/L, MIL-Spec.&rdquo; are
+          different strings to a computer.
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px 14px">
+          <?php foreach (IPC_APPROVALS as $ap): $on = in_array($ap, $approvalSet, true); ?>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:<?= $on ? '600' : '400' ?>;cursor:pointer;text-transform:none">
+              <input type="checkbox" name="approvals[]" value="<?= h($ap) ?>" <?= $on ? 'checked' : '' ?> />
+              <?= h($ap) ?>
+            </label>
+          <?php endforeach; ?>
+        </div>
+        <?php if ($approvalSeeded && $approvalSet): ?>
+          <div class="hint" style="margin-top:10px;color:#92400e">
+            &#9888; Pre-ticked by reading this product&rsquo;s existing text
+            (<?= h(implode(', ', $approvalSet)) ?>). <strong>Check them before saving.</strong>
+            Prose is not a reliable source for this &mdash; saving once makes it a real field.
+          </div>
+        <?php elseif ($approvalSeeded): ?>
+          <div class="hint" style="margin-top:10px">
+            Nothing was found in this product&rsquo;s existing text. Tick anything it holds.
+          </div>
+        <?php endif; ?>
       </div>
     </div>
 
