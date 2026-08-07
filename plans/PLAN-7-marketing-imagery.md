@@ -10,9 +10,16 @@ route. The work is wiring, and one harness gap that has to close first.
 
 Read first: `CLAUDE.md`, `plans/GUARDRAILS.md`, `WHATS_LEFT.md` §2.
 
-Three items. **Item 1 must land before item 2** — it is the measurement that
+Three items. ~~**Item 1 must land before item 2** — it is the measurement that
 makes item 2 checkable, and without it the existing contrast harness reports a
-passing number for text sitting on a photograph. Item 3 is independent.
+passing number for text sitting on a photograph.~~ Item 3 is independent.
+
+⚠️ **AMENDED 2026-08-07, after the treatments in §2 were built and
+photographed.** Item 1 is **no longer a prerequisite** — the hero treatment that
+survived rendering puts no ink on a photograph, so the harness gap is never
+reached. Item 1 remains worth landing on its own merits and no longer blocks
+anything. The full amendment, including two conclusions in §2 that rendering
+disproved, is at the end of §2. Read it before §2's scrim arithmetic.
 
 ---
 
@@ -170,12 +177,58 @@ printed ratchet and needs a colour decision from Keagan. **This plan must not
 be read as fixing it** — it moves it in the right direction and must not be
 allowed to move it back.
 
+### ⚠️ AMENDED 2026-08-07 — the full-bleed hero was built and rejected
+
+Everything above this heading is kept as written. It was reasoned from CSS, and
+three of its conclusions did not survive being rendered. Four hero treatments
+were implemented against the real page, built, screenshotted at 1440 and 375 and
+then reverted (`_harness/homeshot.js`, artifacts in `_harness/out/plan7/`).
+
+1. **The best photograph is a photograph *of text*.** `Marker-Sample-2.jpg` is a
+   spread of custom-printed sleeves — "TRANSDUCER END", "CAUTION: RF SHOCK
+   HAZARD", "INSULATION PRODUCTS CORPORATION". Setting the headline over it is
+   typography over typography and no scrim fixes that. A neutral scrim heavy
+   enough to protect the ink also drains the navy out of the page.
+2. **The banner images cannot fill a hero.** `Slide1.png` and
+   `main-banner-*.jpg` are **4.7:1** letterbox strips; the hero is **1.7:1**.
+   `cover` keeps the middle **37 %** and upscales it **2×**. Legible and on
+   brand, but what survives is blue-grey texture — §0's resolution table is
+   necessary and not sufficient, because it did not check aspect.
+3. **So the scrim arithmetic above, while correct, is moot.** The treatment that
+   won puts the photograph in the hero's **already-empty right column**, below
+   the proof cards, where no ink crosses it. The scrim ramp is untouched.
+   `plan5c-brandink` and `plan5c-eyebrow` were re-run against that build and
+   hold at **18 and 18** — unchanged. **This design adds no contrast debt.**
+
+**Item 1 is therefore no longer a prerequisite for item 2** — nothing is going
+behind text. It is still worth landing: a silent skip in the one file three
+suites trust is a defect whether or not this plan triggers it. It simply stops
+being urgent, and stops blocking.
+
+Two further measurements the plan did not anticipate:
+
+- **`IPC-Building.jpg` has a white border baked into the pixels**, the same
+  defect as `staff-image.png`. At half-width it upscaled and the frame showed;
+  at one-third it lands near 1:1 and the crop removes it. The band's 2:1 column
+  split is forced by the source file, not chosen.
+- **`staff.jpg` and `IPC-Building.jpg` are at their resolution ceiling.**
+  Painted 845 × 300 from a 726 × 408 source, and 411 × 300 from 425 × 281 — the
+  first is already upscaling 1.16× at 1×. They are fine at the sizes shown and
+  cannot go larger or retina. `Marker-Sample-2.jpg` has 4× headroom.
+
+Measured cost of the shipped set, encoded at paint size from the `febc0b7`
+originals: **199 KB total** (110 + 61 + 29), against a 338 KB JS bundle and the
+0.97 MB `images/site/` already shipping unrequested. One defect in the mockup to
+fix before shipping: the hero image is hidden on mobile with a class, and **a
+hidden `<img>` is still downloaded** — needs a `<picture>` with a `min-width`
+source, or no element at all below the breakpoint.
+
 ### The slots
 
 | # | where | image | notes |
 |---|---|---|---|
-| 1 | `Hero()` `:1449` background | `Slide1.png` @ 1948 px | LCP element — eager, CSS background so no CLS, scrim flattened to 0.72 |
-| 2 | `AboutPage()` `:2655`, after the story card | `staff.jpg` full-bleed | not `staff-image.png` — see §0 |
+| 1 | `Hero()` `:1449` **right column, below the proof cards** | `Marker-Sample-2.jpg` @ 1170 × 660 | ~~background, scrim flattened to 0.72~~ — see the amendment. Fills space that was already empty; no ink crosses it |
+| 2 | **`HomePage()` band between `Features` and Markets** | `staff.jpg` + `IPC-Building.jpg`, 2:1 | moved from About: it breaks the twelve-identical-cards run at exactly the point the repetition happens. About can link to it |
 | 3 | `AboutPage()` sidebar | `IPC-Building.jpg` | 425 px original caps the paint at ~425 |
 | 4 | `ServicesPage()` `:8714`, printing & marking | `Marker-Sample-2.jpg` @ 2400 px | the sharpest image in the set |
 | 5 | footer `:9412`, beside `catalogPdfUrl` | `Front-Cover.jpg` thumb | the link is bare text today; the cover is the catalog's own artwork |
