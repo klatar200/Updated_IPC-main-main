@@ -86,4 +86,53 @@ if ($driftRc !== 0) {
     echo "copy-key drift            " . ($summary ?: 'OK') . "\n";
 }
 
+/**
+ * PLAN-6 item 1 — the product families exist as a PHP default
+ * (IPC_DEFAULT_FAMILIES in admin/config.php) and a JS default (FAMILY_ORDER in
+ * src/App.jsx). Two copies across two languages, kept honest the same way
+ * $COPY_GROUPS and COPY_DEFAULTS are: by failing here when they disagree.
+ *
+ * Before this item there were THREE copies — those two plus a $partTypes literal
+ * in each of add.php and edit.php — with nothing checking any of them. The two
+ * PHP literals are gone; what is new is that the remaining pair cannot diverge
+ * silently.
+ */
+$phpFam = [];
+if (preg_match('/const IPC_DEFAULT_FAMILIES = \[(.*?)\];/s', (string)@file_get_contents(__DIR__ . '/../admin/config.php'), $m)) {
+    preg_match_all("/'([^']+)'/", $m[1], $mm);
+    $phpFam = $mm[1];
+}
+$jsFam = [];
+if (preg_match('/const FAMILY_ORDER = \[(.*?)\];/s', (string)@file_get_contents(__DIR__ . '/../src/App.jsx'), $m)) {
+    preg_match_all('/"([^"]+)"/', $m[1], $mm);
+    $jsFam = $mm[1];
+}
+if (!$phpFam || !$jsFam) {
+    $fail++;
+    echo "FAIL  family drift\n      could not read one of the two lists (php "
+       . count($phpFam) . ", js " . count($jsFam) . ") — has one been renamed?\n";
+} elseif ($phpFam !== $jsFam) {
+    $fail++;
+    echo "FAIL  family drift\n      admin/config.php IPC_DEFAULT_FAMILIES and src/App.jsx FAMILY_ORDER disagree\n"
+       . "      php: " . json_encode($phpFam) . "\n"
+       . "      js : " . json_encode($jsFam) . "\n";
+} else {
+    echo "family drift              " . count($jsFam) . " families, PHP and JS identical\n";
+}
+
+// The two $partTypes literals this item removed must not come back.
+$reintroduced = [];
+foreach (['add.php', 'edit.php'] as $f) {
+    if (preg_match('/\$partTypes\s*=\s*\[/', (string)@file_get_contents(__DIR__ . '/../admin/' . $f))) {
+        $reintroduced[] = $f;
+    }
+}
+if ($reintroduced) {
+    $fail++;
+    echo "FAIL  family literals\n      a hardcoded \$partTypes list is back in: "
+       . implode(', ', $reintroduced) . " — read ipc_product_families() instead\n";
+} else {
+    echo "family literals           none in add.php or edit.php\n";
+}
+
 exit(($fail + $jsFail) === 0 ? 0 : 1);

@@ -219,7 +219,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($errors)) {
     if (is_string($_POST['specTable1_title'] ?? null)) $st1Title = $_POST['specTable1_title'];
 }
 
-$partTypes = ['Polyolefin Heat Shrink','PVDF Heat Shrink','Dual-Wall Heat Shrink','Medical Grade Heat Shrink','Elastomeric Heat Shrink','Fiberglass Sleeving','Expandable Sleeving','End Cap','Tape','Adhesive','Accessory'];
+// PLAN-6 item 1 — the family list is owner-editable and lives in content.json.
+// This was a literal here AND in the other of add.php/edit.php AND in
+// src/App.jsx's FAMILY_ORDER: three copies that agreed only by luck, and whose
+// drift would have been invisible here because the dropdown keeps an
+// unrecognised value as a selected option (which is correct, and below).
+$partTypes = ipc_product_families();
 ?>
 <!doctype html>
 <html lang="en">

@@ -250,6 +250,20 @@ $SECTIONS = [
             ['key' => 'text', 'type' => 'text', 'label' => 'Tip', 'full' => true],
         ],
     ],
+    // PLAN-6 item 1. These eleven names used to be hardcoded in THREE places —
+    // src/App.jsx's FAMILY_ORDER and a $partTypes literal in each of add.php
+    // and edit.php — which agreed only by luck. This is now the only editable
+    // copy; App.jsx keeps one as its fallback default and the two PHP literals
+    // are gone.
+    'productFamilies' => [
+        'title'    => 'Product Families / Categories',
+        'sub'      => 'The categories products are grouped under, in the order they appear in the catalogue sidebar and the Products menu. <strong>Renaming one does not rename the products in it</strong> — each product stores its own category, so a renamed family leaves its products under the old name until you re-save each of them. The count beside each row is how many products would be affected.',
+        'addLabel' => 'Family',
+        'icons'    => [],
+        'fields'   => [
+            ['key' => 'name', 'type' => 'text', 'label' => 'Family name', 'full' => true],
+        ],
+    ],
 ];
 
 // Fixed page copy (hero text, section headings, page banners) — edited as fixed
@@ -697,8 +711,23 @@ function render_row(string $section, int $i, array $cfg, array $row): string {
     }, $cfg['fields']);
     $row = prep_row($section, $row);
     $title = (string)($cfg['title'] ?? '');
-    $out  = '<div class="content-row">';
+    // PLAN-6 item 1 — how many products this family currently holds. Rendered
+    // as an attribute as well as visible text so content-editor.js can warn
+    // before a rename orphans them, and so the harness can assert the number
+    // rather than the wording. Only meaningful for productFamilies; every other
+    // section gets no attribute at all.
+    $famAttr = '';
+    $famBadge = '';
+    if ($section === 'productFamilies') {
+        $n = ipc_family_product_count((string)($row['name'] ?? ''));
+        $famAttr = ' data-ipc-family-count="' . (int)$n . '"'
+                 . ' data-ipc-family-name="' . h((string)($row['name'] ?? '')) . '"';
+        $famBadge = '<span class="row-num" title="Products currently in this family">'
+                  . (int)$n . ' product' . ($n === 1 ? '' : 's') . '</span>';
+    }
+    $out  = '<div class="content-row"' . $famAttr . '>';
     $out .= '<div class="row-head"><span class="row-num">#' . ($i + 1) . '</span>'
+          . $famBadge
           . '<span class="row-tools">'
           . '<span class="row-move">'
           // Row identity in the name for the same reason as the field labels:
@@ -726,6 +755,29 @@ function render_row(string $section, int $i, array $cfg, array $row): string {
     foreach ($fields as $f) $out .= render_field($section, $i, $f, $row, $title);
     $out .= '</div></div>';
     return $out;
+}
+
+/**
+ * How many catalogue products use this family name, counted from the LIVE
+ * products file.
+ *
+ * Memoised because render_row() asks once per family row and load_products()
+ * reads ~280 KB. Deliberately exact-match, not case-insensitive: the public
+ * site groups on an exact string, so "tape" and "Tape" really are two families
+ * there, and a count that pretended otherwise would under-report the orphans a
+ * rename creates.
+ */
+function ipc_family_product_count(string $name): int {
+    static $counts = null;
+    if ($counts === null) {
+        $counts = [];
+        foreach (load_products() as $p) {
+            $t = is_array($p) ? (string)($p['partType'] ?? '') : '';
+            if ($t !== '') $counts[$t] = ($counts[$t] ?? 0) + 1;
+        }
+    }
+    $name = trim($name);
+    return $name === '' ? 0 : (int)($counts[$name] ?? 0);
 }
 
 /** Render one fixed copy field (hero text, section headings, page banners).
@@ -867,6 +919,19 @@ $navActive = 'content';
     <?php foreach ($SECTIONS as $sec => $cfg):
         $rows = $content[$sec] ?? [];
         if (!is_array($rows)) $rows = [];
+        // PLAN-6 item 1 — seed the family editor with the list that is ACTUALLY
+        // IN EFFECT when nothing is stored yet.
+        //
+        // Every other section can legitimately be empty. This one cannot: a
+        // deployed content.json has no `productFamilies` key at all until the
+        // first save, and `ipc_product_families()` falls back to the defaults,
+        // so an unseeded form would show the owner ZERO rows while the site
+        // renders eleven families — and invite him to retype the list he
+        // already has. Measured on the real file before this was added: the
+        // section rendered completely empty.
+        if ($sec === 'productFamilies' && !$rows) {
+            $rows = array_map(static fn($n) => ['name' => $n], ipc_product_families());
+        }
     ?>
       <fieldset class="card" data-section="<?= h($sec) ?>" data-section-title="<?= h((string)($cfg['title'] ?? '')) ?>">
         <legend class="card-title"><?= $cfg['title'] ?></legend>

@@ -105,6 +105,7 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `plan5b-pwthrottle.js` | `admin/password.php still sleeps` — the change-password form goes through `login_attempt_gate()`, does not sleep, and cannot be deepened by retrying |
 | `plan5c-eyebrow.js` | `page-header-eyebrow-contrast` — every text-painting element in `.ipc-page-header`, on **two palettes**, scored under its own ink. The eyebrow is held at AA; the rest is a printed ratchet at 18 |
 | `plan5c-brandink.js` | `brand-text-on-brand-surface` — bright accents used as text, classified by **measured background luminance** rather than by route, so darken-on-light and lighten-on-dark cannot be confused. Also asserts `--brand-accent` is still in use as a surface, which is what tells a call-site fix apart from a repalette |
+| `plan6-families.js` | PLAN-6 item 1 — the product families. Adds, reorders and empties the list against the live site; drives the admin against a **pristine** `content.json` so the day-one state (no `productFamilies` key) is the one under test; asserts the rename warning names the product count and that no content save touches `products-all.json` |
 | `plan5c-sitemap.js` | `product detail URLs are in no sitemap` — adds and deletes a product **in a live catalog** and requires the served document to track it, compares all 42 product `<loc>`s against the canonical each page declares, and checks the degraded responses are still clean XML |
 
 ## Investigative tools (one-shot, kept as evidence)

@@ -133,6 +133,7 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 | **`brandtext.js` ink extent** | `_harness/backdrop.js` (new), `_harness/brandtext.js` | The measurement fix behind the two rows above, landed 2026-08-07. Gradient sampling and alpha compositing moved out of `brandtext.js` into a shared module the moment a second suite needed the same answer — `contrastparity.js` exists because two contrast implementations had already drifted once. The extraction was proved to be a no-op by diffing the full `--verbose` output before and after. **Known property, recorded rather than hidden:** two homepage `✓` rows wobble ±1 in the reported background between runs, because the hero animates and the ink extent is small enough to be position-sensitive. Verdicts are unaffected (the nearest is 5.5 against a 4.5 bar), but the *count* of distinct combinations can move by one. |
 | **PLAN-6 item 4** — social platforms | `src/App.jsx`, `admin/settings.php` | Shipped 2026-08-07. Social links were fixed at five with no way to add one; Instagram and TikTok bring it to **seven**, each with its real single-path brand mark. **Both default to `""`, deliberately** — a guessed URL would put a footer link to a non-existent profile on a real business's site and feed it to search engines through JSON-LD `sameAs`, so day one renders the same five icons it does today and `data/site-info.json` needed no edit at all (verified against the untouched live file). **Not a repeater**, and that was the call worth making: a generic platform+URL list needs a globe fallback for platforms with no icon, and the icon is the whole point of a footer social row. `plan5-social.js` **31 → 35**, with every count now derived from `KEYS` so an eighth platform does not mean editing the suite in six places. The four new assertions are the **admin half**, which nothing covered before: the suite wrote `site-info.json` directly and so proved only that the site renders what the file says — a field that renders correctly and cannot be saved is not a feature. Mutation-proven twice: deleting the save-array line takes it to 33/35, and rendering the container when empty takes it to 29/31. Icons visually checked at 96px (`_harness/out/plan6-icons.png`) because no assertion can catch a mistyped SVG path — it renders a garbled shape and still passes every check. |
 | **PLAN-6 item 3** — auto-reply copy | `public/contact.php`, `admin/content.php`, `src/App.jsx` | Shipped 2026-08-07. Everything *around* the auto-reply's promise already came from `site-info.json` — name, phone, fax, email, hours, address — but the commitment itself (*"respond within one business day"*) was a string literal, so the owner could not soften it for a holiday shutdown or a week without an estimator. Three new copy fields: the two promises, plus an optional temporary **notice** that is empty by default and adds *nothing at all* when unset (no blank paragraph — asserted, because every auto-reply would otherwise carry a gap for the 51 weeks it is not needed). The prose is editable; the **request summary is not**, deliberately — it is data, and a templating syntax in an admin textarea is a way to produce broken emails. `contact.php` gained `ipc_contact_copy()`, its first content reader; it returns `[]` on any problem and every caller falls back to the built-in text, so a corrupt or missing `content.json` costs the nicety and never the lead. **§0 of PLAN-6 applied: posted variables 421 → 424**, `POSTED_BEFORE` updated in this commit and `plan2-trunc` re-run against a real `max_input_vars=100` server at the new count (13/13). `plan3-autoreply` **10 → 22**. ⚠️ **A comment and an assertion were both overstated and are corrected here** — see §4m. |
+| **PLAN-6 item 1** — product families | `src/App.jsx`, `admin/config.php`, `admin/content.php`, `admin/add.php`, `admin/edit.php`, `admin/content-editor.js`, `_harness/lint.php` | Shipped 2026-08-07. The eleven category names were **three** separate literals — `FAMILY_ORDER` plus a `$partTypes` in each of `add.php` and `edit.php` — identical by luck, with nothing keeping them so, and drift would have been *invisible in the admin* because `edit.php` deliberately keeps an unrecognised `partType` as a selected option. They are now an owner-editable ordered list in `content.json`, and adding a product line no longer needs a developer. **The two PHP literals are deleted; two defaults remain (PHP + JS) and that is the right answer, not a compromise** — one copy across two languages needs a build step, so the pattern is `copydrift`'s: `lint.php` now fails when the two disagree *or* when a third literal reappears. `plan6-families` **13/13** new. §0: posted variables **424 → 435**, `plan2-trunc` re-run at the new count (13/13). Two things measurement changed mid-flight: the editor rendered **zero** rows against a real `content.json` (which has no `productFamilies` key until the first save) and now seeds from the list in effect; and the stated reason for the empty-list fallback was **wrong** — see §4n. |
 | D1–D18, D19–D30 | docs | See §5. |
 
 ---
@@ -2436,6 +2437,90 @@ The `is_array` mutation passing is the *sitemap `lastmod` lesson repeating*: the
 guard's absence is not observable because `foreach` over a non-array is a
 warning, not a fatal, and the fallback path produces the same output. It is kept
 as defence-in-depth and the suite does not claim to cover it.
+
+---
+
+## 4n. Verification evidence for PLAN-6 item 1 — product families (2026-08-07)
+
+**Base:** `55fe6ec`. CSS selectors **312 → 312**. `data/`, `pdfs/`, `uploads/`
+untouched and `cmp`-identical to `_harness/pristine`, including
+`products-all.json` — asserted, because the one thing this item must never do is
+bulk-migrate the catalogue from a content save.
+
+```
+before:  App.jsx FAMILY_ORDER 11 · add.php $partTypes 11 · edit.php $partTypes 11
+         all three identical: True — and nothing keeping them that way
+after:   one editable list in content.json; two defaults (PHP + JS) under a
+         failing drift check; zero literals in add.php / edit.php
+plan6-families 13/13 (new)      posted variables 424 -> 435      plan2-trunc 13/13
+```
+
+### Why two copies is the right answer
+
+An earlier draft of the suite asserted **one** copy in the tree. That is not
+achievable: `admin/*.php` and `src/App.jsx` cannot share a constant without a
+build step, and this codebase already settled the same problem for
+`$COPY_GROUPS` / `COPY_DEFAULTS` — two copies, kept honest by `copydrift.js`
+**failing** when they diverge. `lint.php` gained the same two checks here:
+
+```
+family drift              11 families, PHP and JS identical
+family literals           none in add.php or edit.php
+```
+
+What changed is not the number of copies. It is that a copy which disagrees is
+now a build failure instead of an invisible defect.
+
+### Two things measurement changed mid-flight
+
+**1. The editor rendered zero rows on a real `content.json`.** A deployed file
+has no `productFamilies` key until the first save, so the section came up empty
+while the site rendered eleven families — inviting the owner to retype a list he
+already had. It now seeds from `ipc_product_families()`, and the suite drives
+the admin against a **pristine** `content.json` specifically so that day-one
+state is the one under test.
+
+**2. The stated reason for the empty-list fallback was wrong.** The plan, the
+code comment and the suite all said an empty list would put "all 42 products
+under `Other`". **It does not.** Grouping is on each product's own `partType`,
+so every heading renders whatever the list says — and the assertion built on
+that story **passed with the fallback removed**.
+
+What actually breaks, measured:
+
+| | empty list | default list |
+|---|---|---|
+| reachable product links in the sidebar | **0** | **41** |
+| family order | catalogue order | curated order |
+
+`openFamilies` initialises to `new Set(order.concat(["Other"]))`, so an empty
+order leaves every accordion **closed**. The fallback was right; the reason was
+not. Both numbers are now asserted, and removing the fallback fails the suite at
+11/13.
+
+### Mutations
+
+| mutation | result |
+|---|---|
+| remove the empty-list fallback (`return names`) | **11/13** — order and reachability both red |
+| `content-editor.js` anchors on `form[method="POST"]` again | **12/13** — the rename warning never fires |
+
+That second one is not hypothetical: it is the bug the first draft actually had.
+`nav.php` renders a Sign Out form **850 lines** before the content form, so
+`querySelector('form[method="POST"]')` returns the wrong one and the submit
+listener attaches silently to it. The listener now anchors on
+`[name="form_complete"]`, which only the content form has.
+
+### What is deliberately NOT done
+
+- **A rename does not rewrite `products-all.json`.** `partType` is stored per
+  product; renaming a family leaves its products under the old name until each
+  is re-saved. That is correct — a content save silently rewriting the catalogue
+  is the class of thing five plans have been removing — but it is not what
+  anyone expects, so the editor shows the product count per family and warns
+  before the save, naming the count. It **warns, it does not block**: it is his
+  catalogue, and re-saving those products may be exactly what he is about to do.
+- **`"Other"` stays reserved** and is not editable.
 
 ---
 
