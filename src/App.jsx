@@ -285,6 +285,7 @@ const FOOTER_LINKS = [
   { label: "Product Catalog", page: "products" },
   { label: "About IPC", page: "about" },
   { label: "Product Index", page: "dashboard" },
+  { label: "Datasheets", page: "datasheets" },
   { label: "Resources / FAQ", page: "faq" },
   { label: "Industries", page: "industries" },
   { label: "Contact", page: "contact" },
@@ -633,6 +634,20 @@ function Navbar({ products = [], catalogFailed = false }) {
                           label: nc.productIndex,
                           sub: "Searchable table with filter & sort",
                           p: "dashboard",
+                          params: {},
+                        },
+                        // Deliberately here and not only in the footer's Quick
+                        // Links: those come from content.json, and mergeContent
+                        // gives a stored non-empty array priority over the
+                        // default (invariant 3). A deployed content.json
+                        // already holds the owner's own 8 rows, so adding a
+                        // 9th to FOOTER_LINKS reaches a fresh install and
+                        // nothing else. This entry is structural, so the page
+                        // is reachable on day one whatever the owner has saved.
+                        {
+                          label: nc.datasheets,
+                          sub: "Every product's PDF, grouped by family",
+                          p: "datasheets",
                           params: {},
                         },
                       ].map((item) => {
@@ -1159,6 +1174,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                   {[
                     { label: nc.browseAll, p: "products", params: {} },
                     { label: nc.productIndex, p: "dashboard", params: {} },
+                    { label: nc.datasheets, p: "datasheets", params: {} },
                   ].map((item) => (
                     <PageLink
                       key={item.p}
@@ -2286,6 +2302,154 @@ const MKT_MARKETS = [
  * IPC Homepage — Hero → Trust Rail → Products & Services → Markets → Quote CTA.
  * Phase 5: Real IPC application copy per market. SVG icons and data at module level (M-5 fix).
  */
+/**
+ * The datasheet index.
+ *
+ * Every product carries a published PDF and, before this page, the only way to
+ * reach one was to already be on that product's detail page. Nothing indexed
+ * them and the sitemap did not know they existed, so 8 MB of the most
+ * search-worthy content on the site was invisible — people search
+ * "IP33PO datasheet" before they search for a supplier.
+ *
+ * Deliberately ungated: no form, no email address. Gating datasheets optimises
+ * for lead volume at the cost of lead quality, which is the wrong trade for a
+ * spec-grade distributor.
+ *
+ * The `data-ipc-family` attribute is what `_harness/plan7-datasheets.js`
+ * asserts the grouping against — it must stay on the group heading.
+ */
+function DatasheetsPage({ products }) {
+  const [q, setQ] = useState("");
+  const { copy } = useContent();
+  const c = copy.datasheetsHeader;
+
+  const groups = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const g = {};
+    for (const p of products) {
+      if (!p.pdfUrl) continue;
+      if (needle) {
+        const hay = `${p.sku || ""} ${p.name || ""} ${p.partType || ""} ${(p.badges || []).join(" ")}`.toLowerCase();
+        if (!hay.includes(needle)) continue;
+      }
+      (g[p.partType || "Other"] ||= []).push(p);
+    }
+    for (const k of Object.keys(g)) {
+      g[k].sort((a, b) => String(a.sku || "").localeCompare(String(b.sku || "")));
+    }
+    return Object.entries(g).sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  }, [products, q]);
+
+  const total = useMemo(() => products.filter((p) => p.pdfUrl).length, [products]);
+  const shown = groups.reduce((n, [, rows]) => n + rows.length, 0);
+
+  return (
+    <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
+      <div className="ipc-page-header">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <PageEyebrow>{c.eyebrow}</PageEyebrow>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
+            {c.title}
+          </h1>
+          <p className="mt-3 max-w-2xl text-base" style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}>
+            {c.intro}
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="mb-8" style={{ maxWidth: 420 }}>
+          <label htmlFor="ds-filter" className="sr-only">Filter datasheets</label>
+          <input
+            id="ds-filter"
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Filter by part number, name or family…"
+            className="w-full rounded-lg outline-none transition-all duration-200"
+            style={{
+              border: "1px solid #d1d9e0", background: "#ffffff", color: "#141414",
+              padding: "10px 16px", fontSize: 16,
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = "var(--brand-primary)";
+              e.target.style.boxShadow = "0 0 0 3px rgba(var(--brand-primary-rgb),0.1)";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "#d1d9e0";
+              e.target.style.boxShadow = "none";
+            }}
+          />
+          <div
+            aria-live="polite"
+            style={{ font: "11px ui-monospace, SFMono-Regular, Menlo, monospace", color: "#6b7280", marginTop: 8 }}
+          >
+            {shown} of {total} shown
+          </div>
+        </div>
+
+        {groups.length === 0 ? (
+          <div className="bg-white rounded-xl p-6 text-center text-sm" style={{ border: "1px solid #e5e9ee", color: "#6b7280" }}>
+            No datasheets match “{q}”.
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {groups.map(([family, rows]) => (
+              <section key={family}>
+                <h2 className="flex items-baseline gap-3 mb-3" data-ipc-family={family}>
+                  <span style={{ font: "700 15px system-ui, sans-serif", color: "#141414" }}>{family}</span>
+                  <span style={{ font: "11px ui-monospace, Menlo, monospace", color: "#9ca3af" }}>{rows.length}</span>
+                  <span aria-hidden="true" style={{ flex: 1, borderBottom: "1px solid #e5e9ee" }} />
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {rows.map((p) => (
+                    <a
+                      key={p.sku || p.id}
+                      href={p.pdfUrl}
+                      target="_blank"
+                      rel="noopener"
+                      className="rounded-lg flex items-start gap-3 transition-all duration-150 hover:shadow-md"
+                      style={{
+                        border: "1px solid #e5e9ee", background: "#ffffff",
+                        padding: "13px 15px", textDecoration: "none",
+                      }}
+                    >
+                      <svg
+                        width="17" height="17" viewBox="0 0 24 24" fill="none"
+                        stroke="var(--brand-primary-text)" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round"
+                        style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{
+                          display: "block", font: "700 12px ui-monospace, Menlo, monospace",
+                          color: "var(--brand-primary-text)", letterSpacing: "0.02em",
+                        }}>
+                          {p.sku}
+                        </span>
+                        <span style={{
+                          display: "block", fontSize: 12.5, color: "#4b5563",
+                          lineHeight: 1.45, marginTop: 2,
+                        }}>
+                          {p.name}
+                        </span>
+                        <span className="sr-only"> — PDF datasheet, opens in a new tab</span>
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function HomePage() {
   const site = useSiteInfo();
   const { markets, copy } = useContent();
@@ -5002,6 +5166,12 @@ const COPY_DEFAULTS = {
     teamTitle: "Our Team & Capabilities",
     ctaTitle: "Ready to place an order or request a quote?",
   },
+  datasheetsHeader: {
+    eyebrow: "Technical library",
+    title: "Datasheets",
+    intro:
+      "Every product IPC stocks has a published datasheet. Download directly — no form, no email address.",
+  },
   faqHeader: {
     eyebrow: "Resources",
     title: "Frequently Asked Questions",
@@ -5030,6 +5200,7 @@ const COPY_DEFAULTS = {
     allProducts: "All Products",
     browseAll: "Browse All Products",
     productIndex: "Product Index",
+    datasheets: "Datasheets",
     browseByCategory: "Browse by Category",
   },
   footer: {
@@ -5104,6 +5275,7 @@ const SEO_DEFAULT = [
   },
   { page: "products", title: "Product Catalog — Insulation Products Corporation", desc: "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and data sheets, and request a quote." },
   { page: "dashboard", title: "Product Index — Insulation Products Corporation", desc: "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and data sheets for every SKU." },
+  { page: "datasheets", title: "Datasheets — Insulation Products Corporation", desc: "Download the published datasheet for every IPC product. Heat shrink tubing, sleeving, adhesives and accessories — grouped by family, no form required." },
   { page: "industries", title: "Industries Served — Insulation Products Corporation", desc: "IPC supplies specification-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry." },
   { page: "services", title: "Value-Added Services — Insulation Products Corporation", desc: "Custom cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, and JIT delivery programs. Typical lead time one week or less." },
   { page: "about", title: "About — Insulation Products Corporation", desc: "Insulation Products Corporation — a spec-grade stocking distributor in Bolingbrook, IL since July 1, 1974. ISO 9001 registered. $50 minimum order, same-day shipment." },
@@ -9797,7 +9969,8 @@ function App() {
   // Previews the actual page layout so users see an almost-real page resolving.
   // Only these two pages read the catalog. Everything else renders even when
   // products-all.json is slow or unreachable. (DEPLOY_READINESS_v2 T2.1)
-  const needsCatalog = page === "products" || page === "dashboard";
+  const needsCatalog =
+    page === "products" || page === "dashboard" || page === "datasheets";
 
   const renderPage = () => {
     switch (page) {
@@ -9813,6 +9986,8 @@ function App() {
         return <ServicesPage />;
       case "privacy":
         return <PrivacyPage />;
+      case "datasheets":
+        return <DatasheetsPage products={products} />;
       case "faq":
         return <FaqPage />;
       case "contact":

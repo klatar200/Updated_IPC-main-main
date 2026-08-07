@@ -76,6 +76,10 @@ field.
 |---|---|---|---|---|
 | **[7 — Marketing imagery](PLAN-7-marketing-imagery.md)** | harness raster gap, four image slots, owner-selectable images | M | Med | The homepage, About and Services pages paint no photography at all while the customer's own photographs ship to the server unused. Item 1 is a **latent harness defect** — a `url()` background layer is silently skipped by the contrast core, so the first photo behind text would be scored as if it were not there |
 
+**Item 3b (the datasheet index) shipped 2026-08-07** — it was not in the original
+plan, needed no data-shape change and no design decision, and turned up a live
+broken `pdfUrl` plus the fact that nothing in the harness had ever checked one.
+
 Take item **1 first** — it is the measurement that makes item 2 checkable, and
 it is worth landing whether or not any image ships. Item 3 adds fields under the
 same `max_input_vars` sentinel; read PLAN-6 §0 before it. Item 2 needs a scope

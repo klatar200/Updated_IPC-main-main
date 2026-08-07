@@ -27,6 +27,13 @@ cp -r dist/. _harness/site/
 cp admin/*.php _harness/site/admin/
 cp admin/*.js  _harness/site/admin/
 
+# pdfs/ is served by the datasheet index and by every product page's download
+# button. Without it in the mirror every pdfUrl 404s for a reason that has
+# nothing to do with the site, and plan7-datasheets measures the harness.
+# rsync-free: only copy when the source is newer, 8 MB is not worth re-copying
+# on every sync.
+cp -ru pdfs _harness/site/ 2>/dev/null || cp -r pdfs _harness/site/
+
 cp _harness/pristine/content.json      _harness/site/data/content.json
 cp _harness/pristine/site-info.json    _harness/site/data/site-info.json
 cp _harness/pristine/products-all.json _harness/site/data/products-all.json

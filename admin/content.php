@@ -62,6 +62,7 @@ $PAGE_OPTIONS = [
     'home'       => 'Home',
     'products'   => 'Products / Catalog',
     'dashboard'  => 'Product Index',
+    'datasheets' => 'Datasheets',
     'industries' => 'Industries',
     'services'   => 'Services',
     'about'      => 'About',
@@ -310,6 +311,11 @@ $COPY_GROUPS = [
         ['key' => 'teamTitle',  'type' => 'text',     'label' => 'Team heading'],
         ['key' => 'ctaTitle',   'type' => 'text',     'label' => 'Bottom CTA heading'],
     ]],
+    'datasheetsHeader' => ['title' => 'Datasheets page — banner', 'fields' => [
+        ['key' => 'eyebrow', 'type' => 'text',     'label' => 'Eyebrow'],
+        ['key' => 'title',   'type' => 'text',     'label' => 'Title'],
+        ['key' => 'intro',   'type' => 'textarea', 'label' => 'Intro paragraph'],
+    ]],
     'faqHeader' => ['title' => 'FAQ page — banner', 'fields' => [
         ['key' => 'eyebrow', 'type' => 'text',     'label' => 'Eyebrow'],
         ['key' => 'title',   'type' => 'text',     'label' => 'Title'],
@@ -335,6 +341,7 @@ $COPY_GROUPS = [
         ['key' => 'allProducts',      'type' => 'text', 'label' => 'Products menu — column heading'],
         ['key' => 'browseAll',        'type' => 'text', 'label' => 'Products menu — “Browse All” link'],
         ['key' => 'productIndex',     'type' => 'text', 'label' => 'Products menu — “Index” link'],
+        ['key' => 'datasheets',       'type' => 'text', 'label' => 'Products menu — “Datasheets” link'],
         ['key' => 'browseByCategory', 'type' => 'text', 'label' => 'Products menu — category heading'],
     ]],
     'footer' => ['title' => 'Footer — Labels', 'fields' => [

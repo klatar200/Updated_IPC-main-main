@@ -249,6 +249,57 @@ Budget it explicitly and record the new `du -sh`.
 
 ---
 
+## 3b. ✅ SHIPPED 2026-08-07 — the datasheet index
+
+Not in the original plan. It came out of the follow-up review and shipped first
+because it needed no data-shape change and no design decision.
+
+`/datasheets` lists all 42 published PDFs grouped by product family, filterable,
+ungated. Its banner copy is owner-editable (Page Content → *Datasheets page —
+banner*), it is in the sitemap with the same catalogue-derived `<lastmod>` as
+`/products` and `/dashboard`, and it is reachable from the Products menu.
+
+**Why the Products menu and not the footer's Quick Links.** The obvious place is
+Quick Links, and adding a row to `FOOTER_LINKS` in `App.jsx` looks like it works
+— locally it does. On a deployed site it does nothing: `content.json` already
+stores the owner's own eight rows, and `mergeContent` gives a stored non-empty
+array priority over the default (**invariant 3**). The default is reached only
+by a fresh install. The mega-menu entry is structural, so the page is reachable
+on day one whatever the owner has saved; the `FOOTER_LINKS` row stays as the
+fresh-install default and the owner can add his own row from the admin.
+
+**Building it found a live defect.** `VALUE-ADDED`'s `pdfUrl` was
+`/pdfs/VALUE-ADDED.pdf`; the file is `Value-Added.pdf`. Measured over HTTP that
+returned **200 `text/html`, 2,094 bytes** — the SPA shell — so a visitor
+downloaded HTML named `.pdf`. Same failure class as the four `photoUrl` case
+mismatches under 4.32, and **no suite anywhere checked a `pdfUrl` at all**:
+`plan5-images.js` asserts `image/*` content types for `/images/`, nothing did
+the equivalent for `/pdfs/`, and `deadlinks.js` — which sounds like it would —
+resolves industry→SKU references in `content.json` and makes no HTTP request.
+
+`_harness/plan7-datasheets.js` closes that gap, and the content-type clause is
+the load-bearing half. Measured against the pre-fix URL:
+
+```
+200 text/html; charset=utf-8   2094 bytes
+  status-only check   (r.status() === 200)   -> PASSES — misses it
+  content-type check  (application/pdf)      -> FAILS  — catches it
+```
+
+Costs paid: posted variable count **435 → 439** (three banner fields, one nav
+label), `plan2-trunc` re-run against a real `max_input_vars=100` server at the
+new count (13/13); sitemap static routes **9 → 10** in `sitemap.php`,
+`SEO_DEFAULT`, `plan5b-sitemap` and `plan5c-sitemap`; `sync.sh` now mirrors
+`pdfs/`, without which every link 404s for a reason that has nothing to do with
+the site.
+
+⚠️ **The `pdfUrl` fix does not reach production by itself.** It is one line in
+`data/products-all.json` — the second edit ever made to that file — and the
+deployed copy is server-owned. The same correction has to be made on the server
+through the admin, exactly as with the four `photoUrl` values.
+
+---
+
 ## 3. Give the owner the controls
 
 The point of the review item was not "put photos on the site". It was that the
