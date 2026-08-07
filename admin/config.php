@@ -515,6 +515,92 @@ function load_content(): array {
  * What changed is not the number of copies — it is that a copy which disagrees
  * is now a build failure instead of an invisible defect.
  */
+/**
+ * The approval vocabulary, and how a product's approvals are read.
+ *
+ * Certifications used to live only in free text. Measured 2026-08-07: 112
+ * distinct badge strings across 42 products, ~20 of them carrying an approval
+ * in 20 different spellings — "U/L CSA", "U/L CSA MIL-Spec.", "U/L CSA and
+ * MIL-SPEC", "U/L, MIL-Spec.", "UL & CSA Approved". Nothing could count,
+ * filter or list them, and the badge field UNDERSTATED the catalogue: read the
+ * whole record and MIL-SPEC goes 5 -> 12 products, UL VW-1 goes 1 -> 11, and
+ * products with at least one approval go 23 -> 30.
+ *
+ * This list is duplicated in src/App.jsx (APPROVALS). PHP and JS cannot share
+ * a constant without a build step, so the two are held together by
+ * _harness/lint.php's `approval drift` check on the names and, more usefully,
+ * by _harness/plan7-approvals.js comparing what each one DERIVES for all 42
+ * products. Behaviour is the thing that has to agree; the regex spelling does
+ * not.
+ */
+const IPC_APPROVALS = [
+    'UL Recognized', 'UL Listed', 'UL Approved', 'cUL', 'CSA', 'MIL-SPEC',
+    'RoHS', 'FDA', 'USP Class VI', 'ISO 10993-5', 'UL VW-1', 'UL-94',
+];
+
+/**
+ * Word boundaries are load-bearing. Two real badge strings are "Ultra Clear"
+ * and "Encapsulating"; both contain the letters "ul", and a naive /ul/i match
+ * reports both as UL approvals. That is also the reason this is a migration
+ * and not a permanent reader: you cannot recover structured facts from prose
+ * reliably, and a page that tries is wrong in ways nobody notices.
+ */
+const IPC_APPROVAL_PATTERNS = [
+    'UL Recognized' => '/\bU\/?L\b[^.;]{0,18}\bRecognized\b/i',
+    'UL Listed'     => '/\bU\/?L\b[^.;]{0,18}\bListed\b/i',
+    'UL Approved'   => '/\bU\/?L\b[^.;]{0,18}\bApproved\b/i',
+    'cUL'           => '/\bCUL\b/i',
+    'CSA'           => '/\bCSA\b/i',
+    'MIL-SPEC'      => '/\bMIL[\s-]?SPEC\b|\bAMS\b/i',
+    'RoHS'          => '/\bRoHS\b/i',
+    'FDA'           => '/\b(?:US)?FDA\b/i',
+    'USP Class VI'  => '/\bUSP\b[^.;]{0,12}\bClass\s*VI\b/i',
+    'ISO 10993-5'   => '/\bISO\s?10993/i',
+    'UL VW-1'       => '/\bVW-?1\b/i',
+    'UL-94'         => '/\bUL-?94\b/i',
+];
+
+/** Everything on a product that can legitimately name an approval. */
+function ipc_approval_haystack(array $p): string {
+    return implode(' | ', [
+        implode(' ', (array)($p['badges'] ?? [])),
+        (string)($p['specificationsSummary'] ?? ''),
+        implode(' ', (array)($p['description'] ?? [])),
+        // JSON_UNESCAPED_SLASHES is load-bearing: without it json_encode turns
+        // "U/L Recognized" into "U\/L Recognized" and \bU\/?L\b stops matching,
+        // so PHP derived one fewer approval than JS for IP17TW-IP18SW-IP19LW.
+        // JS's JSON.stringify does not escape slashes. Caught by
+        // plan7-approvals.js comparing the two derivations, not by reading them.
+        json_encode($p['specTable1'] ?? [], JSON_UNESCAPED_SLASHES),
+    ]);
+}
+
+/**
+ * A product's approvals: the stored field if the product HAS one, otherwise
+ * derived from its text.
+ *
+ * The test is `array_key_exists`, never truthiness. A product whose owner
+ * unticked every box stores `approvals: []`, and that means "no approvals" —
+ * re-deriving there would resurrect exactly what he removed. This is
+ * invariant 3's lesson (mergeContent treats an empty array as a deletion)
+ * applied to a new field, and the first draft of this feature had the bug.
+ */
+function ipc_product_approvals(array $p): array {
+    if (array_key_exists('approvals', $p) && is_array($p['approvals'])) {
+        // Whitelist on read too: a hand-edited catalogue must not put an
+        // unknown string into a filter chip.
+        return array_values(array_intersect(IPC_APPROVALS, $p['approvals']));
+    }
+    $hay = ipc_approval_haystack($p);
+    $out = [];
+    foreach (IPC_APPROVAL_PATTERNS as $name => $rx) {
+        if (preg_match($rx, $hay)) {
+            $out[] = $name;
+        }
+    }
+    return $out;
+}
+
 const IPC_DEFAULT_FAMILIES = [
     'Polyolefin Heat Shrink', 'PVDF Heat Shrink', 'Dual-Wall Heat Shrink',
     'Medical Grade Heat Shrink', 'Elastomeric Heat Shrink', 'Fiberglass Sleeving',

@@ -2318,6 +2318,182 @@ const MKT_MARKETS = [
  * The `data-ipc-family` attribute is what `_harness/plan7-datasheets.js`
  * asserts the grouping against — it must stay on the group heading.
  */
+/**
+ * The approval vocabulary, and how a product's approvals are read.
+ *
+ * Certifications used to live only in free text. Measured 2026-08-07: 112
+ * distinct badge strings across 42 products, ~20 carrying an approval in 20
+ * different spellings ("U/L CSA", "U/L CSA MIL-Spec.", "U/L CSA and MIL-SPEC",
+ * "U/L, MIL-Spec.", "UL & CSA Approved"). Nothing could count, filter or list
+ * them — and the badge field UNDERSTATED the catalogue: reading the whole
+ * record takes MIL-SPEC from 5 to 12 products, UL VW-1 from 1 to 11, and
+ * products with at least one approval from 23 to 30.
+ *
+ * This list is duplicated in admin/config.php (IPC_APPROVALS). PHP and JS
+ * cannot share a constant without a build step — the same situation as
+ * FAMILY_ORDER — so `_harness/lint.php` fails on name drift and
+ * `_harness/plan7-approvals.js` compares what each side DERIVES for all 42
+ * products. Behaviour is what has to agree; regex spelling does not.
+ *
+ * Word boundaries are load-bearing: two real badge strings are "Ultra Clear"
+ * and "Encapsulating", both of which contain "ul", and a naive /ul/i reports
+ * both as UL approvals. That is also why deriving is a MIGRATION BRIDGE and
+ * not the design — structured facts cannot be recovered from prose reliably,
+ * and a page that tries is wrong in ways nobody notices.
+ */
+const APPROVALS = [
+  ["UL Recognized", /\bU\/?L\b[^.;]{0,18}\bRecognized\b/i],
+  ["UL Listed",     /\bU\/?L\b[^.;]{0,18}\bListed\b/i],
+  ["UL Approved",   /\bU\/?L\b[^.;]{0,18}\bApproved\b/i],
+  ["cUL",           /\bCUL\b/i],
+  ["CSA",           /\bCSA\b/i],
+  ["MIL-SPEC",      /\bMIL[\s-]?SPEC\b|\bAMS\b/i],
+  ["RoHS",          /\bRoHS\b/i],
+  ["FDA",           /\b(?:US)?FDA\b/i],
+  ["USP Class VI",  /\bUSP\b[^.;]{0,12}\bClass\s*VI\b/i],
+  ["ISO 10993-5",   /\bISO\s?10993/i],
+  ["UL VW-1",       /\bVW-?1\b/i],
+  ["UL-94",         /\bUL-?94\b/i],
+];
+const APPROVAL_NAMES = APPROVALS.map(([n]) => n);
+
+/**
+ * A product's approvals: the stored field if the product HAS one, otherwise
+ * derived from its text.
+ *
+ * The test is `Array.isArray`, never truthiness. A product whose owner
+ * unticked every box stores `approvals: []` and that means "no approvals" —
+ * re-deriving there would resurrect exactly what he removed. Invariant 3's
+ * lesson applied to a new field; the first draft of this feature read
+ * `Array.isArray(p.approvals) && p.approvals.length` and had the bug.
+ */
+function productApprovals(p) {
+  if (p && Array.isArray(p.approvals)) {
+    // Whitelist on read too — a hand-edited catalogue must not put an unknown
+    // string into a filter chip.
+    return APPROVAL_NAMES.filter((n) => p.approvals.includes(n));
+  }
+  const hay = [
+    (p.badges || []).join(" | "),
+    p.specificationsSummary || "",
+    Array.isArray(p.description) ? p.description.join(" ") : String(p.description || ""),
+    JSON.stringify(p.specTable1 || {}),
+  ].join(" | ");
+  return APPROVALS.filter(([, rx]) => rx.test(hay)).map(([n]) => n);
+}
+
+/** The small monospace approval marks used on cards and the detail page. */
+function ApprovalMarks({ product, tone = "#9ca3af" }) {
+  const list = productApprovals(product);
+  if (!list.length) return null;
+  return (
+    <span
+      data-ipc-approval-mark
+      style={{
+        display: "block",
+        font: "10px ui-monospace, SFMono-Regular, Menlo, monospace",
+        color: tone,
+        marginTop: 5,
+        letterSpacing: "0.02em",
+      }}
+    >
+      {list.join(" · ")}
+    </span>
+  );
+}
+
+/**
+ * Approval filter for the Product Index.
+ *
+ * The only search on the site before this was a text box matching part ID,
+ * type and description — you had to already know what you were looking for.
+ * This is the first control that answers a REQUIREMENT. Chips intersect,
+ * because a buyer who needs UL *and* MIL-SPEC needs both.
+ */
+function ApprovalFilter({ products, selected, onToggle, onClear }) {
+  const { counts, covered } = useMemo(() => {
+    const t = {};
+    let c = 0;
+    for (const p of products) {
+      const list = productApprovals(p);
+      if (list.length) c++;
+      for (const n of list) t[n] = (t[n] || 0) + 1;
+    }
+    return {
+      counts: APPROVAL_NAMES.map((n) => ({ label: n, count: t[n] || 0 })).filter((x) => x.count > 0),
+      covered: c,
+    };
+  }, [products]);
+
+  if (!counts.length) return null;
+
+  return (
+    <div
+      className="rounded-lg mb-4"
+      style={{ border: "1px solid #e5e9ee", background: "#ffffff", padding: "14px 16px" }}
+    >
+      <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
+        <span
+          style={{
+            font: "10px ui-monospace, SFMono-Regular, Menlo, monospace",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--brand-accent-text)",
+          }}
+        >
+          Filter by approval
+        </span>
+        <span style={{ fontSize: 11, color: "#6b7280" }}>
+          {covered} of {products.length} products carry at least one
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {counts.map((c) => {
+          const active = selected.includes(c.label);
+          return (
+            <button
+              key={c.label}
+              type="button"
+              data-ipc-approval={c.label}
+              onClick={() => onToggle(c.label)}
+              aria-pressed={active}
+              className="rounded transition-colors duration-150"
+              style={{
+                font: "600 11px ui-monospace, SFMono-Regular, Menlo, monospace",
+                letterSpacing: "0.04em",
+                padding: "5px 10px",
+                cursor: "pointer",
+                border: active ? "1px solid var(--brand-primary)" : "1px solid #d1d9e0",
+                background: active ? "var(--brand-primary)" : "#ffffff",
+                color: active ? "var(--brand-primary-ink)" : "#374151",
+              }}
+            >
+              {c.label}
+              <span style={{ opacity: 0.65, marginLeft: 6 }}>{c.count}</span>
+            </button>
+          );
+        })}
+        {selected.length > 0 && (
+          <button
+            type="button"
+            onClick={onClear}
+            style={{
+              font: "600 11px system-ui, sans-serif",
+              color: "var(--brand-primary-text)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "5px 8px",
+            }}
+          >
+            ✕ Clear approvals
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DatasheetsPage({ products }) {
   const [q, setQ] = useState("");
   const { copy } = useContent();
@@ -2341,6 +2517,23 @@ function DatasheetsPage({ products }) {
   }, [products, q]);
 
   const total = useMemo(() => products.filter((p) => p.pdfUrl).length, [products]);
+
+  // Published for _harness/plan7-approvals.js, which diffs this against what
+  // admin/config.php derives for the same 42 products. Two implementations of
+  // one rule agree only until one of them is fixed, so the agreement is
+  // asserted rather than assumed (the lesson contrastparity.js records).
+  useEffect(() => {
+    const map = {};
+    for (const p of products) map[p.sku || p.id] = productApprovals(p);
+    window.__ipcApprovals = map;
+    // Exposed so the word-boundary check can run the deriver against a bare
+    // string. Testing it indirectly ("does any product with an Encapsulating
+    // badge derive a UL approval") was wrong — IP42MW carries "Encapsulating"
+    // AND a genuine "U/L Approved", so the indirect test flagged a correct
+    // derivation as a false positive.
+    window.__ipcDeriveApprovals = (obj) => productApprovals(obj);
+    return () => { delete window.__ipcApprovals; delete window.__ipcDeriveApprovals; };
+  }, [products]);
   const shown = groups.reduce((n, [, rows]) => n + rows.length, 0);
 
   return (
@@ -2436,6 +2629,7 @@ function DatasheetsPage({ products }) {
                         }}>
                           {p.name}
                         </span>
+                        <ApprovalMarks product={p} />
                         <span className="sr-only"> — PDF datasheet, opens in a new tab</span>
                       </span>
                     </a>
@@ -6749,8 +6943,43 @@ function ProductDetail({ product, allProducts }) {
           )}
         </div>
 
-        {/* Right — feature badges + description */}
+        {/* Right — approvals, feature badges, description */}
         <div className="p-5 sm:p-8">
+          {/* Approvals sit ABOVE the free-text badges and are visually distinct:
+              these are the structured, filterable facts, and the badges below
+              are marketing copy. Rendering them together would suggest the
+              badges are also filterable, which is the confusion this whole
+              item exists to remove. */}
+          {productApprovals(product).length > 0 && (
+            <div className="mb-5">
+              <div
+                style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: "0.1em",
+                  textTransform: "uppercase", color: "#9ca3af", marginBottom: 8,
+                }}
+              >
+                Approvals &amp; Certifications
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {productApprovals(product).map((a) => (
+                  <span
+                    key={a}
+                    data-ipc-approval-mark
+                    className="px-2.5 py-1 rounded"
+                    style={{
+                      font: "600 11px ui-monospace, SFMono-Regular, Menlo, monospace",
+                      letterSpacing: "0.03em",
+                      background: "#ffffff",
+                      color: "#374151",
+                      border: "1px solid #d1d9e0",
+                    }}
+                  >
+                    {a}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {product.badges && product.badges.length > 0 && (
             <div className="mb-5">
               <div
@@ -7288,6 +7517,7 @@ const DASHBOARD_COLS = [
  */
 function DashboardPage({ products }) {
   const [search, setSearch] = useState("");
+  const [approvals, setApprovals] = useState([]);
   const [sortCol, setSortCol] = useState("partId");
   const [sortDir, setSortDir] = useState("asc");
 
@@ -7327,6 +7557,7 @@ function DashboardPage({ products }) {
             descFull,
             operatingTemp: p.operatingTemp || "",
             specs: p.specificationsSummary || "",
+            approvals: productApprovals(p),
             productId: p.id || p.sku || "",
           };
         }),
@@ -7351,6 +7582,8 @@ function DashboardPage({ products }) {
   const filtered = tableRows
     .filter((row) => {
       if (activeFamily !== "All" && row.partType !== activeFamily) return false;
+      // AND, not OR: selecting UL and MIL-SPEC means a product must hold both.
+      if (approvals.length && !approvals.every((a) => row.approvals.includes(a))) return false;
       const q = search.toLowerCase();
       return (
         row.partId.toLowerCase().includes(q) ||
@@ -7718,6 +7951,15 @@ function DashboardPage({ products }) {
           </div>
         </div>
 
+        <ApprovalFilter
+          products={products}
+          selected={approvals}
+          onToggle={(a) =>
+            setApprovals((cur) => (cur.includes(a) ? cur.filter((x) => x !== a) : [...cur, a]))
+          }
+          onClear={() => setApprovals([])}
+        />
+
         {/* Mobile-only card list — replaces the table below 640px */}
         <div className="sm:hidden space-y-3">
           {filtered.length === 0 ? (
@@ -8000,6 +8242,7 @@ function DashboardPage({ products }) {
                   filtered.map((row, ri) => (
                     <tr
                       key={row.productId}
+                      data-ipc-product-row={row.partId}
                       style={{
                         background: ri % 2 === 0 ? "#ffffff" : "#fafbfc",
                         borderBottom: "1px solid #e5e9ee",
