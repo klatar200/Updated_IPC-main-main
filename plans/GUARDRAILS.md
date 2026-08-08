@@ -74,7 +74,8 @@ full account and each has an inline comment in the code naming its incident.
 node _harness/invariants.js
 ```
 
-Expected: **15 checks, 0 failing.** If your change makes one fail, your change is
+Expected: **17 checks, 0 failing.** (Was 15 when this was written; the file has
+gained two since. `invariants-selftest.js` proves they can fail.) If your change makes one fail, your change is
 wrong — not the test — until you have proven otherwise with an artifact.
 
 Two of them interact with these plans directly and are worth restating:
@@ -100,30 +101,80 @@ a browser measurement, or a failing-then-passing test is.
 
 ### 4.1 The regression baseline
 
-This is the state on `main` @ `6284708`. Any plan that lands must leave every
-one of these at least as green as it found them:
+**Corrected 2026-08-08 (PLAN-8 §7.3).** This section previously listed thirteen
+commands measured on `main` @ `6284708`, eleven of which named scripts that are
+not tracked in the repo (`b1.js`, `b1trunc.js`, `b2.js`, `b3.js`, `nb2.js`,
+`nb4.js`, `help.js`, `ttl.js`, `sweep.js`, `overflow.js`, `adminsweep.js`).
+`_harness/` was gitignored wholesale at the time, so those files existed only on
+one machine. A baseline that names missing scripts produces a green report from
+a suite that never ran, which is worse than no baseline.
+
+Note that copies of those eleven may still sit **untracked** in a working tree
+carried over from `main`. `git ls-files _harness/` is the authority on what
+exists; the working directory is not.
+
+The live suite list is `_harness/README.md`. Measured on
+`plan8-audit-remediation` @ `a028584`, 2026-08-08:
 
 ```
-php -l                    19 files, 0 failing        php _harness/lint.php
-node --check              8 admin JS files, 0 failing
-JSON parse               content 17 / site-info 10 / products-all 42 entries
-npm run build            0 errors, 325.78 kB JS / 21.02 kB CSS
-B1   20/20               node _harness/b1.js
-B1 truncation 5/5        node _harness/b1trunc.js      (needs :8124)
-B2   18/18               node _harness/b2.js
-B3   25/25               node _harness/b3.js
-NB2  10/10               node _harness/nb2.js          (needs :8124 and :8125)
-NB4  17/17               node _harness/nb4.js
-help 22/22               node _harness/help.js
-invariants 15/15         node _harness/invariants.js
-TTL  3/3                 node _harness/ttl.js
-public sweep             18 loads, 0 failing          node _harness/sweep.js
-overflow                 42 product pages @375px, 0 overflow   node _harness/overflow.js
-admin sweep              5/5                          node _harness/adminsweep.js
+php _harness/lint.php     php -l 20/0 · node --check 9/0 · JSON 17/10/42
+                          copy drift 103 matched, 0 JS-only · 11 families · 12 approvals
+npm run build             0 errors, 350.63 kB JS / 22.17 kB CSS
+
+invariants                17/17          invariants-selftest   15/15
+copydrift-selftest         5/5           contrastparity        28/28
+copyroundtrip             15/15          skuparity             33/33
+deadlinks                 0 of 18 dead
+plan2-formlast             8/8 + selftest PASS
+plan2-sku                 14/14          plan2-delete          18/18
+plan3-contact             51/51          plan4-admin           19/19
+plan4-public              27/27          plan5-keys            11/11
+plan5-spectable           13/13          plan5-images          12/12
+plan5-social              35/35          plan5b-sidebar         9/9
+plan5b-sitemap             9/9           plan5c-sitemap        17/17
+plan5c-eyebrow             4/4           plan5c-brandink        5/5
+plan6-families            13/13          plan7-approvals       11/11
+plan7-datasheets           8/8
+plan8-certs                5/5           plan8-meta            15/15
+plan8-catalog             16/16          plan8-lead            13/13
+brandtext                 37/50  ← EXPECTED RED (13 failing)
 ```
+
+`node _harness/run.js <suite> [suite...]` runs a list and prints one line each.
+
+Two of these need saying out loud:
+
+- **`brandtext` is expected red.** It is the logged open item
+  `brand-text-on-brand-surface` in `WHATS_LEFT.md` §2. Judge it by the FAILING
+  count, not the ratio: the number of scored combinations wobbles by one between
+  runs of identical code (the hero animates and a small ink extent is
+  position-sensitive), so 37/50 and 37/51 can be the same result. It must not
+  get worse than **13 failing**.
+- **`plan3-autoreply` is `[UNVERIFIED]` on Windows.** It runs, but every mail
+  assertion fails: `php-mail.ini` points `sendmail_path` at `../fakemail.sh`, a
+  POSIX shell script Windows PHP cannot exec, so no mail log is written.
+
+`php -l` counts 20 files where a clean checkout counts 19 — the extra is a local
+gitignored `admin/config.local.php`. 0 failing either way.
 
 **Run the full set before you start**, so you know which failures you inherited
 and which you caused. A plan that starts from red must say so.
+
+#### 4.1a Running the harness on Windows
+
+The suites assume POSIX in places. Four were fixed in PLAN-8 and the pattern is
+worth knowing, because more will surface:
+
+- Node resolves a bare `/tmp` to `C:\tmp`, which does not exist. PHP writes its
+  temp files to `sys_get_temp_dir()`, so `os.tmpdir()` is the portable match.
+- `npm` and `npx` are `.cmd` shims. `execFileSync` cannot run them, and naming
+  the shim does not help — since the CVE-2024-27980 mitigation Node returns
+  `EINVAL` for a `.cmd` without a shell. Use `shell: true` with the command as
+  ONE string (an argv array plus a shell is `DEP0190`).
+- `core.autocrlf=true` with no `.gitattributes` means the working tree is CRLF
+  while the blobs are LF. Any check that mutates source by exact string match
+  must normalise first, or it silently no-ops and reports drift that is not
+  there.
 
 ### 4.2 Arming the harness
 

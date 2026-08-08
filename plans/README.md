@@ -103,16 +103,30 @@ out. It needs a scope decision first and may need photography rather than code.
 
 ---
 
-## Plan 8 — the 2026-08-08 UI/UX audit (open)
+## Plan 8 — the 2026-08-08 UI/UX audit (partly executed)
 
-| Phase | Items | Effort | Risk | Why here |
-|---|---|---|---|---|
-| **A — Product-page truth** | A1, A2, C32, C45, C47 | M | Low | Highest severity and touches nothing else. A1 is a certification claim, not a UI bug: 18 of 42 product pages print "UL Listed" beside the approvals block's "UL Recognized" or "UL Approved" |
-| **B — Indexability & sharing** | A3, A5, A4, B25, C29, C33 | M–L | **High** | Gated on the §0 decision about product URLs. Changes routing, canonicals and the sitemap, so every later phase's screenshots depend on its outcome — **second, not last** |
-| **C — Catalog browsing** | A6, B19, B20, B27, B12, C30, C35, C46, C48, C49 | M | Low | The three catalog views. Independent of D and F |
-| **D — Lead capture** | B16, B17, B18, B22, B26, C31, C39, C40 | M | Low | Every defect here costs an enquiry |
-| **F — Chrome, assets, copy** | B13, B21, B23, B11, A7, C34, C37, C38, C41, C42, C43, C44 | M | Low | Mobile drawer, images, copy |
-| **E — Legibility & input** | B8, B9, B10, B14, B15, B24, B28, C50 | M | Med | **Last** — it recolours ~270 elements and adds a skip link, moving every screenshot baseline and tab-order assertion the other phases wrote |
+**Status, 2026-08-08.** Phases A, B, C and D are **shipped and merged**; the
+four `§0` decisions were taken by the owner. Partway through, scope was cut to
+severity **A and B only**, so the severity-C suggestions are deferred except the
+four that sat inside items already being fixed (C32, C45, C47, C48).
+**Phases E and F were not started.** Evidence and the full 50-ID outcome table
+are in `WHATS_LEFT.md` §1c/§2b/§4o and `PATCH_NOTES.md`.
+
+| Phase | Items | Status |
+|---|---|---|
+| **A — Product-page truth** | A1, A2, C32, C45, C47 | **shipped.** A1 measured **20** of 42 disagreeing pages, not the audit's 18 — `CT` and `IP49VP` fell outside the audit's comparison and were the worst two |
+| **B — Indexability & sharing** | A3, A5, A4, B25 | **shipped** (Option B — no URL moved). Found and fixed a defect the audit missed: `base: './'` made every URL with 2+ path segments a **blank white page**. C29 and C33 deferred |
+| **C — Catalog browsing** | A6, B19, B20, B27, B12, C48 | **shipped.** Product Index page 9,460px → 5,042px. C30, C35, C46, C49 deferred |
+| **D — Lead capture** | B16, B17, B18, B22 | **shipped.** **B26 deferred** — needs a DOM reorder; its suite assertion is inverted so it cannot go green by accident. C31, C39, C40 deferred |
+| **F — Chrome, assets, copy** | B13, B21, B23, B11, A7, C34, C37, C38, C41, C42, C43, C44 | **not started** |
+| **E — Legibility & input** | B8, B9, B10, B14, B15, B24, B28, C50 | **not started.** This is the WCAG tier — B8 is part numbers at 1.64:1, B15 is no skip link site-wide |
+
+New suites left behind: `plan8-certs`, `plan8-meta`, `plan8-catalog`,
+`plan8-lead`, plus `cssdiff.js` (the Tailwind comment-extractor trap fired a
+third time during this plan) and `run.js`. `plan8-contrast`, `plan8-motion`,
+`plan8-mobile` and `plan8-counts` were **not** written — B12's counts are
+covered inside `plan8-catalog`, and the other three belong to the phases that
+did not run.
 
 Same reason 4.32 went last in PLAN-5. Phases C, D and F are independent of each
 other.

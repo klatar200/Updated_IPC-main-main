@@ -2547,3 +2547,258 @@ All 18 items in `AUDIT_v3_FINDINGS.md` §4 plus the 12-row `.docx` addendum.
 | `public/robots.txt` | D15: `Disallow: /_hash.php` removed — the retired FTP flow no longer exists and the line advertised a former admin endpoint. `/uploads/` and `/contact.php` added. |
 | `WHATS_LEFT.md` | D18 and the ten §3 items — see the `SUPERSEDED-BY` / `AMENDED` markers in §1 and §4. |
 | `IPC Admin Dashboard - Help and Documentation.docx` | **Retired, not edited.** See §3. Still on disk; not deployed; not attached to anything. |
+
+---
+
+## 1c. Shipped in PLAN-8 — UI/UX audit remediation (2026-08-08)
+
+Appended, not merged into §1b, because this file is append-only (GUARDRAILS §6)
+and §1b is the session-3 record. Source: `UI_UX_AUDIT_2026-08-08.md`.
+Scope was cut to severity A and B by the owner partway through; Phases E and F
+were not started. Evidence in §4o.
+
+| ID | What shipped | Suite |
+|---|---|---|
+| A1 | One derivation of a UL category. `extractComplianceBadges()` deleted; 20 of 42 pages printed a category their data does not claim, now 0 | `plan8-certs` |
+| A2 | The three ISO defaults drop the withdrawn `:2008` revision. Live strings are an owner action | `plan8-shotsA` |
+| A3 | 42 distinct titles / descriptions / og:titles, product name is the `<h1>`, no URL moved | `plan8-meta` |
+| A4 | `og:image` — a real 1200x630 card, absolute, with declared dimensions | `plan8-meta` |
+| A5 | A real not-found page with `noindex` and no canonical; `base: '/'` so deep paths boot at all | `plan8-meta` |
+| A6 | 0 of 42 action buttons clipped at 1440, 1280 and 1024 | `plan8-catalog` |
+| B12 | One catalog count on all four surfaces (42) | `plan8-catalog` |
+| B16 | The confirmation is an announced region and takes focus | `plan8-lead` |
+| B17 | `/contact?sent=1` — reloadable, Back returns to the form, no re-POST | `plan8-lead` |
+| B18 | No emoji, an eyebrow, and 376px of dead space down to 45px | `plan8-lead` |
+| B19 | Real column widths; the Product Index page 9,460px to 5,042px | `plan8-catalog` |
+| B20 | The empty-state cell spans every column, derived not hardcoded | `plan8-catalog` |
+| B22 | The delivery-date placeholder default carries no literal date | `plan8-lead` |
+| B25 | A route with no `seo` row falls back to its own default, not the homepage's | `plan8-meta` |
+| B27 | The sidebar arrives collapsed; a real scroll affordance at 4.55:1 | `plan8-catalog` |
+| C32 | Three certification blocks became two; 27 badges absorbed, none lost | `plan8-certs` |
+| C45 | The SKU is a label, not a third button | `plan8-shotsA` |
+| C47 | Product names are not uppercased | `plan8-shotsA` |
+
+C48 was answered by the owner (VALUE-ADDED is a product) and is realised in B12.
+
+## 2b. Open after PLAN-8 — newly found, and deliberately not fixed
+
+**`contact-form-below-the-fold-on-mobile` (B26).** At 390px the first form
+field sits **1,213px** down the document, below four contact cards and a tip
+panel, on the page whose entire purpose is the form. Not fixed. The correct fix
+reorders the DOM of the contact grid so the form comes first and restores the
+desktop arrangement with `lg:order-*`; a CSS-only reorder leaves keyboard tab
+order following the DOM while the eye follows the layout, which PLAN-8 rules out
+and `plan8-lead` detects. That is a ~90-line move and it was not attempted
+rather than half-attempted. **`plan8-lead`'s assertion for this is deliberately
+inverted** — it asserts the defect is still present, so whoever fixes it must
+come back and flip the line rather than finding a suite that went green on its
+own. `src/App.jsx` contact grid, the `grid grid-cols-1 lg:grid-cols-3` block.
+
+**`product-index-rows-over-120px` (B19 residue).** Three of 42 rows measure
+121–154px against an acceptance of 120. Held as a printed ratchet in
+`plan8-catalog` (at most 3 over, none above 160). Both ways to close it cost
+more than they buy: widening Temp and Specifications to fit the worst row
+(`IP64FS-IP65VC-IP66AC-IP67SC`) re-starves Description, which is the inversion
+B19 exists to correct, and clamping those cells truncates a certification list
+on a spec-grade catalog — the same class of harm as A1.
+
+**`plan3-autoreply-unverifiable-on-windows`.** The suite runs now (the `/tmp`
+crash is fixed) but reports 7/22, and every failure is a mail assertion.
+`php-mail.ini` sets `sendmail_path = "../fakemail.sh"`, a POSIX shell script
+Windows PHP cannot exec, so no mail log is ever written. Marked `[UNVERIFIED]`
+on this platform per GUARDRAILS §4.3. It was never in PLAN-8 §1.2's baseline, so
+it was not inherited green. `_harness/smtpsink.js` exists and is the obvious
+route to fixing it if a future session needs the auto-reply cap under test.
+
+**Phases E and F were not started.** Their items remain exactly as the audit
+measured them: B8, B9, B10, B11, B13, B14, B15, B21, B23, B24, B28, and A7's
+data half. See `PATCH_NOTES.md` §Deferred for the numbers. B8 is the sharpest —
+product part numbers at **1.64:1** against white, on the one string a buyer
+scans a catalog for.
+
+**All 22 severity-C suggestions are deferred** except C32, C45, C47 and C48.
+They are not re-listed here; the audit is their record.
+
+## 4o. Verification evidence for PLAN-8 (2026-08-08)
+
+### The baseline did not reproduce, and four of five reasons were the harness
+
+Measured on the branch tip against PLAN-8 §1.2's table. 23 suites matched.
+Five did not, and **none was a defect in the site**:
+
+| Suite | §1.2 says | Measured | Cause |
+|---|---|---|---|
+| `copydrift-selftest` | 5/5 | 1/5 | `core.autocrlf=true`, no `.gitattributes`: working tree is CRLF, blobs are LF, and all four mutation patterns are written with `\n`. Every mutation no-opped. |
+| `plan3-contact` | 51/51 | crash | `plan3-contact.js:175` scanned `/tmp`, which Node on Windows resolves to a non-existent `C:\tmp`. |
+| `plan5-keys` | 11/11 | crash | `spawnSync('npx')` — on Windows that is `npx.cmd`. |
+| `plan5b-sidebar` | 9/9 | crash | Same. |
+| `plan5-images` | 12/12 | 11/12 | Not portability — see below. |
+
+The `copydrift-selftest` failure was the dangerous one: it reads exactly like
+the source having drifted, which is the single thing that file exists to detect.
+
+Naming the `.cmd` shim directly does **not** fix the `npx` crash — since the
+CVE-2024-27980 mitigation Node refuses to spawn a `.cmd` without a shell and
+returns `EINVAL`. Both were measured, in that order, before settling on
+`shell: true` with a single command string (an argv array alongside a shell is
+Node `DEP0190`).
+
+### `_harness/pristine/` was stale, and every browser measurement was wrong
+
+`plan5-images` at 11/12 was the thread that led here. `sync.sh:37-39` copies the
+mirror's `data/` **from `pristine/`**, and `pristine/` is seeded from `data/`
+exactly once and then left alone (`sync.sh:18-22`, deliberately — refreshing it
+every sync would launder the corruption it exists to detect).
+
+This checkout's `pristine/` predated commit `63d5aa0`. So the harness had been
+serving a pre-case-fix catalog: four `photoUrl` values and one `pdfUrl`
+differed. And `cmp` could never have been byte-identical anyway —
+`data/products-all.json` carries 7,270 CRs and the seeded copy carries none,
+which is the *entire* 7,270-byte size difference between them.
+
+That is not a small detail. **A1, the first item of the first phase, is entirely
+about the `approvals` field**, and every browser measurement was being taken
+against the wrong catalog. Re-seeded after confirming `data/` was unmodified
+against `HEAD`, so nothing was laundered. `data/`, `pristine/` and the mirror
+are now byte-identical for all three files — which also makes PLAN-8's own
+completion criterion meaningful for the first time. `plan5-images` 12/12.
+
+### A1 is 20 of 42, not 18
+
+`plan8-certs` measured 20 disagreeing pages. The audit's table lists 18; the two
+it omits are the worst of them:
+
+- **`CT`** — its spec table reads "Recognized under the Components program of
+  Underwriters' Laboratories File No. E129972". The header printed **UL
+  Listed**.
+- **`IP49VP`** — its source says "U/L 224", a standard number for extruded
+  tubing and not a category at all. The header printed **UL Listed**.
+
+Both fell out of the audit's comparison because it only compared pages where
+*both* blocks printed a UL category, and in these two the approvals block
+printed none.
+
+Deleting the header row would then have left `CT` — genuinely UL Recognized —
+claiming nothing, because `APPROVALS` expects `UL … Recognized` within 18
+characters. A second alternative was added for the reversed spelled-out
+phrasing, in `App.jsx` and `admin/config.php` together. Measured across all 42
+before changing it: `CT` is the only product it moves. Four others mention
+"Underwriters" and already get their UL fact elsewhere. `lint`'s approval-drift
+check and `plan7-approvals` (which compares what PHP and JS *derive* for every
+product) both stayed green.
+
+### A defect the audit did not find: every deep path was a blank page
+
+Chasing A5's last failing assertion — `/products/CC/extra` would not take
+`noindex` — turned out not to be a metadata problem at all. `vite.config.js` set
+`base: './'`. The shell asks for `./assets/index-*.js`; from a two-segment path
+the browser resolves that to `/products/CC/assets/index-*.js`; the SPA catch-all
+answers **that** with `index.html`, 200, `Content-Type: text/html`; the browser
+tries to execute HTML as JavaScript and stops.
+
+So every URL with two or more path segments was a **white screen**, not a soft
+404. The audit only sampled single-segment typos (`/quality`, `/prodcuts`),
+where `./` happens to resolve correctly, so it saw the soft 404 and never the
+white screen behind it. `base` is `'/'` now; the deploy target is the domain
+root, so there is no subfolder case to protect.
+
+**Two attempts were spent on the `noindex` before measuring the asset
+response.** Measuring the response is what explained it in one step.
+
+### Mistakes made and caught
+
+- **I told the owner PLAN-8 §1.2 was wrong** to say eleven harness scripts no
+  longer exist. **PLAN-8 was right.** They are not tracked on this branch —
+  `_harness/` was gitignored wholesale on `main`, so the copies on disk are
+  untracked residue from earlier local work. I had read the working directory
+  instead of the tree. Corrected in the same session.
+- **Tailwind's extractor bit for the third time in this repo, and again in a
+  comment.** Writing that a fixed table "cannot g—w past its wrapper" emitted
+  that whole flex rule into the shipped CSS. Then the comment written to
+  *explain* it named the class and put the rule straight back — which is exactly
+  what the previous two occurrences did. The selector diff caught both rounds;
+  the build summary showed 22.19 kB against 22.17 and would not have.
+  `_harness/cssdiff.js` is kept for this.
+- **A backtick in a comment ended a template literal.** The B27 scrollbar
+  comment quoted a CSS property name inside `GlobalStyles`, which is a JS
+  template literal, and broke the build. A later edit then dropped a paragraph
+  after a closing `*/` and broke it again.
+- **The first C32 check called `IP53MP`'s "USFDA Compliant" a vanished
+  feature.** The test was wrong, not the page: its coarse token list had
+  `\bFDA\b` and there is no word boundary inside "USFDA". `APPROVALS` had it
+  right.
+- **The first C45 probe reported the SKU still clickable.** It was finding the
+  catalog sidebar's link to the same product, not the SKU. Scoped to the header,
+  it reads false.
+- **Fixing A6 created a smaller version of A6.** Under `table-layout: fixed` the
+  Action column stops widening to fit, and "View Product" is 120px inside 36px
+  of padding — at width 130 the button overflowed its own cell by exactly 8px,
+  clipped by the cell instead of the wrapper.
+- **Reducing the confirmation panel's padding made its gap bigger** (360 to
+  376). That is what pointed at the real cause — a wrapper forced to
+  `minHeight: 100vh` while holding 500px of content — rather than the padding it
+  looked like.
+- **B17 deviates from PLAN-8's parenthetical on purpose.** The plan says use
+  `{ replace: true }`; its own acceptance says "Back returns to the form".
+  Those conflict — `replace` overwrites the `/contact` entry, so Back skips the
+  form. Measured: with `replace`, Back from the confirmation landed on
+  `about:blank`. The param is pushed; `submitted` is derived from the URL rather
+  than held beside it, because two sources for one fact is the A1 defect again.
+
+### Regression, before and after
+
+Baseline measured on the branch tip before any change; after measured on
+`a028584`. `brandtext` is the logged open item `brand-text-on-brand-surface` and
+is **not** a regression — the failing count went **down**, from 15 to 13,
+because A1's deleted chip row painted two brand-coloured combinations that were
+both failing.
+
+```
+                        before            after
+invariants              17/17             17/17
+invariants-selftest     15/15             15/15
+copydrift-selftest      1/5   (CRLF)      5/5
+contrastparity          28/28             28/28
+copyroundtrip           15/15             15/15
+skuparity               33/33             33/33
+deadlinks               0 of 18 dead      0 of 18 dead
+plan2-formlast          8/8               8/8
+plan2-sku               14/14             14/14
+plan2-delete            18/18             18/18
+plan3-contact           crash (/tmp)      51/51
+plan4-admin             19/19             19/19
+plan4-public            27/27             27/27
+plan5-keys              crash (npx)       11/11
+plan5-spectable         13/13             13/13
+plan5-images            11/12 (pristine)  12/12
+plan5-social            35/35             35/35
+plan5b-sidebar          crash (npx)       9/9
+plan5b-sitemap          9/9               9/9
+plan5c-sitemap          17/17             17/17
+plan5c-eyebrow          4/4               4/4
+plan5c-brandink         5/5               5/5
+plan6-families          13/13             13/13
+plan7-approvals         11/11             11/11
+plan7-datasheets        8/8               8/8
+brandtext               37/52 (15 fail)   37/50 (13 fail)   <- improved
+plan8-certs             2/5               5/5               <- new
+plan8-meta              4/15              15/15             <- new
+plan8-catalog           4/13              16/16             <- new
+plan8-lead              3/13              13/13             <- new
+php _harness/lint.php   all green         all green
+npm run build           346.54 kB JS      350.63 kB JS / 22.17 kB CSS
+```
+
+`lint.php` reports `php -l` over 20 files where §1.2 says 19. The extra is this
+machine's own gitignored `admin/config.local.php`; 0 failing either way.
+
+Every new suite was watched failing before it was made to pass. `plan8-certs`
+was additionally proved able to fail by building a mutant that reinstated a
+"UL Listed" chip row, running it, and reverting — it reproduced the original
+defect shape exactly. Four of `plan8-meta`'s fifteen assertions were green from
+the start and are regression guards rather than reproductions; that is stated
+plainly rather than counted as fixes.
+
+`data/`, `pdfs/` and `uploads/` are untouched: `git status --porcelain` empty
+for all three, and all three JSON files `cmp` byte-identical to
+`_harness/pristine/`.

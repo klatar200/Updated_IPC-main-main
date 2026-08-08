@@ -1352,3 +1352,100 @@ can see at a glance what is left without re-reading the audit.
 
 State plainly what you did not do. Scaling the work down is the owner's call, not
 the executor's.
+
+---
+
+# 9. Outcome of all 50 audit IDs (2026-08-08)
+
+Written by the executing session. **18 shipped, 25 deferred, 7 owner actions.**
+Scope was cut to severity A and B partway through, so the severity-C
+suggestions are deferred except four that sat inside items already being fixed.
+Phases E and F were not started.
+
+`owner` means the fix is an admin edit on live customer state
+(`data/*.json`), which GUARDRAILS §2 forbids this repo from making. Where an
+item is `BOTH`, the code half shipped and the owner half is listed in §6.
+
+| ID | Outcome | Note |
+|---|---|---|
+| A1 | **shipped** | 20 of 42, not 18 — `CT` and `IP49VP` were outside the audit's comparison |
+| A2 | **shipped** (code) + **owner** | Defaults drop the withdrawn revision; three live strings are Rick's |
+| A3 | **shipped** | Option B. 1 → 42 distinct titles/descriptions/og:titles; no URL moved |
+| A4 | **shipped** | 1200x630 card, 33 KiB, absolute, with declared dimensions |
+| A5 | **shipped** | Not-found route with `noindex` and no canonical; also fixed the blank-page-at-depth defect the audit missed |
+| A6 | **shipped** | 0 clipped at 1440, 1280, 1024 |
+| A7 | **owner** | The code already treats a `placehold.co` URL as "no photo"; clearing the five values is the outstanding half |
+| B8 | **deferred** | Phase E not started. Part numbers at 1.64:1 |
+| B9 | **deferred** | Phase E not started |
+| B10 | **deferred** | Phase E not started |
+| B11 | **deferred** | Phase F not started |
+| B12 | **shipped** | All four surfaces read 42 |
+| B13 | **deferred** | Phase F not started |
+| B14 | **deferred** | Phase E not started |
+| B15 | **deferred** | Phase E not started. WCAG 2.4.1 Level A |
+| B16 | **shipped** | `role="status"`, focus moves to the panel |
+| B17 | **shipped** | `?sent=1`; pushed, not replaced — see the note below |
+| B18 | **shipped** | Emoji removed, eyebrow added, 376px → 45px. The audit's "not links" claim was wrong |
+| B19 | **shipped** | 9,460px → 5,042px. 3 of 42 rows over 120px, held as a ratchet |
+| B20 | **shipped** | `colSpan` derived from the column count |
+| B21 | **deferred** | Phase F not started |
+| B22 | **shipped** (code) + **owner** | Default is dateless; the live string is Rick's |
+| B23 | **deferred** | Phase F not started |
+| B24 | **deferred** | Phase E not started |
+| B25 | **shipped** | 9 → 10 distinct descriptions, `content.json` untouched |
+| B26 | **deferred** | Needs a DOM reorder; its assertion is inverted so it cannot go green by accident |
+| B27 | **shipped** | Collapsed by default; affordance measured at 4.55:1 |
+| B28 | **deferred** | Phase E not started |
+| C29 | **deferred** | Scope cut |
+| C30 | **deferred** | Scope cut |
+| C31 | **deferred** | Scope cut |
+| C32 | **shipped** | Carried with A1 |
+| C33 | **deferred** | Scope cut |
+| C34 | **deferred** | Scope cut |
+| C35 | **owner** | One row in Page Content → Footer Links |
+| C36 | **owner** | Five social URLs to confirm or clear |
+| C37 | **deferred** | Scope cut |
+| C38 | **deferred** | Scope cut |
+| C39 | **deferred** | Scope cut. Would have added copy keys — `POSTED_BEFORE` stays 439 |
+| C40 | **deferred** | Scope cut |
+| C41 | **deferred** | Scope cut |
+| C42 | **owner** | Two dated strings in Page Content |
+| C43 | **owner** | Optional logo replacement; `alt` text was not changed (Phase F) |
+| C44 | **deferred** | Scope cut |
+| C45 | **shipped** | Carried with Phase A |
+| C46 | **deferred** | Scope cut |
+| C47 | **shipped** | Carried with Phase A |
+| C48 | **shipped** | Answered by the owner; realised in B12 |
+| C49 | **deferred** | Scope cut |
+| C50 | **deferred** | Phase E not started |
+
+**B17 deviates from this plan on purpose.** §D says use `{ replace: true }`;
+this plan's own acceptance for B17 says "Back returns to the form". Those
+conflict — `replace` overwrites the `/contact` entry, so Back skips the form
+entirely (measured: it landed on `about:blank`). The param is pushed instead,
+and `submitted` is derived from the URL rather than held beside it. T2.3's
+Back-trap is a read-then-strip cleanup running in an effect; this is a single
+write from a user action. "Submit Another" clears the param **with** replace,
+because that *is* the strip pattern.
+
+---
+
+# 6a. Owner action list — ready to hand over
+
+Seven changes, all in the admin dashboard at `/admin`, none needing a
+developer. Nothing here is applied to the live site yet.
+
+| # | Admin page | Field | Currently | Should be | Why |
+|---|---|---|---|---|---|
+| 1 | **Page Content** → Homepage trust bar | the ISO line | `ISO 9001:2008 Registered` | `ISO 9001` + the confirmed revision | The 2008 revision was withdrawn in September 2018. **Confirm the real revision and certificate with the registrar before typing anything** — this is a certification claim, and IPC sells into aerospace, medical and automotive |
+| 2 | **Page Content** → Homepage "ISO 9001 Quality" card | the description | `ISO 9001:2008 registered facility. …` | same, with the confirmed revision | As above |
+| 3 | **Page Content** → About certifications grid | the title | `ISO 9001:2008` | the confirmed revision | As above |
+| 4 | **Page Content** → Contact form | Field: Required date — placeholder | `e.g. ASAP, end of month, 6/30/2025` | `e.g. ASAP, end of month, or a specific date` | The example date is over a year in the past and reads as a dead site |
+| 5 | **Products → Edit**, five products | Photo URL | `https://placehold.co/400x300/…` on `IP12GA - IP1274`, `IP13SP`, `IP25PU`, `IP30UV`, `IP47HV` | empty | Clearing it makes IPC's own branded "image coming soon" panel the first paint instead of a third-party grey tile, and drops an external request from each page |
+| 6 | **Page Content** → Footer Links | the rows | 8 rows, no Datasheets | add a row pointing at `datasheets` | The datasheet index is reachable only from the Products dropdown |
+| 7 | **Page Content** → About timeline / Privacy | two strings | `2024 · 50 Years — Celebrating 50 years`; `Effective Date: January 1, 2025` | current values | Both are dated and now wrong |
+| 8 | **Business Details** → Social | five URLs | X, Facebook, LinkedIn, YouTube, Pinterest | confirm each, clear any that are dead | A dead profile linked from the footer *and declared to Google in `sameAs`* is worse than no link. Clearing a field removes its icon; clearing all five removes the row |
+| 9 | **Branding** (optional) | Logo URL | `logo.svg` | a transparent-background or horizontal version | The current file paints an opaque near-white rectangle across its full artboard, so at 46px on the navy bar it reads as a clipped blue square |
+
+Items 1–3 are one decision and three edits. Item 8 is a decision, not
+necessarily an edit.

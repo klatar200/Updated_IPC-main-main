@@ -153,3 +153,218 @@ to a hardcoded default, which was broken until this release.
 - Runtime state files kept out of the repo; the uploads folder added to the deploy manifest and created at runtime with a protective `.htaccess`.
 - A verification harness of 30+ suites is tracked in-repo and is the evidence behind every item above.
 - The admin Help page rewritten as the single source of truth; the Word handoff document retired (12 of its statements were wrong, four actively harmful).
+
+---
+
+# 2026-08-08 — UI/UX audit remediation (PLAN-8)
+
+Source: [UI_UX_AUDIT_2026-08-08.md](UI_UX_AUDIT_2026-08-08.md). 50 items —
+**18 shipped, 25 deferred, 7 handed to the owner.** Four of six phases were
+executed; scope was cut to severity A and B by agreement partway through, and
+two whole phases were not started. Everything not shipped is named below, and
+the deferred items are still live defects.
+
+**Not yet deployed.**
+
+## Certification accuracy
+
+- **18 of 42 product pages printed a UL certification category the product's
+  own data does not claim — measured over all 42 here, it is 20.** Two
+  derivations ran on the same page from the same `badges` array:
+  `extractComplianceBadges()` collapsed every UL mention — `U/L`, `UL File`,
+  `UL Subject`, `UL Recognized`, `224`, `VW-1` — onto the single label
+  "UL Listed" for the header chip row, while the "Approvals & Certifications"
+  block 200 px below it separated Recognized / Listed / Approved correctly. Six
+  pages said Listed against Recognized, three said Listed against Approved,
+  nine said Listed where the only real UL fact was VW-1 flammability. UL Listed,
+  UL Recognized and UL Approved are different UL categories with different
+  scopes, and IPC sells into aerospace, medical and automotive — this was a
+  compliance claim on a document a purchasing engineer may rely on, not a
+  wording slip. `extractComplianceBadges` is deleted; there is one derivation
+  now. 20 of 42 to 0 of 42. (A1)
+- **The two worst cases were not in the audit's table.** `CT`'s own spec table
+  reads "Recognized under the Components program of Underwriters' Laboratories
+  File No. E129972" and the header called it *Listed*. `IP49VP`'s source says
+  "U/L 224" — a standard number for extruded tubing, not a category in any
+  sense — and the header called that *Listed* too. Both fell out of the audit's
+  comparison because it only compared pages where *both* blocks printed a UL
+  category, and in these two the approvals block printed none. (A1)
+- **`CT` would have lost a true certification when the header row went.** The
+  approvals vocabulary expected "UL … Recognized" within 18 characters and CT's
+  phrasing is reversed and spelled out, so deleting the wrong header chip would
+  have left a genuinely UL-Recognized product claiming nothing at all. A second
+  boundary-anchored alternative was added, in `src/App.jsx` and
+  `admin/config.php` together. Measured over all 42 before changing it: CT is
+  the only product it moves. (A1)
+- **The same certification was printed twice per page in two spellings.**
+  "Product Features" printed the raw `badges` array verbatim while the
+  approvals block printed the derived vocabulary, so `CC90`, `CCS` and `IP13SP`
+  each said the same thing twice. Three blocks became two; 27 badge strings are
+  absorbed into the approvals block and none is lost. (C32)
+- **The site claimed "ISO 9001:2008" — a revision withdrawn in September 2018 —
+  in three places.** `site-info.json` says only "ISO 9001"; the version had been
+  typed into the copy by hand. Writing ":2015" because it is the current
+  standard would have invented a certification claim, so the code defaults now
+  say "ISO 9001" with no revision and the real answer is an owner action pending
+  the registrar. Zero occurrences in `App.jsx` and zero in the shipped bundle.
+  **The three live strings are still wrong on the site** until the owner edits
+  them. (A2)
+- **The SKU read as a third button.** On the product header it was a filled pill
+  at button height, immediately left of "Download PDF" and "Request Quote". It
+  is a monospace label beside the product name now. (C45)
+- **Product names were shouted.** `NONMETALLIC LIQUID-TIGHT CONDUIT COUPLING` —
+  all-caps applied to the longest strings on the site, which are exactly the
+  ones that wrap. (C47)
+
+## Indexing and sharing
+
+- **All 42 product URLs described themselves identically.** Measured: 1 distinct
+  `<title>`, 1 distinct meta description and 1 distinct `og:title` across 42
+  indexable pages, each with a self-referencing canonical and each listed in the
+  sitemap. The product name now drives all three, and is the page's `<h1>` — it
+  had been an `<h2>` under an `<h1>` reading "Product Catalog", so every product
+  page announced the same top-level heading. 1 to 42 distinct, with no URL moved
+  and every canonical still byte-identical to the sitemap's `<loc>`. (A3)
+- **Every mistyped URL returned the homepage at 200 with its own canonical.**
+  `/quality`, `/prodcuts` and `/contact-us` each became a self-canonicalising
+  duplicate of the homepage, and a visitor who mistyped got no signal at all.
+  There is a real not-found page now, carrying `noindex` and **no** canonical —
+  a canonical on a soft 404 is the half-fix that looks done. The server still
+  answers 200, deliberately: the catch-all rewrite is what makes every deep link
+  work. (A5)
+- **Every URL with two or more path segments was a blank white page.** This is
+  not in the audit — it was found while chasing A5's last failing assertion.
+  `vite.config.js` set `base: './'`, so the shell asked for
+  `./assets/index-*.js`, the browser resolved that against the current path and
+  requested `/products/CC/assets/index-*.js`, and the SPA catch-all answered
+  *that* with `index.html` at 200 with `Content-Type: text/html`. The browser
+  tried to execute HTML as JavaScript and stopped. The audit only sampled
+  single-segment typos, where `./` happens to resolve correctly, so it reported
+  the soft 404 and never saw the white screen behind it. `base` is `'/'` now.
+  (A5, and a defect nobody had reported)
+- **Every link pasted into LinkedIn, Teams, Slack or an email client previewed
+  as a bare text card.** `og:image` shipped as a TODO comment and no usable tag
+  while `twitter:card` said `summary_large_image`. There is a 1200x630 card at
+  33 KiB now, drawn from the brand's own navy, accent and wordmark. The static
+  tag in `index.html` is the one that does the work — LinkedIn, Slack and
+  Facebook do not execute JavaScript when they unfurl a link — with a
+  per-product photo override for crawlers that render. (A4)
+- **`/datasheets` served the homepage's meta description.** `content.json`'s
+  `seo` array has 9 rows and no `datasheets` row, so it fell through to
+  `home.desc`. A route with no row now falls back to its *own* default before
+  the homepage's, guarded so it cannot re-seed a deletion. 9 of 10 distinct to
+  10 of 10, with `content.json` untouched. The mechanism was the defect: any
+  page added later without a row did the same thing silently. (B25)
+
+## Catalog browsing
+
+- **The primary action on the Product Index was cut off on every row.** All 41
+  "View Product" buttons overflowed the table wrapper's right edge. Reproduced
+  here at 1024 (41 of 41, table 1138 px in a 974 px wrapper) but not at 1440,
+  where the audit measured it — the table was content-sized and glyph metrics
+  differ between machines. 0 clipped at 1440, 1280 and 1024 now. (A6)
+- **The table gave its two shortest columns 450 px and its longest content
+  130 px.** Four column widths were declared and the browser ignored all of
+  them, because a width is only a suggestion under content-driven layout. Part
+  ID 223 and Part Type 227 held a short SKU and a small chip; Description got
+  130 and wrapped to one to three words a line. Rows ran to 263 px and 41
+  products made a **9,460 px** page. The widths are real now and Description
+  takes the slack at 300 px. **9,460 px to 5,042 px.** Three of 42 rows are
+  still over the 120 px target, held as a printed ratchet — closing the last
+  34 px would either re-starve Description or truncate a certification list,
+  and losing a spec string is the same class of harm as A1. (B19)
+- **The no-results panel stopped 130 px short of the table's right edge**,
+  leaving a grey band, because `colSpan` was hardcoded to 6 against a 7-column
+  table. Derived from the column count now. (B20)
+- **The catalog sidebar hid ten of its eleven categories.** Every family
+  accordion opened on first paint, so the region was 2,932 px of content in a
+  718 px box with nine of the ten headings below an inner fold and no cue that
+  it scrolled — a visitor saw one category and no way to know the catalog had
+  ten more. It arrives collapsed now with only the selected product's family
+  open (2,932 px to 1,206 px), and the remaining scroll has a real 10 px
+  scrollbar measured at 4.55:1 instead of a 4 px thumb at 0.4 alpha. The family
+  toggles also had no `aria-expanded` at all. (B27)
+- **The catalog was counted three different ways on four surfaces**, two of them
+  on the same screen: 41 in the sidebar and the dashboard header, 42 in the
+  dashboard's own approval filter four lines away, and 42 on `/datasheets`.
+  `VALUE-ADDED` was excluded from the sidebar while being present in the Product
+  Index, Datasheets and the sitemap. The owner settled it as a product; all four
+  surfaces read 42, asserted from rendered text. (B12, C48)
+
+## Lead capture
+
+- **A screen-reader user submitted a quote request and got silence.** The form
+  was replaced by a "Quote Request Received" panel with zero `aria-live`,
+  `role="status"` and `role="alert"` regions on the page and
+  `document.activeElement` still on `<body>`. The error path had been given a
+  proper alert region in the previous release; the success path never got the
+  same treatment, so the one outcome the visitor wanted confirmed was the one
+  that announced nothing. It is an announced region that takes focus now. (B16)
+- **Refreshing the confirmation threw it away and rebuilt an empty form**, and
+  there was no distinct URL to hang a conversion goal on — on a site whose
+  entire purpose is lead capture. It is `/contact?sent=1` now; reloading
+  re-renders the confirmation and sends no POST, and Back returns to the form
+  without re-submitting. (B17)
+- **The "for urgent inquiries" line had a missing glyph in it.** It rendered as
+  `[phone] 630.771.0700 · [fax] 630.771.0701 · ▯ sales@insulationproducts.com` —
+  a tofu box where the mail icon should be, at the exact moment a visitor might
+  want to make contact urgently. Emoji coverage is a font dependency; those are
+  words and inline SVG now. *The audit also reported the phone, fax and email
+  there as plain text rather than links — measured, they were already real
+  `tel:`/`mailto:` links before this change.* (B18)
+- **330 px of empty page sat between the buttons and the footer**, and this was
+  the only page header on the site with no eyebrow above its `<h1>`. The gap was
+  not the panel's padding, which is what it looked like — reducing the padding
+  made it *bigger*, 360 to 376, which is what pointed at the wrapper being
+  forced to a full viewport while holding 500 px of content. 376 px to 45 px.
+  (B18)
+- **The delivery-date field suggested a date 13 months in the past** —
+  `e.g. ASAP, end of month, 6/30/2025` — which reads as a dead site. The code
+  default is dateless now. **The live string is still wrong on the site** until
+  the owner edits it. (B22)
+
+## Deferred — these are still live defects
+
+Not fixed. A reader of this file should not conclude otherwise.
+
+- **On a phone, the quote form is 1,213 px down the page**, below four contact
+  cards and a tip panel, on the page that exists for the form. The only correct
+  fix reorders the DOM so the form comes first and restores the desktop layout
+  with `lg:order-*`; a CSS-only reorder leaves keyboard tab order following the
+  DOM while the eye follows the layout. That was not attempted rather than
+  half-attempted. The suite's assertion for it is deliberately inverted — it
+  asserts the defect is still present, so a later fix must come back and flip
+  it. (B26)
+- **Legibility and input (Phase E) was not started.** Product part numbers are
+  painted at **1.64:1** against white — the one string a buyer scans a catalog
+  for, nearly invisible on a phone (B8). Secondary grey text sits at 2.37–2.54:1
+  across about 65 instances (B9). Footer text fails at 4.25:1 and 2.64:1 across
+  121 instances (B10). `prefers-reduced-motion` is not honoured (B14). There is
+  no skip link anywhere on the site — WCAG 2.4.1, Level A (B15). The two primary
+  actions on the product page are 28 px tall on mobile (B24). `/services` skips
+  a heading level (B28). The trust marquee is an unlabelled tab stop (C50).
+- **Chrome, assets and copy (Phase F) was not started.** The mobile menu has no
+  scrim, does not lock the page and ignores Escape (B13). The Services lead-time
+  banner reads "≤ 1 week · ≤ 1 week (JIT by agreement)" (B21). The product photo
+  ships no intrinsic dimensions and shifts the layout on load (B23). The footer
+  paragraph is missing a space — "adhesives.$50 minimum order." — on every page
+  (B11). Five products still carry a `placehold.co` photo URL (A7 — the *code*
+  already treats such a URL as "no photo", so the branded panel is what renders;
+  clearing the five values is an owner action).
+- **All 22 severity-C suggestions were deferred** except C32, C45, C47 and C48,
+  which were carried because they sat inside items being fixed anyway.
+
+## Owner actions — not yet applied to the live site
+
+These live in `data/*.json`, which is live customer state and is not editable
+from this repo. Each is done in the admin dashboard; none needs a developer.
+
+| # | Admin page | What to change |
+|---|---|---|
+| 1 | Page Content | Three "ISO 9001:2008" strings to the confirmed revision (A2) |
+| 2 | Page Content | Required-date placeholder — remove "6/30/2025" (B22) |
+| 3 | Products, Edit, x5 | Clear `photoUrl` on `IP12GA - IP1274`, `IP13SP`, `IP25PU`, `IP30UV`, `IP47HV` (A7) |
+| 4 | Page Content, Footer Links | Add the "Datasheets" row (C35) |
+| 5 | Page Content | About timeline "2024 · 50 Years"; privacy "Effective Date: January 1, 2025" (C42) |
+| 6 | Business Details | Confirm or clear the five social URLs (C36) |
+| 7 | Branding | Optional: a transparent-background or horizontal logo (C43) |
