@@ -1450,7 +1450,14 @@ const HERO_PROOF = [
 
 // Trust rail items — duplicated to create seamless infinite loop
 const HERO_TRUST = [
-    "ISO 9001:2008 Registered",
+    // A2 — the revision is deliberately absent. The 2008 revision was withdrawn
+    // in September 2018 and the site claimed it in three places; site-info.json
+    // says only "ISO 9001", so the version was typed into the copy by hand.
+    // Writing ":2015" because it is the current standard would invent a
+    // certification claim for a supplier to aerospace, medical and automotive.
+    // The live strings are owner-editable in Page Content and are on the owner
+    // action list pending confirmation from the registrar.
+    "ISO 9001 Registered",
     "Full RoHS Compliant Product Line",
     "UL · CSA · MIL-SPEC · AMS Rated Products",
     "PPAP & IMDS Documentation Available",
@@ -1955,7 +1962,8 @@ const FEATURES_DATA = [
     iconKey: "quality",
     title: "ISO 9001 Quality",
     description:
-      "ISO 9001:2008 registered facility. Computerized equipment, documented processes, quality maintained from receiving through shipping.",
+      // A2 — revision deliberately absent; see the homepage trust-bar default.
+      "ISO 9001 registered facility. Computerized equipment, documented processes, quality maintained from receiving through shipping.",
   },
 ];
 
@@ -2342,7 +2350,17 @@ const MKT_MARKETS = [
  * and a page that tries is wrong in ways nobody notices.
  */
 const APPROVALS = [
-  ["UL Recognized", /\bU\/?L\b[^.;]{0,18}\bRecognized\b/i],
+  // The second alternative is the REVERSED phrasing, spelled out in full:
+  // CT's spec table reads "Recognized under the Components program of
+  // Underwriters' Laboratories File No. E129972". `UL … Recognized` never
+  // matched it, so before PLAN-8 A1 the only thing saying anything about UL on
+  // that page was the header chip row — which called it "UL Listed", the wrong
+  // category. Removing that row would have left a genuinely UL-Recognized
+  // product claiming nothing at all, so the fact is recovered here instead.
+  // Measured over all 42: CT is the only product this moves.
+  // Mirrored in admin/config.php IPC_APPROVAL_PATTERNS — plan7-approvals.js
+  // compares what PHP and JS DERIVE for every product, so the two must agree.
+  ["UL Recognized", /\bU\/?L\b[^.;]{0,18}\bRecognized\b|\bRecognized\b[^.;]{0,60}\bUnderwriters'?\s+Laborator(?:y|ies)\b/i],
   ["UL Listed",     /\bU\/?L\b[^.;]{0,18}\bListed\b/i],
   ["UL Approved",   /\bU\/?L\b[^.;]{0,18}\bApproved\b/i],
   ["cUL",           /\bCUL\b/i],
@@ -2380,6 +2398,26 @@ function productApprovals(p) {
     JSON.stringify(p.specTable1 || {}),
   ].join(" | ");
   return APPROVALS.filter(([, rx]) => rx.test(hay)).map(([n]) => n);
+}
+
+/**
+ * Is this badge string a STANDARD, i.e. already said by the approvals block?
+ *
+ * PLAN-8 C32. "Product Features" printed the raw `badges` array verbatim, and
+ * the approvals block printed the derived vocabulary, so a product carrying
+ * "UL Listed" or "Mil-Spec" as a badge said it twice in two different
+ * spellings — measured on CC90, CCS and IP13SP. Features now carries only what
+ * is NOT a standard, and the approvals block is the one place a certification
+ * is stated.
+ *
+ * It reuses the APPROVALS regexes rather than matching on the approval NAMES:
+ * the owner writes "U/L RECOGNIZED", "Mil-Spec." and "U/L VW-1", none of which
+ * equals its normalised name. The word boundaries in those regexes are what
+ * make this safe to run over free prose — "Ultra Clear" and "Encapsulating"
+ * are both real badge strings containing "ul" (see the APPROVALS comment).
+ */
+function isStandardBadge(badge) {
+  return APPROVALS.some(([, rx]) => rx.test(String(badge || "")));
 }
 
 /** The small monospace approval marks used on cards and the detail page. */
@@ -2970,7 +3008,8 @@ const ABOUT_CAPABILITIES = [
   },
 ];
 const ABOUT_CERTS = [
-  { iconKey: "check", title: "ISO 9001:2008", sub: "Registered Quality Management System" },
+  // A2 — revision deliberately absent; see the homepage trust-bar default.
+  { iconKey: "check", title: "ISO 9001", sub: "Registered Quality Management System" },
   { iconKey: "leaf", title: "Full RoHS Compliant", sub: "Entire product line" },
   { iconKey: "flag", title: "Made in USA", sub: "Bolingbrook, IL facility" },
   { iconKey: "list", title: "UL · CSA · MIL-SPEC · AMS", sub: "Product-level certifications" },
@@ -6532,48 +6571,34 @@ function SpecTable2({ table }) {
   );
 }
 
-/**
- * Extracts compliance standard chips from a product's specTable1 rows.
- * Scans for known standards: UL, CSA, MIL, AMS, FDA, RoHS, ISO, ASTM, USP, NEMA.
+/*
+ * `extractComplianceBadges()` used to live here, and PLAN-8 A1 deleted it.
+ *
+ * It was a SECOND derivation of the same facts `APPROVALS` derives, and the
+ * two disagreed. Its first pattern mapped every UL mention — `U/L`, `UL File`,
+ * `UL Subject`, `UL Recognized`, `224`, `VW-1` — onto the single label
+ * "UL Listed", so the page-header chip row printed "UL Listed" while the
+ * approvals block 200px below printed what the product actually claims.
+ *
+ * Measured over all 42 product pages on 2026-08-08: 20 disagreed. Six said
+ * Listed against Recognized, three said Listed against Approved, nine said
+ * Listed where the only real UL fact was VW-1 flammability, and two — CT and
+ * IP49VP — said Listed where the approvals data claims no UL category at all.
+ * CT's own spec table reads "Recognized under the Components program of
+ * Underwriters' Laboratories"; the header called it Listed. IP49VP's source
+ * says "U/L 224", which is a standard number for extruded tubing and not a
+ * category in any sense.
+ *
+ * UL Listed, UL Recognized and UL Approved are distinct UL categories with
+ * different scopes, and IPC sells into aerospace, medical and automotive. This
+ * was a compliance claim on a document a purchasing engineer may rely on.
+ * The comment above APPROVALS already said deriving structured facts from
+ * prose "is wrong in ways nobody notices" — this was that, twice over.
+ *
+ * There is now one derivation. Do not add a second: if the header chip row is
+ * ever restored, it must read `productApprovals()` like everything else.
+ * `_harness/plan8-certs.js` fails if two UL categories ever print again.
  */
-function extractComplianceBadges(product) {
-  // I1 fix: scan both specTable1 rows AND specificationsSummary
-  // so partData-merged products (which have summary but sparse specTable1) get chips too
-  const tableText = (product.specTable1?.rows ?? [])
-    .map((r) => r.value || "")
-    .join(" ");
-  const summaryText = product.specificationsSummary ?? "";
-  const src = `${tableText} ${summaryText}`;
-  const patterns = [
-    {
-      label: "UL Listed",
-      regex: /U\/L|UL\s*(Subject|File|Recognized|Listed|224|VW-1)/i,
-    },
-    { label: "CSA", regex: /CSA/i },
-    { label: "RoHS", regex: /RoHS/i },
-    { label: "ISO 9001", regex: /ISO\s*9001/i },
-    { label: "MIL-SPEC", regex: /MIL-I|MIL-R|M23053|Mil-I|MIL-DTL/i },
-    { label: "AMS", regex: /AMS[\s-]\d/i },
-    { label: "FDA", regex: /FDA|21\s*CFR/i },
-    { label: "USP Class VI", regex: /USP\s*(Class|XXII)/i },
-    { label: "ASTM", regex: /ASTM\s*D/i },
-    { label: "NEMA", regex: /NEMA/i },
-    { label: "UL VW-1", regex: /VW-1/i },
-  ];
-  // Deduplicate — if VW-1 already captured by "UL Listed", skip standalone
-  const found = [];
-  const seen = new Set();
-  for (const { label, regex } of patterns) {
-    if (regex.test(src) && !seen.has(label)) {
-      // Skip "UL VW-1" if any other UL variant already added
-      if (label === "UL VW-1" && [...seen].some((s) => s.startsWith("UL")))
-        continue;
-      found.push(label);
-      seen.add(label);
-    }
-  }
-  return found;
-}
 
 // Fix 12: module-level Set for ProductDetail related products exclusion
 const NON_RELATABLE_TYPES = new Set(["Accessory", "Adhesive", "Tape", ""]);
@@ -6647,7 +6672,10 @@ function ProductDetail({ product, allProducts }) {
   // When it's missing we render a "Request Data Sheet" button that routes to
   // the contact form instead — there is no external printable-page fallback.
   const hasPdfFile = Boolean(product.pdfUrl);
-  const complianceBadges = extractComplianceBadges(product);
+  // C32 — Features carries what the approvals block does not already say.
+  // Filtered, not sliced: the standards are scattered through `badges` in the
+  // owner's own order, not grouped at one end.
+  const featureBadges = (product.badges || []).filter((b) => !isStandardBadge(b));
 
   // 2.4 — Related products: same partType, excluding current, up to 4
   // I3 fix + Fix 12: NON_RELATABLE_TYPES at module level — see const above ProductDetail
@@ -6708,17 +6736,32 @@ function ProductDetail({ product, allProducts }) {
                 across both. The heading is left-aligned, i.e. over the fixed
                 dark end, where white is correct. Recorded as
                 brand-gradient-mixed-ends. */}
-            <h2 className="text-xl font-extrabold text-white uppercase leading-tight">
+            {/* C47 — not uppercased. These are the longest strings on the site
+                ("NONMETALLIC LIQUID-TIGHT CONDUIT COUPLING"), and all-caps cost
+                legibility on exactly the ones that wrap. The small uppercase
+                eyebrow above is a deliberate part of the design system
+                (PageEyebrow, PLAN-5c) and is left alone. */}
+            <h2 className="text-xl font-extrabold text-white leading-tight">
               {product.name}
             </h2>
+            {/* C45 — the SKU used to be a filled pill in the action row to the
+                right, at button height, immediately left of "Download PDF" and
+                "Request Quote", so it read as a third button. A part number
+                belongs with the name, and as a label rather than a control. */}
+            {product.sku && (
+              <div
+                style={{
+                  font: "600 12px ui-monospace, SFMono-Regular, Menlo, monospace",
+                  letterSpacing: "0.06em",
+                  color: "#e2e8f0",
+                  marginTop: 6,
+                }}
+              >
+                {product.sku}
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-1">
-            <span
-              className="px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wide"
-              style={{ background: "var(--brand-primary)", color: "var(--brand-primary-ink)" }}
-            >
-              {product.sku}
-            </span>
             {hasPdfFile ? (
               <>
                 {/* Primary PDF — uses pdfLabel if set (e.g. "Molded Cap" for IP52EC), else "Download PDF" */}
@@ -6834,38 +6877,12 @@ function ProductDetail({ product, allProducts }) {
           </div>
         </div>
 
-        {/* 2.3 — Compliance badge chips row */}
-        {complianceBadges.length > 0 && (
-          <div className="px-8 pb-4">
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "rgba(var(--brand-primary-ink-rgb), 0.4)",
-                marginBottom: 8,
-              }}
-            >
-              Certifications &amp; Standards
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {complianceBadges.map((badge) => (
-                <span
-                  key={badge}
-                  className="text-xs font-semibold px-2.5 py-1 rounded"
-                  style={{
-                    background: "rgba(0,190,242,0.15)",
-                    color: "var(--brand-accent)",
-                    border: "1px solid rgba(0,190,242,0.3)",
-                  }}
-                >
-                  {badge}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* PLAN-8 A1/C32 — the "Certifications & Standards" chip row stood here.
+            It was the second of three overlapping certification blocks and the
+            one printing the invented UL category; see the tombstone above
+            NON_RELATABLE_TYPES. Two blocks say everything the three did:
+            "Approvals & Certifications" for the standards, "Product Features"
+            for everything else. */}
       </div>
 
       {/* Body — photo + badges/description */}
@@ -6980,7 +6997,7 @@ function ProductDetail({ product, allProducts }) {
               </div>
             </div>
           )}
-          {product.badges && product.badges.length > 0 && (
+          {featureBadges.length > 0 && (
             <div className="mb-5">
               <div
                 style={{
@@ -6995,7 +7012,7 @@ function ProductDetail({ product, allProducts }) {
                 Product Features
               </div>
               <div className="flex flex-wrap gap-2">
-                {product.badges.map((b, i) => (
+                {featureBadges.map((b, i) => (
                   <span
                     key={`${i}-${b}`}
                     className="px-2.5 py-1 rounded text-xs font-semibold uppercase tracking-wide"

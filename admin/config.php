@@ -546,7 +546,11 @@ const IPC_APPROVALS = [
  * reliably, and a page that tries is wrong in ways nobody notices.
  */
 const IPC_APPROVAL_PATTERNS = [
-    'UL Recognized' => '/\bU\/?L\b[^.;]{0,18}\bRecognized\b/i',
+    // Second alternative: the reversed, spelled-out phrasing. CT reads
+    // "Recognized under the Components program of Underwriters' Laboratories".
+    // See the matching comment in src/App.jsx APPROVALS — plan7-approvals.js
+    // compares the DERIVED sets, so these two must move together.
+    'UL Recognized' => '/\bU\/?L\b[^.;]{0,18}\bRecognized\b|\bRecognized\b[^.;]{0,60}\bUnderwriters\'?\s+Laborator(?:y|ies)\b/i',
     'UL Listed'     => '/\bU\/?L\b[^.;]{0,18}\bListed\b/i',
     'UL Approved'   => '/\bU\/?L\b[^.;]{0,18}\bApproved\b/i',
     'cUL'           => '/\bCUL\b/i',
