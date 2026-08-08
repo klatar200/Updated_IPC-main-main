@@ -6,12 +6,25 @@ each was approached and what each was measured against.
 
 **PLAN-6 is complete and merged** (items 4, 3 and 1, 2026-08-07).
 
-**[PLAN-7](PLAN-7-marketing-imagery.md) is the only open plan.** It is item 2 of
-the same 2026-08-07 admin-surface review — the one held back for a scope
-decision. Like PLAN-6 it is not a bug-closing plan, with one exception: item 1
-closes a real hazard in `_harness/backdrop.js`, which silently skips a raster
-background layer and would report a passing contrast number for text sitting on
-a photograph.
+**Two plans are open.**
+
+**[PLAN-8](PLAN-8-audit-remediation.md) — the 2026-08-08 UI/UX audit.** 50 items
+from [`UI_UX_AUDIT_2026-08-08.md`](../UI_UX_AUDIT_2026-08-08.md): 7 severity-A,
+21 severity-B, 22 suggestions, in six sequenced phases. **Start with its §0** —
+four items need an owner decision and must not be guessed, one of them a
+certification claim. Its §1.2 also records that GUARDRAILS §4.1's regression
+baseline is **stale**: eleven of the thirteen commands it lists name scripts that
+no longer exist in the tree. Use PLAN-8 §1.2's list until that is corrected.
+
+**[PLAN-7](PLAN-7-marketing-imagery.md) — marketing imagery.** Item 2 of the
+2026-08-07 admin-surface review, held back for a scope decision. Like PLAN-6 it
+is not a bug-closing plan, with one exception: item 1 closes a real hazard in
+`_harness/backdrop.js`, which silently skips a raster background layer and would
+report a passing contrast number for text sitting on a photograph.
+
+PLAN-8's C37 (empty regions in the primary layouts) deliberately stops short of
+what PLAN-7 covers. If both run, PLAN-7 goes second — it changes the images
+PLAN-8's screenshots are measured against.
 
 ---
 
@@ -87,6 +100,31 @@ decision (PLAN-7 §5).
 
 A fourth candidate — owner-editable marketing imagery — was reviewed and left
 out. It needs a scope decision first and may need photography rather than code.
+
+---
+
+## Plan 8 — the 2026-08-08 UI/UX audit (open)
+
+| Phase | Items | Effort | Risk | Why here |
+|---|---|---|---|---|
+| **A — Product-page truth** | A1, A2, C32, C45, C47 | M | Low | Highest severity and touches nothing else. A1 is a certification claim, not a UI bug: 18 of 42 product pages print "UL Listed" beside the approvals block's "UL Recognized" or "UL Approved" |
+| **B — Indexability & sharing** | A3, A5, A4, B25, C29, C33 | M–L | **High** | Gated on the §0 decision about product URLs. Changes routing, canonicals and the sitemap, so every later phase's screenshots depend on its outcome — **second, not last** |
+| **C — Catalog browsing** | A6, B19, B20, B27, B12, C30, C35, C46, C48, C49 | M | Low | The three catalog views. Independent of D and F |
+| **D — Lead capture** | B16, B17, B18, B22, B26, C31, C39, C40 | M | Low | Every defect here costs an enquiry |
+| **F — Chrome, assets, copy** | B13, B21, B23, B11, A7, C34, C37, C38, C41, C42, C43, C44 | M | Low | Mobile drawer, images, copy |
+| **E — Legibility & input** | B8, B9, B10, B14, B15, B24, B28, C50 | M | Med | **Last** — it recolours ~270 elements and adds a skip link, moving every screenshot baseline and tab-order assertion the other phases wrote |
+
+Same reason 4.32 went last in PLAN-5. Phases C, D and F are independent of each
+other.
+
+**Nine of the 50 items live in `data/*.json`**, which GUARDRAILS §2 forbids
+touching. PLAN-8 tags every item `CODE` / `DATA` / `BOTH` and its §6 is the
+owner-action list those `DATA` items produce — the fix is an admin edit, not a
+commit.
+
+PLAN-8 §7 requires the executing agent to append a dated section to
+`PATCH_NOTES.md` — **append**, since that file is the record of the 12 merged PRs
+in the 2026-07-08 → 2026-08-07 release and overwriting it destroys that.
 
 ---
 
