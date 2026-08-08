@@ -59,8 +59,35 @@ in the tree (`b1.js`, `b2.js`, `b3.js`, `nb2.js`, `nb4.js`, `help.js`, `ttl.js`,
 `_harness/lint.php` and `_harness/invariants.js` survive. The live suite list is
 `_harness/README.md`.
 
-**Use this as the baseline instead**, and run it before you start so you know
-what you inherited:
+**Use this as the baseline instead.** Every number below was measured on
+`38fde8c` on 2026-08-08 — run the set before you start so you know what you
+inherited:
+
+```
+php _harness/lint.php     php -l 19/0 · node --check 9/0 · JSON 17/10/42
+                          copy drift 103 matched, 0 JS-only · 11 families · 12 approvals
+invariants                17/17          invariants-selftest   15/15
+contrastparity            28/28          copyroundtrip         15/15
+copydrift-selftest         5/5           skuparity             33/33
+deadlinks                 0 of 18 dead
+plan2-formlast             8/8 + selftest PASS
+plan2-sku                 14/14          plan2-delete          18/18
+plan3-contact             51/51          plan4-admin           19/19
+plan4-public              27/27          plan5-keys            11/11
+plan5-spectable           13/13          plan5-images          12/12
+plan5-social              35/35          plan5b-sidebar         9/9
+plan5b-sitemap             9/9           plan5c-sitemap        17/17
+plan5c-eyebrow             4/4           plan5c-brandink        5/5
+plan6-families            13/13          plan7-approvals       11/11
+plan7-datasheets           8/8
+brandtext                 35/51  ← EXPECTED RED, see below
+```
+
+**`brandtext.js` at 35/51 is not a regression.** It is the logged open item
+`brand-text-on-brand-surface` (dark half) in `WHATS_LEFT.md` §2. Phase E must not
+let it drift worse; closing it is not in this plan's scope.
+
+The commands:
 
 ```sh
 npm run build                       # 0 errors
@@ -1224,9 +1251,11 @@ contract has two sides and a hard limit:
    green success banner on it. `_harness/copydrift.js` fails on drift — run it.
 2. Every new field moves `content.php`'s posted-variable count, which is
    enforced positionally by the `form_complete` sentinel. The count is currently
-   **435**. Follow PLAN-6 §0: update the asserted count in the same commit and
-   re-run `node _harness/plan2-trunc.js` against a real `max_input_vars=100`
-   server.
+   **439** — verified 2026-08-08 from `_harness/plan4-admin.js:52`
+   (`POSTED_BEFORE`), which is the authority. `WHATS_LEFT.md` records 435 and
+   is one PLAN-7 change out of date; do not take the figure from the prose.
+   Follow PLAN-6 §0: update `POSTED_BEFORE` in the same commit and re-run
+   `node _harness/plan2-trunc.js` against a real `max_input_vars=100` server.
 3. New fields go **above** `form_complete`. Never after it. (GUARDRAILS §2.)
 
 ---
