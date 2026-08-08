@@ -24,13 +24,26 @@ function currentSelectors() {
   if (!file) throw new Error('no css bundle in dist/assets');
   const css = fs.readFileSync(path.join(dir, file), 'utf8');
   // Strip at-rule preludes and declaration bodies, keep selector text.
+  //
+  // The delimiter class is [{}], not [}]. Requiring a preceding `}` skipped the
+  // FIRST selector inside every at-rule block, because that one follows the
+  // media query's opening brace instead — so `.lg\:order-1` was reported as
+  // absent from a bundle that contained it, while `.lg\:order-2` right after it
+  // was found. The trap this file exists for (a bare utility word leaking out
+  // of a comment) happens to produce base-layer selectors outside any at-rule,
+  // which is why it still caught .ring and .grow five times without anyone
+  // noticing this hole.
   const sels = new Set();
-  const re = /(^|[}])\s*([^{}@][^{}]*)\{/g;
+  const re = /(^|[{}])\s*([^{}@][^{}]*)\{/g;
   let m;
   while ((m = re.exec(css))) {
     for (const s of m[2].split(',')) {
       const t = s.trim().replace(/\s+/g, ' ');
-      if (t) sels.add(t);
+      // Keyframe steps ("0%", "from", "to") are not selectors. They started
+      // showing up once the delimiter fix let this see inside at-rules, and
+      // noise in this list is how a real addition gets skimmed past.
+      if (!t || /^(\d+%|from|to)$/.test(t)) continue;
+      sels.add(t);
     }
   }
   return { file, sels: [...sels].sort() };

@@ -92,8 +92,17 @@ async function submitRfq(page) {
       rec.mobile = await page.evaluate(() => {
         const f = document.querySelector('form input, form textarea, form select');
         const r = f ? f.getBoundingClientRect() : null;
+        const firstFieldTop = r ? Math.round(r.top + window.scrollY) : null;
+        // PLAN-8: "Keep the phone number visible near the top; it is the other
+        // conversion path." Putting the form first pushed the contact rail
+        // below ~2,000px of fields, so a tel: link has to survive above the
+        // form or fixing one conversion path has broken the other.
+        const tel = [...document.querySelectorAll('a[href^="tel:"]')]
+          .map((a) => Math.round(a.getBoundingClientRect().top + window.scrollY))
+          .sort((x, y) => x - y)[0];
         return {
-          firstFieldTop: r ? Math.round(r.top + window.scrollY) : null,
+          firstFieldTop,
+          firstTelTop: tel === undefined ? null : tel,
           docHeight: document.documentElement.scrollHeight,
         };
       });
@@ -107,6 +116,31 @@ async function submitRfq(page) {
         return { count: els.length, monotonic };
       });
       await page.screenshot({ path: path.join(OUT, 'contact-390.png'), fullPage: true });
+      await ctx.close();
+    }
+
+    // ── B26's other half: the desktop arrangement must not have moved ─────
+    {
+      const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await ctx.newPage();
+      await page.goto(`${BASE}/contact`, { waitUntil: 'networkidle' });
+      rec.desktop = await page.evaluate(() => {
+        const form = document.querySelector('form');
+        const formCol = form ? form.closest('.lg\\:col-span-2') || form.parentElement : null;
+        // The rail is the column holding the "Direct Contact" heading.
+        const head = [...document.querySelectorAll('h2')].find((h) => /direct contact/i.test(h.textContent));
+        const rail = head ? head.parentElement : null;
+        if (!formCol || !rail) return null;
+        const f = formCol.getBoundingClientRect();
+        const r = rail.getBoundingClientRect();
+        return {
+          railX: Math.round(r.left), formX: Math.round(f.left),
+          railTop: Math.round(r.top), formTop: Math.round(f.top),
+          railLeftOfForm: r.left < f.left,
+          sameRow: Math.abs(r.top - f.top) < 120,
+        };
+      });
+      await page.screenshot({ path: path.join(OUT, 'contact-1440.png'), fullPage: false });
       await ctx.close();
     }
 
@@ -202,27 +236,31 @@ async function submitRfq(page) {
     `(${dated.length} of ${rec.placeholders.length} placeholders)`,
     dated.join(' | '));
 
-  // ── B26 — DEFERRED, and this records the measurement so it is not lost ────
+  // ── B26 ───────────────────────────────────────────────────────────────────
   //
-  // At 390 the first form field sits 1,213px down, below four contact cards
-  // and a tip panel, on the page whose whole purpose is the form.
-  //
-  // Not fixed here. The only correct fix is reordering the DOM so the form
-  // comes first and restoring the desktop arrangement with `lg:order-*`: a
-  // CSS-only reorder leaves tab order following the DOM while the eye follows
-  // the layout, which PLAN-8 explicitly rules out and the next assertion
-  // detects. That is a ~90-line move of the contact grid's children and it was
-  // not attempted rather than half-attempted. Logged in WHATS_LEFT §2.
-  //
-  // The assertion is inverted deliberately: it asserts the defect is STILL
-  // THERE, so that whoever fixes it is forced to come back and flip this line
-  // rather than finding a suite that quietly went green on its own.
-  note(rec.mobile.firstFieldTop !== null && rec.mobile.firstFieldTop > 900,
-    `@390: B26 is still open — the first form field is ${rec.mobile.firstFieldTop}px down ` +
-    `(deferred; flip this assertion to < 900 when the DOM order is fixed)`);
+  // This assertion was INVERTED while the item was deferred — it asserted the
+  // defect was still present, so the suite could not go green on its own and
+  // whoever fixed it had to come back here. Flipped now the DOM is reordered.
+  note(rec.mobile.firstFieldTop !== null && rec.mobile.firstFieldTop < 900,
+    `@390: the first form field is ${rec.mobile.firstFieldTop}px from the top of the document ` +
+    `(was 1,213 — below four contact cards and a tip panel)`);
   note(rec.mobileTabOrder.monotonic,
     `@390: tab order still follows visual order across ${rec.mobileTabOrder.count} controls`,
     'a CSS-only reorder desyncs them — fix the DOM order instead');
+
+  note(rec.mobile.firstTelTop !== null && rec.mobile.firstTelTop < rec.mobile.firstFieldTop,
+    `@390: a tel: link is still above the form (${rec.mobile.firstTelTop}px vs the first field at ` +
+    `${rec.mobile.firstFieldTop}px) — hoisting the form must not bury the other conversion path`);
+
+  // Desktop must be untouched. The rail is second in the DOM now and only
+  // `lg:order-1` puts it back on the left, so this is the assertion that would
+  // catch that class being dropped or the breakpoint changing.
+  note(rec.desktop && rec.desktop.railLeftOfForm,
+    `@1440 the contact rail is still to the LEFT of the form ` +
+    `(rail x=${rec.desktop ? rec.desktop.railX : '?'}, form x=${rec.desktop ? rec.desktop.formX : '?'})`);
+  note(rec.desktop && rec.desktop.sameRow,
+    `@1440 they are still side by side, not stacked ` +
+    `(rail top=${rec.desktop ? rec.desktop.railTop : '?'}, form top=${rec.desktop ? rec.desktop.formTop : '?'})`);
 
   // ── B16 ───────────────────────────────────────────────────────────────────
   const s = rec.success;

@@ -4568,81 +4568,67 @@ function ContactPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Left sidebar — contact cards + tips */}
-        <div className="space-y-4">
-          <h2
-            className="text-xs font-bold uppercase tracking-widest mb-4"
-            style={{ color: "var(--brand-primary-text)" }}
-          >
-            {c.directTitle}
-          </h2>
-          {contactCards.map((item) => (
-            <div
-              key={item.title}
-              className="bg-white rounded-xl p-4 flex gap-3 items-start"
-              style={{ border: "1px solid #e5e9ee" }}
-            >
-              <span
-                className="flex items-center justify-center rounded-lg text-sm flex-shrink-0"
-                style={{
-                  width: 36,
-                  height: 36,
-                  background: "rgba(var(--brand-primary-rgb),0.07)",
-                  color: "var(--brand-primary-text)",
-                }}
-              >
-                {item.icon}
-              </span>
-              <div>
-                <div
-                  className="text-xs font-bold uppercase tracking-wide mb-0.5"
-                  style={{ color: "#6b7280" }}
-                >
-                  {item.title}
-                </div>
-                <div
-                  className="text-sm font-semibold"
-                  style={{ color: "#141414" }}
-                >
-                  {item.href ? (
-                    <a href={item.href} style={{ color: "#141414", textDecoration: "none" }}
-                       onMouseEnter={e => e.currentTarget.style.color = "var(--brand-primary-text)"}
-                       onMouseLeave={e => e.currentTarget.style.color = "#141414"}>
-                      {item.info}
-                    </a>
-                  ) : item.info}
-                </div>
-                <div className="text-xs" style={{ color: "#4b5563" }}>
-                  {item.sub}
-                </div>
-              </div>
-            </div>
-          ))}
-          <div className="rounded-xl p-5" style={{ background: "var(--brand-dark)" }}>
-            <div className="text-xs font-bold ipc-ink-dark mb-3 uppercase tracking-wide">
-              {cf.tipsTitle}
-            </div>
-            <ul className="space-y-1.5">
-              {contactTips.map(({ text: tip }, i) => (
-                <li
-                  key={`${i}-${tip}`}
-                  className="flex items-start gap-2 text-xs"
-                  style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.60)" }}
-                >
-                  <span
-                    style={{ color: "var(--brand-accent1-on-dark)", marginTop: 1, flexShrink: 0 }}
-                  >
-                    →
-                  </span>
-                  {tip}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
+        {/* B26 — the form is FIRST in the DOM, and `lg:order-2` puts it back on
+            the right at desktop width.
+            It used to come second, after the contact rail and the "for fastest
+            response" panel, which at 390px left the first form field 1,213px
+            down a 3,331px page — four cards and a tip panel to scroll past
+            before reaching the thing the page exists for.
+            The DOM moved rather than the CSS. A `order`-only reorder leaves
+            keyboard focus following source order while the eye follows the
+            layout, and on a stacked mobile column that is a genuine trap:
+            you tab "down" and the focus indicator jumps to the bottom of the
+            page. (Not the other word for that indicator — it is a Tailwind
+            utility name and writing it emits the rule. Sixth occurrence.)
+            PLAN-8 calls this out and plan8-lead asserts it.
+            The consequence at desktop, stated rather than hidden: focus now
+            reaches the form before the contact rail. Both columns are visible
+            at once there, the form is the page's purpose, and nothing is
+            skipped — a fair trade for fixing the stacked case. */}
         {/* Right — tabbed forms */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 lg:order-2">
+          {/* B26 — a mobile-only call strip.
+              Putting the form first solved one conversion path and broke the
+              other: the phone card used to be the first thing on the page at
+              390 and moving the rail below the form pushed it under about
+              2,000px of fields. PLAN-8 says to keep the number near the top,
+              and this is the smallest way to honour that.
+              Not a duplicate of the rail — one line, two links, no cards, and
+              `lg:hidden` so desktop never sees it. Duplicating the rail itself
+              is what PLAN-8 rules out. */}
+          <div
+            className="lg:hidden mb-5 rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1"
+            style={{ background: "#ffffff", border: "1px solid #e5e9ee" }}
+          >
+            <span
+              style={{
+                font: "10px ui-monospace, SFMono-Regular, Menlo, monospace",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--brand-accent-text)",
+              }}
+            >
+              {c.directTitle}
+            </span>
+            {site.contact.phoneDial && (
+              <a
+                href={`tel:${site.contact.phoneDial}`}
+                className="text-sm font-semibold"
+                style={{ color: "var(--brand-primary-text)", textDecoration: "none" }}
+              >
+                {site.contact.phone}
+              </a>
+            )}
+            {site.contact.email && (
+              <a
+                href={`mailto:${site.contact.email}`}
+                className="text-sm"
+                style={{ color: "#4b5563", textDecoration: "none" }}
+              >
+                {site.contact.email}
+              </a>
+            )}
+          </div>
           {/* Tab switcher — clear active/inactive contrast */}
           <div
             className="flex flex-col sm:flex-row mb-6 rounded-xl overflow-hidden"
@@ -5119,6 +5105,81 @@ function ContactPage() {
               </button>
             </form>
           )}
+        </div>
+
+        {/* Left sidebar — contact cards + tips.
+            `lg:order-1` keeps it on the left at desktop width despite now being
+            second in the DOM — see the B26 note on the form block above. */}
+        <div className="space-y-4 lg:order-1">
+          <h2
+            className="text-xs font-bold uppercase tracking-widest mb-4"
+            style={{ color: "var(--brand-primary-text)" }}
+          >
+            {c.directTitle}
+          </h2>
+          {contactCards.map((item) => (
+            <div
+              key={item.title}
+              className="bg-white rounded-xl p-4 flex gap-3 items-start"
+              style={{ border: "1px solid #e5e9ee" }}
+            >
+              <span
+                className="flex items-center justify-center rounded-lg text-sm flex-shrink-0"
+                style={{
+                  width: 36,
+                  height: 36,
+                  background: "rgba(var(--brand-primary-rgb),0.07)",
+                  color: "var(--brand-primary-text)",
+                }}
+              >
+                {item.icon}
+              </span>
+              <div>
+                <div
+                  className="text-xs font-bold uppercase tracking-wide mb-0.5"
+                  style={{ color: "#6b7280" }}
+                >
+                  {item.title}
+                </div>
+                <div
+                  className="text-sm font-semibold"
+                  style={{ color: "#141414" }}
+                >
+                  {item.href ? (
+                    <a href={item.href} style={{ color: "#141414", textDecoration: "none" }}
+                       onMouseEnter={e => e.currentTarget.style.color = "var(--brand-primary-text)"}
+                       onMouseLeave={e => e.currentTarget.style.color = "#141414"}>
+                      {item.info}
+                    </a>
+                  ) : item.info}
+                </div>
+                <div className="text-xs" style={{ color: "#4b5563" }}>
+                  {item.sub}
+                </div>
+              </div>
+            </div>
+          ))}
+          <div className="rounded-xl p-5" style={{ background: "var(--brand-dark)" }}>
+            <div className="text-xs font-bold ipc-ink-dark mb-3 uppercase tracking-wide">
+              {cf.tipsTitle}
+            </div>
+            <ul className="space-y-1.5">
+              {contactTips.map(({ text: tip }, i) => (
+                <li
+                  key={`${i}-${tip}`}
+                  className="flex items-start gap-2 text-xs"
+                  style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.60)" }}
+                >
+                  <span
+                    style={{ color: "var(--brand-accent1-on-dark)", marginTop: 1, flexShrink: 0 }}
+                  >
+                    →
+                  </span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </div>
