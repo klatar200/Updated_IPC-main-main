@@ -204,7 +204,12 @@ async function signIn(ctx) {
         JSON.stringify(years));
 
       await page.goto(`${BASE}/services`, { waitUntil: 'networkidle' });
-      const svcTitles = await page.$$eval('h3', (hs) => hs.map((h) => h.textContent.trim()));
+      // 'h2, h3', not 'h3'. PLAN-8 B28 promoted the service card titles from h3
+      // to h2 — /services was the only page skipping a heading level — and this
+      // selector went stale, reporting a duplicate-key defect that was not
+      // there. What this line is about is whether BOTH colliding titles render,
+      // not what level they render at; plan8-keyboard.js owns the levels.
+      const svcTitles = await page.$$eval('h2, h3', (hs) => hs.map((h) => h.textContent.trim()));
       const dupTitle = doc.services[0].title;
       note(svcTitles.filter((t) => t === dupTitle).length === 2,
         `B: two services titled "${dupTitle}" both render`,

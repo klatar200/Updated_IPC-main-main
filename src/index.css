@@ -86,6 +86,99 @@ svg[stroke="#005da3"] {
   .ipc-skeleton { animation: none; }
 }
 
+/* B15 — the skip link (WCAG 2.4.1 Bypass Blocks, Level A).
+ *
+ * Here rather than in GlobalStyles, for the same reason .ipc-skeleton is here:
+ * GlobalStyles is a component, and this is the FIRST tab stop on the page — it
+ * has to be styled by a real stylesheet in <head>, not by something that
+ * mounts later. An unstyled skip link is a visible stray sentence above the
+ * logo on every page.
+ *
+ * Moved off-screen rather than `display: none` or `visibility: hidden`: both
+ * of those remove it from the tab order entirely, which defeats the point.
+ * `left: -9999px` (not `width: 1px; overflow: hidden`) so that when it IS
+ * focused it can simply slide into place at full size.
+ */
+.ipc-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 200;
+  padding: 10px 18px;
+  background: #ffffff;
+  color: #0a2240;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 0 0 6px 0;
+}
+
+/* B24 — touch targets on a coarse pointer.
+ *
+ * Scoped to `pointer: coarse` so the desktop layout is untouched: these are
+ * finger sizes, and applying them to a mouse would inflate the design for no
+ * benefit. Measured at 390px before this: the product page's two primary
+ * actions were 122x28 and 105x28, and every inline tel:/mailto: link on the
+ * site was 16-19px tall.
+ *
+ * The inline links use symmetric padding cancelled by an equal negative
+ * margin. That is the whole trick: padding grows the hit box that
+ * getBoundingClientRect and the browser's own hit testing use, while the
+ * negative margin gives the space back to the line box — so a phone number
+ * sitting mid-sentence becomes a 44px target without moving a single word of
+ * the paragraph around it. Raising font-size or line-height would have hit
+ * the same number and reflowed the copy.
+ *
+ * display:inline-block is required for the vertical padding to apply at all;
+ * on a plain inline box it is ignored for layout purposes.
+ */
+@media (pointer: coarse) {
+  a[href^="tel:"],
+  a[href^="mailto:"] {
+    display: inline-block;
+    min-height: 44px;
+    padding-top: 13px;
+    padding-bottom: 13px;
+    margin-top: -13px;
+    margin-bottom: -13px;
+  }
+
+  /* The conversion buttons: "Download PDF", "Request Quote", "Request Data
+     Sheet". min-height rather than more padding, so the label stays put and
+     only the box round it changes. */
+  .ipc-touch {
+    min-height: 44px;
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
+  /* A link sitting mid-sentence in body copy. Same padding/negative-margin
+     trick as the tel:/mailto: rule — the paragraph does not move. */
+  .ipc-inline-link {
+    display: inline-block;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    margin-top: -12px;
+    margin-bottom: -12px;
+  }
+}
+
+/* Outside the coarse block: with a mouse this link has no padding at all,
+   which is what its inline style used to say before the hit-area rule needed
+   somewhere to live. */
+.ipc-inline-link {
+  padding: 0;
+}
+
+.ipc-skip:focus {
+  left: 0;
+  /* The indicator is scored against the navbar it sits over, not against the
+     link's own white fill: #00bef2 on #0a2240 measures 7.16:1, well past the
+     3:1 floor for a non-text indicator. */
+  outline: 3px solid #00bef2;
+  outline-offset: 2px;
+}
+
 .ipc-page-header {
   background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%);
 }

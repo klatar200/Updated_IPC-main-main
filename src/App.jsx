@@ -232,6 +232,42 @@ function PageLink({ page = null, params, onNavigate, onClick, children, ...rest 
  * `_harness/plan5c-eyebrow.js` scores every element in the header block on two
  * palettes and holds this at AA.
  */
+/**
+ * B14 — does the visitor ask for reduced motion?
+ *
+ * CSS alone cannot finish this job. `@media (prefers-reduced-motion: reduce)`
+ * can stop the marquee animating, but the track is DUPLICATED 2x so that
+ * translateX(-50%) loops seamlessly — so `animation: none` on its own leaves
+ * every certification printed twice, side by side, with no explanation. And a
+ * tab stop that exists only to pause an animation is pointless once there is
+ * no animation, which CSS cannot remove either.
+ *
+ * Subscribed rather than read once: a visitor can turn the preference on in
+ * the OS while the page is open, and this is exactly the audience for whom
+ * "reload to apply" is the wrong answer.
+ */
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(
+    () => typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onChange = (e) => setReduced(e.matches);
+    // addEventListener on a MediaQueryList is not in older Safari; addListener
+    // is deprecated but is the only thing that works there.
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else mq.addListener(onChange);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", onChange);
+      else mq.removeListener(onChange);
+    };
+  }, []);
+  return reduced;
+}
+
 function PageEyebrow({ children }) {
   return (
     <div
@@ -1497,6 +1533,7 @@ function Hero() {
   const c = copy.hero;
   const proofPoints = heroProofPoints;
   const trustItems = heroTrust.map((t) => t.text);
+  const reducedMotion = usePrefersReducedMotion();
 
   return (
     <section
@@ -1664,9 +1701,24 @@ function Hero() {
             }}
           />
 
-          {/* Marquee track — items duplicated to create seamless loop */}
-          <div className="ipc-marquee-track" tabIndex={0} style={{ padding: "14px 0" }}>
-            {[...trustItems, ...trustItems].map((item, idx) => (
+          {/* Marquee track — items duplicated to create seamless loop.
+              B14: under `prefers-reduced-motion: reduce` the duplicate is NOT
+              rendered and the tab stop goes away.
+              The duplicate exists only so translateX(-50%) can wrap without a
+              visible seam. Stop the animation and it stops being a mechanism
+              and becomes a bug: every certification printed twice, in a row,
+              for no reason a reader could infer. `animation: none` alone —
+              the obvious CSS-only fix — produces exactly that.
+              The tabIndex exists only so a keyboard user can pause the scroll
+              via :focus-within. With nothing scrolling it is a tab stop that
+              does nothing and announces nothing, so it is dropped in that mode
+              rather than left as furniture. */}
+          <div
+            className={reducedMotion ? "ipc-marquee-track ipc-marquee-static" : "ipc-marquee-track"}
+            {...(reducedMotion ? {} : { tabIndex: 0 })}
+            style={{ padding: "14px 0" }}
+          >
+            {(reducedMotion ? trustItems : [...trustItems, ...trustItems]).map((item, idx) => (
               <span
                 key={idx}
                 className="flex items-center gap-1.5 flex-shrink-0"
@@ -2182,7 +2234,14 @@ function StatsBar() {
               >
                 {s.label}
               </div>
-              <div className="text-xs mt-0.5 text-gray-400">{s.sub}</div>
+              {/* B9 — an inline token, not the utility class.
+                  This was the ONLY gray-400 on the site expressed as a Tailwind
+                  class rather than a hex, so replacing the 16 literal
+                  occurrences left these four homepage stat sub-lines behind at
+                  2.54:1 — "Founded July 1, 1974" and its three neighbours.
+                  The measurement caught it; a grep for the hex would not
+                  have. */}
+              <div className="text-xs mt-0.5" style={{ color: "#4b5563" }}>{s.sub}</div>
             </div>
           </div>
         ))}
@@ -2444,7 +2503,7 @@ function isStandardBadge(badge) {
 }
 
 /** The small monospace approval marks used on cards and the detail page. */
-function ApprovalMarks({ product, tone = "#9ca3af" }) {
+function ApprovalMarks({ product, tone = "#4b5563" }) {
   const list = productApprovals(product);
   if (!list.length) return null;
   return (
@@ -2652,7 +2711,7 @@ function DatasheetsPage({ products }) {
               <section key={family}>
                 <h2 className="flex items-baseline gap-3 mb-3" data-ipc-family={family}>
                   <span style={{ font: "700 15px system-ui, sans-serif", color: "#141414" }}>{family}</span>
-                  <span style={{ font: "11px ui-monospace, Menlo, monospace", color: "#9ca3af" }}>{rows.length}</span>
+                  <span style={{ font: "11px ui-monospace, Menlo, monospace", color: "#4b5563" }}>{rows.length}</span>
                   <span aria-hidden="true" style={{ flex: 1, borderBottom: "1px solid #e5e9ee" }} />
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -3708,7 +3767,11 @@ function FaqPage() {
             {c.intro}{" "}
             <PageLink
               page="contact"
-              className="underline font-semibold"
+              // B24 — ipc-inline-link carries the padding, because the inline
+              // `padding: 0` below is an inline style and would beat any
+              // stylesheet rule trying to enlarge the hit area on a phone. It
+              // was 130x21 at 390px, under the 24px AA floor.
+              className="ipc-inline-link underline font-semibold"
               style={{
                 // NOT --brand-accent, and not --brand-accent-text either. This
                 // link sits INSIDE .ipc-page-header, on the same owner-controlled
@@ -3725,7 +3788,7 @@ function FaqPage() {
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                padding: 0,
+                // padding lives in .ipc-inline-link — see the class note above.
               }}
             >
               Contact our team.
@@ -4297,7 +4360,7 @@ function ContactPage() {
           </p>
           <p
             className="ipc-fade-up-2 text-xs mb-8"
-            style={{ color: "#9ca3af" }}
+            style={{ color: "#4b5563" }}
           >
             {/* B18 — the emoji are gone. 📧 rendered as a tofu box, so this
                 line read "📞 630.771.0700 · 📠 630.771.0701 · ▯ sales@…" at the
@@ -4309,13 +4372,13 @@ function ContactPage() {
                 stays plain text, which is deliberate (PLAN-1 4.8). */}
             {cf.urgentPrefix}{" "}
             <span>Phone </span>
-            <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#9ca3af" }}>{site.contact.phone}</a>
+            <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#4b5563" }}>{site.contact.phone}</a>
             {site.contact.fax ? (
-              <>{" · "}<span>Fax </span><span style={{ color: "#9ca3af" }}>{site.contact.fax}</span></>
+              <>{" · "}<span>Fax </span><span style={{ color: "#4b5563" }}>{site.contact.fax}</span></>
             ) : null}
             {" · "}
             <span>Email </span>
-            <a href={`mailto:${site.contact.email}`} style={{ color: "#9ca3af" }}>{site.contact.email}</a>
+            <a href={`mailto:${site.contact.email}`} style={{ color: "#4b5563" }}>{site.contact.email}</a>
           </p>
           <div className="ipc-fade-up-3 flex gap-3 justify-center">
             <button
@@ -4440,7 +4503,7 @@ function ContactPage() {
                     </a>
                   ) : item.info}
                 </div>
-                <div className="text-xs" style={{ color: "#9ca3af" }}>
+                <div className="text-xs" style={{ color: "#4b5563" }}>
                   {item.sub}
                 </div>
               </div>
@@ -4532,7 +4595,14 @@ function ContactPage() {
                     style={{
                       fontSize: 11,
                       marginTop: 3,
-                      color: active ? "rgba(var(--brand-primary-ink-rgb), 0.70)" : "#6b7280",
+                      // B9/B10 family — 0.85, was 0.70. The tab subtitle
+                      // composited to 4.15:1 on the active tab's brand-primary
+                      // fill. Raising the ALPHA of the ink is palette-safe in a
+                      // way that picking a colour is not: --brand-primary-ink
+                      // is already computed to contrast with --brand-primary,
+                      // so more of it is monotonically more contrast whichever
+                      // polarity the owner's palette has.
+                      color: active ? "rgba(var(--brand-primary-ink-rgb), 0.85)" : "#6b7280",
                     }}
                   >
                     {tab.sub}
@@ -4564,7 +4634,7 @@ function ContactPage() {
                 >
                   {cf.rfqHeading}
                 </div>
-                <div className="text-xs" style={{ color: "#9ca3af" }}>
+                <div className="text-xs" style={{ color: "#4b5563" }}>
                   {cf.rfqIntro}
                 </div>
               </div>
@@ -4814,7 +4884,7 @@ function ContactPage() {
                 >
                   {cf.msgHeading}
                 </div>
-                <div className="text-xs" style={{ color: "#9ca3af" }}>
+                <div className="text-xs" style={{ color: "#4b5563" }}>
                   {cf.msgIntro}
                 </div>
               </div>
@@ -5021,6 +5091,33 @@ function GlobalStyles() {
       .ipc-marquee-track { display: flex; width: max-content; animation: ipc-marquee 32s linear infinite; }
       .ipc-marquee-track:hover,
       .ipc-marquee-track:focus-within { animation-play-state: paused; }
+
+      /* B14 — honour prefers-reduced-motion.
+         src/index.css had a reduced-motion block that disabled exactly one
+         thing, .ipc-skeleton, and the marquee scrolled straight through it.
+         Measured under an emulated reduce preference: one infinite animation
+         still running.
+         The track also has to stop being a track. Its width is max-content so
+         a 5,012px strip can slide; with the animation off and only one copy of
+         the items rendered (see Hero), it wraps and centres instead, which is
+         a readable certification strip rather than a frozen ribbon with its
+         right-hand half off-screen.
+         The submit-button spinner is the THIRD infinite animation on the site
+         and the audit named only one. Its override is not here but immediately
+         after .ipc-btn-spinner is declared, further down this same stylesheet:
+         a media query adds no specificity, so a rule placed before the
+         declaration it is trying to beat simply loses the cascade. Putting it
+         here looked right and did nothing. */
+      @media (prefers-reduced-motion: reduce) {
+        .ipc-marquee-track,
+        .ipc-marquee-static { animation: none; }
+        .ipc-marquee-static {
+          width: 100%;
+          flex-wrap: wrap;
+          justify-content: center;
+          row-gap: 4px;
+        }
+      }
       /* Brand gradient page header — replaces #141414 dark headers on content pages */
       .ipc-page-header { background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%) !important; }
       .ipc-page-header > div {
@@ -5064,6 +5161,14 @@ function GlobalStyles() {
         border-radius: 50%;
         animation: ipc-btn-spin 0.7s linear infinite;
         vertical-align: middle; margin-right: 6px;
+      }
+      /* B14 — must sit AFTER the declaration above. A media query contributes
+         no specificity, so this rule wins only on source order. The spinner
+         stays drawn as a static circle and the button keeps its text label,
+         so a visitor who asked for less motion still sees that something is
+         in flight. */
+      @media (prefers-reduced-motion: reduce) {
+        .ipc-btn-spinner { animation: none; }
       }
 
       /* .ipc-skeleton and .ipc-page-header now live in src/index.css — they are
@@ -6630,12 +6735,21 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                     fontWeight: 700,
                     // 4.23: the active pill's background is --brand-primary, so
                     // the label has to follow the ink, not a fixed white. The
-                    // -ink-rgb triple keeps the original 70% de-emphasis against
-                    // whichever ink was chosen — and unlike color-mix() it is
-                    // supported everywhere, so it cannot fail to `inherit`.
+                    // -ink-rgb triple keeps a de-emphasis against whichever ink
+                    // was chosen — and unlike color-mix() it is supported
+                    // everywhere, so it cannot fail to `inherit`.
+                    //
+                    // B8 — 0.85, was 0.7. The de-emphasis was costing the
+                    // active SKU its legibility: 4.15:1 composited over
+                    // --brand-primary, at 10px bold, on the part number a buyer
+                    // is scanning for. This is the same string B8 is about, in
+                    // its selected state — the inactive one was #c4cbd4 at
+                    // 1.64:1. Raising the ink's alpha is monotonically more
+                    // contrast on any palette, because the ink is already
+                    // computed to oppose --brand-primary.
                     color: active
-                      ? "rgba(var(--brand-primary-ink-rgb), 0.7)"
-                      : "#9ca3af",
+                      ? "rgba(var(--brand-primary-ink-rgb), 0.85)"
+                      : "#4b5563",
                     textTransform: "uppercase",
                     letterSpacing: "0.06em",
                     marginBottom: 2,
@@ -6719,7 +6833,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                   <span
                     data-testid="family-heading"
                     className="text-xs font-bold uppercase tracking-widest"
-                    style={{ color: hasActive ? "var(--brand-primary-text)" : "#9ca3af" }}
+                    style={{ color: hasActive ? "var(--brand-primary-text)" : "#4b5563" }}
                   >
                     {family}
                   </span>
@@ -6735,7 +6849,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                     </span>
                     <span
                       style={{
-                        color: "#9ca3af",
+                        color: "#4b5563",
                         fontSize: 10,
                         transform: isOpen ? "rotate(180deg)" : "none",
                         display: "inline-block",
@@ -6808,7 +6922,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                       >
                         <div
                           className="text-xs font-bold mb-0.5 uppercase tracking-wide"
-                          style={{ color: active ? "var(--brand-primary-text)" : "#c4cbd4" }}
+                          style={{ color: active ? "var(--brand-primary-text)" : "#4b5563" }}
                         >
                           {p.sku}
                         </div>
@@ -7188,7 +7302,7 @@ function ProductDetail({ product, allProducts }) {
                   href={product.pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
+                  className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
                   style={{
                     background: "var(--brand-accent)",
                     color: "#141414",
@@ -7221,7 +7335,7 @@ function ProductDetail({ product, allProducts }) {
                       href={extra.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
+                      className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
                       style={{
                         background: "var(--brand-accent)",
                         color: "#141414",
@@ -7251,7 +7365,7 @@ function ProductDetail({ product, allProducts }) {
             ) : (
               <PageLink
                 page="contact"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
+                className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
                 style={{
                   background: "var(--brand-accent)",
                   color: "#141414",
@@ -7283,7 +7397,7 @@ function ProductDetail({ product, allProducts }) {
               // priced. (DEPLOY_READINESS_v2 4.6)
               page="contact"
               params={{ part: product.sku || product.id || "" }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
+              className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
               style={{
                 background: "var(--brand-primary)",
                 color: "var(--brand-primary-ink)",
@@ -7391,7 +7505,7 @@ function ProductDetail({ product, allProducts }) {
               <div
                 style={{
                   fontSize: 10, fontWeight: 700, letterSpacing: "0.1em",
-                  textTransform: "uppercase", color: "#9ca3af", marginBottom: 8,
+                  textTransform: "uppercase", color: "#4b5563", marginBottom: 8,
                 }}
               >
                 Approvals &amp; Certifications
@@ -7424,7 +7538,7 @@ function ProductDetail({ product, allProducts }) {
                   fontWeight: 700,
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
-                  color: "#9ca3af",
+                  color: "#4b5563",
                   marginBottom: 8,
                 }}
               >
@@ -8359,8 +8473,17 @@ function DashboardPage({ products }) {
                     fontWeight: 700,
                     padding: "1px 5px",
                     borderRadius: 10,
+                    // The active chip's white veil was 0.2, which lifted its
+                    // background to rgb(51,125,181) and left the count at
+                    // 4.43:1 against it — the ink is full-strength already, so
+                    // the veil was the whole of the shortfall. 0.10 keeps the
+                    // pill visible and gives the count its contrast back.
+                    // Verified across all four palettes with plan2-contrast
+                    // rather than reasoned about: a white veil helps a dark ink
+                    // and hurts a light one, so this direction is only safe
+                    // because it was measured on every palette.
                     background: active
-                      ? "rgba(255,255,255,0.2)"
+                      ? "rgba(255,255,255,0.10)"
                       : "rgba(var(--brand-primary-rgb),0.08)",
                     color: active ? "var(--brand-dark-ink)" : "var(--brand-primary-text)",
                   }}
@@ -8907,7 +9030,7 @@ function DashboardPage({ products }) {
             marginTop: 10,
             textAlign: "right",
             fontSize: 11,
-            color: "#9ca3af",
+            color: "#4b5563",
           }}
         >
           Showing {filtered.length} of {tableRows.length} products
@@ -9757,9 +9880,13 @@ function ServicesPage() {
                 >
                   {SvcIcons[svc.iconKey]}
                 </div>
-                <h3 className="text-lg font-bold" style={{ color: "#141414" }}>
+                {/* B28 — h2, not h3. /services was the only page on the site
+                    with a skipped heading level: h1 straight to h3, no h2. The
+                    class is unchanged on purpose — the visual size is CSS's
+                    job and the level is the document's. */}
+                <h2 className="text-lg font-bold" style={{ color: "#141414" }}>
                   {svc.title}
-                </h3>
+                </h2>
                 <p
                   className="text-sm mt-1 leading-relaxed"
                   style={{ color: "#4b5563" }}
@@ -9852,9 +9979,12 @@ function ServicesPage() {
         <div className="rounded-2xl p-8" style={{ background: "var(--brand-dark)" }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div>
-              <h3 className="text-xl font-extrabold ipc-ink-dark mb-3">
+              {/* B28 — h2. Same skipped-level fix as the service cards above;
+                  this closing panel is a sibling section, not a subsection of
+                  one. */}
+              <h2 className="text-xl font-extrabold ipc-ink-dark mb-3">
                 Need something not listed?
-              </h3>
+              </h2>
               <p
                 className="text-sm leading-relaxed"
                 style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.60)" }}
@@ -10033,7 +10163,7 @@ function PrivacyPage() {
           ))}
         </div>
 
-        <p className="mt-6 text-xs text-center" style={{ color: "#9ca3af" }}>
+        <p className="mt-6 text-xs text-center" style={{ color: "#4b5563" }}>
           © {site.company.foundedYear}–{new Date().getFullYear()} {site.company.name} ·
           {site.address.street}, {site.address.city}, {site.address.state} {site.address.zip}
         </p>
@@ -10290,7 +10420,7 @@ function Footer() {
             </div>
             <p
               className="text-xs leading-relaxed max-w-xs"
-              style={{ color: "rgba(255,255,255,0.45)" }}
+              style={{ color: "#94a3b8" }}
             >
               A spec-grade stocking distributor of heat-shrinkable &amp;
               extruded tubing, electrical sleeving, and industrial adhesives.
@@ -10310,16 +10440,16 @@ function Footer() {
             </div>
             <div
               className="space-y-2.5 text-xs"
-              style={{ color: "rgba(255,255,255,0.55)" }}
+              style={{ color: "#cbd5e1" }}
             >
               <div className="flex items-center gap-2">
                 <PhoneIcon />
-                <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>{site.contact.phone}</a>
+                <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#cbd5e1", textDecoration: "none" }}>{site.contact.phone}</a>
               </div>
               {site.contact.fax ? (
                 <div className="flex items-center gap-2">
                   <FaxIcon />
-                  <span style={{ color: "rgba(255,255,255,0.55)" }}>{site.contact.fax} (Fax)</span>
+                  <span style={{ color: "#cbd5e1" }}>{site.contact.fax} (Fax)</span>
                 </div>
               ) : null}
               {/* catalogPdfUrl was written by settings.php and read by NOTHING —
@@ -10335,7 +10465,7 @@ function Footer() {
                     href={site.catalogPdfUrl}
                     target="_blank"
                     rel="noopener"
-                    style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}
+                    style={{ color: "#cbd5e1", textDecoration: "none" }}
                   >
                     Full product catalog (PDF)
                   </a>
@@ -10343,7 +10473,7 @@ function Footer() {
               ) : null}
               <div className="flex items-center gap-2">
                 <MailIcon />
-                <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(255,255,255,0.55)", textDecoration: "none" }}>{site.contact.email}</a>
+                <a href={`mailto:${site.contact.email}`} style={{ color: "#cbd5e1", textDecoration: "none" }}>{site.contact.email}</a>
               </div>
               <div className="flex items-start gap-2">
                 <PinIcon />{" "}
@@ -10388,7 +10518,7 @@ function Footer() {
                     page={link.page}
                     className="text-xs transition-colors duration-150 ipc-tap"
                     style={{
-                      color: "rgba(255,255,255,0.45)",
+                      color: "#94a3b8",
                       background: "none",
                       border: "none",
                       cursor: "pointer",
@@ -10399,7 +10529,7 @@ function Footer() {
                       (e.currentTarget.style.color = "var(--brand-accent)")
                     }
                     onMouseLeave={(e) =>
-                      (e.currentTarget.style.color = "rgba(255,255,255,0.45)")
+                      (e.currentTarget.style.color = "#94a3b8")
                     }
                   >
                     {link.label}
@@ -10414,11 +10544,11 @@ function Footer() {
           className="flex flex-col md:flex-row items-center justify-between gap-2 pt-6"
           style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
         >
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <p className="text-xs" style={{ color: "#94a3b8" }}>
             © {site.company.foundedYear}–{new Date().getFullYear()} {site.company.name}.
             All rights reserved.
           </p>
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <p className="text-xs" style={{ color: "#94a3b8" }}>
             {fc.domain} · {site.address.city}, {site.address.state} {site.address.zip}
           </p>
         </div>
@@ -10768,13 +10898,28 @@ function App() {
           style={{ background: "#f5f7fa" }}
         >
           <GlobalStyles />
+          {/* B15 — skip link, WCAG 2.4.1 Bypass Blocks (Level A).
+              Tab order on every page started at the logo and walked the entire
+              header — the mega-menus included — before reaching any content,
+              and document.querySelector('a[href^="#"]') returned null
+              site-wide.
+              First in the DOM so it is the first tab stop. Visually hidden
+              until focused, via .ipc-skip in GlobalStyles rather than a
+              utility class, so its focused state can be styled properly. */}
+          <a className="ipc-skip" href="#ipc-main">Skip to main content</a>
           <Navbar products={products} catalogFailed={Boolean(error) && !loading} />
           {/* key={page} resets the boundary on navigation. Without it, one bad
               product bricked EVERY page until the visitor thought to reload:
               nothing ever set `caught` back to false, so clicking Home
               navigated correctly and still showed "Something went wrong".
               (DEPLOY_READINESS_v2 T2.2) */}
-          <main className="flex-1">
+          {/* B15 — the skip link's target.
+              id so the link has somewhere to go; tabIndex={-1} because without
+              it the browser scrolls to the element but leaves focus on the
+              link, so the very next Tab returns to the navigation the visitor
+              just asked to skip. That is the failure mode that makes skip
+              links look implemented and not work. */}
+          <main className="flex-1" id="ipc-main" tabIndex={-1} style={{ outline: "none" }}>
             <ErrorBoundary key={page}>
               {needsCatalog && loading ? (
                 <CatalogSkeleton />
