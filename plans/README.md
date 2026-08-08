@@ -117,7 +117,7 @@ are in `WHATS_LEFT.md` §1c/§2b/§4o and `PATCH_NOTES.md`.
 | **A — Product-page truth** | A1, A2, C32, C45, C47 | **shipped.** A1 measured **20** of 42 disagreeing pages, not the audit's 18 — `CT` and `IP49VP` fell outside the audit's comparison and were the worst two |
 | **B — Indexability & sharing** | A3, A5, A4, B25 | **shipped** (Option B — no URL moved). Found and fixed a defect the audit missed: `base: './'` made every URL with 2+ path segments a **blank white page**. C29 and C33 deferred |
 | **C — Catalog browsing** | A6, B19, B20, B27, B12, C48 | **shipped.** Product Index page 9,460px → 5,042px. C30, C35, C46, C49 deferred |
-| **D — Lead capture** | B16, B17, B18, B22 | **shipped.** **B26 deferred** — needs a DOM reorder; its suite assertion is inverted so it cannot go green by accident. C31, C39, C40 deferred |
+| **D — Lead capture** | B16, B17, B18, B22, B26 | **shipped.** B26 landed last, after the other phases: the quote form was 1,213px down the page on a phone and is now 638px, moved in the DOM rather than by CSS so keyboard order follows it. C31, C39, C40 deferred |
 | **F — Chrome, assets, copy** | B13, B21, B23, B11, A7 | **shipped.** The mobile menu became a real dialog — the page behind it used to scroll freely and Escape did nothing. The footer's missing space, the doubled lead-time banner, and the photo's unreserved box are all fixed. C34, C37, C38, C41, C44 deferred; C42, C43 are owner actions |
 | **E — Legibility & input** | B8, B9, B10, B14, B15, B24, B28 | **shipped.** The WCAG tier. Part numbers went 1.64:1 → ~7:1; the footer's 286 white-alpha instances became solid; a skip link exists for the first time (2.4.1 Level A). Asserting *zero* animations under `reduce` found a third the audit never named. C50 deferred |
 

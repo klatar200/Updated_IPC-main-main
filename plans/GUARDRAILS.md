@@ -114,7 +114,7 @@ carried over from `main`. `git ls-files _harness/` is the authority on what
 exists; the working directory is not.
 
 The live suite list is `_harness/README.md`. Measured on
-`plan8-audit-remediation` @ `2716bbb`, 2026-08-08 (all six phases):
+`plan8-audit-remediation` @ `b62e9c2`, 2026-08-08 (all six phases + B26):
 
 ```
 php _harness/lint.php     php -l 20/0 · node --check 9/0 · JSON 17/10/42
@@ -136,7 +136,7 @@ plan5c-eyebrow             4/4           plan5c-brandink        5/5
 plan6-families            13/13          plan7-approvals       11/11
 plan7-datasheets           8/8
 plan8-certs                5/5           plan8-meta            15/15
-plan8-catalog             16/16          plan8-lead            13/13
+plan8-catalog             16/16          plan8-lead            16/16
 plan8-contrast            34/35          plan8-motion           8/8
 plan8-chrome              16/16
 plan8-keyboard             8/8           plan8-mobile          16/16

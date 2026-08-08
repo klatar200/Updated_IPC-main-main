@@ -1358,8 +1358,8 @@ the executor's.
 # 9. Outcome of all 50 audit IDs (2026-08-08)
 
 Written by the executing session and amended as each phase landed.
-**All six phases are executed: 30 shipped, 13 deferred, 7 owner actions.**
-Every severity-A and severity-B item is closed except B26.
+**All six phases are executed: 31 shipped, 12 deferred, 7 owner actions.**
+Every severity-A and severity-B item in the audit is closed.
 
 Scope was cut to severity A and B partway through, so the severity-C
 suggestions are deferred except four that sat inside items already being
@@ -1404,7 +1404,7 @@ item is `BOTH`, the code half shipped and the owner half is listed in §6.
 | B23 | **shipped** | Photo and fallback reserve the same box; photo CLS contribution 0 |
 | B24 | **shipped** | 44px conversion targets on coarse pointer; desktop measured unchanged |
 | B25 | **shipped** | 9 → 10 distinct descriptions, `content.json` untouched |
-| B26 | **deferred** | Needs a DOM reorder; its assertion is inverted so it cannot go green by accident |
+| B26 | **shipped** | Form first in the DOM at 390 (1,213px → 638px); desktop asserted unchanged; mobile call strip keeps the phone above the form |
 | B27 | **shipped** | Collapsed by default; affordance measured at 4.55:1 |
 | B28 | **shipped** | No route skips a heading level |
 | C29 | **deferred** | Scope cut |

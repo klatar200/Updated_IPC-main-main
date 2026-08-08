@@ -3074,3 +3074,102 @@ did not fire for once, having fired five times earlier in this plan.
 
 `data/`, `pdfs/` and `uploads/` untouched and byte-identical to
 `_harness/pristine/`, including after B21's three scratch-content swaps.
+
+---
+
+## 1f. B26 shipped (2026-08-08) — the A/B tiers are closed
+
+**31 shipped, 12 deferred, 7 owner actions.** No severity-A or severity-B item
+from `UI_UX_AUDIT_2026-08-08.md` remains open.
+
+| ID | What shipped | Suite |
+|---|---|---|
+| B26 | Form first in the DOM at 390 (1,213px → 638px); desktop arrangement asserted unchanged; a mobile-only call strip keeps the phone above the form | `plan8-lead` |
+
+`plan8-lead`'s B26 assertion had been deliberately inverted while the item was
+deferred — it asserted the defect was still present so the suite could not go
+green on its own. Flipped, and joined by three more: mobile tab order still
+monotonic, the desktop rail still left of the form on the same row, and a
+`tel:` link still above the first field.
+
+## 2e. Open after B26
+
+**Nothing in severity A or B.** What remains:
+
+- The 22 severity-C suggestions, minus C32, C45, C47 and C48 which were carried
+  inside other items.
+- `product-index-rows-over-120px` (§2b) — 3 of 42, held as a ratchet.
+- `spec-table-subheader-contrast` (§2c) — 3.11:1, belongs to 4.23's palette
+  derivation.
+- `product-page-footer-layout-shift` (§2d) — ~0.0068–0.0244 at 1440, footer.
+- `plan3-autoreply-unverifiable-on-windows` (§2b).
+- **New, below:** a focus-order trade at desktop width, and a hole that was in
+  `cssdiff.js` for the whole of this plan.
+
+**`contact-desktop-focus-order`.** With the form first in the DOM and
+`lg:order-*` restoring the visual columns, focus at desktop width now reaches
+the form before the contact rail while the rail is drawn to its left. This is
+the trade PLAN-8 anticipated ("if it does, fix the DOM order instead and use
+`order` for desktop") and it cannot be avoided with a single DOM: one
+breakpoint or the other has to disagree. Mobile was chosen because a stacked
+column makes the disagreement a genuine trap, while at 1440 both columns are
+on screen at once, nothing is skipped, and the form is the page's purpose.
+Recorded so a future reader knows it was decided rather than missed.
+
+## 4r. Verification evidence for B26 (2026-08-08)
+
+### The move
+
+479 lines of form block moved above 72 lines of contact rail. Done by
+`_harness/b26-reorder.js`, which takes its boundaries from
+`_harness/findblocks.js` — a `<div>`-versus-`</div>` counting pass, not
+indentation — and refuses to write unless the output is the same multiset of
+lines as the input. A hand-matched `old_string` of that size is how a stray
+character gets in, and the failure mode is silent.
+
+Measured at 390: first form field **1,213px → 548px**, and **638px** after the
+call strip was added above it. Tab order monotonic across 12 controls, so DOM
+and visual order agree on mobile.
+
+Measured at 1440: rail `x=104`, form `x=528`, both `top=339`. Unchanged, and
+now asserted rather than eyeballed — `lg:order-1` and `lg:order-2` are the only
+thing holding that, so a dropped class or a changed breakpoint would show.
+Both confirmed present in the shipped CSS by direct grep after `cssdiff`
+initially claimed one of them was missing (see below).
+
+### Fixing one conversion path broke the other
+
+PLAN-8's acceptance says "Keep the phone number visible near the top; it is the
+other conversion path." Hoisting the form put the phone card below roughly
+2,000px of fields — the item's own fix reintroducing the item's own defect for
+a different audience. A `lg:hidden` strip carrying the phone and email now sits
+above the form: **tel: link at 330px against the first field at 638px**,
+asserted. One line and two links, not a second copy of the rail, which is what
+PLAN-8 rules out.
+
+### cssdiff.js had a hole for this entire plan
+
+While confirming the order classes shipped, `cssdiff.js` reported
+`.lg\:order-1` as absent from a bundle that a direct grep found in it, while
+finding `.lg\:order-2` declared immediately after.
+
+Its selector regex required a preceding `}`, so **the first selector inside
+every at-rule block was skipped** — that one follows the media query's opening
+brace. Every responsive variant that happened to be declared first in its block
+was invisible to it, for all six phases.
+
+It never mattered for the job the file exists for: the Tailwind
+comment-extractor trap emits base-layer utilities outside any at-rule, which is
+why it caught `.ring` and `.grow` five times regardless. Fixed to accept `{` as
+a delimiter, keyframe steps (`0%`, `from`, `to`) filtered out of the output so
+noise cannot mask a real addition, and the snapshot retaken with the corrected
+extractor — 346 selectors before, 354 after, the difference being what it had
+always been unable to see.
+
+### The trap, a sixth time
+
+The comment written to explain this reorder said the focus **r—g** jumps to the
+bottom of the page, and emitted that whole utility into the CSS. Sixth
+occurrence in this repo, and the third in a comment explaining an unrelated
+fix. Reworded, with a note in place naming the hazard without spelling the
+word. Bundle carries neither `.ring` nor `.grow`.

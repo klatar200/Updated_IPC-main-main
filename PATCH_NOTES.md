@@ -525,3 +525,39 @@ the position away and dumps the visitor back at the top of the page. (B13)
   while measuring B23 and not part of it. Not in the audit.
 - **The 22 severity-C suggestions**, except the four carried inside other work.
 - **Three of 42 rows** on the Product Index remain over the 120 px target.
+
+---
+
+# 2026-08-08d — B26, and every A and B item is closed
+
+**31 shipped, 12 deferred, 7 handed to the owner.** Nothing in the audit's
+severity-A or severity-B tiers is outstanding.
+
+**Not yet deployed.**
+
+## Lead capture
+
+**On a phone, the quote form was 1,213 px down the page.** Four contact cards
+and a "for fastest response" panel came first, on the page that exists for the
+form. It now sits directly under the heading, at 638 px, with the contact
+details following it.
+
+The markup was reordered rather than restyled. Doing it in CSS alone would have
+left the page *looking* right while the keyboard still moved through it in the
+old order — press Tab and the highlight jumps to the bottom of the page. That
+is worse than the problem it fixes, and invisible to anyone testing with a
+mouse. The desktop arrangement is unchanged, and is now checked on every run
+rather than assumed.
+
+Hoisting the form pushed the phone number below the whole form, which trades
+one way of getting in touch for another. A single line carrying the phone
+number and email address now sits above the form on small screens only. (B26)
+
+## Still open
+
+Nothing in severity A or B. What remains is the 22 severity-C suggestions —
+minus the four already carried — plus three smaller things found while
+measuring: three of 42 rows on the Product Index still exceed the target
+height, one spec-table header colour is decided by the brand palette rather
+than by this work, and a small residual page movement on product pages that
+comes from the footer.
