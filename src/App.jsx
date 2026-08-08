@@ -387,6 +387,112 @@ function Navbar({ products = [], catalogFailed = false }) {
     setMobileOpen(null);
   };
 
+  /**
+   * B13 — the mobile drawer becomes a real dialog.
+   *
+   * Measured at 390 before this, with the drawer open: `body { overflow:
+   * visible }`, `window.scrollTo(0, 1400)` succeeded and took the page from
+   * 600 to 1400 underneath it, focus never entered the drawer (5 of 14 Tab
+   * presses landed inside, the rest walked the page behind), and Escape did
+   * nothing. The drawer occupies the top ~340px, so everything below it stayed
+   * live and reachable.
+   *
+   * The lock is `position: fixed` with a negative `top`, not `overflow:
+   * hidden`. Overflow alone does not hold on iOS Safari, and it discards the
+   * scroll offset — the page jumps to the top when the drawer closes, which
+   * PLAN-8 calls out specifically. Fixed + negative top preserves the offset
+   * and the cleanup scrolls back to it. Note the consequence for anything
+   * measuring this: while open, `window.scrollY` reads 0 because the document
+   * has collapsed.
+   *
+   * The trap is a keydown listener rather than an inert/focus-guard sandwich
+   * because the drawer is a sibling of the page content, not an overlay root,
+   * and `inert` would have to be applied to everything else on the page.
+   */
+  const drawerRef = useRef(null);
+  const burgerRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    const y = window.scrollY;
+    const body = document.body;
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+    body.style.position = "fixed";
+    body.style.top = `-${y}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+
+    const focusables = () => {
+      const root = drawerRef.current;
+      if (!root) return [];
+      return [...root.querySelectorAll(
+        'a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])'
+      )].filter((el) => el.getClientRects().length);
+    };
+
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMenuOpen(false);
+        // Focus goes back to the control that opened it, or the visitor is
+        // dropped at the top of the document with no idea where they are.
+        if (burgerRef.current) burgerRef.current.focus({ preventScroll: true });
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const root = drawerRef.current;
+      if (root && !root.contains(document.activeElement)) {
+        e.preventDefault();
+        first.focus({ preventScroll: true });
+      } else if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    };
+    document.addEventListener("keydown", onKey);
+
+    // After paint, or the drawer's children are not mounted yet.
+    // preventScroll on every focus() in here: the drawer is already on screen,
+    // so nothing needs scrolling into view, and a focus that scrolls the
+    // documentElement while <body> is position:fixed is a hard thing to reason
+    // about later. Hygiene rather than a fix — it was added while chasing a
+    // restore discrepancy that turned out to be the test harness's own click
+    // scrolling the page before the drawer ever opened.
+    const t = window.setTimeout(() => {
+      const items = focusables();
+      if (items.length) items[0].focus({ preventScroll: true });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener("keydown", onKey);
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.left = prev.left;
+      body.style.right = prev.right;
+      body.style.width = prev.width;
+      body.style.overflow = prev.overflow;
+      window.scrollTo(0, y);
+    };
+  }, [menuOpen]);
+
   // Derive unique, sorted product categories from live catalog.
   // Ordered by the OWNER's family list (PLAN-6 item 1), read through
   // familyOrder() so an empty list falls back instead of losing the order.
@@ -1070,6 +1176,7 @@ function Navbar({ products = [], catalogFailed = false }) {
 
         {/* ── Hamburger (mobile only) ── */}
         <button
+          ref={burgerRef}
           className="lg:hidden"
           onClick={() => setMenuOpen((o) => !o)}
           aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -1132,7 +1239,9 @@ function Navbar({ products = [], catalogFailed = false }) {
             }}
           />
         <div
+          ref={drawerRef}
           role="dialog"
+          aria-modal="true"
           aria-label="Navigation menu"
           style={{
             background: "#0a2444",
@@ -7445,14 +7554,41 @@ function ProductDetail({ product, allProducts }) {
               // placeholder that already exists two lines below.
               // (DEPLOY_READINESS_v2 T2.7)
               onError={() => setPhotoFailed(true)}
+              // Both this and the branded panel below carry the marker, so a
+              // suite can ask "is the photo's box reserved" without guessing at
+              // DOM shape — the first attempt matched an outer wrapper and
+              // reported aspect-ratio:auto for a box that had one.
+              data-ipc-photo-box
               className="w-full rounded-lg object-cover"
-              style={{ border: "1px solid #e5e9ee", maxHeight: 260 }}
+              // B23 — aspectRatio reserves the box BEFORE the bytes arrive.
+              //
+              // This is the LCP element on every product page and it shipped no
+              // intrinsic size, so the browser gave it zero height until it
+              // loaded and then pushed the page down. Measured on a throttled
+              // load at 1440: CLS 0.0085 with a photograph, 0.0244 on the
+              // branded fallback.
+              //
+              // 3/2 rather than per-file width/height attributes: the source
+              // art is not one shape (CC is 800x634), object-cover already
+              // crops, and the rendered box was ALREADY 3:2 at both widths —
+              // 390x260 at 1440 and 358x238 at 390, because maxHeight:260 was
+              // capping it. So this reproduces the existing visual almost
+              // exactly while making the height predictable before load.
+              // maxHeight is gone because aspectRatio now governs; leaving both
+              // would let the cap fight the ratio at wide column widths.
+              style={{ border: "1px solid #e5e9ee", aspectRatio: "3 / 2" }}
             />
           ) : (
             <div
+              data-ipc-photo-box
               className="w-full rounded-lg flex flex-col items-center justify-center gap-4"
               style={{
-                height: 220,
+                // B23 — the SAME box as the photograph above, not height:220.
+                // PLAN-8 is explicit that the fallback has to reserve the same
+                // space, or swapping to it shifts the page just as badly as
+                // having no reservation at all — and it measured worse than the
+                // photo case, 0.0244 against 0.0085.
+                aspectRatio: "3 / 2",
                 background: "#0a2240",
                 border: "1px solid #1a3a5c",
               }}
@@ -9758,13 +9894,44 @@ function ServicesPage() {
   const c = copy.servicesHeader;
   // Summarise the (previously dead) per-service leadTime values. Falls back to
   // the old hardcoded string only when nothing is set. (DEPLOY_READINESS_v2 4.11)
+  /**
+   * B21 \u2014 a headline, and separately a note about the exceptions.
+   *
+   * This used to de-duplicate the values and join whatever survived with
+   * " \u00b7 ", which produced "Standard Lead Time: \u2264 1 week \u00b7 \u2264 1 week (JIT by
+   * agreement)" \u2014 five services say the first and Kitting & Bagging says the
+   * second, both survive dedup, and the banner reads like a rendering bug.
+   *
+   * The owner's strings are NOT normalised to fix this. He is entitled to
+   * write a qualifier, and rewriting "\u2264 1 week (JIT by agreement)" into
+   * "\u2264 1 week" would delete the very information he added.
+   *
+   * So: the majority value is the headline, and anything else is counted in a
+   * note pointing at the per-service cards, which carry their own lead times
+   * anyway. With no majority there is nothing honest to headline, so it says
+   * so. Driven from three scratch content files in plan8-chrome.js \u2014 all six
+   * identical, five plus one qualified, and six all different \u2014 because the
+   * shipped data only exercises one of them.
+   */
   const leadTimeSummary = useMemo(() => {
-    const vals = Array.from(
-      new Set((services || []).map((s) => (s.leadTime || "").trim()).filter(Boolean)),
-    );
-    if (vals.length === 0) return "\u2264 1 Week";
-    if (vals.length === 1) return vals[0];
-    return vals.join(" \u00b7 ");
+    const vals = (services || []).map((s) => (s.leadTime || "").trim()).filter(Boolean);
+    if (vals.length === 0) return { headline: "\u2264 1 Week", note: "" };
+
+    const counts = new Map();
+    for (const v of vals) counts.set(v, (counts.get(v) || 0) + 1);
+    const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    const [top, topCount] = ranked[0];
+
+    if (ranked.length === 1) return { headline: top, note: "" };
+
+    if (topCount > vals.length / 2) {
+      const others = vals.length - topCount;
+      return {
+        headline: top,
+        note: `${others} service${others === 1 ? "" : "s"} differ${others === 1 ? "s" : ""} \u2014 see below`,
+      };
+    }
+    return { headline: "Varies by service", note: "Each service lists its own lead time below" };
   }, [services]);
 
   return (
@@ -9825,13 +9992,17 @@ function ServicesPage() {
             <div>
               <div className="text-base font-extrabold ipc-ink-header">
                 {/* Was hardcoded "≤ 1 Week" while content.json's services[].leadTime
-                    was editable and rendered nowhere. (DEPLOY_READINESS_v2 4.11) */}
-                Standard Lead Time: {leadTimeSummary}
+                    was editable and rendered nowhere. (DEPLOY_READINESS_v2 4.11)
+                    B21: the headline is one value now, never a joined list. */}
+                Standard Lead Time: {leadTimeSummary.headline}
               </div>
               <div
                 className="text-xs font-medium mt-0.5"
                 style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.75)" }}
               >
+                {/* B21 — the exception belongs here, beside the pointer to the
+                    cards, not spliced into the headline with a middot. */}
+                {leadTimeSummary.note ? `${leadTimeSummary.note}. ` : ""}
                 All fabrication services listed below. Rush service available —
                 contact sales for details.
               </div>
@@ -10424,6 +10595,11 @@ function Footer() {
             >
               A spec-grade stocking distributor of heat-shrinkable &amp;
               extruded tubing, electrical sleeving, and industrial adhesives.
+              {/* B11 — the explicit space is load-bearing. JSX collapses a
+                  newline between two pieces of TEXT to a space, but strips it
+                  entirely between text and an {expression}, so this rendered
+                  "adhesives.$50 minimum order." on every page of the site. */}
+              {" "}
               {site.stats.minimumOrder} minimum order. Quick, accurate, courteous service — the
               customer is always number one.
             </p>
