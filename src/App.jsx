@@ -5227,7 +5227,7 @@ function GlobalStyles() {
          below an inner fold with nothing to suggest they existed.
          Collapsing by default (see ProductSidebar) does most of the work; this
          makes the remaining scroll visible rather than implied. Solid #64748b
-         on the #f8fafc track measures 6.1:1 — the acceptance floor for a
+         on the #f8fafc track measures 4.55:1 — the acceptance floor for a
          non-text affordance is 3:1. The scrollbar-color property covers
          Firefox, which ignores the ::-webkit- rules entirely.
          No backticks in this comment: GlobalStyles is a JS template literal

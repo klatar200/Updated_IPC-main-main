@@ -1365,7 +1365,7 @@ run afterwards, out of the order this plan sets, at the owner's request —
 it is the WCAG tier and B15 is a Level A failure.
 
 Running Phase E last, as the plan intended, was the right sequencing even so:
-it recoloured 396 measured text instances and added a focusable skip link, and
+it recoloured 682 measured text instances and added a focusable skip link, and
 it moved one earlier suite (`plan5-keys`) that had encoded a heading level.
 Doing it before C or D would have moved their baselines instead.
 

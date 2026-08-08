@@ -40,7 +40,16 @@ const OUT = path.join(__dirname, 'out', 'plan8-contrast');
 const REPORT = process.argv.includes('--report');
 
 const ROUTES = ['/', '/products', '/dashboard', '/datasheets', '/industries',
-                '/services', '/about', '/faq', '/contact', '/privacy'];
+                '/services', '/about', '/faq', '/contact', '/privacy',
+                // Two states this plan CREATED or rewrote, and which the first
+                // version of this sweep never visited — found while auditing
+                // the phases back. Both carry recoloured text:
+                //   ?sent=1  the quote confirmation (B16/B17/B18), reachable
+                //            only after a submit, so a plain /contact visit
+                //            renders the form and never the panel
+                //   /quality an unknown segment, i.e. the A5 not-found page
+                '/contact?sent=1',
+                '/quality'];
 const PRODUCTS = ['CC', 'IP33PO', 'IP63ES'];
 
 /**
