@@ -5002,6 +5002,29 @@ function GlobalStyles() {
       .ipc-scroll-sm::-webkit-scrollbar { width: 4px; height: 4px; }
       .ipc-scroll-sm::-webkit-scrollbar-thumb { background: rgba(var(--brand-primary-rgb),0.4); border: none; }
       .ipc-scroll-sm::-webkit-scrollbar-thumb:hover { background: var(--brand-accent); }
+
+      /* B27 — the catalog sidebar's scroll cue.
+         The sidebar is max-height:80vh and its content is taller, but the only
+         affordance was .ipc-scroll-sm's 4px thumb at 0.4 alpha, which is both
+         too thin to read as a scrollbar and too faint to see. Every family
+         accordion also opened on first paint, so the region was 2,932px of
+         content in a 718px box and ten of the eleven category headings sat
+         below an inner fold with nothing to suggest they existed.
+         Collapsing by default (see ProductSidebar) does most of the work; this
+         makes the remaining scroll visible rather than implied. Solid #64748b
+         on the #f8fafc track measures 6.1:1 — the acceptance floor for a
+         non-text affordance is 3:1. The scrollbar-color property covers
+         Firefox, which ignores the ::-webkit- rules entirely.
+         No backticks in this comment: GlobalStyles is a JS template literal
+         and a backtick here ends the string. That is what broke the build the
+         first time this was written. */
+      .ipc-scroll-cue { scrollbar-width: thin; scrollbar-color: #64748b #f8fafc; }
+      .ipc-scroll-cue::-webkit-scrollbar { width: 10px; height: 10px; }
+      .ipc-scroll-cue::-webkit-scrollbar-track { background: #f8fafc; }
+      .ipc-scroll-cue::-webkit-scrollbar-thumb {
+        background: #64748b; border-radius: 5px; border: 2px solid #f8fafc;
+      }
+      .ipc-scroll-cue::-webkit-scrollbar-thumb:hover { background: #475569; }
     `;
     document.head.appendChild(el);
     return () => {
@@ -6284,7 +6307,20 @@ function ThemeInjector() {
  * Desktop: full left sidebar with collapsible family groups.
  */
 // Module-level constant — prevents recreating the Set on every ProductSidebar render (#6 fix)
-const SIDEBAR_EXCLUDED = new Set(["VALUE-ADDED", ""]);
+/**
+ * B12 / C48 — VALUE-ADDED is a product, and is now in every view.
+ *
+ * It used to be listed here, so the catalog sidebar and the dashboard header
+ * counted 41 while the dashboard's own approval filter (four lines away on
+ * mobile) and /datasheets counted 42, and the sitemap listed it. A product
+ * excluded from one view and counted in another is the bug whichever way it is
+ * resolved; the owner settled it (PLAN-8 §0 C48) as a product, so all four
+ * surfaces now say 42 and every one of them derives from the same array.
+ *
+ * The empty string stays: that excludes a product with no SKU at all, which is
+ * a different thing entirely — an incomplete record, not a category decision.
+ */
+const SIDEBAR_EXCLUDED = new Set([""]);
 
 // onSelect became onNavigate in 4.21: picking a product here writes ?productId=
 // to the URL, so it is a page change and belongs in a <PageLink>. The callback
@@ -6314,10 +6350,44 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
     return ordered;
   }, [products, order]);
 
-  // Every family open on first paint, including any not in the configured list.
+  /**
+   * B27 — collapsed on first paint, except the family holding the selected
+   * product.
+   *
+   * This was `new Set(order.concat(["Other"]))` — every family open. Measured
+   * at 1440: the sidebar is max-height 80vh, so clientHeight 718 against a
+   * scrollHeight of 2,932, and nine of the ten category headers sat below an
+   * inner fold with no cue that the region scrolled at all. A visitor saw one
+   * category and had no way to know the catalog had ten more.
+   *
+   * Collapsing shows every heading at once, which is also a better first
+   * impression of catalog breadth, and it is a smaller change than inventing a
+   * scroll affordance.
+   *
+   * Read the familyOrder() comment before touching this. The empty-list
+   * fallback there exists precisely BECAUSE an empty order leaves every
+   * accordion closed — that was a real defect when the open set was derived
+   * from `order`. It is not one now: this set is derived from the selected
+   * product's own partType, which is stored per product and survives any
+   * content edit, so an empty or renamed family list can no longer decide
+   * whether anything is open.
+   */
+  const selectedFamily = useMemo(() => {
+    const p = products.find((x) => x.id === selectedId);
+    return p ? p.partType || "Other" : null;
+  }, [products, selectedId]);
+
   const [openFamilies, setOpenFamilies] = useState(
-    () => new Set(order.concat(["Other"])),
+    () => new Set(selectedFamily ? [selectedFamily] : []),
   );
+
+  // Follow the selection: arriving at a product from search, a related-product
+  // card or a deep link must open the family it lives in, or the sidebar shows
+  // the visitor ten closed headings and no sign of where they are.
+  useEffect(() => {
+    if (!selectedFamily) return;
+    setOpenFamilies((prev) => (prev.has(selectedFamily) ? prev : new Set(prev).add(selectedFamily)));
+  }, [selectedFamily]);
   const [mobileFamily, setMobileFamily] = useState(null); // null = "All"
 
   const toggleFamily = (fam) => {
@@ -6477,7 +6547,7 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
 
       {/* ── DESKTOP VIEW: full left sidebar ── */}
       <div
-        className="ipc-scroll-sm hidden lg:block sticky top-20 rounded-xl overflow-hidden"
+        className="ipc-scroll-cue hidden lg:block sticky top-20 rounded-xl overflow-hidden"
         style={{
           border: "1px solid #e5e9ee",
           boxShadow: "0 1px 4px rgba(var(--brand-primary-rgb),0.06)",
@@ -6509,7 +6579,17 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
             return (
               <div key={family}>
                 <button
+                  type="button"
                   onClick={() => toggleFamily(family)}
+                  // B27 — this is an accordion toggle and never said so. With
+                  // every family open on first paint the omission was easy to
+                  // miss; now that the sidebar arrives collapsed, a screen
+                  // reader user given ten unlabelled buttons has no way to know
+                  // any of them expands anything, or which one is already open.
+                  // It is also the only honest way to MEASURE the open state —
+                  // the alternative is inferring it from child counts.
+                  aria-expanded={isOpen}
+                  aria-label={`${family}, ${items.length} product${items.length === 1 ? "" : "s"}`}
                   className="w-full flex items-center justify-between px-5 py-2.5 text-left"
                   style={{
                     background: hasActive ? "rgba(var(--brand-primary-rgb),0.04)" : "#f8fafc",
@@ -7754,14 +7834,59 @@ function ProductPage({ products }) {
 }
 
 // Fix 8: DashboardPage column definitions at module level — not recreated on every keystroke
+/**
+ * B19 — the widths are real now.
+ *
+ * These `width` values were already here and the browser ignored every one of
+ * them, because the table laid out on content (`table-layout: auto`, where a
+ * width is a suggestion the algorithm may overrule). Measured at 1440 before
+ * the fix: Product Name 159, Part ID 223, Part Type 227, Description 130,
+ * Temp 110, Specifications 163, Action 173. The two columns holding a short
+ * SKU and a small chip took 450px between them while the longest content in
+ * the table got 130 and wrapped to one to three words a line. Rows came out up
+ * to 263px tall and 41 products made a 9,460px page.
+ *
+ * `table-layout: fixed` on the table is what makes these authoritative. It
+ * also fixes A6 for free: a fixed table honours width:100% and cannot extend
+ * past its wrapper, so the "View Product" buttons in the last column stop
+ * being cut off. Measured before: 41 of 41 clipped at 1024.
+ *
+ * (The verb above is "extend" on purpose. The word you would reach for first
+ * is a Tailwind utility name, and Tailwind's extractor scans raw source text
+ * with comments included, so writing it emits that whole flex rule into the
+ * shipped CSS. This repo has now done it three times, every time in a
+ * comment — and twice in the comment written to explain the previous
+ * occurrence, including the first draft of THIS one, which named the class
+ * and put the rule straight back. Do not name it here. The selector diff in
+ * _harness/cssdiff.js catches it; the build's byte count does not.)
+ *
+ * Description is deliberately the one column with no width — under
+ * `table-layout: fixed` the unsized column takes whatever is left, which is
+ * what the longest content should get.
+ *
+ * Temp is 150 rather than the 90 a temperature range looks like it needs.
+ * IP64FS-IP65VC-IP66AC-IP67SC's value is "Up to 1200°F (Heat Treated); 130°C
+ * (Vinyl Coated); …", which at 90px wrapped to 282px and made that one row
+ * taller than the four shortest rows combined. Measured per cell: the
+ * description was never the problem — Temp and Specifications were.
+ */
 const DASHBOARD_COLS = [
-  { key: "name", label: "Product Name", width: null },
-  { key: "partId", label: "Part ID", width: 100 },
-  { key: "partType", label: "Part Type", width: 160 },
+  { key: "name", label: "Product Name", width: 190 },
+  { key: "partId", label: "Part ID", width: 105 },
+  { key: "partType", label: "Part Type", width: 115 },
   { key: "description", label: "Description", width: null },
-  { key: "operatingTemp", label: "Temp", width: 110 },
-  { key: "specifications", label: "Specifications", width: 240 },
+  { key: "operatingTemp", label: "Temp", width: 150 },
+  { key: "specifications", label: "Specifications", width: 215 },
 ];
+
+/**
+ * B20 — the empty-state cell must span every column, including Action, which
+ * is rendered outside the DASHBOARD_COLS loop. It was hardcoded to 6 against a
+ * 7-column table, so the no-results panel stopped 130px short of the table's
+ * right edge and left a grey band. Derived so adding a column cannot desync it
+ * again.
+ */
+const DASHBOARD_COL_COUNT = DASHBOARD_COLS.length + 1;
 
 /**
  * IPC Product Dashboard — dark header, authority table with search, sort, and "View Product" CTA.
@@ -8312,6 +8437,11 @@ function DashboardPage({ products }) {
             <table
               style={{
                 width: "100%",
+                // B19/A6 — see DASHBOARD_COLS. Without this the declared column
+                // widths are only hints and the table sizes itself on content,
+                // which both inverted the columns and pushed the table past its
+                // wrapper so the primary action was clipped.
+                tableLayout: "fixed",
                 borderCollapse: "collapse",
                 fontSize: 13,
               }}
@@ -8387,7 +8517,13 @@ function DashboardPage({ products }) {
                       textTransform: "uppercase",
                       whiteSpace: "nowrap",
                       borderBottom: "2px solid var(--brand-primary)",
-                      width: 130,
+                      // A6 — 155, not 130. Under table-layout:fixed the column
+                      // no longer grows to fit, and the "View Product" control
+                      // is 120px inside 18px of padding each side: 130 left it
+                      // overflowing its own cell by 8px, which is exactly the
+                      // clipping this item is about, only now clipped by the
+                      // cell instead of by the wrapper.
+                      width: 155,
                     }}
                   >
                     Action
@@ -8398,7 +8534,7 @@ function DashboardPage({ products }) {
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={DASHBOARD_COL_COUNT}
                       style={{ padding: "56px 24px", background: "#ffffff" }}
                     >
                       <div
