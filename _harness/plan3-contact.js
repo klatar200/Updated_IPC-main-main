@@ -31,6 +31,7 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { launch } = require('./browser');
 
@@ -172,8 +173,12 @@ async function readErrorRegion(form) {
         // The 5-per-10-min limiter is keyed on IP and these all come from
         // 127.0.0.1; clear it so the suite tests the validation path and not
         // the 429.
-        for (const f of fs.readdirSync('/tmp')) {
-          if (f.startsWith('ipc_rl_')) { try { fs.unlinkSync('/tmp/' + f); } catch {} }
+        // os.tmpdir(), not '/tmp'. contact.php writes these through PHP's
+        // sys_get_temp_dir(), which is %TEMP% on Windows — and Node resolves a
+        // bare '/tmp' there to C:\tmp, which does not exist, so this threw
+        // ENOENT and took the whole suite down before its first assertion.
+        for (const f of fs.readdirSync(os.tmpdir())) {
+          if (f.startsWith('ipc_rl_')) { try { fs.unlinkSync(path.join(os.tmpdir(), f)); } catch {} }
         }
         const { page, dialogs, form } = await openForm(ctx, tab);
         await submitBypassingClientValidation(page, form);

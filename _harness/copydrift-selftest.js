@@ -24,7 +24,15 @@ function makeTree() {
   for (const rel of FILES) {
     const dest = path.join(dir, rel);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.copyFileSync(path.join(root, rel), dest);
+    // Normalise to LF rather than copying the bytes. Every CASES pattern below
+    // is written with \n, and this repo has core.autocrlf=true with no
+    // .gitattributes — so on a Windows checkout the working tree is CRLF, not
+    // one mutation matched, and all four cases reported "pattern no longer
+    // matches" while the control stayed green. That reads exactly like the
+    // source having drifted, which is the one thing this file exists to detect,
+    // so the failure was worse than useless. copydrift.js parses the same
+    // fields either way; the line endings are not part of what it measures.
+    fs.writeFileSync(dest, fs.readFileSync(path.join(root, rel), 'utf8').replace(/\r\n/g, '\n'));
   }
   return dir;
 }

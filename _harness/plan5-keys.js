@@ -64,8 +64,18 @@ const note = (ok, what, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}${ok || !detail ? '' : '\n       → ' + detail}`);
 };
 
+// shell:true is required on Windows, and both halves of that are load-bearing.
+// `npm`/`npx` there are `.cmd` shims: execFileSync looks for an extensionless
+// file and dies ENOENT, so this suite crashed before building the dev-React
+// bundle. Naming the shim (`npx.cmd`) does NOT fix it — since the
+// CVE-2024-27980 mitigation, Node refuses to spawn a .cmd without a shell and
+// returns EINVAL instead. Measured both, in that order.
+//
+// The command is passed as ONE string rather than (cmd, argv): with shell:true
+// an argv array is merely concatenated, unescaped, which is Node DEP0190.
+// Both call sites pass literal, space-free argv, so joining is lossless.
 const sh = (cmd, args) =>
-  execFileSync(cmd, args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] }).toString();
+  execFileSync(`${cmd} ${args.join(' ')}`, { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], shell: true }).toString();
 
 /**
  * A content.json that collides EVERY owner-editable key 4.27 names, in the way
