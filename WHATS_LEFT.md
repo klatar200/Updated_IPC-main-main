@@ -2955,3 +2955,122 @@ CSS bundle adds exactly `.ipc-skip`, `.ipc-skip:focus`, `.ipc-touch`,
 `.ipc-inline-link` and the `@media (pointer: coarse)` block, and removes
 nothing. `data/`, `pdfs/` and `uploads/` untouched and byte-identical to
 `_harness/pristine/`.
+
+---
+
+## 1e. Shipped in PLAN-8 Phase F (2026-08-08)
+
+All six phases now executed. Running total: **30 shipped, 13 deferred,
+7 owner actions.** Every severity-A and severity-B item is closed except B26.
+Evidence in §4q.
+
+| ID | What shipped | Suite |
+|---|---|---|
+| B11 | Footer renders "adhesives. $50 minimum order."; 0 other instances of the shape across 8 routes | `plan8-chrome` |
+| B13 | Drawer locks the page, traps focus, closes on Escape, restores focus and scroll | `plan8-mobile` |
+| B21 | Lead-time banner correct across all three content shapes | `plan8-chrome` |
+| B23 | Photo AND fallback reserve the same box; photo's CLS contribution 0 | `plan8-chrome` |
+| A7 | Zero external image requests over 42 product pages, by interception | `plan8-chrome` |
+
+## 2d. Open after Phase F
+
+**`product-page-footer-layout-shift`.** Found while measuring B23, and NOT
+part of it. Product pages carry a residual CLS of ~0.0068–0.0244 at 1440 whose
+only shift source is `<FOOTER>` — `from: 878x22, to: 0x0`. Zero at 390. Not in
+the 2026-08-08 audit and not in PLAN-8. Reported by `plan8-chrome` on every
+run as the page total beside the photo-scoped assertion, so it stays visible
+rather than being absorbed into a number nobody reads.
+
+**Everything in §2b and §2c remains open**: B26, the B19 row-height residue,
+the spec-table sub-header at 3.11:1, and `plan3-autoreply` `[UNVERIFIED]` on
+Windows.
+
+## 4q. Verification evidence for PLAN-8 Phase F (2026-08-08)
+
+### Three corrections to the CLS measurement, none to the page
+
+B23's number was wrong three times before it was right, and every fault was in
+the instrument:
+
+1. **A flat 2500ms wait after `load`** reported CLS 0.0000 on every page. Not
+   "no shift" — at 500 kbps the image had not arrived, so the shift had not
+   happened. A check that is green because nothing has occurred yet.
+2. **Throttling to 60 kbps to force it** meant the 350 kB bundle never
+   finished, the app never mounted, every sample read `null`, and the control
+   shift landed on an empty `<body>` and moved nothing. `docH` was the viewport
+   height, which is what gave it away.
+3. **Measuring PAGE CLS** conflates the photo with everything else. Capturing
+   the shift SOURCES showed the residual belongs to `<FOOTER>`, not the photo.
+   The acceptance is "CLS contribution from the product photo is 0"; the
+   assertion is now scoped to that, and the page total is printed beside it.
+
+Before any of it was believed, the observer was proved able to report non-zero:
+an injected control shift measures **0.4374**.
+
+### The drawer restore: three wrong fixes, then a trace
+
+`plan8-mobile` kept reporting the scroll position going 600 → 876 across an
+open/close. Three targeted fixes were tried — `preventScroll` on the initial
+focus, then on the trap's wrap-around calls, then on the focus returned to the
+hamburger — and none moved it, which is the point at which guessing should
+stop.
+
+Tracing every step showed `body.style.top` was **-876px** at the moment the
+drawer opened. The lock had captured 876 because the page was at 876: Playwright
+scrolls a control into view before clicking it, so the act of opening the drawer
+moved the page from the 600 the probe had set. **The restore was exactly right
+and the baseline was wrong.** The assertion now reads the offset the lock
+captured off `body.style.top` and compares the restore against that.
+
+The `preventScroll` guards are kept — a focus that scrolls the document while
+`<body>` is `position: fixed` is genuinely hard to reason about — but their
+comment now says they are hygiene, not the fix, rather than claiming a repair
+they did not make.
+
+### The B11 sweep found 41 things and all of them were wrong
+
+PLAN-8 asks for a sweep for the same defect shape. The first pattern matched a
+letter or full stop against a digit, which in this catalog means every SKU
+(`IP33PO`) and every phone number (`630.771.0700`) — 41 hits, none real.
+Narrowed to a word or sentence punctuation hard against a currency amount:
+**0 besides the footer itself**, which is the honest answer.
+
+### B21 needed content the site does not have
+
+The shipped data exercises one of the three shapes the acceptance names. All
+three are driven from scratch content files written into the mirror and
+restored in a `finally`:
+
+```
+all six identical        -> "Standard Lead Time: ≤ 1 week"
+five plus one qualified  -> "Standard Lead Time: ≤ 1 week"
+                            + "1 service differs — see below"
+six all different        -> "Standard Lead Time: Varies by service"
+```
+
+`content.json` is byte-identical to `_harness/pristine/` afterwards, in the
+repo and in the mirror.
+
+### A7 was already correct in code
+
+The render path already treats a `placehold.co` URL as "no photo", so this
+phase added the assertion rather than a fix: **zero external image requests
+across all 42 product pages**, measured by intercepting every request, with 79
+same-origin image requests and the branded panel confirmed on all five.
+
+### Regression, before and after Phase F
+
+```
+                        before Phase F    after
+plan8-chrome            (new)  5/11       16/16
+plan8-mobile            6/6                16/16   (+10 B13 assertions)
+brandtext               37/50 (13 fail)    37/50 (13 fail)   ← unmoved
+everything else         green              green
+```
+
+36 suites run, 35 exit clean; `brandtext` is the logged open item. No CSS
+selector added or removed by this phase — the Tailwind comment-extractor trap
+did not fire for once, having fired five times earlier in this plan.
+
+`data/`, `pdfs/` and `uploads/` untouched and byte-identical to
+`_harness/pristine/`, including after B21's three scratch-content swaps.

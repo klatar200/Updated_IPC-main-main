@@ -461,3 +461,67 @@ shifts the layout as it loads (B23); the footer paragraph is missing a space —
 a placeholder photo URL (A7, an owner action). B26 — the mobile quote form
 sitting 1,213 px down the page — also remains open, along with the 22
 severity-C suggestions.
+
+---
+
+# 2026-08-08c — PLAN-8 Phase F, and the end of the plan
+
+All six phases are now executed. Running total: **30 shipped, 13 deferred,
+7 handed to the owner.** Every severity-A and severity-B item in the audit is
+closed except B26.
+
+**Not yet deployed.**
+
+## Chrome, assets and copy
+
+- **The footer said "…industrial adhesives.$50 minimum order." on every page of
+  the site.** A missing space, in the one paragraph that appears on all twelve
+  routes. It is a JSX rule with teeth: a newline between two pieces of text
+  becomes a space, but a newline between text and an inserted value is deleted
+  outright. Swept the rest of the site for the same shape — there are no
+  others. (B11)
+- **The Services banner read "Standard Lead Time: ≤ 1 week · ≤ 1 week (JIT by
+  agreement)"**, which reads like something broken rather than a fact. Five
+  services say one thing; Kitting & Bagging says a qualified version of the
+  same thing; the summary de-duplicated exact strings and joined whatever
+  survived. It now leads with the common lead time and mentions the exception
+  beside the pointer to the cards. The owner's wording is not rewritten — he is
+  entitled to add "(JIT by agreement)", and normalising it away would delete
+  the thing he took the trouble to say. (B21)
+- **The product photograph reserved no space, so the page moved under the
+  reader as it loaded.** It is the largest image on every product page. Both it
+  and the "image coming soon" panel that stands in for it now hold the same
+  fixed shape from the first paint — the shape they were already being drawn
+  at, so nothing looks different. Measured contribution to layout movement:
+  zero, on a throttled connection, at both desktop and phone widths. (B23)
+- **Five products still point at a third-party placeholder image service.** The
+  site already ignores those addresses and draws IPC's own panel instead, so no
+  request ever leaves for them — now confirmed by watching every request across
+  all 42 product pages rather than by reading the catalogue. Clearing the five
+  values remains an owner action. (A7)
+
+## The mobile menu
+
+**The menu opened, and the page carried on underneath it.** Measured on a
+phone-sized screen: the page behind scrolled freely while the menu was open,
+the Escape key did nothing, and of fourteen presses of Tab only five landed on
+anything in the menu — the rest walked through the page behind it, invisibly.
+For anyone navigating by keyboard or screen reader, the menu was a suggestion
+rather than a state.
+
+It now behaves like a menu: the page behind is held still, keyboard focus moves
+into it and stays there, Escape closes it and puts focus back on the button
+that opened it, and the reader returns to exactly the position they left. That
+last part is why the lock is built the way it is — the obvious approach throws
+the position away and dumps the visitor back at the top of the page. (B13)
+
+## Still open
+
+- **On a phone, the quote form is 1,213 px down the page**, below four contact
+  cards and a tip panel. Unchanged; it needs the contact page's markup
+  reordered rather than restyled, and reordering it by CSS alone would leave
+  keyboard users tabbing through it in the old order. (B26)
+- **A small residual page movement on product pages, from the footer**, found
+  while measuring B23 and not part of it. Not in the audit.
+- **The 22 severity-C suggestions**, except the four carried inside other work.
+- **Three of 42 rows** on the Product Index remain over the 120 px target.

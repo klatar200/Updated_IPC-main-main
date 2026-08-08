@@ -1357,17 +1357,21 @@ the executor's.
 
 # 9. Outcome of all 50 audit IDs (2026-08-08)
 
-Written by the executing session, and amended after Phase E landed.
-**25 shipped, 18 deferred, 7 owner actions.** Scope was cut to severity A and B
-partway through, so the severity-C suggestions are deferred except four that
-sat inside items already being fixed. **Phase F was not started**; Phase E was
-run afterwards, out of the order this plan sets, at the owner's request —
-it is the WCAG tier and B15 is a Level A failure.
+Written by the executing session and amended as each phase landed.
+**All six phases are executed: 30 shipped, 13 deferred, 7 owner actions.**
+Every severity-A and severity-B item is closed except B26.
 
-Running Phase E last, as the plan intended, was the right sequencing even so:
-it recoloured 682 measured text instances and added a focusable skip link, and
-it moved one earlier suite (`plan5-keys`) that had encoded a heading level.
-Doing it before C or D would have moved their baselines instead.
+Scope was cut to severity A and B partway through, so the severity-C
+suggestions are deferred except four that sat inside items already being
+fixed. The phase order ran A → B → C → D → E → F rather than the plan's
+A → B → C → D → F → E: Phase E was pulled forward at the owner's request
+because it is the WCAG tier and B15 is a Level A failure.
+
+Running E before F cost nothing. E is the phase the plan wanted last because
+it moves other phases' baselines — it recoloured 682 measured text instances,
+added a focusable skip link, and did move one earlier suite (`plan5-keys` had
+encoded a heading level in a selector). F touches the drawer, one paragraph,
+one banner and the photo box, and moved none of E's assertions.
 
 `owner` means the fix is an admin edit on live customer state
 (`data/*.json`), which GUARDRAILS §2 forbids this repo from making. Where an
@@ -1381,13 +1385,13 @@ item is `BOTH`, the code half shipped and the owner half is listed in §6.
 | A4 | **shipped** | 1200x630 card, 33 KiB, absolute, with declared dimensions |
 | A5 | **shipped** | Not-found route with `noindex` and no canonical; also fixed the blank-page-at-depth defect the audit missed |
 | A6 | **shipped** | 0 clipped at 1440, 1280, 1024 |
-| A7 | **owner** | The code already treats a `placehold.co` URL as "no photo"; clearing the five values is the outstanding half |
+| A7 | **shipped** (code) + **owner** | Zero external image requests over 42 pages, asserted by interception; clearing the five values is Rick's |
 | B8 | **shipped** | Part numbers 1.64:1 -> ~7:1 across 38 instances; the selected SKU 4.15:1 -> passing |
 | B9 | **shipped** | gray-400 text 2.37-2.54:1 -> ~7:1 across 358 instances |
 | B10 | **shipped** | Footer white-alpha -> solid; 4.25:1 and 2.64:1 -> 10.5:1 and 6.1:1 |
-| B11 | **deferred** | Phase F not started |
+| B11 | **shipped** | Footer renders "adhesives. $50 minimum order."; 0 other instances site-wide |
 | B12 | **shipped** | All four surfaces read 42 |
-| B13 | **deferred** | Phase F not started |
+| B13 | **shipped** | Drawer locks the page, traps focus, Escape closes and restores focus + scroll |
 | B14 | **shipped** | Zero infinite animations under reduce, all 10 routes. Found a third the audit missed |
 | B15 | **shipped** | Skip link, verified with real Tab/Enter; focus lands in &lt;main&gt; |
 | B16 | **shipped** | `role="status"`, focus moves to the panel |
@@ -1395,9 +1399,9 @@ item is `BOTH`, the code half shipped and the owner half is listed in §6.
 | B18 | **shipped** | Emoji removed, eyebrow added, 376px → 45px. The audit's "not links" claim was wrong |
 | B19 | **shipped** | 9,460px → 5,042px. 3 of 42 rows over 120px, held as a ratchet |
 | B20 | **shipped** | `colSpan` derived from the column count |
-| B21 | **deferred** | Phase F not started |
+| B21 | **shipped** | Correct across all three content shapes, driven from scratch files |
 | B22 | **shipped** (code) + **owner** | Default is dateless; the live string is Rick's |
-| B23 | **deferred** | Phase F not started |
+| B23 | **shipped** | Photo and fallback reserve the same box; photo CLS contribution 0 |
 | B24 | **shipped** | 44px conversion targets on coarse pointer; desktop measured unchanged |
 | B25 | **shipped** | 9 → 10 distinct descriptions, `content.json` untouched |
 | B26 | **deferred** | Needs a DOM reorder; its assertion is inverted so it cannot go green by accident |
