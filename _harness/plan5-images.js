@@ -48,7 +48,11 @@ const OUT = path.join(__dirname, 'out', 'plan5-images', TAG);
 
 const MAX_TOTAL = 3 * 1024 * 1024;
 const MAX_FILE = 300 * 1024;
-const EXPECTED_FILES = 60;
+// 61 since PLAN-8 A4 added public/images/og-card.jpg (1200x630, 33 KiB, built
+// by _harness/ogcard.js). This constant is a tripwire for an image being
+// renamed or deleted by accident, so a deliberate addition moves it here in
+// the same commit rather than being allowed to pass silently.
+const EXPECTED_FILES = 61;
 
 const products = JSON.parse(fs.readFileSync(path.join(__dirname, 'pristine', 'products-all.json'), 'utf8'));
 const PAINTED = JSON.parse(fs.readFileSync(path.join(__dirname, 'painted-images.json'), 'utf8'));

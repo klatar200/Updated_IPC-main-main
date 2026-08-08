@@ -69,11 +69,33 @@ export default defineConfig({
   plugins: [react(), serveDataDir()],
 
   // `base` controls the asset URL prefix in the built HTML.
-  // - Domain root (e.g. https://yourdomain.com/) → leave as './' or '/'.
+  // - Domain root (e.g. https://yourdomain.com/) → '/'.
   // - Subfolder (e.g. https://yourdomain.com/ipc/) → set to '/ipc/'.
-  // './' is the safest default for shared hosting like Network Solutions
-  // because it produces relative asset URLs that survive any deploy path.
-  base: './',
+  //
+  // This was './', and relative asset URLs are NOT safe here — they are
+  // actively broken by the very rewrite that makes this SPA work. Measured
+  // 2026-08-08 (PLAN-8 A5):
+  //
+  //   GET /products/CC/extra          → 200, the SPA shell
+  //   shell asks for ./assets/index-*.js
+  //   browser resolves that against the CURRENT path, not the site root, so it
+  //   requests /products/CC/assets/index-*.js
+  //   .htaccess's catch-all rewrite has no such file, so it answers with
+  //   index.html — 200, Content-Type text/html
+  //   the browser tries to execute HTML as JavaScript and stops
+  //
+  // The visitor gets a blank white page and a console error. Every URL with
+  // two or more path segments did this, on the live site, silently — the audit
+  // only sampled single-segment typos (/quality, /prodcuts) where './'
+  // happens to resolve correctly, so it reported a soft 404 and never saw the
+  // white screen behind it.
+  //
+  // '/' makes the asset URLs absolute and independent of path depth, which is
+  // what the SPA catch-all requires. The deploy target is the domain root —
+  // the contents of /dist go into public_html/ (DEPLOY_READINESS_v2 §7) — so
+  // there is no subfolder case to protect. If this site is ever moved into a
+  // subfolder, set this to that subfolder rather than back to './'.
+  base: '/',
 
   build: {
     outDir: 'dist',

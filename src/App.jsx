@@ -11,6 +11,24 @@ function pathnameToPage(pathname) {
   return seg || null; // null → home
 }
 
+/**
+ * A5 — does this path carry segments beyond the route name?
+ *
+ * `pathnameToPage` reads the FIRST segment only, so /products/CC/extra was
+ * indistinguishable from /products: it rendered the catalog at 200 and
+ * declared /products as its canonical. Every depth under every known route was
+ * a soft duplicate, which is a much larger surface than the mistyped
+ * single-segment URLs the audit sampled.
+ *
+ * No route uses a second segment. Option B was chosen in PLAN-8 §0, so product
+ * detail stays at /products?productId= and there is no /products/:id to
+ * protect. If Option A is ever revisited, THIS is the function that has to
+ * learn about it — not a second copy of the rule somewhere else.
+ */
+function hasExtraSegments(pathname) {
+  return String(pathname || "").split("/").filter(Boolean).length > 1;
+}
+
 function pageToPath(pageVal) {
   if (!pageVal || pageVal === "home") return "/";
   return `/${pageVal}`;
@@ -5517,6 +5535,38 @@ const SEO_DEFAULT = [
   { page: "privacy", title: "Privacy Policy — Insulation Products Corporation", desc: "Privacy policy for Insulation Products Corporation — how we collect and use information submitted through our website contact forms." },
 ];
 
+/**
+ * The routes that exist. Anything else is a 404 (PLAN-8 A5).
+ *
+ * Derived from SEO_DEFAULT rather than written out a second time, and that
+ * coupling is deliberate: B25's defect was a route with no SEO row silently
+ * inheriting the homepage's description, so a route that cannot be added
+ * without also giving it a row is a route that cannot reintroduce B25. It also
+ * cannot drift the way the two hardcoded family lists did before PLAN-6.
+ *
+ * SEO_DEFAULT is a hardcoded constant, not owner content, so emptying the SEO
+ * section in the admin cannot empty this and 404 the whole site.
+ */
+const KNOWN_ROUTES = new Set(SEO_DEFAULT.map((s) => s.page));
+
+/**
+ * The single answer to "is this URL a 404?", used by both renderPage and
+ * PageMeta. One derivation, deliberately — A1 in this same plan was two
+ * derivations of one fact disagreeing with each other, and a page that renders
+ * the catalog while its meta tags say `noindex` would be the same bug wearing
+ * a different hat.
+ */
+function useIsUnknownRoute() {
+  const location = useLocation();
+  const [page] = useSearchParam("page");
+  const key = page || "home";
+  return (!!page && !KNOWN_ROUTES.has(key)) || hasExtraSegments(location.pathname);
+}
+
+/** A4 — the share card, and the intrinsic size of the product photography. */
+const OG_CARD = { src: "/images/og-card.jpg", w: 1200, h: 630 };
+const OG_PHOTO = { w: 400, h: 300 };
+
 // Contact-page sidebar "for fastest response" tips.
 const CONTACT_TIPS = [
   "IPC part number or description",
@@ -5757,16 +5807,100 @@ function StructuredData() {
 // Document <title> + meta description per page, localized from the live business
 // details. Lives inside SiteInfoProvider (App itself sits above it), so it can
 // read useSiteInfo and keep the contact info in the meta description current.
-function PageMeta() {
+/**
+ * A5 — the not-found page. A dead end that still sells: it says plainly that
+ * the address does not exist, then offers the two catalog routes and the phone
+ * number, because someone who mistyped a URL is still a buyer.
+ *
+ * Phone and email come from site-info so they follow an admin edit; fax is
+ * deliberately not a link (PLAN-1 4.8).
+ */
+function NotFoundPage() {
+  const site = useSiteInfo();
+  // phoneDial is the canonical dial string and is what every other tel: on the
+  // site uses — re-deriving one by stripping the display number would be a
+  // second, drifting source for the same fact.
+  const tel = (site.contact && site.contact.phone) || "";
+  const dial = (site.contact && site.contact.phoneDial) || "";
+  return (
+    <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
+      <div className="ipc-page-header">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <PageEyebrow>Error 404</PageEyebrow>
+          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
+            Page not found
+          </h1>
+          <p
+            className="mt-3 max-w-2xl text-base"
+            style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
+          >
+            That address doesn&rsquo;t exist on this site. It may have been
+            mistyped, or the page may have moved.
+          </p>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex flex-wrap gap-3">
+          <PageLink
+            page="products"
+            className="px-4 py-2.5 rounded text-sm font-semibold"
+            style={{ background: "var(--brand-primary)", color: "var(--brand-primary-ink)" }}
+          >
+            Browse the product catalog
+          </PageLink>
+          <PageLink
+            page="dashboard"
+            className="px-4 py-2.5 rounded text-sm font-semibold"
+            style={{ background: "#ffffff", color: "var(--brand-primary-text)", border: "1px solid #d1d9e0" }}
+          >
+            Search the product index
+          </PageLink>
+          <PageLink
+            page="contact"
+            className="px-4 py-2.5 rounded text-sm font-semibold"
+            style={{ background: "#ffffff", color: "var(--brand-primary-text)", border: "1px solid #d1d9e0" }}
+          >
+            Request a quote
+          </PageLink>
+        </div>
+        {tel && (
+          <p className="mt-6 text-sm" style={{ color: "#4b5563" }}>
+            Or call{" "}
+            {dial ? (
+              <a href={`tel:${dial}`} style={{ color: "var(--brand-primary-text)", fontWeight: 600 }}>
+                {tel}
+              </a>
+            ) : (
+              <strong>{tel}</strong>
+            )}{" "}
+            and we will point you at the right part.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PageMeta({ products }) {
   const site = useSiteInfo();
   const { seo, copy } = useContent();
   const [page] = useSearchParam("page");
   const [productId] = useSearchParam("productId");
+  const unknownRoute = useIsUnknownRoute();
   useEffect(() => {
     const list = Array.isArray(seo) ? seo : [];
     const key = page || "home";
     const home = list.find((s) => s.page === "home") || {};
     const entry = list.find((s) => s.page === key) || {};
+
+    // A3 — the product this URL is actually about, if any. Passed in rather
+    // than read from useProducts(): that hook carries a module-level cache and
+    // a mount-once assumption documented at its definition, and a second call
+    // site would be a second mount.
+    const product =
+      productId && Array.isArray(products)
+        ? products.find((p) => p.id === productId) || null
+        : null;
 
     // Title fallback. Two things used to go wrong here:
     //
@@ -5789,8 +5923,52 @@ function PageMeta() {
       key.replace(/(^|-)([a-z])/g, (_, sep, ch) => (sep ? " " : "") + ch.toUpperCase());
     const computed =
       key === "home" ? site.company.name : `${label} — ${site.company.name}`;
-    const title = entry.title || (key === "home" ? home.title : "") || computed;
-    const desc = localizeProse(entry.desc || home.desc || "", site);
+    // B25 — a route with no `seo` row falls back to ITS OWN default, then to
+    // the homepage. /datasheets has no row (content.json's seo array has 9 and
+    // SEO_DEFAULT has 10), so its description was the homepage's. The mechanism
+    // was the defect: any page added later without a row did the same silently.
+    //
+    // Guarded on `list.length` so this cannot re-seed a deletion. Emptying the
+    // SEO section is a deletion, not "unset" (invariant 3) — when the owner has
+    // removed every row we must stop overriding, not quietly restore the
+    // hardcoded defaults. That is the same trap `seo: []` was fixed for in
+    // PLAN-1, and it is why the TITLE deliberately does not get this treatment:
+    // titles fall back to the page's own visible heading instead.
+    const dflt = list.length ? SEO_DEFAULT.find((s) => s.page === key) || {} : {};
+
+    let title = entry.title || (key === "home" ? home.title : "") || computed;
+    let desc = localizeProse(entry.desc || dflt.desc || home.desc || "", site);
+
+    // A3 — 42 product URLs described themselves identically: the same <title>,
+    // the same description and the same og:title, all inherited from the
+    // /products row. All 42 names are distinct, so the name alone makes the
+    // title unique; the SKU is appended when it is not already in the name so a
+    // buyer scanning search results sees the part number they searched for.
+    if (product) {
+      const sku = (product.sku || "").trim();
+      const name = (product.name || "").trim();
+      const label = sku && !name.toUpperCase().includes(sku.toUpperCase())
+        ? `${name} — ${sku}` : name;
+      title = `${label} — ${site.company.name}`;
+      const summary = String(product.specificationsSummary || "").trim();
+      const kind = String(product.partType || "").trim();
+      desc = localizeProse(
+        [
+          sku ? `${name} (${sku})` : name,
+          kind ? `— ${kind}.` : "—",
+          summary || "Specifications, data sheet and quote request.",
+        ].join(" ").replace(/\s+/g, " ").slice(0, 300),
+        site
+      );
+    }
+
+    // A5 — an unknown segment is not a page about anything. It gets the
+    // not-found title and no description worth indexing.
+    if (unknownRoute) {
+      title = `Page not found — ${site.company.name}`;
+      desc = "";
+    }
+
     document.title = title;
     // Update <meta name="description"> plus the Open Graph share tags so search
     // engines and social previews reflect the editable copy.
@@ -5828,14 +6006,56 @@ function PageMeta() {
       pageToPath(page) +
       (productId ? `?productId=${encodeURIComponent(productId)}` : "");
     let link = document.querySelector('link[rel="canonical"]');
-    if (!link) {
-      link = document.createElement("link");
-      link.setAttribute("rel", "canonical");
-      document.head.appendChild(link);
+
+    // A5 — an unknown segment gets `noindex` and NO canonical.
+    //
+    // The server still answers 200 and must keep doing so: Apache's catch-all
+    // rewrite is what makes every deep link and every refresh work, and
+    // narrowing it to carve out unknown segments would break all of them. For
+    // an SPA, `noindex` is the signal search engines actually act on. Do not
+    // "fix" this later by touching the rewrite.
+    //
+    // Emitting a canonical here as well would be the half-fix that looks done:
+    // a self-referencing canonical on a soft 404 tells a crawler the page is
+    // the real, preferred version of itself, which is the opposite of the
+    // intent. So the tag is REMOVED rather than left pointing anywhere.
+    if (unknownRoute) {
+      setMeta("name", "robots", "noindex");
+      if (link) link.remove();
+    } else {
+      const robots = document.querySelector('meta[name="robots"]');
+      if (robots) robots.remove();
+      if (!link) {
+        link = document.createElement("link");
+        link.setAttribute("rel", "canonical");
+        document.head.appendChild(link);
+      }
+      link.setAttribute("href", canonical);
+      setMeta("property", "og:url", canonical);
     }
-    link.setAttribute("href", canonical);
-    setMeta("property", "og:url", canonical);
-  }, [page, productId, site, seo, copy]);
+
+    // A4 — og:image. index.html shipped a TODO comment and no usable tag while
+    // twitter:card said summary_large_image, so every link pasted into
+    // LinkedIn, Teams, Slack or an email client rendered as a bare text card —
+    // on a site whose product URLs get pasted into procurement threads.
+    //
+    // Absolute, not relative: several crawlers ignore a relative og:image.
+    // A product with a real photograph shares that photo; a product on the
+    // branded placeholder falls back to the card, because a link preview of a
+    // "PRODUCT IMAGE COMING SOON" panel is worse than the company card.
+    const photo =
+      product && product.photoUrl && !String(product.photoUrl).includes("placehold.co")
+        ? String(product.photoUrl)
+        : "";
+    const ogImage = photo
+      ? (/^https?:\/\//.test(photo) ? photo : SITE_ORIGIN + (photo.startsWith("/") ? "" : "/") + photo)
+      : SITE_ORIGIN + OG_CARD.src;
+    setMeta("property", "og:image", ogImage);
+    // Declared so the first share renders without the crawler fetching the file
+    // to measure it. The per-product photos are all 400x300 source art.
+    setMeta("property", "og:image:width", photo ? String(OG_PHOTO.w) : String(OG_CARD.w));
+    setMeta("property", "og:image:height", photo ? String(OG_PHOTO.h) : String(OG_CARD.h));
+  }, [page, productId, products, site, seo, copy, unknownRoute]);
   return null;
 }
 
@@ -6741,9 +6961,12 @@ function ProductDetail({ product, allProducts }) {
                 legibility on exactly the ones that wrap. The small uppercase
                 eyebrow above is a deliberate part of the design system
                 (PageEyebrow, PLAN-5c) and is left alone. */}
-            <h2 className="text-xl font-extrabold text-white leading-tight">
+            {/* A3 — the <h1> of a product page is the product's name. It was an
+                <h2> under a "Product Catalog" <h1>, so all 42 pages announced
+                the same top-level heading. */}
+            <h1 className="text-xl font-extrabold text-white leading-tight">
               {product.name}
-            </h2>
+            </h1>
             {/* C45 — the SKU used to be a filled pill in the action row to the
                 right, at button height, immediately left of "Download PDF" and
                 "Request Quote", so it read as a third button. A part number
@@ -7245,9 +7468,21 @@ function ProductPage({ products }) {
           <PageEyebrow>
             Products
           </PageEyebrow>
-          <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
+          {/* A3 — deliberately a div, not an <h1>.
+              /products always has a product selected, so this band said
+              "Product Catalog" as the <h1> of all 42 product pages while the
+              product's own name sat below it as an <h2>. The page's subject is
+              the product, so the <h1> is the product name in the detail header
+              and this keeps the identical visual treatment without competing
+              for it. PLAN-8's Option B calls this "demoted to the eyebrow or a
+              visually-hidden heading"; a styled div is that demotion and costs
+              no visual change at all.
+              If C29 ever gives /products a real landing state with no product
+              selected, THAT state should carry an <h1> here again — the
+              !product branch above still does. */}
+          <div className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             Product Catalog
-          </h1>
+          </div>
           <p
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
@@ -10216,6 +10451,7 @@ function App() {
   // invisible to React.
   useSetSearchParamRef();
   const [page] = useSearchParam("page");
+  const unknownRoute = useIsUnknownRoute();
   const { products, loading, error } = useProducts();
 
   // ALL hooks must be called before any conditional return (React rules of hooks).
@@ -10233,6 +10469,18 @@ function App() {
     page === "products" || page === "dashboard" || page === "datasheets";
 
   const renderPage = () => {
+    // A5 — an unrecognised segment is a 404, not the homepage.
+    //
+    // Before this, App.jsx's `default:` rendered <HomePage /> for ANY path, and
+    // PageMeta built a title and a self-referencing canonical out of the
+    // segment: /quality, /prodcuts and /contact-us all returned 200 with their
+    // own canonical. Every typo, stale bookmark and dead inbound link became a
+    // self-canonicalising duplicate of the homepage, and a visitor who mistyped
+    // got no signal at all that they were in the wrong place.
+    //
+    // Home stays the empty segment only. See PageMeta for the noindex, and for
+    // why the server still (correctly) answers 200.
+    if (unknownRoute) return <NotFoundPage />;
     switch (page) {
       case "dashboard":
         return <DashboardPage products={products} />;
@@ -10262,7 +10510,7 @@ function App() {
       <ContentProvider>
         <ThemeInjector />
         <StructuredData />
-        <PageMeta />
+        <PageMeta products={products} />
         <div
           className="min-h-screen flex flex-col"
           style={{ background: "#f5f7fa" }}

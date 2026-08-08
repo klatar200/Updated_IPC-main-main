@@ -17,7 +17,26 @@
     <!-- Open Graph / social sharing -->
     <meta property="og:type"        content="website" />
     <meta property="og:url"         content="https://www.insulationproducts.com/" />
-    <!-- TODO: add /images/og-card.jpg (1200x630) and re-enable <meta property="og:image"> for social link previews -->
+    <!-- A4. This shipped as a TODO comment and no usable og:image while
+         twitter:card said summary_large_image, so every link pasted into
+         LinkedIn, Teams, Slack or an email client previewed as a bare text
+         card — on a site whose product URLs get pasted into procurement
+         threads.
+
+         This STATIC tag is the one that does most of the work. LinkedIn,
+         Slack and Facebook do not execute JavaScript when they unfurl a link,
+         so PageMeta's per-route override (which swaps in a product's own
+         photograph) only reaches crawlers that render. Every URL therefore
+         needs a correct absolute image right here in the shell.
+
+         Absolute, not relative: several crawlers ignore a relative og:image.
+         Width and height are declared so the first share renders without the
+         crawler fetching the file to measure it.
+         Built by _harness/ogcard.js; 1200x630, 33 KiB. -->
+    <meta property="og:image"        content="https://www.insulationproducts.com/images/og-card.jpg" />
+    <meta property="og:image:width"  content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt"    content="Insulation Products Corporation — heat shrink tubing, sleeving and adhesives" />
     <meta property="og:title"       content="Insulation Products Corporation — Heat Shrink Tubing, Sleeving &amp; Adhesives" />
     <meta property="og:description" content="Spec-grade stocking distributor since 1974. $50 minimum order. 25M+ feet in stock. Ships same day. ISO 9001 registered." />
     <meta name="twitter:card"       content="summary_large_image" />

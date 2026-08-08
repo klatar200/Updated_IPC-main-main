@@ -32,10 +32,16 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const BASE = 'http://127.0.0.1:8123';
-const MAIL_LOG = process.env.IPC_MAIL_LOG || '/tmp/ipc-harness-mail.log';
+// os.tmpdir(), not '/tmp'. contact.php writes the rate-limit files through
+// PHP's sys_get_temp_dir(), which is %TEMP% on Windows, and Node resolves a
+// bare '/tmp' there to C:\tmp — which does not exist, so readdirSync threw
+// ENOENT and took the suite down before its first assertion. Same fault, and
+// same fix, as plan3-contact.js.
+const MAIL_LOG = process.env.IPC_MAIL_LOG || path.join(os.tmpdir(), 'ipc-harness-mail.log');
 const INQUIRIES = path.join(__dirname, 'site/admin/inquiries.jsonl');
 const AR_MAX = 3;    // contact.php's $arMax
 const SALES = 'sales@insulationproducts.com';
@@ -48,8 +54,10 @@ const note = (ok, what, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}${ok || !detail ? '' : '\n       → ' + detail}`);
 };
 
-const tmpFiles = (prefix) => fs.readdirSync('/tmp').filter((f) => f.startsWith(prefix));
-const clearTmp = (prefix) => { for (const f of tmpFiles(prefix)) { try { fs.unlinkSync('/tmp/' + f); } catch {} } };
+const tmpFiles = (prefix) => fs.readdirSync(os.tmpdir()).filter((f) => f.startsWith(prefix));
+const clearTmp = (prefix) => {
+  for (const f of tmpFiles(prefix)) { try { fs.unlinkSync(path.join(os.tmpdir(), f)); } catch {} }
+};
 
 /** Every captured message as {to, subject, body}, in send order. */
 function capturedMessages() {
