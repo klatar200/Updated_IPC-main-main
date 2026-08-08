@@ -2802,3 +2802,156 @@ plainly rather than counted as fixes.
 `data/`, `pdfs/` and `uploads/` are untouched: `git status --porcelain` empty
 for all three, and all three JSON files `cmp` byte-identical to
 `_harness/pristine/`.
+
+---
+
+## 1d. Shipped in PLAN-8 Phase E — the WCAG tier (2026-08-08)
+
+§1c recorded Phases A–D and listed Phase E as not started. It is done.
+Running total: **25 shipped, 18 deferred, 7 owner actions.** Evidence in §4p.
+
+| ID | What shipped | Suite |
+|---|---|---|
+| B8 | Part numbers 1.64:1 → ~7:1; the selected SKU 4.15:1 → passing | `plan8-contrast` |
+| B9 | gray-400 text 2.37–2.54:1 → ~7:1 across 358 instances | `plan8-contrast` |
+| B10 | Footer white-alpha → solid tokens; 4.25:1 and 2.64:1 → 10.5:1 and 6.1:1 | `plan8-contrast` |
+| B14 | Zero infinite animations under `reduce`, across all 10 routes | `plan8-motion` |
+| B15 | Skip link, verified with real Tab/Enter; focus lands in `<main>` | `plan8-keyboard` |
+| B24 | 44px conversion targets on a coarse pointer; desktop measured unchanged | `plan8-mobile` |
+| B28 | No route skips a heading level | `plan8-keyboard` |
+
+## 2c. Open after Phase E
+
+**`spec-table-subheader-contrast`.** `--brand-header-ink` on
+`--brand-accent-2`, **3.11:1** at 12px/600 on the spec-table sub-header row,
+14 instances. Both sides are computed from the owner's palette by the 4.23
+machinery (`ipc_ink_for`, mirrored in `admin/config.php`), so the fix is a
+change to that derivation, validated across all four palettes — 4.23's item,
+not a neutral-sweep item. Hardcoding a colour here would look like a fix and
+would be overridden the moment the owner picks a different brand colour in
+Branding. Held in `plan8-contrast.js` as `EXEMPT_BRAND_SURFACE = 1`, a named
+exemption with a count, so a **second** brand-surface failure cannot hide
+behind it.
+
+**Everything in §2b remains open** — B26, the B19 row-height residue, and
+`plan3-autoreply` being `[UNVERIFIED]` on Windows.
+
+**Phase F is still not started**: B11, B13, B21, B23, and A7's data half.
+
+## 4p. Verification evidence for PLAN-8 Phase E (2026-08-08)
+
+### The instrument had the defect it was built to find
+
+`plan8-contrast.js`'s first version scored `rgba(255,255,255,0.45)` on the
+footer navy at **15.96:1** — the figure for opaque white. It passed the
+DECLARED colour to `ratio()`, and `lum()` destructures three channels, so the
+ink's own alpha was silently dropped. B10 is entirely translucent inks, so the
+whole item read as comfortably passing.
+
+A failing row reported as one of the best on the site, by the tool built to
+catch exactly that. `backdrop.js` already exported `__ipcOver` for this and
+`plan5c-eyebrow.js` already used it; this file simply had not. After the fix
+the numbers are **4.25:1** and **2.64:1** — the audit's figures to two decimal
+places, which is the strongest evidence available that the measurement is now
+correct.
+
+Worth noting for the next contrast suite: `brandtext.js` and
+`plan5c-brandink.js` also pass a possibly-translucent `fg` straight to
+`ratio()`. They score brand inks, which are opaque in practice, so nothing is
+known to be wrong — but the same latent hazard is in both files.
+
+### Scope drawn by measurement, not by an allow-list
+
+The first attempt excluded four brand colours by name. That is stale the moment
+the owner picks a different palette, and it also let the gradient-backed page
+header through — a different, already-logged item. The suite now discriminates
+two ways, both measured:
+
+- **gradient-backed**: `backdrop.js` samples under each end of the text's ink,
+  so a gradient returns two different values and a flat surface returns one
+  twice. That is `page-header-sublines-on-gradient`.
+- **chromatic ink**: channel spread > 24. `rgb(196,203,212)` spans 16 and
+  `rgb(156,163,175)` spans 19; `rgb(0,190,242)` spans 242. That is
+  `brand-text-on-brand-surface`.
+
+Both belong to `brandtext.js` and its siblings. Judged here they would be
+counted twice, and this file would go red for work it is not doing.
+
+### Asserting zero found a third animation
+
+The audit reported one animation still running under `reduce`. Asserting
+**zero** over every route found the submit-button spinner as well — never
+named in any audit or plan.
+
+Its override was then written in the wrong place. A media query contributes no
+specificity, so `@media (prefers-reduced-motion: reduce) { .ipc-btn-spinner {
+animation: none } }` placed BEFORE `.ipc-btn-spinner`'s own declaration loses
+the cascade and does nothing at all. It reads as correct. It has to sit after
+the declaration it means to beat.
+
+### The marquee's duplicate is the whole difficulty
+
+`.ipc-marquee-track` renders its items twice so `translateX(-50%)` can wrap
+seamlessly. `animation: none` — the obvious one-line fix — therefore leaves
+every certification printed twice, in a row, for no reason a reader can infer,
+with the track still `max-content` so half of it is off-screen. Under `reduce`
+the duplicate is not rendered (10 items vs 20, asserted), the track wraps to
+its container (1440 in 1440, asserted), and the `tabIndex` is dropped because
+it exists only to pause a scroll that no longer happens.
+
+### The skip-link mutant is the one worth keeping
+
+`<main>` needs `id` **and** `tabIndex={-1}`. With the id alone the browser
+scrolls to the element and leaves focus on the link, so the next Tab returns to
+the navigation the visitor just asked to skip. Removing `tabIndex` and
+re-running: `document.activeElement` is `<body>` on **all ten routes** — focus
+lost entirely. That is a skip link that passes a source review and does nothing.
+
+Everything here is driven with real `Tab` and `Enter`. Chromium does not match
+`:focus-visible` for programmatic focus, so `element.focus()` would have
+asserted a working indicator that a human never sees.
+
+### Mistakes made and caught
+
+- **The alpha bug above**, which is the biggest one in this phase.
+- **Tailwind's extractor fired twice more** — `.grow` and `.ring`, both from
+  comments written in this phase, both in prose explaining an accessibility
+  fix. That is the **fourth and fifth** occurrence in this repo's history, and
+  the pattern is now unmistakable: it happens in the sentence explaining the
+  previous one. `cssdiff.js` caught both; the build summary would not have.
+- **B28 broke `plan5-keys`.** It selected service titles by `h3`, and
+  promoting them to `h2` made it report a duplicate-key defect that did not
+  exist. The selector is level-agnostic now — that assertion is about whether
+  two colliding titles both render, and `plan8-keyboard` owns levels.
+- **The `/faq` prose link resisted the touch rule** because its `padding: 0`
+  was an inline style, which beats any stylesheet. Moved to a class.
+- **PLAN-8 says PLAN-2 "established the `@media (pointer: coarse)` pattern
+  here". It had not** — there was no such rule anywhere in the codebase. One
+  was introduced.
+
+### Regression, before and after Phase E
+
+```
+                        before Phase E    after
+plan8-contrast          9 failing         34/35 (1 named exemption)
+plan8-motion            (new)             8/8
+plan8-keyboard          (new)             8/8
+plan8-mobile            1/4               6/6
+plan5-keys              11/11             11/11  (selector fixed, see above)
+plan2-contrast          42/42             42/42  ← four palettes, unmoved
+plan5c-brandink          5/5               5/5
+plan5c-eyebrow           4/4               4/4
+contrastparity          28/28             28/28
+brandtext               37/50 (13 fail)   37/50 (13 fail)  ← unmoved
+invariants              17/17             17/17
+```
+
+35 suites run, 34 exit clean; `brandtext` is the logged open item. The neutral
+pass did not disturb the brand-ink work, which was the risk worth guarding —
+`plan2-contrast` at 42/42 is what says the palette-coupled alpha changes are
+safe on all four palettes rather than just the shipped one.
+
+CSS bundle adds exactly `.ipc-skip`, `.ipc-skip:focus`, `.ipc-touch`,
+`.ipc-inline-link` and the `@media (pointer: coarse)` block, and removes
+nothing. `data/`, `pdfs/` and `uploads/` untouched and byte-identical to
+`_harness/pristine/`.

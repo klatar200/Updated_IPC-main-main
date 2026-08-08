@@ -137,8 +137,16 @@ plan6-families            13/13          plan7-approvals       11/11
 plan7-datasheets           8/8
 plan8-certs                5/5           plan8-meta            15/15
 plan8-catalog             16/16          plan8-lead            13/13
+plan8-contrast            34/35          plan8-motion           8/8
+plan8-keyboard             8/8           plan8-mobile           6/6
+plan2-contrast            42/42
 brandtext                 37/50  ← EXPECTED RED (13 failing)
 ```
+
+`plan8-contrast` is 34/**35**, not 35/35, and that is its passing state: one
+named exemption (`EXEMPT_BRAND_SURFACE`) for a computed brand ink on a computed
+brand surface, which belongs to 4.23. It is a counter rather than a blanket
+rule so a second brand-surface failure cannot hide behind it.
 
 `node _harness/run.js <suite> [suite...]` runs a list and prints one line each.
 

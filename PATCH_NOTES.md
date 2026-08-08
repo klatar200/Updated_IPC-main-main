@@ -368,3 +368,96 @@ from this repo. Each is done in the admin dashboard; none needs a developer.
 | 5 | Page Content | About timeline "2024 · 50 Years"; privacy "Effective Date: January 1, 2025" (C42) |
 | 6 | Business Details | Confirm or clear the five social URLs (C36) |
 | 7 | Branding | Optional: a transparent-background or horizontal logo (C43) |
+
+---
+
+# 2026-08-08b — PLAN-8 Phase E, the WCAG tier
+
+Appended after the section above, which recorded Phases A–D and listed Phase E
+as **not started**. It is done now. Running total for PLAN-8:
+**25 shipped, 18 deferred, 7 handed to the owner.**
+
+**Not yet deployed.**
+
+## Legibility
+
+- **Product part numbers were painted at 1.64:1 against white** — the one
+  string a buyer scans a catalog for, and on a phone it was very nearly
+  invisible. 38 instances at 12 px bold. The selected part number had its own
+  version of the same problem at 4.15:1. Both are legible now (~7:1). (B8)
+- **Secondary grey text sat at 2.37–2.54:1 across 358 measured instances** —
+  the homepage stat sub-lines, every certification line on `/datasheets`,
+  "Showing 42 of 42 products", the catalog sidebar's family headings. One of
+  them was written as a utility class rather than a colour value and survived
+  the first pass; the measurement caught it, a search of the source would not
+  have. (B9)
+- **Footer text failed at 4.25:1 across 234 instances and 2.64:1 across 52** —
+  Quick Links, the company description, the copyright and the domain line. Now
+  solid colours on the navy at 10.5:1 and 6.1:1, rather than white at 45% and
+  30% opacity. Opacity over a fixed navy is just a colour with extra steps, and
+  it is what let these fail without anyone noticing. (B10)
+
+  *The tool nearly missed this one.* Its first version scored white-at-45% as
+  **15.96:1** — the figure for solid white — because it never composited the
+  text's own transparency. A failing row reported as one of the best on the
+  site: precisely the defect being hunted, reproduced inside the instrument.
+  Once corrected it returned 4.25 and 2.64, matching the audit to two decimal
+  places.
+
+- **One contrast failure is measured and deliberately left**: the spec-table
+  sub-header at 3.11:1. Both its ink and its background are computed from the
+  owner's brand palette, so the fix belongs to that derivation across all four
+  palettes — a different item. Hardcoding a colour would look like a fix and
+  would be discarded the moment the owner picked a new brand colour. It is
+  held with a counter so a second such failure cannot hide behind it.
+
+## Motion, keyboard, and touch
+
+- **`prefers-reduced-motion` was honoured by exactly one rule.** A visitor who
+  asks their operating system to reduce motion still got the homepage
+  certification marquee scrolling at them. The audit found one animation still
+  running; asserting *zero* rather than assuming one found a **third** nobody
+  had ever named — the spinner on the quote-form submit button. (B14)
+
+  Stopping the marquee took more than switching the animation off: the strip is
+  built from two copies of the certification list so it can loop without a
+  seam, so freezing it would have printed every certification twice, side by
+  side, with no explanation. Under reduced motion there is now one copy, it
+  wraps to fit, and it is no longer a keyboard tab stop — that stop existed
+  only to pause a scroll that no longer happens.
+
+- **There was no skip link anywhere on the site.** Tab order on every page
+  started at the logo and walked the whole header, both dropdown menus
+  included, before reaching any content. WCAG 2.4.1 Bypass Blocks, Level A —
+  and one of the few items here that is a legal-compliance question and not a
+  judgement call. (B15)
+
+  Tested with real Tab and Enter presses rather than by moving focus in code,
+  because Chromium does not treat scripted focus the same way and a skip link
+  can be "present" to a script while being invisible to the person it exists
+  for. The link must also *move focus* into the content, not merely scroll
+  there: without that, the next Tab jumps straight back to the navigation the
+  visitor just asked to skip. Confirmed by breaking it deliberately and
+  watching focus fall away on all ten routes.
+
+- **On a phone, the product page's two primary actions were 28 px tall** —
+  "Download PDF" and "Request Quote" — and every tappable phone number and
+  email address on the site was 16–19 px. Both are how an order starts. They
+  are 44 px now, on touch devices only; the desktop layout is measured
+  unchanged. (B24)
+
+  The inline phone numbers grew their tap area without moving a single word of
+  the surrounding paragraph.
+
+- **`/services` skipped a heading level**, the only page on the site that did.
+  Fixed at the document level with no change to how anything looks. (B28)
+
+## Still deferred after Phase E
+
+Phase F was not started: the mobile menu has no scrim and ignores Escape
+(B13); the Services lead-time banner repeats itself (B21); the product photo
+shifts the layout as it loads (B23); the footer paragraph is missing a space —
+"adhesives.$50 minimum order." — on every page (B11); five products still carry
+a placeholder photo URL (A7, an owner action). B26 — the mobile quote form
+sitting 1,213 px down the page — also remains open, along with the 22
+severity-C suggestions.

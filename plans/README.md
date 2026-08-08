@@ -119,14 +119,25 @@ are in `WHATS_LEFT.md` §1c/§2b/§4o and `PATCH_NOTES.md`.
 | **C — Catalog browsing** | A6, B19, B20, B27, B12, C48 | **shipped.** Product Index page 9,460px → 5,042px. C30, C35, C46, C49 deferred |
 | **D — Lead capture** | B16, B17, B18, B22 | **shipped.** **B26 deferred** — needs a DOM reorder; its suite assertion is inverted so it cannot go green by accident. C31, C39, C40 deferred |
 | **F — Chrome, assets, copy** | B13, B21, B23, B11, A7, C34, C37, C38, C41, C42, C43, C44 | **not started** |
-| **E — Legibility & input** | B8, B9, B10, B14, B15, B24, B28, C50 | **not started.** This is the WCAG tier — B8 is part numbers at 1.64:1, B15 is no skip link site-wide |
+| **E — Legibility & input** | B8, B9, B10, B14, B15, B24, B28 | **shipped.** The WCAG tier. Part numbers went 1.64:1 → ~7:1; the footer's 286 white-alpha instances became solid; a skip link exists for the first time (2.4.1 Level A). Asserting *zero* animations under `reduce` found a third the audit never named. C50 deferred |
 
 New suites left behind: `plan8-certs`, `plan8-meta`, `plan8-catalog`,
-`plan8-lead`, plus `cssdiff.js` (the Tailwind comment-extractor trap fired a
-third time during this plan) and `run.js`. `plan8-contrast`, `plan8-motion`,
-`plan8-mobile` and `plan8-counts` were **not** written — B12's counts are
-covered inside `plan8-catalog`, and the other three belong to the phases that
-did not run.
+`plan8-lead`, `plan8-contrast`, `plan8-motion`, `plan8-keyboard`,
+`plan8-mobile`, plus `cssdiff.js` and `run.js`.
+
+Two deviations from the suite list in §4. `plan8-counts` was not written —
+B12's four counts are asserted inside `plan8-catalog`, from rendered text.
+`plan8-keyboard` is not in §4 at all; B15 and B28 needed real `Tab`/`Enter`
+driving and a heading-level sweep, which sit with neither the motion nor the
+mobile file. `plan8-mobile` covers only B24 of the three items §4 assigns it —
+B13 is Phase F and B26 is logged open, and both are named in that file as
+absent rather than quietly omitted.
+
+`cssdiff.js` earns its place: the Tailwind comment-extractor trap fired
+**three more times** during this plan, every time in a comment written to
+explain an unrelated fix, and twice in the sentence explaining the previous
+occurrence. Five occurrences in this repo's history now. The build summary's
+byte count does not catch it.
 
 Same reason 4.32 went last in PLAN-5. Phases C, D and F are independent of each
 other.
