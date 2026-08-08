@@ -235,6 +235,11 @@ function PageLink({ page = null, params, onNavigate, onClick, children, ...rest 
 function PageEyebrow({ children }) {
   return (
     <div
+      // A stable hook for the suites. plan5c-eyebrow and plan8-lead both need
+      // to find the eyebrow, and matching on the Tailwind classes finds a
+      // dozen unrelated small-caps labels instead. Same idea as
+      // data-ipc-approval-mark.
+      data-ipc-eyebrow
       className="text-xs font-bold tracking-widest uppercase mb-2"
       style={{ color: "var(--brand-header-ink)" }}
     >
@@ -3977,8 +3982,53 @@ function ContactPage() {
   const cf = _copy.contactForm;
   const contactTips = _content.contactTips;
   const [activeTab, setActiveTab] = useState("rfq");
-  const [submitted, setSubmitted] = useState(false);
+  /**
+   * B17 — the confirmation has its own URL.
+   *
+   * The URL used to stay /contact, so a refresh threw the confirmation away
+   * and re-rendered an empty form, and there was no distinct address to hang
+   * an analytics conversion goal on — on a site whose whole purpose is lead
+   * capture.
+   *
+   * PUSHED, not replaced — a deliberate departure from PLAN-8's parenthetical,
+   * because the plan's own acceptance for this item is "Back returns to the
+   * form without re-submitting" and `replace` makes that impossible: it
+   * overwrites the /contact entry, so Back skips past the form to whatever
+   * preceded it. Measured — with replace, Back from the confirmation in a
+   * fresh context lands on about:blank.
+   *
+   * T2.3's Back-trap does not apply here. That incident is a "read the param,
+   * then strip it" cleanup running in an EFFECT, which re-pushes every time
+   * Back re-enters it. This param is written once, in the submit handler, by a
+   * deliberate user action; nothing re-adds it on render, so there is no loop
+   * to trap. "Submit Another" clears it with replace, which is that pattern and
+   * does use it.
+   *
+   * `submitted` is DERIVED from the URL rather than held alongside it. Two
+   * sources for one fact is the A1 defect in this same plan, and here it has
+   * teeth: with separate state, Back would change the URL while the component
+   * kept rendering the confirmation.
+   *
+   * Reloading ?sent=1 re-renders "thank you" for what is now a bookmarkable
+   * URL. That is the standard answer and it sends no request — nothing is
+   * posted on render. The tab is not carried in the URL, so a reload shows the
+   * RFQ wording; that is a deliberate simplification rather than a second
+   * param, and the two success bodies differ only in phrasing.
+   */
+  const [sentParam, setSentParam] = useSearchParam("sent");
+  const submitted = sentParam === "1";
   const [submittedTab, setSubmittedTab] = useState("rfq");
+
+  // B16 — the success panel takes focus and is announced.
+  //
+  // The ERROR path got a proper role="alert" region in PLAN-3 4.5. The success
+  // path never did: measured, the page carried zero aria-live, role="status"
+  // and role="alert" regions, and document.activeElement was <body>. A screen
+  // reader user submitted a quote request and got silence.
+  const successRef = useRef(null);
+  useEffect(() => {
+    if (submitted && successRef.current) successRef.current.focus();
+  }, [submitted]);
   const [submitting, setSubmitting] = useState(false); // Animation 8: button loading state
 
   // Submission failures used to be four browser alert dialogs. A native dialog
@@ -4086,7 +4136,9 @@ function ContactPage() {
       const json = await res.json().catch(() => ({ ok: false, error: "Unexpected server response." }));
       if (json.ok) {
         setSubmittedTab("message");
-        setSubmitted(true);
+        // B17 — pushed, so Back returns to the form. `submitted` is derived
+        // from this param; see the note where sentParam is declared.
+        setSentParam("1");
       } else {
         // The server's message is specific — which field, or which guard was
         // hit, with the phone number in it. Keep it verbatim; cf.submitError is
@@ -4125,7 +4177,9 @@ function ContactPage() {
       const json = await res.json().catch(() => ({ ok: false, error: "Unexpected server response." }));
       if (json.ok) {
         setSubmittedTab("rfq");
-        setSubmitted(true);
+        // B17 — pushed, so Back returns to the form. `submitted` is derived
+        // from this param; see the note where sentParam is declared.
+        setSentParam("1");
       } else {
         setFormError({ kind: "validation", message: json.error || localizeProse(cf.submitError, site) });
       }
@@ -4170,9 +4224,21 @@ function ContactPage() {
 
   if (submitted) {
     return (
-      <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
+      // B18 — no minHeight:100vh here.
+      //
+      // The 330px of dead air between the buttons and the footer was not the
+      // panel's padding, which is what it looked like: it was this wrapper
+      // being forced to a full viewport while holding about 500px of content.
+      // Reducing the padding first made the gap BIGGER (360 -> 376), which is
+      // what pointed at the container. The app shell is already
+      // `min-h-screen flex flex-col` with the footer last, so the viewport is
+      // covered without this and the footer simply rises to meet the content.
+      <div style={{ background: "#f5f7fa" }}>
         <div className="ipc-page-header">
           <div className="max-w-7xl mx-auto px-6 py-12">
+            {/* B18 — this was the only page header on the site with no eyebrow
+                above its h1. */}
+            <PageEyebrow>Request Sent</PageEyebrow>
             <h1
               className="text-4xl font-extrabold"
               style={{ color: "var(--brand-header-ink)" }}
@@ -4183,8 +4249,38 @@ function ContactPage() {
             </h1>
           </div>
         </div>
-        <div className="ipc-fade-up max-w-lg mx-auto px-6 py-24 text-center">
-          <div className="ipc-fade-up text-5xl mb-6">✅</div>
+        {/* B16 — announced, and takes focus.
+            role="status" (implicitly aria-live="polite") rather than "alert":
+            a completed submission is not an interruption, and the error path
+            already owns the assertive register. tabIndex={-1} makes the panel
+            focusable programmatically without adding a tab stop; the effect
+            above moves focus here on the swap, so a screen reader lands on the
+            confirmation instead of being left at <body> with the form gone.
+            B18 — py-12, not py-24. The old padding left 360px of empty page
+            between the buttons and the footer. */}
+        <div
+          ref={successRef}
+          role="status"
+          aria-live="polite"
+          tabIndex={-1}
+          className="ipc-fade-up max-w-lg mx-auto px-6 py-12 text-center"
+          style={{ outline: "none" }}
+        >
+          <div className="ipc-fade-up mb-6 flex justify-center" aria-hidden="true">
+            {/* B18 — an inline SVG, not an emoji. Emoji coverage is a font
+                dependency: the 📧 in this very panel rendered as a tofu box on
+                the audit machine, so the one line telling a visitor how to
+                reach sales urgently had a missing glyph in it. */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="56" height="56" viewBox="0 0 24 24"
+              fill="none" stroke="var(--brand-primary)" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="8.5,12.5 11,15 16,9.5" />
+            </svg>
+          </div>
           <h2
             className="ipc-fade-up-1 text-2xl font-bold mb-3"
             style={{ color: "#141414" }}
@@ -4203,13 +4299,23 @@ function ContactPage() {
             className="ipc-fade-up-2 text-xs mb-8"
             style={{ color: "#9ca3af" }}
           >
+            {/* B18 — the emoji are gone. 📧 rendered as a tofu box, so this
+                line read "📞 630.771.0700 · 📠 630.771.0701 · ▯ sales@…" at the
+                exact moment a visitor might want to make contact urgently. The
+                labels are words now: they need no font coverage, and they read
+                correctly to a screen reader, which announced nothing useful
+                for the pictographs.
+                Phone and email were already real links and stay that way; fax
+                stays plain text, which is deliberate (PLAN-1 4.8). */}
             {cf.urgentPrefix}{" "}
-            📞 <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#9ca3af" }}>{site.contact.phone}</a>
+            <span>Phone </span>
+            <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#9ca3af" }}>{site.contact.phone}</a>
             {site.contact.fax ? (
-              <>{" · "}📠 <span style={{ color: "#9ca3af" }}>{site.contact.fax}</span></>
+              <>{" · "}<span>Fax </span><span style={{ color: "#9ca3af" }}>{site.contact.fax}</span></>
             ) : null}
             {" · "}
-            📧 <a href={`mailto:${site.contact.email}`} style={{ color: "#9ca3af" }}>{site.contact.email}</a>
+            <span>Email </span>
+            <a href={`mailto:${site.contact.email}`} style={{ color: "#9ca3af" }}>{site.contact.email}</a>
           </p>
           <div className="ipc-fade-up-3 flex gap-3 justify-center">
             <button
@@ -4221,7 +4327,11 @@ function ContactPage() {
                 cursor: "pointer",
               }}
               onClick={() => {
-                setSubmitted(false);
+                // Clearing the param IS leaving the confirmation, because
+                // `submitted` is derived from it. replace:true here on purpose
+                // — this is the "strip the param" pattern T2.3 is about, and
+                // pushing would make Back re-enter the confirmation.
+                setSentParam(null, { replace: true });
                 setRfqForm({
                   name: "",
                   email: "",
@@ -5497,7 +5607,13 @@ const COPY_DEFAULTS = {
     quantityLabel: "Quantity Required *",
     quantityPlaceholder: "e.g. 500 ft, 1000 pcs, 10 spools",
     dateLabel: "Required Delivery Date",
-    datePlaceholder: "e.g. ASAP, end of month, 6/30/2025",
+    // B22 — no literal date. This read "e.g. ASAP, end of month, 6/30/2025"
+    // and by the time the audit ran that example was 13 months in the past,
+    // which reads as a dead site. A hardcoded date in a placeholder can only
+    // ever rot; the two non-date examples say everything the third did.
+    // The live value is saved in content.json and is an owner action — this
+    // default only fixes a fresh install.
+    datePlaceholder: "e.g. ASAP, end of month, or a specific date",
     specialLabel: "Special Requirements",
     specialPlaceholder: "e.g. C of C required, PPAP, custom marking, specific color, certifications needed",
     notesLabel: "Additional Notes",
