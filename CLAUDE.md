@@ -75,7 +75,8 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
   deep link and every refresh 404s. Do not describe it as a safety net.
 - **Data fetch.** Three files, per-minute cache-buster, 12 s abort timeout,
   60 s in-memory TTL. `data/.htaccess` caches ~60 s.
-- **Vite config** sets `base: './'`.
+- **Vite config** sets `base: '/'` (changed from `'./'` in PLAN-8 A5 —
+  relative asset URLs broke deep links).
 
 ### Admin side (`admin/`)
 
