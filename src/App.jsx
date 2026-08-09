@@ -2833,19 +2833,19 @@ function DatasheetsPage({ products }) {
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
+      {/* C33 — the crumb label is the fixed route name, not c.title. The owner
+          can retitle this page in Page Content, and a breadcrumb that renamed
+          itself with it would stop matching the navigation and the footer link
+          that lead here. */}
+      <Breadcrumb
+        trail={[
+          { label: "Home", page: "home" },
+          { label: "Product Catalog", page: "products" },
+          { label: "Datasheets", page: "datasheets" },
+        ]}
+      />
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          {/* C33 — the crumb label is the fixed route name, not c.title. The
-              owner can retitle this page in Page Content, and a breadcrumb
-              that renamed itself with it would stop matching the navigation
-              and the footer link that lead here. */}
-          <Breadcrumb
-            trail={[
-              { label: "Home", page: "home" },
-              { label: "Product Catalog", page: "products" },
-              { label: "Datasheets", page: "datasheets" },
-            ]}
-          />
           <PageEyebrow>{c.eyebrow}</PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
@@ -5186,6 +5186,12 @@ function ContactPage() {
                     color: "var(--brand-primary-text)",
                     textDecoration: "underline",
                     textUnderlineOffset: 2,
+                    // 24px tall, not 14. WCAG 2.5.8 wants a 24x24 target and
+                    // plan8-mobile measures it; a 12px inline link in a
+                    // paragraph is 14px without this. inline-block so the
+                    // vertical padding actually applies.
+                    display: "inline-block",
+                    padding: "5px 0",
                   }}
                 >
                   Privacy Policy
@@ -5359,6 +5365,12 @@ function ContactPage() {
                     color: "var(--brand-primary-text)",
                     textDecoration: "underline",
                     textUnderlineOffset: 2,
+                    // 24px tall, not 14. WCAG 2.5.8 wants a 24x24 target and
+                    // plan8-mobile measures it; a 12px inline link in a
+                    // paragraph is 14px without this. inline-block so the
+                    // vertical padding actually applies.
+                    display: "inline-block",
+                    padding: "5px 0",
                   }}
                 >
                   Privacy Policy
@@ -5587,21 +5599,44 @@ function Breadcrumb({ trail }) {
   if (!enough) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-4">
-      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1" style={{ fontSize: 12 }}>
+    /* ABOVE the gradient band, on the page background — not inside it.
+     *
+     * The first version rendered inside `.ipc-page-header` and it was the
+     * wrong place twice over. At 0.45/0.8 alpha the separator measured 2.29:1
+     * and the plan5c-eyebrow ratchet went from 18 failing header elements to
+     * 35. Full-opacity --brand-header-ink fixed most of it, but one crumb
+     * still measured 4.34:1 against the lighter end of the gradient at 375 —
+     * because the band is a gradient, so where a 12px string lands decides
+     * its contrast, and that changes with the route, the width AND the
+     * palette. That whole class of failure is already an open logged item
+     * (page-header-sublines-on-gradient, WHATS_LEFT §2) and new small text
+     * had no business joining it.
+     *
+     * On #f5f7fa the problem does not exist on any palette, and directly
+     * under the navbar is the conventional place for a breadcrumb anyway.
+     * The vertical padding is not decoration either: at 12px these links
+     * measured 18px tall and WCAG 2.5.8 wants 24 (plan8-mobile).
+     */
+    <nav aria-label="Breadcrumb" className="max-w-7xl mx-auto px-6 pt-4 pb-1">
+      <ol className="flex flex-wrap items-center gap-x-2" style={{ fontSize: 12 }}>
         {items.map((c, i) => {
           const last = i === items.length - 1;
           return (
             <li key={`${i}-${c.label}`} className="flex items-center gap-x-2">
               {i > 0 && (
-                <span aria-hidden="true" style={{ color: "rgba(var(--brand-header-ink-rgb), 0.45)" }}>
+                <span aria-hidden="true" style={{ color: "#6b7280" }}>
                   ›
                 </span>
               )}
               {last ? (
                 <span
                   aria-current="page"
-                  style={{ color: "var(--brand-header-ink)", fontWeight: 600 }}
+                  style={{
+                    color: "#141414",
+                    fontWeight: 700,
+                    display: "inline-block",
+                    padding: "4px 0",
+                  }}
                 >
                   {c.label}
                 </span>
@@ -5610,9 +5645,11 @@ function Breadcrumb({ trail }) {
                   page={c.page}
                   params={c.params}
                   style={{
-                    color: "rgba(var(--brand-header-ink-rgb), 0.8)",
+                    color: "var(--brand-primary-text)",
                     textDecoration: "underline",
                     textUnderlineOffset: 2,
+                    display: "inline-block",
+                    padding: "4px 0",
                   }}
                 >
                   {c.label}
@@ -5697,16 +5734,28 @@ function GlobalStyles() {
       }
       /* Brand gradient page header — replaces #141414 dark headers on content pages */
       .ipc-page-header { background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%) !important; }
+      /* C37 — the band was 48px top AND bottom at desktop around three short
+         lines, which made a 226px band for about 130px of content. Measured
+         across the nine inner pages at 1440 before the change: 202-260px tall.
+         36/24 is the tightening; it is padding only, so nothing reflows and
+         no other route is touched.
+         It also pays for C33: the breadcrumb added a line to three of these
+         bands, and this takes more off than the breadcrumb put on.
+         The band's EMPTY RIGHT HALF is deliberately left alone — see the
+         C37 note in WHATS_LEFT §4. It measures 32-71% empty at 1440 (47-52%
+         typical) and the answer to it is photography, which is PLAN-7's
+         subject. Widening the sub-line into it would make a 1232px measure,
+         which is worse typography, not better. */
       .ipc-page-header > div {
-        padding-top: 32px !important;
-        padding-bottom: 32px !important;
+        padding-top: 24px !important;
+        padding-bottom: 24px !important;
         padding-left: 20px !important;
         padding-right: 20px !important;
       }
       @media (min-width: 768px) {
         .ipc-page-header > div {
-          padding-top: 48px !important;
-          padding-bottom: 48px !important;
+          padding-top: 36px !important;
+          padding-bottom: 36px !important;
           padding-left: 24px !important;
           padding-right: 24px !important;
         }
@@ -8526,6 +8575,13 @@ function ProductPage({ products }) {
     <div
       style={{ background: "#f5f7fa", minHeight: "100vh" }}
     >
+      {/* C33 — Home › Product Catalog › family › product. The family comes
+          from the product's OWN partType, checked against familyOrder() so an
+          owner-renamed family is honoured and a partType that is not a family
+          at all is dropped rather than linked to an empty filter. There is no
+          second hardcoded list. Above the band, not in it — see Breadcrumb. */}
+      <Breadcrumb trail={crumbTrail} />
+
       {/* Page header */}
       <div
         ref={headerRef}
@@ -8533,13 +8589,6 @@ function ProductPage({ products }) {
         style={{ borderBottom: "none" }}
       >
         <div className="max-w-7xl mx-auto px-6 py-12">
-          {/* C33 — Home › Product Catalog › family › product. The family comes
-              from the product's OWN partType, checked against familyOrder() so
-              an owner-renamed family is honoured and a partType that is not a
-              family at all is dropped rather than linked to an empty filter.
-              There is no second hardcoded list.
-              First in the band, matching /dashboard and /datasheets. */}
-          <Breadcrumb trail={crumbTrail} />
           <PageEyebrow>
             Products
           </PageEyebrow>
@@ -9025,17 +9074,17 @@ function DashboardPage({ products }) {
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
       {/* Page header */}
+      {/* C33 — the Product Index is a view of the catalog, so its parent is
+          the catalog rather than Home directly. */}
+      <Breadcrumb
+        trail={[
+          { label: "Home", page: "home" },
+          { label: "Product Catalog", page: "products" },
+          { label: "Product Index", page: "dashboard" },
+        ]}
+      />
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          {/* C33 — the Product Index is a view of the catalog, so its parent
-              is the catalog rather than Home directly. */}
-          <Breadcrumb
-            trail={[
-              { label: "Home", page: "home" },
-              { label: "Product Catalog", page: "products" },
-              { label: "Product Index", page: "dashboard" },
-            ]}
-          />
           <PageEyebrow>
             Product Index
           </PageEyebrow>
