@@ -8114,6 +8114,102 @@ function skuSegmentMatch(sku, needle) {
     .includes(n);
 }
 
+/**
+ * C29 — the catalog landing grid shown on a bare /products.
+ *
+ * Every card is a real <a href="/products?productId=…"> via PageLink, so the
+ * grid is 42 crawlable internal links to pages that previously had none
+ * pointing at them from the canonical /products (4.21).
+ *
+ * Photos are LAZY here, deliberately, and that is the opposite of the product
+ * detail page's `eager` — see 4.32. There the photo is the LCP element; here
+ * there are 42 of them and at most a handful are above the fold. Both carry
+ * width/height so neither shifts the layout.
+ *
+ * The placehold.co guard is A7's, repeated rather than referenced: five
+ * products carry such a URL, and rendering it would put back the external
+ * request A7 removed — on a page that did not exist when A7 shipped.
+ */
+function CatalogLanding({ products }) {
+  return (
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+        {products.map((p) => {
+          const photo =
+            p.photoUrl && !String(p.photoUrl).includes("placehold.co") ? p.photoUrl : "";
+          return (
+            <PageLink
+              key={p.id}
+              page="products"
+              params={{ productId: p.id }}
+              data-ipc-catalog-card=""
+              className="bg-white rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+              style={{
+                border: "1px solid #e5e9ee",
+                boxShadow: "0 2px 10px rgba(var(--brand-primary-rgb),0.05)",
+                textDecoration: "none",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              {photo ? (
+                <img
+                  src={photo}
+                  alt={p.name}
+                  loading="lazy"
+                  width="400"
+                  height="267"
+                  className="w-full object-cover"
+                  style={{ aspectRatio: "3 / 2", borderBottom: "1px solid #e5e9ee" }}
+                />
+              ) : (
+                <div
+                  className="w-full flex items-center justify-center"
+                  style={{
+                    aspectRatio: "3 / 2",
+                    borderBottom: "1px solid #e5e9ee",
+                    background: "linear-gradient(135deg, #f5f7fa, #e8eef7)",
+                    color: "var(--brand-primary-text)",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  IMAGE COMING SOON
+                </div>
+              )}
+              <div className="px-4 py-3 flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.04em",
+                      padding: "2px 8px",
+                      borderRadius: 5,
+                      background: "rgba(var(--brand-primary-rgb),0.08)",
+                      color: "var(--brand-primary-text)",
+                    }}
+                  >
+                    {p.sku || p.id}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#4b5563" }}>{p.partType}</span>
+                </div>
+                <span
+                  className="text-sm font-semibold"
+                  style={{ color: "#141414", lineHeight: 1.35 }}
+                >
+                  {p.name}
+                </span>
+              </div>
+            </PageLink>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ProductPage({ products }) {
   // Read-only now: the sidebar's <PageLink>s write ?productId= themselves, so
   // nothing in this component sets it. (PLAN-1 4.21)
@@ -8131,9 +8227,23 @@ function ProductPage({ products }) {
         (p) => skuSegmentMatch(p.sku, selectedId) || skuSegmentMatch(p.id, selectedId),
       ) ||
       null
-    : products[0] || null;
+    : null;
   const notFound = !!selectedId && !matched;
-  const product = matched || products[0] || null;
+  // C29 — a bare /products is the CATALOG, not a product.
+  //
+  // This used to be `matched || products[0]`, with the no-selection branch
+  // above resolving to products[0] as well: /products auto-selected CC and
+  // rendered its detail under a "Product Catalog" banner and the sub-line
+  // "Select a product to view full specifications" — with one already
+  // selected. The canonical /products page therefore WAS the CC product page,
+  // which is a duplicate-content overlap with ?productId=CC and leaves the
+  // natural landing page for a "product catalog" search non-existent.
+  //
+  // A bad ?productId= still falls back to the first product, because that
+  // path shows the not-found banner and needs something behind it. Only the
+  // no-param case becomes the landing.
+  const landing = !selectedId;
+  const product = selectedId ? matched || products[0] || null : null;
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [pulseSkuBadge, setPulseSkuBadge] = useState(false);
   const prevShowRef = useRef(false);
@@ -8167,7 +8277,11 @@ function ProductPage({ products }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  if (!product) {
+  // An EMPTY catalog, which is not the same thing as no selection. This was
+  // `if (!product)`, and since C29 gave `product` a legitimate null on the
+  // bare route, that condition would have shown "No products found in
+  // catalog." on the landing page itself.
+  if (!products.length) {
     return (
       <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
         <div className="ipc-page-header">
@@ -8213,18 +8327,25 @@ function ProductPage({ products }) {
               for it. PLAN-8's Option B calls this "demoted to the eyebrow or a
               visually-hidden heading"; a styled div is that demotion and costs
               no visual change at all.
-              If C29 ever gives /products a real landing state with no product
-              selected, THAT state should carry an <h1> here again — the
-              !product branch above still does. */}
-          <div className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
-            Product Catalog
-          </div>
+              C29 has now given /products that landing state, so the heading
+              below is a real <h1> when nothing is selected and stays a div
+              when a product is. */}
+          {landing ? (
+            <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
+              Product Catalog
+            </h1>
+          ) : (
+            <div className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
+              Product Catalog
+            </div>
+          )}
           <p
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
-            Select a product to view full specifications, data sheet, and
-            request a quote.
+            {landing
+              ? `Browse all ${products.length} products — heat shrink tubing, sleeving, tapes, adhesives and accessories. Select one for full specifications, its data sheet, and a quote request.`
+              : "Select another product from the list to view full specifications, data sheet, and request a quote."}
           </p>
         </div>
       </div>
@@ -8282,7 +8403,7 @@ function ProductPage({ products }) {
       <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8 items-stretch lg:items-start">
         <ProductSidebar
           products={products}
-          selectedId={product.id}
+          selectedId={product ? product.id : null}
           onNavigate={() => {
             // PageLink has already written ?productId= to the URL; this is only
             // the side effect the old onSelect performed alongside it.
@@ -8295,11 +8416,19 @@ function ProductPage({ products }) {
           }}
         />
         <div ref={detailRef} className="flex-1 min-w-0">
-          <ProductDetail product={product} allProducts={products} />
+          {landing ? (
+            <CatalogLanding products={products} />
+          ) : (
+            <ProductDetail product={product} allProducts={products} />
+          )}
         </div>
       </div>
 
-      {/* Sticky RFQ bar — spring slide-in with slight overshoot */}
+      {/* Sticky RFQ bar — spring slide-in with slight overshoot.
+          C29 — only when a product is selected. It quotes the SKU, the name
+          and the datasheet of `product`, so on the bare catalog landing there
+          is nothing for it to be about. */}
+      {product && (
       <div
         style={{
           position: "fixed",
@@ -8494,6 +8623,7 @@ function ProductPage({ products }) {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
