@@ -831,3 +831,44 @@ average reports **19.42:1**, and the real worst pixel under the text reports
 **Not yet deployed.** `public/images/site/` joins `data/`, `pdfs/` and
 `uploads/` on the do-not-re-upload list from the first deploy onward, because
 four of its files are now referenced by rendered pages.
+
+# 2026-08-09c — PLAN-9, remediating the same-day audit
+
+Six findings, every one CONFIRMED with a runnable probe before a line changed
+(`_harness/AUDIT-REPORT-2026-08-09.md`), every fix landed with a suite that
+failed first.
+
+- **Rick's first Page Content save deleted every marketing photograph.** The
+  live `content.json` predates the Site Images fields, so the admin showed
+  them empty — and saving anything, a stray space in a heading was enough,
+  wrote those five empties back as deliberate deletions. The hero photo, the
+  whole team-and-building band, the About and Services photos all vanished
+  under a green "Content saved". The five fields now prefill with the shipped
+  defaults whenever the key is missing from the file, so the first save
+  writes the real paths instead — and Rick can finally see and edit the live
+  values. Clearing a field still removes its photo; that behaviour is the
+  point and was not touched. Measured: photos 3 → 0 → 3.
+- **A mistyped or stale product link showed somebody else's part.** The page
+  said "Showing the catalog instead" and then showed the full detail page for
+  the first product in the catalog, sticky quote bar and all. It shows the
+  catalog now, exactly as the banner promises.
+- **Misspelled and restyled product URLs were competing with the real pages
+  in search.** A lowercased SKU pasted from a procurement email rendered the
+  right product but titled itself "Product Catalog" and declared itself its
+  own canonical page — and unknown ids did the same with no noindex, an
+  unbounded family of indexable error pages. The page's head metadata now
+  comes from the same matching logic the page renders with: alias URLs
+  declare the real product's URL, unknown ids say "Part not found" and tell
+  crawlers to stay away.
+- **The homepage building card was more than half empty** — a bordered card
+  whose bottom 246 px was blank white below the photo, reading like an image
+  that had failed to load. The card now hugs its photograph.
+- **A trailing slash broke the photographs.** `/about/` — from an external
+  link or a typed URL — painted a 745 × 496 broken-image frame where the
+  facility photo belongs, because the photo paths resolved under `/about/`.
+  Slot paths now resolve from the site root on every URL spelling, including
+  any path Rick later types without a leading slash.
+- **CLAUDE.md documented a Vite setting the code abandoned** (`base: './'`
+  vs the shipped `'/'`). One line corrected.
+
+**Not yet deployed.** Nothing above is on the live server.
