@@ -565,9 +565,22 @@ function Navbar({ products = [], catalogFailed = false }) {
           }}
           aria-label="Insulation Products Corporation — Home"
         >
+          {/* C43 — alt="", not a better description.
+              The audit is right that alt="IPC logo" was wrong, but the fix is
+              not to name the destination here: the <a> above already carries
+              aria-label="Insulation Products Corporation — Home", and an
+              aria-label on the link overrides the image's alt for the
+              accessible name. Naming it again would give a screen-reader user
+              the same phrase twice. An image inside an already-named link is
+              decorative by definition.
+              Same reasoning at the other two: the footer mark sits beside the
+              company name in text, and the product placeholder sits above the
+              SKU. The logo ARTWORK problem — an opaque near-white rectangle
+              across the full artboard, so it reads as a clipped square on the
+              navy bar — is not a code fix and is owner action 9. */}
           <img
             src={site.theme?.logoUrl || "/logo.svg"}
-            alt="IPC logo"
+            alt=""
             width={46}
             height={46}
             style={{ flexShrink: 0, display: "block" }}
@@ -1822,9 +1835,24 @@ function Hero() {
               via :focus-within. With nothing scrolling it is a tab stop that
               does nothing and announces nothing, so it is dropped in that mode
               rather than left as furniture. */}
+          {/* C50 — a named group, not an unlabelled tab stop.
+              This was a bare <div tabIndex={0}> 5,012px wide with no role and
+              no name, so a screen reader announced the entire certification
+              strip as one anonymous blob and a keyboard user hit a stop that
+              said nothing about why it existed. The tabIndex is deliberate —
+              :focus-within pauses the scroll — so the capability stays and
+              gains a name that explains it. Under reduce there is no animation
+              to pause, so B14 drops the tab stop entirely and the role goes
+              with it; a group with nothing to operate is furniture. */}
           <div
             className={reducedMotion ? "ipc-marquee-track ipc-marquee-static" : "ipc-marquee-track"}
-            {...(reducedMotion ? {} : { tabIndex: 0 })}
+            {...(reducedMotion
+              ? {}
+              : {
+                  tabIndex: 0,
+                  role: "group",
+                  "aria-label": "Certifications and standards — focus to pause the scrolling",
+                })}
             style={{ padding: "14px 0" }}
           >
             {(reducedMotion ? trustItems : [...trustItems, ...trustItems]).map((item, idx) => (
@@ -2829,7 +2857,7 @@ function DatasheetsPage({ products }) {
                       key={p.sku || p.id}
                       href={p.pdfUrl}
                       target="_blank"
-                      rel="noopener"
+                      rel="noopener noreferrer"
                       className="rounded-lg flex items-start gap-3 transition-all duration-150 hover:shadow-md"
                       style={{
                         border: "1px solid #e5e9ee", background: "#ffffff",
@@ -4707,9 +4735,27 @@ function ContactPage() {
             })}
           </div>
 
-          {/* Tab 1 — RFQ form */}
+          {/* Tab 1 — RFQ form.
+              C40 — method and action, so the no-JS path degrades to a real
+              submission instead of leaking the lead into the URL.
+              With neither attribute a form defaults to GET against the current
+              address: if the bundle fails, submitting put the sender's name,
+              email and message into the query string and reloaded the page.
+              The enquiry was lost and the PII went into history, and into any
+              proxy or server log along the way.
+              contact.php reads $_POST directly and these field names already
+              match it, so the lead is captured by the same code path the fetch
+              uses. It answers with JSON rather than a styled page — the
+              enquiry arriving matters more than what the fallback looks like,
+              and changing the response contract means touching a file that
+              deliberately does not HTML-escape (invariant 10).
+              This comment lives HERE, not after the `&&`: that position is a
+              JS expression, where {\/* *\/} is not a comment and breaks the
+              build. */}
           {activeTab === "rfq" && (
             <form
+              method="post"
+              action="/contact.php"
               onSubmit={onRfqSubmit}
               className="bg-white rounded-2xl p-5 sm:p-8 space-y-5"
               style={{
@@ -4960,6 +5006,8 @@ function ContactPage() {
           {/* Tab 2 — General message form */}
           {activeTab === "message" && (
             <form
+              method="post"
+              action="/contact.php"
               onSubmit={onMsgSubmit}
               className="bg-white rounded-2xl p-5 sm:p-8 space-y-5"
               style={{
@@ -7496,6 +7544,7 @@ function ProductDetail({ product, allProducts }) {
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
                   {product.pdfLabel || "Download PDF"}
+                  <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants (e.g. IP52EC plugged-cap) — same styling */}
                 {Array.isArray(product.additionalPdfs) &&
@@ -7529,6 +7578,7 @@ function ProductDetail({ product, allProducts }) {
                         <polyline points="9 15 12 18 15 15" />
                       </svg>
                       {extra.label || "Download PDF"}
+                      <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
               </>
@@ -7654,7 +7704,10 @@ function ProductDetail({ product, allProducts }) {
                 border: "1px solid #1a3a5c",
               }}
             >
-              <img src={site.theme?.logoUrl || "/logo.svg"} alt="IPC logo" width={72} height={72} />
+              {/* C43 — decorative. The panel beneath states the SKU and
+                  "product image coming soon"; the mark adds nothing a screen
+                  reader needs. */}
+              <img src={site.theme?.logoUrl || "/logo.svg"} alt="" width={72} height={72} />
               <div style={{ textAlign: "center" }}>
                 <div
                   style={{
@@ -8114,14 +8167,21 @@ function ProductPage({ products }) {
             >
               {product.sku}
             </div>
+            {/* C46 — two lines, clamped on a word boundary rather than one
+                line cut mid-word. This was nowrap + ellipsis, which produced
+                "Commercial Grade Polyolefin Tubi…", "UV Resistant PVC Heat
+                Shrink Tub…" and "Thin Wall Heat Shrinkable Polyol…" across
+                most of the catalog — in the one view where the name is all a
+                buyer has to go on. line-clamp breaks between words. */}
             <div
               style={{
                 fontSize: 13,
                 fontWeight: 600,
                 color: "var(--brand-dark-ink)",
                 overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 2,
                 maxWidth: 400,
               }}
             >
@@ -8176,6 +8236,7 @@ function ProductPage({ products }) {
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
                   {product.pdfLabel || "Data Sheet"}
+                  <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants — same styling */}
                 {Array.isArray(product.additionalPdfs) &&
@@ -8223,6 +8284,7 @@ function ProductPage({ products }) {
                         <polyline points="9 15 12 18 15 15" />
                       </svg>
                       {extra.label || "Data Sheet"}
+                      <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
               </>
@@ -10192,17 +10254,16 @@ function ServicesPage() {
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
                   Download {svc.brochure.label} ↗
+                  <span className="sr-only"> (opens in a new tab)</span>
                 </a>
-              ) : (
-                <div
-                  className="px-6 py-4"
-                  style={{
-                    background: "#f8fafc",
-                    borderTop: "1px solid #e5e9ee",
-                  }}
-                  aria-hidden="true"
-                />
-              )}
+              ) : null}
+              {/* C44 — no empty band. This used to render a grey capped strip
+                  with nothing in it whenever a service had no brochure, to
+                  "preserve the card silhouette". Next to Hot-Stamp Marking,
+                  which has a link in exactly that position, Cut-to-Length read
+                  as a link that had failed to load. An empty section renders
+                  nothing rather than chrome around nothing — the same shape as
+                  PLAN-5's 4.29. */}
             </div>
           ))}
         </div>
@@ -10614,7 +10675,7 @@ function Footer() {
             <div className="flex items-center gap-3 mb-4">
               <img
                 src={site.theme?.logoUrl || "/logo.svg"}
-                alt="IPC logo"
+                alt=""
                 // 4.32 — below the fold on every route (measured: top=2075 on
                 // the shortest page, 5218 at 375), so this one IS a lazy
                 // candidate. The navbar copy above is not, and keeps its
@@ -10701,10 +10762,11 @@ function Footer() {
                   <a
                     href={site.catalogPdfUrl}
                     target="_blank"
-                    rel="noopener"
+                    rel="noopener noreferrer"
                     style={{ color: "#cbd5e1", textDecoration: "none" }}
                   >
                     Full product catalog (PDF)
+                    <span className="sr-only"> (opens in a new tab)</span>
                   </a>
                 </div>
               ) : null}

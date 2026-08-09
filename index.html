@@ -54,6 +54,33 @@
     -->
   </head>
   <body>
+    <!-- C38 — the whole site is client-rendered, so with JavaScript off or the
+         bundle failing to load a visitor got a blank white page and no way to
+         reach anyone. This is the floor: who IPC is, and how to call them.
+
+         These values are a SECOND COPY of data/site-info.json and will not
+         follow an admin edit — this is a static shell, so there is nowhere to
+         read the live values from. That is a deliberate trade for a fallback
+         that only ever renders when everything else has already failed, and it
+         is written down here so nobody "fixes" it by wiring it to something
+         that needs the bundle it exists to survive. If the phone number
+         changes, change it here too.
+         Styles are inline for the same reason: the CSS bundle may be the thing
+         that failed. -->
+    <noscript>
+      <div style="max-width:38rem;margin:0 auto;padding:2.5rem 1.5rem;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#141414;line-height:1.55">
+        <h1 style="font-size:1.4rem;margin:0 0 .25rem">Insulation Products Corporation</h1>
+        <p style="margin:0 0 1.25rem;color:#4b5563">Heat shrink tubing, sleeving &amp; adhesives &mdash; Bolingbrook, Illinois, since 1974.</p>
+        <p style="margin:0 0 1.25rem;padding:.75rem 1rem;background:#f8fafc;border:1px solid #e5e9ee;border-radius:6px">
+          This site needs JavaScript to browse the catalog. Please call or email us and we will help you directly.
+        </p>
+        <p style="margin:0 0 .4rem"><strong>Phone</strong> <a href="tel:+16307710700" style="color:#0a2240">630.771.0700</a></p>
+        <p style="margin:0 0 .4rem"><strong>Fax</strong> 630.771.0701</p>
+        <p style="margin:0 0 .4rem"><strong>Email</strong> <a href="mailto:sales@insulationproducts.com" style="color:#0a2240">sales@insulationproducts.com</a></p>
+        <p style="margin:0 0 .4rem">250 Gibraltar Dr, Bolingbrook, IL 60440</p>
+        <p style="margin:0;color:#4b5563">Mon&ndash;Fri, 8am&ndash;5pm CT</p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
