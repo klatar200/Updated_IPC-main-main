@@ -49,7 +49,12 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // `plan2-trunc.js` is re-run against a real max_input_vars=100 server at the new
 // count — that is the assertion that matters; this one is bookkeeping.
 // (PLAN-6 §0, invariant 6.)
-const POSTED_BEFORE = 439;
+//
+// 2026-08-09: **441** after PLAN-8 C39 added two contactForm copy fields,
+// `requiredLegend` and `privacyNote`. Measured 439 -> 441, i.e. exactly the
+// two fields added and nothing else. plan2-trunc.js re-run at 441 against the
+// real max_input_vars=100 server on :8124.
+const POSTED_BEFORE = 441;
 
 const results = [];
 const note = (ok, what, detail = '') => {

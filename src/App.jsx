@@ -4950,6 +4950,12 @@ function ContactPage() {
                 boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
               }}
             >
+              {/* C39 — the `*` legend. First in the form, so the convention is
+                  explained BEFORE the first label that uses it rather than
+                  after the visitor has had to infer it. */}
+              <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
+                {cf.requiredLegend}
+              </p>
               {/* Honeypot — hidden from humans, bots fill it in */}
               <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
                 <label htmlFor="rfq-website">Website</label>
@@ -5167,6 +5173,25 @@ function ContactPage() {
               {/* Above the submit control, inside the form — where the visitor
                   already is when it fails. Replaces the alert dialog. (4.5) */}
               {errorRegion}
+              {/* C39 — the privacy note, immediately above submit: the moment
+                  the visitor decides whether to hand over their details. The
+                  link is appended in code rather than being part of the
+                  owner's string, so retyping the note cannot break the link
+                  or point it somewhere else. */}
+              <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
+                {cf.privacyNote}{" "}
+                <PageLink
+                  page="privacy"
+                  style={{
+                    color: "var(--brand-primary-text)",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 2,
+                  }}
+                >
+                  Privacy Policy
+                </PageLink>
+                .
+              </p>
               <button
                 type="submit"
                 disabled={submitting}
@@ -5202,6 +5227,12 @@ function ContactPage() {
                 boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
               }}
             >
+              {/* C39 — the `*` legend. First in the form, so the convention is
+                  explained BEFORE the first label that uses it rather than
+                  after the visitor has had to infer it. */}
+              <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
+                {cf.requiredLegend}
+              </p>
               {/* Honeypot — hidden from humans, bots fill it in */}
               <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
                 <label htmlFor="msg-website">Website</label>
@@ -5318,6 +5349,22 @@ function ContactPage() {
                 />
               </div>
               {errorRegion}
+              {/* C39 — the same privacy note as the quote tab. Both forms
+                  collect the same personal details, so both say so. */}
+              <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
+                {cf.privacyNote}{" "}
+                <PageLink
+                  page="privacy"
+                  style={{
+                    color: "var(--brand-primary-text)",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 2,
+                  }}
+                >
+                  Privacy Policy
+                </PageLink>
+                .
+              </p>
               <button
                 type="submit"
                 disabled={submitting}
@@ -6275,7 +6322,25 @@ const COPY_DEFAULTS = {
     emailLabel: "Email *",
     emailPlaceholder: "you@company.com",
     phoneLabel: "Phone",
-    phonePlaceholder: "Optional",
+    // C39 — every other placeholder on this form is a worked example; this one
+    // said "Optional", which only repeats what the unstarred label already
+    // says and teaches nothing about the format. DATA: content.json has
+    // "Optional" saved, so this default fixes a fresh install only and the
+    // live string is an owner action — the same shape as the B22 date
+    // placeholder above.
+    //
+    // NOTE: no apostrophes or stray backticks in comments inside this object.
+    // _harness/copydrift.js brace-matches COPY_DEFAULTS and skips string
+    // literals, but not comments, so a lone quote character opens a phantom
+    // string that swallows the closing brace and the whole copy contract fails
+    // to evaluate. admin/content.php carries the same warning for the same
+    // reason. Write "the B22 placeholder" rather than the possessive.
+    phonePlaceholder: "e.g. 630.771.0700 ext 12",
+    // C39 — new. There was no legend explaining the star, and no privacy note
+    // anywhere near the submit control, on a form that collects a name, an
+    // email, a phone number and a company.
+    requiredLegend: "Fields marked * are required.",
+    privacyNote: "We use your details only to answer this enquiry. See our",
     companyLabel: "Company",
     companyPlaceholder: "Your organization",
     tipsTitle: "For fastest response, include:",

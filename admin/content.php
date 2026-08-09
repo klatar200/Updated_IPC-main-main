@@ -392,6 +392,21 @@ $COPY_GROUPS = [
         ['key' => 'emailPlaceholder',    'type' => 'text',     'label' => 'Field: Email — placeholder'],
         ['key' => 'phoneLabel',          'type' => 'text',     'label' => 'Field: Phone — label'],
         ['key' => 'phonePlaceholder',    'type' => 'text',     'label' => 'Field: Phone — placeholder'],
+        // C39. Both are new keys and both have a matching default in
+        // COPY_DEFAULTS over in App.jsx — a key here with no default there is
+        // a silent data-loss path with a green success banner on it, because
+        // mergeContent iterates Object.keys(defaults). _harness/copydrift.js
+        // enforces that and runs inside lint.php.
+        //
+        // NOTE: no apostrophes in comments inside this literal.
+        // _harness/dump-copy-groups.php bracket-matches to the closing "];"
+        // and skips string literals so a bracket in a label cannot unbalance
+        // it — but it does not skip COMMENTS. A lone apostrophe therefore
+        // opens a phantom string that swallows every following bracket, and
+        // the whole copy-drift check dies with "unbalanced". Cost 10 minutes
+        // the first time; write "the App.jsx side" rather than the possessive.
+        ['key' => 'requiredLegend',      'type' => 'text',     'label' => 'Form — “* required” legend'],
+        ['key' => 'privacyNote',         'type' => 'text',     'label' => 'Form — privacy note above submit (the Privacy Policy link is added automatically)'],
         ['key' => 'companyLabel',        'type' => 'text',     'label' => 'Field: Company — label'],
         ['key' => 'companyPlaceholder',  'type' => 'text',     'label' => 'Field: Company — placeholder'],
         ['key' => 'tipsTitle',           'type' => 'text',     'label' => 'Sidebar tips — heading'],
