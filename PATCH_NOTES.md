@@ -758,3 +758,76 @@ owner makes himself, and none needs a developer.
    only changes the value saved on the live server.
 
 **Not yet deployed.**
+
+---
+
+# 2026-08-09b — PLAN-7 items 1 and 2, marketing imagery
+
+## The site had no photography
+
+**Seven pages painted none of it.** `src/App.jsx` held four `<img>` elements in
+9,900 lines and three of them were the logo. Meanwhile `public/images/site/`
+held 22 files, about 1 MB, referenced by nothing and shipping to the server on
+every deploy — the customer's own photographs of his own team, his own
+building and his own printed work, paid for on every page load and shown to
+nobody.
+
+Four of them are now on the page: the printed sleeves in the homepage hero's
+right column, the team and the facility in a band between the feature cards
+and the markets, the facility again on About, and the printed work again above
+the Services cards.
+
+**This cost nothing.** The plan expected the site to get heavier; measured, the
+files already cover the boxes they are painted into as well as their sources
+allow, so not one was re-encoded. Buying a true retina hero photo would have
+cost **75 KB for a 0.29× sharpness gain** on a decorative image, and was not
+bought.
+
+**A hidden image is still downloaded.** The hero photo is desktop-only, and the
+first version hid it with a CSS class — which costs the visitor the bytes and
+shows them nothing. On a phone the file is now never requested: **122 KB saved
+on every mobile homepage load**, confirmed by intercepting the requests rather
+than by reading the markup.
+
+The photograph sits where **no text crosses it**. That is not a style
+preference: three full-bleed treatments were built and rejected, because the
+best photograph in the set is a photograph *of text* — printed sleeves reading
+"TRANSDUCER END" and "CAUTION: RF SHOCK HAZARD" — and a headline over it is
+typography over typography that no darkening fixes.
+
+## The contrast harness would have lied about it
+
+**The tool that checks whether text is readable could not see photographs.**
+Its background reader understood gradients and silently ignored anything else,
+then scored the text against whatever was *behind* the thing it had ignored —
+returning a confident pass for a background nobody sees. Nothing on the site
+had a photograph behind text, so it had never mattered. Putting one on the
+homepage would have made it matter on the busiest element there is.
+
+It now records every layer it cannot read, and all three contrast suites fail
+if they ever see one. Alongside it, a second method reads the **actual pixels**
+under the text and scores against the worst one — because an average passes a
+white headline over a photo that is 90 % dark with one bright highlight, and
+the headline is illegible exactly where the highlight is.
+
+Proven rather than asserted: over a test photograph that is black with one
+white corner, the old method reports **21.00:1** (a comfortable pass), the
+average reports **19.42:1**, and the real worst pixel under the text reports
+**1.00:1**.
+
+## Deferred
+
+- **The catalog cover in the footer** was the fifth planned slot. The catalog
+  PDF field is empty, so the slot would paint nothing — and shipping a 127 KB
+  cover image for a slot that never renders would recreate the exact defect
+  this work removes. Worth adding the day that field is filled in.
+- **Owner-editable image slots and an image picker** (PLAN-7 item 3) are not
+  started. Every slot is a fixed path today, so changing a photograph still
+  needs a developer.
+- **The team photograph is painted slightly larger than it really is** — a
+  726 px file in an 845 px box. The original is the same size, so no
+  re-encoding can fix it; only a new photograph would.
+
+**Not yet deployed.** `public/images/site/` joins `data/`, `pdfs/` and
+`uploads/` on the do-not-re-upload list from the first deploy onward, because
+four of its files are now referenced by rendered pages.

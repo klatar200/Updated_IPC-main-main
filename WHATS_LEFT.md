@@ -3443,3 +3443,115 @@ added across the whole tier, all of them classes actually used:
 `.xl\:grid-cols-3` (C29 grid), `.gap-x-2` (C33 trail), `.pb-1` (C37 spacing).
 No comment emitted a rule this time — the two new warning comments were written
 without naming a utility.
+
+## 1h. Shipped in PLAN-7 items 1 and 2 (2026-08-09)
+
+| Item | What shipped | Suite |
+|---|---|---|
+| 1 | `backdrop.js` records every background layer it cannot evaluate; all three contrast suites fail on one; a pixel primitive scores ink against the worst pixel actually painted | `backdrop-selftest` 9/9 |
+| 2 | Four marketing photographs painted across the homepage, About and Services — at **zero** added bytes | `plan7-imagery` 11/11 |
+
+**Item 1.** The layer walk did `if (!g) continue;` for anything `parseLinear`
+could not read — every `url()`, `radial-gradient`, `conic-gradient` and
+`image-set()` — then composited the layers it DID understand over whatever sat
+BELOW the unreadable one and returned a confident number for a background no
+visitor sees. Unreachable when found; item 2 was about to make it reachable on
+the highest-traffic element there is.
+
+The plan proposed returning the flag as a third value on the array.
+**That would have corrupted the suite it was protecting** —
+`plan5c-eyebrow` does `back.map((bg) => __ipcOver(fg, bg))`, so an appended
+flag is composited as if it were a colour. It is a separate accumulator.
+
+`plan5c-eyebrow` 4/4 → **5/5**, `plan5c-brandink` 5/5 → **6/6**, `brandtext`
+prints `UNSCORABLE BACKGROUND` and exits non-zero independently of its contrast
+verdict.
+
+**Item 2.** Slots at hero right column (Marker-Sample-2), homepage band
+(staff + IPC-Building), About story column, and Services. Placement is the
+2026-08-07 amendment's: no ink crosses any photograph, the hero scrim ramp is
+untouched, and **no contrast debt was added** — asserted over five routes.
+
+## 2g. Open after PLAN-7 items 1 and 2
+
+- **Slots 4 and 5 of the plan's five-slot table.** Slot 4 shipped. **Slot 5
+  (catalog cover in the footer) is DEFERRED**: `site-info.json` has
+  `catalogPdfUrl: ""`, so the slot renders nothing today, and shipping a
+  re-encoded 127 KB `Front-Cover.jpg` for a slot that never paints would
+  recreate the exact defect this item exists to remove. Worth adding the day
+  the owner fills that field in.
+- **PLAN-7 item 3a — owner-editable slot URLs.** Not started. Each slot is a
+  hardcoded path today. Moves the posted-variable count, which is **441**, not
+  the 435 the plan states (PLAN-6 item 1 and PLAN-8 C39 have both moved it
+  since); `plan2-trunc` must be re-run at the new count.
+- **PLAN-7 item 3b — the site image picker.** Not started. The owner still has
+  to type `/images/site/Marker-Sample-2.jpg` and get the capitalisation right,
+  which is not hypothetical — four `photoUrl` values shipped with exactly that
+  defect.
+- **`public/images/site/` now joins the do-not-re-upload list** (PLAN-7 §4).
+  Four of its files are referenced by rendered pages as of this commit. It is
+  not yet live customer state, because nothing is deployed, but it becomes so
+  on first deploy. `DEPLOY_READINESS_v2.md` §7 is frozen and does not say this.
+- **`staff.jpg` is painted above its own resolution.** 726px source into an
+  845px box at 1440 = 0.86x, and the original in git is the same 726px, so no
+  re-encode can fix it. Acceptable and recorded; the only fix is a new
+  photograph, which is an owner action nobody has asked for.
+
+## 4t. Verification evidence for PLAN-7 items 1 and 2 (2026-08-09)
+
+### Item 1 — the mutation proof is the point
+
+`backdrop-selftest.js` builds the situation the bug needs: white text over a
+generated photograph that is black except for a white blowout, on a black
+parent. It then requires the two methods to **disagree**.
+
+- gradient maths: **21.00:1** — it skipped the raster and scored the parent.
+- worst pixel actually under the ink: **1.00:1** — the blowout.
+- the **mean** of the same photo: **19.42:1**, which is the argument for worst
+  being the statistic. A white headline over a photo that is 90% dark and 10%
+  chrome highlight averages to a comfortable pass and is illegible exactly
+  where the highlight is.
+
+If those ever converge, the pixel read is not reaching the photo and the
+primitive is theatre.
+
+The suite-level guard was proven separately: adding a 1px GIF layer behind
+`.ipc-page-header` drops `plan5c-eyebrow` to **4/5**. Reverted; `src/App.jsx`
+byte-identical.
+
+No PNG decoder was added. Node clips the screenshot, Chromium decodes it on a
+canvas — $0 budget, and the decoder is the engine that painted the pixels.
+
+### Item 2 — measured, and three things it caught
+
+Paint boxes at 1440, measured in the browser, against what each file carries:
+
+| file | painted | file | density | source ceiling |
+|---|---|---|---|---|
+| `Marker-Sample-2.jpg` | 584px | 1000px | 1.71x | 4.11x |
+| `staff.jpg` | 845px | 726px | **0.86x** | 0.86x |
+| `IPC-Building.jpg` | 411px | 425px | 1.03x | 1.03x |
+
+**Nothing was re-encoded.** The plan expected the tree to get bigger; it did
+not need to. A true 2x on the hero photo costs **+75 KB for +0.29x** on a
+decorative image. `imgopt-plan7.js` prints that decision rather than hiding it.
+It also measured that **4:2:0 chroma never cleared the 38 dB floor at any
+quality** on Marker-Sample-2 — it is a photograph of printed text, where
+coloured edges are the subject.
+
+Three defects, all found by measuring:
+
+1. **A hidden image is still downloaded** — the defect the amendment flagged in
+   the mockup. Intercepted: at 390 the request list is `staff.jpg`,
+   `IPC-Building.jpg` only, while `Marker-Sample-2` is in the DOM and
+   invisible; at 1440 all three. **122 KB saved per mobile homepage load**, and
+   the assertion is non-vacuous.
+2. **The photo landed in the wrong column.** The proof-cards grid IS the hero's
+   right column — no wrapper — so appending the picture after it made a third
+   item in the outer two-column grid and it wrapped to a new row at **x=104**,
+   under the headline. The suite passed; the screenshot did not. Wrapped, now
+   **x=752**.
+3. **The Tailwind extractor, a seventh time.** The comment explaining that the
+   tree would get bigger used the word that is also a flex utility and emitted
+   `.grow`. At least the fourth occurrence inside a comment about something
+   else. Reworded; `cssdiff` clean.
