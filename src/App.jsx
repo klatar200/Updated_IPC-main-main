@@ -8675,11 +8675,17 @@ function ProductPage({ products }) {
   // which is a duplicate-content overlap with ?productId=CC and leaves the
   // natural landing page for a "product catalog" search non-existent.
   //
-  // A bad ?productId= still falls back to the first product, because that
-  // path shows the not-found banner and needs something behind it. Only the
-  // no-param case becomes the landing.
+  // PLAN-9 item 2 — a bad ?productId= no longer falls back to products[0].
+  // That fallback predates C29: it was "needs something behind it" when there
+  // was no landing state to show, and by the time the landing existed the
+  // not-found banner already promised "Showing the catalog instead" while the
+  // render showed CC's full detail — with CC's sticky RFQ bar quoting a part
+  // the buyer never asked about (audit 2026-08-09 finding 2). The landing is
+  // what stands behind the banner now; `product` is null on that path, which
+  // everything below already handles (crumbTrail guards on !product, the
+  // sticky bar is {product && …}, ProductSidebar takes product ? product.id : null).
   const landing = !selectedId;
-  const product = selectedId ? matched || products[0] || null : null;
+  const product = matched;
 
   // C33 — the breadcrumb trail for this route.
   const families = familyOrder(useContent());
@@ -8788,8 +8794,11 @@ function ProductPage({ products }) {
               no visual change at all.
               C29 has now given /products that landing state, so the heading
               below is a real <h1> when nothing is selected and stays a div
-              when a product is. */}
-          {landing ? (
+              when a product is.
+              PLAN-9 item 2 — the not-found path joins the landing state: it
+              renders the landing (no ProductDetail, so no product-name <h1>),
+              and without this branch it would have no h1 at all. */}
+          {landing || notFound ? (
             <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
               Product Catalog
             </h1>
@@ -8802,7 +8811,7 @@ function ProductPage({ products }) {
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
-            {landing
+            {landing || notFound
               ? `Browse all ${products.length} products — heat shrink tubing, sleeving, tapes, adhesives and accessories. Select one for full specifications, its data sheet, and a quote request.`
               : "Select another product from the list to view full specifications, data sheet, and request a quote."}
           </p>
@@ -8875,7 +8884,7 @@ function ProductPage({ products }) {
           }}
         />
         <div ref={detailRef} className="flex-1 min-w-0">
-          {landing ? (
+          {landing || notFound ? (
             <CatalogLanding products={products} />
           ) : (
             <ProductDetail product={product} allProducts={products} />
