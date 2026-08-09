@@ -5715,7 +5715,11 @@ function canonicalFor(page, productId) {
  * Nothing renders for a trail of fewer than two entries: a lone "Home" is
  * noise, and emitting a one-item BreadcrumbList is worse than emitting none.
  */
-function Breadcrumb({ trail }) {
+// PLAN-9 item 3 — `ld` suppresses only the #breadcrumb-ld structured data:
+// a soft-404 must not emit a BreadcrumbList (the same error class as a
+// self-referencing canonical on one). The visible nav is a human affordance
+// and stays either way.
+function Breadcrumb({ trail, ld = true }) {
   const items = Array.isArray(trail) ? trail.filter((c) => c && c.label) : [];
   const enough = items.length >= 2;
 
@@ -5725,7 +5729,7 @@ function Breadcrumb({ trail }) {
   const key = items.map((c) => `${c.label}|${c.page}|${JSON.stringify(c.params || {})}`).join(">");
 
   useEffect(() => {
-    if (!enough) return undefined;
+    if (!enough || !ld) return undefined;
     const el = document.createElement("script");
     el.id = "breadcrumb-ld";
     el.type = "application/ld+json";
@@ -5748,7 +5752,7 @@ function Breadcrumb({ trail }) {
     document.head.appendChild(el);
     return () => { document.getElementById("breadcrumb-ld")?.remove(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, enough]);
+  }, [key, enough, ld]);
 
   if (!enough) return null;
 
@@ -6970,10 +6974,17 @@ function PageMeta({ products }) {
     // than read from useProducts(): that hook carries a module-level cache and
     // a mount-once assumption documented at its definition, and a second call
     // site would be a second mount.
-    const product =
+    // PLAN-9 item 3 — matched via findProductByParam, the SAME ladder
+    // ProductPage renders with. Exact-id-only matching here meant an alias
+    // URL rendered a product whose head described a different page.
+    const matched =
       productId && Array.isArray(products)
-        ? products.find((p) => p.id === productId) || null
+        ? findProductByParam(products, productId)
         : null;
+    // An id that matches nothing renders the catalog landing under a
+    // not-found banner (item 2) — a soft-404 on the product axis, treated
+    // exactly as A5 treats an unknown path segment.
+    const unknownProduct = !!productId && !matched;
 
     // Title fallback. Two things used to go wrong here:
     //
@@ -7017,14 +7028,14 @@ function PageMeta({ products }) {
     // /products row. All 42 names are distinct, so the name alone makes the
     // title unique; the SKU is appended when it is not already in the name so a
     // buyer scanning search results sees the part number they searched for.
-    if (product) {
-      const sku = (product.sku || "").trim();
-      const name = (product.name || "").trim();
+    if (matched) {
+      const sku = (matched.sku || "").trim();
+      const name = (matched.name || "").trim();
       const label = sku && !name.toUpperCase().includes(sku.toUpperCase())
         ? `${name} — ${sku}` : name;
       title = `${label} — ${site.company.name}`;
-      const summary = String(product.specificationsSummary || "").trim();
-      const kind = String(product.partType || "").trim();
+      const summary = String(matched.specificationsSummary || "").trim();
+      const kind = String(matched.partType || "").trim();
       desc = localizeProse(
         [
           sku ? `${name} (${sku})` : name,
@@ -7037,6 +7048,12 @@ function PageMeta({ products }) {
 
     // A5 — an unknown segment is not a page about anything. It gets the
     // not-found title and no description worth indexing.
+    // PLAN-9 item 3 — an unknown ?productId= gets the same treatment on the
+    // product axis: "Part not found", nothing worth indexing.
+    if (unknownProduct) {
+      title = `Part not found — ${site.company.name}`;
+      desc = "";
+    }
     if (unknownRoute) {
       title = `Page not found — ${site.company.name}`;
       desc = "";
@@ -7078,7 +7095,13 @@ function PageMeta({ products }) {
     // C33 — this was an inline expression; it is now canonicalFor(), shared
     // with the BreadcrumbList so the trail's last item and this tag cannot
     // drift apart. Identical output, one definition.
-    const canonical = canonicalFor(page, productId);
+    //
+    // PLAN-9 item 3 — the MATCHED id, not the raw param. ?productId=cc
+    // renders CC's detail, so its canonical must declare ?productId=CC —
+    // agreeing with the BreadcrumbList byte for byte. Exact ids are unchanged
+    // (matched.id === productId). No redirect: the canonical tag is the
+    // declared mechanism site-wide (A3/C33).
+    const canonical = canonicalFor(page, matched ? matched.id : null);
     let link = document.querySelector('link[rel="canonical"]');
 
     // A5 — an unknown segment gets `noindex` and NO canonical.
@@ -7093,9 +7116,14 @@ function PageMeta({ products }) {
     // a self-referencing canonical on a soft 404 tells a crawler the page is
     // the real, preferred version of itself, which is the opposite of the
     // intent. So the tag is REMOVED rather than left pointing anywhere.
-    if (unknownRoute) {
+    // PLAN-9 item 3 — an unknown ?productId= joins this branch (the same
+    // soft-404, on the product axis), and og:url is removed alongside the
+    // canonical: index.html ships a homepage og:url that would otherwise
+    // survive here.
+    if (unknownRoute || unknownProduct) {
       setMeta("name", "robots", "noindex");
       if (link) link.remove();
+      document.querySelector('meta[property="og:url"]')?.remove();
     } else {
       const robots = document.querySelector('meta[name="robots"]');
       if (robots) robots.remove();
@@ -7118,8 +7146,8 @@ function PageMeta({ products }) {
     // branded placeholder falls back to the card, because a link preview of a
     // "PRODUCT IMAGE COMING SOON" panel is worse than the company card.
     const photo =
-      product && product.photoUrl && !String(product.photoUrl).includes("placehold.co")
-        ? String(product.photoUrl)
+      matched && matched.photoUrl && !String(matched.photoUrl).includes("placehold.co")
+        ? String(matched.photoUrl)
         : "";
     const ogImage = photo
       ? (/^https?:\/\//.test(photo) ? photo : SITE_ORIGIN + (photo.startsWith("/") ? "" : "/") + photo)
@@ -8550,6 +8578,30 @@ function skuSegmentMatch(sku, needle) {
     .includes(n);
 }
 
+// PLAN-9 item 3 — ONE matching definition, shared by ProductPage (what
+// renders) and PageMeta (what the head declares). This ladder lived inline in
+// ProductPage while PageMeta matched exact-id only, so an alias URL like
+// ?productId=cc rendered CC's detail under the generic catalog title with a
+// self-canonical of the raw param — a duplicate of the real CC page (audit
+// 2026-08-09 finding 3). Same one-definition rule C33 applied to the
+// canonical, for the same reason: two constructions is how they drift.
+// Exact, then whole-SKU-ignoring-punctuation, then whole-segment match.
+// No blind fall-through to products[0] — see notFound in ProductPage.
+function findProductByParam(products, raw) {
+  return raw
+    ? products.find((p) => p.id === raw || p.sku === raw) ||
+      products.find(
+        (p) =>
+          normalizeSku(p.sku) === normalizeSku(raw) ||
+          normalizeSku(p.id) === normalizeSku(raw),
+      ) ||
+      products.find(
+        (p) => skuSegmentMatch(p.sku, raw) || skuSegmentMatch(p.id, raw),
+      ) ||
+      null
+    : null;
+}
+
 /**
  * C29 — the catalog landing grid shown on a bare /products.
  *
@@ -8650,20 +8702,9 @@ function ProductPage({ products }) {
   // Read-only now: the sidebar's <PageLink>s write ?productId= themselves, so
   // nothing in this component sets it. (PLAN-1 4.21)
   const [selectedId] = useSearchParam("productId");
-  // Exact, then whole-SKU-ignoring-punctuation, then whole-segment match.
-  // No blind fall-through to products[0] — see notFound below.
-  const matched = selectedId
-    ? products.find((p) => p.id === selectedId || p.sku === selectedId) ||
-      products.find(
-        (p) =>
-          normalizeSku(p.sku) === normalizeSku(selectedId) ||
-          normalizeSku(p.id) === normalizeSku(selectedId),
-      ) ||
-      products.find(
-        (p) => skuSegmentMatch(p.sku, selectedId) || skuSegmentMatch(p.id, selectedId),
-      ) ||
-      null
-    : null;
+  // The match ladder is findProductByParam — one definition, shared with
+  // PageMeta (PLAN-9 item 3).
+  const matched = selectedId ? findProductByParam(products, selectedId) : null;
   const notFound = !!selectedId && !matched;
   // C29 — a bare /products is the CATALOG, not a product.
   //
@@ -8770,8 +8811,10 @@ function ProductPage({ products }) {
           from the product's OWN partType, checked against familyOrder() so an
           owner-renamed family is honoured and a partType that is not a family
           at all is dropped rather than linked to an empty filter. There is no
-          second hardcoded list. Above the band, not in it — see Breadcrumb. */}
-      <Breadcrumb trail={crumbTrail} />
+          second hardcoded list. Above the band, not in it — see Breadcrumb.
+          ld={!notFound}: the soft-404 keeps the visible trail but must not
+          emit BreadcrumbList structured data (PLAN-9 item 3). */}
+      <Breadcrumb trail={crumbTrail} ld={!notFound} />
 
       {/* Page header */}
       <div
