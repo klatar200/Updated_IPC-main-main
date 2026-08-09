@@ -136,6 +136,56 @@ const READ_BLANK_LINKS = () =>
     await mp.screenshot({ path: path.join(OUT, 'mobile-names.png'), fullPage: false });
     await mctx.close();
 
+    // ── C30 / C31 — industry deep links ───────────────────────────────────
+    const ictx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const ip = await ictx.newPage();
+
+    await ip.goto(BASE + '/', { waitUntil: 'networkidle' });
+    rec.marketCards = await ip.evaluate(() =>
+      [...document.querySelectorAll('a[href*="/industries"]')].map((a) => a.getAttribute('href'))
+    );
+
+    await ip.goto(BASE + '/industries', { waitUntil: 'networkidle' });
+    rec.industryIds = await ip.evaluate(() =>
+      [...document.querySelectorAll('[id^="industry-"]')].map((e) => e.id)
+    );
+    rec.industryCtas = await ip.evaluate(() =>
+      [...document.querySelectorAll('a[href*="/contact"]')]
+        .map((a) => a.getAttribute('href'))
+        .filter((h) => /industry=/.test(h))
+    );
+
+    // A COLD LOAD of a fragment. The browser cannot resolve it — the section
+    // does not exist until React renders — so this is the case that proves
+    // IndustriesPage's own effect works and not just the click handler.
+    await ip.goto(BASE + '/industries#industry-medical', { waitUntil: 'networkidle' });
+    await ip.waitForTimeout(1200);
+    rec.coldAnchor = await ip.evaluate(() => {
+      const el = document.getElementById('industry-medical');
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { top: Math.round(r.top), scrolled: Math.round(window.scrollY) };
+    });
+
+    // An IN-APP click, which goes through PageLink instead.
+    await ip.goto(BASE + '/', { waitUntil: 'networkidle' });
+    await ip.locator('a[href*="industry-medical"]').first().click();
+    await ip.waitForTimeout(1400);
+    rec.clickAnchor = await ip.evaluate(() => {
+      const el = document.getElementById('industry-medical');
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { top: Math.round(r.top), scrolled: Math.round(window.scrollY), hash: location.hash };
+    });
+
+    // C31 — the industry reaches the form.
+    await ip.goto(BASE + '/contact?industry=Medical%20Devices', { waitUntil: 'networkidle' });
+    rec.contactPrefill = await ip.evaluate(() => {
+      const ta = document.querySelector('textarea[name="additionalNotes"]');
+      return ta ? ta.value : null;
+    });
+    await ictx.close();
+
     // C38 — the noscript fallback, read out of the served HTML.
     const res = await fetch(BASE + '/');
     const html = await res.text();
@@ -198,6 +248,46 @@ const READ_BLANK_LINKS = () =>
   note(/tel:/.test(ns) && /Insulation Products Corporation/i.test(ns),
     'the noscript block names the company and carries a working tel: link',
     JSON.stringify(ns.slice(0, 80)));
+
+  // ── C30 ───────────────────────────────────────────────────────────────────
+  const framed = (rec.marketCards || []).filter((h) => /#industry-/.test(h));
+  note(framed.length >= 5 && new Set(framed).size === framed.length,
+    `the homepage market cards deep-link to distinct sections (${framed.length} of ` +
+    `${(rec.marketCards || []).length} links, all different)`,
+    JSON.stringify(rec.marketCards));
+
+  note((rec.industryIds || []).length >= 5,
+    `/industries carries an id per section (${(rec.industryIds || []).join(', ')}) — it had zero`);
+
+  // The assertion that actually matters, and the one whose absence let three
+  // dangling fragments ship: every fragment a card emits must resolve to a
+  // section that exists. Testing one anchor by hand passed because `medical`
+  // is spelled the same in both lists and `auto`/`aero` are not.
+  const ids = new Set(rec.industryIds || []);
+  const dangling = framed
+    .map((h) => h.split('#')[1])
+    .filter((f) => !ids.has(f));
+  note(dangling.length === 0,
+    `every market-card fragment resolves to a real section (${framed.length} checked)`,
+    dangling.map((f) => `#${f} has no matching id`).join(', '));
+
+  note(rec.coldAnchor && Math.abs(rec.coldAnchor.top) < 120 && rec.coldAnchor.scrolled > 200,
+    `a COLD load of /industries#industry-medical lands on the section ` +
+    `(top=${rec.coldAnchor ? rec.coldAnchor.top : '?'}, scrollY=${rec.coldAnchor ? rec.coldAnchor.scrolled : '?'})`,
+    JSON.stringify(rec.coldAnchor));
+
+  note(rec.clickAnchor && Math.abs(rec.clickAnchor.top) < 120 && rec.clickAnchor.scrolled > 200,
+    `an IN-APP click from the homepage lands on it too, and the URL carries the fragment ` +
+    `(top=${rec.clickAnchor ? rec.clickAnchor.top : '?'}, hash=${rec.clickAnchor ? rec.clickAnchor.hash : '?'})`,
+    JSON.stringify(rec.clickAnchor));
+
+  // ── C31 ───────────────────────────────────────────────────────────────────
+  note((rec.industryCtas || []).length >= 5,
+    `each industry's quote link carries its own industry (${(rec.industryCtas || []).length} links)`,
+    JSON.stringify(rec.industryCtas));
+
+  note(/Medical Devices/.test(rec.contactPrefill || ''),
+    `the contact form arrives with the industry in it (${JSON.stringify(rec.contactPrefill)})`);
 
   const bad = results.filter((r) => !r.ok).length;
   console.log(`\nplan8-polish ${results.length - bad}/${results.length}`);

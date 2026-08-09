@@ -183,7 +183,33 @@ function pageHref(pageVal, params) {
   return path + (qs ? `?${qs}` : "");
 }
 
-function PageLink({ page = null, params, onNavigate, onClick, children, ...rest }) {
+/**
+ * C30 — scroll to an in-page anchor once the target actually exists.
+ *
+ * The browser's own fragment handling is useless in this app: the shell is one
+ * HTML file and the section a fragment names does not exist until React has
+ * rendered the route, so by the time `#industry-medical` is applied there is
+ * nothing to scroll to. Retried across a few frames rather than a fixed
+ * timeout, which either fires too early on a slow render or wastes time on a
+ * fast one.
+ *
+ * Honours prefers-reduced-motion for the same reason B14 exists — a smooth
+ * scroll is motion, and this one can be several thousand pixels.
+ */
+function scrollToAnchor(id, tries = 24) {
+  if (typeof document === "undefined" || !id) return;
+  const el = document.getElementById(id);
+  if (el) {
+    const reduce =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    return;
+  }
+  if (tries > 0) window.requestAnimationFrame(() => scrollToAnchor(id, tries - 1));
+}
+
+function PageLink({ page = null, params, hash, onNavigate, onClick, children, ...rest }) {
   const handleClick = (e) => {
     if (onClick) onClick(e);
     if (e.defaultPrevented) return;
@@ -199,10 +225,22 @@ function PageLink({ page = null, params, onNavigate, onClick, children, ...rest 
     // separate calls lose updates, because react-router v6 reads `prev` from
     // the current URL each time. (DEPLOY_READINESS_v2 — see useSearchParam)
     setSearchParams({ ...(params || {}), page });
+    // C30 — the fragment is written into the URL AFTER the route change, with
+    // replaceState rather than by assigning location.hash. Assigning it would
+    // push a second history entry for one click, so Back would need pressing
+    // twice; and it asks the browser to scroll immediately, which does nothing
+    // because the target has not rendered yet. scrollToAnchor waits for it.
+    if (hash) {
+      window.setTimeout(() => {
+        const url = window.location.pathname + window.location.search + "#" + hash;
+        window.history.replaceState(window.history.state, "", url);
+        scrollToAnchor(hash);
+      }, 0);
+    }
     if (onNavigate) onNavigate();
   };
   return (
-    <a href={pageHref(page, params)} onClick={handleClick} {...rest}>
+    <a href={pageHref(page, params) + (hash ? `#${hash}` : "")} onClick={handleClick} {...rest}>
       {children}
     </a>
   );
@@ -2903,8 +2941,27 @@ function DatasheetsPage({ products }) {
 
 function HomePage() {
   const site = useSiteInfo();
-  const { markets, copy } = useContent();
+  const { markets, copy, industryDetail } = useContent();
   const mk = copy.homeMarkets;
+
+  /**
+   * C30 — the fragment for a market card, or undefined if there is no section
+   * to point at.
+   *
+   * Matched on the visible name because that is the only field the two lists
+   * agree on; their iconKeys do not (auto vs automotive, aero vs aerospace,
+   * and "electronics" has no section at all). Returning undefined for a
+   * non-match is deliberate: the link falls back to the page it always went
+   * to, rather than to a fragment that resolves to nothing.
+   */
+  const marketAnchor = (m) => {
+    if (!m || m.page !== "industries") return undefined;
+    const want = String(m.label || "").trim().toLowerCase();
+    const idx = (industryDetail || []).findIndex(
+      (ind) => String(ind.name || "").trim().toLowerCase() === want
+    );
+    return idx === -1 ? undefined : industryAnchor(industryDetail[idx], idx);
+  };
   return (
     <div>
       <Hero />
@@ -2925,6 +2982,25 @@ function HomePage() {
               <PageLink
                 key={`${i}-${m.label}`}
                 page={m.page}
+                // C30 — deep-link into the section rather than the page.
+                // All six of these pointed at bare /industries, which has no
+                // anchors at all, so clicking "Medical Devices" dropped the
+                // visitor at the top of a 3,479px page with Medical Devices
+                // third of six and no indication they had arrived anywhere.
+                //
+                // Resolved against the industry list rather than built from
+                // this card's own iconKey. The two collections do not share a
+                // vocabulary: the cards say auto / aero / electronics and the
+                // sections say automotive / aerospace / (nothing). Minting
+                // `industry-${m.iconKey}` here produced three dangling
+                // fragments out of six and looked fine, because the one that
+                // happened to be tested — medical — is spelled the same in
+                // both.
+                // A card with no matching section gets no fragment and links
+                // to the page, which is what "electronics" needs and is a
+                // graceful failure if the owner renames one list and not the
+                // other.
+                hash={marketAnchor(m)}
                 className="group rounded-xl p-6 text-left transition-all duration-200 flex flex-col hover:-translate-y-0.5 hover:shadow-lg hover:border-blue-500 hover:bg-blue-50/30"
                 style={{
                   border: "1px solid #e5e9ee",
@@ -4176,6 +4252,13 @@ function ContactPage() {
   const site = useSiteInfo();
   // ?part=SKU set by the product page's "Request Quote" button. (4.6)
   const [prefillPart] = useSearchParam("part");
+  // C31 — which industry the visitor came from, if they arrived from one of
+  // the Industries cards. Same shape as ?part=, and it lands in the notes
+  // rather than in a field of its own: adding a field would mean a new
+  // owner-editable label, a new COPY_DEFAULTS key and a change to
+  // content.php's posted-variable count, for one line of context that reads
+  // perfectly well as a sentence sales can see.
+  const [prefillIndustry] = useSearchParam("industry");
   const _content = useContent();
   const _copy = _content.copy;
   const c = _copy.contactHeader;
@@ -4363,7 +4446,7 @@ function ContactPage() {
     quantity: "",
     requiredDate: "",
     specialReqs: "",
-    additionalNotes: "",
+    additionalNotes: prefillIndustry ? `Industry: ${prefillIndustry}` : "",
   });
   const onRfqChange = makeOnChange(setRfqForm);
   const onRfqSubmit = async (e) => {
@@ -9507,9 +9590,29 @@ const INDUSTRY_DETAIL = [
     },
 ];
 
+/**
+ * C30 — the anchor id for one industry section.
+ *
+ * Built from `iconKey`, NOT from the title. The title is owner-editable prose:
+ * rename "Medical Devices" to "Medical & Life Sciences" in Page Content and
+ * every link pointing at it would break silently, which is the trap PLAN-5's
+ * 4.27 records. `iconKey` is a short stable key chosen from a fixed set, so it
+ * survives a rename.
+ */
+const industryAnchor = (ind, i) =>
+  `industry-${String((ind && ind.iconKey) || i).replace(/[^a-z0-9-]/gi, "").toLowerCase()}`;
+
 function IndustriesPage() {
   const c = useContent().copy.industriesHeader;
   const industries = useContent().industryDetail;
+
+  // C30 — a cold load of /industries#medical. The browser tried to resolve
+  // that fragment before this component existed and gave up; nothing else was
+  // ever going to scroll. Runs once the sections are in the DOM.
+  useEffect(() => {
+    const id = (window.location.hash || "").replace(/^#/, "");
+    if (id) scrollToAnchor(id);
+  }, []);
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -9535,6 +9638,13 @@ function IndustriesPage() {
         {industries.map((ind, i) => (
           <div
             key={`${i}-${ind.name}`}
+            // C30 — the deep-link target. /industries had zero ids in its
+            // content, so all six homepage market cards dropped the visitor at
+            // the top of a 3,479px page with their industry somewhere below.
+            id={industryAnchor(ind, i)}
+            // scroll-margin, or the sticky navbar covers the heading the
+            // fragment just scrolled to.
+            style={{ scrollMarginTop: 84 }}
             className="bg-white rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
             style={{
               border: "1px solid #e5e9ee",
@@ -9717,8 +9827,21 @@ function IndustriesPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  {/* C31 — the quote link carries which industry it came from.
+                      All six cards pointed at a bare /contact, so a buyer who
+                      clicked from Medical Devices arrived at a blank form and
+                      had to retype the context they had just expressed. The
+                      product page already proves the pattern works with
+                      ?part=IP33PO (PLAN-1 4.6); this is the same trick.
+                      The catalog link beside it is NOT scoped, and that half of
+                      C31 is not done: /dashboard filters by `family`, and this
+                      data has no industry-to-family mapping — the industries
+                      carry individual SKUs. Inventing one here would be a
+                      second hardcoded list of exactly the kind PLAN-6 item 1
+                      spent a plan removing. Noted in the handback. */}
                   <PageLink
                     page="contact"
+                    params={{ industry: ind.name }}
                     className="w-full py-2.5 rounded text-sm font-semibold transition-all hover:brightness-110"
                     style={{
                       display: "block",
