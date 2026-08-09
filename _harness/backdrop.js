@@ -29,6 +29,28 @@
 
 /** Installs `window.__ipcBackdrop(el) -> [[r,g,b], [r,g,b]]`. */
 const SOURCE = `(() => {
+  /* PLAN-7 item 1a — the skip is loud now.
+   *
+   * The layer walk below did \`if (!g) continue;\` on any layer parseLinear
+   * could not read, which is every url(), radial-gradient, conic-gradient and
+   * image-set(). It then composited whatever layers it DID understand over
+   * whatever sat BELOW the unreadable one, and returned a confident number for
+   * a background no visitor ever sees.
+   *
+   * Unreachable when this was found — nothing on the site has a raster
+   * background — and PLAN-7 item 2 was about to put one on the highest-traffic
+   * element there is. A silent skip in the one file three contrast suites
+   * trust is the same failure mode as the box-versus-ink error that produced
+   * WHATS_LEFT §2's false "nothing passes AA in the page header" claim.
+   *
+   * Deliberately NOT a third element on the returned array: plan5c-eyebrow
+   * does \`back.map((bg) => __ipcOver(fg, bg))\`, so an appended flag would be
+   * composited as if it were a colour. A separate accumulator cannot be
+   * destructured into by accident, and survives the page.evaluate boundary as
+   * plain data.
+   */
+  window.__ipcBackdropSkips = [];
+
   const parse = (s) => {
     const m = /rgba?\\(([\\d.]+),\\s*([\\d.]+),\\s*([\\d.]+)(?:,\\s*([\\d.]+))?\\)/.exec(s || '');
     return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null;
@@ -173,7 +195,18 @@ const SOURCE = `(() => {
         // CSS paints the FIRST listed background layer on top.
         for (const layer of splitTop(bi)) {
           const g = parseLinear(layer);
-          if (!g) continue;
+          if (!g) {
+            // Loud, not silent. Anything that is not a linear-gradient cannot
+            // be evaluated by gradient maths at all — score it with
+            // worstPixel() instead (item 1b).
+            window.__ipcBackdropSkips.push({
+              tag: n.tagName.toLowerCase(),
+              cls: (typeof n.className === 'string' ? n.className : '').slice(0, 60),
+              layer: layer.slice(0, 80),
+              forText: (el.textContent || '').trim().slice(0, 40),
+            });
+            continue;
+          }
           const [t0, t1] = axisFractions(box, rect, g.angle);
           stack.push({ pair: [gradientAt(g, t0), gradientAt(g, t1)] });
         }
@@ -197,6 +230,61 @@ const SOURCE = `(() => {
   /** Composite a possibly-translucent ink over an already-opaque background. */
   window.__ipcOver = (fg, bg) => composite(fg, bg.concat(1)).slice(0, 3).map(Math.round);
   window.__ipcParse = parse;
+
+  /* PLAN-7 item 1b — the pixel primitive.
+   *
+   * Gradient maths cannot answer "what is behind this glyph" over a
+   * photograph. These two halves let a suite read the REAL painted pixels
+   * instead: __ipcInkBox gives the ink rect in PAGE coordinates so Node can
+   * clip a screenshot to it, and __ipcWorstFromDataUri hands the resulting PNG
+   * back to Chromium to decode on a canvas.
+   *
+   * Round-tripping the image sounds wasteful and is not: the clips are ink
+   * rects, a few thousand pixels, and it means no PNG decoder dependency in a
+   * repo with a $0 budget — decoded by the same engine that painted it. */
+
+  /** The ink rect in PAGE coordinates (viewport rect + scroll offset). */
+  window.__ipcInkBox = function (el) {
+    const r = inkRect(el);
+    return {
+      x: Math.max(0, Math.floor(r.left + window.scrollX)),
+      y: Math.max(0, Math.floor(r.top + window.scrollY)),
+      width: Math.max(1, Math.ceil(r.right - r.left)),
+      height: Math.max(1, Math.ceil(r.bottom - r.top)),
+    };
+  };
+
+  /**
+   * Decode a PNG data URI and return the WORST pixel in it.
+   *
+   * "Worst" is relative to the ink being scored: for light ink the worst
+   * background pixel is the LIGHTEST one, for dark ink the darkest. The mean
+   * is the wrong statistic and quietly passes the real failure — a white
+   * headline over a photo that is 90% dark and 10% chrome highlight averages
+   * to a comfortable pass and is illegible exactly where the highlight is.
+   */
+  window.__ipcWorstFromDataUri = function (uri, mode) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        const ctx = c.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0);
+        const d = ctx.getImageData(0, 0, c.width, c.height).data;
+        const rel = (v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+        let worst = null, worstL = mode === 'light' ? -1 : 2;
+        for (let i = 0; i < d.length; i += 4) {
+          const px = [d[i], d[i + 1], d[i + 2]];
+          const L = 0.2126 * rel(px[0]) + 0.7152 * rel(px[1]) + 0.0722 * rel(px[2]);
+          if (mode === 'light' ? L > worstL : L < worstL) { worstL = L; worst = px; }
+        }
+        resolve({ px: worst, lum: worstL, w: c.width, h: c.height });
+      };
+      img.onerror = () => reject(new Error('could not decode the screenshot'));
+      img.src = uri;
+    });
+  };
 })();`;
 
 const lum = ([r, g, b]) => {
@@ -205,4 +293,36 @@ const lum = ([r, g, b]) => {
 };
 const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
 
-module.exports = { SOURCE, lum, ratio };
+/**
+ * PLAN-7 item 1b, Node half — the worst pixel actually painted under an
+ * element's ink.
+ *
+ * Screenshots the ink rect and hands the PNG back to the page to decode. Use
+ * this instead of __ipcBackdrop wherever __ipcBackdropSkips is non-empty:
+ * that flag means the gradient walk could not see a layer, and its answer is
+ * for a background the visitor never sees.
+ *
+ *   mode 'light'  worst = the LIGHTEST pixel   (scoring light ink)
+ *   mode 'dark'   worst = the DARKEST pixel    (scoring dark ink)
+ *
+ * Returns { px:[r,g,b], lum, w, h } or null when the element has no ink.
+ */
+async function worstPixel(page, handle, mode = 'light') {
+  const box = await page.evaluate((el) => window.__ipcInkBox(el), handle);
+  if (!box || box.width < 1 || box.height < 1) return null;
+  // Clip to the viewport-independent page box. fullPage so a rect below the
+  // fold is still captured rather than silently clamped to the viewport.
+  const buf = await page.screenshot({ clip: box, fullPage: true });
+  const uri = 'data:image/png;base64,' + buf.toString('base64');
+  return page.evaluate(
+    ([u, m]) => window.__ipcWorstFromDataUri(u, m),
+    [uri, mode]
+  );
+}
+
+/** Every background layer the gradient walk could not evaluate, this page. */
+async function skippedLayers(page) {
+  return page.evaluate(() => (window.__ipcBackdropSkips || []).slice());
+}
+
+module.exports = { SOURCE, lum, ratio, worstPixel, skippedLayers };

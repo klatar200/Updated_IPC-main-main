@@ -29,7 +29,14 @@
  */
 
 const { launch } = require('./browser');
-const { SOURCE, ratio } = require('./backdrop');
+const { SOURCE, ratio, skippedLayers } = require('./backdrop');
+
+// PLAN-7 item 1a. backdrop.js's gradient walk silently skipped any layer it
+// could not parse — every url(), radial-gradient and image-set() — and then
+// scored the ink against whatever sat BELOW it. Collected here so a raster
+// background arriving behind text makes this suite fail loudly instead of
+// reporting a number for a background nobody sees.
+const rasterSkips = [];
 
 const BASE = 'http://127.0.0.1:8123';
 const ROUTES = ['/', '/products', '/dashboard', '/industries', '/services', '/about', '/faq', '/contact', '/privacy'];
@@ -122,6 +129,7 @@ function score(r) {
         e.routes.add(route);
         if (e.samples.length < 2) e.samples.push(`<${r.tag}> "${r.text}"`);
       }
+      for (const s of await skippedLayers(page)) rasterSkips.push({ route, w, ...s });
       await ctx.close();
     }
   }
@@ -142,5 +150,18 @@ function score(r) {
 
   console.log(`\nscored ${rows.length} distinct (colour × background) combinations`);
   console.log(`brandtext: ${rows.length - failing.length}/${rows.length} combinations meet WCAG AA`);
+
+  // PLAN-7 item 1a — a background layer this suite could not evaluate means
+  // every number above is suspect, not just the one element. Fail loudly and
+  // separately from the contrast verdict.
+  if (rasterSkips.length) {
+    console.log(`\nUNSCORABLE BACKGROUND: ${rasterSkips.length} layer(s) the gradient walk could not read.`);
+    console.log('Gradient maths cannot score ink over a raster. Use worstPixel() from backdrop.js');
+    console.log('for these elements — see PLAN-7 §1 and _harness/backdrop-selftest.js.');
+    for (const s of rasterSkips.slice(0, 6)) {
+      console.log(`  ${s.route}@${s.w} <${s.tag}> ${s.layer}  behind "${s.forText}"`);
+    }
+    process.exit(1);
+  }
   process.exit(failing.length === 0 ? 0 : 1);
 })();

@@ -41,7 +41,11 @@
  */
 
 const { launch } = require('./browser');
-const { SOURCE, lum, ratio } = require('./backdrop');
+const { SOURCE, lum, ratio, skippedLayers } = require('./backdrop');
+
+// PLAN-7 item 1a — see backdrop.js. A layer the gradient walk cannot read makes
+// every number in this suite suspect, so it is asserted rather than ignored.
+const rasterSkips = [];
 
 const BASE = 'http://127.0.0.1:8123';
 const ROUTES = ['/', '/products', '/dashboard', '/industries', '/services', '/about', '/faq', '/contact', '/privacy'];
@@ -130,6 +134,7 @@ const PROBE = function ([brightVars, textSafeVars]) {
         await page.waitForTimeout(300);
         await page.evaluate(SOURCE);
         const { text, surfaces: s } = await page.evaluate(PROBE, [BRIGHT, TEXTSAFE]);
+        for (const s of await skippedLayers(page)) rasterSkips.push({ where: `${route}@${w}`, ...s });
         await ctx.close();
         surfaces.background += s.background;
         surfaces.border += s.border;
@@ -203,6 +208,10 @@ const PROBE = function ([brightVars, textSafeVars]) {
   // If someone "fixes" this by redefining --brand-accent itself, the text goes
   // green and every button, badge and rule painted in the brand's bright cyan
   // changes colour. Counting the surfaces is what tells those apart.
+  note(rasterSkips.length === 0,
+    'PLAN-7 1a: every background layer behind scored text was evaluable (no raster skipped)',
+    rasterSkips.slice(0, 4).map((s) => `${s.where} <${s.tag}> ${s.layer}`).join('\n         '));
+
   note(surfaces.background > 0 && surfaces.border > 0,
     `--brand-accent / --brand-accent-2 are still in use as surfaces — ` +
     `${surfaces.background} backgrounds and ${surfaces.border} borders across the sweep`,

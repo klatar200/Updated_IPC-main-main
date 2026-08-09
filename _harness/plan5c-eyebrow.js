@@ -45,7 +45,12 @@
 const fs = require('fs');
 const path = require('path');
 const { launch } = require('./browser');
-const { SOURCE, ratio } = require('./backdrop');
+const { SOURCE, ratio, skippedLayers } = require('./backdrop');
+
+// PLAN-7 item 1a — any background layer the gradient walk could not evaluate.
+// Collected per page so a raster background arriving behind header text fails
+// this suite instead of being scored against whatever sits below it.
+const rasterSkips = [];
 
 const BASE = 'http://127.0.0.1:8123';
 const ROUTES = ['/', '/products', '/dashboard', '/industries', '/services', '/about', '/faq', '/contact', '/privacy'];
@@ -151,6 +156,7 @@ const ACCENT_VARS = ['--brand-accent', '--brand-accent-2', '--brand-accent-text'
           await page.evaluate(SOURCE);
           const rows = await page.evaluate(PROBE);
           const accents = await page.evaluate(ACCENTS, ACCENT_VARS);
+          for (const s of await skippedLayers(page)) rasterSkips.push({ where: `${name}/${route}@${w}`, ...s });
           await ctx.close();
           if (!rows) continue;   // a route with no page header; /​ has none
           headersSeen++;
@@ -221,6 +227,10 @@ const ACCENT_VARS = ['--brand-accent', '--brand-accent-2', '--brand-accent-text'
     const painted = `rgb(${r.ink[0].join(', ')})`;
     return Object.values(r.accents).includes(painted);
   });
+  note(rasterSkips.length === 0,
+    'PLAN-7 1a: every background layer behind header text was evaluable (no raster skipped)',
+    rasterSkips.slice(0, 4).map((s) => `${s.where} <${s.tag}> ${s.layer}`).join('\n         '));
+
   note(onAccent.length === 0,
     'the eyebrow is not painted in a brand accent — the accent is a stop of the very gradient it sits on',
     onAccent.slice(0, 4).map((r) => r.where).join('\n         '));
