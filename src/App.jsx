@@ -3097,7 +3097,13 @@ function HomePage() {
           </figure>
           ) : null}
           {img.bandBuildingPhoto ? (
-          <figure className="m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
+          /* PLAN-9 item 4 — md:self-start: grid items stretch to the row
+             height by default, and the team figure (two columns of 16:9)
+             sets a taller row than one column of 16:9 fills — the bordered
+             card ran 246px past its photo at 1440. Hugging the image beats
+             stretching or cropping it: the file is at its resolution ceiling
+             (PLAN-7 measured the upscale harm). */
+          <figure className="m-0 rounded-2xl overflow-hidden md:self-start" style={{ border: "1px solid #e5e9ee" }}>
             <img
               src={slotSrc(img.bandBuildingPhoto)}
               alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
