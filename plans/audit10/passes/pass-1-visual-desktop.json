@@ -1,0 +1,31 @@
+{
+  "id": "pass-1",
+  "title": "Public site visual layout — desktop-1440 + tablet-1024, every page, every element",
+  "objective": "Meticulous visual inspection of every public page at the two large viewports: alignment, spacing, gaps, overlaps, truncation, wrapping, image fit, grid integrity, section rhythm. Every element on every page is looked at — by eye against the screenshots AND by measurement in the live browser for anything suspected. 'Inline and correctly formatted everywhere' is the claim under test.",
+  "method": {
+    "screenshot_review": "Review EVERY screenshot in _harness/out/audit10/current/desktop-1440/ and tablet-1024/ (re-run the crawler first if the folder is empty — fresh container). Fan out parallel reviewer subagents over batches (e.g. 8-10 screenshots each) with an identical rubric; each reviewer returns suspected anomalies with page, approximate y-offset, and what looks wrong. Product pages share one template: review ALL 42 screenshots anyway (data-driven breakage is per-product — long SKUs, missing photos, many-row spec tables are exactly where templates crack).",
+    "verification": "EVERY suspected anomaly (from reviewers or candidates.json) is then re-measured by you in the live browser at the exact URL/viewport: getBoundingClientRect deltas for misalignment, computed margins/paddings for spacing claims, scrollWidth for overflow, naturalWidth/naturalHeight vs painted box for image distortion. Screenshot alone never confirms a finding — a reviewer's impression is a lead, not evidence.",
+    "issue_evidence": "For each confirmed finding: element-scoped screenshot to _harness/out/audit10/issues/<finding-id>__<viewport>__<slug>.png (scroll the element into view, screenshot the region), plus the numeric measurement in the record."
+  },
+  "rubric_per_page": [
+    "horizontal alignment: do siblings that should share an edge share it (±1px)? headings vs their body copy, card grids, footer columns",
+    "vertical rhythm: consistent section paddings on the same background bands; no double-gaps or missing gaps between sections",
+    "grid integrity: equal card widths/heights within a row where design intends equality; no orphan cells or stretched last items",
+    "images: correct aspect (no squash/stretch: painted ratio vs natural ratio), no empty frames, no visible upscaling artifacts at the reviewed viewport, borders/radii consistent",
+    "text: no clipped/truncated strings, no awkward one-word orphan lines in headings, no overlap with neighboring elements, ellipsis only where intended",
+    "chrome: navbar/footer identical across pages (measure heights + link sets once, diff across all pages), active-state on the correct nav item",
+    "banners/cards: border-radius, border color and shadow consistent for the same component class across pages",
+    "empty space: no region that reads as a broken/failed element (the C44/C37 class); deliberate whitespace is fine — bordered or framed emptiness is not",
+    "z-order: nothing overlapped or covered that should be readable; sticky elements do not cover content at rest"
+  ],
+  "specific_attention": [
+    "candidates.json entries assigned to pass-1 — every one resolved to a finding or a recorded refutation",
+    "tablet-1024 sits ON the lg breakpoint: check every layout that switches at lg (product page sidebar, contact columns, hero photo visibility) for half-switched states",
+    "the homepage band (PLAN-9 item 4 just changed it): both figures at both viewports",
+    "/products landing grid (42 cards): row integrity, card equality, photo fit incl. the 5 placehold.co products",
+    "/dashboard table at 1024: column fit without horizontal scroll (font caveat applies — fc-match first)",
+    "the soft-404 (/products?productId=NOPE-XYZ-123): banner + landing render correctly (new in PLAN-9)"
+  ],
+  "recording": "Findings -> findings.jsonl per findings.schema.json (allocate ids from ledger.next_finding_id, update it). Refutations of candidates -> candidates.json entry gains {resolved:'refuted', measurement}. Batch component-consistency nits (radius/shadow/border drift) as D findings with instances[].",
+  "exit_criteria": ["every screenshot in both viewport folders reviewed (count them; state the count in the ledger)", "every pass-1 candidate resolved", "findings validated (node _harness/audit10-findings.js green)", "ledger complete + push", "mirror credential deleted"]
+}

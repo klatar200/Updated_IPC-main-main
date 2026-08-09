@@ -1,0 +1,114 @@
+{
+  "$schema_note": "AUDIT-10 master manifest. Machine-readable; agents parse this, humans paste prompts from plans/AUDIT-10-PROMPTS.md. Every pass is one Claude Code session. Order is binding. A pass MUST NOT start unless every pass in entry_requires has status=complete in plans/audit10/state/ledger.json.",
+  "audit_id": "AUDIT-10",
+  "created": "2026-08-09",
+  "purpose": "Final full-site inspection after PLAN-1..PLAN-9: every page, every element, every character, every color, every design choice, at desktop/tablet/mobile viewports, public site AND /admin. Findings only — no fixes.",
+  "model_policy": {
+    "model": "claude-fable-5",
+    "effort": "high",
+    "token_posture": "thoroughness-over-economy: sweep everything the pass file names, sample nothing, review every screenshot the pass assigns; subagents/parallel fan-out encouraged for screenshot review and per-page sweeps"
+  },
+  "binding_files": [
+    "CLAUDE.md",
+    "plans/GUARDRAILS.md",
+    "plans/audit10/guardrails.json",
+    "plans/audit10/severity.json",
+    "plans/audit10/findings.schema.json"
+  ],
+  "reference_files": {
+    "viewports": "plans/audit10/viewports.json",
+    "routes": "plans/audit10/routes.json",
+    "baseline": "plans/audit10/baseline.json",
+    "ledger": "plans/audit10/state/ledger.json",
+    "findings_machine": "plans/audit10/state/findings.jsonl",
+    "findings_human": "plans/audit10/state/FINDINGS.md",
+    "candidates": "plans/audit10/state/candidates.json"
+  },
+  "tools": {
+    "capture_crawler": "_harness/audit10-crawl.js",
+    "findings_validator": "_harness/audit10-findings.js",
+    "browser_launcher": "_harness/browser.js",
+    "suite_runner": "_harness/run.js",
+    "css_extractor_guard": "_harness/cssdiff.js"
+  },
+  "git": {
+    "branch": "claude/audit-10",
+    "created_from": "main",
+    "commit_prefix": "audit10(pass-N): ",
+    "push_after_every_pass": true,
+    "why_push_matters": "sessions run in ephemeral containers; state that is not pushed is lost. The ledger, findings.jsonl, FINDINGS.md and any new audit10-*.js probes MUST be committed and pushed before a session ends.",
+    "final_pr": { "opened_by": "pass-7", "base": "main", "title": "AUDIT-10: final full-site inspection report" }
+  },
+  "output_locations": {
+    "screenshots_current_state": "_harness/out/audit10/current/<viewport>/<slug>.png",
+    "screenshots_issue_evidence": "_harness/out/audit10/issues/<finding-id>__<viewport>__<slug>.png",
+    "crawl_probe_report": "_harness/out/audit10/report.json",
+    "gitignore_note": "_harness/out/ is gitignored (see .gitignore:69). Screenshots NEVER reach the repo; they persist only within one container's lifetime, so any measurement a later pass depends on must be written into findings.jsonl or candidates.json (tracked), never left only as a screenshot."
+  },
+  "passes": [
+    {
+      "id": "pass-0",
+      "file": "plans/audit10/passes/pass-0-baseline-capture.json",
+      "title": "Environment, regression baseline, full screenshot capture",
+      "entry_requires": [],
+      "exit_deliverables": ["ledger updated", "baseline verified against plans/audit10/baseline.json", "cssdiff --save snapshot", "_harness/out/audit10/current fully populated (4 viewports x all pages)", "candidates.json triaged from automated probe flags", "commit+push"]
+    },
+    {
+      "id": "pass-1",
+      "file": "plans/audit10/passes/pass-1-visual-desktop.json",
+      "title": "Public site visual layout — desktop-1440 + tablet-1024, every page, every element",
+      "entry_requires": ["pass-0"],
+      "exit_deliverables": ["every assigned screenshot reviewed", "every candidate for these viewports resolved to finding|refuted", "findings.jsonl appended + validated", "commit+push"]
+    },
+    {
+      "id": "pass-2",
+      "file": "plans/audit10/passes/pass-2-visual-small.json",
+      "title": "Public site visual layout — tablet-834 + mobile-390, every page, every element",
+      "entry_requires": ["pass-0"],
+      "exit_deliverables": ["every assigned screenshot reviewed", "touch-target sweep complete", "candidates resolved", "findings.jsonl appended + validated", "commit+push"]
+    },
+    {
+      "id": "pass-3",
+      "file": "plans/audit10/passes/pass-3-admin.json",
+      "title": "/admin — every page, every viewport, plus safe owner journeys",
+      "entry_requires": ["pass-0"],
+      "exit_deliverables": ["all admin GET pages reviewed at 4 viewports", "journey checklist executed with mirror restored from pristine", "findings.jsonl appended + validated", "commit+push", "mirror credential deleted"]
+    },
+    {
+      "id": "pass-4",
+      "file": "plans/audit10/passes/pass-4-copy-characters.json",
+      "title": "Copy — every rendered character on every page",
+      "entry_requires": ["pass-0"],
+      "exit_deliverables": ["full text extraction committed to state/", "character-class scans complete", "findings.jsonl appended + validated", "commit+push"]
+    },
+    {
+      "id": "pass-5",
+      "file": "plans/audit10/passes/pass-5-color-design.json",
+      "title": "Color palette + design-token consistency — every computed style",
+      "entry_requires": ["pass-0"],
+      "exit_deliverables": ["computed-style census committed to state/", "off-palette and inconsistency scans complete", "findings.jsonl appended + validated", "commit+push"]
+    },
+    {
+      "id": "pass-6",
+      "file": "plans/audit10/passes/pass-6-interaction.json",
+      "title": "Interaction states, keyboard, motion — every interactive element",
+      "entry_requires": ["pass-0"],
+      "exit_deliverables": ["interactive-element census + state sweep complete", "findings.jsonl appended + validated", "commit+push"]
+    },
+    {
+      "id": "pass-7",
+      "file": "plans/audit10/passes/pass-7-synthesis.json",
+      "title": "Synthesis: dedupe, re-verify, severity-check, final report, PR",
+      "entry_requires": ["pass-1", "pass-2", "pass-3", "pass-4", "pass-5", "pass-6"],
+      "exit_deliverables": ["every A/B finding re-verified twice", "_harness/AUDIT10-REPORT.md written in the house format", "coverage + UNVERIFIED + refuted + regression sections present", "PR opened against main", "commit+push"]
+    }
+  ],
+  "resume_protocol": {
+    "on_session_start": [
+      "git fetch origin claude/audit-10 && git checkout claude/audit-10 (create from main ONLY if the branch does not exist and you are pass-0)",
+      "read plans/audit10/state/ledger.json; refuse to run a pass whose entry_requires are not complete; if your assigned pass is already complete, STOP and say so",
+      "set ledger.passes.<id>.status=in_progress with session date before doing anything else, commit it, and push — this is the lock that stops two sessions running the same pass"
+    ],
+    "on_interruption": "a pass left in_progress with a pushed ledger may be resumed by a new session using the same pass prompt; completed step ids are listed in ledger.passes.<id>.steps_done"
+  }
+}
