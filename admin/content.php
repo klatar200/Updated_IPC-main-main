@@ -281,14 +281,22 @@ $COPY_GROUPS = [
     // blank would fall back to the default and silently restore the image the
     // owner had just deleted, under a green "Saved".
     //
+    // PLAN-9 item 1 — each field carries the DEFAULT path, byte-identical to
+    // COPY_DEFAULTS.siteImages in src/App.jsx (lint.php holds the pair). The
+    // prefill falls back to it ONLY when the key is absent from the stored
+    // file. Without this, a content.json predating item 3a rendered these
+    // five fields empty, and the first save of anything materialized them as
+    // "" — which COPY_CLEARABLE reads as five deliberate deletions: every
+    // marketing photo gone under a green "Saved" (audit 2026-08-09 finding 1).
+    //
     // (No apostrophes in comments inside this literal — see the C39 note in
     // the contactForm group below.)
     'siteImages' => ['title' => 'Site Images', 'fields' => [
-        ['key' => 'heroPhoto',          'type' => 'text', 'label' => 'Homepage hero — photo (empty removes it)'],
-        ['key' => 'bandTeamPhoto',      'type' => 'text', 'label' => 'Homepage band — team photo (empty removes it)'],
-        ['key' => 'bandBuildingPhoto',  'type' => 'text', 'label' => 'Homepage band — building photo (empty removes it)'],
-        ['key' => 'aboutPhoto',         'type' => 'text', 'label' => 'About page — photo (empty removes it)'],
-        ['key' => 'servicesPhoto',      'type' => 'text', 'label' => 'Services page — photo (empty removes it)'],
+        ['key' => 'heroPhoto',          'type' => 'text', 'label' => 'Homepage hero — photo (empty removes it)',          'default' => 'images/site/Marker-Sample-2.jpg'],
+        ['key' => 'bandTeamPhoto',      'type' => 'text', 'label' => 'Homepage band — team photo (empty removes it)',     'default' => 'images/site/staff.jpg'],
+        ['key' => 'bandBuildingPhoto',  'type' => 'text', 'label' => 'Homepage band — building photo (empty removes it)', 'default' => 'images/site/IPC-Building.jpg'],
+        ['key' => 'aboutPhoto',         'type' => 'text', 'label' => 'About page — photo (empty removes it)',             'default' => 'images/site/IPC-Building.jpg'],
+        ['key' => 'servicesPhoto',      'type' => 'text', 'label' => 'Services page — photo (empty removes it)',          'default' => 'images/site/Marker-Sample-2.jpg'],
     ]],
     'hero' => ['title' => 'Homepage — Hero', 'fields' => [
         ['key' => 'badge',             'type' => 'text',     'label' => 'Badge (small text above headline)'],
@@ -953,7 +961,10 @@ $navActive = 'content';
       <fieldset class="card">
         <legend class="card-title"><?= $gcfg['title'] ?></legend>
         <div class="grid-2">
-          <?php foreach ($gcfg['fields'] as $f) echo render_copy_field($g, $f, ($content['copy'][$g][$f['key']] ?? ''), $PAGE_OPTIONS, (string)($gcfg['title'] ?? '')); ?>
+          <?php /* PLAN-9 item 1 — `??` and not `?:`: only a key ABSENT from the
+                stored file falls back to the field default. A stored "" is a
+                real clearing — it shows empty and stays cleared. */
+                foreach ($gcfg['fields'] as $f) echo render_copy_field($g, $f, ($content['copy'][$g][$f['key']] ?? ($f['default'] ?? '')), $PAGE_OPTIONS, (string)($gcfg['title'] ?? '')); ?>
         </div>
       </fieldset>
     <?php endforeach; ?>

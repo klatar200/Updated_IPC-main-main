@@ -153,6 +153,38 @@ if (!$phpAp || !$jsAp) {
     echo "approval drift            " . count($jsAp) . " approvals, PHP and JS identical\n";
 }
 
+// ── photo-default drift ─────────────────────────────────────────────────────
+// PLAN-9 item 1 — the five siteImages default paths exist in PHP
+// (content.php's $COPY_GROUPS 'default' entries, which prefill an absent key)
+// and in JS (App.jsx's COPY_DEFAULTS.siteImages, which renders an absent key).
+// If they disagree, the admin's first save silently REPOINTS a photo: the
+// prefill writes the PHP value into content.json and the site stops painting
+// the JS one. Same two-languages problem as the families and approvals above,
+// held honest the same way.
+$phpPh = [];
+$src = (string)@file_get_contents(__DIR__ . '/../admin/content.php');
+if (preg_match("/'siteImages'\s*=>\s*\['title'[^\]]*'fields'\s*=>\s*\[(.*?)\]\],/s", $src, $m)) {
+    preg_match_all("/'key'\s*=>\s*'([^']+)'.*?'default'\s*=>\s*'([^']+)'/", $m[1], $mm, PREG_SET_ORDER);
+    foreach ($mm as $pair) $phpPh[$pair[1]] = $pair[2];
+}
+$jsPh = [];
+if (preg_match('/siteImages:\s*\{(.*?)\},/s', (string)@file_get_contents(__DIR__ . '/../src/App.jsx'), $m)) {
+    preg_match_all('/(\w+):\s*"([^"]+)"/', $m[1], $mm, PREG_SET_ORDER);
+    foreach ($mm as $pair) $jsPh[$pair[1]] = $pair[2];
+}
+if (count($phpPh) !== 5 || count($jsPh) !== 5) {
+    $fail++;
+    echo "FAIL  photo-default drift\n      could not read the two five-entry lists (php "
+       . count($phpPh) . ", js " . count($jsPh) . ") — has one moved?\n";
+} elseif ($phpPh !== $jsPh) {
+    $fail++;
+    echo "FAIL  photo-default drift\n      content.php siteImages defaults and App.jsx COPY_DEFAULTS.siteImages disagree\n"
+       . "      php: " . json_encode($phpPh) . "\n"
+       . "      js : " . json_encode($jsPh) . "\n";
+} else {
+    echo "photo-default drift       5 slot defaults, PHP and JS identical\n";
+}
+
 // The two $partTypes literals this item removed must not come back.
 $reintroduced = [];
 foreach (['add.php', 'edit.php'] as $f) {
