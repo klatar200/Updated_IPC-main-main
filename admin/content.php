@@ -270,6 +270,26 @@ $SECTIONS = [
 // Fixed page copy (hero text, section headings, page banners) — edited as fixed
 // fields grouped into cards, saved under the "copy" key as a nested object.
 $COPY_GROUPS = [
+    // PLAN-7 item 3a — the marketing photographs, in one place.
+    //
+    // One group rather than a photo field buried inside each page section:
+    // the audience is a non-technical owner, and one "Site Images" list beats
+    // hunting for an image box inside Homepage Hero copy.
+    //
+    // CLEARING A FIELD REMOVES THE PHOTO. Every key ends in "Photo", which is
+    // what puts it in COPY_CLEARABLE on the App.jsx side. Without that, a
+    // blank would fall back to the default and silently restore the image the
+    // owner had just deleted, under a green "Saved".
+    //
+    // (No apostrophes in comments inside this literal — see the C39 note in
+    // the contactForm group below.)
+    'siteImages' => ['title' => 'Site Images', 'fields' => [
+        ['key' => 'heroPhoto',          'type' => 'text', 'label' => 'Homepage hero — photo (empty removes it)'],
+        ['key' => 'bandTeamPhoto',      'type' => 'text', 'label' => 'Homepage band — team photo (empty removes it)'],
+        ['key' => 'bandBuildingPhoto',  'type' => 'text', 'label' => 'Homepage band — building photo (empty removes it)'],
+        ['key' => 'aboutPhoto',         'type' => 'text', 'label' => 'About page — photo (empty removes it)'],
+        ['key' => 'servicesPhoto',      'type' => 'text', 'label' => 'Services page — photo (empty removes it)'],
+    ]],
     'hero' => ['title' => 'Homepage — Hero', 'fields' => [
         ['key' => 'badge',             'type' => 'text',     'label' => 'Badge (small text above headline)'],
         ['key' => 'headlineLine1',     'type' => 'text',     'label' => 'Headline — line 1'],

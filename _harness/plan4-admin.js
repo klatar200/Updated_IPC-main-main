@@ -54,7 +54,10 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // `requiredLegend` and `privacyNote`. Measured 439 -> 441, i.e. exactly the
 // two fields added and nothing else. plan2-trunc.js re-run at 441 against the
 // real max_input_vars=100 server on :8124.
-const POSTED_BEFORE = 441;
+// 2026-08-09b: **446** after PLAN-7 item 3a added the five-field Site Images
+// group. Measured 441 -> 446, i.e. exactly the five fields and nothing else.
+// plan2-trunc.js re-run at 446 against the real max_input_vars=100 server.
+const POSTED_BEFORE = 446;
 
 const results = [];
 const note = (ok, what, detail = '') => {

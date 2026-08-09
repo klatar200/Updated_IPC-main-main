@@ -1735,6 +1735,7 @@ const BAND_BUILDING = { w: 425, h: 281 };    // IPC-Building.jpg
 function Hero() {
   const { copy, heroProofPoints, heroTrust } = useContent();
   const c = copy.hero;
+  const img = copy.siteImages;
   const proofPoints = heroProofPoints;
   const trustItems = heroTrust.map((t) => t.text);
   const reducedMotion = usePrefersReducedMotion();
@@ -1886,10 +1887,11 @@ function Hero() {
             this adds no contrast debt — asserted by plan7-imagery.
             lg:block, and the <picture> below is why: a hidden <img> is still
             downloaded, which was the one defect in the mockup. */}
+        {img.heroPhoto ? (
         <picture className="hidden lg:block mt-6">
-          <source media="(min-width: 1024px)" srcSet="images/site/Marker-Sample-2.jpg" />
+          <source media="(min-width: 1024px)" srcSet={img.heroPhoto} />
           <img
-            src="images/site/Marker-Sample-2.jpg"
+            src={img.heroPhoto}
             alt="Custom-printed heat shrink sleeves and wire markers produced by IPC"
             loading="lazy"
             decoding="async"
@@ -1904,6 +1906,7 @@ function Hero() {
             }}
           />
         </picture>
+        ) : null}
         </div>
       </div>
 
@@ -3037,6 +3040,7 @@ function HomePage() {
   const site = useSiteInfo();
   const { markets, copy, industryDetail } = useContent();
   const mk = copy.homeMarkets;
+  const img = copy.siteImages;
 
   /**
    * C30 — the fragment for a market card, or undefined if there is no section
@@ -3075,11 +3079,13 @@ function HomePage() {
           width it upscaled and the frame showed, at one third it lands near
           1:1 and the crop removes it. Both files are at their resolution
           ceiling and cannot go larger or retina — measured in the amendment. */}
+      {(img.bandTeamPhoto || img.bandBuildingPhoto) ? (
       <section className="px-6 py-14" style={{ background: "#f5f7fa" }}>
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
+          {img.bandTeamPhoto ? (
           <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
             <img
-              src="images/site/staff.jpg"
+              src={img.bandTeamPhoto}
               alt="The Insulation Products Corporation team outside the Bolingbrook facility"
               loading="lazy"
               decoding="async"
@@ -3089,9 +3095,11 @@ function HomePage() {
               style={{ aspectRatio: "16 / 9", objectFit: "cover", display: "block" }}
             />
           </figure>
+          ) : null}
+          {img.bandBuildingPhoto ? (
           <figure className="m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
             <img
-              src="images/site/IPC-Building.jpg"
+              src={img.bandBuildingPhoto}
               alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
               loading="lazy"
               decoding="async"
@@ -3101,8 +3109,10 @@ function HomePage() {
               style={{ aspectRatio: "16 / 9", objectFit: "cover", display: "block" }}
             />
           </figure>
+          ) : null}
         </div>
       </section>
+      ) : null}
 
       {/* Markets section */}
       <section className="py-20 px-6" style={{ background: "#ffffff" }}>
@@ -3485,6 +3495,7 @@ function AboutPage() {
   // Timeline, team capabilities, and certifications are all editable via content.json.
   const { milestones, capabilities, certs, copy } = useContent();
   const c = copy.aboutHeader;
+  const img = copy.siteImages;
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -3525,9 +3536,11 @@ function AboutPage() {
             {/* PLAN-7 item 2, slot 3 — the facility, on the page that is
                 about the company. Reuses the file the homepage band already
                 ships, so this costs no new bytes. The 3:2 crop trims the
-                white border baked into the source pixels. */}
+                white border baked into the source pixels.
+                Owner-editable since item 3a; cleared removes it entirely. */}
+            {img.aboutPhoto ? (
             <img
-              src="images/site/IPC-Building.jpg"
+              src={img.aboutPhoto}
               alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
               loading="lazy"
               decoding="async"
@@ -3536,6 +3549,7 @@ function AboutPage() {
               className="w-full rounded-xl"
               style={{ aspectRatio: "3 / 2", objectFit: "cover", border: "1px solid #e5e9ee" }}
             />
+            ) : null}
           </div>
 
           {/* 4.4 — Verified sidebar facts */}
@@ -6375,6 +6389,31 @@ function groupFaq(flat) {
 // is a nested object (not a list); the admin edits it as fixed fields, and it is
 // deep-merged so any single blank field falls back to the default below.
 const COPY_DEFAULTS = {
+  /**
+   * PLAN-7 item 3a — the marketing photographs, as owner-editable paths.
+   *
+   * Item 2 painted four of them at hardcoded paths, which fixes the symptom
+   * and not the review item: the owner has photographs he cannot put
+   * anywhere, and four fixed paths fix that for the four files someone else
+   * chose.
+   *
+   * One group rather than a field buried in each page section, because the
+   * audience is a non-technical owner: "Site Images" in one list beats
+   * hunting for a photo field inside Homepage Hero copy.
+   *
+   * CLEARING ONE REMOVES IT. Every key here matches COPY_CLEARABLE, and that
+   * is load-bearing — mergeContent deliberately drops a blank string so a
+   * cleared heading falls back to its default, which is right for text and
+   * exactly wrong for a photograph. Without the allow-list, deleting a photo
+   * would silently restore the one just deleted, under a green "Saved".
+   */
+  siteImages: {
+    heroPhoto: "images/site/Marker-Sample-2.jpg",
+    bandTeamPhoto: "images/site/staff.jpg",
+    bandBuildingPhoto: "images/site/IPC-Building.jpg",
+    aboutPhoto: "images/site/IPC-Building.jpg",
+    servicesPhoto: "images/site/Marker-Sample-2.jpg",
+  },
   hero: {
     badge: "Bolingbrook, IL — Made in USA Since 1974",
     headlineLine1: "25 Million Feet in Stock.",
@@ -6705,7 +6744,13 @@ function contentDefaults() {
 // a broken page he cannot repair, because the control he would type into is the
 // one that vanished. Sub-headings are supplementary by definition — removing
 // one is a real editorial choice. (AUDIT_v3_FINDINGS NB4)
-const COPY_CLEARABLE = /^(subhead|.*Subhead)$/;
+// `...Photo` joins the allow-list for PLAN-7 item 3a. A cleared HEADING should
+// fall back to its default — an empty page title is worse than a stale one and
+// you cannot re-enter a heading you cannot see. A cleared PHOTOGRAPH must
+// actually go away: re-seeding it would restore the image the owner had just
+// deleted and report "Saved" while doing it. Same asymmetry SITE_CLEARABLE
+// handles for site-info.
+const COPY_CLEARABLE = /^(subhead|.*Subhead|.*Photo)$/;
 
 function mergeContent(data) {
   const defaults = contentDefaults();
@@ -10787,6 +10832,7 @@ const SERVICES_DATA = [
 function ServicesPage() {
   const { services, copy } = useContent();
   const c = copy.servicesHeader;
+  const img = copy.siteImages;
   // Summarise the (previously dead) per-service leadTime values. Falls back to
   // the old hardcoded string only when nothing is set. (DEPLOY_READINESS_v2 4.11)
   /**
@@ -10927,9 +10973,10 @@ function ServicesPage() {
             already paid for on the homepage.
             21:9 rather than the file's 3:2: this is a band under a banner, not
             a feature image, and object-fit does the crop. */}
+        {img.servicesPhoto ? (
         <figure className="m-0 mb-12 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
           <img
-            src="images/site/Marker-Sample-2.jpg"
+            src={img.servicesPhoto}
             alt="Custom hot-stamp printed heat shrink sleeves and wire markers produced by IPC"
             loading="lazy"
             decoding="async"
@@ -10939,6 +10986,7 @@ function ServicesPage() {
             style={{ aspectRatio: "21 / 9", objectFit: "cover", display: "block" }}
           />
         </figure>
+        ) : null}
 
         {/* Services grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
