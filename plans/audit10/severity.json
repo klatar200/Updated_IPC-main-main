@@ -1,0 +1,34 @@
+{
+  "$schema_note": "Severity ladder for AUDIT-10 findings. Severity is justified by the consequence to one of the two protected people (GUARDRAILS §0): Rick the owner, or a buyer looking for a spec-grade part. Never by how 'wrong' the code looks.",
+  "levels": {
+    "A": {
+      "name": "breaks an outcome",
+      "definition": "costs a lead, destroys owner input, shows false product/certification information, renders a page unusable, or damages credibility in a way a buyer would notice and act on",
+      "examples": ["a save that silently deletes owner content", "an RFQ path that dead-ends", "a page that does not render at a supported viewport", "wrong SKU/spec shown for a part"],
+      "requires": "CONFIRMED (measured twice) + reproduction steps + artifact"
+    },
+    "B": {
+      "name": "real defect, will be hit and noticed",
+      "definition": "wrong or misleading behavior a real visitor or Rick will encounter in normal use, but with a workaround or limited blast radius",
+      "examples": ["copy contradicting the render", "broken image frame on a reachable URL spelling", "metadata describing a different page", "a control that works but misstates what it did"],
+      "requires": "CONFIRMED + reproduction steps + artifact"
+    },
+    "C": {
+      "name": "polish",
+      "definition": "visibly imperfect but not misleading: misalignment, uneven spacing, inconsistent component treatment, awkward wrap, sub-AA-large contrast on decorative text",
+      "requires": "at least LIKELY + a measurement (px, ratio, count) + issue screenshot"
+    },
+    "D": {
+      "name": "observation / nit",
+      "definition": "a character-level or token-level inconsistency a meticulous reviewer records but no visitor would consciously notice: straight-vs-curly quote drift, a double space, a 1px radius difference, an off-scale margin used once",
+      "requires": "the exact string/value and where it renders; batch related nits into ONE finding with an instances[] list rather than one record each",
+      "note": "D exists so hyper-meticulous sweeps do not inflate C. A hundred D-nits must not drown three real Cs."
+    }
+  },
+  "rules": [
+    "severity A and B require confidence=CONFIRMED; an INFERRED record caps at C",
+    "when torn between two levels, pick the lower and say why in the severity_rationale field",
+    "an issue that only manifests on an unreachable state (URL the site never emits AND no external path to it) drops one level",
+    "known_issues in guardrails.json are never findings at any severity"
+  ]
+}

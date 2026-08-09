@@ -1,0 +1,22 @@
+{
+  "$schema_note": "AUDIT-10 progress ledger. The FIRST thing a session writes (status=in_progress + date + lock) and the LAST thing it completes (status=complete + deliverable checklist). Committed and pushed on both writes — an unpushed ledger does not exist, because containers are ephemeral. steps_done holds completed step ids from the pass file so an interrupted pass can resume without redoing work.",
+  "audit_id": "AUDIT-10",
+  "main_sha_at_start": null,
+  "branch": "claude/audit-10",
+  "next_finding_id": "A10-001",
+  "passes": {
+    "pass-0": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "baseline_delta": null },
+    "pass-1": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
+    "pass-2": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
+    "pass-3": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "mirror_restored": null },
+    "pass-4": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
+    "pass-5": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
+    "pass-6": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
+    "pass-7": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "pr_url": null }
+  },
+  "screenshot_capture": {
+    "note": "screenshots are gitignored and container-local. If a later pass finds _harness/out/audit10/current/ empty (fresh container), it re-runs `node _harness/audit10-crawl.js` first — that is expected, cheap, and MUST be recorded here per re-capture so drift between captures is visible.",
+    "captures": []
+  },
+  "conflicts_and_questions": []
+}

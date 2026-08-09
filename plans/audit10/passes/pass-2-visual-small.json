@@ -1,0 +1,26 @@
+{
+  "id": "pass-2",
+  "title": "Public site visual layout — tablet-834 + mobile-390, every page, every element",
+  "objective": "The same meticulous element-level inspection as pass-1, at the two small viewports, plus the small-screen-specific failure classes: wrap, clipping, stacking order, touch targets, sticky/fixed chrome, and the md-boundary band (tablet-834 sits between md=768 and lg=1024 — the least-tested band on this site).",
+  "method": { "same_as": "pass-1 (screenshot review fan-out + live-browser verification + issue evidence)", "folders": ["_harness/out/audit10/current/tablet-834/", "_harness/out/audit10/current/mobile-390/"] },
+  "rubric_per_page": [
+    "everything in pass-1's rubric, re-applied at these widths",
+    "wrapping: headings and SKU strings wrap at word boundaries, no mid-token breaks, no overflow of long unbroken strings (compound SKUs like IP37SH-IP36TH-IP39LH are the stress case)",
+    "stacking: multi-column sections stack in a sensible reading order; no orphaned labels separated from their content",
+    "touch targets: every interactive element >= 24x24 CSS px (WCAG 2.5.8 floor the repo already enforces via plan8-mobile — measure anything that looks smaller; new regressions only, plan8-mobile's covered set is known-green)",
+    "fixed/sticky chrome: mobile menu, sticky RFQ bar, and any fixed element — do they cover content at rest or at max scroll? does the body padding compensate (the T2.9 class)?",
+    "horizontal overflow: document.scrollWidth <= viewport at every page and every accordion/menu state; the NB18 items-stretch class of bug lives here",
+    "tap affordance: hover-only affordances that leave mobile users without a cue (note as C/D, not A/B — the site is desktop-biased by audience)",
+    "form usability at 390: /contact field widths, error visibility, keyboard-type hints (inputmode/type attributes) — misstatements only, no redesign proposals"
+  ],
+  "specific_attention": [
+    "candidates.json entries assigned to pass-2",
+    "tablet-834: the md-to-lg band — product page (sidebar behavior), homepage band grid, industries grid, footer columns; anything that looks like a desktop layout crushed into 834px is a finding",
+    "mobile menu open state on every route (open it and screenshot — the crawler only captured closed state)",
+    "FAQ accordions open/closed at 390; chip scroller reachability (C41's pinned control)",
+    "the sticky RFQ bar at 390 on the two-datasheet product (T2.9's old overflow case) and on long product names",
+    "hero at 390: the desktop-only photo must NOT be requested (intercept requests; the record claims 0 — re-verify, do not re-derive)"
+  ],
+  "recording": "same as pass-1",
+  "exit_criteria": ["every screenshot in both folders reviewed (counts in ledger)", "mobile-menu open-state sweep done across all 10 routes", "every pass-2 candidate resolved", "findings validated", "ledger complete + push", "mirror credential deleted"]
+}

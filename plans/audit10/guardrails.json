@@ -1,0 +1,104 @@
+{
+  "$schema_note": "AUDIT-10 guardrails. Binding for every pass. plans/GUARDRAILS.md applies verbatim underneath these; where both speak, the stricter rule wins. An agent that cannot comply with a rule STOPS and records the conflict in the ledger rather than improvising.",
+  "role": {
+    "you_are": "a reviewer producing evidence-backed findings",
+    "you_are_not": "an implementer, a fixer, a refactorer, a redesigner, or a feature proposer",
+    "the_deliverable": "finding records conforming to plans/audit10/findings.schema.json, with reproducible evidence. You fix NOTHING — not even a one-character typo. A fix arrives without its test and is indistinguishable from scope creep."
+  },
+  "hard_prohibitions": [
+    { "never": "modify any file under src/, admin/, public/, data/, pdfs/, uploads/, index.html, vite.config.js, or any config at repo root", "exception": "a temporary mutation to prove a probe can fail, reverted in the same tool-call sequence, with `git diff --stat src/ admin/ public/` shown empty afterwards" },
+    { "never": "edit CLAUDE.md, WHATS_LEFT.md, PATCH_NOTES.md, DEPLOY_READINESS_v2.md, or any plans/PLAN-*.md", "why": "audits report; remediation plans write records. AUDIT-10's records live only under plans/audit10/state/ and _harness/AUDIT10-REPORT.md" },
+    { "never": "edit plans/audit10/manifest.json, guardrails.json, severity.json, findings.schema.json, viewports.json, routes.json, baseline.json, or any passes/*.json", "why": "the plan is the contract; a session that edits its own contract has no contract. If a plan file is wrong, record it in the ledger notes and STOP that step" },
+    { "never": "edit _harness files that existed before AUDIT-10 (suites, probes, lint.php, sync.sh, browser.js, run.js, cssdiff.js, aud9-*.js)", "exception": "none. New probes are new files named _harness/audit10-*.js" },
+    { "never": "touch _localsite/", "why": "reference copy of an older deploy; evidence, not source" },
+    { "never": "commit or print the contents of admin/config.local.php or _harness/site/admin/config.local.php", "why": "live credential; the repo is PUBLIC" },
+    { "never": "commit anything under _harness/out/ or _harness/site/ or _harness/pristine/", "why": "gitignored by design; screenshots and mirrors never reach the public repo" },
+    { "never": "run git reset/stash/revert/rebase/push --force, or commit outside the allowlist below", "why": "the working tree has been the only copy of hours of work before" },
+    { "never": "install a paid dependency or service, or run `playwright install`", "why": "$0 budget; Chromium is preinstalled — launch only via _harness/browser.js" },
+    { "never": "report a finding without an artifact, or re-report anything in known_issues below", "why": "GUARDRAILS §4/§7; a finding without evidence is a speculation" }
+  ],
+  "write_allowlist": {
+    "tracked_and_committed": [
+      "plans/audit10/state/ledger.json",
+      "plans/audit10/state/findings.jsonl",
+      "plans/audit10/state/FINDINGS.md",
+      "plans/audit10/state/candidates.json",
+      "plans/audit10/state/*.json (pass-produced censuses: textdump, styles, elements)",
+      "_harness/audit10-*.js (new probes only)",
+      "_harness/AUDIT10-REPORT.md (pass-7 only)"
+    ],
+    "untracked_scratch": [
+      "_harness/out/audit10/** (screenshots, probe JSON — gitignored)",
+      "the session scratchpad directory"
+    ],
+    "git_operations_allowed": [
+      "git fetch origin claude/audit-10",
+      "git checkout claude/audit-10 (or -b from main, pass-0 only)",
+      "git add <allowlist paths only>",
+      "git commit -m 'audit10(pass-N): ...'",
+      "git push -u origin claude/audit-10"
+    ]
+  },
+  "evidence_standards": {
+    "a_grep_is_not_a_measurement": "any claim about what renders, paints, wraps, overlaps, contrasts, or is announced must be measured in the browser (Playwright via _harness/browser.js) at a stated URL and viewport",
+    "confirmed": "measured twice with identical results; only CONFIRMED findings may carry severity A or B",
+    "likely": "measured once",
+    "inferred": "read but not measured — must name what would confirm it; never severity above C",
+    "screenshots": "every visual finding carries an issue screenshot saved to _harness/out/audit10/issues/<finding-id>__<viewport>__<slug>.png AND the numeric measurement in the finding record (screenshots are gitignored and die with the container — the numbers are the durable evidence)",
+    "twice_means_twice": "re-navigate and re-measure; re-reading the same in-memory value is one measurement",
+    "font_caveat": "run `fc-match system-ui` first; on DejaVu Sans boxes every width/overflow claim must be re-checked against the known C49-class artifact before it becomes a finding",
+    "unverified_taxonomy": "php -S ignores .htaccess and .user.ini: the admin/ and data/ blocking rules, SetEnvIf cache, dotfile block, ALLOW-PASSWORD-RESET block, every .user.ini limit, and Apache's real rewrite are [UNVERIFIED] locally — report them as neither passing nor failing",
+    "negative_results_are_results": "record 'swept X, found nothing' in the coverage notes; never manufacture a finding to fill a section"
+  },
+  "scope_discipline": {
+    "execute_only_your_pass": "a pass runs exactly the steps in its pass file. Something broken outside your pass's subject goes into findings.jsonl tagged out_of_pass=true if it conforms to the schema and is evidenced, or into ledger notes if not — never into a detour",
+    "no_fixes_ever": "including 'while I was here' one-liners, comment corrections, and formatting",
+    "no_relitigating": "settled decisions and deliberate deferrals in known_issues are not findings",
+    "stop_conditions": [
+      "3 failed attempts to reproduce one thing -> record unreproducible with what you tried, move on",
+      "baseline red beyond the expected exceptions in plans/audit10/baseline.json -> record in ledger, STOP the pass, report",
+      "a finding that would require changing a CLAUDE.md invariant -> record as a question, not a finding",
+      "entry_requires not satisfied in the ledger -> do not start"
+    ]
+  },
+  "mirror_hygiene": {
+    "resync_after_any_build": "sh _harness/sync.sh after every npm run build (a stale mirror has produced false passes)",
+    "mutating_journeys": "any admin journey that writes mirror data must restore _harness/site/data/*.json from _harness/pristine/ before the pass ends, byte-identical, and say so in the ledger",
+    "credential": "delete _harness/site/admin/config.local.php before the session ends, every session"
+  },
+  "known_issues_do_not_report": {
+    "environment_artifacts": [
+      "C49 spec-table width red on DejaVu-Sans boxes (plan8-polish 16/17 on Linux) — the font, not the site",
+      "plan3-autoreply [UNVERIFIED] on Windows (POSIX sendmail script)",
+      ":focus-visible does not match programmatic focus in Chromium — drive real Tab/Enter",
+      "Tailwind extractor emits rules for bare utility words in comments — cssdiff.js is the guard"
+    ],
+    "expected_regression_exceptions": [
+      "plan8-contrast 34/35 (named EXEMPT_BRAND_SURFACE)",
+      "plan8-polish 16/17 on Linux (C49 font-metric check only)",
+      "brandtext <= 13 FAILING (logged brand-accent-on-dark-surfaces; judge the failing count, not the ratio)"
+    ],
+    "logged_open_in_whats_left_s2": [
+      "page-header-sublines-on-gradient (ratchet 18)",
+      "brand-text-on-brand-surface (<=13 failing)",
+      "product-index-rows-over-120px (3 of 42)",
+      "spec-table-subheader-contrast (3.11:1)",
+      "product-page-footer-layout-shift",
+      "contact-desktop-focus-order (decided)",
+      "c49-guard-is-font-metric-dependent",
+      "copy-extractors-are-blind-to-comments",
+      "plan7-item-3b-image-picker (not started)",
+      "staff.jpg painted above its own resolution (source ceiling)",
+      "4.27 index-bearing React keys (cost measured zero today)",
+      "the four photoUrl case corrections still pending on the DEPLOYED server (owner action)"
+    ],
+    "closed_or_settled": [
+      "src/pages, src/components, src/lib are dead code — nothing imports them",
+      "logo alt='' with aria-label on the link (C43) is deliberate",
+      "A3/C29 Option B: ?productId= URLs stay",
+      "C34 datasheet file sizes, C40 no-JS JSON response, C31 catalog scoping, PLAN-7 slot 5 — deferred with reasons",
+      "security posture (require_auth, csrf_check, upload validation, containment, h(), optimistic concurrency) — re-verify, do not re-derive",
+      "the shipped data/content.json lacking copy.siteImages is by design post-PLAN-9 (admin prefills; first save materializes)"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "pass-0",
+  "title": "Environment, regression baseline, full screenshot capture",
+  "objective": "Prove the tree under audit is the expected green state, then capture the complete current-state screenshot set (every page x 4 viewports, public + admin) and triage the automated probe flags into a candidate list for the visual passes. NO findings are judged in this pass beyond hard crawl failures — pass-0 produces raw material.",
+  "steps": [
+    { "id": "0.1", "do": "git checkout -b claude/audit-10 from up-to-date main (this pass only creates the branch). Record main's sha in ledger.main_sha_at_start." },
+    { "id": "0.2", "do": "Stand the environment up per routes.json server.stand_up, from the repo root. Also start :8124/:8125 (php-trunc.ini / php-nb2-off.ini) — plan2-trunc needs them. Run `fc-match system-ui` and record the resolved font in the ledger notes." },
+    { "id": "0.3", "do": "php _harness/lint.php — expect every line green including 'photo-default drift 5 slot defaults, PHP and JS identical'." },
+    { "id": "0.4", "do": "node _harness/cssdiff.js --save — snapshot the untouched tree's selectors before anything else." },
+    { "id": "0.5", "do": "Run the full baseline per plans/audit10/baseline.json run_command. Compare every score. Delta beyond expected_exceptions -> write ledger.passes.pass-0.baseline_delta, STOP the pass, report. Record the brandtext FAILING count and the plan8-polish failing check name (re-run individually if red) in the ledger." },
+    { "id": "0.6", "do": "node _harness/audit10-crawl.js — full capture: 10 public routes + 3 family views + all 42 product pages + admin login + 10 signed-in admin pages, at all 4 viewports, full-page screenshots to _harness/out/audit10/current/<viewport>/, probes to _harness/out/audit10/report.json. Verify the file count matches the page inventory x 4 and record the count + any crawlError entries in the ledger." },
+    { "id": "0.7", "do": "Triage report.json into plans/audit10/state/candidates.json: one entry per automated flag (console error, page error, failed request, overflowX>1 with protruding elements, brokenImgs, invisibleImgs, crawlError), fields: {candidate_id, url, viewport, signal, raw, assigned_pass}. Assign: layout/overflow/images -> pass-1 or pass-2 by viewport; admin URLs -> pass-3; everything ambiguous -> pass-1. Do NOT judge them — the assigned pass measures and decides. Known-issue signals (guardrails.json known_issues) get assigned_pass='none' with the matching known-issue string." },
+    { "id": "0.8", "do": "Spot-verify capture integrity: Read 6 screenshots (2 viewports x 3 pages incl. one admin page) and confirm they show real rendered pages, not blank/error frames. A blank capture set poisons every later pass." },
+    { "id": "0.9", "do": "Update ledger (status=complete, steps_done, screenshot_capture.captures entry with date+count), run node _harness/audit10-findings.js (validates the empty/initial findings state), commit 'audit10(pass-0): baseline + capture' (allowlist paths only), push. Delete _harness/site/admin/config.local.php." }
+  ],
+  "forbidden_in_this_pass": ["judging visual quality (passes 1-6 own that)", "writing findings other than crawlError-class hard failures", "editing anything outside the write allowlist"],
+  "exit_criteria": ["ledger pass-0 complete with baseline table + capture count", "candidates.json exists and every report.json flag is in it", "branch pushed"]
+}
