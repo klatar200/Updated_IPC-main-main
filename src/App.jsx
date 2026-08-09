@@ -1688,6 +1688,50 @@ const HERO_TRUST = [
     "Same-Day Shipment Available",
 ];
 
+/**
+ * PLAN-7 item 2 — intrinsic dimensions of the marketing photographs.
+ *
+ * Declared once, here, and consumed by both the markup and
+ * `_harness/plan7-imagery.js`, so a re-encode that changes a file's shape
+ * cannot leave a stale width/height attribute reserving the wrong box.
+ *
+ * These are the REAL pixel dimensions of the files in public/images/site/,
+ * re-encoded from the `febc0b7` originals at measured paint size. 4.32 capped
+ * every unpainted file at 1000px on the long edge, which was right for a file
+ * painted nowhere and becomes a constraint the moment one is painted.
+ *
+ * Unlike the product photo, whose dimensions live in owner-editable data and
+ * therefore cannot be emitted as attributes, these are fixed known files — so
+ * width/height are safe here and the 4.32 CLS trap does not apply.
+ */
+// These are the dimensions of the files ON DISK, and no file was re-encoded
+// for this item. The plan expected the tree to get bigger; measured, it does
+// not need to. Paint boxes at 1440, the widest any of them gets, versus what
+// the shipped file already carries (_harness/imgopt-plan7.js prints this).
+//
+// (The verb above is "get bigger" on purpose. The word you would reach for is
+// a Tailwind utility name, and the extractor scans raw source text with
+// comments included — writing it emitted that whole flex rule into the CSS,
+// the SEVENTH time this repo has done it and at least the fourth inside a
+// comment. Do not name it here. cssdiff.js is what catches it.)
+//
+//   Marker-Sample-2  painted 584px, file 1000px = 1.71x. The 2400px original
+//                    could reach 4.11x, and going to a true 2x (1168px) costs
+//                    +75 KB for +0.29x on a decorative photograph. Not bought.
+//   staff            painted 845px, file 726px = 0.86x — it UPSCALES, and the
+//                    original in git is the same 726px, so this is the source
+//                    ceiling and no encode can fix it.
+//   IPC-Building     painted 411px, file 425px = 1.03x, also the ceiling.
+//                    4.32 never touched this file; it is already the original.
+//
+// 4.32's rule that decides the shapes below: NO CROP in the encoder. Each file
+// keeps its own aspect ratio and any crop happens at render time with
+// object-fit — which is also what lets the band trim IPC-Building's baked-in
+// white border, a defect in the pixels that no re-encode may retouch away.
+const HERO_PHOTO = { w: 1000, h: 667 };      // Marker-Sample-2.jpg, 3:2
+const BAND_TEAM = { w: 726, h: 408 };        // staff.jpg
+const BAND_BUILDING = { w: 425, h: 281 };    // IPC-Building.jpg
+
 function Hero() {
   const { copy, heroProofPoints, heroTrust } = useContent();
   const c = copy.hero;
@@ -1778,7 +1822,12 @@ function Hero() {
           </div>
         </div>
 
-        {/* Right — proof cards: 2×2 grid on desktop, stacked 2×2 with tighter padding on mobile */}
+        {/* Right column. The wrapper is load-bearing: the proof-cards grid used
+            to BE this column, so PLAN-7's photograph appended after it became a
+            third item in the outer two-column grid and wrapped to a new row at
+            x=104 — under the headline, not beside it. Measured, not guessed. */}
+        <div>
+        {/* Proof cards: 2×2 grid on desktop, stacked 2×2 with tighter padding on mobile */}
         <div className="grid grid-cols-2 gap-3">
           {proofPoints.map((p, i) => (
             <div
@@ -1821,6 +1870,40 @@ function Hero() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* PLAN-7 item 2, slot 1 — the hero photograph.
+            Below the proof cards, in space that was already empty, and NO INK
+            CROSSES IT. That placement is the outcome of the 2026-08-07
+            amendment, not a preference: three full-bleed treatments were built
+            and rejected. The best photo in the set is a photo OF TEXT (printed
+            sleeves reading "TRANSDUCER END", "CAUTION: RF SHOCK HAZARD"), and
+            setting a headline over it is typography over typography that no
+            scrim fixes; and the banner images are 4.7:1 letterbox strips
+            against a 1.7:1 hero, so `cover` keeps the middle 37% and upscales
+            it 2x to blue-grey texture.
+            Because nothing sits on it, the hero's scrim ramp is UNTOUCHED and
+            this adds no contrast debt — asserted by plan7-imagery.
+            lg:block, and the <picture> below is why: a hidden <img> is still
+            downloaded, which was the one defect in the mockup. */}
+        <picture className="hidden lg:block mt-6">
+          <source media="(min-width: 1024px)" srcSet="images/site/Marker-Sample-2.jpg" />
+          <img
+            src="images/site/Marker-Sample-2.jpg"
+            alt="Custom-printed heat shrink sleeves and wire markers produced by IPC"
+            loading="lazy"
+            decoding="async"
+            width={HERO_PHOTO.w}
+            height={HERO_PHOTO.h}
+            className="w-full rounded-xl"
+            style={{
+              aspectRatio: `${HERO_PHOTO.w} / ${HERO_PHOTO.h}`,
+              objectFit: "cover",
+              border: "1px solid rgba(255,255,255,0.18)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.28)",
+            }}
+          />
+        </picture>
         </div>
       </div>
 
@@ -2979,6 +3062,48 @@ function HomePage() {
       <StatsBar />
       <Features />
 
+      {/* PLAN-7 item 2, slot 2 — the team and the building.
+          Placed between Features and Markets rather than on About, which is
+          where the photographs "belong": this is the exact point where the
+          homepage runs twelve near-identical cards in a row, and a photograph
+          of the actual people and the actual building is the only thing on the
+          page that says a real company in Bolingbrook rather than a template.
+          About links here rather than duplicating it.
+
+          The 2:1 split is forced by the source files, not chosen.
+          IPC-Building.jpg has a white border baked into its pixels; at half
+          width it upscaled and the frame showed, at one third it lands near
+          1:1 and the crop removes it. Both files are at their resolution
+          ceiling and cannot go larger or retina — measured in the amendment. */}
+      <section className="px-6 py-14" style={{ background: "#f5f7fa" }}>
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
+          <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
+            <img
+              src="images/site/staff.jpg"
+              alt="The Insulation Products Corporation team outside the Bolingbrook facility"
+              loading="lazy"
+              decoding="async"
+              width={BAND_TEAM.w}
+              height={BAND_TEAM.h}
+              className="w-full"
+              style={{ aspectRatio: "16 / 9", objectFit: "cover", display: "block" }}
+            />
+          </figure>
+          <figure className="m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
+            <img
+              src="images/site/IPC-Building.jpg"
+              alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
+              loading="lazy"
+              decoding="async"
+              width={BAND_BUILDING.w}
+              height={BAND_BUILDING.h}
+              className="w-full"
+              style={{ aspectRatio: "16 / 9", objectFit: "cover", display: "block" }}
+            />
+          </figure>
+        </div>
+      </section>
+
       {/* Markets section */}
       <section className="py-20 px-6" style={{ background: "#ffffff" }}>
         <div className="max-w-7xl mx-auto">
@@ -3396,6 +3521,21 @@ function AboutPage() {
                 {para}
               </p>
             ))}
+
+            {/* PLAN-7 item 2, slot 3 — the facility, on the page that is
+                about the company. Reuses the file the homepage band already
+                ships, so this costs no new bytes. The 3:2 crop trims the
+                white border baked into the source pixels. */}
+            <img
+              src="images/site/IPC-Building.jpg"
+              alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
+              loading="lazy"
+              decoding="async"
+              width={BAND_BUILDING.w}
+              height={BAND_BUILDING.h}
+              className="w-full rounded-xl"
+              style={{ aspectRatio: "3 / 2", objectFit: "cover", border: "1px solid #e5e9ee" }}
+            />
           </div>
 
           {/* 4.4 — Verified sidebar facts */}
@@ -10777,6 +10917,28 @@ function ServicesPage() {
             Request a Quote →
           </PageLink>
         </div>
+
+        {/* PLAN-7 item 2, slot 4 — the work itself.
+            This page describes hot-stamp marking, bar-code printing and
+            kitting in twelve cards of prose and shows none of it.
+            Marker-Sample-2 is a spread of the actual printed sleeves and is
+            the sharpest image in the set. It is the same file the hero already
+            ships, so this adds no bytes and no request the visitor has not
+            already paid for on the homepage.
+            21:9 rather than the file's 3:2: this is a band under a banner, not
+            a feature image, and object-fit does the crop. */}
+        <figure className="m-0 mb-12 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
+          <img
+            src="images/site/Marker-Sample-2.jpg"
+            alt="Custom hot-stamp printed heat shrink sleeves and wire markers produced by IPC"
+            loading="lazy"
+            decoding="async"
+            width={HERO_PHOTO.w}
+            height={HERO_PHOTO.h}
+            className="w-full"
+            style={{ aspectRatio: "21 / 9", objectFit: "cover", display: "block" }}
+          />
+        </figure>
 
         {/* Services grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
