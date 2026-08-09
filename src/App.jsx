@@ -3672,9 +3672,13 @@ function AboutPage() {
  * IPC FAQ accordion item — Tailwind transition utilities for open/close animation.
  * Uses aria-expanded for accessibility. max-height measured via ref for smooth animation.
  */
-function FaqItem({ question, answer }) {
+// C41 — `open` is a PROP, not local state. It used to live here, which meant
+// the page had no way to drive 14 items at once and no way to label a bulk
+// control truthfully. Only the boolean moved up; the `hidden`/`expanded`
+// timing machinery below is 4.20's and stays exactly where it was, so a bulk
+// toggle goes through the same effect a click does and cannot bypass it.
+function FaqItem({ question, answer, open, onToggle }) {
   const site = useSiteInfo();
-  const [open, setOpen] = useState(false);
   const contentRef = useRef(null);
   const [contentHeight, setContentHeight] = useState(0);
   const uid = useId();
@@ -3749,7 +3753,7 @@ function FaqItem({ question, answer }) {
         id={triggerId}
         className="w-full flex items-center justify-between px-6 py-5 text-left"
         style={{ background: "none", border: "none", cursor: "pointer" }}
-        onClick={() => setOpen(!open)}
+        onClick={onToggle}
         aria-expanded={open}
         aria-controls={panelId}
       >
@@ -3928,6 +3932,48 @@ function FaqPage() {
   // when the content actually changes.
   const categories = useMemo(() => groupFaq(faq), [faq]);
 
+  // C41 — which questions are open, held here rather than in each FaqItem.
+  //
+  // The audit's complaint was that scanning for an answer means 14 clicks. A
+  // bulk control needs two things the old shape could not give it: a way to
+  // set every item at once, and a truthful label. Deriving the label from a
+  // remembered "I last clicked expand" flag would lie as soon as the visitor
+  // closed one by hand, so the open set is the single source of truth and the
+  // label is computed from its size.
+  //
+  // Keys must be unique across categories, not within one — two categories can
+  // legitimately carry the same question text.
+  const itemKeys = useMemo(
+    () => categories.flatMap((cat, ci) => cat.items.map((it, i) => `${ci}-${i}-${it.question}`)),
+    [categories]
+  );
+  const [openKeys, setOpenKeys] = useState(() => new Set());
+
+  // If the owner edits the FAQ while the page is open, drop keys that no longer
+  // exist — otherwise `openKeys.size` can exceed the question count and the
+  // control offers to expand a set that is already fully expanded.
+  useEffect(() => {
+    setOpenKeys((prev) => {
+      const valid = new Set(itemKeys);
+      let changed = false;
+      const next = new Set();
+      for (const k of prev) { if (valid.has(k)) next.add(k); else changed = true; }
+      return changed ? next : prev;
+    });
+  }, [itemKeys]);
+
+  const allOpen = itemKeys.length > 0 && openKeys.size >= itemKeys.length;
+  const toggleOne = useCallback((key) => {
+    setOpenKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+  const toggleAll = useCallback(() => {
+    setOpenKeys((prev) => (prev.size >= itemKeys.length ? new Set() : new Set(itemKeys)));
+  }, [itemKeys]);
+
   // FAQPage structured data.
   //
   // This used to have `[]` deps. ContentProvider initialises to contentDefaults
@@ -4021,9 +4067,12 @@ function FaqPage() {
           borderBottom: "1px solid #d1ddef",
         }}
       >
+        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center gap-3">
+        {/* The chips keep their own scroller so the bulk control below stays
+            pinned instead of scrolling out of reach on a narrow screen. */}
         <div
-          className="max-w-4xl mx-auto px-6 py-3 flex gap-3 overflow-x-auto"
-          style={{ WebkitOverflowScrolling: "touch" }}
+          className="flex gap-3 overflow-x-auto"
+          style={{ WebkitOverflowScrolling: "touch", flex: 1, minWidth: 0 }}
         >
           {categories.map((cat, i) => (
             <button
@@ -4058,6 +4107,42 @@ function FaqPage() {
             </button>
           ))}
         </div>
+
+        {/* C41 — the bulk control. Same palette as the chips, which is already
+            a measured-safe combination; the weight and the glyph are what tell
+            it apart from a category. It drives the SAME per-item state a click
+            drives, so 4.20's accessibility-tree gate applies to it unchanged. */}
+        <button
+          type="button"
+          onClick={toggleAll}
+          style={{
+            flexShrink: 0,
+            padding: "5px 14px",
+            borderRadius: 20,
+            fontSize: 12,
+            fontWeight: 700,
+            background: "#ffffff",
+            color: "var(--brand-primary-text)",
+            border: "1px solid var(--brand-primary)",
+            cursor: "pointer",
+            transition: "all 0.15s",
+            whiteSpace: "nowrap",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--brand-primary)";
+            e.currentTarget.style.color = "#ffffff";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#ffffff";
+            e.currentTarget.style.color = "var(--brand-primary-text)";
+          }}
+        >
+          <span aria-hidden="true" style={{ marginRight: 6, fontWeight: 700 }}>
+            {allOpen ? "−" : "+"}
+          </span>
+          {allOpen ? "Collapse all" : "Expand all"}
+        </button>
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-16 space-y-12">
@@ -4077,9 +4162,17 @@ function FaqPage() {
               </h2>
             </div>
             <div className="space-y-3">
-              {cat.items.map((item, i) => (
-                <FaqItem key={`${i}-${item.question}`} {...item} />
-              ))}
+              {cat.items.map((item, i) => {
+                const key = `${catIdx}-${i}-${item.question}`;
+                return (
+                  <FaqItem
+                    key={key}
+                    {...item}
+                    open={openKeys.has(key)}
+                    onToggle={() => toggleOne(key)}
+                  />
+                );
+              })}
             </div>
           </div>
         ))}
@@ -9642,11 +9735,14 @@ function IndustriesPage() {
             // content, so all six homepage market cards dropped the visitor at
             // the top of a 3,479px page with their industry somewhere below.
             id={industryAnchor(ind, i)}
-            // scroll-margin, or the sticky navbar covers the heading the
-            // fragment just scrolled to.
-            style={{ scrollMarginTop: 84 }}
             className="bg-white rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
             style={{
+              // scroll-margin, or the sticky navbar covers the heading the
+              // fragment just scrolled to. This was a SECOND `style` prop when
+              // C30 shipped; JSX keeps the last one, so esbuild warned
+              // ("Duplicate \"style\" attribute") and the offset was silently
+              // dropped. Merged into the one object that survives.
+              scrollMarginTop: 84,
               border: "1px solid #e5e9ee",
               boxShadow: "0 2px 12px rgba(var(--brand-primary-rgb),0.06)",
             }}
