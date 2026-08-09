@@ -3173,3 +3173,273 @@ bottom of the page, and emitted that whole utility into the CSS. Sixth
 occurrence in this repo, and the third in a comment explaining an unrelated
 fix. Reworded, with a note in place naming the hazard without spelling the
 word. Bundle carries neither `.ring` nor `.grow`.
+
+## 1g. Shipped in PLAN-8 — the severity-C tier (2026-08-09)
+
+**All 50 audit IDs are resolved: 46 shipped, 4 deferred with a stated reason,
+8 owner actions.** Three commits, two of which shipped on 2026-08-08 without
+their records and are entered here.
+
+`1068b4a` — C34, C38, C40, C43, C44, C46, C49, C50.
+`6bd7246` — C30, C31.
+`dd50628` `da2bde9` `088c5cb` `a0daf7f` `190b17d` — C41, C29, C33, C39, C37.
+
+| ID | What shipped | Suite |
+|---|---|---|
+| C29 | Bare `/products` is a 42-card catalog landing with a real `<h1>`, no detail panel, and no URL moved | `plan8-landing` |
+| C30 | Six market cards deep-link to per-industry anchors; every emitted fragment asserted to resolve | `plan8-polish` |
+| C31 | Quote link carries `?industry=`; the form arrives with "Industry: Medical Devices" (catalog half deferred) | `plan8-polish` |
+| C33 | Breadcrumbs + `BreadcrumbList` on product detail and the three catalog views; one `canonicalFor()` | `plan8-crumbs` |
+| C34 | 110 new-tab links carry `rel="noopener noreferrer"` and announce the new tab (sizes deferred) | `plan8-polish` |
+| C37 | Page-header band −24px desktop / −16px mobile across nine routes | `probe-deadspace` |
+| C38 | `<noscript>` with company name, phone, fax, email, address, hours | `plan8-polish` |
+| C39 | `*` legend, privacy note above submit on both tabs, phone-placeholder default | `plan8-formpolish` |
+| C40 | Both forms `method="post" action="/contact.php"` | `plan8-polish` |
+| C41 | FAQ bulk expand/collapse that does not bypass the 4.20 accessibility gate | `plan8-faq` |
+| C43 | `alt=""` on all three logos — the audit's proposed fix would have made it worse | `plan8-polish` |
+| C44 | No empty footer strip on a service card with no brochure | `plan8-polish` |
+| C46 | Mobile product names clamp to two lines on a word boundary | `plan8-polish` |
+| C49 | Does not reproduce; kept as a regression guard, nothing changed | `plan8-polish` |
+| C50 | Trust marquee is a named `role="group"`, not an anonymous tab stop | `plan8-polish` |
+
+Also fixed, found while doing the above and belonging to C30: the
+`scrollMarginTop: 84` on each industry section was a **second `style` prop**
+on the same element. JSX keeps the last one, so esbuild printed
+`Duplicate "style" attribute` on every build and the offset was discarded. A
+cold load of `/industries#industry-medical` landed the heading at `top=0`,
+under the sticky navbar. Now `top=84`.
+
+## 2f. Open after the C tier
+
+**Nothing in severity A, B or C is unresolved.** What remains is carried
+forward, plus two new entries below.
+
+- `product-index-rows-over-120px` (§2b) — 3 of 42, held as a ratchet.
+- `spec-table-subheader-contrast` (§2c) — 3.11:1, belongs to 4.23's palette.
+- `product-page-footer-layout-shift` (§2d).
+- `plan3-autoreply-unverifiable-on-windows` (§2b).
+- `contact-desktop-focus-order` (§2e) — decided, not missed.
+- `page-header-sublines-on-gradient` (§2) — 18 elements, ratchet holds at 18.
+- The four C-tier deferrals, each with its reason in §4s.
+
+**`c49-guard-is-font-metric-dependent`.** NEW. `plan8-polish`'s C49 assertion
+passes or fails on the host's font stack, not on the code. The site asks for
+`ui-sans-serif, system-ui, sans-serif`; on Windows that resolves to Segoe UI
+and on a bare Linux container to DejaVu Sans, which is **~21% wider for the
+same string** — measured, `"Wall Thickness (min/max)"` at 14px is 148.9px in
+Segoe UI, 159.7px in Arial/Liberation, 179.9px in DejaVu Sans. The four tables
+the audit named then overflow their 389px column by 7–46px and the suite
+reports 16/17.
+
+Proven to be the font and not the layout: forcing Liberation Sans (Arial
+metrics) on those four pages brings all four back inside the column —
+435→390, 396→389, 398→389, 403→389. Nothing in `src/` differs between the two
+readings.
+
+Left as-is deliberately. The assertion is a **regression guard**, and pinning
+it to a synthetic font would make it stop measuring what a real visitor sees.
+The right fix, if one is wanted, is to install a metric-compatible face on the
+box that runs it. Do not read a red C49 on Linux as a code regression without
+checking the font first.
+
+**`copy-extractors-are-blind-to-comments`.** NEW, and it cost time twice in
+one sitting. `_harness/dump-copy-groups.php` and `_harness/copydrift.js` both
+isolate their literal by bracket-matching, and both skip **string literals**
+so that a bracket inside a label cannot unbalance them — but neither skips
+**comments**. A lone apostrophe in a comment inside `$COPY_GROUPS` or
+`COPY_DEFAULTS` therefore opens a phantom string that swallows every following
+bracket, and the whole copy-drift check dies with `$COPY_GROUPS is unbalanced`
+or `COPY_DEFAULTS did not evaluate`. The failure names the literal, not the
+comment, so it reads as corruption in the data.
+
+Worked around by a warning comment at both sites telling the next author to
+avoid the possessive. **Not fixed**, because the fix is to teach both
+extractors to skip `//` and `/* */` runs, which is a change to the two files
+that guard the copy contract and wants its own test — out of scope here.
+
+## 4s. Verification evidence for the C tier (2026-08-09)
+
+### Baseline on arrival
+
+`invariants 17/17 · plan8-lead 16/16 · plan8-meta 15/15 · plan4-public 27/27 ·
+deadlinks 0 dead · plan3-contact 51/51`, and `plan8-polish 16/17` — the C49
+font-metric red diagnosed above, not a regression. The handover said 17/17,
+which it is on a Segoe UI machine.
+
+### C41 — the FAQ bulk control
+
+The item is one control and the entire risk is 4.20. That item put `hidden` on
+each panel at the *end* of the collapse transition so a collapsed answer leaves
+the accessibility tree and find-in-page; a bulk toggle that drove `max-height`
+directly, or flipped a flag the per-item effect never observed, would reinstate
+it silently, because the page still looks right.
+
+So only the `open` boolean was lifted out of `FaqItem` into `FaqPage`, as a Set
+of keys. `hidden`, `expanded`, the `transitionend` handler and the 400 ms
+backstop stayed where they were, and the bulk control goes through the same
+effect a click goes through.
+
+Lifting it also bought a truthful label: deriving it from a remembered "expand
+was last clicked" flag would lie the moment a visitor closed one by hand, so
+the label is computed from the open set's size. Keys are
+`${catIdx}-${i}-${question}` — unique **across** categories, not within one,
+because two categories may carry the same question text — and an effect drops
+keys the owner has deleted, or the set could outgrow the question count and the
+control would offer to expand an already-expanded page.
+
+**18 questions, not the audit's 14.** The owner has added four since
+2026-08-08; the suite derives the count rather than hardcoding it.
+
+`plan8-faq` — 19 checks, all against the real accessibility tree over CDP,
+never Playwright's visibility heuristic, which calls a zero-height element
+hidden and would pass against the very defect this guards.
+
+Proven able to fail, twice: **2/4** with the control absent, and with the
+400 ms backstop lengthened to 400 s the two backstop checks report **18 panels
+stranded in the accessibility tree**. That backstop matters because a
+zero-duration transition, `prefers-reduced-motion` or a background tab can mean
+`transitionend` never arrives; the suite reproduces that deterministically by
+forcing transitions off.
+
+Chips keep their own overflow scroller so the control stays pinned rather than
+scrolling out of reach — measured at 390: `x=250 w=116`, fully in view.
+
+### C29 — the catalog landing
+
+Measured before: `/products` and `/products?productId=CC` rendered the same
+text. That is the assertion the item turns green.
+
+Three things that were one thing had to come apart:
+
+- `matched` no longer falls through to `products[0]` when there is no
+  `?productId=`. A **bad** `?productId=` still does, because that path shows
+  the not-found banner and needs something behind it.
+- the early return was `if (!product)`, which after this change would have
+  shown "No products found in catalog." on the landing itself. It tests
+  `products.length` now, which is what it always meant.
+- the header heading is a real `<h1>` on the landing and stays a styled div on
+  detail. A3 demoted it because `/products` always had a product selected;
+  A3's own comment predicted this reversal and has been updated rather than
+  left describing a state that no longer exists.
+
+Landing photos are `loading="lazy"`, deliberately the opposite of the detail
+photo's `eager` (4.32): there the photo is the LCP element, here there are 42
+and almost none are above the fold. Both carry width/height. A7's
+`placehold.co` guard is repeated on the new page — five products carry such a
+URL — and asserted by **intercepting requests**: zero external requests on the
+landing.
+
+`plan8-landing` — 18 checks, **10/18 before**. Two of its own defects were
+found while it was red: two image assertions passed vacuously on an empty grid
+(`[].every()` is true), and the href comparison used `encodeURIComponent` while
+the router uses `URLSearchParams`, so the nine ids containing a space, `/` or
+`&` compared unequal to themselves. It compares the parsed `productId` now.
+
+No URL moved: `plan8-meta 15/15`, `plan5b-sitemap 9/9`, `plan5c-sitemap 17/17`.
+
+### C33 — breadcrumbs, and one canonical
+
+`plan8-crumbs` — 22 checks, **9/21 before**. The family is verified per product
+against each record's own `partType`, all 42, not by spot check.
+
+The item collapsed a latent drift. The trail's last item must equal the page's
+own canonical, and `PageMeta` built that canonical inline — so a second
+construction was about to exist. They would not have agreed: `pageHref()` uses
+`URLSearchParams`, which writes a space as `+`; the canonical uses
+`encodeURIComponent`, which writes `%20`. Nine product ids contain a space, a
+`/` or an `&`, and a canonical is compared as a string by everything that reads
+one. There is one `canonicalFor()` now, emitting exactly what was emitted
+before. Intermediate crumbs still use `pageHref()`, because
+`/dashboard?family=Tape` is a real destination with no canonical of its own.
+
+A5 holds: an unknown segment is `noindex` with no canonical and emits no
+`BreadcrumbList` — structured data on a soft 404 is the same error as a
+self-referencing canonical on one. The homepage emits none; a one-item trail is
+noise.
+
+Two of the suite's own defects were fixed while it was red: it crashed instead
+of reporting when no crumb existed, and it read `li.textContent`, which
+includes the `aria-hidden` `›` — comparing `"›Accessory"` against `"Accessory"`
+and reporting a defect that was not there. It reads the link or the
+current-page span now, which is what assistive tech gets, and separately
+asserts the separators are hidden.
+
+**The breadcrumb was in the wrong place first, and C37 caught it.** See below.
+
+### C39 — the form polish, and the posted-variable count
+
+`plan8-formpolish` — 15 checks, **3/14 before**.
+
+The phone placeholder is `DATA`, not code, and that changed what shipped:
+`content.json` has `"Optional"` saved, so the new default fixes a fresh install
+only and the live string is **owner action 8**. The suite asserts *both* halves
+— that the live value is still the one the owner saved, i.e. this repo did not
+touch `data/`, and that with the key absent the default is a worked example
+with a real number in it. The default is driven by removing the key from the
+served `content.json`, the way `plan6-families` drives day-one state.
+
+Two new keys moved in lockstep per §5: `requiredLegend` and `privacyNote`, in
+`COPY_DEFAULTS` and in `$COPY_GROUPS`. A PHP key with no JS default is a silent
+data-loss path with a green success banner on it. **copydrift 103 → 105
+matched, 0 PHP-only, 0 JS-only.**
+
+Posted variables **439 → 441**, exactly the two fields. `POSTED_BEFORE` updated
+in the same commit, and `plan2-trunc` re-run at the new count against the real
+`max_input_vars=100` server on `:8124`: **13/13** — the guard still refuses the
+save, `content.json` still byte-identical to pristine afterwards, and the
+`:8125` negative control still surfaces the warning `:8124` suppresses. Both
+new fields are above `form_complete`; `plan2-formlast 8/8` confirms it is still
+last in the rendered DOM (invariant 6).
+
+Both copy extractors failed on an apostrophe in a comment during this work —
+once per side. Logged in §2f above.
+
+### C37 — what changed, what was left, what did not reproduce
+
+**Changed:** the page-header band's vertical padding, 48 → 36 desktop, 32 → 24
+below 768. Measured across the nine inner pages at 1440: **202–260 px before,
+178–202 px after, −24 px each**; at 390, **−16 px each**. Padding only.
+
+**Left:** the band's empty right half, which is the audit's actual claim.
+Measured at 1440 it is **32–71% empty (47–52% typical, `/privacy` the outlier
+at 71%)**. The sub-line is `max-w-2xl` on purpose and widening it would produce
+a 1232 px measure, which is worse to read. What belongs there is photography —
+PLAN-7's subject, cross-referenced rather than pre-empted. Same for the
+homepage hero column and the Industries card gap.
+
+**Did not reproduce:** "the contact page's left rail ends 320 px above the
+form". At 1440 both columns measure 968 px and the gap is 0 — the grid
+stretches them. After B26 reordered those columns the probe could not isolate a
+rail-versus-form content gap at 1440, and at 390 they are stacked by design.
+Nothing was changed on a number that did not appear.
+
+**C37 caught two defects in this session's own C33 and C39 work.**
+
+Inside `.ipc-page-header` the breadcrumb failed contrast. At 0.45/0.8 alpha the
+separator measured **2.29:1** and the `plan5c-eyebrow` ratchet went **18 → 35**
+failing header elements. Full-opacity `--brand-header-ink` fixed most of it,
+but one crumb still measured **4.34:1** at 375 — because the band is a
+*gradient*, so where a 12 px string lands decides its contrast, per route, per
+width, per palette. That failure class is already the open logged item
+`page-header-sublines-on-gradient` and new small text had no business joining
+it. The breadcrumb sits above the band on `#f5f7fa` now, which is the
+conventional place for one and carries no palette risk. `plan5c-eyebrow` back
+to **4/4**, `plan8-contrast` back to its **34/35** baseline.
+
+Three new links were under the WCAG 2.5.8 24×24 floor: the two breadcrumb links
+at 18 px tall and the C39 Privacy Policy link at 14 px. All carry vertical
+padding on an `inline-block` now. `plan8-mobile` **16/16**.
+
+`_harness/probe-deadspace.js` measures **glyph extents with a Range**, not
+element boxes: a block-level `<h1>` is as wide as its container whatever its
+text says, and the first version of the probe reported a visibly half-empty
+band as 100% full — the same mistake `backdrop.js` exists to correct.
+`_harness/shot-deadspace.js` holds before/after screenshots at 1440 and 390.
+
+### The Tailwind extractor
+
+`cssdiff.js` run against a saved snapshot after every build. Three selectors
+added across the whole tier, all of them classes actually used:
+`.xl\:grid-cols-3` (C29 grid), `.gap-x-2` (C33 trail), `.pb-1` (C37 spacing).
+No comment emitted a rule this time — the two new warning comments were written
+without naming a utility.

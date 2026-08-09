@@ -561,3 +561,200 @@ measuring: three of 42 rows on the Product Index still exceed the target
 height, one spec-table header colour is decided by the brand palette rather
 than by this work, and a small residual page movement on product pages that
 comes from the footer.
+
+---
+
+# 2026-08-09 — PLAN-8, the severity-C suggestions
+
+Source: `UI_UX_AUDIT_2026-08-08.md`. The A and B tiers closed on 2026-08-08.
+This section covers the fifteen severity-C items that needed code, in three
+commits — two of which shipped on 2026-08-08 without their notes and are
+recorded here.
+
+**All 50 audit IDs are now resolved: 46 shipped, 4 deferred with a stated
+reason, 10 owner actions.**
+
+## Catalog browsing
+
+**`/products` was the CC product page.** The canonical catalog URL
+auto-selected the first product and rendered its detail under a "Product
+Catalog" banner and the sub-line "Select a product to view full
+specifications" — with one already selected. Measured: `/products` and
+`/products?productId=CC` rendered byte-identical text. So the page a buyer
+reaches by searching "IPC product catalog" was one conduit coupling, and the
+site declared two URLs for it. The bare route is now a grid of all 42 products
+— photo, SKU, family, name — with no product selected, the sidebar intact
+beside it, and a real `<h1>`. No URL moved: all 42 product canonicals are still
+the self-referencing `?productId=` form, and the sitemap is unchanged. (C29)
+
+**Six homepage market cards all pointed at the same place.** "Medical Devices"
+and five others linked to bare `/industries`, which carried zero ids, so the
+visitor landed at the top of a **3,479 px** page with their industry third of
+six and nothing confirming they had arrived. Each section has an anchor now and
+each card links to its own. Ids come from `iconKey`, not the owner-editable
+title, because renaming "Medical Devices" in Page Content would otherwise break
+every link pointing at it.
+
+The first version of that shipped **three dangling fragments out of six** and
+the suite passed. Cards and sections do not share a vocabulary — the cards say
+`auto` / `aero` / `electronics`, the sections say `automotive` / `aerospace` /
+nothing — so `industry-${m.iconKey}` produced `#industry-auto` against an id of
+`industry-automotive`. It looked correct because the one anchor checked by hand
+was `medical`, spelled the same in both lists. Fragments are now resolved
+against the live industry list, and the suite asserts every emitted fragment
+resolves to an id the page actually rendered. (C30)
+
+A follow-up found the anchor offset had never worked either: the scroll-margin
+was a **second `style` prop** on the same element, and JSX keeps the last one,
+so esbuild had been printing "Duplicate style attribute" on every build while
+the value was silently dropped. A cold load of `/industries#industry-medical`
+put the heading at `top=0`, underneath the sticky navbar. It now lands at
+`top=84`.
+
+**Mobile product names were cut mid-word.** "Commercial Grade Polyolefin
+Tubi…" was most of the catalog in the one view where the name is all a buyer
+has. Clamped to two lines on a word boundary. (C46)
+
+**Four spec tables were reported as overflowing at 1440 and do not.** The audit
+measured `IP17TW-18SW-19LW` at 435 px in a 389 px column, plus three others.
+Re-measured across all 42: **zero**. Nothing was changed; the assertion is kept
+as a regression guard. (C49) — see the note under *Deferred* about what this
+measurement depends on.
+
+## Orientation and indexing
+
+**No page had a breadcrumb and no page emitted `BreadcrumbList`.**
+`nav[aria-label*=breadcrumb]` returned nothing on all 10 routes, on a
+42-product catalog with a deep-linkable detail view. Product pages now carry
+Home › Product Catalog › *family* › *product*, and the three catalog views
+carry the matching shorter trails, with structured data alongside. The family
+comes from each product's own `partType` checked against the owner-editable
+family list — verified on all 42 individually, not by spot check — so there is
+no second hardcoded list to drift.
+
+This collapsed a latent bug on the way. The trail's last item has to equal the
+page's own canonical, and the canonical was built inline in one place and would
+have been built again in another. They would not have matched: the router
+encodes a query with `URLSearchParams`, which writes a space as `+`, while the
+canonical uses `encodeURIComponent`, which writes `%20`. **Nine product ids
+contain a space, a `/` or an `&`** — `IP12GA - IP1274`, `IP41NE / IP43VT`,
+`IP44A2 & IP45A3` — and a canonical is compared as a string by everything that
+reads one. There is one definition now. (C33)
+
+## Chrome, assets and copy
+
+**Fourteen FAQ answers, eighteen now, and no way to open them.** Scanning for
+an answer meant a click per question. There is a bulk expand/collapse control,
+and the thing it must not do is bypass the accessibility work underneath it: a
+collapsed answer leaves the accessibility tree and find-in-page at the *end* of
+its collapse transition, and a bulk toggle that drove the animation directly
+would silently put back the defect that fixed — a screen-reader user hearing
+every answer to every question at once. It drives the same per-item state a
+click drives. Verified against the real accessibility tree, and separately with
+`transitionend` prevented from ever firing, which is what a background tab
+does: all 18 panels still leave the tree. (C41)
+
+**The contact form did not say what `*` meant, or what happens to your
+details.** Four labels carried a star with nothing explaining it, and a form
+collecting a name, email, phone and company had no privacy note anywhere near
+the submit control. Both are there now, on both tabs, and both are
+owner-editable. The Privacy Policy link is added in code rather than being part
+of the editable string, so retyping the note cannot break the link. (C39)
+
+**The phone placeholder said "Optional".** Every other placeholder on the form
+is a worked example; this one repeated what the unstarred label already said
+and taught nothing about the format. The default is now a real number. The live
+value is saved in `content.json` and is **owner action 10** — this release does
+not edit live customer data. (C39)
+
+**The page-header band was 48 px of padding top and bottom around three short
+lines** — a 226 px band for about 130 px of content, on all nine inner pages.
+Now 36 px at desktop and 24 px below 768: **−24 px and −16 px per page**,
+measured across all nine. Padding only; nothing reflowed. (C37)
+
+**With JavaScript off the site was a blank white page** with no phone number.
+A `<noscript>` block now carries the company name, phone, fax, email, address
+and hours, styled inline because the CSS bundle may be the thing that failed.
+Its values are a second copy of `site-info.json` and will not follow an admin
+edit; the comment beside them says so. (C38)
+
+**Both contact forms had no `method` and no `action`,** so they defaulted to
+GET against the current address. If the bundle ever failed to load, submitting
+put the sender's name, email and message into the query string and reloaded the
+page: the enquiry was lost and the personal data went into browser history and
+every proxy log along the way. They post to `contact.php` now, which reads
+`$_POST` directly and whose field names these already matched. (C40)
+
+**110 links opened a new tab without saying so.** All now carry
+`rel="noopener noreferrer"` — two were bare `noopener` — and announce the new
+tab in their accessible name. (C34)
+
+**A service card with no brochure rendered an empty grey strip** "to preserve
+the card silhouette". Beside Hot-Stamp Marking, which has a real link in
+exactly that position, Cut-to-Length read as a link that had failed to load.
+Empty sections render nothing. (C44)
+
+**The trust marquee was an anonymous tab stop** — a bare `div` with
+`tabIndex={0}`, 5,012 px wide, announcing the whole certification strip as one
+unnamed blob. The tab stop is deliberate, because focus pauses the scroll, so
+it keeps the capability and gains a name that says so. (C50)
+
+**The header logo's `alt` was not changed, and that is the fix.** The audit
+proposed naming the destination because the logo links home. The navbar `<a>`
+already carries `aria-label="Insulation Products Corporation — Home"`, which
+overrides the image's `alt` for the accessible name, so naming it again reads
+the same phrase twice. All three logos are decorative in context. `alt=""` is
+correct. The artwork itself remains owner action 9. (C43)
+
+## Deferred — these are still live defects
+
+- **Datasheet file sizes are not shown** (C34). The PDFs are owner-uploaded
+  through the admin, so a build-time manifest goes stale the moment a datasheet
+  is replaced, and a per-request read means a new dynamic endpoint. The `rel`
+  and new-tab announcements did ship.
+- **The no-JS form response is JSON, not a styled page** (C40). Giving it HTML
+  means changing the response contract of a file that deliberately does not
+  HTML-escape. The enquiry arriving matters more than what the fallback looks
+  like.
+- **The industry catalog link is not scoped to its industry** (C31). The
+  Product Index filters by product *family*, and the data carries no
+  industry-to-family mapping — industries carry individual SKUs. Inventing one
+  would be a second hardcoded list of exactly the kind PLAN-6 spent a plan
+  removing. The quote link *does* carry its industry, and the form arrives with
+  "Industry: Medical Devices" in the notes.
+- **The page-header band is still 32–71% empty on its right** at 1440 (47–52%
+  typical), and the homepage hero's right column is still empty below the stat
+  cards (C37). What belongs in that space is photography, which is PLAN-7's
+  subject. Widening the sub-line into it would produce a 1232 px line, which is
+  worse to read, not better.
+- **The C49 spec-table guard is font-dependent.** It passes where `system-ui`
+  resolves to Segoe UI and fails where it resolves to DejaVu Sans, which is
+  ~21% wider for the same string — on a Linux CI box the four tables the audit
+  named overflow again by 7–46 px. The layout is identical; only the font
+  differs. Worth knowing before treating a red there as a regression.
+
+## Owner actions — not yet applied to the live site
+
+**Eight** — the seven carried from the A/B tiers, plus one new from C39.
+Nothing in this release edits `data/*.json`; all eight are admin edits the
+owner makes himself, and none needs a developer.
+
+1. **A2** — the real ISO 9001 revision, three strings in Page Content. The
+   2008 revision was withdrawn in 2018; confirm with the registrar before
+   typing anything, because this is a certification claim and IPC sells into
+   aerospace, medical and automotive.
+2. **B22** — the required-date placeholder in Page Content.
+3. **A7** — clear five `photoUrl` values in Products → Edit, which makes IPC's
+   own branded panel the first paint instead of a third-party grey tile.
+4. **C35** — add a Datasheets row in Page Content → Footer Links.
+5. **C42** — two dated strings in Page Content: the About timeline
+   "2024 · 50 Years", and privacy "Effective Date: January 1, 2025".
+6. **C36** — confirm or clear five social URLs in Business Details.
+7. **C43** — optional replacement logo artwork; the current file paints an
+   opaque near-white rectangle across its full artboard.
+8. **C39, new** — Page Content → Contact Page — Form → *Field: Phone —
+   placeholder*. Currently `Optional`; should be a worked example such as
+   `e.g. 630.771.0700 ext 12`. The shipped default is already that, so this
+   only changes the value saved on the live server.
+
+**Not yet deployed.**

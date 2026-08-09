@@ -1358,12 +1358,26 @@ the executor's.
 # 9. Outcome of all 50 audit IDs (2026-08-08)
 
 Written by the executing session and amended as each phase landed.
-**All six phases are executed: 31 shipped, 12 deferred, 7 owner actions.**
-Every severity-A and severity-B item in the audit is closed.
 
-Scope was cut to severity A and B partway through, so the severity-C
-suggestions are deferred except four that sat inside items already being
-fixed. The phase order ran A → B → C → D → E → F rather than the plan's
+**AMENDED 2026-08-09.** This table said 31 shipped / 12 deferred / 7 owner
+actions, and fifteen of its rows said "deferred — scope cut" for work that had
+already shipped: C30, C31, C34, C38, C40, C44, C46, C49 and C50 landed in
+`1068b4a` and `6bd7246` on 2026-08-08 without their records, and C29, C33,
+C37, C39 and C41 landed on 2026-08-09. Two rows were also wrong in their text
+— C50 said "Phase E not started" when Phase E had shipped, and C43 said "`alt`
+text was not changed" when it was, deliberately, and that *is* the fix. All
+fifteen are corrected below.
+
+**Current state: all 50 IDs resolved — 46 shipped, 4 deferred with a stated
+reason, 8 owner actions.** Every severity-A, severity-B and severity-C item in
+the audit is closed. The four remaining deferrals are partial halves of
+otherwise-shipped items (C31 catalog scoping, C34 file sizes, C40 response
+format) plus the deliberately-unfilled space in C37; each carries its reason in
+its row and in `WHATS_LEFT.md` §4s.
+
+The original scope was cut to severity A and B partway through, which is why
+the C rows were written as deferred; the owner then asked for the C tier
+separately. The phase order ran A → B → C → D → E → F rather than the plan's
 A → B → C → D → F → E: Phase E was pulled forward at the owner's request
 because it is the WCAG tier and B15 is a Level A failure.
 
@@ -1407,28 +1421,28 @@ item is `BOTH`, the code half shipped and the owner half is listed in §6.
 | B26 | **shipped** | Form first in the DOM at 390 (1,213px → 638px); desktop asserted unchanged; mobile call strip keeps the phone above the form |
 | B27 | **shipped** | Collapsed by default; affordance measured at 4.55:1 |
 | B28 | **shipped** | No route skips a heading level |
-| C29 | **deferred** | Scope cut |
-| C30 | **deferred** | Scope cut |
-| C31 | **deferred** | Scope cut |
+| C29 | **shipped** | Bare /products is a 42-card landing; no URL moved; not byte-identical to ?productId=CC |
+| C30 | **shipped** | Six cards deep-link to per-industry anchors; every emitted fragment asserted to resolve |
+| C31 | **shipped** (quote half) + **deferred** (catalog half) | ?industry= reaches the form; no industry-to-family mapping exists to scope the catalog link |
 | C32 | **shipped** | Carried with A1 |
-| C33 | **deferred** | Scope cut |
-| C34 | **deferred** | Scope cut |
+| C33 | **shipped** | Breadcrumbs + BreadcrumbList on detail and the three catalog views; one canonicalFor() |
+| C34 | **shipped** (rel + new-tab) + **deferred** (file sizes) | 110 links; sizes need a dynamic endpoint or a manifest that goes stale on upload |
 | C35 | **owner** | One row in Page Content → Footer Links |
 | C36 | **owner** | Five social URLs to confirm or clear |
-| C37 | **deferred** | Scope cut |
-| C38 | **deferred** | Scope cut |
-| C39 | **deferred** | Scope cut. Would have added copy keys — `POSTED_BEFORE` stays 439 |
-| C40 | **deferred** | Scope cut |
-| C41 | **deferred** | Scope cut |
+| C37 | **shipped** | Header band -24px desktop / -16px mobile over nine routes; empty right half left to PLAN-7 photography |
+| C38 | **shipped** | noscript with name, phone, fax, email, address, hours |
+| C39 | **shipped** (code) + **owner** | * legend and privacy note on both tabs; two copy keys; POSTED_BEFORE 439 -> 441; the live phone placeholder is owner action 8 |
+| C40 | **shipped** (method/action) + **deferred** (response format) | Both forms POST to contact.php; the no-JS reply stays JSON — HTML would change the contract of a file that must not HTML-escape |
+| C41 | **shipped** | Bulk expand/collapse over 18 questions (not 14) without bypassing 4.20 |
 | C42 | **owner** | Two dated strings in Page Content |
-| C43 | **owner** | Optional logo replacement; `alt` text was not changed (Phase F) |
-| C44 | **deferred** | Scope cut |
+| C43 | **shipped** (alt) + **owner** (artwork) | alt="" on all three logos IS the fix — the navbar aria-label already names the destination, so the audit's proposal would have read the phrase twice |
+| C44 | **shipped** | A service card with no brochure renders no empty strip |
 | C45 | **shipped** | Carried with Phase A |
-| C46 | **deferred** | Scope cut |
+| C46 | **shipped** | Mobile product names clamp to two lines on a word boundary |
 | C47 | **shipped** | Carried with Phase A |
 | C48 | **shipped** | Answered by the owner; realised in B12 |
-| C49 | **deferred** | Scope cut |
-| C50 | **deferred** | Phase E not started |
+| C49 | **shipped** (guard only) | Does not reproduce: 0 of 42 overflow, not 4. Nothing changed; kept as a regression guard. NOTE: the guard is font-metric dependent — see WHATS_LEFT 2f |
+| C50 | **shipped** | Trust marquee is a named role="group", not an anonymous 5,012px tab stop |
 
 **B17 deviates from this plan on purpose.** §D says use `{ replace: true }`;
 this plan's own acceptance for B17 says "Back returns to the form". Those
@@ -1458,5 +1472,8 @@ developer. Nothing here is applied to the live site yet.
 | 8 | **Business Details** → Social | five URLs | X, Facebook, LinkedIn, YouTube, Pinterest | confirm each, clear any that are dead | A dead profile linked from the footer *and declared to Google in `sameAs`* is worse than no link. Clearing a field removes its icon; clearing all five removes the row |
 | 9 | **Branding** (optional) | Logo URL | `logo.svg` | a transparent-background or horizontal version | The current file paints an opaque near-white rectangle across its full artboard, so at 46px on the navy bar it reads as a clipped blue square |
 
+| 10 | **Page Content** → Contact Page — Form | Field: Phone — placeholder | `Optional` | `e.g. 630.771.0700 ext 12` | C39, added 2026-08-09. Every other placeholder on the form is a worked example; this one repeats what the unstarred label already says and teaches nothing about the format. The shipped default is already the new value, so this only changes what is saved on the live server |
+
 Items 1–3 are one decision and three edits. Item 8 is a decision, not
-necessarily an edit.
+necessarily an edit. Rows are numbered 1–10 but that is **eight distinct
+actions**: rows 2 and 3 are the same ISO decision as row 1.
