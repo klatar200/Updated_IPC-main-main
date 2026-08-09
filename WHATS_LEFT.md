@@ -3314,6 +3314,9 @@ Three things that were one thing had to come apart:
 - `matched` no longer falls through to `products[0]` when there is no
   `?productId=`. A **bad** `?productId=` still does, because that path shows
   the not-found banner and needs something behind it.
+  SUPERSEDED-BY PLAN-9 item 2 (2026-08-09): the landing now stands behind
+  the banner — the fallback rendered a different product's detail (with its
+  RFQ bar) under copy promising the catalog; audit finding 2.
 - the early return was `if (!product)`, which after this change would have
   shown "No products found in catalog." on the landing itself. It tests
   `products.length` now, which is what it always meant.
@@ -3607,3 +3610,94 @@ Not started because it is a new admin endpoint plus a modal UI plus five field
 bindings plus its own suite, and half of it is worse than none: a picker that
 lists files but cannot write the path back is a dead control on the one screen
 the owner actually uses.
+
+## 1j. Shipped in PLAN-9 — remediating the 2026-08-09 audit (2026-08-09)
+
+Source: `_harness/AUDIT-REPORT-2026-08-09.md`, six CONFIRMED findings. Plan:
+`plans/PLAN-9-audit-remediation-2026-08-09.md`. Every item landed with a new
+suite that failed first against the unmodified tree and was mutation-proven
+afterwards; evidence in §4u below.
+
+| Item | What shipped | Measured before → after | Suite |
+|---|---|---|---|
+| 1 [A] | The five Site Images fields in `admin/content.php` carry `'default'` entries (byte-identical to `COPY_DEFAULTS.siteImages`) and prefill them ONLY when the key is absent from the stored file — a stored `""` still shows empty and stays cleared. `lint.php` gains a `photo-default drift` check over the five PHP/JS pairs. `COPY_CLEARABLE`, `mergeContent` and the save loop untouched. | First save from the pre-3a `content.json`: photos **3 → 0**, band section gone → photos **3 → 3**, band survives; `aud9-clearrepro` VERDICT now `photos before=3 after=3; band before=true after=true` | `plan9-firstsave` 8/8 (5/8 fail-first) |
+| 2 [B] | `ProductPage`: `product = matched` (no `products[0]` fallback); the not-found path renders `CatalogLanding` behind the existing banner; the landing `<h1>`/sub-line branch is `landing \|\| notFound`. Banner copy unchanged — it became true. | Unknown id rendered CC's full detail + CC's sticky RFQ bar under "Showing the catalog instead" → 42-card landing, page `<h1>` "Product Catalog", no fixed bottom bar | `plan9-notfound` 8/8 (2/8 fail-first) |
+| 3 [B] | The four-way match ladder moved verbatim into `findProductByParam()`, called by `ProductPage` AND `PageMeta`. Alias URLs canonicalize to the matched id; unknown ids join the A5 soft-404 branch (`Part not found` title, `noindex`, canonical and `og:url` removed) and emit no `#breadcrumb-ld` (`Breadcrumb` gained an `ld` prop; visible trail stays). No redirects; `sitemap.php` untouched. | `?productId=cc`: title "Product Catalog —…", self-canonical `…?productId=cc` → CC's title, canonical `…?productId=CC` = BreadcrumbList last item byte-for-byte. `?productId=NOPE-XYZ-123`: indexable self-canonical → `noindex`, no canonical/og:url/LD. All 42 exact ids: canonical == crumb last item == og:url | `plan9-meta` 18/18 (10/18 fail-first) |
+| 4 [C] | `md:self-start` on the homepage band's building `<figure>` — it hugs its image; the space below is plain `#f5f7fa` section background. | Empty bordered strip below the photo: **246px at 1440, 189px at 1024, 141px at 768** → ≤ 4px slack at every width; 390 single-column unchanged. Screenshots `_harness/out/plan9/band-1440-{before,after}.png` | `plan9-band` 4/4 (1/4 fail-first) |
+| 5 [C] | `slotSrc()` beside `COPY_DEFAULTS` resolves slot paths against the site root (falsy, `/`-prefixed and `^[a-z]+:`-schemed values pass through), applied at the five render sites only — hero `<img>`+`<source srcSet>`, band team, band building, About, Services. Defaults and stored data untouched. | `/about/` painted a broken 745×496 frame (`/about/images/site/IPC-Building.jpg` → 200 `text/html`) → every `images/site/` response is 200 `image/*` and every painted slot `<img>` decodes, on `/about/`, `/services/`, `/` and control `/about`; an `https://` override renders verbatim | `plan9-slots-slash` 9/9 (5/9 fail-first) |
+| 6 [C] | The CLAUDE.md React-side bullet now reads `base: '/'` (changed from `'./'` in PLAN-8 A5). Nothing else in CLAUDE.md changed. | `grep -n "base" CLAUDE.md vite.config.js` agree | (no suite — one documentation line) |
+
+Nothing new was found outside the six items; §2 gains no entry from this plan.
+
+## 4u. Verification evidence for PLAN-9 (2026-08-09)
+
+*(The plan's §10 names this block "4t"; `## 4t` was already taken by the
+PLAN-7 items 1–2 evidence above, and this file is append-only, so the next
+free letter is used. Nothing else differs from the plan's spec.)*
+
+### Baseline inherited (before any edit, `main` @ `d98afce`)
+
+Full §9 list: **43/45 suites exited clean** — every green suite at exactly its
+documented score (invariants 17/17 … plan8-formpolish 15/15), and exactly the
+three expected exceptions: `plan8-contrast` **34/35** (the named
+`EXEMPT_BRAND_SURFACE`), `plan8-polish` **16/17** with the one miss re-run
+individually and confirmed as *"no spec table scrolls horizontally at 1440"*
+(the C49 font-metric guard; `fc-match system-ui` → DejaVu Sans on this box),
+`brandtext` **34/45 = 11 failing** (ratchet ≤ 13). `lint.php` all green,
+`cssdiff --save` snapshot taken on the untouched tree.
+
+### Fail-first and mutation proofs, per suite
+
+- **plan9-firstsave** — fail-first **5/8** on the unmodified tree: the five
+  fields rendered `""`, the first save cleared the photos (`/` painted 0 of
+  3, band gone), `content.json` held five `""` keys. After the fix **8/8**.
+  Mutation: prefill fallback reverted to `?? ''` (defaults left in config) →
+  **5/8**; restored → **8/8**. The `photo-default drift` lint check was
+  proven able to fail by mutating `bandTeamPhoto`'s PHP default to
+  `WRONG.jpg` → `FAIL photo-default drift`; restored → green.
+- **plan9-notfound** — fail-first **2/8**: 0 catalog cards, CC's `<h1>`, a
+  fixed bottom bar, generic title, self-canonical + og:url, no noindex,
+  `#breadcrumb-ld` present. After item 2 **5/8** (the three remaining fails
+  were item 3's head checks, as planned); after item 3 **8/8**. Mutation
+  (with item-3's canonical mutation below, one build): landing branch
+  reverted to `landing ?` → **4/8**; restored → **8/8**.
+- **plan9-meta** — fail-first **10/18**: every non-control row failed
+  (alias title/canonical wrong, garbage id indexable). After the fix
+  **18/18**. Mutation: `canonical = canonicalFor(page, productId)` (raw
+  param) → **16/18** (both alias canonical checks red); restored → **18/18**.
+- **plan9-slots-slash** — fail-first **5/9**: `/about/` and `/services/`
+  images answered 200 `text/html`, painted `naturalWidth` 0. After **9/9**.
+  Mutation: `slotSrc` body replaced with `return p` → **5/9**; restored →
+  **9/9**.
+- **plan9-band** — fail-first **1/4**: building slack 246/189/141 at
+  1440/1024/768 (audit's exact numbers). After **4/4**. Mutation:
+  `md:self-start` removed → **1/4**; restored → **4/4**.
+
+### The unedited audit probes, flipped
+
+- `aud9-clearrepro.js` (unedited): `VERDICT: photos before=3 after=3; band
+  before=true after=true`, admin shows the five fields prefilled with the
+  five default paths, `content.json` after the save holds the real paths.
+- `aud9-meta.js` (unedited): control unchanged; `?productId=cc` → CC's title,
+  canonical/og:url `…?productId=CC`, crumb last item identical;
+  `?productId=ip12ga-ip1274` → the product's title, canonical
+  `…?productId=IP12GA%20-%20IP1274` = crumb last item;
+  `?productId=NOPE-XYZ-123` → `Part not found — …`, canonical null, robots
+  `noindex`, og:url null, no crumb LD.
+
+### Per-item regression re-runs (all green at documented scores)
+
+- Item 1: invariants 17/17 · plan2-formlast 8/8 · plan2-trunc 13/13 (:8124 +
+  :8125) · copyroundtrip 15/15 · plan7-slots 16/16 · plan4-admin 19/19 ·
+  lint.php green including the new drift line.
+- Items 2+3: plan8-landing 18/18 · plan8-crumbs 22/22 · plan8-catalog 16/16 ·
+  plan8-meta 15/15 · plan5b-sitemap 9/9 · plan5c-sitemap 17/17 — no URL moved.
+- Item 5: plan7-imagery 11/11 · plan7-slots 16/16 · plan5-images 12/12.
+- Item 4: plan7-imagery 11/11 · cssdiff: exactly one added selector,
+  `.md\:self-start` (recorded; the item's own class). Every other build
+  through the plan: 0 added, 0 removed.
+
+### Final full gate
+
+See the PLAN-9 handback (PR body): the §9 list re-run at the end of the
+branch, same three expected exceptions, plus the five plan9 suites green.
