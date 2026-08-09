@@ -2835,6 +2835,17 @@ function DatasheetsPage({ products }) {
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
+          {/* C33 — the crumb label is the fixed route name, not c.title. The
+              owner can retitle this page in Page Content, and a breadcrumb
+              that renamed itself with it would stop matching the navigation
+              and the footer link that lead here. */}
+          <Breadcrumb
+            trail={[
+              { label: "Home", page: "home" },
+              { label: "Product Catalog", page: "products" },
+              { label: "Datasheets", page: "datasheets" },
+            ]}
+          />
           <PageEyebrow>{c.eyebrow}</PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
@@ -5444,6 +5455,131 @@ const PRODUCTS_JSON_URL = "/data/products-all.json";
 const SITE_ORIGIN = "https://www.insulationproducts.com";
 
 /**
+ * The canonical absolute URL for a route — ONE definition.
+ *
+ * C33 needs this because its acceptance is that the BreadcrumbList's trailing
+ * item equals the page's own <link rel="canonical">, and two independent
+ * constructions of the same URL is exactly how those stop agreeing. PageMeta
+ * built it inline before this existed.
+ *
+ * `encodeURIComponent`, not URLSearchParams, and the difference is real rather
+ * than cosmetic: nine product ids contain a space, a "/" or an "&"
+ * ("IP12GA - IP1274", "IP41NE / IP43VT", "IP44A2 & IP45A3"). URLSearchParams
+ * writes a space as "+", which resolves to the same page but is a DIFFERENT
+ * STRING, and a canonical is compared as a string by everything that consumes
+ * it. pageHref() still uses URLSearchParams for rendered hrefs — that is the
+ * router's own encoding and must not change; this is the declaration layer.
+ *
+ * productId is the only param included, for the reason PageMeta gives below:
+ * every other param is a view of the same document, not a separate one.
+ */
+function canonicalFor(page, productId) {
+  return (
+    SITE_ORIGIN +
+    pageToPath(page) +
+    (productId ? `?productId=${encodeURIComponent(productId)}` : "")
+  );
+}
+
+/**
+ * C33 — the breadcrumb trail and its BreadcrumbList JSON-LD.
+ *
+ * `nav[aria-label*=breadcrumb]` returned nothing on all 10 routes before this.
+ * On a 42-product catalog with a deep-linkable detail view that is the
+ * standard orientation cue, and the structured-data half is what puts the
+ * trail into a search result in place of a bare URL.
+ *
+ * `trail` is [{ label, page, params }], the last entry being the current page.
+ * It is rendered with PageLink so every crumb is a real crawlable <a href>
+ * (4.21) rather than a click handler on a div.
+ *
+ * The trailing crumb is not a link — it is where you already are — and it
+ * carries aria-current="page". Its JSON-LD `item` is canonicalFor(), so it
+ * agrees with the page's own canonical byte for byte; the intermediate crumbs
+ * use pageHref(), because a filtered view like /dashboard?family=Tape is a
+ * real destination that has no canonical of its own.
+ *
+ * Nothing renders for a trail of fewer than two entries: a lone "Home" is
+ * noise, and emitting a one-item BreadcrumbList is worse than emitting none.
+ */
+function Breadcrumb({ trail }) {
+  const items = Array.isArray(trail) ? trail.filter((c) => c && c.label) : [];
+  const enough = items.length >= 2;
+
+  // A stable primitive dep. The array is rebuilt on every render, so depending
+  // on it directly would tear down and re-append the <script> each time — the
+  // mistake AUDIT_v3 4.1 caught in the FAQ's structured data.
+  const key = items.map((c) => `${c.label}|${c.page}|${JSON.stringify(c.params || {})}`).join(">");
+
+  useEffect(() => {
+    if (!enough) return undefined;
+    const el = document.createElement("script");
+    el.id = "breadcrumb-ld";
+    el.type = "application/ld+json";
+    el.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: items.map((c, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: c.label,
+        item:
+          i === items.length - 1
+            ? canonicalFor(c.page, c.params && c.params.productId)
+            : SITE_ORIGIN + pageHref(c.page, c.params),
+      })),
+    });
+    // Remove before appending so a re-run cannot leave two nodes behind —
+    // duplicate structured data is a worse error than stale structured data.
+    document.getElementById("breadcrumb-ld")?.remove();
+    document.head.appendChild(el);
+    return () => { document.getElementById("breadcrumb-ld")?.remove(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, enough]);
+
+  if (!enough) return null;
+
+  return (
+    <nav aria-label="Breadcrumb" className="mb-4">
+      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1" style={{ fontSize: 12 }}>
+        {items.map((c, i) => {
+          const last = i === items.length - 1;
+          return (
+            <li key={`${i}-${c.label}`} className="flex items-center gap-x-2">
+              {i > 0 && (
+                <span aria-hidden="true" style={{ color: "rgba(var(--brand-header-ink-rgb), 0.45)" }}>
+                  ›
+                </span>
+              )}
+              {last ? (
+                <span
+                  aria-current="page"
+                  style={{ color: "var(--brand-header-ink)", fontWeight: 600 }}
+                >
+                  {c.label}
+                </span>
+              ) : (
+                <PageLink
+                  page={c.page}
+                  params={c.params}
+                  style={{
+                    color: "rgba(var(--brand-header-ink-rgb), 0.8)",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 2,
+                  }}
+                >
+                  {c.label}
+                </PageLink>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+/**
  * A missing or misrouted JSON file is not reliably an HTTP error. Vite's dev
  * server answers an unknown path with index.html and a 200, and a misconfigured
  * host can do the same, so `res.ok` is true and the only symptom is a JSON
@@ -6639,10 +6775,11 @@ function PageMeta({ products }) {
     // productId is included so an individual product page is canonical to
     // itself. Every other param (?family=, search terms, UI state) is excluded:
     // those are views of the same page, not separate documents.
-    const canonical =
-      SITE_ORIGIN +
-      pageToPath(page) +
-      (productId ? `?productId=${encodeURIComponent(productId)}` : "");
+    //
+    // C33 — this was an inline expression; it is now canonicalFor(), shared
+    // with the BreadcrumbList so the trail's last item and this tag cannot
+    // drift apart. Identical output, one definition.
+    const canonical = canonicalFor(page, productId);
     let link = document.querySelector('link[rel="canonical"]');
 
     // A5 — an unknown segment gets `noindex` and NO canonical.
@@ -8244,6 +8381,22 @@ function ProductPage({ products }) {
   // no-param case becomes the landing.
   const landing = !selectedId;
   const product = selectedId ? matched || products[0] || null : null;
+
+  // C33 — the breadcrumb trail for this route.
+  const families = familyOrder(useContent());
+  const crumbTrail = useMemo(() => {
+    const t = [
+      { label: "Home", page: "home" },
+      { label: "Product Catalog", page: "products" },
+    ];
+    if (!product) return t;
+    const family = String(product.partType || "").trim();
+    if (family && families.includes(family)) {
+      t.push({ label: family, page: "dashboard", params: { family } });
+    }
+    t.push({ label: product.name, page: "products", params: { productId: product.id } });
+    return t;
+  }, [product, families]);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [pulseSkuBadge, setPulseSkuBadge] = useState(false);
   const prevShowRef = useRef(false);
@@ -8315,6 +8468,13 @@ function ProductPage({ products }) {
         style={{ borderBottom: "none" }}
       >
         <div className="max-w-7xl mx-auto px-6 py-12">
+          {/* C33 — Home › Product Catalog › family › product. The family comes
+              from the product's OWN partType, checked against familyOrder() so
+              an owner-renamed family is honoured and a partType that is not a
+              family at all is dropped rather than linked to an empty filter.
+              There is no second hardcoded list.
+              First in the band, matching /dashboard and /datasheets. */}
+          <Breadcrumb trail={crumbTrail} />
           <PageEyebrow>
             Products
           </PageEyebrow>
@@ -8802,6 +8962,15 @@ function DashboardPage({ products }) {
       {/* Page header */}
       <div className="ipc-page-header">
         <div className="max-w-7xl mx-auto px-6 py-12">
+          {/* C33 — the Product Index is a view of the catalog, so its parent
+              is the catalog rather than Home directly. */}
+          <Breadcrumb
+            trail={[
+              { label: "Home", page: "home" },
+              { label: "Product Catalog", page: "products" },
+              { label: "Product Index", page: "dashboard" },
+            ]}
+          />
           <PageEyebrow>
             Product Index
           </PageEyebrow>
