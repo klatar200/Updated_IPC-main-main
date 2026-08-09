@@ -3555,3 +3555,55 @@ Three defects, all found by measuring:
    tree would get bigger used the word that is also a flex utility and emitted
    `.grow`. At least the fourth occurrence inside a comment about something
    else. Reworded; `cssdiff` clean.
+
+## 1i. Shipped in PLAN-7 item 3a (2026-08-09)
+
+All five image slots read a path from `content.json` — a single **Site Images**
+group in Page Content, rather than a photo field buried in each page section,
+because the audience is a non-technical owner.
+
+**Clearing a field removes the photograph AND its layout.** This is the whole
+risk of the item and it is not the obvious direction: `mergeContent`
+deliberately drops a blank string so a cleared heading falls back to its
+default — an empty page title is worse than a stale one, and you cannot
+re-enter a heading you cannot see. Right for text, exactly wrong for an image,
+where re-seeding restores the photo the owner just deleted under a green
+"Saved". `COPY_CLEARABLE` gains `.*Photo`, joining the `subhead` exception that
+exists for the same asymmetry; every key ends in `Photo`, so the rule is
+structural rather than a list to maintain.
+
+Emptying both homepage band slots drops the whole section rather than leaving a
+padded grey strip — the same defect C44 fixed on the service cards.
+
+Costs, re-verified: copydrift **105 → 110** matched, 0 PHP-only, 0 JS-only.
+Posted variables **441 → 446**, exactly the five fields; `plan2-trunc` re-run at
+446 against the real `max_input_vars=100` server, **13/13**, `content.json`
+still byte-identical to pristine afterwards; `form_complete` still last of 446
+controls. `plan7-slots` 16/16, **6/16 before**.
+
+## 2h. Open after item 3a — item 3b is NOT started
+
+**`plan7-item-3b-image-picker`.** The owner can now point a slot at any path,
+but he still has to TYPE it — `/images/site/Marker-Sample-2.jpg`, capitalisation
+and all. That is not a hypothetical failure: four `photoUrl` values shipped
+with exactly that defect and put a placeholder on 4 of 42 product pages.
+
+`admin/upload-image.php` already solves every hard part — extension **and**
+sniffed MIME, SVG excluded as a script vector, non-user-controlled filenames,
+`.htaccess` written into the upload dir at creation, `realpath()` containment,
+audit log, and `image_in_use()` reference counting before a delete. It is
+scoped to one product via `?sku=`. Item 3b is generalising it into a picker
+that lists `uploads/images/` **and** `public/images/site/` as thumbnails and
+writes the chosen path into whichever field opened it.
+
+**The one genuinely new rule, recorded before anyone builds it: the picker may
+OFFER `public/images/site/` but must never DELETE from it.** That folder is
+build output today and became referenced customer photography with item 2;
+`uploads/images/` remains the only writable half. Deleting from `images/site/`
+would remove a file the repo ships and the next deploy would silently restore
+it — a delete that reports success and does not persist.
+
+Not started because it is a new admin endpoint plus a modal UI plus five field
+bindings plus its own suite, and half of it is worse than none: a picker that
+lists files but cannot write the path back is a dead control on the one screen
+the owner actually uses.
