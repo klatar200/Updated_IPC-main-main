@@ -1889,9 +1889,9 @@ function Hero() {
             downloaded, which was the one defect in the mockup. */}
         {img.heroPhoto ? (
         <picture className="hidden lg:block mt-6">
-          <source media="(min-width: 1024px)" srcSet={img.heroPhoto} />
+          <source media="(min-width: 1024px)" srcSet={slotSrc(img.heroPhoto)} />
           <img
-            src={img.heroPhoto}
+            src={slotSrc(img.heroPhoto)}
             alt="Custom-printed heat shrink sleeves and wire markers produced by IPC"
             loading="lazy"
             decoding="async"
@@ -3085,7 +3085,7 @@ function HomePage() {
           {img.bandTeamPhoto ? (
           <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
             <img
-              src={img.bandTeamPhoto}
+              src={slotSrc(img.bandTeamPhoto)}
               alt="The Insulation Products Corporation team outside the Bolingbrook facility"
               loading="lazy"
               decoding="async"
@@ -3099,7 +3099,7 @@ function HomePage() {
           {img.bandBuildingPhoto ? (
           <figure className="m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
             <img
-              src={img.bandBuildingPhoto}
+              src={slotSrc(img.bandBuildingPhoto)}
               alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
               loading="lazy"
               decoding="async"
@@ -3540,7 +3540,7 @@ function AboutPage() {
                 Owner-editable since item 3a; cleared removes it entirely. */}
             {img.aboutPhoto ? (
             <img
-              src={img.aboutPhoto}
+              src={slotSrc(img.aboutPhoto)}
               alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
               loading="lazy"
               decoding="async"
@@ -6384,6 +6384,17 @@ function groupFaq(flat) {
     byName[name].items.push({ question: row.question, answer: row.answer });
   });
   return order.map((n) => byName[n]);
+}
+
+// Owner-typed and default slot paths are site-relative ("images/site/…").
+// Resolve them against the site root, not the current URL: on a
+// trailing-slash URL ("/about/") a relative src resolves under /about/ and
+// the SPA rewrite answers it with index.html — a broken frame where the
+// photograph belongs. Absolute http(s) and root-relative values pass through.
+// (PLAN-9 item 5, audit 2026-08-09 finding 5.)
+function slotSrc(p) {
+  if (!p || p.startsWith("/") || /^[a-z]+:/i.test(p)) return p;
+  return "/" + p;
 }
 
 // Built lazily (this is a hoisted function declaration) so it can reference
@@ -11028,7 +11039,7 @@ function ServicesPage() {
         {img.servicesPhoto ? (
         <figure className="m-0 mb-12 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
           <img
-            src={img.servicesPhoto}
+            src={slotSrc(img.servicesPhoto)}
             alt="Custom hot-stamp printed heat shrink sleeves and wire markers produced by IPC"
             loading="lazy"
             decoding="async"
