@@ -17,8 +17,11 @@
   "screenshot_capture": {
     "note": "screenshots are gitignored and container-local. If a later pass finds _harness/out/audit10/current/ empty (fresh container), it re-runs `node _harness/audit10-crawl.js` first — that is expected, cheap, and MUST be recorded here per re-capture so drift between captures is visible.",
     "captures": [
-      { "date": "2026-08-10", "pass": "pass-0", "count": 264, "note": "66 pages x 4 viewports, 0 crawlErrors; report.json 46 flagged rows" }
+      { "date": "2026-08-10", "pass": "pass-0", "count": 264, "note": "66 pages x 4 viewports, 0 crawlErrors; report.json 46 flagged rows" },
+      { "date": "2026-08-10", "pass": "pass-2", "count": 264, "note": "re-capture on fresh Windows container (dist+mirror already carried pass-0's exact bundle index-D1nsjcWW.js/index-DVY41PHW.css — no rebuild). 264/264, 0 crawlErrors; flagged rows down to 4: the 2 pass-2 homepage invisibleImgs candidates reproduce (tablet-834 + mobile-390), the 2 mobile-390 admin overflowX reproduce (audit-log 162px, help 211px — smaller than pass-0's 206/299, font metrics differ); pass-0's 44 admin logo.svg brokenImgs flags do NOT reproduce (this mirror has admin/logo.svg), consistent with pass-0's mirror-artifact suspicion." }
     ]
   },
-  "conflicts_and_questions": []
+  "conflicts_and_questions": [
+    { "date": "2026-08-10", "raised_by": "pass-2", "note": "passes 2/3/4/5/6 are running CONCURRENTLY in ONE shared working tree on one machine (not separate containers as the lock protocol assumed). Ledger lock commits have been sweeping up other sessions' uncommitted ledger edits (e.g. the pass-5 lock commit 9feaf83 contains pass-2's lock line). Hazards: finding-id allocation races on next_finding_id, interleaved findings.jsonl appends, shared :8123 server and Chromium load. pass-2 mitigations: stage only own paths, re-read ledger+findings.jsonl immediately before id allocation, never git reset/checkout -- on shared files. pass-7 should dedupe findings with extra care." }
+  ]
 }
