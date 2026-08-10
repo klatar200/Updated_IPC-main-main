@@ -8128,7 +8128,19 @@ function ProductDetail({ product, allProducts }) {
           background: "linear-gradient(135deg, #0a2a52 0%, var(--brand-primary) 100%)",
         }}
       >
-        <div className="px-8 py-5 flex items-start justify-between gap-4">
+        {/* A10-011 — this row stacks below the sm breakpoint, and that is the
+            whole fix for the audit's only severity A. As a single row the title
+            column was `min-w-0 flex-1` (basis 0, free to shrink to nothing)
+            against a button column with no shrink control, so the buttons'
+            min-content width won: at 390 the strip is 340px wide, the buttons
+            took 260px and the title column resolved to ZERO. The eyebrow, the
+            product name and the SKU then overflowed their own box and painted
+            across the buttons on 42 of 42 products — on CC only the "N" of
+            "Nonmetallic" survived. Not a font artifact: forced to Liberation
+            Sans the column was 16px and the overlap was still 42/42.
+            Above sm the three utilities restore the original row exactly, which
+            is why the 834 and 1440 geometry is unchanged per product. */}
+        <div className="px-8 py-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
             <div
               className="text-xs font-bold tracking-widest uppercase mb-1"
