@@ -232,7 +232,8 @@
     "4.6 every img alt and aria-label read in full + alt/image pairing measured",
     "4.7 truncation + slicing artifacts, JS slices and CSS clipping (audit10-trunc.js)",
     "4.8 admin copy read in full for comprehensibility to a non-technical owner",
-    "4.9 findings + validation + ledger + commit/push + mirror credential deleted"
+    "4.9 findings + validation + ledger + commit/push + mirror credential deleted",
+    "4.9b conflicts recorded (branch, PR)"
    ],
    "environment": "fresh Linux container: node 22.22.2, PHP 8.4.19, Chromium 1194. node_modules absent at start — npm install, npm run build, sh _harness/sync.sh. Build reproduced pass-0/1/2/3 byte for byte: index-D1nsjcWW.js 366.93 kB / index-DVY41PHW.css 23.12 kB, mirror bundle == dist bundle. fc-match system-ui -> DejaVu Sans; no finding in this pass rests on a text width, so the C49 font caveat does not apply to any of them. Server on 8123 with PHP_CLI_SERVER_WORKERS=6.",
    "coverage": {
@@ -365,6 +366,16 @@
    "date": "2026-08-10",
    "raised_by": "pass-3",
    "note": "BRANCH CONFLICT, resolved exactly as pass-1 and pass-2 resolved it. The harness handed this session a designated branch \"claude/audit-10-pass-3-admin-o7c8rc\" while manifest.git.branch and guardrails.write_allowlist.git_operations_allowed both name \"claude/audit-10\", and the pass-3 prompt itself instructed a fetch+checkout of claude/audit-10. The work is committed on claude/audit-10 and the same commits are mirrored to claude/audit-10-pass-3-admin-o7c8rc. No plan file was edited."
+  },
+  {
+   "date": "2026-08-10",
+   "raised_by": "pass-4",
+   "note": "BRANCH CONFLICT, resolved exactly as pass-1/2/3 resolved it. The harness handed this session the designated branch claude/audit-10-pass-4-bbnnsy while manifest.git.branch and guardrails.write_allowlist.git_operations_allowed name claude/audit-10, and the pass-4 prompt itself said to check out claude/audit-10. The designated branch was an ancestor of claude/audit-10, so it was fast-forwarded (no reset, no force) and every commit is pushed to BOTH refs. No plan file was edited."
+  },
+  {
+   "date": "2026-08-10",
+   "raised_by": "pass-4",
+   "note": "PR CONFLICT, recorded rather than improvised (guardrails: an agent that cannot comply STOPS and records). The harness instructs every session to open a pull request for its pushed branch; manifest.git.final_pr.opened_by names pass-7 as the opener of the single PR for this audit, and guardrails.write_allowlist.git_operations_allowed lists no PR operation. The stricter rule wins, and passes 1-3 set the same precedent (list_pull_requests returns zero open PRs against this repo). No PR was opened by pass-4; pass-7 opens it."
   }
  ]
 }
