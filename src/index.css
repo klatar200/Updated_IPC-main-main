@@ -14,6 +14,18 @@
   --brand-accent: #00bef2;
   --brand-accent-2: #119ec8;
 
+  /* A10-045 — the two accents as bare "r, g, b" triples, exactly as
+     --brand-primary-rgb above. Without them every translucent accent tint was
+     a hardcoded rgba() literal that ignored the owner's palette: a cyan
+     hairline under the header on 110 of 110 public page x viewport rows, cyan
+     outlines on the homepage and industry badges, and a cyan tint behind all
+     42 rows of the product index — on a site whose whole point is that
+     Business Details -> Branding re-skins it. ThemeInjector recomputes both
+     whenever the owner changes a color; the values here are the shipped
+     palette and the first paint, before React has mounted. */
+  --brand-accent-rgb: 0, 190, 242;
+  --brand-accent-2-rgb: 17, 158, 200;
+
   /* 4.23 — the readable foreground for each brand-colored surface. These used
      to be a hardcoded #ffffff at ~30 call sites, so a pale owner-chosen brand
      color shipped white-on-white to every visitor. ThemeInjector recomputes

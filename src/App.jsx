@@ -568,7 +568,7 @@ function Navbar({ products = [], catalogFailed = false }) {
     <header
       style={{
         background: "var(--brand-dark)",
-        borderBottom: "1px solid rgba(0,190,242,0.15)",
+        borderBottom: "1px solid rgba(var(--brand-accent-rgb),0.15)",
         position: "sticky",
         top: 0,
         zIndex: 50,
@@ -757,7 +757,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                     borderBottom: active
                       ? "2px solid var(--brand-accent)"
                       : open
-                        ? "2px solid rgba(0,190,242,0.4)"
+                        ? "2px solid rgba(var(--brand-accent-rgb),0.4)"
                         : "2px solid transparent",
                     transition: "color 0.15s",
                   }}
@@ -787,7 +787,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                       marginLeft: "-230px",
                       background: "#0e2847",
                       borderRadius: 12,
-                      border: "1px solid rgba(0,190,242,0.2)",
+                      border: "1px solid rgba(var(--brand-accent-rgb),0.2)",
                       boxShadow: "0 20px 48px rgba(0,20,60,0.55)",
                       zIndex: 100,
                       width: 560,
@@ -813,7 +813,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           width: 10,
                           height: 10,
                           background: "#0e2847",
-                          border: "1px solid rgba(0,190,242,0.2)",
+                          border: "1px solid rgba(var(--brand-accent-rgb),0.2)",
                           transform: "rotate(45deg)",
                           margin: "3px auto 0",
                         }}
@@ -1074,7 +1074,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                     borderBottom: active
                       ? "2px solid var(--brand-accent)"
                       : open
-                        ? "2px solid rgba(0,190,242,0.4)"
+                        ? "2px solid rgba(var(--brand-accent-rgb),0.4)"
                         : "2px solid transparent",
                     transition: "color 0.15s",
                   }}
@@ -1104,7 +1104,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                       width: 280,
                       background: "#0e2847",
                       borderRadius: 12,
-                      border: "1px solid rgba(0,190,242,0.2)",
+                      border: "1px solid rgba(var(--brand-accent-rgb),0.2)",
                       boxShadow: "0 20px 48px rgba(0,20,60,0.55)",
                       padding: "8px 0",
                       zIndex: 100,
@@ -1127,7 +1127,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           width: 10,
                           height: 10,
                           background: "#0e2847",
-                          border: "1px solid rgba(0,190,242,0.2)",
+                          border: "1px solid rgba(var(--brand-accent-rgb),0.2)",
                           transform: "rotate(45deg)",
                           margin: "3px auto 0",
                         }}
@@ -1296,7 +1296,7 @@ function Navbar({ products = [], catalogFailed = false }) {
           aria-label="Navigation menu"
           style={{
             background: "#0a2444",
-            borderTop: "1px solid rgba(0,190,242,0.12)",
+            borderTop: "1px solid rgba(var(--brand-accent-rgb),0.12)",
             maxHeight: "calc(100vh - 64px)",
             overflowY: "auto",
             position: "relative",
@@ -1762,9 +1762,9 @@ function Hero() {
           <div
             className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest uppercase mb-6 px-3 py-1.5 rounded"
             style={{
-              background: "rgba(0,190,242,0.15)",
+              background: "rgba(var(--brand-accent-rgb),0.15)",
               color: "var(--brand-accent)",
-              border: "1px solid rgba(0,190,242,0.3)",
+              border: "1px solid rgba(var(--brand-accent-rgb),0.3)",
             }}
           >
             <span
@@ -3304,7 +3304,7 @@ function TeamCard({ name, role, avatar }) {
           width: 56,
           height: 56,
           background:
-            "linear-gradient(135deg, rgba(var(--brand-primary-rgb),0.10) 0%, rgba(0,190,242,0.15) 100%)",
+            "linear-gradient(135deg, rgba(var(--brand-primary-rgb),0.10) 0%, rgba(var(--brand-accent-rgb),0.15) 100%)",
           fontSize: 24,
           border: "1px solid rgba(var(--brand-primary-rgb),0.15)",
         }}
@@ -7331,14 +7331,33 @@ function ThemeInjector() {
     for (const k in map) if (map[k]) root.style.setProperty(k, map[k]);
     // Derive the translucent-tint RGB and a darker hover shade from the primary
     // so tints (rgba) and hover states re-theme along with the solid colors.
-    const m = /^#?([0-9a-f]{6})$/i.exec(t.primaryColor || "");
-    if (m) {
-      const num = parseInt(m[1], 16);
-      const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+    //
+    // A10-045 — the two accents get the same triple, and did not used to. All
+    // 14 translucent accent tints were therefore hardcoded rgba() literals that
+    // survived a repalette: cyan stayed under the header on 110 of 110 public
+    // page x viewport rows, on the homepage and industry badges, and behind all
+    // 42 product-index chips, while everything driven by --brand-primary-rgb
+    // had already moved. Same mechanism, three colors now. Deliberately NOT
+    // color-mix(), for the reason spelled out in the ink derivation below.
+    const rgbOf = (hex) => {
+      const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+      if (!m) return null;
+      const n = parseInt(m[1], 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    };
+    const primaryRgb = rgbOf(t.primaryColor);
+    if (primaryRgb) {
+      const [r, g, b] = primaryRgb;
       const d = (x) => Math.round(x * 0.82);
       root.style.setProperty("--brand-primary-rgb", `${r}, ${g}, ${b}`);
       root.style.setProperty("--brand-primary-hover", `rgb(${d(r)}, ${d(g)}, ${d(b)})`);
     }
+    // The x0.82 hover shade stays attached to the primary. The accents have no
+    // hover state, and deriving one here would ship a color nothing asked for.
+    const accentRgb = rgbOf(t.accentColor);
+    if (accentRgb) root.style.setProperty("--brand-accent-rgb", accentRgb.join(", "));
+    const accent2Rgb = rgbOf(t.accent2Color);
+    if (accent2Rgb) root.style.setProperty("--brand-accent-2-rgb", accent2Rgb.join(", "));
     // 4.23 — the readable foreground for each brand surface, recomputed
     // whenever the owner changes a color. These back the --brand-*-ink vars
     // that replaced the hardcoded #ffffff at every brand-colored call site.
@@ -9751,7 +9770,7 @@ function DashboardPage({ products }) {
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
-                        background: 'rgba(17,158,200,0.1)',
+                        background: 'rgba(var(--brand-accent-2-rgb),0.1)',
                         // The MOBILE card's type chip. Its desktop twin at the
                         // <td> below already says --brand-accent-text; this one
                         // was left on the bright accent and measures 2.79:1 over
@@ -10081,7 +10100,7 @@ function DashboardPage({ products }) {
                             fontWeight: 600,
                             textTransform: "uppercase",
                             letterSpacing: "0.05em",
-                            background: "rgba(17,158,200,0.1)",
+                            background: "rgba(var(--brand-accent-2-rgb),0.1)",
                             color: "var(--brand-accent-text)",
                           }}
                         >
@@ -10486,7 +10505,7 @@ function IndustriesPage() {
                   height: 44,
                   background: "rgba(var(--brand-primary-rgb),0.5)",
                   color: "var(--brand-accent)",
-                  border: "1px solid rgba(0,190,242,0.3)",
+                  border: "1px solid rgba(var(--brand-accent-rgb),0.3)",
                 }}
               >
                 {IndIcons[ind.iconKey] || IndIcons.industrial}
