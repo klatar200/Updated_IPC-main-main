@@ -5104,7 +5104,11 @@ function ContactPage() {
               method="post"
               action="/contact.php"
               onSubmit={onRfqSubmit}
-              className="bg-white rounded-2xl p-5 sm:p-8 space-y-5"
+              /* ipc-validated-form — A10-012. The rule is in src/index.css;
+                 read the comment there before removing this class. It is the
+                 only thing keeping the browser's own "Please fill out this
+                 field" from landing behind the sticky header. */
+              className="ipc-validated-form bg-white rounded-2xl p-5 sm:p-8 space-y-5"
               style={{
                 border: "1px solid #e5e9ee",
                 boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
@@ -5387,7 +5391,10 @@ function ContactPage() {
               method="post"
               action="/contact.php"
               onSubmit={onMsgSubmit}
-              className="bg-white rounded-2xl p-5 sm:p-8 space-y-5"
+              /* ipc-validated-form — A10-012, same rule as the RFQ tab above.
+                 The audit measured only that one; this form was measured for
+                 PLAN-10 item 3 and hides the same 46.0 of 46.0px at 390. */
+              className="ipc-validated-form bg-white rounded-2xl p-5 sm:p-8 space-y-5"
               style={{
                 border: "1px solid #e5e9ee",
                 boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
