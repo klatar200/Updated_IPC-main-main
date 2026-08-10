@@ -912,4 +912,75 @@ section grows one entry per landed item.
   1440 is identical per product to within 2 px, with the overlap count still
   zero. (AUDIT-10 A10-011, the audit's only severity A.)
 
+## Phase B — the two buyer-facing severity Bs
+
+- **The Product Index garbled itself on anything narrower than a desktop.**
+  The table gave every column a fixed width except Description, which was left
+  to take "whatever is left". That is fine while the table is wide and ruinous
+  when it is not: the other six columns come to 930 px, so Description got
+  300 px at 1440, **44 px at 1024** and **nothing at all at 834**. A fixed
+  table does not clip — it just paints the overflow on top of the next column.
+  The result on a 1024-wide laptop was a column header reading
+  **`DESCRTIEMPON`**, every description wrapped to roughly one word a line, the
+  operating temperature printed inside the description text, and a page
+  **16,048 px tall** instead of 5,081. On an iPad in portrait the descriptions
+  had no column at all.
+
+  Description is now pinned at 300 px — which is not a new number, it is
+  exactly what the column already worked out to at 1440, because the card it
+  sits in stops growing at 1230 px. The desktop is therefore unchanged, and
+  1024 and 834 now show that same table, scrolled sideways inside its own card
+  the way the card was built to do, instead of crushing one column to make the
+  rest fit. Separately, the Part ID and Part Type cells were forbidden from
+  wrapping, so a compound part number like `IP64FS-IP65VC-IP66AC-IP67SC` ran
+  **108 px** past its own column and printed over its neighbour; both may now
+  wrap.
+
+  | | desktop-1440 | tablet-1024 | tablet-834 |
+  |---|---|---|---|
+  | Description column, before | 300 px | **44 px** | **0 px** |
+  | Description column, after | 300 px | **300 px** | **300 px** |
+  | text printed over the next column, before | 30 pairs | 56 pairs | 73 pairs |
+  | text printed over the next column, after | **0** | **0** | **0** |
+  | header printing over itself | none | 37.5 px | 37.5 px |
+  | header printing over itself, after | none | **none** | **none** |
+  | first description cell | 4 lines | **17 lines** | **17 lines** |
+  | first description cell, after | 4 lines | **4 lines** | **4 lines** |
+  | page height | 5,508 px | **16,048 px** | **16,097 px** |
+  | page height, after | 5,508 px | **5,544 px** | **5,593 px** |
+
+  Every overlap count was taken twice — once with the type as shipped and once
+  with it forced to a metric-standard face — so none of this is a font
+  artifact. The phone view is a card list, not a table, and is untouched: all
+  42 cards measure the same as before. (AUDIT-10 A10-001 and A10-002. The same
+  change also closes **A10-015**, the severity C at 834: the Description column
+  is 300 px there too, the headers no longer overprint, and the 146 px of table
+  hidden behind an undiscoverable scroller is now an ordinary in-card scroll of
+  a table that is legible when you reach it.)
+
+- **A quote form that refused to send pointed at a field nobody could see.**
+  Submitting the Request a Quote form with a required field empty made the
+  browser do what it always does — focus the offending field and scroll it to
+  the very top of the window. The top of the window is underneath the navy bar
+  that stays pinned there. So the visitor tapped Submit, the page jumped, and
+  what they were shown was the navbar, a form that looked untouched, and no
+  error at all. The browser *was* complaining — "Please fill out this field."
+  — about a field 100 % hidden behind the header, with its **Full Name \*** label
+  scrolled off the screen entirely. On the site's lead-capture path, some
+  visitors read that as a broken button and leave.
+
+  The form's fields now reserve 96 px above themselves when the browser scrolls
+  to them, so the field, its label and the browser's own error bubble all land
+  in view together.
+
+  | at mobile-390 | before | after |
+  |---|---|---|
+  | of the field's 46 px hidden behind the header | **46.0 px (100 %)** | **0 px** |
+  | the "Full Name \*" label | at −21.8 px, off-screen | at 74.2 px, in view |
+
+  The **General Message** tab was checked as well — the audit had only measured
+  the quote tab — and it did exactly the same thing, so both forms are fixed.
+  Nothing about the validation itself changed: it is still the browser's own,
+  with the browser's own wording. (AUDIT-10 A10-012.)
+
 **Not yet deployed.** Nothing above is on the live server.
