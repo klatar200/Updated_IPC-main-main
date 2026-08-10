@@ -3,7 +3,7 @@
  "audit_id": "AUDIT-10",
  "main_sha_at_start": "5dcd9363b4536f7f0775b2841fac914431db639c",
  "branch": "claude/audit-10",
- "next_finding_id": "A10-020",
+ "next_finding_id": "A10-037",
  "passes": {
   "pass-0": {
    "status": "complete",
@@ -133,11 +133,92 @@
    "mirror_credential_deleted": true
   },
   "pass-3": {
-   "status": "in_progress",
+   "status": "complete",
    "date": "2026-08-10",
-   "steps_done": [],
-   "notes": "RESUMED on a fresh Linux container 2026-08-10. Prior lock (2026-08-09) recorded steps_done=[] and mirror_restored=null, so no pass-3 work is on the branch to resume — starting from 3.1. Container is bare: no node_modules, no dist, no _harness/site, no _harness/pristine, no _harness/out. Rebuilding + seeding the mirror + re-crawling --admin-only first, recorded per screenshot_capture.note. fc-match system-ui = DejaVu Sans -> guardrails font_caveat is in force for every width/overflow claim.",
-   "mirror_restored": null
+   "steps_done": [
+    "3.1 admin screenshot review — 48 full-page captures (12 pages x 4 viewports) + 114 sliced segments of the two very tall pages, 162 images across 11 parallel reviewers",
+    "3.2 signed-out surface — login at 4 viewports + deep admin URL while signed out",
+    "3.3 journey A — content edit round-trip (PASS)",
+    "3.4 journey B — validation display, native + server paths (PASS, one C finding on contrast)",
+    "3.5 journey C — two-tab conflict banner (PASS)",
+    "3.6 journey D — upload refusal display (PASS)",
+    "3.7 admin sweep — PHP diagnostics, console errors, page self-naming, label association, tables, touch targets",
+    "3.8 mirror restored (cmp), findings validated, ledger, commit+push, credential deleted"
+   ],
+   "findings": [
+    "A10-020",
+    "A10-021",
+    "A10-022",
+    "A10-023",
+    "A10-024",
+    "A10-025",
+    "A10-026",
+    "A10-027",
+    "A10-028",
+    "A10-029",
+    "A10-030",
+    "A10-031",
+    "A10-032",
+    "A10-033",
+    "A10-034",
+    "A10-035",
+    "A10-036"
+   ],
+   "severity_counts": {
+    "A": 0,
+    "B": 5,
+    "C": 11,
+    "D": 1
+   },
+   "journeys": {
+    "A_content_round_trip": "PASS. Typed a new hero headline, saved: green .alert-success at y=160 (above the fold, 6.81:1), value persisted in the form, content.json updated, and the string rendered on the public homepage h1. The Site Images block arrived PREFILLED with five values (heroPhoto, bandTeamPhoto, bandBuildingPhoto, aboutPhoto, servicesPhoto) although the shipped content.json has no copy.siteImages, and the first save materialised copy.siteImages with exactly those five keys — PLAN-9 item 1 behaves as documented. Backups and audit log both populated. Mirror restored byte-identical.",
+    "B_validation_display": "PASS with one finding. Two paths exercised. Native: #company_name carries `required`, so clearing it and pressing Save is stopped by the browser — the field is focused, validity=false, message \"Please fill out this field.\", nothing posted, site-info.json unchanged. Server: a malformed e-mail plus a schemeless social URL produce a ul.error-list at y=160, above the fold, listing both messages in plain language, with every field repopulated and site-info.json unchanged. The colour input coerced \"zzzzzz\" to #000000 before posting, so no invalid colour can reach the server through the UI. Two defects in the presentation: the error text measures 4.41:1 (A10-030), and focus after a rejected save stays on <body> rather than moving to the error list or the first bad field.",
+    "C_two_tab_conflict": "PASS. Tab 1 saved; tab 2 saved with a stale signature and got the optimistic-concurrency message above the fold: \"This page content was changed by another session (or another browser tab) since you opened this page. Your edits were NOT saved — but they are still filled in below, so nothing you typed is lost...\" Verified literally: the file held tab 1's value and tab 2's form still held tab 2's typed value. The message names what happened, says what to do, and is explicit that nothing typed is lost — the presentation is good. It renders in the same red .error-list treatment as validation errors, so it inherits A10-030.",
+    "D_upload_refusal": "PASS. Reached upload-image.php from the link on edit.php (edit.php has no photo file input of its own). A plain-text file named .jpg was refused with \"Only JPG, PNG, WEBP, or GIF images are accepted (extension and content must match).\" at y=172, above the fold. uploads/images stayed empty and products-all.json was unchanged. The file input also carries a correct accept list. Inherits A10-030 for contrast."
+   },
+   "forbidden_journeys_not_run": [
+    "password change",
+    "backup restore",
+    "product delete",
+    "anything against :8124/:8125"
+   ],
+   "refuted": [
+    "brokenImgs [\"logo.svg\"] on all 44 admin captures (candidates C-001..C-044) — MIRROR ARTIFACT. admin/logo.svg is tracked and README.md:112 ships the whole admin/ folder; _harness/sync.sh copies only admin/*.php and *.js, so the mirror lacked it and router.php answered with the SPA shell (200 text/html). Copying the tracked file into _harness/site/admin/ and re-crawling dropped brokenImgs to 0 everywhere. sync.sh NOT edited.",
+    "The red \"Server setup problem\" health banner on /admin/index.php in the pass-0/1/2 captures — MIRROR ARTIFACT. Its only item was \"uploads/images is missing or not writable\"; sync.sh does not create _harness/site/uploads/. After mkdir -p _harness/site/uploads/images the banner is absent (.alert-error not present). The banner logic itself is correct and was verified firing.",
+    "\"The sticky Save bar covers a form field\" as seen in full-page screenshots — PARTLY ARTIFACT. Playwright paints a position:sticky element once at an arbitrary position in a fullPage capture. The real overlap was then measured live with elementFromPoint across 8 scroll positions per viewport and IS real, so it is recorded as A10-026 with those numbers rather than the screenshot impression.",
+    "\"content.php has no Save button at the bottom of the form\" (2 reviewers) — REFUTED. There is exactly one Save on the page and it lives in the position:sticky .save-bar, so it is on screen at every scroll position including the bottom of 48,364px.",
+    "\"Every textarea slices its last line mid-glyph\" (4 reviewers) — REFUTED as a layout defect. 0 of 99 textareas on content.php have a fractional line box: clientHeight 79, padding 20, line-height 19.5, inner 59 = 3.03 lines, fractional remainder 0.5px. What the reviewers saw is ordinary scroll overflow in a rows=3 textarea whose content is longer than three lines.",
+    "\"edit.php's Live Preview is truncated at the Specifications heading at desktop\" — REFUTED. div.ipc-preview-body scrollHeight 1209 == clientHeight 1209, hiddenPx 0, overflow-y visible, and the innerText contains the full spec summary and the 7-row size chart.",
+    "Missing-glyph (tofu) boxes where emoji appear in content.php values and help.php headings — ENVIRONMENT. fc-match system-ui = DejaVu Sans on this container and no colour-emoji font is installed. Not a site defect.",
+    "Empty fields in the \"Datasheets page — banner\" card, the \"* required\" legend, the privacy note and the two auto-reply promises — NOT A RENDER DEFECT. Those keys are genuinely unset in the shipped data/content.json; the labels and boxes render correctly.",
+    "The catalog Actions column at tablet-834 and mobile-390 — NOT part of A10-020. At those widths .table-wrap really does scroll (194px and 638px of hidden width, overflow-x:auto), so every button is reachable in place with no page-level scroll. A10-020 is specifically the two large viewports, where the wrapper cannot scroll at all.",
+    "PHP notices/warnings printed into any admin page — NONE. :8123 runs php-mail.ini with display_errors=On, error_reporting=E_ALL; 40 signed-in page loads (10 pages x 4 viewports) plus the signed-out login screen were fetched through the browser and the served HTML and rendered text greped for Warning/Notice/Fatal/Parse/Deprecated. Zero hits.",
+    "Console errors, page errors, failed requests, broken images and horizontal overflow across the 44-shot admin re-crawl — zero except the two overflows now recorded as A10-022 and A10-023.",
+    "Page self-naming (3.7) — all 11 pages name themselves correctly in both <title> and <h1>: Login/Sign In, Products/Product Catalog, Page Content, Business Details, Add Product/Add New Product, \"Edit CC\"/\"Edit Product: CC\", Backups, Change Password, Inquiries, Audit Log, Help & Documentation.",
+    "Signed-out surface (3.2) — a deep admin URL while signed out (/admin/index.php, /admin/content.php) 302s to auth.php and renders the login screen; no broken page, no partial admin chrome. The login screen is clean at all four viewports and is the one signed-in-chrome-free page, which is why it escapes A10-021.",
+    "Security posture re-verified, not re-derived: require_auth() before output on every page, csrf_check() on the mutating POSTs exercised, upload validated by extension AND sniffed MIME with a non-user-controlled filename, optimistic-concurrency signatures fired on content.php (journey C) and are present on edit.php and settings.php, and every dynamic echo in the pages read goes through h().",
+    "Label association swept across all 11 pages x 4 viewports: exactly 4 unlabelled controls (recorded as A10-032) and zero <label for> pointing at a missing id.",
+    "Touch targets: no sub-24px interactive element on the admin at mobile-390 other than inside the reorder/delete clusters on content.php cards (measured 22-28px, at the floor rather than under it) — not raised as a separate finding."
+   ],
+   "unverified": [
+    "php -S ignores .htaccess and .user.ini, so admin/.htaccess, the data/ file-blocking rules, the dotfile block, the ALLOW-PASSWORD-RESET block and every public/.user.ini limit are neither passing nor failing here.",
+    "The no-password state and the password-reset window were not exercised — both are in forbidden_journeys or would require deleting the credential mid-pass (pass file 3.2).",
+    "Apache's real handling of /admin/logo.svg was not tested; the refutation rests on the file being tracked and on README.md:112 deploying the whole admin/ folder."
+   ],
+   "notes": "RESUMED a pass-3 lock taken 2026-08-09 with steps_done=[] and no findings on the branch, so nothing was redone. Four things for pass-7. (1) routes.json lists the product-edit page as /admin/edit.php?id=CC, but admin/edit.php:5 reads $_GET['sku'] and admin/index.php:221 links edit.php?sku= — with ?id= the page 302s to index.php with a \"Product not found\" flash, so EVERY capture named admin_edit.php_id_CC.png in pass-0, pass-1 and pass-2 is a screenshot of the catalog, not of the edit form. The plan file was not edited (guardrails hard_prohibitions); the real page was captured alongside as admin_edit.php_sku_CC.png at all four viewports and reviewed. The stale captures were kept and turned out to be useful evidence for the redirect flash. (2) Two mirror-fidelity corrections were needed before anything could be measured honestly, and both were pass-0-visible artifacts that had already reached candidates.json as 45 rows: admin/logo.svg and uploads/images/. Neither is a site defect. (3) The admin's worst viewport is mobile-390 and it is worst in a way no other viewport hints at — A10-021 (the header nav leaves its own bar), A10-022 (the help page is 689px wide), A10-023 and A10-035 all live only there. (4) All four journeys PASSED on behaviour. Everything found in them was presentation: one contrast measurement (A10-030) shared by all three error surfaces, and focus not moving to the error block after a rejected save. Nothing in any journey lost or silently altered typed work — the optimistic-concurrency message says so in as many words and the measurement backs it.",
+   "mirror_restored": true,
+   "mirror_restore_evidence": "cmp _harness/site/data/<f> _harness/pristine/<f> exits 0 for all three of content.json, site-info.json, products-all.json after journeys A, B, C, D, after the A10-027 audit-log probe, and at session end. The three content.backup.*.json files the journeys created in the mirror, plus the mirror admin-log.jsonl / inquiries.jsonl / .login-throttle.json, were removed so _harness/site/data holds exactly the three pristine files. git status on data/, pdfs/, uploads/, admin/, public/ and src/ is empty — the repo working copy of live customer state was never touched.",
+   "mirror_credential_deleted": true,
+   "new_probes": [
+    "_harness/audit10-p3capture.js — captures the real ?sku= edit page and greps every admin response body for PHP diagnostics",
+    "_harness/audit10-p3segment.js — slices content.php and help.php into 2,400px segments for review",
+    "_harness/audit10-p3sweep.js — label association, clipped text, viewport/main overflow, tables, touch targets, overlaps, banners",
+    "_harness/audit10-p3evidence.js — twice-measured leads: catalog action column, help width, edit width, labels",
+    "_harness/audit10-p3issues.js — twice-measured leads: health banner, nav390, add spec row, save bar, textarea line boxes, preview, empty log",
+    "_harness/audit10-p3journeys.js — journeys A-D with the pristine restore built in",
+    "_harness/audit10-p3shots.js — issue screenshots + error-block contrast + the audit-log wording probe",
+    "_harness/audit10-p3tables.js — the three data tables measured with real rows in them"
+   ]
   },
   "pass-4": {
    "status": "in_progress",
@@ -191,6 +272,12 @@
     "pass": "pass-2",
     "count": 220,
     "note": "re-capture on a fresh Linux container (no _harness/out, no _harness/site; npm install + npm run build + sync.sh first — bundle identical to pass-0/pass-1, index-D1nsjcWW.js / index-DVY41PHW.css). Ran audit10-crawl.js --public-only, so 55 public pages x 4 viewports = 220, 0 crawlErrors, 0 console errors, 0 page errors, 0 failed requests, 0 broken images, 0 overflowX. Exactly 2 flagged rows — homepage invisibleImgs=1 at tablet-834 and at mobile-390, i.e. the two pass-2 candidates reproducing for the FOURTH capture (pass-0, the 2026-08-09 pass-2 attempt, pass-1, and this one); both now resolved as refuted. Admin shots not re-captured (pass-3 re-crawls with --admin-only)."
+   },
+   {
+    "date": "2026-08-10",
+    "pass": "pass-3",
+    "count": 162,
+    "note": "Fresh Linux container: no node_modules, dist, _harness/site, _harness/pristine or _harness/out. npm install + npm run build reproduced pass-0's exact bundle (index-D1nsjcWW.js / index-DVY41PHW.css), sh _harness/sync.sh bootstrapped pristine/ from data/ and set the mirror password. audit10-crawl.js --admin-only was run TWICE: once as delivered (44 shots, 44 flagged rows, all brokenImgs [\"logo.svg\"]), then again after copying the tracked admin/logo.svg into the mirror (44 shots, 3 flagged rows: 2 transient favicon NETFAILs and the real help.php 299px overflow). 4 more shots for the real /admin/edit.php?sku=CC, which routes.json misnames as ?id=. 114 segment captures of content.php (18/18/18/21) and help.php (9/10/10/10) at 2,400px slices, because a 42,632px full-page PNG downsamples past the point where a misaligned label is visible. Totals reviewed: 48 full-page + 114 segments = 162 images, 11 parallel reviewers. Three reviewers hit a session token limit mid-run and were re-dispatched after it reset; all batches completed."
    }
   ]
  },
@@ -214,6 +301,21 @@
    "date": "2026-08-10",
    "raised_by": "pass-2",
    "note": "BRANCH CONFLICT, resolved exactly as pass-1 resolved it. The harness handed this session a designated branch \"claude/audit-10-pass-2-visual-1pggbp\" while manifest.git.branch and guardrails.write_allowlist both name \"claude/audit-10\", and the pass-2 prompt itself instructed a fetch+checkout of claude/audit-10. The work is committed on claude/audit-10 and the same commits are mirrored to claude/audit-10-pass-2-visual-1pggbp. No plan file was edited."
+  },
+  {
+   "date": "2026-08-10",
+   "raised_by": "pass-3",
+   "note": "PLAN FILE ERROR, recorded not fixed. plans/audit10/routes.json admin_pages_get lists {\"url\":\"/admin/edit.php?id=CC\",\"slug\":\"admin_edit.php_id_CC\"}, and _harness/audit10-crawl.js:52 follows it. admin/edit.php:5 reads $_GET['sku'] and admin/index.php:221 emits edit.php?sku=<sku>; with ?id= the page redirects to index.php?msg=Product+not+found. Consequence: the product edit form was never actually captured by pass-0/1/2 — those PNGs show the catalog. pass-3 captured /admin/edit.php?sku=CC alongside (audit10-p3capture.js) and reviewed it. routes.json was NOT edited (guardrails hard_prohibitions \"never edit ... routes.json\")."
+  },
+  {
+   "date": "2026-08-10",
+   "raised_by": "pass-3",
+   "note": "MIRROR FIDELITY, recorded not fixed. _harness/sync.sh copies admin/*.php and admin/*.js only, and never creates uploads/. The deploy manifest (README.md:112) ships the whole admin/ folder, and uploads/ is a first-deploy tree. So the mirror was missing /admin/logo.svg (a broken <img> and favicon on all 44 admin captures, 45 pass-0 candidates) and /uploads/images (a permanent red \"Server setup problem\" banner on the dashboard). Both were corrected locally in the gitignored mirror — cp admin/logo.svg _harness/site/admin/ and mkdir -p _harness/site/uploads/images — so that pass-3 measured what the deployed admin looks like. sync.sh itself was NOT edited (guardrails: pre-AUDIT-10 harness files are read-only). A later pass on a fresh container must repeat both, or it will re-raise the same two artifacts."
+  },
+  {
+   "date": "2026-08-10",
+   "raised_by": "pass-3",
+   "note": "BRANCH CONFLICT, resolved exactly as pass-1 and pass-2 resolved it. The harness handed this session a designated branch \"claude/audit-10-pass-3-admin-o7c8rc\" while manifest.git.branch and guardrails.write_allowlist.git_operations_allowed both name \"claude/audit-10\", and the pass-3 prompt itself instructed a fetch+checkout of claude/audit-10. The work is committed on claude/audit-10 and the same commits are mirrored to claude/audit-10-pass-3-admin-o7c8rc. No plan file was edited."
   }
  ]
 }
