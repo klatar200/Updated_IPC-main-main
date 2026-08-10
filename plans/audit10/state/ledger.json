@@ -9,7 +9,7 @@
     "pass-1": { "status": "in_progress", "date": "2026-08-10", "steps_done": [], "notes": "same session as pass-0 (container retains the 264-shot capture). Scope: desktop-1440 + tablet-1024 public — 55 screenshots each + 2 error states to capture live. 0 probe candidates assigned to pass-1." },
     "pass-2": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
     "pass-3": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "mirror_restored": null },
-    "pass-4": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
+    "pass-4": { "status": "in_progress", "date": "2026-08-09", "steps_done": [], "notes": "session start; lock taken before any work" },
     "pass-5": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
     "pass-6": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
     "pass-7": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "pr_url": null }
