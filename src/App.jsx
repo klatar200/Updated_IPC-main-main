@@ -9195,9 +9195,25 @@ function ProductPage({ products }) {
  * and put the rule straight back. Do not name it here. The selector diff in
  * _harness/cssdiff.js catches it; the build's byte count does not.)
  *
- * Description is deliberately the one column with no width — under
- * `table-layout: fixed` the unsized column takes whatever is left, which is
- * what the longest content should get.
+ * Description USED to be the one column with no width, on the theory that
+ * under `table-layout: fixed` the unsized column takes whatever is left, which
+ * is what the longest content should get. It does take whatever is left — and
+ * what is left runs out. AUDIT-10 A10-001 / A10-002 / A10-015: the other six
+ * tracks come to 930px, so the leftover is 300px at 1440, 44px at 1024 and
+ * 0px at 834. A fixed layout does not clip, so the starved cells painted
+ * straight across their neighbours — the header read DESCRTIEMPON, the first
+ * description cell took 17 line boxes and the document grew to 16,048px.
+ *
+ * 300 is not a new number: it is what the elastic track already resolved to at
+ * 1440, because the card caps at 1230px. Pinning it therefore changes the
+ * desktop by nothing at all (measured: same seven widths, same 5,508px
+ * document) and gives 1024 and 834 that same layout, scrolled inside the
+ * `overflow-x: auto` card the wrapper was built for.
+ *
+ * NOT a min-width, which is what the obvious reading of the spec suggests.
+ * Measured in Chromium: a min-width on the th or on the td under
+ * `table-layout: fixed` is ignored outright — the 1024 track stayed at 44.0px
+ * with min-width: 220px on either. Only a real width moves it.
  *
  * Temp is 150 rather than the 90 a temperature range looks like it needs.
  * IP64FS-IP65VC-IP66AC-IP67SC's value is "Up to 1200°F (Heat Treated); 130°C
@@ -9209,7 +9225,7 @@ const DASHBOARD_COLS = [
   { key: "name", label: "Product Name", width: 190 },
   { key: "partId", label: "Part ID", width: 105 },
   { key: "partType", label: "Part Type", width: 115 },
-  { key: "description", label: "Description", width: null },
+  { key: "description", label: "Description", width: 300 },
   { key: "operatingTemp", label: "Temp", width: 150 },
   { key: "specifications", label: "Specifications", width: 215 },
 ];
@@ -10015,17 +10031,39 @@ function DashboardPage({ products }) {
                           {row.name}
                         </span>
                       </td>
-                      {/* Part ID */}
+                      {/* Part ID — A10-001. This cell and the Part Type cell
+                          below were `whiteSpace: "nowrap"` inside 105px and
+                          115px tracks, so a compound part id like
+                          IP64FS-IP65VC-IP66AC-IP67SC ran 108px past its own
+                          column and printed over the neighbour. `nowrap` had
+                          no incident behind it; the wrapping does, so it goes.
+                          overflowWrap "anywhere" is the backstop for a future
+                          part id with no hyphen in it to wrap at. It is
+                          deliberately NOT the mid-token value of wordBreak —
+                          that one splits every long word on the page, and
+                          naming it here would also emit its whole utility rule
+                          into the shipped CSS (the extractor reads comments;
+                          this comment's first draft did exactly that and
+                          cssdiff caught it). Measured: 30 overlap pairs at 1440
+                          under both faces before, 0 after, with the document
+                          height unmoved at 5,508px. */}
                       <td
-                        style={{ padding: "13px 18px", whiteSpace: "nowrap" }}
+                        style={{ padding: "13px 18px", overflowWrap: "anywhere" }}
                       >
                         <span style={{ fontWeight: 700, color: "var(--brand-primary-text)" }}>
                           {row.partId}
                         </span>
                       </td>
-                      {/* Part Type */}
+                      {/* Part Type — see the Part ID note above. This one gets
+                          plain wrapping and NOT overflowWrap "anywhere": every
+                          part type is multi-word, so spaces are break enough,
+                          and "anywhere" split POLYOLEFIN across two lines as
+                          POLYOLE / FIN inside the pill. Both variants measured
+                          0 overlap pairs — the difference is only visible in
+                          the screenshot, which is why item 2 was looked at as
+                          well as measured. */}
                       <td
-                        style={{ padding: "13px 18px", whiteSpace: "nowrap" }}
+                        style={{ padding: "13px 18px" }}
                       >
                         <span
                           style={{
