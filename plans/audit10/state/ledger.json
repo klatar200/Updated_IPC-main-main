@@ -1,11 +1,11 @@
 {
   "$schema_note": "AUDIT-10 progress ledger. The FIRST thing a session writes (status=in_progress + date + lock) and the LAST thing it completes (status=complete + deliverable checklist). Committed and pushed on both writes — an unpushed ledger does not exist, because containers are ephemeral. steps_done holds completed step ids from the pass file so an interrupted pass can resume without redoing work.",
   "audit_id": "AUDIT-10",
-  "main_sha_at_start": null,
+  "main_sha_at_start": "5dcd9363b4536f7f0775b2841fac914431db639c",
   "branch": "claude/audit-10",
   "next_finding_id": "A10-001",
   "passes": {
-    "pass-0": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "baseline_delta": null },
+    "pass-0": { "status": "in_progress", "date": "2026-08-10", "steps_done": ["0.1"], "notes": null, "baseline_delta": null },
     "pass-1": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
     "pass-2": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
     "pass-3": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "mirror_restored": null },
