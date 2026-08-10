@@ -1,70 +1,219 @@
 {
-  "$schema_note": "AUDIT-10 progress ledger. The FIRST thing a session writes (status=in_progress + date + lock) and the LAST thing it completes (status=complete + deliverable checklist). Committed and pushed on both writes — an unpushed ledger does not exist, because containers are ephemeral. steps_done holds completed step ids from the pass file so an interrupted pass can resume without redoing work.",
-  "audit_id": "AUDIT-10",
-  "main_sha_at_start": "5dcd9363b4536f7f0775b2841fac914431db639c",
-  "branch": "claude/audit-10",
-  "next_finding_id": "A10-011",
-  "passes": {
-    "pass-0": { "status": "complete", "date": "2026-08-10", "steps_done": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"], "notes": "fc-match system-ui -> DejaVu Sans (C49 caveat applies). Servers 8123 (php-mail.ini) / 8124 (php-trunc.ini) / 8125 (php-nb2-off.ini) up. lint.php all green incl. photo-default drift 5 slot defaults identical. cssdiff --save: 359 selectors from index-DVY41PHW.css. Build 366.93 kB JS / 23.12 kB CSS, mirror bundle == dist bundle (index-D1nsjcWW.js). Baseline 50 suites: 48 clean, 2 expected reds — plan8-polish 16/17 with failing check exactly 'no spec table scrolls horizontally at 1440' (C49 font-metric, DejaVu), brandtext 34/45 = 11 FAILING (ratchet <=13, was 11). plan8-contrast 34/35 = its passing state (EXEMPT_BRAND_SURFACE). All other scores identical to baseline.json expected_scores. Crawl: 264/264 pages captured (66 x 4 viewports), 0 crawlErrors, 0 console/page errors, 46 flagged rows -> 49 candidates (47 pass-3: 44 brokenImgs admin logo.svg [mirror-only artifact suspected — admin/logo.svg tracked in repo, sync.sh copies only *.php/*.js] + 1 NETFAIL same + 2 mobile-390 admin overflowX (audit-log 206px, help 299px); 2 pass-2: homepage invisibleImgs=1 at tablet-834 + mobile-390; 0 pass-1). Spot-verify 6/6 real renders (desktop home + admin index, mobile home + contact, tablet-1024 product CC, tablet-834 admin login). audit10-findings.js green (0 findings). Mirror admin health banner re uploads/ is a mirror artifact (mirror has no uploads/).", "baseline_delta": "none beyond expected_exceptions" },
-    "pass-1": {
-      "status": "complete",
-      "date": "2026-08-10",
-      "steps_done": ["1.1 re-capture", "1.2 screenshot review (110 shots, 13 parallel reviewers)", "1.3 numeric sweep", "1.4 verification of every lead", "1.5 issue evidence", "1.6 findings + validation"],
-      "environment": "fresh Linux container: node 22.22.2, PHP 8.4.19, Chromium 141.0.7390.37 (build 1194). fc-match system-ui -> DejaVu Sans, so guardrails evidence_standards.font_caveat applies to every width/overflow claim. Build reproduced pass-0's exact bundle: index-D1nsjcWW.js 366.93 kB / index-DVY41PHW.css 23.12 kB, mirror bundle == dist bundle.",
-      "coverage": {
-        "screenshots_reviewed_desktop_1440": 55,
-        "screenshots_reviewed_tablet_1024": 55,
-        "screenshots_reviewed_total": 110,
-        "screenshot_review_method": "13 parallel reviewer subagents over batches of 7-11, identical rubric, leads only; every lead re-measured by the pass owner in the live browser before it could become a finding",
-        "admin_screenshots_present_but_out_of_scope": 22,
-        "error_states_measured_live": ["/products?productId=NOPE-XYZ-123", "/no-such-page"],
-        "pages_measured_numerically": "57 URLs x 2 viewports = 114 rows (audit10-p1sweep.js); 42 product pages x 2 viewports measured a further four times by audit10-p1product/p1void/p1sidebar/p1font",
-        "candidates_assigned_to_pass_1": 0,
-        "candidates_resolved": "n/a — pass-0 assigned all 49 probe candidates to pass-3 (47) and pass-2 (2); none to pass-1. candidates.json therefore needed no edit."
-      },
-      "findings": "10 recorded, A10-001..A10-010: 2 x B, 7 x C, 1 x D. audit10-findings.js green (10 valid, FINDINGS.md regenerated).",
-      "negative_results": [
-        "horizontal document overflow: 0 of 114 page x viewport combinations",
-        "broken images (naturalWidth 0): 0 across all 57 pages at both viewports",
-        "image aspect distortion: 0 non-cover images with >2% skew between natural and painted ratio",
-        "chrome consistency: exactly ONE header signature (65px, 3 links) and ONE footer signature (440px desktop / 448px tablet, 15 links) across all 57 pages at each viewport; nav and footer link sets byte-identical everywhere",
-        "catalog card grid on /products: width and height spread <=1px within every row at both viewports; last row full",
-        "genuine element overlap outside the /dashboard table: none. 67 sweep rows flagged, all false positives — inline label/value spans sharing one line box, or sub-paths of one inline SVG",
-        "vertical rhythm: every top-level section on all ten public routes abuts its neighbour with gap 0.0px at both viewports, and every section's padding-top equals its padding-bottom (80/80, 64/64, 56/56, 48/48, 40/40). No double gaps, no missing gaps. Measured twice, identical.",
-        "error states: /products?productId=NOPE-XYZ-123 renders title 'Part not found', meta robots noindex, the 'We couldn't find part \"NOPE-XYZ-123\".' banner and all 42 catalog cards; /no-such-page renders 'Error 404 / Page not found' with three recovery links and noindex. Both clean at both viewports, measured twice."
-      ],
-      "refutations": [
-        "STICKY RFQ BAR 'covers content at rest' — raised by 12 of the 13 reviewers, REFUTED. At scrollY=0 on /products?productId=IP38FE the fixed bar's top is 907px in a 900px viewport (entirely below the fold) and <body> carries no ipc-has-sticky-rfq class and 0px padding-bottom. Once scrolled it occupies the bottom 70px and body padding-bottom becomes 76px, so the end of the document is never trapped. The screenshots mislead because Playwright's fullPage capture paints position:fixed elements onto the expanded canvas.",
-        "SPEC TABLE CLIPPED AT DESKTOP-1440 — raised as 'strong' by 3 reviewers, REFUTED as the known C49/DejaVu artifact. As shipped on this box 4 of 42 product pages overflow their 389px scroller by 7-46px; with the document forced to Liberation Sans (metric-compatible with Arial) the overflow is 0px on all 42. The 1024 case survives the same control and is recorded as A10-006.",
-        "/faq CATEGORY CHIP CLIPPED — REFUTED as a font artifact. 57px hidden and the 'Support & Documentation' chip cut as shipped; 0px hidden under Liberation Sans, at BOTH viewports.",
-        "/contact EMAIL OVERFLOWING ITS CARD at 1024 — REFUTED as a font artifact. 'sales@insulationproducts.com' paints 6.8px past the card border as shipped; 0px under Liberation Sans.",
-        "HOMEPAGE BAND RIGHT FIGURE 'LETTERBOXED' while the left bleeds edge to edge — REFUTED. Both figures measure gapLeft/Right/Top/Bottom = 1.0px, which is the declared 1px border; the apparent white gutter is baked into IPC-Building.jpg's own pixels, exactly as the PLAN-9 comment at src/App.jsx:3077 records.",
-        "HOMEPAGE BAND FIGURES UNEQUAL / right column ends 243.8px above the left at 1440 — NOT a finding: md:self-start is the deliberate PLAN-9 item 4 fix (the bordered card previously ran 246px past its photo). Team photo upscale 1.163x is the logged 'staff.jpg painted above its own resolution (source ceiling)' item.",
-        "/dashboard?family=Heat%20Shrink%20Tubing SHOWING 0 RESULTS with no chip lit — NOT a finding. No product carries partType 'Heat Shrink Tubing' (the eleven real families are Accessory 13, Polyolefin Heat Shrink 12, Expandable Sleeving 4, PVDF Heat Shrink 4, Dual-Wall Heat Shrink 4, End Cap 1, Medical Grade Heat Shrink 1, Fiberglass Sleeving 1, Tape 1, Adhesive 1) and the site emits exactly 10 family= hrefs, every one of which matches a real partType. The state is unreachable from the site, and the empty view still explains itself ('No results in Heat Shrink Tubing') and offers a clear-filter control.",
-        "INDUSTRIES CARD MID-CARD GAP (125-161px of empty space in the Common Applications column) — measured and real, but NOT reported: it is already logged under C37 in WHATS_LEFT S2 ('Same for the homepage hero column and the Industries card gap'), and guardrails forbids re-reporting S2 items.",
-        "HOMEPAGE TRUST MARQUEE clipped mid-word at both edges — NOT a finding: .ipc-marquee-track duplicates its content 2x and animates translateX(0 -> -50%) by design (src/App.jsx:5868)."
-      ],
-      "notes": "RESUMED by a new session; the earlier pass-1 lock (taken in pass-0's session) recorded steps_done=[] and appended no findings, so nothing was redone. THREE environment facts worth carrying forward. (1) php -S is single-threaded by default: running audit10-crawl.js and a second Chromium against :8123 at the same time wedged the crawler mid-page for minutes. The server was restarted with PHP_CLI_SERVER_WORKERS=6 and the two coexisted cleanly afterwards — later passes sharing this box should do the same. (2) Liberation Sans is installed here and is metric-compatible with Arial, which makes it a usable control for the C49 font caveat; four leads were refuted with it and two survived it. (3) PLAN-FILE OBSERVATION (recorded here, not acted on, per guardrails): routes.json parameterized_views lists /dashboard?family=Heat%20Shrink%20Tubing, but no product carries that partType and the site emits no such href, so that row captures a 0-result view by construction. NOT edited.",
-      "mirror_credential_deleted": true
-    },
-    "pass-2": { "status": "in_progress", "date": "2026-08-10", "steps_done": [], "notes": "RESUMED on a fresh Linux container by a new session (2026-08-10). The prior pass-2 lock (2026-08-09, Windows) recorded steps_done=[] and appended no findings, so nothing is redone. _harness/out and _harness/site are both absent here: rebuilding, resyncing the mirror, restarting :8123 with PHP_CLI_SERVER_WORKERS=6 (pass-1's note) and re-running audit10-crawl.js --public-only, recorded per screenshot_capture.note. Same branch-conflict resolution as pass-1: harness designated branch is claude/audit-10-pass-2-visual-1pggbp, work is committed on claude/audit-10 per manifest.git.branch and mirrored to the designated branch." },
-    "pass-3": { "status": "in_progress", "date": "2026-08-09", "steps_done": [], "notes": "session start; lock taken before any work. Fresh-container check pending: will rebuild + resync mirror + restart :8123 + re-crawl --admin-only if capture folder absent, recording the re-capture per screenshot_capture.note.", "mirror_restored": null },
-    "pass-4": { "status": "in_progress", "date": "2026-08-09", "steps_done": [], "notes": "session start; lock taken before any work" },
-    "pass-5": { "status": "in_progress", "date": "2026-08-09", "steps_done": [], "notes": "session start; lock taken before any work. NOTE: found a pre-existing UNCOMMITTED pass-4 in_progress lock (2026-08-09) in the working tree — preserved verbatim and committed alongside this lock rather than reverted; if no pass-4 session is actually live it should be re-examined by pass-7." },
-    "pass-6": { "status": "in_progress", "date": "2026-08-09", "steps_done": [], "notes": "session start; lock taken before any work. Working tree carried uncommitted in_progress locks for pass-2/pass-4/pass-5 (2026-08-09, never pushed) — preserved verbatim and committed alongside this lock, same handling as the pass-5 session's note." },
-    "pass-7": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "pr_url": null }
+ "$schema_note": "AUDIT-10 progress ledger. The FIRST thing a session writes (status=in_progress + date + lock) and the LAST thing it completes (status=complete + deliverable checklist). Committed and pushed on both writes — an unpushed ledger does not exist, because containers are ephemeral. steps_done holds completed step ids from the pass file so an interrupted pass can resume without redoing work.",
+ "audit_id": "AUDIT-10",
+ "main_sha_at_start": "5dcd9363b4536f7f0775b2841fac914431db639c",
+ "branch": "claude/audit-10",
+ "next_finding_id": "A10-020",
+ "passes": {
+  "pass-0": {
+   "status": "complete",
+   "date": "2026-08-10",
+   "steps_done": [
+    "0.1",
+    "0.2",
+    "0.3",
+    "0.4",
+    "0.5",
+    "0.6",
+    "0.7",
+    "0.8",
+    "0.9"
+   ],
+   "notes": "fc-match system-ui -> DejaVu Sans (C49 caveat applies). Servers 8123 (php-mail.ini) / 8124 (php-trunc.ini) / 8125 (php-nb2-off.ini) up. lint.php all green incl. photo-default drift 5 slot defaults identical. cssdiff --save: 359 selectors from index-DVY41PHW.css. Build 366.93 kB JS / 23.12 kB CSS, mirror bundle == dist bundle (index-D1nsjcWW.js). Baseline 50 suites: 48 clean, 2 expected reds — plan8-polish 16/17 with failing check exactly 'no spec table scrolls horizontally at 1440' (C49 font-metric, DejaVu), brandtext 34/45 = 11 FAILING (ratchet <=13, was 11). plan8-contrast 34/35 = its passing state (EXEMPT_BRAND_SURFACE). All other scores identical to baseline.json expected_scores. Crawl: 264/264 pages captured (66 x 4 viewports), 0 crawlErrors, 0 console/page errors, 46 flagged rows -> 49 candidates (47 pass-3: 44 brokenImgs admin logo.svg [mirror-only artifact suspected — admin/logo.svg tracked in repo, sync.sh copies only *.php/*.js] + 1 NETFAIL same + 2 mobile-390 admin overflowX (audit-log 206px, help 299px); 2 pass-2: homepage invisibleImgs=1 at tablet-834 + mobile-390; 0 pass-1). Spot-verify 6/6 real renders (desktop home + admin index, mobile home + contact, tablet-1024 product CC, tablet-834 admin login). audit10-findings.js green (0 findings). Mirror admin health banner re uploads/ is a mirror artifact (mirror has no uploads/).",
+   "baseline_delta": "none beyond expected_exceptions"
   },
-  "screenshot_capture": {
-    "note": "screenshots are gitignored and container-local. If a later pass finds _harness/out/audit10/current/ empty (fresh container), it re-runs `node _harness/audit10-crawl.js` first — that is expected, cheap, and MUST be recorded here per re-capture so drift between captures is visible.",
-    "captures": [
-      { "date": "2026-08-10", "pass": "pass-0", "count": 264, "note": "66 pages x 4 viewports, 0 crawlErrors; report.json 46 flagged rows" },
-      { "date": "2026-08-10", "pass": "pass-1", "count": 242, "note": "re-capture on a fresh Linux container (no _harness/out, no _harness/site; rebuilt and resynced first — bundle identical to pass-0's, index-D1nsjcWW.js / index-DVY41PHW.css). Ran in two parts. Part 1 (full crawl) captured desktop-1440 66/66 and tablet-1024 66/66 with 0 crawlErrors, then wedged 33 shots into tablet-834: php -S is single-threaded by default and a second Chromium was queueing behind it. The server was restarted with PHP_CLI_SERVER_WORKERS=6 and part 2 (--public-only) completed all four viewports: 220 public pages, 0 crawlErrors, 0 console errors, 0 page errors, 0 failed requests, 0 broken images, 0 overflowX. Exactly 2 flagged rows — homepage invisibleImgs=1 at tablet-834 and at mobile-390, i.e. the two existing pass-2 candidates reproducing for the third time (pass-0, pass-2, pass-1). Final on-disk state 242 = 55 public x 4 viewports plus the 11 admin shots each for desktop-1440 and tablet-1024 from part 1; tablet-834 and mobile-390 hold no admin shots, which pass-3 re-crawls with --admin-only anyway. pass-1's own two viewports were captured before any contention arose." },
-      { "date": "2026-08-10", "pass": "pass-2", "count": 264, "note": "re-capture on fresh Windows container (dist+mirror already carried pass-0's exact bundle index-D1nsjcWW.js/index-DVY41PHW.css — no rebuild). 264/264, 0 crawlErrors; flagged rows down to 4: the 2 pass-2 homepage invisibleImgs candidates reproduce (tablet-834 + mobile-390), the 2 mobile-390 admin overflowX reproduce (audit-log 162px, help 211px — smaller than pass-0's 206/299, font metrics differ); pass-0's 44 admin logo.svg brokenImgs flags do NOT reproduce (this mirror has admin/logo.svg), consistent with pass-0's mirror-artifact suspicion." }
-    ]
+  "pass-1": {
+   "status": "complete",
+   "date": "2026-08-10",
+   "steps_done": [
+    "1.1 re-capture",
+    "1.2 screenshot review (110 shots, 13 parallel reviewers)",
+    "1.3 numeric sweep",
+    "1.4 verification of every lead",
+    "1.5 issue evidence",
+    "1.6 findings + validation"
+   ],
+   "environment": "fresh Linux container: node 22.22.2, PHP 8.4.19, Chromium 141.0.7390.37 (build 1194). fc-match system-ui -> DejaVu Sans, so guardrails evidence_standards.font_caveat applies to every width/overflow claim. Build reproduced pass-0's exact bundle: index-D1nsjcWW.js 366.93 kB / index-DVY41PHW.css 23.12 kB, mirror bundle == dist bundle.",
+   "coverage": {
+    "screenshots_reviewed_desktop_1440": 55,
+    "screenshots_reviewed_tablet_1024": 55,
+    "screenshots_reviewed_total": 110,
+    "screenshot_review_method": "13 parallel reviewer subagents over batches of 7-11, identical rubric, leads only; every lead re-measured by the pass owner in the live browser before it could become a finding",
+    "admin_screenshots_present_but_out_of_scope": 22,
+    "error_states_measured_live": [
+     "/products?productId=NOPE-XYZ-123",
+     "/no-such-page"
+    ],
+    "pages_measured_numerically": "57 URLs x 2 viewports = 114 rows (audit10-p1sweep.js); 42 product pages x 2 viewports measured a further four times by audit10-p1product/p1void/p1sidebar/p1font",
+    "candidates_assigned_to_pass_1": 0,
+    "candidates_resolved": "n/a — pass-0 assigned all 49 probe candidates to pass-3 (47) and pass-2 (2); none to pass-1. candidates.json therefore needed no edit."
+   },
+   "findings": "10 recorded, A10-001..A10-010: 2 x B, 7 x C, 1 x D. audit10-findings.js green (10 valid, FINDINGS.md regenerated).",
+   "negative_results": [
+    "horizontal document overflow: 0 of 114 page x viewport combinations",
+    "broken images (naturalWidth 0): 0 across all 57 pages at both viewports",
+    "image aspect distortion: 0 non-cover images with >2% skew between natural and painted ratio",
+    "chrome consistency: exactly ONE header signature (65px, 3 links) and ONE footer signature (440px desktop / 448px tablet, 15 links) across all 57 pages at each viewport; nav and footer link sets byte-identical everywhere",
+    "catalog card grid on /products: width and height spread <=1px within every row at both viewports; last row full",
+    "genuine element overlap outside the /dashboard table: none. 67 sweep rows flagged, all false positives — inline label/value spans sharing one line box, or sub-paths of one inline SVG",
+    "vertical rhythm: every top-level section on all ten public routes abuts its neighbour with gap 0.0px at both viewports, and every section's padding-top equals its padding-bottom (80/80, 64/64, 56/56, 48/48, 40/40). No double gaps, no missing gaps. Measured twice, identical.",
+    "error states: /products?productId=NOPE-XYZ-123 renders title 'Part not found', meta robots noindex, the 'We couldn't find part \"NOPE-XYZ-123\".' banner and all 42 catalog cards; /no-such-page renders 'Error 404 / Page not found' with three recovery links and noindex. Both clean at both viewports, measured twice."
+   ],
+   "refutations": [
+    "STICKY RFQ BAR 'covers content at rest' — raised by 12 of the 13 reviewers, REFUTED. At scrollY=0 on /products?productId=IP38FE the fixed bar's top is 907px in a 900px viewport (entirely below the fold) and <body> carries no ipc-has-sticky-rfq class and 0px padding-bottom. Once scrolled it occupies the bottom 70px and body padding-bottom becomes 76px, so the end of the document is never trapped. The screenshots mislead because Playwright's fullPage capture paints position:fixed elements onto the expanded canvas.",
+    "SPEC TABLE CLIPPED AT DESKTOP-1440 — raised as 'strong' by 3 reviewers, REFUTED as the known C49/DejaVu artifact. As shipped on this box 4 of 42 product pages overflow their 389px scroller by 7-46px; with the document forced to Liberation Sans (metric-compatible with Arial) the overflow is 0px on all 42. The 1024 case survives the same control and is recorded as A10-006.",
+    "/faq CATEGORY CHIP CLIPPED — REFUTED as a font artifact. 57px hidden and the 'Support & Documentation' chip cut as shipped; 0px hidden under Liberation Sans, at BOTH viewports.",
+    "/contact EMAIL OVERFLOWING ITS CARD at 1024 — REFUTED as a font artifact. 'sales@insulationproducts.com' paints 6.8px past the card border as shipped; 0px under Liberation Sans.",
+    "HOMEPAGE BAND RIGHT FIGURE 'LETTERBOXED' while the left bleeds edge to edge — REFUTED. Both figures measure gapLeft/Right/Top/Bottom = 1.0px, which is the declared 1px border; the apparent white gutter is baked into IPC-Building.jpg's own pixels, exactly as the PLAN-9 comment at src/App.jsx:3077 records.",
+    "HOMEPAGE BAND FIGURES UNEQUAL / right column ends 243.8px above the left at 1440 — NOT a finding: md:self-start is the deliberate PLAN-9 item 4 fix (the bordered card previously ran 246px past its photo). Team photo upscale 1.163x is the logged 'staff.jpg painted above its own resolution (source ceiling)' item.",
+    "/dashboard?family=Heat%20Shrink%20Tubing SHOWING 0 RESULTS with no chip lit — NOT a finding. No product carries partType 'Heat Shrink Tubing' (the eleven real families are Accessory 13, Polyolefin Heat Shrink 12, Expandable Sleeving 4, PVDF Heat Shrink 4, Dual-Wall Heat Shrink 4, End Cap 1, Medical Grade Heat Shrink 1, Fiberglass Sleeving 1, Tape 1, Adhesive 1) and the site emits exactly 10 family= hrefs, every one of which matches a real partType. The state is unreachable from the site, and the empty view still explains itself ('No results in Heat Shrink Tubing') and offers a clear-filter control.",
+    "INDUSTRIES CARD MID-CARD GAP (125-161px of empty space in the Common Applications column) — measured and real, but NOT reported: it is already logged under C37 in WHATS_LEFT S2 ('Same for the homepage hero column and the Industries card gap'), and guardrails forbids re-reporting S2 items.",
+    "HOMEPAGE TRUST MARQUEE clipped mid-word at both edges — NOT a finding: .ipc-marquee-track duplicates its content 2x and animates translateX(0 -> -50%) by design (src/App.jsx:5868)."
+   ],
+   "notes": "RESUMED by a new session; the earlier pass-1 lock (taken in pass-0's session) recorded steps_done=[] and appended no findings, so nothing was redone. THREE environment facts worth carrying forward. (1) php -S is single-threaded by default: running audit10-crawl.js and a second Chromium against :8123 at the same time wedged the crawler mid-page for minutes. The server was restarted with PHP_CLI_SERVER_WORKERS=6 and the two coexisted cleanly afterwards — later passes sharing this box should do the same. (2) Liberation Sans is installed here and is metric-compatible with Arial, which makes it a usable control for the C49 font caveat; four leads were refuted with it and two survived it. (3) PLAN-FILE OBSERVATION (recorded here, not acted on, per guardrails): routes.json parameterized_views lists /dashboard?family=Heat%20Shrink%20Tubing, but no product carries that partType and the site emits no such href, so that row captures a 0-result view by construction. NOT edited.",
+   "mirror_credential_deleted": true
   },
-  "conflicts_and_questions": [
-    { "date": "2026-08-10", "raised_by": "pass-1", "note": "BRANCH CONFLICT, resolved in favour of the audit contract. The harness handed this session a designated branch 'claude/audit-10-pass-1-visual-ccj5eh' while manifest.git.branch and guardrails.write_allowlist.git_operations_allowed both name 'claude/audit-10'. The pass-1 prompt itself instructed `git fetch origin claude/audit-10 && git checkout claude/audit-10`, and the ledger lock protocol only works if every pass writes to the same branch, so the work is committed on claude/audit-10 and the same commits are mirrored to claude/audit-10-pass-1-visual-ccj5eh so the harness requirement is also satisfied. No plan file was edited." },
-    { "date": "2026-08-10", "raised_by": "pass-1", "note": "routes.json parameterized_views lists /dashboard?family=Heat%20Shrink%20Tubing, but no product in products-all.json carries partType 'Heat Shrink Tubing' and the rendered site emits exactly ten family= hrefs, none of them that one. That row therefore captures a 0-result view that no visitor can reach from the site. Recorded, not fixed — plan files are the contract (guardrails hard_prohibitions)." },
-    { "date": "2026-08-10", "raised_by": "pass-2", "note": "passes 2/3/4/5/6 are running CONCURRENTLY in ONE shared working tree on one machine (not separate containers as the lock protocol assumed). Ledger lock commits have been sweeping up other sessions' uncommitted ledger edits (e.g. the pass-5 lock commit 9feaf83 contains pass-2's lock line). Hazards: finding-id allocation races on next_finding_id, interleaved findings.jsonl appends, shared :8123 server and Chromium load. pass-2 mitigations: stage only own paths, re-read ledger+findings.jsonl immediately before id allocation, never git reset/checkout -- on shared files. pass-7 should dedupe findings with extra care." }
+  "pass-2": {
+   "status": "complete",
+   "date": "2026-08-10",
+   "steps_done": [
+    "2.1 re-capture (220 public pages, 4 viewports)",
+    "2.2 screenshot review (110 shots, 12 parallel reviewers)",
+    "2.3 numeric sweep at 834+390 + Liberation Sans control",
+    "2.4 touch-target sweep incl. drawer-open and FAQ-open states",
+    "2.5 mobile-menu open-state sweep, all 10 routes x 2 viewports",
+    "2.6 named re-verifications (hero request interception, FAQ, sticky RFQ, /contact form)",
+    "2.7 verification of every reviewer lead",
+    "2.8 issue evidence",
+    "2.9 findings + validation + candidate resolution"
+   ],
+   "environment": "fresh Linux container: node 22.22.2, PHP 8.4.19, Chromium 141.0.7390.37 (build 1194). fc-match system-ui -> DejaVu Sans, so guardrails evidence_standards.font_caveat applies: EVERY width/overflow/wrap claim in the nine findings below carries a Liberation Sans (Arial-metric) control number, and four leads were refuted by it. Build reproduced pass-0/pass-1 exactly: index-D1nsjcWW.js 366.93 kB / index-DVY41PHW.css 23.12 kB, mirror bundle == dist bundle. :8123 started with PHP_CLI_SERVER_WORKERS=6 per pass-1s note; no contention.",
+   "coverage": {
+    "screenshots_reviewed_tablet_834": 55,
+    "screenshots_reviewed_mobile_390": 55,
+    "screenshots_reviewed_total": 110,
+    "screenshot_review_method": "12 parallel reviewer subagents over batches of 8-10, identical small-screen rubric, leads only; every lead re-measured by the pass owner in the live browser before it could become a finding. All 42 product screenshots reviewed at each viewport despite the shared template.",
+    "pages_measured_numerically": "55 public URLs x 2 viewports = 110 rows (audit10-p2sweep.js), repeated under Liberation Sans = 220 rows total; plus 42 products x 3 viewports x 2 faces = 252 header measurements (audit10-p2header.js); plus 55 URLs x 2 viewports touch-target census (audit10-p2tap.js); plus 42 products x 2 viewports for related-card equality and for the sticky bar.",
+    "mobile_menu_open_state": "DONE — all 10 routes x tablet-834 AND mobile-390 (the drawer is lg:hidden, so 834 is inside its band, not a desktop-nav band). Two accordion states each (collapsed, both expanded) plus a scrolled-to-end state = 60 states, 60 screenshots in _harness/out/audit10/menu/.",
+    "touch_target_sweep": "DONE — 55 URLs x 2 viewports closed + 10 routes x 2 viewports drawer-open with both accordions expanded + /faq fully expanded x 2 viewports, all under hasTouch/isMobile contexts with matchMedia(\"(pointer: coarse)\").matches asserted true at both viewports.",
+    "candidates_assigned_to_pass_2": 2,
+    "candidates_resolved": "2 of 2 (C-024, C-036 — both refuted, see candidates.json)"
+   },
+   "findings": "9 recorded, A10-011..A10-019: 1 x A, 1 x B, 6 x C, 1 x D (batched, 10 instances). audit10-findings.js green (19 valid overall, FINDINGS.md regenerated).",
+   "negative_results": [
+    "DOCUMENT HORIZONTAL OVERFLOW: 0px on all 110 page x viewport combinations, and 0px again on all 110 under Liberation Sans. Also 0 with the mobile drawer open on all 10 routes at both viewports, and 0 on /faq with all 20 accordions expanded at both viewports. Nothing on the public site escapes the viewport width at 834 or 390.",
+    "ELEMENT CLIPPING BY overflow:hidden: exactly two distinct shapes across 110 pages, both deliberate — the homepage trust marquee (.ipc-marquee-track, 4093px at 834 / 4523px at 390, a duplicated animated track) and the /contact honeypot inside a 1px box. No text is lost to a hidden overflow anywhere else.",
+    "MOBILE DRAWER: identical on all 10 routes at both viewports — 9 items, 510px tall against a maxHeight of calc(100vh-64px) (1048px at 834, 780px at 390), scrolls=false, 0 items out of view, 0 items past the right edge, 0 items below 24x24, scrim present, body overflow hidden, document overflowX 0. The last item is reachable in every state. The drawer never needed to scroll, so the 60 captured states show no clipping.",
+    "TOUCH TARGETS: exactly ONE control below the WCAG 2.5.8 24x24 floor across the whole small-viewport public surface (A10-013). 1,289 controls sit between 24 and 44px — above AA, below AAA — and are not reported. Footer social links measure 40x40 at every viewport, refuting three reviewers who read them as ~26px.",
+    "STACKING ORDER: 0 genuine DOM-vs-painted reorders across 26 page x viewport combinations, and 0 orphaned labels (label/dt/th[scope=row] separated from its control or value). The 33 raw reorder flags were all icon-beside-text flex pairs whose box tops differ by 4-10px while their text baselines are identical.",
+    "RELATED-PRODUCT CARDS: 24 of 42 product pages render a Related section (matching pass-1s count at the large viewports); on every one of those 24, at both small viewports, card width spread and height spread are 0.0px within every row. The 18 pages without one are data-driven, not a render failure.",
+    "FAQ ACCORDIONS: open and closed both clean at both viewports — documentOverflowX 0 in both states, docHeight 2902 -> 4842 at 834 and 3775 -> 7535 at 390 when all 20 questions are expanded. (A first run reported docHeight collapsing to the viewport height; that was the probe clicking the hamburger, which also carries aria-expanded, and locking <body>. Fixed in audit10-p2misc.js/audit10-p2tap.js with an aria-label filter and re-run.)",
+    "FORM FIELDS AT 390: no field overflows the viewport (pastRight 0 on all 11), all are 46px tall or more, font-size 16px so iOS will not zoom, and the keyboard-type hints that exist are correct (type=email on email, type=tel on phone, autocomplete on name/email/phone/company). No inputmode anywhere and quantity/requiredDate are plain type=text — noted, not reported, since the rubric asks for misstatements only and none of these misstate anything.",
+    "THE HERO PHOTO AT 390 (re-verified, not re-derived): 0 requests for /images/site/Marker-Sample-2.jpg at mobile-390 and 0 at tablet-834, against 1 at desktop-1440 as the positive control, measured by request interception after a full lazy-load scroll. The record claiming 0 is correct."
+   ],
+   "refutations": [
+    "C-024 / C-036 HOMEPAGE invisibleImgs=1 at 834 and 390 (the only two pass-2 candidates, reproducing for the fourth capture running) — REFUTED as a probe artifact. It is the desktop-only hero <img> inside <picture className=\"hidden lg:block\">: the picture computes display:none, so the img has a 0x0 rect, but the crawler reads getComputedStyle(img).display, which returns the img OWN computed value (\"block\"), and .closest(\"[hidden]\") does not match a class named \"hidden\". Same run proved the file is never requested at these widths.",
+    "STICKY RFQ BAR COVERING THE CATALOG RAIL / THE FOOTER — raised by 11 of the 12 reviewers, REFUTED, and the same refutation pass-1 recorded at the large viewports now holds at 834 and 390. At rest the bar is off-screen (top 851 in an 844 viewport at 390; top 1119 in a 1112 viewport at 834) and <body> carries no ipc-has-sticky-rfq class and 0px padding-bottom. At TRUE max scroll (scroll, let the bar mount and grow <body>, scroll again) body padding-bottom is 76px and the bar covers 0 text elements on 42 of 42 products at both viewports. The screenshots mislead because Playwright paints position:fixed elements onto the expanded fullPage canvas. NOTE: a single scrollTo(scrollHeight) DOES show the bar over the footer copyright, because the class is applied after the scroll and the document then grows 76px — that transient is a probe artifact of jump-scrolling, not a reachable resting state.",
+    "THE PRODUCT HEADERS \"Request Quote\" READING AS BARE TEXT WITH NO AFFORDANCE — raised by 4 reviewers, REFUTED by computed style: background rgb(0,93,163) (solid brand blue), border-radius 4px, 124.6 x 44.0px at both touch viewports (28px tall at 1440). It is a filled button; the navy gradient behind it is what made it read as flat.",
+    "RELATED-PRODUCT CARDS OF UNEQUAL HEIGHT AT 834 — raised by 3 reviewers, REFUTED: width spread and height spread are both 0.0px within every row on all 24 pages that render the section, at both small viewports. The taller-LOOKING card is the one whose name takes two lines; the boxes are equal.",
+    "FOOTER SOCIAL ICONS UNDER THE TOUCH FLOOR (~24-26px) — raised by 3 reviewers, REFUTED: 40x40px at all four viewports (.ipc-social-link, src/index.css:218-228).",
+    "BREADCRUMB LINKS UNDER 24px AT 834 — raised by 1 reviewer, REFUTED: the touch-target census found nothing below 24x24 at tablet-834 at all.",
+    "HOMEPAGE CTA BAND AND /contact DIRECT-CONTACT STRIP PAINTING OUT OF READING ORDER — flagged by audit10-p2stack.js, REFUTED on re-measurement. On the homepage band at 834 the <p> is at left 56 and the <a> at left 558.7 with identical text tops (1908.1); on /contact at 390 the DIRECT CONTACT span and the phone share line 1 (text tops 318.7 / 316.2) and the email wraps to line 2 at 338.2. Both are correct order; the probes 4px box-top tolerance tripped on a 10px monospace label sitting next to 14px links in an items-center row.",
+    "/contact PLACEHOLDERS SLICED AT 390 — raised by 1 reviewer for four fields, PARTLY refuted. partNumber (cut 7.4px), material (15.5px), requiredDate (17.3px) and /datasheets ds-filter (9.2px) are all cut 0px under Liberation Sans, i.e. the DejaVu penalty. Only specialReqs survives the control (295.9px), and that is A10-018. The additionalNotes <textarea> measures over-wide but a textarea placeholder wraps rather than truncating.",
+    "PRODUCT SPEC TABLES \"CLIPPED WITH NO SCROLLER\" AT 834/390 — raised by 6 reviewers, PARTLY refuted. There IS an overflow-x:auto scroller on every one of them, so nothing is permanently lost. What survives the Liberation Sans control is the amount hidden (11 of 42 pages at 834, 16 of 26 at 390) and the cause, which is A10-016. The pages the reviewers called marginal (IP29CG +26px, IP30HS, IP32IP, IP12GA) measure +0px under Liberation and are font artifacts.",
+    "THE tablet-834 NAVBAR SHOWING A CRUSHED DESKTOP LINK ROW — checked on all 55 pages, does not happen: the hamburger is correct at 834 (the drawer is lg:hidden and lg=1024). Two reviewers thought they saw an extra \"Product Catalog\" label beside it on IP37SH and IP38FE; those are the two tallest captures and it is a downsampling artifact of the fullPage PNG.",
+    "THE /dashboard MOBILE CARD TITLES WRAPPING TO 4-6 LINES AT 390 — raised by 2 reviewers as high, DOWNGRADED to the A10-019 D-batch: 6 titles wrap to 4+ lines under the shipped DejaVu face but only 1 does under Liberation Sans. The font-independent part is the 125.8px title track inside a 342px card, which is recorded as an instance, not as a C.",
+    "REPORTED BUT ALREADY LOGGED, SO NOT RE-REPORTED: the padded SPECIFICATIONS / dimension-table panels (A10-004 covers BOTH directions — IP69HT is its named SpecTable2 worst case), the blank photo column (A10-003), the catalog rail not scrolling to the current product (A10-005), the /dashboard pill overprint (A10-001) and Description starvation (A10-002 at 1024, extended to 834 as A10-015), the search placeholder (A10-009), empty bordered spec cells and 3-of-4 related grids (A10-010), the homepage marquee, the homepage band figures, and the Industries card gap (WHATS_LEFT S2 / C37)."
+   ],
+   "out_of_pass_observations": [
+    "A10-012 reproduces at ALL FOUR viewports (desktop-1440 45.5px hidden, tablet-1024 45.7px), not only the two pass-2 owns. It is recorded with viewport=\"all\" because the pass-2 rubric explicitly assigns /contact error visibility to this pass, but pass-7 should note it was missed at the large viewports in pass-1.",
+    "CONTENT/COPY leads the reviewers raised that belong to pass-4, recorded here and NOT reported as pass-2 findings: /products?productId=IP12GA body copy opening \"IP1274 has a high dielectric strength...\" on the IP12GA page (raised independently by two reviewers); /services \"Slit & Perforation\" card carrying a dollar-sign icon (two reviewers); /industries rendering five cards while the homepage teaser advertises six including \"Electronics & Lab\" (two reviewers); \"Corporation ·250 Gibraltar Dr\" missing the space after the middot (two reviewers)."
+   ],
+   "notes": "RESUMED a pass-2 lock taken 2026-08-09 on a different machine with steps_done=[] and no findings appended, so nothing was redone. THREE things worth carrying to pass-7. (1) tablet-834 earned its reputation: three of the nine findings (A10-014, A10-015, A10-016) exist ONLY in the md-to-lg band, all three because a layout switches at md=768 while the thing it was sized against arrives at lg=1024. (2) mobile-390 carries the single worst defect in the audit so far (A10-011, severity A) and it is invisible at every other viewport, which is why pass-1 could not have found it. (3) Not every [aria-expanded] button is an accordion — the hamburger carries one, and clicking it locks <body> and collapses documentElement.scrollHeight to the viewport height. That silently corrupted the first FAQ measurement; both probes now filter on aria-label.",
+   "mirror_credential_deleted": true
+  },
+  "pass-3": {
+   "status": "in_progress",
+   "date": "2026-08-09",
+   "steps_done": [],
+   "notes": "session start; lock taken before any work. Fresh-container check pending: will rebuild + resync mirror + restart :8123 + re-crawl --admin-only if capture folder absent, recording the re-capture per screenshot_capture.note.",
+   "mirror_restored": null
+  },
+  "pass-4": {
+   "status": "in_progress",
+   "date": "2026-08-09",
+   "steps_done": [],
+   "notes": "session start; lock taken before any work"
+  },
+  "pass-5": {
+   "status": "in_progress",
+   "date": "2026-08-09",
+   "steps_done": [],
+   "notes": "session start; lock taken before any work. NOTE: found a pre-existing UNCOMMITTED pass-4 in_progress lock (2026-08-09) in the working tree — preserved verbatim and committed alongside this lock rather than reverted; if no pass-4 session is actually live it should be re-examined by pass-7."
+  },
+  "pass-6": {
+   "status": "in_progress",
+   "date": "2026-08-09",
+   "steps_done": [],
+   "notes": "session start; lock taken before any work. Working tree carried uncommitted in_progress locks for pass-2/pass-4/pass-5 (2026-08-09, never pushed) — preserved verbatim and committed alongside this lock, same handling as the pass-5 session's note."
+  },
+  "pass-7": {
+   "status": "not_started",
+   "date": null,
+   "steps_done": [],
+   "notes": null,
+   "pr_url": null
+  }
+ },
+ "screenshot_capture": {
+  "note": "screenshots are gitignored and container-local. If a later pass finds _harness/out/audit10/current/ empty (fresh container), it re-runs `node _harness/audit10-crawl.js` first — that is expected, cheap, and MUST be recorded here per re-capture so drift between captures is visible.",
+  "captures": [
+   {
+    "date": "2026-08-10",
+    "pass": "pass-0",
+    "count": 264,
+    "note": "66 pages x 4 viewports, 0 crawlErrors; report.json 46 flagged rows"
+   },
+   {
+    "date": "2026-08-10",
+    "pass": "pass-1",
+    "count": 242,
+    "note": "re-capture on a fresh Linux container (no _harness/out, no _harness/site; rebuilt and resynced first — bundle identical to pass-0's, index-D1nsjcWW.js / index-DVY41PHW.css). Ran in two parts. Part 1 (full crawl) captured desktop-1440 66/66 and tablet-1024 66/66 with 0 crawlErrors, then wedged 33 shots into tablet-834: php -S is single-threaded by default and a second Chromium was queueing behind it. The server was restarted with PHP_CLI_SERVER_WORKERS=6 and part 2 (--public-only) completed all four viewports: 220 public pages, 0 crawlErrors, 0 console errors, 0 page errors, 0 failed requests, 0 broken images, 0 overflowX. Exactly 2 flagged rows — homepage invisibleImgs=1 at tablet-834 and at mobile-390, i.e. the two existing pass-2 candidates reproducing for the third time (pass-0, pass-2, pass-1). Final on-disk state 242 = 55 public x 4 viewports plus the 11 admin shots each for desktop-1440 and tablet-1024 from part 1; tablet-834 and mobile-390 hold no admin shots, which pass-3 re-crawls with --admin-only anyway. pass-1's own two viewports were captured before any contention arose."
+   },
+   {
+    "date": "2026-08-10",
+    "pass": "pass-2",
+    "count": 264,
+    "note": "re-capture on fresh Windows container (dist+mirror already carried pass-0's exact bundle index-D1nsjcWW.js/index-DVY41PHW.css — no rebuild). 264/264, 0 crawlErrors; flagged rows down to 4: the 2 pass-2 homepage invisibleImgs candidates reproduce (tablet-834 + mobile-390), the 2 mobile-390 admin overflowX reproduce (audit-log 162px, help 211px — smaller than pass-0's 206/299, font metrics differ); pass-0's 44 admin logo.svg brokenImgs flags do NOT reproduce (this mirror has admin/logo.svg), consistent with pass-0's mirror-artifact suspicion."
+   },
+   {
+    "date": "2026-08-10",
+    "pass": "pass-2",
+    "count": 220,
+    "note": "re-capture on a fresh Linux container (no _harness/out, no _harness/site; npm install + npm run build + sync.sh first — bundle identical to pass-0/pass-1, index-D1nsjcWW.js / index-DVY41PHW.css). Ran audit10-crawl.js --public-only, so 55 public pages x 4 viewports = 220, 0 crawlErrors, 0 console errors, 0 page errors, 0 failed requests, 0 broken images, 0 overflowX. Exactly 2 flagged rows — homepage invisibleImgs=1 at tablet-834 and at mobile-390, i.e. the two pass-2 candidates reproducing for the FOURTH capture (pass-0, the 2026-08-09 pass-2 attempt, pass-1, and this one); both now resolved as refuted. Admin shots not re-captured (pass-3 re-crawls with --admin-only)."
+   }
   ]
+ },
+ "conflicts_and_questions": [
+  {
+   "date": "2026-08-10",
+   "raised_by": "pass-1",
+   "note": "BRANCH CONFLICT, resolved in favour of the audit contract. The harness handed this session a designated branch 'claude/audit-10-pass-1-visual-ccj5eh' while manifest.git.branch and guardrails.write_allowlist.git_operations_allowed both name 'claude/audit-10'. The pass-1 prompt itself instructed `git fetch origin claude/audit-10 && git checkout claude/audit-10`, and the ledger lock protocol only works if every pass writes to the same branch, so the work is committed on claude/audit-10 and the same commits are mirrored to claude/audit-10-pass-1-visual-ccj5eh so the harness requirement is also satisfied. No plan file was edited."
+  },
+  {
+   "date": "2026-08-10",
+   "raised_by": "pass-1",
+   "note": "routes.json parameterized_views lists /dashboard?family=Heat%20Shrink%20Tubing, but no product in products-all.json carries partType 'Heat Shrink Tubing' and the rendered site emits exactly ten family= hrefs, none of them that one. That row therefore captures a 0-result view that no visitor can reach from the site. Recorded, not fixed — plan files are the contract (guardrails hard_prohibitions)."
+  },
+  {
+   "date": "2026-08-10",
+   "raised_by": "pass-2",
+   "note": "passes 2/3/4/5/6 are running CONCURRENTLY in ONE shared working tree on one machine (not separate containers as the lock protocol assumed). Ledger lock commits have been sweeping up other sessions' uncommitted ledger edits (e.g. the pass-5 lock commit 9feaf83 contains pass-2's lock line). Hazards: finding-id allocation races on next_finding_id, interleaved findings.jsonl appends, shared :8123 server and Chromium load. pass-2 mitigations: stage only own paths, re-read ledger+findings.jsonl immediately before id allocation, never git reset/checkout -- on shared files. pass-7 should dedupe findings with extra care."
+  },
+  {
+   "date": "2026-08-10",
+   "raised_by": "pass-2",
+   "note": "BRANCH CONFLICT, resolved exactly as pass-1 resolved it. The harness handed this session a designated branch \"claude/audit-10-pass-2-visual-1pggbp\" while manifest.git.branch and guardrails.write_allowlist both name \"claude/audit-10\", and the pass-2 prompt itself instructed a fetch+checkout of claude/audit-10. The work is committed on claude/audit-10 and the same commits are mirrored to claude/audit-10-pass-2-visual-1pggbp. No plan file was edited."
+  }
+ ]
 }
