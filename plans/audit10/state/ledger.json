@@ -30,6 +30,7 @@
         "chrome consistency: exactly ONE header signature (65px, 3 links) and ONE footer signature (440px desktop / 448px tablet, 15 links) across all 57 pages at each viewport; nav and footer link sets byte-identical everywhere",
         "catalog card grid on /products: width and height spread <=1px within every row at both viewports; last row full",
         "genuine element overlap outside the /dashboard table: none. 67 sweep rows flagged, all false positives — inline label/value spans sharing one line box, or sub-paths of one inline SVG",
+        "vertical rhythm: every top-level section on all ten public routes abuts its neighbour with gap 0.0px at both viewports, and every section's padding-top equals its padding-bottom (80/80, 64/64, 56/56, 48/48, 40/40). No double gaps, no missing gaps. Measured twice, identical.",
         "error states: /products?productId=NOPE-XYZ-123 renders title 'Part not found', meta robots noindex, the 'We couldn't find part \"NOPE-XYZ-123\".' banner and all 42 catalog cards; /no-such-page renders 'Error 404 / Page not found' with three recovery links and noindex. Both clean at both viewports, measured twice."
       ],
       "refutations": [
