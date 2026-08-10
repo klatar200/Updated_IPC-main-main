@@ -5,7 +5,7 @@
   "branch": "claude/audit-10",
   "next_finding_id": "A10-001",
   "passes": {
-    "pass-0": { "status": "in_progress", "date": "2026-08-10", "steps_done": ["0.1", "0.2", "0.3", "0.4", "0.5"], "notes": "fc-match system-ui -> DejaVu Sans (C49 caveat applies). Servers 8123 (php-mail.ini) / 8124 (php-trunc.ini) / 8125 (php-nb2-off.ini) up. lint.php all green incl. photo-default drift 5 slot defaults identical. cssdiff --save: 359 selectors from index-DVY41PHW.css. Build 366.93 kB JS / 23.12 kB CSS, mirror bundle == dist bundle (index-D1nsjcWW.js). Baseline 50 suites: 48 clean, 2 expected reds — plan8-polish 16/17 with failing check exactly 'no spec table scrolls horizontally at 1440' (C49 font-metric, DejaVu), brandtext 34/45 = 11 FAILING (ratchet <=13, was 11). plan8-contrast 34/35 = its passing state (EXEMPT_BRAND_SURFACE). All other scores identical to baseline.json expected_scores.", "baseline_delta": null },
+    "pass-0": { "status": "complete", "date": "2026-08-10", "steps_done": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"], "notes": "fc-match system-ui -> DejaVu Sans (C49 caveat applies). Servers 8123 (php-mail.ini) / 8124 (php-trunc.ini) / 8125 (php-nb2-off.ini) up. lint.php all green incl. photo-default drift 5 slot defaults identical. cssdiff --save: 359 selectors from index-DVY41PHW.css. Build 366.93 kB JS / 23.12 kB CSS, mirror bundle == dist bundle (index-D1nsjcWW.js). Baseline 50 suites: 48 clean, 2 expected reds — plan8-polish 16/17 with failing check exactly 'no spec table scrolls horizontally at 1440' (C49 font-metric, DejaVu), brandtext 34/45 = 11 FAILING (ratchet <=13, was 11). plan8-contrast 34/35 = its passing state (EXEMPT_BRAND_SURFACE). All other scores identical to baseline.json expected_scores. Crawl: 264/264 pages captured (66 x 4 viewports), 0 crawlErrors, 0 console/page errors, 46 flagged rows -> 49 candidates (47 pass-3: 44 brokenImgs admin logo.svg [mirror-only artifact suspected — admin/logo.svg tracked in repo, sync.sh copies only *.php/*.js] + 1 NETFAIL same + 2 mobile-390 admin overflowX (audit-log 206px, help 299px); 2 pass-2: homepage invisibleImgs=1 at tablet-834 + mobile-390; 0 pass-1). Spot-verify 6/6 real renders (desktop home + admin index, mobile home + contact, tablet-1024 product CC, tablet-834 admin login). audit10-findings.js green (0 findings). Mirror admin health banner re uploads/ is a mirror artifact (mirror has no uploads/).", "baseline_delta": "none beyond expected_exceptions" },
     "pass-1": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
     "pass-2": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
     "pass-3": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "mirror_restored": null },
@@ -16,7 +16,9 @@
   },
   "screenshot_capture": {
     "note": "screenshots are gitignored and container-local. If a later pass finds _harness/out/audit10/current/ empty (fresh container), it re-runs `node _harness/audit10-crawl.js` first — that is expected, cheap, and MUST be recorded here per re-capture so drift between captures is visible.",
-    "captures": []
+    "captures": [
+      { "date": "2026-08-10", "pass": "pass-0", "count": 264, "note": "66 pages x 4 viewports, 0 crawlErrors; report.json 46 flagged rows" }
+    ]
   },
   "conflicts_and_questions": []
 }

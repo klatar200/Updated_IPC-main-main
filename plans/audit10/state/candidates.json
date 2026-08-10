@@ -1,0 +1,444 @@
+{
+ "$schema_note": "AUDIT-10 candidates — pass-0 triage of _harness/out/audit10/report.json automated probe flags. One entry per flag signal. assigned_pass owns measuring and deciding; pass-0 judged nothing. A resolved entry gains {resolved: \"finding:<id>\"|\"refuted\", measurement}.",
+ "generated": "2026-08-10",
+ "source": "_harness/out/audit10/report.json (264 pages, 46 flagged rows)",
+ "candidates": [
+  {
+   "candidate_id": "C-001",
+   "url": "/admin/",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-002",
+   "url": "/admin/index.php",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-003",
+   "url": "/admin/content.php",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-004",
+   "url": "/admin/settings.php",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-005",
+   "url": "/admin/add.php",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-006",
+   "url": "/admin/edit.php?id=CC",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-007",
+   "url": "/admin/backups.php",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-008",
+   "url": "/admin/password.php",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-009",
+   "url": "/admin/inquiries.php",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-010",
+   "url": "/admin/audit-log.php",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-011",
+   "url": "/admin/help.php",
+   "viewport": "desktop-1440",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-012",
+   "url": "/admin/",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-013",
+   "url": "/admin/index.php",
+   "viewport": "tablet-1024",
+   "signal": "failedRequest",
+   "raw": "NETFAIL http://127.0.0.1:8123/admin/logo.svg",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-014",
+   "url": "/admin/index.php",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-015",
+   "url": "/admin/content.php",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-016",
+   "url": "/admin/settings.php",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-017",
+   "url": "/admin/add.php",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-018",
+   "url": "/admin/edit.php?id=CC",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-019",
+   "url": "/admin/backups.php",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-020",
+   "url": "/admin/password.php",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-021",
+   "url": "/admin/inquiries.php",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-022",
+   "url": "/admin/audit-log.php",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-023",
+   "url": "/admin/help.php",
+   "viewport": "tablet-1024",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-024",
+   "url": "/",
+   "viewport": "tablet-834",
+   "signal": "invisibleImgs",
+   "raw": "1",
+   "assigned_pass": "pass-2"
+  },
+  {
+   "candidate_id": "C-025",
+   "url": "/admin/",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-026",
+   "url": "/admin/index.php",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-027",
+   "url": "/admin/content.php",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-028",
+   "url": "/admin/settings.php",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-029",
+   "url": "/admin/add.php",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-030",
+   "url": "/admin/edit.php?id=CC",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-031",
+   "url": "/admin/backups.php",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-032",
+   "url": "/admin/password.php",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-033",
+   "url": "/admin/inquiries.php",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-034",
+   "url": "/admin/audit-log.php",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-035",
+   "url": "/admin/help.php",
+   "viewport": "tablet-834",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-036",
+   "url": "/",
+   "viewport": "mobile-390",
+   "signal": "invisibleImgs",
+   "raw": "1",
+   "assigned_pass": "pass-2"
+  },
+  {
+   "candidate_id": "C-037",
+   "url": "/admin/",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-038",
+   "url": "/admin/index.php",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-039",
+   "url": "/admin/content.php",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-040",
+   "url": "/admin/settings.php",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-041",
+   "url": "/admin/add.php",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-042",
+   "url": "/admin/edit.php?id=CC",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-043",
+   "url": "/admin/backups.php",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-044",
+   "url": "/admin/password.php",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-045",
+   "url": "/admin/inquiries.php",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-046",
+   "url": "/admin/audit-log.php",
+   "viewport": "mobile-390",
+   "signal": "overflowX",
+   "raw": "{\"overflowX\":206,\"protruding\":[{\"el\":\"table\",\"left\":24,\"right\":596},{\"el\":\"thead\",\"left\":24,\"right\":596},{\"el\":\"tr\",\"left\":24,\"right\":596},{\"el\":\"th\",\"left\":296,\"right\":399},{\"el\":\"th\",\"left\":399,\"right\":505},{\"el\":\"th\",\"left\":505,\"right\":596},{\"el\":\"tbody\",\"left\":24,\"right\":596},{\"el\":\"tr\",\"left\":24,\"right\":596}]}",
+   "assigned_pass": "pass-3"
+  },
+  {
+   "candidate_id": "C-047",
+   "url": "/admin/audit-log.php",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  },
+  {
+   "candidate_id": "C-048",
+   "url": "/admin/help.php",
+   "viewport": "mobile-390",
+   "signal": "overflowX",
+   "raw": "{\"overflowX\":299,\"protruding\":[{\"el\":\"div.help-content\",\"left\":24,\"right\":689},{\"el\":\"section#overview.help-section\",\"left\":24,\"right\":689},{\"el\":\"h2\",\"left\":57,\"right\":656},{\"el\":\"p\",\"left\":57,\"right\":656},{\"el\":\"p\",\"left\":57,\"right\":656},{\"el\":\"ul.plain\",\"left\":57,\"right\":656},{\"el\":\"li\",\"left\":77,\"right\":656},{\"el\":\"li\",\"left\":77,\"right\":656}]}",
+   "assigned_pass": "pass-3"
+  },
+  {
+   "candidate_id": "C-049",
+   "url": "/admin/help.php",
+   "viewport": "mobile-390",
+   "signal": "brokenImgs",
+   "raw": "[\"logo.svg\"]",
+   "assigned_pass": "pass-3",
+   "note": "mirror-only artifact suspected: admin/logo.svg is tracked in the repo but _harness/sync.sh copies only admin/*.php+*.js into _harness/site/admin/ — verify against GUARDRAILS §7 (logo.svg = sandbox artifact class) before treating as a site defect"
+  }
+ ]
+}
