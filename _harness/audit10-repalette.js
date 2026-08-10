@@ -55,6 +55,38 @@ const ROUTES = [
   { url: '/contact', slug: 'contact' },
 ];
 
+// Beyond the five the pass file mandates. A palette leak that only paints
+// while a menu is open is still a leak the owner sees, and the five static
+// pages cannot reach it: the mega-dropdown, the mobile drawer and the
+// /industries card headers are all closed or absent above. Reported in a
+// separate section so the mandated drill stays exactly the mandated drill.
+const SUPPLEMENTARY = [
+  { url: '/industries', slug: 'industries', viewport: { width: 1440, height: 900 }, open: null },
+  {
+    url: '/', slug: 'home_megadropdown', viewport: { width: 1440, height: 900 },
+    open: async (page) => {
+      // aria-haspopup is how the trigger identifies itself (src/App.jsx:724);
+      // the panel opens on mouseenter as well as click.
+      const btn = page.locator('button[aria-haspopup="true"]').first();
+      await btn.hover().catch(() => {});
+      await page.waitForTimeout(250);
+      if (!(await page.locator('.ipc-dropdown-panel').count()))
+        await btn.click().catch(() => {});
+      await page.waitForTimeout(400);
+      return (await page.locator('.ipc-dropdown-panel').count()) > 0;
+    },
+  },
+  {
+    url: '/', slug: 'home_mobile_drawer', viewport: { width: 390, height: 844 },
+    // 'Open menu' is the exact label pass-2's audit10-p2menu.js drives.
+    open: async (page) => {
+      await page.click('button[aria-label="Open menu"]').catch(() => {});
+      await page.waitForTimeout(500);
+      return (await page.locator('[role="dialog"]').count()) > 0;
+    },
+  },
+];
+
 // The fourteen properties ThemeInjector drives, set to a palette with no blue
 // in it at all, so anything still blue afterwards is unambiguous. The ink
 // variables are set by hand here rather than derived — this drill tests who
@@ -158,32 +190,33 @@ const FIELDS = ['color', 'bg', 'bi', 'bc', 'fill', 'stroke', 'outline'];
 
 (async () => {
   const browser = await launch();
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const page = await ctx.newPage();
   fs.mkdirSync(ISSUES, { recursive: true });
   fs.mkdirSync(OUTDIR, { recursive: true });
 
-  const report = { run: RUN, base: BASE, viewport: 'desktop-1440', testPalette: TEST, routes: [] };
+  const report = { run: RUN, base: BASE, testPalette: TEST, routes: [], supplementary: [] };
 
-  for (const route of ROUTES) {
+  /** One page through the drill. `opener` may reveal a closed surface first. */
+  async function drill(page, route, vpName, opener) {
     await page.goto(BASE + route.url, { waitUntil: 'networkidle', timeout: 45000 });
     await page.evaluate(async () => {
       for (let y = 0; y < document.body.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 15)); }
       window.scrollTo(0, 0);
     });
     await page.waitForTimeout(400);
+    let opened = null;
+    if (opener) opened = await opener(page);
 
     const before = await page.evaluate(SNAP);
     const oldVars = await page.evaluate(READ_VARS, VARS);
     if (RUN === '1')
-      await page.screenshot({ path: path.join(ISSUES, `A10-repalette__desktop-1440__${route.slug}__before.png`), fullPage: true });
+      await page.screenshot({ path: path.join(ISSUES, `A10-repalette__${vpName}__${route.slug}__before.png`), fullPage: !opener });
 
     await page.addStyleTag({ content: CSS });
     await page.waitForTimeout(400);
     const newVars = await page.evaluate(READ_VARS, VARS);
     const after = await page.evaluate(SNAP);
     if (RUN === '1')
-      await page.screenshot({ path: path.join(ISSUES, `A10-repalette__desktop-1440__${route.slug}__after.png`), fullPage: true });
+      await page.screenshot({ path: path.join(ISSUES, `A10-repalette__${vpName}__${route.slug}__after.png`), fullPage: !opener });
 
     // The palette that was in force before injection, as rgb triples.
     const oldPalette = Object.entries(oldVars)
@@ -191,53 +224,88 @@ const FIELDS = ['color', 'bg', 'bi', 'bc', 'fill', 'stroke', 'outline'];
       .filter((x) => x.c);
     const newPalette = Object.values(newVars).map((v) => parseHex(v) || colorsIn(v)[0]).filter(Boolean);
 
+    // The test is PER COLOR, not per field value. Testing whole values misses
+    // the case that matters most: `linear-gradient(135deg, #0a2a52 0%,
+    // var(--brand-primary) 100%)` (src/App.jsx:8128) changes as a string
+    // because its second stop follows, while its first stop stays navy
+    // forever. A per-value diff scores that as "it followed".
+    //
+    // So: a color painted BEFORE that is still painted AFTER, in the same
+    // field of the same element, is a color that did not move — and if it was
+    // one of the brand colors that just changed, it is a leak.
     const leaks = [];
     const byIndex = new Map(after.map((r) => [r.i, r]));
     for (const b of before) {
       const a = byIndex.get(b.i);
       if (!a || a.sig !== b.sig) continue;              // DOM moved — skip rather than guess
       for (const f of FIELDS) {
-        if (!b[f] || b[f] !== a[f]) continue;           // changed => it followed
+        if (!b[f]) continue;
+        const stillThere = colorsIn(a[f]);
         for (const c of colorsIn(b[f])) {
+          if (!stillThere.some((x) => dist(c, x) < 1)) continue;   // it followed
+          if (newPalette.some((p) => dist(c, p) < 1)) continue;    // it IS the new palette
           let best = null;
           for (const p of oldPalette) {
             const d = dist(c, p.c);
             if (!best || d < best.d) best = { d: +d.toFixed(1), varName: p.k, varHex: '#' + p.c.map((x) => x.toString(16).padStart(2, '0')).join('') };
           }
           if (!best) continue;
-          const inNew = newPalette.some((p) => dist(c, p) < 1);
-          if (inNew) continue;                           // it IS the new palette
-          const kind = best.d < 1 ? 'exact' : best.d <= 60 ? 'family' : null;
+          // exact = this IS a colour a variable was carrying. family = a navy
+          // relative that is not any variable's value and so could never have
+          // followed. 35 rather than 60: #374151 (Tailwind gray-700 body text)
+          // sits 46.5 from --brand-dark and is not doing the brand's job.
+          const kind = best.d < 1 ? 'exact' : best.d <= 35 ? 'family' : null;
           if (!kind) continue;
           leaks.push({
-            kind, field: f, value: b[f].slice(0, 160),
+            kind, field: f,
+            value: b[f].slice(0, 160),
+            valueAfter: a[f] === b[f] ? '(unchanged)' : a[f].slice(0, 160),
             rgb: c, nearest: best, sig: b.sig, sel: b.sel, text: b.text,
           });
         }
       }
     }
 
-    // Collapse to distinct (kind, field, value, sig) with a count.
+    // Collapse to distinct (kind, field, leaked colour, sig) with a count.
     const grouped = {};
     for (const l of leaks) {
-      const k = [l.kind, l.field, l.value, l.sig].join(' :: ');
+      const k = [l.kind, l.field, l.rgb.join(','), l.sig].join(' :: ');
       const g = (grouped[k] = grouped[k] || { ...l, count: 0, examples: [] });
       g.count++;
       if (g.examples.length < 3 && !g.examples.includes(l.sel)) g.examples.push(l.sel);
     }
     const rows = Object.values(grouped).sort((x, y) => (x.kind === y.kind ? y.count - x.count : x.kind === 'exact' ? -1 : 1));
 
-    report.routes.push({
-      url: route.url, slug: route.slug,
+    const rec = {
+      url: route.url, slug: route.slug, viewport: vpName, opened,
       elementsBefore: before.length, elementsAfter: after.length,
       oldVars, newVars,
       varsActuallyChanged: VARS.filter((v) => oldVars[v] !== newVars[v]).length,
       leakRows: rows.length,
       leakElements: rows.reduce((s, r) => s + r.count, 0),
       leaks: rows,
-    });
-    console.log(`${route.url.padEnd(34)} ${before.length} els, vars changed ${report.routes.at(-1).varsActuallyChanged}/${VARS.length}, leak rows ${rows.length} (${report.routes.at(-1).leakElements} elements)`);
-    for (const r of rows) console.log(`    [${r.kind}] ${r.field} ${r.value.slice(0, 78)}  x${r.count}  ${r.sig}  ~${r.nearest.varName}`);
+    };
+    console.log(`${(route.slug + ' @' + vpName).padEnd(40)} ${before.length} els, vars changed ${rec.varsActuallyChanged}/${VARS.length}${opener ? ', opened=' + opened : ''}, leak rows ${rows.length} (${rec.leakElements} elements)`);
+    for (const r of rows)
+      console.log(`    [${r.kind}] ${r.field} rgb(${r.rgb.join(',')}) x${r.count}  ${r.sig}  ~${r.nearest.varName} d=${r.nearest.d}\n         before: ${r.value.slice(0, 96)}\n         after : ${r.valueAfter.slice(0, 96)}`);
+    return rec;
+  }
+
+  // ── The five pages the pass file mandates ─────────────────────────────────
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  console.log('── mandated drill: 5 pages @ desktop-1440 ──');
+  for (const route of ROUTES) report.routes.push(await drill(page, route, 'desktop-1440', null));
+  await ctx.close();
+
+  // ── Supplementary: closed surfaces the five cannot reach ──────────────────
+  console.log('\n── supplementary: surfaces the five static pages cannot reach ──');
+  for (const s of SUPPLEMENTARY) {
+    const sctx = await browser.newContext({ viewport: s.viewport });
+    const spage = await sctx.newPage();
+    const vpName = s.viewport.width === 390 ? 'mobile-390' : 'desktop-1440';
+    report.supplementary.push(await drill(spage, s, vpName, s.open));
+    await sctx.close();
   }
 
   await browser.close();
