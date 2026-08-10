@@ -3,7 +3,7 @@
  "audit_id": "AUDIT-10",
  "main_sha_at_start": "5dcd9363b4536f7f0775b2841fac914431db639c",
  "branch": "claude/audit-10",
- "next_finding_id": "A10-037",
+ "next_finding_id": "A10-045",
  "passes": {
   "pass-0": {
    "status": "complete",
@@ -221,10 +221,59 @@
    ]
   },
   "pass-4": {
-   "status": "in_progress",
+   "status": "complete",
    "date": "2026-08-10",
-   "steps_done": [],
-   "notes": "session start; lock re-taken (previous 2026-08-09 lock had zero steps_done — resumed per manifest.resume_protocol). Fresh Linux container: node 22.22.2, PHP 8.4.19, node_modules absent -> npm install + build + sync required."
+   "steps_done": [
+    "4.1 full text dump — 68 pages, 25,750 entries, committed as state/textdump.json",
+    "4.2 mechanical scans a-f as committed code (audit10-copyscan.js)",
+    "4.3 unique-word list triaged IN FULL — 3,391 prose tokens, 760 site-emitted-only, 123 code tokens",
+    "4.4 casing + terminology consistency (audit10-terms.js), incl. SKU rendering vs products-all.json",
+    "4.5 cross-page factual consistency incl. the index.html <noscript> second copy (audit10-facts.js)",
+    "4.6 every img alt and aria-label read in full + alt/image pairing measured",
+    "4.7 truncation + slicing artifacts, JS slices and CSS clipping (audit10-trunc.js)",
+    "4.8 admin copy read in full for comprehensibility to a non-technical owner",
+    "4.9 findings + validation + ledger + commit/push + mirror credential deleted"
+   ],
+   "environment": "fresh Linux container: node 22.22.2, PHP 8.4.19, Chromium 1194. node_modules absent at start — npm install, npm run build, sh _harness/sync.sh. Build reproduced pass-0/1/2/3 byte for byte: index-D1nsjcWW.js 366.93 kB / index-DVY41PHW.css 23.12 kB, mirror bundle == dist bundle. fc-match system-ui -> DejaVu Sans; no finding in this pass rests on a text width, so the C49 font caveat does not apply to any of them. Server on 8123 with PHP_CLI_SERVER_WORKERS=6.",
+   "coverage": {
+    "pages_dumped": 68,
+    "breakdown": "10 public routes + 3 dashboard family views + 2 error states + 42 product pages + the signed-out login screen + 10 signed-in admin GET pages = every row of routes.json",
+    "text_entries": 25750,
+    "visible_text_nodes": 15501,
+    "unique_prose_tokens": 3391,
+    "unique_prose_tokens_site_emitted_only": 760,
+    "unique_code_tokens": 123,
+    "distinct_img_alt_values": 84,
+    "distinct_aria_label_values": 388,
+    "distinct_titles": 64,
+    "distinct_meta_descriptions": 52,
+    "word_triage": "no aspell/hunspell and no /usr/share/dict on this box (checked), so the pass file fallback applied: both word lists printed and read in full. Every apparent misspelling (agressive, apperance, availble, transparant, Semrigid, conformation, \"ihr.\") is owner-typed text in data/products-all.json and is out of scope by the pass scope_fence. ZERO genuine misspellings in site-emitted copy.",
+    "candidates_assigned_to_pass_4": 0,
+    "scans_run": "audit10-copyscan.js (a encoding + non-ASCII inventory, b whitespace, c punctuation pairing per rendered block, d dash/quote inventory, e repeated words, f sentence-terminal drift per component class); audit10-words.js; audit10-terms.js; audit10-facts.js; audit10-trunc.js; audit10-copyverify.js (14 browser confirmations, run twice, byte-identical); audit10-copyshots.js"
+   },
+   "findings": "8 recorded, A10-037..A10-044: 1 x B, 5 x C, 2 x D. audit10-findings.js green (44 valid, FINDINGS.md regenerated).",
+   "negative_results": [
+    "encoding: 0 mojibake sequences (Ã, â€™, â€œ, Â), 0 U+FFFD, 0 BOM across 25,750 entries. The full non-ASCII inventory is 69 code points, every one of them intentional (typographic dashes, degree signs, arrows, check marks, icon emoji).",
+    "repeated words (\"the the\"): 0 across the whole dump.",
+    "whitespace: the only double-space and space-before-punctuation hits are inside owner-typed product strings (IP30HS, IP33PO, IP33TW, IP34SR, IP38FE, IP44A2 & IP45A3) — verified against data/products-all.json. No site-emitted string carries one. The 6 U+00A0 are deliberate no-break spaces around \" · \" separators.",
+    "punctuation pairing per rendered block: 8 distinct failures, ALL of them a consequence of a truncation already recorded as A10-038 (5) or an artifact of the inch-mark stripper the scan needs for a heat-shrink catalogue (3, on /admin/help.php where 2026\" and 224\" look like inch marks). No genuinely unbalanced quote, bracket or brace in authored copy.",
+    "SKU casing: 0 renderings differ from the products-all.json value, across every digit-bearing SKU on all 68 pages.",
+    "alt text: 84 distinct values, all read. Every catalog-card alt equals the name of the product whose photoUrl the img carries — 0 mismatches over 42 cards, so no copy-pasted or wrong alt. The empty alts are the header and footer logo, which is the deliberate C43 pattern (aria-label on the link).",
+    "aria-labels: 388 distinct, 357 of them the repeating \"Move/Remove row N of <section>\" family; the other 31 read in full, all accurate to the control they name.",
+    "CSS truncation: 0 elements clipped by -webkit-line-clamp or text-overflow:ellipsis on /, /products, /dashboard, /datasheets, /faq and two product pages at 1440. Every truncation on this site is a JavaScript character slice (A10-038).",
+    "page <title> and meta description: all 64 titles and all 52 descriptions read. Exactly one description hits the 300-character slice; the other 51 are 129-284 characters. Every title follows one pattern and names its own page (the two exceptions — /admin/index.php and /admin/edit.php sharing \"IPC Admin — Products\" — are recorded in A10-044).",
+    "the <noscript> second copy in index.html: phone 630.771.0700, fax 630.771.0701, sales@insulationproducts.com, 250 Gibraltar Dr / Bolingbrook, IL 60440, Mon–Fri 8am–5pm CT, since 1974 — every one of them matches the live footer and data/site-info.json today. The documented drift risk (index.html:67) has not yet materialised.",
+    "facts that agree everywhere: phone (1 rendering + the tel: dial string), fax (1), email (1), street address (1), business hours (1), founding year 1974 (6 phrasings, one year), minimum order 0, stock 25M+/25 million feet, 50-year anniversary. The only fact the site contradicts itself on is the ISO revision (A10-037) and the shipping promise (A10-042)."
+   ],
+   "refutations": [
+    "\"MessageGeneral\", \"QuoteStructured\", \"SleevingView\", \"TubingView\" — surfaced by the word list as missing spaces, REFUTED as a textContent artifact of the dump. Measured on /contact: the two child spans of each CTA button are display:block and paint at top=337 and top=361, i.e. on separate lines. The same holds for the 75 \"…TubingView →\" hits on the product pages.",
+    "\"Rows JSON\" as a visible label on /admin/add.php — REFUTED. The <label> is in the DOM but display:none with a 0x0 box (spectable-editor.js swaps in the grid editor), and /admin/edit.php?id=CC renders no JSON label at all. Recorded at D in A10-044 as a JS-off fallback path only.",
+    "23 catalog images reported naturalWidth 0 by a first probe — REFUTED as a probe artifact: the probe did not scroll, so the lazy images had not decoded. With the crawler's scroll pass, 37/37 images on /products are complete with naturalWidth > 0 and 0 broken. Consistent with pass-0 and pass-1.",
+    "Product-page <title>s missing the SKU segment on 4 of 42 pages (e.g. \"Non-Metallic Electrical Conduit Tubing — Insulation Products Corporation\") — NOT a finding. src/App.jsx:7051 omits the SKU when the product name already contains it, which is exactly those four.",
+    "/admin/index.php \"Create public_html/uploads/images/ over FTP and set it to 755\" — considered for the step-4.8 comprehensibility finding and REJECTED: it is prefixed \"Server setup problem — please send this to your developer.\", so it names the reader it is written for.",
+    "double spaces and the misspellings agressive/apperance/availble/transparant — real, but every one is owner-typed text inside data/products-all.json. The pass scope_fence puts his data content out of scope; reported here as a coverage note, not as a finding, and no edit is proposed."
+   ],
+   "notes": "The pass file names three findings that would have been legitimate but are absent from the record for a stated reason: (1) admin copy already batched by pass-3 A10-036 (catalogue, colours, dialling, the content.php straight-quote hint) was deliberately not re-reported; (2) the ISO revision strings and the two homepage stat strips live in owner-owned data/*.json — the contradictions are recorded (A10-037, A10-042) with the exact strings and locations, and no rewrite is offered, per the pass scope_fence; (3) product-data typos are named in this ledger only. Mirror data was not written by this pass (no admin POST was submitted), so no pristine restore was required."
   },
   "pass-5": {
    "status": "in_progress",
