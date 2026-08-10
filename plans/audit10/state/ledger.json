@@ -5,7 +5,7 @@
   "branch": "claude/audit-10",
   "next_finding_id": "A10-001",
   "passes": {
-    "pass-0": { "status": "in_progress", "date": "2026-08-10", "steps_done": ["0.1"], "notes": null, "baseline_delta": null },
+    "pass-0": { "status": "in_progress", "date": "2026-08-10", "steps_done": ["0.1", "0.2", "0.3", "0.4", "0.5"], "notes": "fc-match system-ui -> DejaVu Sans (C49 caveat applies). Servers 8123 (php-mail.ini) / 8124 (php-trunc.ini) / 8125 (php-nb2-off.ini) up. lint.php all green incl. photo-default drift 5 slot defaults identical. cssdiff --save: 359 selectors from index-DVY41PHW.css. Build 366.93 kB JS / 23.12 kB CSS, mirror bundle == dist bundle (index-D1nsjcWW.js). Baseline 50 suites: 48 clean, 2 expected reds — plan8-polish 16/17 with failing check exactly 'no spec table scrolls horizontally at 1440' (C49 font-metric, DejaVu), brandtext 34/45 = 11 FAILING (ratchet <=13, was 11). plan8-contrast 34/35 = its passing state (EXEMPT_BRAND_SURFACE). All other scores identical to baseline.json expected_scores.", "baseline_delta": null },
     "pass-1": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
     "pass-2": { "status": "not_started", "date": null, "steps_done": [], "notes": null },
     "pass-3": { "status": "not_started", "date": null, "steps_done": [], "notes": null, "mirror_restored": null },
