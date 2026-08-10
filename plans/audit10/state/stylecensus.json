@@ -10,8 +10,8 @@
  "pagesCaptured": 132,
  "errors": [],
  "distinctValueCounts": {
-  "backgroundColor": 48,
-  "color": 43,
+  "backgroundColor": 52,
+  "color": 44,
   "fontFamily": 7,
   "fontSize": 24,
   "fontWeight": 6,
@@ -19,7 +19,7 @@
   "typePair": 50,
   "borderRadius": 17,
   "borderColor": 37,
-  "borderCtx": 62,
+  "borderCtx": 64,
   "letterSpacing": 24,
   "backgroundImage": 12,
   "boxShadow": 15,
@@ -57,7 +57,7 @@
     ]
    },
    "rgb(255, 255, 255)": {
-    "count": 6695,
+    "count": 6577,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -331,7 +331,7 @@
     ]
    },
    "rgb(248, 250, 252)": {
-    "count": 1118,
+    "count": 1119,
     "pages": [
      "desktop-1440 /products",
      "desktop-1440 /services",
@@ -344,7 +344,7 @@
      "desktop-1440 /products?productId=IP12GA",
      "desktop-1440 /products?productId=IP12GA%20-%20IP1274"
     ],
-    "pageCount": 88,
+    "pageCount": 89,
     "sigs": {
      "button.w-full.flex.items-center": 388,
      "a.px-6.py-4.flex": 4,
@@ -354,7 +354,8 @@
      "div.pp-imgph": 2,
      "div.credentials-box": 2,
      "div.diagram-wrap": 6,
-     "div.visual-note": 12
+     "div.visual-note": 12,
+     "summary": 1
     },
     "selectors": [
      "div.bg-white>div>button.w-full.flex.items-center",
@@ -363,7 +364,7 @@
     ]
    },
    "rgba(0, 93, 163, 0.1)": {
-    "count": 490,
+    "count": 440,
     "pages": [
      "desktop-1440 /products",
      "desktop-1440 /products?productId=CC",
@@ -376,16 +377,15 @@
      "desktop-1440 /products?productId=IP12GA%20-%20IP1274",
      "desktop-1440 /products?productId=IP13SP"
     ],
-    "pageCount": 47,
+    "pageCount": 45,
     "sigs": {
      "span.text-xs.font-semibold.px-1.5": 430,
-     "span.badge.badge-rfq": 50,
      "div.eyebrow.eyebrow-start": 10
     },
     "selectors": [
      "button.w-full.flex.items-center>span.flex.items-center.gap-2>span.text-xs.font-semibold.px-1.5",
-     "details.inq>summary>span.badge.badge-rfq",
-     "div.help-content>section.help-section#overview>div.eyebrow.eyebrow-start"
+     "div.help-content>section.help-section#overview>div.eyebrow.eyebrow-start",
+     "div.help-content>section.help-section#quickref>div.eyebrow.eyebrow-start"
     ]
    },
    "rgba(0, 93, 163, 0.08)": {
@@ -622,6 +622,30 @@
      "thead>tr>th.px-3.py-3.text-center"
     ]
    },
+   "rgb(254, 242, 242)": {
+    "count": 10,
+    "pages": [
+     "desktop-1440 /admin/index.php",
+     "desktop-1440 /admin/edit.php?id=CC",
+     "desktop-1440 /admin/inquiries.php",
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/index.php",
+     "mobile-390 /admin/edit.php?id=CC",
+     "mobile-390 /admin/inquiries.php",
+     "mobile-390 /admin/help.php"
+    ],
+    "pageCount": 8,
+    "sigs": {
+     "div.alert.alert-error": 6,
+     "span.badge.badge-failed": 2,
+     "span.btn.btn-sm.btn-mock": 2
+    },
+    "selectors": [
+     "main>div.alert.alert-error",
+     "details.inq>summary>span.badge.badge-failed",
+     "ol.steps>li>span.btn.btn-sm.btn-mock"
+    ]
+   },
    "rgba(0, 190, 242, 0.1)": {
     "count": 510,
     "pages": [
@@ -664,6 +688,20 @@
      "ol.steps>li>span.btn.btn-sm.btn-danger"
     ]
    },
+   "rgba(0, 93, 163, 0.02)": {
+    "count": 10,
+    "pages": [
+     "desktop-1440 /admin/index.php",
+     "desktop-1440 /admin/edit.php?id=CC"
+    ],
+    "pageCount": 2,
+    "sigs": {
+     "td": 10
+    },
+    "selectors": [
+     "tbody>tr>td"
+    ]
+   },
    "rgb(250, 252, 255)": {
     "count": 238,
     "pages": [
@@ -679,40 +717,41 @@
     ]
    },
    "rgb(240, 244, 248)": {
-    "count": 140,
+    "count": 99,
     "pages": [
      "desktop-1440 /admin/content.php",
      "desktop-1440 /admin/add.php",
-     "desktop-1440 /admin/backups.php",
      "desktop-1440 /admin/help.php",
      "mobile-390 /admin/content.php",
      "mobile-390 /admin/add.php",
-     "mobile-390 /admin/backups.php",
      "mobile-390 /admin/help.php"
     ],
-    "pageCount": 8,
+    "pageCount": 6,
     "sigs": {
      "div.save-bar": 2,
      "div.pp-summary.pp-ph": 2,
-     "span.items": 42,
      "code": 66,
-     "th": 28
+     "th": 28,
+     "a": 1
     },
     "selectors": [
      "main>form>div.save-bar",
      "div.ipc-preview-inner>div.ipc-preview-body>div.pp-summary.pp-ph",
-     "div.card>div.row>span.items"
+     "ol.steps>li>code"
     ]
    },
-   "rgb(240, 240, 240)": {
-    "count": 8,
+   "rgb(239, 239, 239)": {
+    "count": 10,
     "pages": [
      "desktop-1440 /admin/settings.php",
-     "mobile-390 /admin/settings.php"
+     "desktop-1440 /admin/add.php",
+     "mobile-390 /admin/settings.php",
+     "mobile-390 /admin/add.php"
     ],
-    "pageCount": 2,
+    "pageCount": 4,
     "sigs": {
-     "input": 8
+     "input": 8,
+     "select": 2
     },
     "selectors": [
      "div.grid-2>div.form-group>input#theme_primary",
@@ -721,7 +760,7 @@
     ]
    },
    "rgb(240, 253, 244)": {
-    "count": 82,
+    "count": 6,
     "pages": [
      "desktop-1440 /admin/settings.php",
      "desktop-1440 /admin/inquiries.php",
@@ -731,7 +770,7 @@
     "pageCount": 4,
     "sigs": {
      "div.cnote.cnote-ok": 4,
-     "span.badge.badge-sent": 78
+     "span.badge.badge-sent": 2
     },
     "selectors": [
      "div.grid-2>div.form-group>div.cnote.cnote-ok#cnote_primary",
@@ -761,26 +800,8 @@
      "div.help-content>section.help-section#signing-in>div.callout.callout-warning"
     ]
    },
-   "rgb(254, 242, 242)": {
-    "count": 4,
-    "pages": [
-     "desktop-1440 /admin/edit.php?id=CC",
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/edit.php?id=CC",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 4,
-    "sigs": {
-     "div.alert.alert-error": 2,
-     "span.btn.btn-sm.btn-mock": 2
-    },
-    "selectors": [
-     "main>div.alert.alert-error",
-     "ol.steps>li>span.btn.btn-sm.btn-mock"
-    ]
-   },
    "rgba(107, 114, 128, 0.12)": {
-    "count": 42,
+    "count": 18,
     "pages": [
      "desktop-1440 /admin/inquiries.php",
      "desktop-1440 /admin/help.php",
@@ -789,7 +810,7 @@
     ],
     "pageCount": 4,
     "sigs": {
-     "span.badge.badge-msg": 28,
+     "span.badge.badge-msg": 4,
      "span.badge-mock": 14
     },
     "selectors": [
@@ -797,8 +818,64 @@
      "tr>td>span.badge-mock"
     ]
    },
-   "rgb(219, 234, 254)": {
-    "count": 40,
+   "rgb(243, 244, 246)": {
+    "count": 2,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "mobile-390 /admin/audit-log.php"
+    ],
+    "pageCount": 2,
+    "sigs": {
+     "span.action-badge": 2
+    },
+    "selectors": [
+     "tr>td>span.action-badge"
+    ]
+   },
+   "rgb(243, 232, 255)": {
+    "count": 2,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "mobile-390 /admin/audit-log.php"
+    ],
+    "pageCount": 2,
+    "sigs": {
+     "span.action-badge": 2
+    },
+    "selectors": [
+     "tr>td>span.action-badge"
+    ]
+   },
+   "rgb(254, 243, 199)": {
+    "count": 2,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "mobile-390 /admin/audit-log.php"
+    ],
+    "pageCount": 2,
+    "sigs": {
+     "span.action-badge": 2
+    },
+    "selectors": [
+     "tr>td>span.action-badge"
+    ]
+   },
+   "rgb(224, 242, 254)": {
+    "count": 4,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "mobile-390 /admin/audit-log.php"
+    ],
+    "pageCount": 2,
+    "sigs": {
+     "span.action-badge": 4
+    },
+    "selectors": [
+     "tr>td>span.action-badge"
+    ]
+   },
+   "rgb(254, 226, 226)": {
+    "count": 6,
     "pages": [
      "desktop-1440 /admin/audit-log.php",
      "desktop-1440 /admin/help.php",
@@ -807,7 +884,7 @@
     ],
     "pageCount": 4,
     "sigs": {
-     "span.action-badge": 38,
+     "span.action-badge": 4,
      "span": 2
     },
     "selectors": [
@@ -815,32 +892,90 @@
      "tr>td>span"
     ]
    },
-   "rgb(224, 242, 254)": {
-    "count": 160,
+   "rgb(237, 233, 254)": {
+    "count": 2,
     "pages": [
      "desktop-1440 /admin/audit-log.php",
      "mobile-390 /admin/audit-log.php"
     ],
     "pageCount": 2,
     "sigs": {
-     "span.action-badge": 160
+     "span.action-badge": 2
     },
     "selectors": [
      "tr>td>span.action-badge"
     ]
    },
-   "rgb(243, 232, 255)": {
-    "count": 12,
+   "rgb(253, 230, 138)": {
+    "count": 4,
     "pages": [
      "desktop-1440 /admin/audit-log.php",
-     "mobile-390 /admin/audit-log.php"
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/audit-log.php",
+     "mobile-390 /admin/help.php"
     ],
-    "pageCount": 2,
+    "pageCount": 4,
     "sigs": {
-     "span.action-badge": 12
+     "span.action-badge": 2,
+     "span": 2
     },
     "selectors": [
-     "tr>td>span.action-badge"
+     "tr>td>span.action-badge",
+     "tr>td>span"
+    ]
+   },
+   "rgb(207, 250, 254)": {
+    "count": 4,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/audit-log.php",
+     "mobile-390 /admin/help.php"
+    ],
+    "pageCount": 4,
+    "sigs": {
+     "span.action-badge": 2,
+     "span": 2
+    },
+    "selectors": [
+     "tr>td>span.action-badge",
+     "tr>td>span"
+    ]
+   },
+   "rgb(219, 234, 254)": {
+    "count": 4,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/audit-log.php",
+     "mobile-390 /admin/help.php"
+    ],
+    "pageCount": 4,
+    "sigs": {
+     "span.action-badge": 2,
+     "span": 2
+    },
+    "selectors": [
+     "tr>td>span.action-badge",
+     "tr>td>span"
+    ]
+   },
+   "rgb(220, 252, 231)": {
+    "count": 4,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/audit-log.php",
+     "mobile-390 /admin/help.php"
+    ],
+    "pageCount": 4,
+    "sigs": {
+     "span.action-badge": 2,
+     "span": 2
+    },
+    "selectors": [
+     "tr>td>span.action-badge",
+     "tr>td>span"
     ]
    },
    "rgb(234, 243, 251)": {
@@ -917,62 +1052,6 @@
     "selectors": [
      "div.help-content>section.help-section#backups>div.eyebrow.eyebrow-advanced",
      "div.help-content>section.help-section#auditlog>div.eyebrow.eyebrow-advanced"
-    ]
-   },
-   "rgb(220, 252, 231)": {
-    "count": 2,
-    "pages": [
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 2,
-    "sigs": {
-     "span": 2
-    },
-    "selectors": [
-     "tr>td>span"
-    ]
-   },
-   "rgb(254, 226, 226)": {
-    "count": 2,
-    "pages": [
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 2,
-    "sigs": {
-     "span": 2
-    },
-    "selectors": [
-     "tr>td>span"
-    ]
-   },
-   "rgb(207, 250, 254)": {
-    "count": 2,
-    "pages": [
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 2,
-    "sigs": {
-     "span": 2
-    },
-    "selectors": [
-     "tr>td>span"
-    ]
-   },
-   "rgb(253, 230, 138)": {
-    "count": 2,
-    "pages": [
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 2,
-    "sigs": {
-     "span": 2
-    },
-    "selectors": [
-     "tr>td>span"
     ]
    },
    "rgba(180, 83, 9, 0.1)": {
@@ -1189,7 +1268,7 @@
     ]
    },
    "rgb(0, 93, 163)": {
-    "count": 3655,
+    "count": 3334,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -1208,7 +1287,7 @@
      "div": 48,
      "div.opacity-100.sm:opacity-0.sm:group-hover:opacity-100": 12,
      "a.text-sm.font-semibold.px-6": 2,
-     "a": 360,
+     "a": 287,
      "span.text-xs.font-semibold.px-1.5": 430,
      "span": 301,
      "div.w-full.flex.items-center": 10,
@@ -1228,7 +1307,7 @@
     ]
    },
    "rgb(20, 20, 20)": {
-    "count": 8625,
+    "count": 8467,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -1267,7 +1346,7 @@
     ]
    },
    "rgb(75, 85, 99)": {
-    "count": 5378,
+    "count": 5354,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -1306,7 +1385,7 @@
     ]
    },
    "rgb(107, 114, 128)": {
-    "count": 2820,
+    "count": 2608,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -1332,7 +1411,7 @@
      "div.logo-sub": 2,
      "label": 1008,
      "div.stat-lbl": 20,
-     "p.sub": 48,
+     "p.sub": 50,
      "span.vh": 886,
      "code": 2,
      "strong": 2,
@@ -1569,7 +1648,7 @@
     ]
    },
    "rgb(55, 65, 81)": {
-    "count": 1829,
+    "count": 1408,
     "pages": [
      "desktop-1440 /dashboard",
      "desktop-1440 /dashboard?family=Tape",
@@ -1582,17 +1661,17 @@
      "desktop-1440 /products?productId=IP10EX",
      "desktop-1440 /products?productId=IP13SP"
     ],
-    "pageCount": 80,
+    "pageCount": 78,
     "sigs": {
      "button.rounded.transition-colors.duration-150": 96,
      "span": 102,
      "span.px-2.5.py-1.rounded": 122,
      "button.rbtn": 476,
      "button.rbtn.danger": 238,
-     "span.items": 42,
-     "td": 334,
-     "td.detail": 210,
-     "a": 43,
+     "td": 140,
+     "span.action-badge": 2,
+     "td.detail": 24,
+     "a": 42,
      "p": 82,
      "li": 36,
      "em": 20,
@@ -1648,6 +1727,36 @@
      "div.w-full.rounded-lg.flex>div>div"
     ]
    },
+   "rgb(220, 38, 38)": {
+    "count": 194,
+    "pages": [
+     "desktop-1440 /admin/index.php",
+     "desktop-1440 /admin/edit.php?id=CC",
+     "desktop-1440 /admin/inquiries.php",
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/index.php",
+     "mobile-390 /admin/edit.php?id=CC",
+     "mobile-390 /admin/inquiries.php",
+     "mobile-390 /admin/help.php"
+    ],
+    "pageCount": 8,
+    "sigs": {
+     "strong": 6,
+     "li": 4,
+     "code": 4,
+     "a.btn.btn-sm.btn-danger": 168,
+     "div.alert.alert-error": 2,
+     "div.stat-num.bad": 2,
+     "span.badge.badge-failed": 2,
+     "span.btn.btn-sm.btn-danger": 4,
+     "span.btn.btn-sm.btn-mock": 2
+    },
+    "selectors": [
+     "main>div.alert.alert-error>strong",
+     "div.alert.alert-error>ul>li",
+     "ul>li>code"
+    ]
+   },
    "rgb(3, 105, 161)": {
     "count": 516,
     "pages": [
@@ -1670,44 +1779,24 @@
      "tr>td>span.btn.btn-sm.btn-pdf"
     ]
    },
-   "rgb(220, 38, 38)": {
-    "count": 176,
-    "pages": [
-     "desktop-1440 /admin/index.php",
-     "desktop-1440 /admin/edit.php?id=CC",
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/index.php",
-     "mobile-390 /admin/edit.php?id=CC",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 6,
-    "sigs": {
-     "a.btn.btn-sm.btn-danger": 168,
-     "div.alert.alert-error": 2,
-     "span.btn.btn-sm.btn-danger": 4,
-     "span.btn.btn-sm.btn-mock": 2
-    },
-    "selectors": [
-     "td>div.actions>a.btn.btn-sm.btn-danger",
-     "main>div.alert.alert-error",
-     "tr>td>span.btn.btn-sm.btn-danger"
-    ]
-   },
    "rgb(22, 101, 52)": {
-    "count": 92,
+    "count": 18,
     "pages": [
      "desktop-1440 /admin/settings.php",
      "desktop-1440 /admin/inquiries.php",
+     "desktop-1440 /admin/audit-log.php",
      "desktop-1440 /admin/help.php",
      "mobile-390 /admin/settings.php",
      "mobile-390 /admin/inquiries.php",
+     "mobile-390 /admin/audit-log.php",
      "mobile-390 /admin/help.php"
     ],
-    "pageCount": 6,
+    "pageCount": 8,
     "sigs": {
      "div.cnote.cnote-ok": 4,
      "b": 8,
-     "span.badge.badge-sent": 78,
+     "span.badge.badge-sent": 2,
+     "span.action-badge": 2,
      "span": 2
     },
     "selectors": [
@@ -1717,22 +1806,25 @@
     ]
    },
    "rgb(146, 64, 14)": {
-    "count": 20,
+    "count": 24,
     "pages": [
      "desktop-1440 /admin/settings.php",
      "desktop-1440 /admin/password.php",
+     "desktop-1440 /admin/audit-log.php",
      "desktop-1440 /admin/help.php",
      "mobile-390 /admin/settings.php",
      "mobile-390 /admin/password.php",
+     "mobile-390 /admin/audit-log.php",
      "mobile-390 /admin/help.php"
     ],
-    "pageCount": 6,
+    "pageCount": 8,
     "sigs": {
      "div.cnote.cnote-warn": 2,
      "b": 4,
      "div.note": 2,
      "code": 8,
      "strong": 2,
+     "span.action-badge": 4,
      "span": 2
     },
     "selectors": [
@@ -1742,7 +1834,7 @@
     ]
    },
    "rgb(156, 163, 175)": {
-    "count": 664,
+    "count": 102,
     "pages": [
      "desktop-1440 /admin/settings.php",
      "desktop-1440 /admin/add.php",
@@ -1763,11 +1855,11 @@
      "div.sp-foot": 2,
      "strong": 2,
      "button.ste-x": 4,
-     "span.size": 42,
+     "p.none": 6,
      "p.note": 2,
-     "span.when": 78,
-     "th": 284,
-     "td.ip": 210,
+     "span.when": 4,
+     "th": 18,
+     "td.ip": 24,
      "div.toc-group": 10
     },
     "selectors": [
@@ -1809,8 +1901,36 @@
      "div.ipc-preview-inner>div.ipc-preview-body>div.pp-imgph"
     ]
    },
-   "rgb(30, 64, 175)": {
-    "count": 40,
+   "rgb(107, 33, 168)": {
+    "count": 2,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "mobile-390 /admin/audit-log.php"
+    ],
+    "pageCount": 2,
+    "sigs": {
+     "span.action-badge": 2
+    },
+    "selectors": [
+     "tr>td>span.action-badge"
+    ]
+   },
+   "rgb(7, 89, 133)": {
+    "count": 4,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "mobile-390 /admin/audit-log.php"
+    ],
+    "pageCount": 2,
+    "sigs": {
+     "span.action-badge": 4
+    },
+    "selectors": [
+     "tr>td>span.action-badge"
+    ]
+   },
+   "rgb(153, 27, 27)": {
+    "count": 6,
     "pages": [
      "desktop-1440 /admin/audit-log.php",
      "desktop-1440 /admin/help.php",
@@ -1819,7 +1939,7 @@
     ],
     "pageCount": 4,
     "sigs": {
-     "span.action-badge": 38,
+     "span.action-badge": 4,
      "span": 2
     },
     "selectors": [
@@ -1827,32 +1947,54 @@
      "tr>td>span"
     ]
    },
-   "rgb(7, 89, 133)": {
-    "count": 160,
+   "rgb(91, 33, 182)": {
+    "count": 2,
     "pages": [
      "desktop-1440 /admin/audit-log.php",
      "mobile-390 /admin/audit-log.php"
     ],
     "pageCount": 2,
     "sigs": {
-     "span.action-badge": 160
+     "span.action-badge": 2
     },
     "selectors": [
      "tr>td>span.action-badge"
     ]
    },
-   "rgb(107, 33, 168)": {
-    "count": 12,
+   "rgb(21, 94, 117)": {
+    "count": 4,
     "pages": [
      "desktop-1440 /admin/audit-log.php",
-     "mobile-390 /admin/audit-log.php"
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/audit-log.php",
+     "mobile-390 /admin/help.php"
     ],
-    "pageCount": 2,
+    "pageCount": 4,
     "sigs": {
-     "span.action-badge": 12
+     "span.action-badge": 2,
+     "span": 2
     },
     "selectors": [
-     "tr>td>span.action-badge"
+     "tr>td>span.action-badge",
+     "tr>td>span"
+    ]
+   },
+   "rgb(30, 64, 175)": {
+    "count": 4,
+    "pages": [
+     "desktop-1440 /admin/audit-log.php",
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/audit-log.php",
+     "mobile-390 /admin/help.php"
+    ],
+    "pageCount": 4,
+    "sigs": {
+     "span.action-badge": 2,
+     "span": 2
+    },
+    "selectors": [
+     "tr>td>span.action-badge",
+     "tr>td>span"
     ]
    },
    "rgba(255, 255, 255, 0.82)": {
@@ -1971,34 +2113,6 @@
      "div.help-content>section.help-section#auditlog>div.eyebrow.eyebrow-advanced"
     ]
    },
-   "rgb(153, 27, 27)": {
-    "count": 2,
-    "pages": [
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 2,
-    "sigs": {
-     "span": 2
-    },
-    "selectors": [
-     "tr>td>span"
-    ]
-   },
-   "rgb(21, 94, 117)": {
-    "count": 2,
-    "pages": [
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 2,
-    "sigs": {
-     "span": 2
-    },
-    "selectors": [
-     "tr>td>span"
-    ]
-   },
    "rgb(180, 83, 9)": {
     "count": 8,
     "pages": [
@@ -2084,7 +2198,7 @@
     ]
    },
    "system-ui, sans-serif": {
-    "count": 7830,
+    "count": 6110,
     "pages": [
      "desktop-1440 /datasheets",
      "desktop-1440 /admin/ (login)",
@@ -2107,14 +2221,14 @@
      "label": 1004,
      "div.logo-title": 20,
      "a.current": 20,
-     "a": 443,
+     "a": 369,
      "button.logout": 20,
      "a.btn.btn-primary": 4,
+     "strong": 8,
+     "li": 70,
      "div.stat-val": 16,
-     "div.stat-lbl": 20,
-     "div.section-title": 40,
-     "th": 110,
-     "p.sub": 48
+     "div.stat-lbl": 12,
+     "p.sub": 50
     },
     "selectors": [
      "section>h2.flex.items-baseline.gap-3>span",
@@ -2138,20 +2252,20 @@
     ]
    },
    "Arial": {
-    "count": 818,
+    "count": 776,
     "pages": [
      "desktop-1440 /admin/ (login)",
      "desktop-1440 /admin/content.php",
      "desktop-1440 /admin/settings.php",
      "desktop-1440 /admin/add.php",
-     "desktop-1440 /admin/backups.php",
      "desktop-1440 /admin/password.php",
      "desktop-1440 /admin/audit-log.php",
      "mobile-390 /admin/ (login)",
      "mobile-390 /admin/content.php",
-     "mobile-390 /admin/settings.php"
+     "mobile-390 /admin/settings.php",
+     "mobile-390 /admin/add.php"
     ],
-    "pageCount": 14,
+    "pageCount": 12,
     "sigs": {
      "button": 4,
      "button.rbtn": 476,
@@ -2163,7 +2277,6 @@
      "button.ste-mini": 2,
      "button.ste-mini.rm": 2,
      "button.ste-tool": 2,
-     "button.btn": 42,
      "button.btn-primary": 2
     },
     "selectors": [
@@ -2173,28 +2286,28 @@
     ]
    },
    "monospace": {
-    "count": 224,
+    "count": 42,
     "pages": [
+     "desktop-1440 /admin/index.php",
      "desktop-1440 /admin/content.php",
      "desktop-1440 /admin/settings.php",
+     "desktop-1440 /admin/edit.php?id=CC",
      "desktop-1440 /admin/backups.php",
      "desktop-1440 /admin/password.php",
      "desktop-1440 /admin/audit-log.php",
+     "mobile-390 /admin/index.php",
      "mobile-390 /admin/content.php",
-     "mobile-390 /admin/settings.php",
-     "mobile-390 /admin/backups.php",
-     "mobile-390 /admin/password.php",
-     "mobile-390 /admin/audit-log.php"
+     "mobile-390 /admin/settings.php"
     ],
-    "pageCount": 10,
+    "pageCount": 14,
     "sigs": {
-     "code": 14,
-     "td.ip": 210
+     "code": 18,
+     "td.ip": 24
     },
     "selectors": [
+     "ul>li>code",
      "fieldset.card>p.sub>code",
-     "div.form-group.full>div.hint>code",
-     "main>p.note>code"
+     "div.form-group.full>div.hint>code"
     ]
    },
    "\"Courier New\", monospace": {
@@ -2255,7 +2368,7 @@
     ]
    },
    "13px": {
-    "count": 3164,
+    "count": 2574,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -2271,21 +2384,21 @@
     "pageCount": 132,
     "sigs": {
      "div": 230,
-     "a": 432,
+     "a": 358,
      "button": 112,
      "a.transition-colors.duration-150.hover:bg-blue-700": 4,
      "div.group-hover:text-blue-700.transition-colors.duration-200": 12,
      "span": 132,
-     "td": 646,
+     "td": 452,
      "div.logo-text": 2,
      "p": 6,
      "div.logo-title": 20,
      "a.current": 20,
      "button.logout": 20,
      "a.btn.btn-primary": 4,
-     "p.sub": 48,
-     "textarea.ci": 190,
-     "button.rbtn": 476
+     "strong": 62,
+     "li": 4,
+     "code": 6
     },
     "selectors": [
      "a>div.hidden.sm:block>div",
@@ -2294,7 +2407,7 @@
     ]
    },
    "12px": {
-    "count": 10226,
+    "count": 9686,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -2333,7 +2446,7 @@
     ]
    },
    "11px": {
-    "count": 5402,
+    "count": 5030,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -2488,7 +2601,8 @@
      "h2.text-xl.font-extrabold.ipc-ink-dark": 2,
      "h2.text-xl.font-extrabold.text-white": 10,
      "h1.text-xl.font-extrabold.text-white": 84,
-     "div.stat-num": 4,
+     "div.stat-num": 2,
+     "div.stat-num.bad": 2,
      "h2": 44,
      "div.font-extrabold.leading-none.mb-1": 4
     },
@@ -2591,7 +2705,7 @@
     ]
    },
    "10px": {
-    "count": 3123,
+    "count": 2709,
     "pages": [
      "desktop-1440 /products",
      "desktop-1440 /industries",
@@ -2610,10 +2724,10 @@
      "div": 2004,
      "div.logo-sub": 22,
      "span.k": 10,
-     "span.badge.badge-rfq": 50,
-     "span.badge.badge-sent": 78,
-     "th": 284,
-     "span.badge.badge-msg": 28,
+     "span.badge.badge-msg": 4,
+     "span.badge.badge-failed": 2,
+     "th": 18,
+     "span.badge.badge-sent": 2,
      "div.toc-group": 10,
      "span.badge-mock": 14
     },
@@ -2753,14 +2867,14 @@
     ]
    },
    "10.8333px": {
-    "count": 30,
+    "count": 2,
     "pages": [
      "desktop-1440 /admin/inquiries.php",
      "mobile-390 /admin/inquiries.php"
     ],
     "pageCount": 2,
     "sigs": {
-     "small": 30
+     "small": 2
     },
     "selectors": [
      "summary>span.who>small"
@@ -2810,7 +2924,7 @@
   },
   "fontWeight": {
    "400": {
-    "count": 11990,
+    "count": 10994,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -2831,7 +2945,7 @@
      "p": 104,
      "p.text-sm": 6,
      "p.text-xs.leading-relaxed.max-w-xs": 110,
-     "a": 943,
+     "a": 869,
      "span": 1403,
      "div.flex.items-center.gap-2": 110,
      "a.text-xs.transition-colors.duration-150": 872,
@@ -2884,7 +2998,7 @@
     ]
    },
    "600": {
-    "count": 8566,
+    "count": 8408,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -2897,7 +3011,7 @@
      "desktop-1440 /faq",
      "desktop-1440 /privacy"
     ],
-    "pageCount": 130,
+    "pageCount": 128,
     "sigs": {
      "a": 153,
      "div.inline-flex.items-center.gap-2": 2,
@@ -2923,7 +3037,7 @@
     ]
    },
    "700": {
-    "count": 8360,
+    "count": 7570,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -3691,7 +3805,7 @@
     ]
    },
    "10px|normal": {
-    "count": 565,
+    "count": 151,
     "pages": [
      "desktop-1440 /dashboard",
      "desktop-1440 /datasheets",
@@ -3709,10 +3823,10 @@
      "span": 69,
      "div.logo-sub": 22,
      "span.k": 10,
-     "span.badge.badge-rfq": 50,
-     "span.badge.badge-sent": 78,
-     "th": 284,
-     "span.badge.badge-msg": 28,
+     "span.badge.badge-msg": 4,
+     "span.badge.badge-failed": 2,
+     "th": 18,
+     "span.badge.badge-sent": 2,
      "div.toc-group": 10,
      "span.badge-mock": 14
     },
@@ -3723,7 +3837,7 @@
     ]
    },
    "11px|normal": {
-    "count": 3034,
+    "count": 2662,
     "pages": [
      "desktop-1440 /dashboard",
      "desktop-1440 /datasheets",
@@ -3793,7 +3907,7 @@
     ]
    },
    "12px|normal": {
-    "count": 2478,
+    "count": 1938,
     "pages": [
      "desktop-1440 /datasheets",
      "desktop-1440 /products?productId=CC",
@@ -3810,7 +3924,7 @@
     "sigs": {
      "span": 90,
      "div": 84,
-     "span.sku": 378,
+     "span.sku": 182,
      "a.btn.btn-sm.btn-pdf": 504,
      "a.btn.btn-sm.btn-edit": 336,
      "a.btn.btn-sm.btn-danger": 168,
@@ -3946,7 +4060,7 @@
     ]
    },
    "13px|normal": {
-    "count": 1404,
+    "count": 814,
     "pages": [
      "desktop-1440 /admin/ (login)",
      "desktop-1440 /admin/index.php",
@@ -3964,19 +4078,19 @@
      "p": 6,
      "div.logo-title": 20,
      "a.current": 20,
-     "a": 302,
+     "a": 228,
      "button.logout": 20,
      "a.btn.btn-primary": 4,
-     "td": 566,
-     "p.sub": 48,
-     "code": 2,
-     "strong": 8,
+     "strong": 14,
+     "li": 4,
+     "code": 6,
+     "td": 372,
+     "p.sub": 50,
      "label": 24,
      "a.btn.btn-secondary": 2,
      "button.btn.btn-primary": 2,
      "div.alert.alert-error": 2,
-     "em": 4,
-     "span.when": 42
+     "em": 4
     },
     "selectors": [
      "div.card>p",
@@ -4126,24 +4240,25 @@
     ],
     "pageCount": 4,
     "sigs": {
-     "div.stat-num": 4,
+     "div.stat-num": 2,
+     "div.stat-num.bad": 2,
      "h2": 44
     },
     "selectors": [
      "div.stats>div.stat>div.stat-num",
-     "div.help-content>section.help-section#overview>h2",
-     "div.help-content>section.help-section#quickref>h2"
+     "div.stats>div.stat>div.stat-num.bad",
+     "div.help-content>section.help-section#overview>h2"
     ]
    },
    "10.8333px|normal": {
-    "count": 30,
+    "count": 2,
     "pages": [
      "desktop-1440 /admin/inquiries.php",
      "mobile-390 /admin/inquiries.php"
     ],
     "pageCount": 2,
     "sigs": {
-     "small": 30
+     "small": 2
     },
     "selectors": [
      "summary>span.who>small"
@@ -4547,7 +4662,7 @@
     ]
    },
    "12px|700": {
-    "count": 2390,
+    "count": 2194,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -4573,7 +4688,7 @@
      "span.flex-shrink-0.flex.items-center": 36,
      "div.text-xs.font-bold.mb-0.5": 366,
      "a.ipc-tap": 84,
-     "span.sku": 378,
+     "span.sku": 182,
      "legend.card-title": 62,
      "div.card-title": 34,
      "div.pp-sthead": 2,
@@ -4586,7 +4701,7 @@
     ]
    },
    "11px|400": {
-    "count": 487,
+    "count": 301,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -4612,7 +4727,7 @@
      "div.sp-foot": 2,
      "button.ste-mini": 2,
      "button.ste-mini.rm": 2,
-     "td.ip": 210
+     "td.ip": 24
     },
     "selectors": [
      "a>div.hidden.sm:block>div",
@@ -4669,7 +4784,7 @@
     ]
    },
    "13px|600": {
-    "count": 333,
+    "count": 175,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -4682,7 +4797,7 @@
      "desktop-1440 /faq",
      "desktop-1440 /privacy"
     ],
-    "pageCount": 70,
+    "pageCount": 68,
     "sigs": {
      "a": 55,
      "a.transition-colors.duration-150.hover:bg-blue-700": 4,
@@ -4691,9 +4806,7 @@
      "a.btn.btn-primary": 4,
      "a.btn.btn-secondary": 2,
      "button.btn.btn-primary": 2,
-     "span.when": 42,
-     "button.btn": 42,
-     "span.who": 78,
+     "span.who": 4,
      "button": 2,
      "span.btn.btn-primary.btn-mock": 16
     },
@@ -4850,7 +4963,7 @@
     ]
    },
    "12px|400": {
-    "count": 3282,
+    "count": 2938,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -4964,7 +5077,8 @@
      "h2.text-xl.font-extrabold.ipc-ink-dark": 2,
      "h2.text-xl.font-extrabold.text-white": 10,
      "h1.text-xl.font-extrabold.text-white": 84,
-     "div.stat-num": 4,
+     "div.stat-num": 2,
+     "div.stat-num.bad": 2,
      "h2": 44,
      "div.font-extrabold.leading-none.mb-1": 4
     },
@@ -4975,7 +5089,7 @@
     ]
    },
    "11px|700": {
-    "count": 2682,
+    "count": 2496,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -5002,7 +5116,7 @@
      "div.preview-head": 2,
      "strong": 2,
      "div.ipc-preview-head": 2,
-     "span.action-badge": 210,
+     "span.action-badge": 24,
      "div.eyebrow.eyebrow-start": 10,
      "div.diagram-caption": 6,
      "div.eyebrow.eyebrow-manage": 16
@@ -5096,7 +5210,7 @@
     ]
    },
    "13px|700": {
-    "count": 276,
+    "count": 282,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /about",
@@ -5116,7 +5230,7 @@
      "span": 44,
      "div.logo-text": 2,
      "div.logo-title": 20,
-     "strong": 52,
+     "strong": 58,
      "label": 24,
      "td": 100
     },
@@ -5371,7 +5485,7 @@
     ]
    },
    "10px|700": {
-    "count": 2502,
+    "count": 2088,
     "pages": [
      "desktop-1440 /dashboard",
      "desktop-1440 /dashboard?family=Tape",
@@ -5389,10 +5503,10 @@
      "span": 44,
      "div": 1990,
      "div.logo-sub": 4,
-     "span.badge.badge-rfq": 50,
-     "span.badge.badge-sent": 78,
-     "th": 284,
-     "span.badge.badge-msg": 28,
+     "span.badge.badge-msg": 4,
+     "span.badge.badge-failed": 2,
+     "th": 18,
+     "span.badge.badge-sent": 2,
      "div.toc-group": 10,
      "span.badge-mock": 14
     },
@@ -5419,7 +5533,7 @@
     ]
    },
    "13px|400": {
-    "count": 2177,
+    "count": 1739,
     "pages": [
      "desktop-1440 /dashboard",
      "desktop-1440 /dashboard?family=Tape",
@@ -5438,18 +5552,18 @@
      "div": 1,
      "p": 6,
      "a.current": 20,
-     "a": 322,
+     "a": 248,
      "button.logout": 20,
-     "td": 502,
-     "p.sub": 48,
+     "li": 4,
+     "code": 6,
+     "td": 308,
+     "p.sub": 50,
      "textarea.ci": 190,
      "button.rbtn": 476,
      "button.rbtn.danger": 238,
-     "code": 2,
      "textarea": 4,
      "p.pp-p": 2,
-     "div.alert.alert-error": 2,
-     "em": 26
+     "div.alert.alert-error": 2
     },
     "selectors": [
      "tr>td>span",
@@ -5569,14 +5683,14 @@
     ]
    },
    "10.8333px|400": {
-    "count": 30,
+    "count": 2,
     "pages": [
      "desktop-1440 /admin/inquiries.php",
      "mobile-390 /admin/inquiries.php"
     ],
     "pageCount": 2,
     "sigs": {
-     "small": 30
+     "small": 2
     },
     "selectors": [
      "summary>span.who>small"
@@ -5711,7 +5825,7 @@
     ]
    },
    "6px": {
-    "count": 1013,
+    "count": 1014,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -5724,9 +5838,9 @@
      "desktop-1440 /faq",
      "desktop-1440 /privacy"
     ],
-    "pageCount": 106,
+    "pageCount": 107,
     "sigs": {
-     "a": 99,
+     "a": 100,
      "a.transition-colors.duration-150.hover:bg-blue-700": 4,
      "span": 12,
      "button": 1,
@@ -5807,7 +5921,7 @@
     ]
    },
    "12px": {
-    "count": 841,
+    "count": 767,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -5846,7 +5960,7 @@
     ]
    },
    "8px": {
-    "count": 2716,
+    "count": 2720,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -5876,7 +5990,7 @@
      "img.w-full.rounded-lg.object-cover": 74,
      "div.w-full.rounded-lg.flex": 10,
      "button": 2,
-     "div.pp-imgph": 2
+     "div.alert.alert-error": 6
     },
     "selectors": [
      "div.max-w-7xl.mx-auto.px-6>div.py-5.px-4.md:py-7>div.flex-shrink-0.flex.items-center",
@@ -5918,24 +6032,21 @@
     ]
    },
    "5px": {
-    "count": 140,
+    "count": 98,
     "pages": [
      "desktop-1440 /products",
      "desktop-1440 /admin/settings.php",
      "desktop-1440 /admin/add.php",
-     "desktop-1440 /admin/backups.php",
      "mobile-390 /products",
      "mobile-390 /admin/settings.php",
-     "mobile-390 /admin/add.php",
-     "mobile-390 /admin/backups.php"
+     "mobile-390 /admin/add.php"
     ],
-    "pageCount": 8,
+    "pageCount": 6,
     "sigs": {
      "span": 84,
      "a": 10,
      "button.ste-mini": 2,
-     "button.ste-mini.rm": 2,
-     "span.items": 42
+     "button.ste-mini.rm": 2
     },
     "selectors": [
      "div.px-4.py-3.flex>div.flex.items-center.gap-2>span",
@@ -5997,7 +6108,7 @@
     ]
    },
    "20px": {
-    "count": 973,
+    "count": 639,
     "pages": [
      "desktop-1440 /dashboard",
      "desktop-1440 /faq",
@@ -6016,10 +6127,10 @@
      "button": 10,
      "span.sp-badge": 6,
      "span.pp-badge": 6,
-     "span.badge.badge-rfq": 50,
-     "span.badge.badge-sent": 78,
-     "span.badge.badge-msg": 28,
-     "span.action-badge": 210,
+     "span.badge.badge-msg": 4,
+     "span.badge.badge-failed": 2,
+     "span.badge.badge-sent": 2,
+     "span.action-badge": 24,
      "div.eyebrow.eyebrow-start": 10,
      "div.eyebrow.eyebrow-manage": 16,
      "div.eyebrow.eyebrow-site": 6,
@@ -6049,20 +6160,20 @@
     ]
    },
    "7px": {
-    "count": 2140,
+    "count": 2098,
     "pages": [
      "desktop-1440 /admin/index.php",
      "desktop-1440 /admin/content.php",
      "desktop-1440 /admin/settings.php",
      "desktop-1440 /admin/add.php",
      "desktop-1440 /admin/edit.php?id=CC",
-     "desktop-1440 /admin/backups.php",
      "desktop-1440 /admin/audit-log.php",
      "desktop-1440 /admin/help.php",
      "mobile-390 /admin/index.php",
-     "mobile-390 /admin/content.php"
+     "mobile-390 /admin/content.php",
+     "mobile-390 /admin/settings.php"
     ],
-    "pageCount": 16,
+    "pageCount": 14,
     "sigs": {
      "a.btn.btn-primary": 4,
      "a.btn.btn-sm.btn-pdf": 504,
@@ -6324,7 +6435,7 @@
     ]
    },
    "rgb(229, 233, 238)": {
-    "count": 3988,
+    "count": 3914,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -6471,7 +6582,7 @@
     ]
    },
    "rgb(209, 217, 224)": {
-    "count": 2542,
+    "count": 2500,
     "pages": [
      "desktop-1440 /about",
      "desktop-1440 /contact",
@@ -6484,7 +6595,7 @@
      "desktop-1440 /products?productId=CC90",
      "desktop-1440 /products?productId=CCS"
     ],
-    "pageCount": 105,
+    "pageCount": 103,
     "sigs": {
      "div": 10,
      "div.flex.flex-col.sm:flex-row": 2,
@@ -6652,33 +6763,52 @@
      "div.grid.grid-cols-1.md:grid-cols-2>div.p-5.sm:p-8.border-b>div.w-full.rounded-lg.flex"
     ]
    },
+   "rgb(254, 202, 202)": {
+    "count": 8,
+    "pages": [
+     "desktop-1440 /admin/index.php",
+     "desktop-1440 /admin/edit.php?id=CC",
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/index.php",
+     "mobile-390 /admin/edit.php?id=CC",
+     "mobile-390 /admin/help.php"
+    ],
+    "pageCount": 6,
+    "sigs": {
+     "div.alert.alert-error": 6,
+     "span.btn.btn-sm.btn-mock": 2
+    },
+    "selectors": [
+     "main>div.alert.alert-error",
+     "ol.steps>li>span.btn.btn-sm.btn-mock"
+    ]
+   },
    "rgb(240, 244, 248)": {
-    "count": 1964,
+    "count": 998,
     "pages": [
      "desktop-1440 /admin/index.php",
      "desktop-1440 /admin/settings.php",
      "desktop-1440 /admin/add.php",
      "desktop-1440 /admin/edit.php?id=CC",
-     "desktop-1440 /admin/backups.php",
      "desktop-1440 /admin/audit-log.php",
      "desktop-1440 /admin/help.php",
      "mobile-390 /admin/index.php",
      "mobile-390 /admin/settings.php",
-     "mobile-390 /admin/add.php"
+     "mobile-390 /admin/add.php",
+     "mobile-390 /admin/edit.php?id=CC"
     ],
-    "pageCount": 14,
+    "pageCount": 12,
     "sigs": {
-     "td": 1294,
+     "td": 922,
      "div.sp-row": 10,
-     "div.row": 36,
-     "td.ts": 208,
-     "td.detail": 208,
-     "td.ip": 208
+     "td.ts": 22,
+     "td.detail": 22,
+     "td.ip": 22
     },
     "selectors": [
      "tbody>tr>td",
      "div.preview-inner>div.preview-body#settings-preview>div.sp-row",
-     "main>div.card>div.row"
+     "tbody>tr>td.ts"
     ]
    },
    "rgb(0, 0, 0)": {
@@ -6748,33 +6878,15 @@
      "thead>tr>th"
     ]
    },
-   "rgb(254, 202, 202)": {
-    "count": 4,
-    "pages": [
-     "desktop-1440 /admin/edit.php?id=CC",
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/edit.php?id=CC",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 4,
-    "sigs": {
-     "div.alert.alert-error": 2,
-     "span.btn.btn-sm.btn-mock": 2
-    },
-    "selectors": [
-     "main>div.alert.alert-error",
-     "ol.steps>li>span.btn.btn-sm.btn-mock"
-    ]
-   },
    "rgb(238, 242, 246)": {
-    "count": 78,
+    "count": 4,
     "pages": [
      "desktop-1440 /admin/inquiries.php",
      "mobile-390 /admin/inquiries.php"
     ],
     "pageCount": 2,
     "sigs": {
-     "div.detail": 78
+     "div.detail": 4
     },
     "selectors": [
      "main>details.inq>div.detail"
@@ -7065,7 +7177,7 @@
     ]
    },
    "rgb(229, 233, 238)|on|rgb(255, 255, 255)": {
-    "count": 2658,
+    "count": 2584,
     "pages": [
      "desktop-1440 /",
      "desktop-1440 /products",
@@ -7343,7 +7455,7 @@
     ]
    },
    "rgb(209, 217, 224)|on|rgb(255, 255, 255)": {
-    "count": 2538,
+    "count": 2494,
     "pages": [
      "desktop-1440 /about",
      "desktop-1440 /contact",
@@ -7356,7 +7468,7 @@
      "desktop-1440 /products?productId=CC90",
      "desktop-1440 /products?productId=CCS"
     ],
-    "pageCount": 105,
+    "pageCount": 103,
     "sigs": {
      "div": 10,
      "input": 100,
@@ -7372,8 +7484,8 @@
      "button.rbtn.danger": 238,
      "button.btn.btn-secondary": 34,
      "a.btn.btn-secondary": 6,
-     "select": 5,
-     "input.ste-in.ste-lab": 2
+     "input.ste-in.ste-lab": 2,
+     "textarea.ste-in.ste-val": 2
     },
     "selectors": [
      "div>div>div",
@@ -7772,33 +7884,66 @@
      "div.grid.grid-cols-1.md:grid-cols-2>div.p-5.sm:p-8.border-b>div.w-full.rounded-lg.flex"
     ]
    },
+   "rgb(254, 202, 202)|on|rgb(254, 242, 242)": {
+    "count": 8,
+    "pages": [
+     "desktop-1440 /admin/index.php",
+     "desktop-1440 /admin/edit.php?id=CC",
+     "desktop-1440 /admin/help.php",
+     "mobile-390 /admin/index.php",
+     "mobile-390 /admin/edit.php?id=CC",
+     "mobile-390 /admin/help.php"
+    ],
+    "pageCount": 6,
+    "sigs": {
+     "div.alert.alert-error": 6,
+     "span.btn.btn-sm.btn-mock": 2
+    },
+    "selectors": [
+     "main>div.alert.alert-error",
+     "ol.steps>li>span.btn.btn-sm.btn-mock"
+    ]
+   },
    "rgb(240, 244, 248)|on|transparent": {
-    "count": 1964,
+    "count": 988,
     "pages": [
      "desktop-1440 /admin/index.php",
      "desktop-1440 /admin/settings.php",
      "desktop-1440 /admin/add.php",
      "desktop-1440 /admin/edit.php?id=CC",
-     "desktop-1440 /admin/backups.php",
      "desktop-1440 /admin/audit-log.php",
      "desktop-1440 /admin/help.php",
      "mobile-390 /admin/index.php",
      "mobile-390 /admin/settings.php",
-     "mobile-390 /admin/add.php"
+     "mobile-390 /admin/add.php",
+     "mobile-390 /admin/edit.php?id=CC"
     ],
-    "pageCount": 14,
+    "pageCount": 12,
     "sigs": {
-     "td": 1294,
+     "td": 912,
      "div.sp-row": 10,
-     "div.row": 36,
-     "td.ts": 208,
-     "td.detail": 208,
-     "td.ip": 208
+     "td.ts": 22,
+     "td.detail": 22,
+     "td.ip": 22
     },
     "selectors": [
      "tbody>tr>td",
      "div.preview-inner>div.preview-body#settings-preview>div.sp-row",
-     "main>div.card>div.row"
+     "tbody>tr>td.ts"
+    ]
+   },
+   "rgb(240, 244, 248)|on|rgba(0, 93, 163, 0.02)": {
+    "count": 10,
+    "pages": [
+     "desktop-1440 /admin/index.php",
+     "desktop-1440 /admin/edit.php?id=CC"
+    ],
+    "pageCount": 2,
+    "sigs": {
+     "td": 10
+    },
+    "selectors": [
+     "tbody>tr>td"
     ]
    },
    "rgb(229, 233, 238)|on|rgb(250, 252, 255)": {
@@ -7829,7 +7974,7 @@
      "main>form>div.save-bar"
     ]
    },
-   "rgb(0, 0, 0)|on|rgb(240, 240, 240)": {
+   "rgb(0, 0, 0)|on|rgb(239, 239, 239)": {
     "count": 8,
     "pages": [
      "desktop-1440 /admin/settings.php",
@@ -7882,6 +8027,20 @@
      "div.help-content>section.help-section#signing-in>div.callout.callout-warning"
     ]
    },
+   "rgb(209, 217, 224)|on|rgb(239, 239, 239)": {
+    "count": 2,
+    "pages": [
+     "desktop-1440 /admin/add.php",
+     "mobile-390 /admin/add.php"
+    ],
+    "pageCount": 2,
+    "sigs": {
+     "select": 2
+    },
+    "selectors": [
+     "div.grid-2>div.form-group>select#partType"
+    ]
+   },
    "rgb(209, 217, 224)|on|rgb(248, 250, 252)": {
     "count": 2,
     "pages": [
@@ -7910,33 +8069,15 @@
      "thead>tr>th"
     ]
    },
-   "rgb(254, 202, 202)|on|rgb(254, 242, 242)": {
-    "count": 4,
-    "pages": [
-     "desktop-1440 /admin/edit.php?id=CC",
-     "desktop-1440 /admin/help.php",
-     "mobile-390 /admin/edit.php?id=CC",
-     "mobile-390 /admin/help.php"
-    ],
-    "pageCount": 4,
-    "sigs": {
-     "div.alert.alert-error": 2,
-     "span.btn.btn-sm.btn-mock": 2
-    },
-    "selectors": [
-     "main>div.alert.alert-error",
-     "ol.steps>li>span.btn.btn-sm.btn-mock"
-    ]
-   },
    "rgb(238, 242, 246)|on|transparent": {
-    "count": 78,
+    "count": 4,
     "pages": [
      "desktop-1440 /admin/inquiries.php",
      "mobile-390 /admin/inquiries.php"
     ],
     "pageCount": 2,
     "sigs": {
-     "div.detail": 78
+     "div.detail": 4
     },
     "selectors": [
      "main>details.inq>div.detail"
@@ -8179,7 +8320,7 @@
     ]
    },
    "0.44px": {
-    "count": 540,
+    "count": 354,
     "pages": [
      "desktop-1440 /products",
      "desktop-1440 /dashboard",
@@ -8196,7 +8337,7 @@
     "sigs": {
      "span": 190,
      "button.rounded.transition-colors.duration-150": 96,
-     "span.action-badge": 210,
+     "span.action-badge": 24,
      "div": 44
     },
     "selectors": [
@@ -8461,7 +8602,7 @@
     ]
    },
    "0.6px": {
-    "count": 2270,
+    "count": 1856,
     "pages": [
      "desktop-1440 /products?productId=IP12GA%20-%20IP1274",
      "desktop-1440 /products?productId=IP13SP",
@@ -8477,16 +8618,16 @@
     "pageCount": 52,
     "sigs": {
      "div": 1816,
-     "span.badge.badge-rfq": 50,
-     "span.badge.badge-sent": 78,
-     "th": 284,
-     "span.badge.badge-msg": 28,
+     "span.badge.badge-msg": 4,
+     "span.badge.badge-failed": 2,
+     "th": 18,
+     "span.badge.badge-sent": 2,
      "span.badge-mock": 14
     },
     "selectors": [
      "div.w-full.rounded-lg.flex>div>div",
-     "details.inq>summary>span.badge.badge-rfq",
-     "details.inq>summary>span.badge.badge-sent"
+     "details.inq>summary>span.badge.badge-msg",
+     "details.inq>summary>span.badge.badge-failed"
     ]
    },
    "1.1px": {
