@@ -983,4 +983,58 @@ section grows one entry per landed item.
   Nothing about the validation itself changed: it is still the browser's own,
   with the browser's own wording. (AUDIT-10 A10-012.)
 
+## Phase C — the two colours that ignored the Branding editor
+
+Business Details → Branding is the control that re-skins the whole site from
+four colours. Two whole classes of colour were not listening to it. **Nothing
+below changes how the site looks today** — that was the bar, and it is measured
+rather than asserted: across eight page states, all **1,120** brand-painting
+elements and all **28** gradients render byte-for-byte as they did before, and
+the four surfaces in the second item were captured as images and compared
+pixel-for-pixel.
+
+- **Change the brand colour and the site kept a cyan line under the header on
+  every page.** Along with cyan outlines on the "Bolingbrook, IL" badge and on
+  every industry card, and a cyan tint behind all 42 rows of the product index.
+  Fourteen shades of the accent colour were written into the code as fixed
+  values rather than read from the palette, so they stayed put no matter what
+  was chosen. The main brand colour already had the machinery to avoid this —
+  53 places use it correctly — and the two accent colours had simply never been
+  given the same treatment. They have now.
+
+  | after picking a new brand palette | before | after |
+  |---|---|---|
+  | places still painting the old cyan | **120** | **0** |
+  | the line under the header | cyan on every page | follows the new colour |
+  | the "Bolingbrook, IL" badge outline | cyan | follows |
+  | the 42 product-index type chips | cyan | follow |
+
+  (AUDIT-10 A10-045.)
+
+- **Every product page's header faded from the old navy into the new colour.**
+  The dark blue that begins the banner across the top of a product page was a
+  fixed value, while the colour it fades into was the owner's. Change the
+  brand and the result is not an unthemed banner but a clashing one — old navy
+  on the left, new colour on the right — on **all 42 product pages**, which is
+  where a buyer lands. The five industry card headers did the same, and the
+  drop-down menu panel and the phone menu drawer stayed navy entirely.
+
+  All four now follow the palette. Each keeps its own exact shade rather than
+  being rounded off to the nearest colour already in the palette: that was
+  tried first, and side by side against the current site the industry cards
+  visibly lost the depth of their gradient while the menu panel and the phone
+  drawer both read lighter. Instead each shade is now re-mixed from whatever
+  colour is chosen, in the same proportion it has always had to the current
+  one — which reproduces today's site exactly and still tracks a new palette.
+
+  | after picking a new brand palette | before | after |
+  |---|---|---|
+  | product-page header, old navy stuck at the near end | **42 pages** | **0** |
+  | industry card headers, same | **5** | **0** |
+  | drop-down menu panel | stayed navy | follows |
+  | phone menu drawer | stayed navy | follows |
+  | how the site looks today | — | **unchanged, pixel for pixel** |
+
+  (AUDIT-10 A10-046.)
+
 **Not yet deployed.** Nothing above is on the live server.
