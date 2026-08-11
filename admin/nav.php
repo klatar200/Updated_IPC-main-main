@@ -21,7 +21,30 @@ $navActive = $navActive ?? '';
 $navExtra  = $navExtra  ?? '';
 ?>
 <style>
-  .ipc-admin-header { background: #0d2d52; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+  /* A10-021 — min-height, NOT height. With a fixed 60px the 11-item nav laid
+     out 95px tall from y = -17 at 390 and the bar did not clip it: "Products"
+     and "+ Add Product" painted above the document top and were unreachable at
+     any scroll position, while "View Live Site" and "Sign Out" painted 16.5px
+     BELOW the bar onto the #f0f4f8 page background while keeping their white
+     ink — 1.07:1 and 1.05:1, against 7.53:1 for the links that stayed on it.
+     Rick could neither navigate nor sign out from a phone.
+     The layout was never the problem: at 834 and 1024 the same nav already
+     wrapped to two rows inside the bar and every link was legible. Only the
+     fixed height was. min-height plus vertical padding lets the bar grow to
+     contain whatever the nav needs, and flex-wrap lets the logo and nav stack
+     when 390 demands it. box-sizing is border-box globally, so the padding is
+     inside the 60px and desktop is unchanged at exactly 60px, one row.
+     `height: auto` is load-bearing and is NOT redundant with min-height. Six
+     pages — add, audit-log, edit, help, index, upload-pdf — redeclare this bar
+     in their own <head> as a bare `header { ... height: 60px ... }`, and an
+     explicit height clamps the box no matter what min-height says, so without
+     this the fix worked on settings.php and silently did nothing on the
+     catalog and the Help page. `.ipc-admin-header` (0,1,0) outranks `header`
+     (0,0,1), so overriding here fixes every page from the file that owns the
+     header rather than editing six copies. The duplication itself is logged in
+     WHATS_LEFT.md section 2. */
+  .ipc-admin-header { background: #0d2d52; padding: 8px 24px; height: auto; min-height: 60px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .ipc-admin-header nav { display: flex; flex-wrap: wrap; align-items: center; row-gap: 4px; }
   .ipc-admin-header .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
   .ipc-admin-header .logo-title { color: #fff; font-size: 13px; font-weight: 700; }
   .ipc-admin-header .logo-sub   { color: rgba(255,255,255,0.5); font-size: 10px; }
