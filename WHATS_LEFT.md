@@ -387,6 +387,40 @@ Ordered by value. Nothing here blocks the upload.
 - [x] **4.31** ~~`content.php` renders 418 unlabelled form controls.~~ **SHIPPED 2026-08-06 (Plan 4)** — **`AMENDED`: the precise figures are 418 controls with zero `for`/`id` association, of which 397 had no accessible name at all** (the remaining 21 were named by their placeholder). All now labelled, ids unique and stable across reordering, sections are `<fieldset>`/`<legend>`. **Posted variable count unchanged at 421 — the plan's "423" was itself an over-count.** See §1b and §4j.
 - [x] **4.32** ~~9.3 MB of unoptimised images (`Front-Cover.jpg` 1.5 MB, `VALUE-ADDED.png` 683 KB, …).~~ **SHIPPED 2026-08-06 (Plan 5)** — 9,357,354 → 2,668,995 bytes, `du -sh` **9.1M → 2.7M**, largest file 198,726 B, zero over 300 KB, no filename changed, no crop, no retouch. `AMENDED`: the measured total was 9.1 MB / 9,357,354 bytes, not 9.3 MB. Original wording and the earlier partial note kept below for the record. **PARTIALLY SHIPPED 2026-08-05:** the second half of this item — "served `immutable, max-age=31536000`, so an FTP'd photo fix won't reach returning visitors for a year" — was misfiled here as an image-weight problem. It was a mis-scoped `FilesMatch` in `public/.htaccess` with no path restriction, and it is fixed (NB1). **The image-weight work remains open.**
 
+- [ ] **`/contact` message tab: four labels all point at the wrong input.** Found
+  2026-08-10 while measuring PLAN-10 item 3 (A10-012), which required the
+  message tab to be measured rather than assumed. In the General Message form,
+  the four mapped fields — Full Name, Email, Phone, Company — each render
+  `<label htmlFor="rfq-subject">` (`src/App.jsx:5455`), a copy-paste from the
+  RFQ form's Subject field. Consequences, all measured in the browser:
+  `input[name=name].labels` is **empty** on that tab (it is `["Full Name *"]`
+  on the RFQ tab), so the field's accessible name comes from its placeholder
+  alone; and `#rfq-subject` — the Subject input at `src/App.jsx:5484` — has
+  **five** labels pointing at it, four of which name other fields. The Subject
+  field's own `<label>` at `:5477` carries no `htmlFor` and does not wrap its
+  input, so it labels nothing. Clicking any of the four labels focuses Subject.
+  **Not fixed:** it is not one of PLAN-10's thirteen items, and GUARDRAILS §1
+  says a change that arrives outside its plan arrives without its test. The fix
+  is four `htmlFor`s and one `id` per field, on the same pattern the RFQ form
+  already uses — small, and it wants its own acceptance check. Recorded in
+  `_harness/plan10-rfqscroll.js`, which falls back to the label rendered in the
+  field's own wrapper and reports which mechanism found it, so the fallback
+  cannot quietly become the norm.
+
+- [ ] **`brand-gradient-mixed-ends` — the product-header ink comment's premise
+  will go stale when PLAN-10 item 12 lands.** Recorded 2026-08-10 by PLAN-10
+  phase B, because item 12 is the item that unblocks it and phase C has not run
+  yet. The comment at `src/App.jsx:8139-8145` justifies the product-detail
+  `h1` staying white on the grounds that *"the gradient starts at a HARDCODED
+  `#0a2a52`"* and only its far end is owner-controlled, so no single ink works
+  across both. Item 12 (A10-046) replaces that literal with
+  `var(--brand-dark)`. Once it does, the premise is **false** — both stops
+  follow the palette — and the ink should be re-derived through
+  `inkFor([dark, primary])`, the way the header ink already is
+  (`src/App.jsx:7345`), instead of being pinned white. Not done in phase B:
+  PLAN-10 §5 item 12 says explicitly not to change the ink in that plan, and
+  phase B does not touch the gradient at all.
+
 ---
 
 ## 3. Deliberately deferred / declined

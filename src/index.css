@@ -248,6 +248,40 @@ svg[stroke="#005da3"] {
   border: 0;
 }
 
+/* A10-012 — native constraint validation scrolls the first invalid control to
+   viewport TOP, which is under the 65px sticky header (src/App.jsx:568-575), so
+   a visitor who submits an incomplete quote form is shown a navbar, a form that
+   looks untouched, and no error. Measured before this rule: 46.0 of the field's
+   46.0px hidden at mobile-390 with its "Full Name *" label off-screen at -21.8.
+   The browser IS complaining — valueMissing, "Please fill out this field." — at
+   a field nobody can see, and some visitors read that as "the button is broken"
+   and leave. It is the site's lead-capture path.
+
+   96px, NOT the 84px the /industries deep-link targets use against this exact
+   hazard (src/App.jsx:10419, "scroll-margin, or the sticky navbar covers the
+   heading the fragment just scrolled to"). 84 is right there because the scroll
+   target IS the heading. Here the scroll target is the <input> and the thing
+   the visitor has to read — its "Full Name *" label — sits 22px ABOVE it, so
+   84 lands the field at 84.2 and the label at 62.2, still 2.8px behind the
+   header. Measured at all four viewports; the shortfall is 2.8-3.5px. The floor
+   is 65 + 22 = 87; 96 rounds it up and leaves the label 9px of air rather than
+   1px, so it reads as being on the page instead of jammed under the navbar.
+
+   Both /contact forms carry the class: the RFQ tab (src/App.jsx:5103) and the
+   message tab (src/App.jsx:5386). The audit measured only the first; the
+   second was measured for PLAN-10 item 3 and reproduces identically (46.0 of
+   46.0px hidden at 390, 45.5 at 1440).
+
+   Here and not in GlobalStyles: invariant 9 — GlobalStyles mounts inside the
+   tree that only renders AFTER the catalog load resolves.
+
+   Scoped to these two forms on purpose. The site-wide version of this rule
+   would also hit the search and filter inputs, which sit in their own scroll
+   contexts. */
+.ipc-validated-form :is(input, select, textarea) {
+  scroll-margin-top: 96px;
+}
+
 /* The sticky RFQ bar is position:fixed and 72px tall. Padding only ProductPage
    left it covering the last ~70px of the FOOTER (copyright, address) on every
    product page, because <Footer> is a sibling of <main>. Pad the page shell

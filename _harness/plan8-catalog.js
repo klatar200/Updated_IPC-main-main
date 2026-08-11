@@ -68,8 +68,17 @@ const READ_TABLE = () => {
     Math.round(tr.getBoundingClientRect().height)
   );
   const wrapBox = wrap ? wrap.getBoundingClientRect() : null;
-  const clipped = [...table.querySelectorAll('tbody tr td:last-child a, tbody tr td:last-child button')]
+  const actions = [...table.querySelectorAll('tbody tr td:last-child a, tbody tr td:last-child button')];
+  const clipped = actions
     .filter((b) => wrapBox && b.getBoundingClientRect().right > wrapBox.right + 0.5).length;
+  // A6's actual harm is a control clipped OUT OF EXISTENCE — one that no amount
+  // of scrolling brings into view. `clipped` cannot tell that apart from a
+  // control that is simply further right than the card's current scroll offset.
+  // This one can: it measures against the scrollable content width, not the
+  // visible box. See the A6 block below for why the difference started to
+  // matter (PLAN-10 item 2 / AUDIT-10 A10-002).
+  const unreachable = actions
+    .filter((b) => wrapBox && b.getBoundingClientRect().right > wrapBox.left + (wrap ? wrap.scrollWidth : 0) + 0.5).length;
   return {
     tableW: Math.round(table.getBoundingClientRect().width),
     wrapClientW: wrap ? wrap.clientWidth : null,
@@ -77,7 +86,8 @@ const READ_TABLE = () => {
     heads,
     rowHeights: rows,
     clipped,
-    actionCount: table.querySelectorAll('tbody tr td:last-child a, tbody tr td:last-child button').length,
+    unreachable,
+    actionCount: actions.length,
     docHeight: document.documentElement.scrollHeight,
     colCount: table.querySelectorAll('thead th').length,
   };
@@ -199,14 +209,50 @@ const READ_TABLE = () => {
   }
   fs.writeFileSync(path.join(OUT, 'catalog.json'), JSON.stringify(record, null, 2));
 
-  // ── A6 ────────────────────────────────────────────────────────────────────
-  for (const width of [1440, 1280, 1024]) {
+  /* ── A6 ──────────────────────────────────────────────────────────────────
+   * AMENDED 2026-08-10 by PLAN-10 item 2, and this is the one place in the
+   * harness where a PLAN-10 change had to move a PLAN-8 assertion. Read the
+   * reason before touching it.
+   *
+   * As written, @1024 asserted `wrapScrollW === wrapClientW` — "the table fits
+   * its card at 1024". It did fit, and AUDIT-10 recorded WHY it fit as a
+   * severity B defect (A10-001/A10-002/A10-015): Description was the only
+   * `width: null` track under `table-layout: fixed`, so at 1024 it absorbed the
+   * shortfall and collapsed to 44px — header reading DESCRTIEMPON, first
+   * description cell on 17 line boxes, document 16,048px tall. "Fits" was
+   * being bought by garbling the column the page exists to show.
+   *
+   * Item 2 pins Description at 300px, so the table's intrinsic width is 1230
+   * and at 1024 it scrolls inside the card the `overflow-x: auto` wrapper was
+   * built for. That is the fix, and it makes "fits at 1024" unsatisfiable.
+   *
+   * What A6 was actually about is preserved and, at 1024, strengthened. A6 was
+   * "the View Product control is CLIPPED — unreachable" (41 of 41 at 1024,
+   * before `table-layout: fixed` landed). `clipped` measures against the card's
+   * visible right edge, which cannot distinguish unreachable from
+   * one-scroll-away; `unreachable` measures against the card's scrollable
+   * content width and is the assertion that carries A6's meaning. At 1440 and
+   * 1280 the table still fits and both checks stay exactly as they were — a
+   * regression that re-inverted the columns there would still trip this.
+   */
+  for (const width of [1440, 1280]) {
     const t = record[`table@${width}`];
     note(t && t.clipped === 0,
       `@${width}: 0 of ${t ? t.actionCount : '?'} action buttons overflow the wrapper`,
       t ? `${t.clipped} clipped; table ${t.tableW}px in wrapper ${t.wrapClientW}px` : 'no table');
     note(t && t.wrapScrollW === t.wrapClientW,
       `@${width}: the table fits — wrapper scrollWidth === clientWidth (${t ? t.wrapScrollW : '?'} === ${t ? t.wrapClientW : '?'})`);
+  }
+  {
+    const t = record['table@1024'];
+    note(t && t.unreachable === 0,
+      `@1024: 0 of ${t ? t.actionCount : '?'} action buttons are unreachable — every one is inside ` +
+      `the card's scrollable width (${t ? t.wrapScrollW : '?'}px)`,
+      t ? `${t.unreachable} unreachable; table ${t.tableW}px, card scrolls ${t.wrapScrollW}px in ${t.wrapClientW}px` : 'no table');
+    note(t && t.wrapScrollW > t.wrapClientW,
+      `@1024: the table scrolls inside its card rather than starving Description ` +
+      `(scrollWidth ${t ? t.wrapScrollW : '?'} > clientWidth ${t ? t.wrapClientW : '?'})`,
+      t ? `scrollWidth ${t.wrapScrollW} vs clientWidth ${t.wrapClientW} — the elastic track is being starved again` : 'no table');
   }
 
   // ── B19 ───────────────────────────────────────────────────────────────────

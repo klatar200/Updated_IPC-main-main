@@ -1,0 +1,249 @@
+{
+ "_note": "Captured from the UNMODIFIED tree. desktop-1440 column widths and the mobile-390 card list are what AUDIT-10 measured as CORRECT; item 2 must leave both alone. A global px band is the wrong assertion here — the card heights vary per product — so \"unchanged\" means unchanged PER ITEM.",
+ "desktop-1440": {
+  "cols": [
+   {
+    "t": "Product Name ⇅",
+    "w": 190
+   },
+   {
+    "t": "Part ID ▲",
+    "w": 105
+   },
+   {
+    "t": "Part Type ⇅",
+    "w": 115
+   },
+   {
+    "t": "Description ⇅",
+    "w": 300
+   },
+   {
+    "t": "Temp ⇅",
+    "w": 150
+   },
+   {
+    "t": "Specifications ⇅",
+    "w": 215
+   },
+   {
+    "t": "Action",
+    "w": 155
+   }
+  ]
+ },
+ "mobile-390": {
+  "cards": [
+   {
+    "id": "CC",
+    "w": 342,
+    "h": 205.9
+   },
+   {
+    "id": "CC90",
+    "w": 342,
+    "h": 216.2
+   },
+   {
+    "id": "CCS",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "CT",
+    "w": 342,
+    "h": 205.9
+   },
+   {
+    "id": "IP10EX",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP1274",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP12GA",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP12GA+-+IP1274",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP13SP",
+    "w": 342,
+    "h": 250.9
+   },
+   {
+    "id": "IP15PV",
+    "w": 342,
+    "h": 187.7
+   },
+   {
+    "id": "IP17TW-18SW-19LW",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP25PU",
+    "w": 342,
+    "h": 205.9
+   },
+   {
+    "id": "IP29CG",
+    "w": 342,
+    "h": 270.8
+   },
+   {
+    "id": "IP30HS",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP30UV",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP32IP",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP33PO",
+    "w": 342,
+    "h": 270.8
+   },
+   {
+    "id": "IP33TW",
+    "w": 342,
+    "h": 270.8
+   },
+   {
+    "id": "IP34SR",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP35KY",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP37SH-IP36TH-IP39LH",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP38FE",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP3L",
+    "w": 342,
+    "h": 270.8
+   },
+   {
+    "id": "IP41NE+/+IP43VT",
+    "w": 342,
+    "h": 269.1
+   },
+   {
+    "id": "IP42MW",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP44A2+&+IP45A3",
+    "w": 342,
+    "h": 224.1
+   },
+   {
+    "id": "IP46MD",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP47HV",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP48MH",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP49VP",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP52EC",
+    "w": 342,
+    "h": 216.2
+   },
+   {
+    "id": "IP53MP",
+    "w": 342,
+    "h": 270.8
+   },
+   {
+    "id": "IP55FL",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP56DR",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP61ES+&+IP62EF",
+    "w": 342,
+    "h": 252.6
+   },
+   {
+    "id": "IP63ES",
+    "w": 342,
+    "h": 234.4
+   },
+   {
+    "id": "IP64FS-IP65VC-IP66AC-IP67SC",
+    "w": 342,
+    "h": 356.6
+   },
+   {
+    "id": "IP69HT",
+    "w": 342,
+    "h": 216.2
+   },
+   {
+    "id": "IP71NS+-+IP72PS+-+IP73PP",
+    "w": 342,
+    "h": 283.9
+   },
+   {
+    "id": "IP75AD",
+    "w": 342,
+    "h": 187.7
+   },
+   {
+    "id": "VALUE-ADDED",
+    "w": 342,
+    "h": 205.9
+   },
+   {
+    "id": "VT-1100",
+    "w": 342,
+    "h": 216.2
+   }
+  ]
+ }
+}
