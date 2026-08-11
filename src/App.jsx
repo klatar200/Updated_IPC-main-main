@@ -7427,7 +7427,7 @@ function ThemeInjector() {
     // is byte-identical; on any other palette the shade tracks the owner. That
     // exactness is the point: substituting the nearest existing variable was
     // measured and looked at, and moved three of the four surfaces visibly
-    // (dE2000 5.92 on the industries card, 3.22 on the drawer, 2.24 on the
+    // (dE2000 5.29 on the industries card, 3.22 on the drawer, 2.24 on the
     // mega-dropdown panel; only the product header, at 1.27, was invisible).
     //
     // Where a shipped base channel is 0 the ratio is undefined (0/0) — true of

@@ -1073,7 +1073,7 @@ pixel-for-pixel.
   |---|---|---|
   | links pushed off the top of the page | **2** | **0** |
   | links spilling below the blue bar | **2** | **0** |
-  | worst link readability | **1.05:1** | **4.59:1** |
+  | worst link readability | **1.07:1** | **4.59:1** |
   | links you can actually tap | 8 of 11 | **11 of 11** |
 
   (AUDIT-10 A10-021.)

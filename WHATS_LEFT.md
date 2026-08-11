@@ -412,8 +412,8 @@ Ordered by value. Nothing here blocks the upload.
   measuring PLAN-10 item 6 (A10-021). `admin/nav.php` is documented at its top
   as *"self-contained (its own scoped `<style>` block) so it renders the same
   regardless of whatever CSS the including page already has"* — but
-  `admin/add.php:126`, `admin/audit-log.php:66`, `admin/edit.php:253`,
-  `admin/help.php:19`, `admin/index.php:47` and `admin/upload-pdf.php` each
+  `admin/add.php:127`, `admin/audit-log.php:67`, `admin/edit.php:254`,
+  `admin/help.php:19`, `admin/index.php:47` and `admin/upload-pdf.php:145` each
   carry their own bare `header { background: #0d2d52; padding: 0 24px; height:
   60px; display: flex; ... }` in their `<head>`. Two of the six have already
   drifted: `help.php` adds `position: sticky; top: 0; z-index: 20`, which no
@@ -464,7 +464,7 @@ Ordered by value. Nothing here blocks the upload.
   is a consequence of phase C's judgement call — reusing `var(--brand-dark)` as
   §5 first suggests *would* have flipped the probes, because that variable is in
   their map, but it was measured to move three of the four surfaces visibly on
-  the shipped palette (dE2000 5.92 / 3.22 / 2.24). A cosmetic property of a
+  the shipped palette (dE2000 5.29 / 3.22 / 2.24). A cosmetic property of a
   frozen probe does not outrank the deployed site's appearance, so the site won.
 
   The probes are the audit's evidence and PLAN-10 §1.5 forbids editing them, so
@@ -476,14 +476,14 @@ Ordered by value. Nothing here blocks the upload.
 - [ ] **`brand-gradient-mixed-ends` — the product-header ink comment's premise
   will go stale when PLAN-10 item 12 lands.** Recorded 2026-08-10 by PLAN-10
   phase B, because item 12 is the item that unblocks it and phase C has not run
-  yet. The comment at `src/App.jsx:8139-8145` justifies the product-detail
+  yet. The comment at `src/App.jsx:8214` justifies the product-detail
   `h1` staying white on the grounds that *"the gradient starts at a HARDCODED
   `#0a2a52`"* and only its far end is owner-controlled, so no single ink works
   across both. Item 12 (A10-046) replaces that literal with
   `var(--brand-dark)`. Once it does, the premise is **false** — both stops
   follow the palette — and the ink should be re-derived through
   `inkFor([dark, primary])`, the way the header ink already is
-  (`src/App.jsx:7345`), instead of being pinned white. Not done in phase B:
+  (`src/App.jsx:7372`), instead of being pinned white. Not done in phase B:
   PLAN-10 §5 item 12 says explicitly not to change the ink in that plan, and
   phase B does not touch the gradient at all.
 
@@ -499,7 +499,7 @@ Ordered by value. Nothing here blocks the upload.
      this record; **neither ink was changed**, per PLAN-10 §5.
   2. **The replacement is not `var(--brand-dark)`.** Substituting the nearest
      existing variable was measured and looked at, and moved three of the four
-     surfaces perceptibly (dE2000 **5.92** on the industries card, **3.22** on
+     surfaces perceptibly (dE2000 **5.29** on the industries card, **3.22** on
      the mobile drawer, **2.24** on the mega-dropdown panel; only the product
      header, at **1.27**, was invisible). So item 12 introduced four dedicated
      variables that re-derive each shade from the owner's colour while
@@ -569,6 +569,35 @@ Ordered by value. Nothing here blocks the upload.
   should be corrected before the document is shown to Rick. A `lint`-style check
   that every `file:line` in a commit message still resolves would have caught
   four of these at authoring time.
+
+  **RESOLVED 2026-08-11**, in the files. Every correction was re-verified against
+  the working tree before being applied — AUDIT-11 is right on all of them:
+
+  - `PATCH_NOTES.md:1076` **`1.05:1` → `1.07:1`**, so the owner-facing table no
+    longer contradicts its own prose three lines above.
+  - **ΔE2000 `5.92` → `5.29`** in `WHATS_LEFT.md` (×2), `src/index.css:39`,
+    `src/App.jsx:7430` and `plans/AUDIT-11-verify-plan-10.md`. Neither figure was
+    an arithmetic error: recomputed with a CIEDE2000 implementation self-tested
+    against Sharma's reference pair (2.0425 exactly), **5.92 is the distance to
+    `--brand-primary-hover`'s `index.css` default `#004e8c`, and 5.29 the
+    distance to `#004c86`, the value `ThemeInjector` actually derives (×0.82) and
+    paints.** The painted value is the one the decision turns on. The other three
+    figures — 3.22, 2.24, 1.27 — reproduce to two decimals.
+  - The five §2 references: `src/App.jsx:8139-8145` → **`:8214`**;
+    `src/App.jsx:7345` → **`:7372`**; `admin/add.php:126` → **`:127`**;
+    `admin/audit-log.php:66` → **`:67`**; `admin/edit.php:253` → **`:254`**;
+    and `admin/upload-pdf.php` now carries its line, **`:145`**.
+  - `plans/AUDIT-11-verify-plan-10.md` gained a **CORRECTIONS** block naming all
+    five claims AUDIT-11 refuted in it. Its §4.1–§4.5 text is deliberately left
+    as written, because `_harness/AUDIT11-REPORT.md` quotes it verbatim and a
+    silent rewrite would break that audit trail.
+
+  **Still not fixed, and cannot be:** the 10 drifted and 4 wrong-when-written
+  citations live in **merged commit messages**. Rewriting them means rewriting
+  history, which GUARDRAILS §2 forbids. They stay wrong; `AUDIT11-REPORT.md` §7
+  is the authority on what they should have said. The suggested `lint`-style
+  citation check was **not** built — it is a new harness feature, not a record
+  fix, and it belongs to whoever scopes it.
 
 - [ ] **`admin/upload-image.php` carries more admin-nav items than any other
   page and is measured by nothing.** Found 2026-08-11 by AUDIT-11. `$navExtra`
