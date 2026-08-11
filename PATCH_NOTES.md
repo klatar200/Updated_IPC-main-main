@@ -872,3 +872,44 @@ failed first.
   vs the shipped `'/'`). One line corrected.
 
 **Not yet deployed.** Nothing above is on the live server.
+
+---
+
+# PLAN-10 — remediating AUDIT-10 (in progress)
+
+Written from `_harness/AUDIT10-REPORT.md`: 13 findings, one severity A and
+twelve severity B. The plan is `plans/PLAN-10-audit10-remediation.md`; this
+section grows one entry per landed item.
+
+## Phase A — the severity A
+
+- **A product's own name was painted underneath its own buttons, on every
+  product page, on a phone.** The header strip of the product-detail card was
+  a single row: the title column was free to shrink to nothing, the button
+  column was not. At 390 px the strip is 340 px wide, "Download PDF" and
+  "Request Quote" took 260 px, and **the title column resolved to zero**. The
+  eyebrow, the product name and the part number then spilled out of their own
+  box and printed across the buttons on **42 of 42 products** — on the
+  Nonmetallic Liquid-tight Conduit Coupling only the "N" survived, and the
+  longest names wrapped to as many as **13 lines**. A buyer on a phone could
+  not confirm which part they were looking at before requesting a quote.
+
+  The strip now stacks below the small breakpoint: the name gets the full
+  276 px of the card, and the two buttons sit on their own row beneath it.
+  Measured across all 42 products with the type forced to a metric-standard
+  face, so the numbers are the layout and not this machine's font:
+
+  | at 390 px | before | after |
+  |---|---|---|
+  | title column | **0 px** | **276 px** |
+  | products with the name printed over a button | **42 / 42** | **0 / 42** |
+  | worst overlap | 124.6 × 24.0 px | none |
+  | product name, longest wrap | 13 lines | 4 lines |
+  | part number wrapping to a second line | 10 / 42 | 0 / 42 |
+
+  Tablet and desktop are **untouched** — the three restoring utilities rebuild
+  the original row above the breakpoint, and the header geometry at 834 and
+  1440 is identical per product to within 2 px, with the overlap count still
+  zero. (AUDIT-10 A10-011, the audit's only severity A.)
+
+**Not yet deployed.** Nothing above is on the live server.
