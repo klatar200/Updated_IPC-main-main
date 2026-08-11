@@ -8,6 +8,37 @@ what you are here to check.**
 
 ---
 
+## CORRECTIONS — added 2026-08-11 after AUDIT-11 ran
+
+This document was executed, and the audit it commissioned refuted five of its own
+claims. The sections below are left **as written**, because
+`_harness/AUDIT11-REPORT.md` quotes them verbatim and silently rewriting them
+would break that audit trail. Read these corrections first; they supersede the
+text they name.
+
+| § | As written | Measured |
+|---|---|---|
+| 4.1 | "confirm the leaks go to zero" | They go to **16** — 2 per page-state × 8, every one the footer `#0a2240` / `.ipc-skip` pair that A10-046's own record **excludes as deliberate**. Every leak attributable to A10-045 or A10-046 does reach zero. |
+| 4.2 | "`edit.php` and `upload-pdf.php` … carry **more** than 11 items — the exact case most likely to overflow" | **Three** pages inject `$navExtra`, not two. `admin/upload-image.php:181-182` injects **two** links for **13** items, against 12 on the two named. The riskiest page was named neither here nor in any suite. It passes 13/13. |
+| 4.3 | "about 25 suites … `_harness/README.md` lists ~51" | **65** runnable suites. 14 were never run in phases C–E; AUDIT-11 ran all 65. |
+| 4.4 | "`$SECTIONS` (~24 keys) and `$COPY_GROUPS` (~20)" | **17 + 14 = 31**. |
+| 4.5 | "every catalog row grows 48px → 78px" | The item 5 commit it paraphrases is the more accurate statement; treat the commit as authoritative. |
+
+One further correction, to a number this document repeats from PR #29: the
+industries-card ΔE2000 is **5.29, not 5.92**. Both figures are arithmetically
+correct — 5.92 is the distance to `--brand-primary-hover`'s *`index.css` default*
+`#004e8c`, 5.29 the distance to the value `ThemeInjector` actually derives and
+paints, `#004c86` (×0.82). The painted value is the one that matters, so 5.29 is
+the right figure. It does not change the decision it supports: 5.29 is still more
+than double the ~2.3 noticeable-at-a-glance threshold. Corrected in place
+throughout this document, `WHATS_LEFT.md`, `src/index.css` and `src/App.jsx`.
+
+**What AUDIT-11 confirmed:** all twelve remediated findings closed; item 4 still
+open and still reproducing; the probe-blindness claim in §4.1 correct; both
+judgement calls in §4.5 sound. Its report is `_harness/AUDIT11-REPORT.md`.
+
+---
+
 ## 0. Why you exist
 
 AUDIT-10 recorded 13 A/B findings. PLAN-10 remediated them across five phases,
@@ -199,7 +230,7 @@ overruling its contract, so verify the evidence rather than the argument.
 **Item 12 (A10-046)** — PLAN-10 §5 suggests reusing `var(--brand-dark)` and
 `var(--brand-primary-hover)`. The session introduced four dedicated derived
 variables instead, on the grounds that reuse moves three of four surfaces
-perceptibly (ΔE2000 5.92 / 3.22 / 2.24, versus 1.27 for the one that is fine).
+perceptibly (ΔE2000 5.29 / 3.22 / 2.24, versus 1.27 for the one that is fine).
 **Check the claim that actually matters: with the default palette, is the
 shipped site unchanged?** `plan10-repalette`'s `default` arm asserts 1,120
 elements and 28 gradients byte-identical. Verify independently — capture the

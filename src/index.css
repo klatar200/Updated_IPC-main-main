@@ -36,7 +36,7 @@
 
      None of the four is any existing variable's value, and substituting the
      nearest one was measured and looked at: dE2000 1.27 on the product header
-     (invisible) but 5.92 on the industries card, 3.22 on the mobile drawer and
+     (invisible) but 5.29 on the industries card, 3.22 on the mobile drawer and
      2.24 on the mega-dropdown panel — all three visible side by side against
      the shipped render. So each keeps its own value here, and ThemeInjector
      re-derives it as the same per-channel ratio to the owner's color that it

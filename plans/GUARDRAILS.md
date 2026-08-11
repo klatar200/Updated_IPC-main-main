@@ -113,36 +113,68 @@ Note that copies of those eleven may still sit **untracked** in a working tree
 carried over from `main`. `git ls-files _harness/` is the authority on what
 exists; the working directory is not.
 
-The live suite list is `_harness/README.md`. Measured on
-`plan8-audit-remediation` @ `b62e9c2`, 2026-08-08 (all six phases + B26):
+The live suite list is `_harness/README.md`.
+
+**Refreshed 2026-08-11 (AUDIT-11).** The previous table listed **30** suites
+against a harness that has **65**, so fifteen suites an executor would be judged
+on appeared in it nowhere — including every `plan9-*` and every `plan10-*`. A
+baseline that omits half the suite set cannot tell an executor what they
+inherited, which is the job this section exists to do, and it is why PLAN-10's
+fullest sweep was 39 rather than 65. The full table below replaces it. Measured
+on `main` @ `33dffb8`, 2026-08-11, with all three servers up **plus the
+ten-server fleet on :8130-8139 that `plan5-throttle` needs** — that requirement
+is why it had been skipped since PLAN-8.
 
 ```
-php _harness/lint.php     php -l 20/0 · node --check 9/0 · JSON 17/10/42
-                          copy drift 103 matched, 0 JS-only · 11 families · 12 approvals
-npm run build             0 errors, 354.9 kB JS / 22.7 kB CSS
+php _harness/lint.php     php -l 19/0 · node --check 9/0 · JSON 17/10/42
+                          copy drift 110 matched, 0 JS-only · 11 families · 12 approvals
+                          · 5 photo-slot defaults · no family literals
+npm run build             0 errors, 368.07 kB JS / 23.41 kB CSS
 
 invariants                17/17          invariants-selftest   15/15
-copydrift-selftest         5/5           contrastparity        28/28
-copyroundtrip             15/15          skuparity             33/33
-deadlinks                 0 of 18 dead
-plan2-formlast             8/8 + selftest PASS
+copydrift                     ok         copydrift-selftest     5/5
+copyroundtrip             15/15          contrastparity        28/28
+skuparity                 33/33          deadlinks       0 of 18 dead
+backdrop-selftest           9/9
+plan2-formlast              8/8 + selftest PASS
 plan2-sku                 14/14          plan2-delete          18/18
-plan3-contact             51/51          plan4-admin           19/19
-plan4-public              27/27          plan5-keys            11/11
-plan5-spectable           13/13          plan5-images          12/12
-plan5-social              35/35          plan5b-sidebar         9/9
-plan5b-sitemap             9/9           plan5c-sitemap        17/17
-plan5c-eyebrow             4/4           plan5c-brandink        5/5
+plan2-contrast            42/42          plan2-trunc           13/13
+plan3-contact             51/51          plan3-autoreply       22/22
+plan4-public              27/27          plan4-admin           19/19
+plan5-keys                11/11          plan5-spectable       13/13
+plan5-images              12/12          plan5-social          35/35
+plan5-listeners           11/11          plan5-throttle        12/12
+plan5b-sidebar              9/9          plan5b-sitemap         9/9
+plan5b-pwthrottle         10/10          plan5c-eyebrow         5/5
+plan5c-brandink             6/6          plan5c-sitemap        17/17
 plan6-families            13/13          plan7-approvals       11/11
-plan7-datasheets           8/8
-plan8-certs                5/5           plan8-meta            15/15
+plan7-datasheets            8/8          plan7-slots           16/16
+plan7-imagery             11/11
+plan8-certs                 5/5          plan8-meta            15/15
 plan8-catalog             16/16          plan8-lead            16/16
-plan8-contrast            34/35          plan8-motion           8/8
-plan8-chrome              16/16
-plan8-keyboard             8/8           plan8-mobile          16/16
-plan2-contrast            42/42
-brandtext                 37/50  ← EXPECTED RED (13 failing)
+plan8-motion                8/8          plan8-chrome          16/16
+plan8-keyboard              8/8          plan8-mobile          16/16
+plan8-landing             18/18          plan8-crumbs          22/22
+plan8-faq                 19/19          plan8-formpolish      15/15
+plan9-firstsave             8/8          plan9-band             4/4
+plan9-meta                18/18          plan9-notfound         8/8
+plan9-slots-slash           9/9
+plan10-header               8/8          plan10-dashboard      25/25
+plan10-rfqscroll          24/24          plan10-repalette      33/33
+plan10-adminrows          15/15          plan10-adminnav       25/25
+plan10-helpwidth          21/21          plan10-auditlog       13/13
+plan10-help               29/29
+
+plan8-contrast            34/35  ← EXPECTED RED (EXEMPT_BRAND_SURFACE)
+plan8-polish              16/17  ← EXPECTED RED (DejaVu width artifact, Linux)
+brandtext                 34/45  ← EXPECTED RED (11 failing; ceiling 13)
 ```
+
+Two suites score **higher** than the 2026-08-08 table because they gained checks,
+not because anything improved: `plan5c-eyebrow` 4/4 → 5/5 and `plan5c-brandink`
+5/5 → 6/6. `plan3-autoreply` is `[UNVERIFIED]` on Windows and verifies **22/22**
+on Linux. `plan5-throttle` needs `:8130-8139`; without the fleet it does not
+report a low score, it bails — see the note on bailing below.
 
 `plan8-contrast` is 34/**35**, not 35/35, and that is its passing state: one
 named exemption (`EXEMPT_BRAND_SURFACE`) for a computed brand ink on a computed
@@ -151,7 +183,17 @@ rule so a second brand-surface failure cannot hide behind it.
 
 `node _harness/run.js <suite> [suite...]` runs a list and prints one line each.
 
-Two of these need saying out loud:
+Three of these need saying out loud:
+
+- **A suite whose TOTAL changes is BAILING, not failing — and that is a
+  different thing.** `plan2-trunc` reports `1/2` instead of `13/13` when
+  `:8124`/`:8125` are down; `plan5-throttle` does the same without the
+  `:8130-8139` fleet. Both look like catastrophic regressions and are neither.
+  **Before treating any red as a finding, compare its DENOMINATOR to the table
+  above.** A changed denominator means the suite never got to run its checks —
+  check server liveness first. This cost PLAN-10 phase E a false alarm, and it
+  is the most likely reason a suite gets quietly dropped from a sweep and then
+  from the baseline.
 
 - **`brandtext` is expected red.** It is the logged open item
   `brand-text-on-brand-surface` in `WHATS_LEFT.md` §2. Judge it by the FAILING

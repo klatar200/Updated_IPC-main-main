@@ -60,9 +60,11 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
 
 ### React side ([src/App.jsx](src/App.jsx))
 
-- **One 8,500-line file is the entire app.** Routing shims, data fetch, every
+- **One 12,270-line file is the entire app.** Routing shims, data fetch, every
   page, every component, every icon set. Search by name; there is no per-page
-  split in use.
+  split in use. (Said 8,500 until 2026-08-11; it had grown by ~3,800 lines
+  across PLAN-8, 9 and 10 without the figure being revisited. Re-measure with
+  `wc -l src/App.jsx` rather than trusting this number — it will drift again.)
 - **`src/components/`, `src/pages/` and `src/lib/` exist but nothing imports
   them.** They are an abandoned extraction. Editing them has zero effect on the
   bundle. `App.jsx` is the source of truth for runtime behaviour.
