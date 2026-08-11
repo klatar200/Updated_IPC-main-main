@@ -165,6 +165,15 @@ $navActive = 'help';
       table.field-ref td:first-child { white-space: normal; }
       .help-section code { overflow-wrap: anywhere; }
       .visual-note { flex-wrap: wrap; }
+      /* The worked size chart is the one table here that genuinely cannot fit:
+         A10-029 replaced its stacked Min|Max header with four flat columns, so
+         its four headings — Order Size, Expanded Diameter, Recovered Diameter,
+         Wall Thickness — now sit on one row and its min-content width is 56px
+         past a 390px screen. Unlike the two-column reference tables, shrinking
+         a four-column numeric grid to 390px would not leave it readable, so
+         this one gets the scroller: the container it already sits in scrolls,
+         the page does not. Every other table still FITS. */
+      .diagram-wrap { overflow-x: auto; }
     }
   </style>
 </head>
@@ -494,14 +503,28 @@ $navActive = 'help';
         <div class="diagram-wrap">
           <div class="diagram-caption">Example of a finished chart, as customers see it</div>
           <table class="field-ref" style="margin:0;">
+            <!-- A10-029 — this header used to split "Expanded Diameter" into
+                 Min | Max, which made every row print a Max exactly HALF its
+                 Min. THE NUMBERS ARE CORRECT; the header was wrong. The third
+                 column is the RECOVERED diameter — what the tubing shrinks
+                 down to — and the catalog settles it: IP29CG, IP33PO, IP33TW
+                 and IP34SR all carry "Expanded Diameter" and "Recovered
+                 Diameter" as two SIBLING columns, and IP29CG's first row
+                 (3/64" | .046" | .023" | .018") is the same 2:1 shape as the
+                 example below. No product uses a Min | Max split, so the old
+                 header was also teaching a structure the real data never uses.
+                 The three data rows are deliberately byte-identical: editing
+                 them to make "Max" exceed "Min" would put a fabricated
+                 specification into the owner's own documentation.
+                 The fourth column keeps the name "Wall Thickness" rather than
+                 the catalog's "Recovered Wall": that pair is settled by the
+                 2:1 ratio, but whether 0.020" is a recovered or a nominal wall
+                 is not, and renaming it would assert something unverified. -->
             <tr>
-              <th rowspan="2" style="vertical-align:middle;">Order Size</th>
-              <th colspan="2" style="text-align:center;">Expanded Diameter</th>
-              <th rowspan="2" style="vertical-align:middle;">Wall Thickness</th>
-            </tr>
-            <tr>
-              <th style="text-align:center;">Min</th>
-              <th style="text-align:center;">Max</th>
+              <th style="vertical-align:middle;">Order Size</th>
+              <th style="text-align:center;">Expanded Diameter</th>
+              <th style="text-align:center;">Recovered Diameter</th>
+              <th style="vertical-align:middle;">Wall Thickness</th>
             </tr>
             <tr><td>3/4&quot;</td><td style="text-align:center;">0.750&quot;</td><td style="text-align:center;">0.375&quot;</td><td style="text-align:center;">0.020&quot;</td></tr>
             <tr><td>1&quot;</td><td style="text-align:center;">1.000&quot;</td><td style="text-align:center;">0.500&quot;</td><td style="text-align:center;">0.024&quot;</td></tr>
@@ -512,7 +535,13 @@ $navActive = 'help';
         <h3>Building it by hand</h3>
         <table class="field-ref">
           <tr><td>+ Add column</td><td>Adds a new column header. Click into the heading box and type its name, e.g. "Order Size."</td></tr>
-          <tr><td>Split into sub-columns</td><td>Turns one column heading into a group covering two or more narrower columns underneath it — e.g. a heading "Expanded" split into "Min" and "Max."</td></tr>
+          <!-- A10-029 — this taught the same Min/Max shape the example chart
+               above it got wrong, and no product in the catalog uses one. The
+               replacement is real: IP30HS and IP30UV both split "Recovered"
+               into "Diameter" and "Wall". The feature itself stays — 16 column
+               spans across the catalog use it, including CC/CC90/CCS ("Part
+               Dimensions (inches)" over A | B | C). -->
+          <tr><td>Split into sub-columns</td><td>Turns one column heading into a group covering two or more narrower columns underneath it — e.g. a heading "Recovered" split into "Diameter" and "Wall."</td></tr>
           <tr><td>+ sub-column</td><td>Adds another narrow column under a heading that's already split.</td></tr>
           <tr><td>+ Add row</td><td>Adds a blank data row at the bottom. Click into each cell and type the value.</td></tr>
           <tr><td>× (on a row or column)</td><td>Removes that row or column, and shifts the rest to fill the gap.</td></tr>
@@ -597,12 +626,15 @@ $navActive = 'help';
         <p>Adding one part usually touches three different pages, not just the Add Product form. Here's the full sequence in order, pulling together the steps from the sections above:</p>
         <div class="callout callout-tip">
           <b>Before you start, have these ready</b>
-          The SKU/part number and category, the full product name, a hosted link to a product photo (if you have one), the PDF data sheet file (if you have one), and any specification or size-chart numbers. Having these on hand up front means you can usually do this in one sitting instead of stopping mid-form to go find something.
+          <!-- A10-028, third instance: this asked for "a hosted link to a
+               product photo", the same abandoned workflow the diagram above
+               was teaching. Photos are uploaded from the computer. -->
+          The SKU/part number and category, the full product name, the photo file on your computer (if you have one), the PDF data sheet file (if you have one), and any specification or size-chart numbers. Having these on hand up front means you can usually do this in one sitting instead of stopping mid-form to go find something.
         </div>
 
         <div class="diagram-wrap">
           <div class="diagram-caption">The four-step sequence, visually</div>
-          <svg viewBox="0 0 680 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the four steps: Add Product, Edit, Manage PDF, View">
+          <svg viewBox="0 0 680 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the four steps: Add Product, Photo, Manage PDF, View">
             <g font-family="system-ui,sans-serif">
               <rect x="6" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
               <circle cx="30" cy="30" r="14" fill="#005da3"/><text x="30" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">1</text>
@@ -614,9 +646,17 @@ $navActive = 'help';
 
               <rect x="188" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
               <circle cx="212" cy="30" r="14" fill="#005da3"/><text x="212" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">2</text>
-              <text x="263" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Edit</text>
-              <text x="263" y="78" font-size="9" fill="#374151" text-anchor="middle">Paste in a</text>
-              <text x="263" y="92" font-size="9" fill="#374151" text-anchor="middle">Photo URL</text>
+              <!-- A10-028 — this box read "Edit / Paste in a / Photo URL" and
+                   contradicted numbered step 2 directly beneath it, which says
+                   to click Photo and upload from the computer. The page also
+                   says of the Photo URL field itself: "You normally never type
+                   in this box." The diagram is the thing people actually read,
+                   and it sent a non-technical owner off to find an image host.
+                   Only the three strings changed; the x/y/font-size/anchor
+                   attributes and the box geometry are untouched. -->
+              <text x="263" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Photo</text>
+              <text x="263" y="78" font-size="9" fill="#374151" text-anchor="middle">Upload from</text>
+              <text x="263" y="92" font-size="9" fill="#374151" text-anchor="middle">your computer</text>
 
               <text x="354" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
 
