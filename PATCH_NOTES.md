@@ -1104,4 +1104,49 @@ pixel-for-pixel.
   subtitle also said "Edit the homepage sections below" on a form that edits
   every page; it now says what it really does. (AUDIT-10 A10-027.)
 
+## Phase E — two places the Help page taught the wrong thing
+
+- **The picture of the process told Rick to paste in a photo URL.** Step 2 of
+  the four-step diagram read *"Edit — Paste in a Photo URL"*, while the
+  numbered step directly beneath it said to click **Photo** and upload a
+  picture from the computer, and another part of the same page said in terms:
+  *"You do not need Dropbox, Google Drive, or any image-hosting service."* The
+  diagram is the part people actually read, so it sent him off looking for
+  somewhere to host a photo and get a link — for a way of working the
+  dashboard no longer has.
+
+  Box 2 now reads **"Photo — Upload from your computer"**, matching the step
+  beneath it and the button he actually presses. The same stale assumption
+  appeared a third time in the "before you start, have these ready" list,
+  which asked for *"a hosted link to a product photo"*; it now asks for the
+  photo file on his computer. Nothing else in the diagram moved — same four
+  boxes, same numbering, same layout. (AUDIT-10 A10-028.)
+
+- **The worked size chart showed a maximum smaller than its minimum, on every
+  row.** The example chart — captioned *"as customers see it"* — put
+  **Expanded Diameter** over a **Min | Max** pair and then printed 0.750" for
+  the minimum and 0.375" for the maximum. Exactly half, on all three rows. It
+  is the shape Rick copies when building his own chart, and a buyer reading a
+  real product page would act on it.
+
+  **The numbers were right; the heading was wrong.** The third column is the
+  *recovered* diameter — what the tubing shrinks down to — which the real
+  catalog confirms: four products already use "Expanded Diameter" and
+  "Recovered Diameter" as two plain side-by-side columns, with the same 2:1
+  shape. So the header is now four plain columns using the catalog's own
+  words, and **all three rows of numbers are untouched**. Changing the numbers
+  to make the maximum bigger would have put a made-up specification into the
+  documentation, which is a far worse outcome than the one being fixed.
+
+  | the example chart | before | after |
+  |---|---|---|
+  | heading | Expanded Diameter → **Min \| Max** | Expanded Diameter \| **Recovered Diameter** |
+  | rows showing a "max" below its "min" | **3 of 3** | **0** |
+  | the numbers themselves | — | **unchanged** |
+
+  The instructions just below it also used "split Expanded into Min and Max"
+  as their worked example of the sub-column feature; that now uses a split a
+  real product actually has ("Recovered" into "Diameter" and "Wall").
+  (AUDIT-10 A10-029.)
+
 **Not yet deployed.** Nothing above is on the live server.
