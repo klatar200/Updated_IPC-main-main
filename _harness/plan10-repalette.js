@@ -102,6 +102,15 @@ const VAR_CSS = ':root{' + Object.entries({
   '--brand-accent1-on-dark': '#ff9d2e',
   '--brand-accent-rgb': '255, 157, 46',
   '--brand-accent-2-rgb': '210, 105, 30',
+  // Item 12's four. Deliberately arbitrary non-navy sentinels rather than the
+  // values ThemeInjector would derive: this arm's job is "do the call sites
+  // follow the variables", and restating the derivation here would only test
+  // the test. Whether the derived values are RIGHT is the `owner` arm's job,
+  // and it asserts them explicitly below.
+  '--brand-dark-2': '#7a2200',
+  '--brand-dark-panel': '#6b1e00',
+  '--brand-dark-drawer': '#5c1a00',
+  '--brand-primary-deep': '#8a3c1e',
 }).map(([k, v]) => `${k}:${v} !important;`).join('') + '}';
 
 // ------------------------------------------------------------- what to hunt
@@ -217,6 +226,8 @@ const NAMED = `(() => {
     accent2RgbVar: getComputedStyle(document.documentElement).getPropertyValue('--brand-accent-2-rgb').trim(),
     brandPrimary: getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim(),
     brandDark: getComputedStyle(document.documentElement).getPropertyValue('--brand-dark').trim(),
+    shades: ['--brand-dark-2', '--brand-dark-panel', '--brand-dark-drawer', '--brand-primary-deep']
+      .reduce((o, k) => (o[k] = getComputedStyle(document.documentElement).getPropertyValue(k).trim(), o), {}),
   };
 })()`;
 
@@ -442,6 +453,28 @@ async function settle(page) {
         `${s}: ` + Object.entries(v).map(([n, d]) => `${n} x${d.count} (${d.where.join(', ')})`).join('; ')
       ).join('\n            '));
   }
+
+  // The derivation itself. Byte-identity on the shipped palette is not a happy
+  // accident of the formula — it is the whole reason the formula is anchored on
+  // the shipped base — so it is asserted directly, in the variables, as well as
+  // through the rendered pixels in the `default` arm below.
+  const SHIPPED = {
+    '--brand-dark-2': 'rgb(10, 42, 82)',
+    '--brand-dark-panel': 'rgb(14, 40, 71)',
+    '--brand-dark-drawer': 'rgb(10, 36, 68)',
+    '--brand-primary-deep': 'rgb(0, 61, 122)',
+  };
+  const wrong = Object.keys(SHIPPED).filter((k) => home.default.named.shades[k] !== SHIPPED[k]);
+  note(wrong.length === 0,
+    'at the default palette ThemeInjector re-derives all four shades to exactly their ' +
+    'former literal, so the deployed site does not change',
+    wrong.map((k) => `${k}: ${SHIPPED[k]} expected, got "${home.default.named.shades[k]}"`).join('\n            '));
+
+  const stuck = Object.keys(SHIPPED).filter((k) => home.owner.named.shades[k] === SHIPPED[k]);
+  note(stuck.length === 0,
+    `on the owner's palette all four shades move ` +
+    `(${Object.entries(home.owner.named.shades).map(([k, v]) => `${k.replace('--brand-', '')} ${v}`).join(', ')})`,
+    stuck.join(', '));
 
   // Per-STOP, because a gradient whose string changes can still hold a stop
   // that did not move — which is exactly what A10-046 measured.

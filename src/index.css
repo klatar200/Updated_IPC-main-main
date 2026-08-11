@@ -26,6 +26,31 @@
   --brand-accent-rgb: 0, 190, 242;
   --brand-accent-2-rgb: 17, 158, 200;
 
+  /* A10-046 — four hand-picked shades of a base brand color that used to be
+     hardcoded literals. Two of them are the FIRST stop of a two-stop gradient
+     whose second stop is var(--brand-primary), so after the owner re-skinned
+     the site the product-detail header on all 42 product pages faded from the
+     OLD navy into the NEW color: not merely unthemed, actively clashing, on
+     the page a buyer lands on. The same shape repeated on the five industry
+     card headers, the desktop mega-dropdown panel and the mobile drawer.
+
+     None of the four is any existing variable's value, and substituting the
+     nearest one was measured and looked at: dE2000 1.27 on the product header
+     (invisible) but 5.92 on the industries card, 3.22 on the mobile drawer and
+     2.24 on the mega-dropdown panel — all three visible side by side against
+     the shipped render. So each keeps its own value here, and ThemeInjector
+     re-derives it as the same per-channel ratio to the owner's color that it
+     has to the shipped one. On the shipped palette that reproduces these
+     values exactly, which is why the deployed site does not change.
+
+     NOT the footer's #0a2240, and not its #1a3a5c border: those are a
+     hardcoded surface rather than an owner-set color (see the note further
+     down), and A10-046 excludes both. */
+  --brand-dark-2: #0a2a52;
+  --brand-dark-panel: #0e2847;
+  --brand-dark-drawer: #0a2444;
+  --brand-primary-deep: #003d7a;
+
   /* 4.23 — the readable foreground for each brand-colored surface. These used
      to be a hardcoded #ffffff at ~30 call sites, so a pale owner-chosen brand
      color shipped white-on-white to every visitor. ThemeInjector recomputes
