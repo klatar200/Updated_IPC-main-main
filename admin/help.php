@@ -597,12 +597,15 @@ $navActive = 'help';
         <p>Adding one part usually touches three different pages, not just the Add Product form. Here's the full sequence in order, pulling together the steps from the sections above:</p>
         <div class="callout callout-tip">
           <b>Before you start, have these ready</b>
-          The SKU/part number and category, the full product name, a hosted link to a product photo (if you have one), the PDF data sheet file (if you have one), and any specification or size-chart numbers. Having these on hand up front means you can usually do this in one sitting instead of stopping mid-form to go find something.
+          <!-- A10-028, third instance: this asked for "a hosted link to a
+               product photo", the same abandoned workflow the diagram above
+               was teaching. Photos are uploaded from the computer. -->
+          The SKU/part number and category, the full product name, the photo file on your computer (if you have one), the PDF data sheet file (if you have one), and any specification or size-chart numbers. Having these on hand up front means you can usually do this in one sitting instead of stopping mid-form to go find something.
         </div>
 
         <div class="diagram-wrap">
           <div class="diagram-caption">The four-step sequence, visually</div>
-          <svg viewBox="0 0 680 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the four steps: Add Product, Edit, Manage PDF, View">
+          <svg viewBox="0 0 680 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the four steps: Add Product, Photo, Manage PDF, View">
             <g font-family="system-ui,sans-serif">
               <rect x="6" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
               <circle cx="30" cy="30" r="14" fill="#005da3"/><text x="30" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">1</text>
@@ -614,9 +617,17 @@ $navActive = 'help';
 
               <rect x="188" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
               <circle cx="212" cy="30" r="14" fill="#005da3"/><text x="212" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">2</text>
-              <text x="263" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Edit</text>
-              <text x="263" y="78" font-size="9" fill="#374151" text-anchor="middle">Paste in a</text>
-              <text x="263" y="92" font-size="9" fill="#374151" text-anchor="middle">Photo URL</text>
+              <!-- A10-028 — this box read "Edit / Paste in a / Photo URL" and
+                   contradicted numbered step 2 directly beneath it, which says
+                   to click Photo and upload from the computer. The page also
+                   says of the Photo URL field itself: "You normally never type
+                   in this box." The diagram is the thing people actually read,
+                   and it sent a non-technical owner off to find an image host.
+                   Only the three strings changed; the x/y/font-size/anchor
+                   attributes and the box geometry are untouched. -->
+              <text x="263" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Photo</text>
+              <text x="263" y="78" font-size="9" fill="#374151" text-anchor="middle">Upload from</text>
+              <text x="263" y="92" font-size="9" fill="#374151" text-anchor="middle">your computer</text>
 
               <text x="354" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
 
