@@ -568,7 +568,7 @@ function Navbar({ products = [], catalogFailed = false }) {
     <header
       style={{
         background: "var(--brand-dark)",
-        borderBottom: "1px solid rgba(0,190,242,0.15)",
+        borderBottom: "1px solid rgba(var(--brand-accent-rgb),0.15)",
         position: "sticky",
         top: 0,
         zIndex: 50,
@@ -757,7 +757,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                     borderBottom: active
                       ? "2px solid var(--brand-accent)"
                       : open
-                        ? "2px solid rgba(0,190,242,0.4)"
+                        ? "2px solid rgba(var(--brand-accent-rgb),0.4)"
                         : "2px solid transparent",
                     transition: "color 0.15s",
                   }}
@@ -785,9 +785,9 @@ function Navbar({ products = [], catalogFailed = false }) {
                       top: "calc(100% + 1px)",
                       left: 0,
                       marginLeft: "-230px",
-                      background: "#0e2847",
+                      background: "var(--brand-dark-panel)",
                       borderRadius: 12,
-                      border: "1px solid rgba(0,190,242,0.2)",
+                      border: "1px solid rgba(var(--brand-accent-rgb),0.2)",
                       boxShadow: "0 20px 48px rgba(0,20,60,0.55)",
                       zIndex: 100,
                       width: 560,
@@ -796,7 +796,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                     }}
                     onMouseEnter={() => setOpenDropdown("products")}
                   >
-                    {/* Triangle pointer — matches #0e2847 panel background */}
+                    {/* Triangle pointer — matches the panel, so it follows the
+                        owner's palette through the same variable (A10-046). */}
                     <div
                       style={{
                         position: "absolute",
@@ -812,8 +813,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                         style={{
                           width: 10,
                           height: 10,
-                          background: "#0e2847",
-                          border: "1px solid rgba(0,190,242,0.2)",
+                          background: "var(--brand-dark-panel)",
+                          border: "1px solid rgba(var(--brand-accent-rgb),0.2)",
                           transform: "rotate(45deg)",
                           margin: "3px auto 0",
                         }}
@@ -1074,7 +1075,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                     borderBottom: active
                       ? "2px solid var(--brand-accent)"
                       : open
-                        ? "2px solid rgba(0,190,242,0.4)"
+                        ? "2px solid rgba(var(--brand-accent-rgb),0.4)"
                         : "2px solid transparent",
                     transition: "color 0.15s",
                   }}
@@ -1102,9 +1103,9 @@ function Navbar({ products = [], catalogFailed = false }) {
                       left: 0,
                       marginLeft: "-90px",
                       width: 280,
-                      background: "#0e2847",
+                      background: "var(--brand-dark-panel)",
                       borderRadius: 12,
-                      border: "1px solid rgba(0,190,242,0.2)",
+                      border: "1px solid rgba(var(--brand-accent-rgb),0.2)",
                       boxShadow: "0 20px 48px rgba(0,20,60,0.55)",
                       padding: "8px 0",
                       zIndex: 100,
@@ -1126,8 +1127,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                         style={{
                           width: 10,
                           height: 10,
-                          background: "#0e2847",
-                          border: "1px solid rgba(0,190,242,0.2)",
+                          background: "var(--brand-dark-panel)",
+                          border: "1px solid rgba(var(--brand-accent-rgb),0.2)",
                           transform: "rotate(45deg)",
                           margin: "3px auto 0",
                         }}
@@ -1295,8 +1296,8 @@ function Navbar({ products = [], catalogFailed = false }) {
           aria-modal="true"
           aria-label="Navigation menu"
           style={{
-            background: "#0a2444",
-            borderTop: "1px solid rgba(0,190,242,0.12)",
+            background: "var(--brand-dark-drawer)",
+            borderTop: "1px solid rgba(var(--brand-accent-rgb),0.12)",
             maxHeight: "calc(100vh - 64px)",
             overflowY: "auto",
             position: "relative",
@@ -1762,9 +1763,9 @@ function Hero() {
           <div
             className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest uppercase mb-6 px-3 py-1.5 rounded"
             style={{
-              background: "rgba(0,190,242,0.15)",
+              background: "rgba(var(--brand-accent-rgb),0.15)",
               color: "var(--brand-accent)",
-              border: "1px solid rgba(0,190,242,0.3)",
+              border: "1px solid rgba(var(--brand-accent-rgb),0.3)",
             }}
           >
             <span
@@ -3304,7 +3305,7 @@ function TeamCard({ name, role, avatar }) {
           width: 56,
           height: 56,
           background:
-            "linear-gradient(135deg, rgba(var(--brand-primary-rgb),0.10) 0%, rgba(0,190,242,0.15) 100%)",
+            "linear-gradient(135deg, rgba(var(--brand-primary-rgb),0.10) 0%, rgba(var(--brand-accent-rgb),0.15) 100%)",
           fontSize: 24,
           border: "1px solid rgba(var(--brand-primary-rgb),0.15)",
         }}
@@ -7331,14 +7332,33 @@ function ThemeInjector() {
     for (const k in map) if (map[k]) root.style.setProperty(k, map[k]);
     // Derive the translucent-tint RGB and a darker hover shade from the primary
     // so tints (rgba) and hover states re-theme along with the solid colors.
-    const m = /^#?([0-9a-f]{6})$/i.exec(t.primaryColor || "");
-    if (m) {
-      const num = parseInt(m[1], 16);
-      const r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+    //
+    // A10-045 — the two accents get the same triple, and did not used to. All
+    // 14 translucent accent tints were therefore hardcoded rgba() literals that
+    // survived a repalette: cyan stayed under the header on 110 of 110 public
+    // page x viewport rows, on the homepage and industry badges, and behind all
+    // 42 product-index chips, while everything driven by --brand-primary-rgb
+    // had already moved. Same mechanism, three colors now. Deliberately NOT
+    // color-mix(), for the reason spelled out in the ink derivation below.
+    const rgbOf = (hex) => {
+      const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+      if (!m) return null;
+      const n = parseInt(m[1], 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    };
+    const primaryRgb = rgbOf(t.primaryColor);
+    if (primaryRgb) {
+      const [r, g, b] = primaryRgb;
       const d = (x) => Math.round(x * 0.82);
       root.style.setProperty("--brand-primary-rgb", `${r}, ${g}, ${b}`);
       root.style.setProperty("--brand-primary-hover", `rgb(${d(r)}, ${d(g)}, ${d(b)})`);
     }
+    // The x0.82 hover shade stays attached to the primary. The accents have no
+    // hover state, and deriving one here would ship a color nothing asked for.
+    const accentRgb = rgbOf(t.accentColor);
+    if (accentRgb) root.style.setProperty("--brand-accent-rgb", accentRgb.join(", "));
+    const accent2Rgb = rgbOf(t.accent2Color);
+    if (accent2Rgb) root.style.setProperty("--brand-accent-2-rgb", accent2Rgb.join(", "));
     // 4.23 — the readable foreground for each brand surface, recomputed
     // whenever the owner changes a color. These back the --brand-*-ink vars
     // that replaced the hardcoded #ffffff at every brand-colored call site.
@@ -7394,6 +7414,39 @@ function ThemeInjector() {
     // plain ink, so the accent hue survives.
     const accent = t.accentColor || "#00bef2";
     root.style.setProperty("--brand-accent1-on-dark", textSafeOn(accent, dark, DARK_TARGET));
+
+    // A10-046 — the four hand-picked shades that used to be literals. Two are
+    // the FIRST stop of a two-stop gradient whose second stop is the primary,
+    // so a repalette left the product-detail header on all 42 product pages
+    // fading from the OLD navy into the NEW color, and the five industry card
+    // headers doing the same.
+    //
+    // Each is re-expressed as the same PER-CHANNEL RATIO to its base color that
+    // it has to the SHIPPED base. On the shipped palette base === shipped base,
+    // so the ratio multiplies back to the literal exactly and the deployed site
+    // is byte-identical; on any other palette the shade tracks the owner. That
+    // exactness is the point: substituting the nearest existing variable was
+    // measured and looked at, and moved three of the four surfaces visibly
+    // (dE2000 5.92 on the industries card, 3.22 on the drawer, 2.24 on the
+    // mega-dropdown panel; only the product header, at 1.27, was invisible).
+    //
+    // Where a shipped base channel is 0 the ratio is undefined (0/0) — true of
+    // the red channel of #003d7a against #005da3. Those take the mean of the
+    // defined ratios, which still multiplies 0 on the shipped palette and is
+    // therefore still exact, and behaves sensibly on a color that has red in it.
+    const shadeOf = (base, shippedBase, literal) => {
+      const b = rgbOf(base), s = rgbOf(shippedBase), l = rgbOf(literal);
+      if (!b || !s || !l) return literal;
+      const defined = [0, 1, 2].filter((i) => s[i] !== 0).map((i) => l[i] / s[i]);
+      const mean = defined.length ? defined.reduce((a, x) => a + x, 0) / defined.length : 1;
+      const out = [0, 1, 2].map((i) =>
+        Math.max(0, Math.min(255, Math.round(b[i] * (s[i] === 0 ? mean : l[i] / s[i])))));
+      return `rgb(${out[0]}, ${out[1]}, ${out[2]})`;
+    };
+    root.style.setProperty("--brand-dark-2", shadeOf(dark, "#0d2d52", "#0a2a52"));
+    root.style.setProperty("--brand-dark-panel", shadeOf(dark, "#0d2d52", "#0e2847"));
+    root.style.setProperty("--brand-dark-drawer", shadeOf(dark, "#0d2d52", "#0a2444"));
+    root.style.setProperty("--brand-primary-deep", shadeOf(primary, "#005da3", "#003d7a"));
   }, [site]);
   return null;
 }
@@ -8132,7 +8185,7 @@ function ProductDetail({ product, allProducts }) {
       {/* Header — deep navy with product name, SKU, and action buttons */}
       <div
         style={{
-          background: "linear-gradient(135deg, #0a2a52 0%, var(--brand-primary) 100%)",
+          background: "linear-gradient(135deg, var(--brand-dark-2) 0%, var(--brand-primary) 100%)",
         }}
       >
         {/* A10-011 — this row stacks below the sm breakpoint, and that is the
@@ -8155,11 +8208,16 @@ function ProductDetail({ product, allProducts }) {
             >
               Product Detail
             </div>
-            {/* Stays white: this strip's gradient starts at a HARDCODED #0a2a52
-                and only its far end is owner-controlled, so no single ink works
-                across both. The heading is left-aligned, i.e. over the fixed
-                dark end, where white is correct. Recorded as
-                brand-gradient-mixed-ends. */}
+            {/* Stays white. This used to read "the gradient starts at a
+                HARDCODED #0a2a52, and only its far end is owner-controlled" —
+                A10-046 removed that hardcode, so the near end is now
+                var(--brand-dark-2) and both ends follow the owner. The ink is
+                still a flat white rather than a computed one: deriving it
+                through inkFor([dark-2, primary]) the way the site header ink
+                already is (see ThemeInjector) is the open item
+                brand-gradient-mixed-ends, and it is deliberately NOT part of
+                this change. The heading is left-aligned, i.e. over the dark
+                end, where white is correct for the shipped palette. */}
             {/* C47 — not uppercased. These are the longest strings on the site
                 ("NONMETALLIC LIQUID-TIGHT CONDUIT COUPLING"), and all-caps cost
                 legibility on exactly the ones that wrap. The small uppercase
@@ -9751,7 +9809,7 @@ function DashboardPage({ products }) {
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
-                        background: 'rgba(17,158,200,0.1)',
+                        background: 'rgba(var(--brand-accent-2-rgb),0.1)',
                         // The MOBILE card's type chip. Its desktop twin at the
                         // <td> below already says --brand-accent-text; this one
                         // was left on the bright accent and measures 2.79:1 over
@@ -10081,7 +10139,7 @@ function DashboardPage({ products }) {
                             fontWeight: 600,
                             textTransform: "uppercase",
                             letterSpacing: "0.05em",
-                            background: "rgba(17,158,200,0.1)",
+                            background: "rgba(var(--brand-accent-2-rgb),0.1)",
                             color: "var(--brand-accent-text)",
                           }}
                         >
@@ -10475,7 +10533,7 @@ function IndustriesPage() {
             <div
               className="px-5 py-4 md:px-8 md:py-5 flex items-center gap-4"
               style={{
-                background: "linear-gradient(135deg, #003d7a, var(--brand-primary))",
+                background: "linear-gradient(135deg, var(--brand-primary-deep), var(--brand-primary))",
                 borderBottom: "none",
               }}
             >
@@ -10486,17 +10544,21 @@ function IndustriesPage() {
                   height: 44,
                   background: "rgba(var(--brand-primary-rgb),0.5)",
                   color: "var(--brand-accent)",
-                  border: "1px solid rgba(0,190,242,0.3)",
+                  border: "1px solid rgba(var(--brand-accent-rgb),0.3)",
                 }}
               >
                 {IndIcons[ind.iconKey] || IndIcons.industrial}
               </div>
               <div>
-                {/* Stays white: this strip's gradient starts at a HARDCODED
-                    #003d7a and only its far end is owner-controlled, so no
-                    single ink works across both. The heading is left-aligned,
-                    i.e. over the fixed dark end, where white is correct.
-                    Recorded as brand-gradient-mixed-ends. */}
+                {/* Stays white. This used to read "the gradient starts at a
+                    HARDCODED #003d7a, and only its far end is owner-controlled"
+                    — A10-046 removed that hardcode, so the near end is now
+                    var(--brand-primary-deep) and both ends follow the owner.
+                    The ink is still a flat white rather than a computed one:
+                    that is the open item brand-gradient-mixed-ends, and it is
+                    deliberately NOT part of this change. The heading is
+                    left-aligned, i.e. over the dark end, where white is correct
+                    for the shipped palette. */}
                 <h2 className="text-xl font-extrabold text-white">
                   {ind.name}
                 </h2>

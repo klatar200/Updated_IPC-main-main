@@ -407,6 +407,42 @@ Ordered by value. Nothing here blocks the upload.
   field's own wrapper and reports which mechanism found it, so the fallback
   cannot quietly become the norm.
 
+- [ ] **`audit10-repalette.js` and `audit10-p7reverify.js` cannot show A10-045
+  or A10-046 as fixed, and this is a property of the probes, not of the site.**
+  Recorded 2026-08-11 by PLAN-10 phase C. **Do not re-chase either finding on
+  their output.** Both were fixed and both are proved green by
+  `_harness/plan10-repalette.js` (33/33).
+
+  Both probes repalette by injecting a `:root` block with `!important`, which
+  bypasses `ThemeInjector` entirely, and both injection maps list exactly the
+  ten chromatic `--brand-*` variables that existed when the audit ran. **A
+  custom property the drill does not inject cannot move.** Items 11 and 12
+  between them add six new ones — `--brand-accent-rgb`, `--brand-accent-2-rgb`,
+  `--brand-dark-2`, `--brand-dark-panel`, `--brand-dark-drawer`,
+  `--brand-primary-deep` — so every surface they now drive keeps its shipped
+  value under the drill and is counted as a leak. Measured after both items
+  landed: `audit10-repalette.js`'s leak set is **byte-identical to the
+  pre-change run, 41 rows on both**, and `audit10-p7reverify.js` still reports
+  `A10-045 REPRODUCES` / `A10-046 REPRODUCES`. The only delta anywhere in their
+  output is `brandAccentRgbVar`, `""` → `"0, 190, 242"` — the variable now
+  exists.
+
+  **PLAN-10 §5 expected these probes to flip and they do not.** For A10-045 that
+  outcome was unavoidable under any implementation the plan permits: §5 mandates
+  mirroring the `--brand-primary-rgb` mechanism, and `--brand-primary-rgb` only
+  follows the drill because the audit's map happens to list it. For A10-046 it
+  is a consequence of phase C's judgement call — reusing `var(--brand-dark)` as
+  §5 first suggests *would* have flipped the probes, because that variable is in
+  their map, but it was measured to move three of the four surfaces visibly on
+  the shipped palette (dE2000 5.92 / 3.22 / 2.24). A cosmetic property of a
+  frozen probe does not outrank the deployed site's appearance, so the site won.
+
+  The probes are the audit's evidence and PLAN-10 §1.5 forbids editing them, so
+  they are left exactly as they are. If a future session ever does get licence,
+  the change is one line in each: add the six variables above to their `TEST` /
+  `REPALETTE` maps. `plan10-repalette.js`'s `vars` arm is that same drill with
+  the complete set, and it reports **0** leaks.
+
 - [ ] **`brand-gradient-mixed-ends` — the product-header ink comment's premise
   will go stale when PLAN-10 item 12 lands.** Recorded 2026-08-10 by PLAN-10
   phase B, because item 12 is the item that unblocks it and phase C has not run
@@ -420,6 +456,42 @@ Ordered by value. Nothing here blocks the upload.
   (`src/App.jsx:7345`), instead of being pinned white. Not done in phase B:
   PLAN-10 §5 item 12 says explicitly not to change the ink in that plan, and
   phase B does not touch the gradient at all.
+
+  **AMENDED 2026-08-11 — PLAN-10 phase C. Item 12 has landed; the premise is
+  now false and the item is live, not pending.** Two details of the record
+  above were right in substance and wrong in detail, and are corrected here
+  rather than rewritten:
+
+  1. **It is not one comment, it is two.** The industries card header
+     (`src/App.jsx:10547`) carries the same justification for the same reason,
+     naming `#003d7a`. Both were stale the moment item 12 landed. Both comments
+     have been corrected in place to state what is now true and to point at
+     this record; **neither ink was changed**, per PLAN-10 §5.
+  2. **The replacement is not `var(--brand-dark)`.** Substituting the nearest
+     existing variable was measured and looked at, and moved three of the four
+     surfaces perceptibly (dE2000 **5.92** on the industries card, **3.22** on
+     the mobile drawer, **2.24** on the mega-dropdown panel; only the product
+     header, at **1.27**, was invisible). So item 12 introduced four dedicated
+     variables that re-derive each shade from the owner's colour while
+     reproducing the shipped literal exactly. The product header's near stop is
+     `var(--brand-dark-2)` and the industries card's is
+     `var(--brand-primary-deep)`.
+
+  **What is still open** is therefore the ink on both strips, and the
+  re-derivation targets have changed with (2): `inkFor([dark2, primary])` for
+  the product header and `inkFor([primaryDeep, primary])` for the industries
+  card, not `inkFor([dark, primary])`. Note the §2 record at line 349 closed
+  this in 2026-08-07 on the reasoning that *"Option A (`var(--brand-dark)` as
+  the fixed stop) … costs a visible deepening of `#003d7a → #0d2d52` on the
+  shipped navy and turns an anchoring band into a fully owner-controlled one."*
+  Half of that is now settled and half is not: the visible-cost objection is
+  **gone** (the shipped render is byte-identical — 8 page-states, 1120
+  brand-painting elements, and the four surfaces byte-identical as rendered
+  PNGs), but the band **is** now fully owner-controlled, which is precisely the
+  second half of that objection and is what makes the white ink a real
+  exposure at a pale palette rather than a hypothetical one. Both strips
+  currently measure 10.78:1 at the shipped palette and are left alone.
+  `brandtext` is unchanged at 11 failing.
 
 ---
 
