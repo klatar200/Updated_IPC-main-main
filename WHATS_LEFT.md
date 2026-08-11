@@ -523,6 +523,70 @@ Ordered by value. Nothing here blocks the upload.
   currently measure 10.78:1 at the shipped palette and are left alone.
   `brandtext` is unchanged at 11 failing.
 
+- [ ] **Four published numbers and fourteen `file:line` citations from PLAN-10
+  do not resolve.** Found 2026-08-11 by AUDIT-11, the independent verification
+  of PLAN-10. No code is wrong — every one of PLAN-10's twelve executed findings
+  verified closed — but the records a future session will read are wrong in
+  these places, and one of them is owner-facing. Full evidence in
+  `_harness/AUDIT11-REPORT.md` §7 and §10.
+
+  1. **`PATCH_NOTES.md:1076` prints `1.05:1`** as the pre-fix worst admin-nav
+     link contrast. It is **1.07:1** — the value A10-021's own evidence records
+     twice, and the value `PATCH_NOTES.md:1065` prints three lines earlier on
+     the same page. The document contradicts itself and the wrong figure is the
+     one in the owner-facing summary table. The "after" figure, 4.59:1,
+     reproduces exactly on all 13 admin pages.
+  2. **The industries-card ΔE2000 is 5.29, not 5.92** (`WHATS_LEFT.md:502`,
+     PR #29). Recomputed with CIEDE2000/D65 against `--brand-primary-hover`
+     `#004c86`, the variable PLAN-10 §5 proposed and the orphan branch used.
+     The other three figures — 3.22, 2.24, 1.27 — reproduce to two decimal
+     places, so the implementation agrees and this one value is simply wrong.
+     **It does not change the decision it supports**: 5.29 is still more than
+     double the ~2.3 noticeable-at-a-glance threshold.
+  3. **Four `file:line` citations were wrong when written** and are still wrong:
+     `admin/content.php:993` for "the page subtitle" (it is `:1007`);
+     `admin/help.php:530-536` for the "Split into sub-columns" explanation (it
+     is `:544-545`); `admin/help.php:146-154` for the ≤640px scroller (it is
+     `:163-164`); and `admin/help.php:496-518` for the flattened size-chart
+     header, a range that starts 10 lines early and stops 9 lines short of the
+     four `<th>` elements it describes (`:524-527`).
+  4. **Ten more citations drifted** because phases C, D and E inserted comment
+     blocks into files earlier phases had already cited — all three in the
+     item 2 commit, all three in item 3, one in item 11, and all three in
+     item 9. They resolved correctly at their own commit and do not now.
+  5. **Five references inside `WHATS_LEFT.md` §2 itself** do not resolve:
+     `src/App.jsx:8139-8145` for the product-header ink comment (it is at
+     ~`:8214`, and the 2026-08-11 amendment above it did not correct the line);
+     `src/App.jsx:7345` for the header-ink derivation (it is `:7372`); and
+     `admin/add.php:126`, `admin/audit-log.php:66`, `admin/edit.php:253`, which
+     each point at the `body {` line one above the `header {` rule they describe
+     (`:127`, `:67`, `:254`). `help.php:19` and `index.php:47` are correct;
+     `upload-pdf.php` is cited with no line at all (it is `:145`).
+
+  **Not fixed:** correcting records is not an audit's job, and `PATCH_NOTES.md`
+  is owner-facing copy. The `WHATS_LEFT.md` corrections belong in an `AMENDED`
+  block written by whoever next touches these items; the `PATCH_NOTES.md` figure
+  should be corrected before the document is shown to Rick. A `lint`-style check
+  that every `file:line` in a commit message still resolves would have caught
+  four of these at authoring time.
+
+- [ ] **`admin/upload-image.php` carries more admin-nav items than any other
+  page and is measured by nothing.** Found 2026-08-11 by AUDIT-11. `$navExtra`
+  is injected by **three** pages, not the two PLAN-10's records name:
+  `admin/edit.php:289` and `admin/upload-pdf.php:168` each add one link, but
+  `admin/upload-image.php:181-182` adds **two** (`Edit Details` and
+  `Manage PDF`), giving that page **13** nav items against the standard 11.
+  It is therefore the case most likely to overflow the admin header, and it is
+  covered neither by `_harness/plan10-adminnav.js` (which tests `index.php`,
+  `settings.php`, `help.php`) nor by AUDIT-11's contract, which names only the
+  other two.
+
+  **Not broken today:** AUDIT-11 measured all 13 pages at 390 and
+  `upload-image.php` passes 13/13 — 0 items above the document top, 0 past the
+  header's bottom edge, every item ≥ 4.59:1 on its painted backdrop, all 13
+  hit-testable. Recorded because the page with the most items is the one a
+  future header change will break first, and no suite would notice.
+
 ---
 
 ## 3. Deliberately deferred / declined
