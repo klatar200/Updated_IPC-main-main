@@ -1037,4 +1037,71 @@ pixel-for-pixel.
 
   (AUDIT-10 A10-046.)
 
+## Phase D — four things the dashboard did to Rick
+
+- **The Delete button was sliced in half on every product row, and nothing
+  would scroll it into view.** On the product catalog — the page you land on
+  and use most — the five buttons at the end of each row needed 386px of a
+  350px column. The overflow all landed on the last one: at a normal desktop
+  window **52 of Delete's 69 pixels were cut off**, leaving a red sliver that
+  was still perfectly clickable. The table could not be scrolled sideways at
+  that width, so there was no way to see the whole button at all. Same on a
+  1024-wide window. It repeated on all 42 rows.
+
+  The button row now wraps, so Delete drops onto a second line inside the same
+  column and is fully readable at every width. The alternative — widening the
+  column — was built and measured too, and rejected: at 1024 it looked
+  identical to the bug, with Delete still sliced and merely a sideways scroll
+  away. The cost of wrapping is honest and worth naming: every row is about
+  30px taller, so a desktop screen shows four rows where it used to show six.
+  (AUDIT-10 A10-020.)
+
+- **On a phone, the admin menu fell out of its own blue bar — and half of it
+  could not be reached.** The bar was locked to 60px tall while the eleven
+  menu links needed 95px. **Products** and **+ Add Product** were pushed off
+  the top of the page entirely, unreachable no matter how you scrolled.
+  **View Live Site** and **Sign Out** dropped below the bar onto the pale page
+  background while staying white — invisible in practice, measured at
+  **1.07:1** where 4.5:1 is the readable minimum. Rick could not navigate or
+  sign out from a phone at all.
+
+  The bar now grows to fit its menu, exactly as it already did on a tablet. All
+  eleven links sit inside it and are legible. Desktop is untouched: still one
+  row, still 60px.
+
+  | on a phone | before | after |
+  |---|---|---|
+  | links pushed off the top of the page | **2** | **0** |
+  | links spilling below the blue bar | **2** | **0** |
+  | worst link readability | **1.05:1** | **4.59:1** |
+  | links you can actually tap | 8 of 11 | **11 of 11** |
+
+  (AUDIT-10 A10-021.)
+
+- **The Help page was 689 pixels wide on a 390-pixel phone.** The whole page
+  slid sideways — the menu, the heading, the contents list — and every
+  reference table lost its second column, which is the column with the answers
+  in it. The Quick Reference table whose entire job is "what you want to do →
+  where to go" showed only the "what you want to do" half. Rick opens Help
+  precisely when he is stuck.
+
+  The page now fits: **689px → 390px, exactly the width of the screen**, with
+  both columns of all 11 tables readable without scrolling sideways. Nothing
+  was hidden or cut to achieve it, and the page is unchanged on tablets and
+  desktops. (AUDIT-10 A10-022.)
+
+- **Every content save was recorded as "Homepage content updated", whatever
+  page had been edited.** The Page Content form edits the wording for the whole
+  site — homepage, Services, Industries, About, FAQ, Contact, Privacy, the
+  search-engine text, the menus and the footer — and the change history logged
+  all of it identically. Editing the Privacy page produced a line
+  indistinguishable from editing the homepage, so the history could not answer
+  the only question it exists for.
+
+  Saves are now recorded by name: *"Updated: Privacy page — banner"*,
+  *"Updated: Search Engine Text (SEO), Privacy page — banner"*, and *"Page
+  content saved — no fields changed"* when nothing moved. The page's own
+  subtitle also said "Edit the homepage sections below" on a form that edits
+  every page; it now says what it really does. (AUDIT-10 A10-027.)
+
 **Not yet deployed.** Nothing above is on the live server.

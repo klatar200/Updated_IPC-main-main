@@ -131,6 +131,40 @@ $navActive = 'help';
       .help-toc { position: static; width: auto; max-height: none; }
       .page-header { flex-direction: column; align-items: flex-start; }
       .back-to-top { bottom: 16px; right: 16px; }
+      /* A10-022 — the stacked layout must STRETCH, not sit at content width.
+         .help-layout is align-items:flex-start, and this query only flipped
+         flex-direction, so once stacked the two children kept a shrink-to-fit
+         cross size: .help-layout measured a correct 342px while .help-content
+         inside it measured 503px and overflowed the page. Worth 48px of the
+         299. */
+      .help-layout { align-items: stretch; }
+    }
+
+    /* A10-022 — at 390 this page rendered 689px wide in a 390px viewport:
+       299px of PAGE-level horizontal overflow, so the header, the heading and
+       the contents list all slid sideways along with the tables. Rick opens
+       Help precisely when he is stuck, and the column holding every answer was
+       off-screen.
+
+       The finding names `td:first-child { white-space: nowrap }` as the driver,
+       and it is the biggest one, but measuring each fix in the browser showed
+       it is one of THREE and no single one is sufficient:
+
+         689 -> 527   term column allowed to wrap (this rule)
+         527 -> 479   .help-layout stretching when stacked (above)
+         479 -> 390   long <code> tokens allowed to break, and .visual-note
+                      allowed to wrap — it is a flex row whose text item could
+                      not shrink, so `RoHS Compliant` alone held 24px of page
+
+       All three are needed and together they land on exactly 390. Nothing is
+       scrolled sideways to be read: the tables fit, so every explanation is
+       painted in the viewport. Deliberately NOT `overflow-x: hidden` on body —
+       that hides the symptom and makes the second column permanently
+       unreachable. Scoped to 640px so 834 and above are untouched. */
+    @media (max-width: 640px) {
+      table.field-ref td:first-child { white-space: normal; }
+      .help-section code { overflow-wrap: anywhere; }
+      .visual-note { flex-wrap: wrap; }
     }
   </style>
 </head>

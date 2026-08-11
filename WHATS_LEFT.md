@@ -407,6 +407,36 @@ Ordered by value. Nothing here blocks the upload.
   field's own wrapper and reports which mechanism found it, so the fallback
   cannot quietly become the norm.
 
+- [ ] **Six admin pages redeclare the shared header that `admin/nav.php` owns,
+  and one of the copies silently defeated a fix.** Found 2026-08-11 while
+  measuring PLAN-10 item 6 (A10-021). `admin/nav.php` is documented at its top
+  as *"self-contained (its own scoped `<style>` block) so it renders the same
+  regardless of whatever CSS the including page already has"* — but
+  `admin/add.php:126`, `admin/audit-log.php:66`, `admin/edit.php:253`,
+  `admin/help.php:19`, `admin/index.php:47` and `admin/upload-pdf.php` each
+  carry their own bare `header { background: #0d2d52; padding: 0 24px; height:
+  60px; display: flex; ... }` in their `<head>`. Two of the six have already
+  drifted: `help.php` adds `position: sticky; top: 0; z-index: 20`, which no
+  other page has.
+
+  **This is not theoretical.** Item 6's fix — `height: 60px` -> `min-height:
+  60px` in nav.php — worked on `settings.php` and did **nothing** on
+  `index.php` or `help.php`, because an explicit `height` on the bare `header`
+  selector clamps the box whatever `min-height` says. Measured: header 60px
+  with a 63px nav still overflowing it, on exactly the two pages that carry a
+  copy. Item 6 works around it by declaring `height: auto` from nav.php, where
+  `.ipc-admin-header` (0,1,0) outranks `header` (0,0,1) — so the fix is
+  correct and complete, but it is a specificity override rather than a
+  deduplication.
+
+  **Not fixed:** deleting six duplicated rule blocks is a refactor across six
+  files that no PLAN-10 item covers, and GUARDRAILS §1 says a change that
+  arrives outside its plan arrives without its test. The fix is to remove the
+  bare `header { ... }` rule from all six pages and let nav.php's scoped block
+  be the only definition, which is what its own docblock already claims. Worth
+  an acceptance check that no admin page declares `header {` outside nav.php —
+  `lint.php` is the natural home, alongside the other drift checks.
+
 - [ ] **`audit10-repalette.js` and `audit10-p7reverify.js` cannot show A10-045
   or A10-046 as fixed, and this is a property of the probes, not of the site.**
   Recorded 2026-08-11 by PLAN-10 phase C. **Do not re-chase either finding on

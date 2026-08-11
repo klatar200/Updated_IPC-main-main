@@ -603,8 +603,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $out['copy'] = $copyOut;
 
     if (empty($errors)) {
+        // ── A10-027 — name the sections that actually changed ───────────────
+        //
+        // This used to be audit_log('content', 'homepage', 'Homepage content
+        // updated'), three string literals, on a form that renders 99
+        // textareas and 446 posted fields covering Homepage, Services,
+        // Industries, About, FAQ, Contact, Privacy, SEO, navigation, footer
+        // and the product families. Editing the Privacy page's eyebrow logged
+        // a row byte-identical to a homepage edit, so the audit log could not
+        // answer the one question it exists for: what changed?
+        //
+        // Both $SECTIONS and $COPY_GROUPS already carry a human 'title', so
+        // the log can name what Rick actually sees. Compared against
+        // $storedContent, which is the pre-save state loaded at the top.
+        //
+        // The comparison is on the NORMALISED value, not the raw POST: $out
+        // has already dropped fully-blank rows and defaulted invalid page
+        // refs, so comparing raw input would report a change every time a
+        // blank row was re-submitted unchanged.
+        $changedTitles = [];
+        $changedKeys   = [];
+        foreach ($SECTIONS as $sec => $scfg) {
+            if (($storedContent[$sec] ?? null) !== ($out[$sec] ?? null)) {
+                $changedKeys[]   = $sec;
+                $changedTitles[] = (string)$scfg['title'];
+            }
+        }
+        foreach ($COPY_GROUPS as $g => $gcfg) {
+            if (($storedContent['copy'][$g] ?? null) !== ($out['copy'][$g] ?? null)) {
+                $changedKeys[]   = $g;
+                $changedTitles[] = (string)$gcfg['title'];
+            }
+        }
+        // Three section titles are stored ALREADY HTML-escaped ('Products
+        // &amp; Services Cards' at :77, :162, :173) — that is A10-039, a
+        // separate C finding, and fixing the storage is out of scope here.
+        // Decoding for the log line keeps "Products & Services Cards" out of
+        // the audit log as "Products &amp; Services Cards". audit_log() writes
+        // JSONL, not HTML, and inquiries.php-style rendering escapes at the
+        // render boundary, so decoding here is correct and not a hole.
+        $changedTitles = array_map(
+            static fn($t) => html_entity_decode($t, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            $changedTitles
+        );
+
+        // Cap the detail so one "save everything" cannot write a 400-character
+        // log line, while still naming enough to be useful.
+        $CAP = 3;
+        if (!$changedTitles) {
+            // A save is a save: still log it, but do not claim a section moved.
+            $detail = 'Page content saved — no fields changed';
+        } elseif (count($changedTitles) <= $CAP) {
+            $detail = 'Updated: ' . implode(', ', $changedTitles);
+        } else {
+            $detail = 'Updated: ' . implode(', ', array_slice($changedTitles, 0, $CAP))
+                . ', and ' . (count($changedTitles) - $CAP) . ' more';
+        }
+        // The SKU column: the changed group key when there is exactly one, so
+        // the log stays filterable, 'multiple' otherwise. 'none' rather than
+        // 'homepage' for a no-op save — the old literal was the whole defect.
+        $sku = count($changedKeys) === 1 ? $changedKeys[0] : (count($changedKeys) === 0 ? 'none' : 'multiple');
+
         if (save_content($out)) {
-            audit_log('content', 'homepage', 'Homepage content updated'
+            // The unmatched-product-code suffix is preserved verbatim (4.12:
+            // that path warns and still saves, by owner decision).
+            audit_log('content', $sku, $detail
                 . (!empty($warnings) ? ' — ' . count($warnings) . ' unmatched product code(s)' : ''));
             // 4.12: survive the redirect. See the flash read near $saved.
             if (!empty($warnings)) $_SESSION['content_warnings'] = $warnings;
@@ -937,7 +1000,11 @@ $navActive = 'content';
 <?php include 'nav.php'; ?>
 <main>
   <h1>Page Content</h1>
-  <p class="sub">Edit the homepage sections below. Add, remove, or reorder items — changes go live within about a minute.</p>
+  <!-- A10-027 — this said "Edit the homepage sections below" on a form that
+       edits every page of the site: homepage, Services, Industries, About,
+       FAQ, Contact, Privacy, the SEO text, the navigation menus and the
+       footer. Same defect as the hardcoded audit-log line above, in the copy. -->
+  <p class="sub">Edit the wording and lists for every page of the site below — homepage, Services, Industries, About, FAQ, Contact, Privacy, search-engine text, menus and footer. Add, remove, or reorder items — changes go live within about a minute.</p>
 
   <?php if ($saved): ?><div class="alert-success">✅ Content saved. The website will reflect the changes within ~60 seconds.</div><?php endif; ?>
   <?php if (!empty($errors)): ?>

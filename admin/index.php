@@ -95,7 +95,7 @@ $navActive = 'products';
     tr:hover td { background: rgba(0,93,163,0.02); }
     .sku  { font-weight: 700; color: #005da3; font-size: 12px; }
     .type-badge { background: rgba(17,158,200,0.1); color: #0369a1; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
-    .actions { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+    .actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .actions .btn { flex-shrink: 0; }
     /* Search */
     .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
