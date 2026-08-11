@@ -165,6 +165,15 @@ $navActive = 'help';
       table.field-ref td:first-child { white-space: normal; }
       .help-section code { overflow-wrap: anywhere; }
       .visual-note { flex-wrap: wrap; }
+      /* The worked size chart is the one table here that genuinely cannot fit:
+         A10-029 replaced its stacked Min|Max header with four flat columns, so
+         its four headings — Order Size, Expanded Diameter, Recovered Diameter,
+         Wall Thickness — now sit on one row and its min-content width is 56px
+         past a 390px screen. Unlike the two-column reference tables, shrinking
+         a four-column numeric grid to 390px would not leave it readable, so
+         this one gets the scroller: the container it already sits in scrolls,
+         the page does not. Every other table still FITS. */
+      .diagram-wrap { overflow-x: auto; }
     }
   </style>
 </head>
@@ -494,14 +503,28 @@ $navActive = 'help';
         <div class="diagram-wrap">
           <div class="diagram-caption">Example of a finished chart, as customers see it</div>
           <table class="field-ref" style="margin:0;">
+            <!-- A10-029 — this header used to split "Expanded Diameter" into
+                 Min | Max, which made every row print a Max exactly HALF its
+                 Min. THE NUMBERS ARE CORRECT; the header was wrong. The third
+                 column is the RECOVERED diameter — what the tubing shrinks
+                 down to — and the catalog settles it: IP29CG, IP33PO, IP33TW
+                 and IP34SR all carry "Expanded Diameter" and "Recovered
+                 Diameter" as two SIBLING columns, and IP29CG's first row
+                 (3/64" | .046" | .023" | .018") is the same 2:1 shape as the
+                 example below. No product uses a Min | Max split, so the old
+                 header was also teaching a structure the real data never uses.
+                 The three data rows are deliberately byte-identical: editing
+                 them to make "Max" exceed "Min" would put a fabricated
+                 specification into the owner's own documentation.
+                 The fourth column keeps the name "Wall Thickness" rather than
+                 the catalog's "Recovered Wall": that pair is settled by the
+                 2:1 ratio, but whether 0.020" is a recovered or a nominal wall
+                 is not, and renaming it would assert something unverified. -->
             <tr>
-              <th rowspan="2" style="vertical-align:middle;">Order Size</th>
-              <th colspan="2" style="text-align:center;">Expanded Diameter</th>
-              <th rowspan="2" style="vertical-align:middle;">Wall Thickness</th>
-            </tr>
-            <tr>
-              <th style="text-align:center;">Min</th>
-              <th style="text-align:center;">Max</th>
+              <th style="vertical-align:middle;">Order Size</th>
+              <th style="text-align:center;">Expanded Diameter</th>
+              <th style="text-align:center;">Recovered Diameter</th>
+              <th style="vertical-align:middle;">Wall Thickness</th>
             </tr>
             <tr><td>3/4&quot;</td><td style="text-align:center;">0.750&quot;</td><td style="text-align:center;">0.375&quot;</td><td style="text-align:center;">0.020&quot;</td></tr>
             <tr><td>1&quot;</td><td style="text-align:center;">1.000&quot;</td><td style="text-align:center;">0.500&quot;</td><td style="text-align:center;">0.024&quot;</td></tr>
@@ -512,7 +535,13 @@ $navActive = 'help';
         <h3>Building it by hand</h3>
         <table class="field-ref">
           <tr><td>+ Add column</td><td>Adds a new column header. Click into the heading box and type its name, e.g. "Order Size."</td></tr>
-          <tr><td>Split into sub-columns</td><td>Turns one column heading into a group covering two or more narrower columns underneath it — e.g. a heading "Expanded" split into "Min" and "Max."</td></tr>
+          <!-- A10-029 — this taught the same Min/Max shape the example chart
+               above it got wrong, and no product in the catalog uses one. The
+               replacement is real: IP30HS and IP30UV both split "Recovered"
+               into "Diameter" and "Wall". The feature itself stays — 16 column
+               spans across the catalog use it, including CC/CC90/CCS ("Part
+               Dimensions (inches)" over A | B | C). -->
+          <tr><td>Split into sub-columns</td><td>Turns one column heading into a group covering two or more narrower columns underneath it — e.g. a heading "Recovered" split into "Diameter" and "Wall."</td></tr>
           <tr><td>+ sub-column</td><td>Adds another narrow column under a heading that's already split.</td></tr>
           <tr><td>+ Add row</td><td>Adds a blank data row at the bottom. Click into each cell and type the value.</td></tr>
           <tr><td>× (on a row or column)</td><td>Removes that row or column, and shifts the rest to fill the gap.</td></tr>
