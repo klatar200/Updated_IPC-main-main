@@ -715,6 +715,21 @@ function Navbar({ products = [], catalogFailed = false }) {
             const open = openDropdown === "products";
             return (
               <div
+                // F10 — Escape only ever closed this menu while focus was
+                // still on the trigger, because that is where the handler
+                // lived. Tab once and you are inside the menu, where Escape
+                // did nothing: aria-expanded stayed true and focus did not
+                // move, so a keyboard user who opened the menu and changed
+                // their mind had to tab through all thirteen items or reach
+                // for the mouse. Handling it on the wrapper catches the key
+                // wherever focus is inside, and focus is returned to the
+                // trigger rather than left orphaned in a hidden subtree.
+                onKeyDown={(e) => {
+                  if (e.key !== "Escape") return;
+                  e.stopPropagation();
+                  setOpenDropdown(null);
+                  e.currentTarget.querySelector("button")?.focus();
+                }}
                 style={{
                   position: "relative",
                   display: "flex",
@@ -1033,6 +1048,14 @@ function Navbar({ products = [], catalogFailed = false }) {
             const open = openDropdown === "company";
             return (
               <div
+                // F10 — same as the Products menu above: Escape from inside
+                // the open panel left it open with focus stranded.
+                onKeyDown={(e) => {
+                  if (e.key !== "Escape") return;
+                  e.stopPropagation();
+                  setOpenDropdown(null);
+                  e.currentTarget.querySelector("button")?.focus();
+                }}
                 style={{
                   position: "relative",
                   display: "flex",
@@ -2430,6 +2453,28 @@ const STATS_ICONS = {
   ),
 };
 
+/**
+ * The stat bar under the hero. Its job is to add to the hero, not repeat it.
+ *
+ * F13 — it used to run "50+ Years · 25M+ Feet in Stock · $50 Minimum Order ·
+ * ≤1 Day Shipment Available" directly beneath a hero already showing "$50
+ * Minimum Order · 25M+ Feet in Stock · Same Day Shipment · ISO 9001", roughly
+ * 400px apart. Two of the four were verbatim repeats including the sub-line,
+ * and the shipping tile CONTRADICTED the hero: "Same Day / On in-stock items"
+ * against "≤1 Day / On most stock items". A buyer choosing on lead time could
+ * not tell which was the commitment.
+ *
+ * Shipping now lives in the hero only, and this row carries facts the hero
+ * does not: the company's age, the size of the published catalog, and the
+ * fabrication lead time from the Services page.
+ *
+ * "$50 Minimum Order" is KEPT here on purpose and is the one deliberate
+ * repeat. It is IPC's headline commercial term — it appears in the hero, the
+ * footer blurb and the About page too — and the `dollar` icon is the only one
+ * in STATS_ICONS it can honestly carry. Every value here is a claim already
+ * made elsewhere on the site; do not put a number in this row that nothing
+ * else supports.
+ */
 const STATS_DATA = [
   {
     value: "50+",
@@ -2438,9 +2483,9 @@ const STATS_DATA = [
     iconKey: "years",
   },
   {
-    value: "25M+",
-    label: "Feet in Stock",
-    sub: "Ready to ship today",
+    value: "42",
+    label: "Products Stocked",
+    sub: "Datasheet published for every one",
     iconKey: "stock",
   },
   {
@@ -2450,9 +2495,9 @@ const STATS_DATA = [
     iconKey: "dollar",
   },
   {
-    value: "≤1 Day",
-    label: "Shipment Available",
-    sub: "On most stock items",
+    value: "≤1 week",
+    label: "Custom Fabrication",
+    sub: "Cut · mark · spool · kit",
     iconKey: "ship",
   },
 ];
@@ -2642,12 +2687,15 @@ const MKT_MARKETS = [
     desc: "UV-rated PVC, dual-wall adhesive-lined tubing, and nonmetallic liquid-tight conduit fittings.",
     page: "industries",
   },
-  {
-    iconKey: "electronics",
-    label: "Electronics & Lab",
-    desc: "PTFE spaghetti tubing, thin-wall polyolefin, and Mylar high-dielectric for PCB and instrumentation work.",
-    page: "industries",
-  },
+  // There was a sixth card here, "Electronics & Lab". IPC does not advertise
+  // that as an industry — it was never a business decision, and no matching
+  // section was ever written for the Industries page, so its "Learn More →"
+  // dropped the visitor at the top of a page about five OTHER industries.
+  // Removed at the owner's instruction. (UX audit F4)
+  //
+  // This list must stay in step with content.json's `industryDetail`, which
+  // has five entries. marketAnchor() below still tolerates a mismatch — keep
+  // that tolerance, it is what stopped this from shipping a dangling fragment.
 ];
 
 /**
@@ -2975,8 +3023,37 @@ function DatasheetsPage({ products }) {
         </div>
 
         {groups.length === 0 ? (
-          <div className="bg-white rounded-xl p-6 text-center text-sm" style={{ border: "1px solid #e5e9ee", color: "#6b7280" }}>
-            No datasheets match “{q}”.
+          /* F11 — this was one sentence and no way out, while the Product
+             Index's equivalent state explains itself and offers "Clear all
+             filters". Two search surfaces, two standards, and this was the one
+             giving the least help. F15 — the scope note is here rather than in
+             the placeholder because "1/2 inch" returning nothing is only
+             confusing at the moment it happens: sizes live in each product's
+             spec table, which this filter does not read. */
+          <div className="bg-white rounded-xl p-8 text-center" style={{ border: "1px solid #e5e9ee" }}>
+            <div className="text-base font-bold" style={{ color: "#141414" }}>
+              No datasheets found
+            </div>
+            <p className="mt-2 text-sm" style={{ color: "#4b5563" }}>
+              Nothing matches “{q}”. This filter covers part numbers, product
+              names and families — sizes are listed inside each datasheet, so
+              try the part number or call 630.771.0700 and we will point you at
+              the right one.
+            </p>
+            <button
+              type="button"
+              onClick={() => setQ("")}
+              className="ipc-tap mt-4 text-sm font-semibold rounded-lg"
+              style={{
+                padding: "10px 18px",
+                border: "none",
+                background: "var(--brand-primary)",
+                color: "var(--brand-primary-ink)",
+                cursor: "pointer",
+              }}
+            >
+              Clear filter
+            </button>
           </div>
         ) : (
           <div className="space-y-8">
@@ -3082,6 +3159,43 @@ function HomePage() {
           ceiling and cannot go larger or retina — measured in the amendment. */}
       {(img.bandTeamPhoto || img.bandBuildingPhoto) ? (
       <section className="px-6 py-14" style={{ background: "#f5f7fa" }}>
+        {/* F14 — these two photographs sat between "Talk to Our Sales Team"
+            and "Industries Served" with no heading, caption or link: a sighted
+            visitor saw two uncaptioned images and had to guess, while the alt
+            text ("The Insulation Products Corporation team outside the
+            Bolingbrook facility") gave a screen-reader user the better
+            experience. They are trust assets — a real team and a real building
+            for a fifty-year-old firm — and were doing none of that work. The
+            alt text is left alone; it describes the image, which is its job.
+            This is the on-screen sentence it was missing. */}
+        <div className="max-w-7xl mx-auto mb-6">
+          <div
+            className="text-xs font-bold tracking-widest uppercase"
+            style={{ color: "var(--brand-primary-text)" }}
+          >
+            Bolingbrook, Illinois
+          </div>
+          <h2
+            className="text-2xl font-extrabold mt-1"
+            style={{ color: "#141414" }}
+          >
+            The same team, the same building, since 1974
+          </h2>
+          <p className="mt-2 text-sm max-w-2xl" style={{ color: "#4b5563" }}>
+            IPC has stocked, cut and shipped from 250 Gibraltar Drive for over
+            fifty years — privately held, independent, and ISO 9001 registered.{" "}
+            <PageLink
+              page="about"
+              style={{
+                color: "var(--brand-primary-text)",
+                textDecoration: "underline",
+                fontWeight: 600,
+              }}
+            >
+              More about IPC →
+            </PageLink>
+          </p>
+        </div>
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
           {img.bandTeamPhoto ? (
           <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
@@ -4090,6 +4204,24 @@ const FAQ_CATEGORIES = [
           answer:
             "Please contact our sales team at sales@insulationproducts.com or call 630.771.0700 to discuss international shipping options, export compliance, and any restrictions for your specific products and destination.",
         },
+        {
+          // F16 — the site had no vendor-facing content of any kind. A term
+          // sweep of all ten pages for vendor / supplier / partner / reseller
+          // / line card / careers returned only IPC describing ITSELF as a
+          // distributor, or IPC supporting its automotive CUSTOMERS' supplier
+          // requirements. /careers 404s. A supplier or manufacturer's rep had
+          // no entry point and no way to tell whether IPC wanted to hear from
+          // them; the only usable surface was a contact form whose default tab
+          // is a buyer's RFQ demanding a part number and a quantity.
+          //
+          // This is the smallest honest fix: one line that names the route.
+          // It deliberately promises nothing about outcomes — IPC is a
+          // stocking distributor, not a marketplace, and inventing a supplier
+          // programme here would be a business claim the site cannot support.
+          question: "I'm a supplier or manufacturer's rep — who do I contact?",
+          answer:
+            "Supplier, distribution and partnership enquiries go to the same team: email sales@insulationproducts.com with \"Supplier enquiry\" in the subject line, or call 630.771.0700 (Mon–Fri, 8am–5pm CT). You can also use the \"Send a Message\" tab on our Contact page — that form is for general enquiries, so there is no need to fill in a part number or quantity.",
+        },
       ],
     },
 ];
@@ -4681,7 +4813,14 @@ function ContactPage() {
       const body = new FormData(e.target);
       body.append("form_type", "message");
       const res  = await fetch("/contact.php", { method: "POST", body });
-      const json = await res.json().catch(() => ({ ok: false, error: "Unexpected server response." }));
+      // Deliberately carries NO `error`. This catch fires when the response
+      // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
+      // interstitial. It used to supply "Unexpected server response.", which
+      // satisfied the `json.error ||` below and so SHADOWED cf.submitError,
+      // the owner-editable fallback that has the phone number in it. The
+      // visitor lost a whole RFQ and got a developer's phrase with no way to
+      // reach anyone. Leaving error unset lets the real fallback through. (F9)
+      const json = await res.json().catch(() => ({ ok: false }));
       if (json.ok) {
         setSubmittedTab("message");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
@@ -4722,7 +4861,14 @@ function ContactPage() {
       const body = new FormData(e.target);
       body.append("form_type", "rfq");
       const res  = await fetch("/contact.php", { method: "POST", body });
-      const json = await res.json().catch(() => ({ ok: false, error: "Unexpected server response." }));
+      // Deliberately carries NO `error`. This catch fires when the response
+      // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
+      // interstitial. It used to supply "Unexpected server response.", which
+      // satisfied the `json.error ||` below and so SHADOWED cf.submitError,
+      // the owner-editable fallback that has the phone number in it. The
+      // visitor lost a whole RFQ and got a developer's phrase with no way to
+      // reach anyone. Leaving error unset lets the real fallback through. (F9)
+      const json = await res.json().catch(() => ({ ok: false }));
       if (json.ok) {
         setSubmittedTab("rfq");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
@@ -7502,7 +7648,7 @@ const SIDEBAR_EXCLUDED = new Set([""]);
 // now carries only the side effects (sticky bar + scroll); PageLink owns the
 // URL. The family filter pills and the family accordion are UI state, not
 // navigation, so they stay <button>. (PLAN-1 4.21)
-function ProductSidebar({ products, selectedId, onNavigate }) {
+function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFamilyFilter }) {
   const order = familyOrder(useContent());
   const families = useMemo(() => {
     const map = new Map();
@@ -7563,7 +7709,13 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
     if (!selectedFamily) return;
     setOpenFamilies((prev) => (prev.has(selectedFamily) ? prev : new Set(prev).add(selectedFamily)));
   }, [selectedFamily]);
-  const [mobileFamily, setMobileFamily] = useState(null); // null = "All"
+  // F1 — this was `mobileFamily`, sidebar-local state that only the <lg chip
+  // row could set and only the <lg pill list could see. The desktop grid was
+  // structurally incapable of reading it, which is why the desktop counts
+  // filtered nothing. The filter now lives in ProductPage and arrives as a
+  // prop, so one value drives the chips, the pills, the accordion highlight
+  // and the card grid at every width.
+  const setFamilyFilter = onFamilyFilter || (() => {});
 
   const toggleFamily = (fam) => {
     setOpenFamilies((prev) => {
@@ -7574,14 +7726,14 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
     });
   };
 
-  // Products visible in mobile filtered view
+  // Products listed under the <lg chip row, following the shared filter.
   const mobileProducts = useMemo(() => {
     const all = [];
     for (const [fam, items] of families) {
-      if (!mobileFamily || fam === mobileFamily) all.push(...items);
+      if (!activeFamily || fam === activeFamily) all.push(...items);
     }
     return all;
-  }, [families, mobileFamily]);
+  }, [families, activeFamily]);
 
   const familyList = useMemo(() => Array.from(families.keys()), [families]);
 
@@ -7607,17 +7759,17 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
             }}
           >
             <button
-              onClick={() => setMobileFamily(null)}
+              onClick={() => setFamilyFilter(null)}
               className="ipc-tap"
               style={{
                 padding: "6px 14px",
                 borderRadius: 20,
                 fontSize: 12,
                 fontWeight: 600,
-                background: !mobileFamily ? "var(--brand-primary)" : "#ffffff",
+                background: !activeFamily ? "var(--brand-primary)" : "#ffffff",
                 // 4.23: follow the ink when this pill is the brand-colored one.
-                color: !mobileFamily ? "var(--brand-primary-ink)" : "#4b5563",
-                border: !mobileFamily ? "none" : "1px solid #d1d9e0",
+                color: !activeFamily ? "var(--brand-primary-ink)" : "#4b5563",
+                border: !activeFamily ? "none" : "1px solid #d1d9e0",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
               }}
@@ -7630,11 +7782,11 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
               )
             </button>
             {familyList.map((fam) => {
-              const active = mobileFamily === fam;
+              const active = activeFamily === fam;
               return (
                 <button
                   key={fam}
-                  onClick={() => setMobileFamily(active ? null : fam)}
+                  onClick={() => setFamilyFilter(active ? null : fam)}
                   className="ipc-tap"
                   style={{
                     padding: "6px 14px",
@@ -7757,43 +7909,87 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
         </div>
 
         <div className="bg-white">
+          {/* F1 — the way back to the full catalog. With every family row now
+              a filter, there has to be an unfiltered state that is reachable
+              in one click and visibly current; otherwise the first filter a
+              visitor applies is a one-way door. */}
+          <button
+            type="button"
+            onClick={() => setFamilyFilter(null)}
+            aria-pressed={!activeFamily}
+            className="w-full flex items-center justify-between px-5 py-2.5 text-left"
+            style={{
+              background: !activeFamily ? "rgba(var(--brand-primary-rgb),0.10)" : "#ffffff",
+              border: "none",
+              borderBottom: "1px solid #e5e9ee",
+              borderLeft: !activeFamily
+                ? "3px solid var(--brand-primary)"
+                : "3px solid transparent",
+              cursor: "pointer",
+            }}
+          >
+            <span
+              className="text-xs font-bold uppercase tracking-widest"
+              style={{ color: !activeFamily ? "var(--brand-primary-text)" : "#4b5563" }}
+            >
+              All products
+            </span>
+            <span
+              className="text-xs font-semibold px-1.5 py-0.5 rounded"
+              style={{
+                background: "rgba(var(--brand-primary-rgb),0.1)",
+                color: "var(--brand-primary-text)",
+              }}
+            >
+              {products.filter((p) => !SIDEBAR_EXCLUDED.has(p.sku || "")).length}
+            </span>
+          </button>
           {Array.from(families.entries()).map(([family, items]) => {
             const isOpen = openFamilies.has(family);
             const hasActive = items.some((p) => p.id === selectedId);
+            const isFiltered = activeFamily === family;
             return (
               <div key={family}>
-                <button
-                  type="button"
-                  onClick={() => toggleFamily(family)}
-                  // B27 — this is an accordion toggle and never said so. With
-                  // every family open on first paint the omission was easy to
-                  // miss; now that the sidebar arrives collapsed, a screen
-                  // reader user given ten unlabelled buttons has no way to know
-                  // any of them expands anything, or which one is already open.
-                  // It is also the only honest way to MEASURE the open state —
-                  // the alternative is inferring it from child counts.
-                  aria-expanded={isOpen}
-                  aria-label={`${family}, ${items.length} product${items.length === 1 ? "" : "s"}`}
-                  className="w-full flex items-center justify-between px-5 py-2.5 text-left"
+                {/* F1 — one row, two jobs, and they used to be one button.
+                    The whole row toggled the accordion, so the family name and
+                    its count — which read as a filter — did nothing to the
+                    grid. Splitting them keeps BOTH affordances: the name and
+                    count filter the catalog, the chevron still expands the
+                    list in place so a visitor on a product page can browse
+                    siblings without navigating away. */}
+                <div
+                  className="w-full flex items-stretch"
                   style={{
-                    background: hasActive ? "rgba(var(--brand-primary-rgb),0.04)" : "#f8fafc",
-                    border: "none",
+                    background: isFiltered
+                      ? "rgba(var(--brand-primary-rgb),0.10)"
+                      : hasActive
+                        ? "rgba(var(--brand-primary-rgb),0.04)"
+                        : "#f8fafc",
                     borderBottom: "1px solid #e5e9ee",
                     borderTop: "1px solid #e5e9ee",
-                    cursor: "pointer",
-                    width: "100%",
+                    borderLeft: isFiltered ? "3px solid var(--brand-primary)" : "3px solid transparent",
                   }}
                 >
-                  <span
-                    data-testid="family-heading"
-                    className="text-xs font-bold uppercase tracking-widest"
-                    style={{ color: hasActive ? "var(--brand-primary-text)" : "#4b5563" }}
+                  <button
+                    type="button"
+                    onClick={() => setFamilyFilter(isFiltered ? null : family)}
+                    aria-pressed={isFiltered}
+                    aria-label={`${isFiltered ? "Clear filter" : "Show only"} ${family}, ${items.length} product${items.length === 1 ? "" : "s"}`}
+                    className="flex-1 flex items-center justify-between gap-2 px-5 py-2.5 text-left"
+                    style={{ background: "none", border: "none", cursor: "pointer", minWidth: 0 }}
                   >
-                    {family}
-                  </span>
-                  <span className="flex items-center gap-2">
                     <span
-                      className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                      data-testid="family-heading"
+                      className="text-xs font-bold uppercase tracking-widest"
+                      style={{
+                        color:
+                          isFiltered || hasActive ? "var(--brand-primary-text)" : "#4b5563",
+                      }}
+                    >
+                      {family}
+                    </span>
+                    <span
+                      className="text-xs font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
                       style={{
                         background: "rgba(var(--brand-primary-rgb),0.1)",
                         color: "var(--brand-primary-text)",
@@ -7801,6 +7997,28 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                     >
                       {items.length}
                     </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleFamily(family)}
+                    // B27 — this is an accordion toggle and never said so. With
+                    // every family open on first paint the omission was easy to
+                    // miss; now that the sidebar arrives collapsed, a screen
+                    // reader user given ten unlabelled buttons has no way to know
+                    // any of them expands anything, or which one is already open.
+                    // It is also the only honest way to MEASURE the open state —
+                    // the alternative is inferring it from child counts.
+                    aria-expanded={isOpen}
+                    aria-label={`${isOpen ? "Collapse" : "Expand"} ${family} product list`}
+                    className="flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      width: 40,
+                      paddingRight: 8,
+                    }}
+                  >
                     <span
                       style={{
                         color: "#4b5563",
@@ -7812,8 +8030,8 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                     >
                       ▼
                     </span>
-                  </span>
-                </button>
+                  </button>
+                </div>
 
                 {isOpen &&
                   items.map((p) => {
@@ -8731,9 +8949,117 @@ function findProductByParam(products, raw) {
  * products carry such a URL, and rendering it would put back the external
  * request A7 removed — on a page that did not exist when A7 shipped.
  */
-function CatalogLanding({ products }) {
+function CatalogLanding({
+  products,
+  totalCount,
+  query,
+  onQueryChange,
+  activeFamily,
+  onClearFilters,
+}) {
+  const searchId = useId();
+  const filtered = !!(query || activeFamily);
   return (
     <div>
+      {/* F2 — /products had no search box at all.
+          Every prominent route into the catalog lands here: the hero "Browse
+          Products", "View Full Catalog", all the product-category cards, the
+          closing CTA and the footer's "Product Catalog". The only product
+          search on the site was on /dashboard, reachable as the second item in
+          a dropdown. Buyers in this category arrive with a part number or a
+          spec, so the site funnelled almost everyone into 42 unsearchable
+          cards while the good tool sat one level down. */}
+      <div className="mb-5 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1">
+          <label htmlFor={searchId} className="sr-only">
+            Search the product catalog
+          </label>
+          <input
+            id={searchId}
+            type="text"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder="Search by part number, name or type…"
+            className="w-full rounded-lg outline-none transition-all duration-200"
+            style={{
+              border: "1px solid #d1d9e0",
+              padding: "10px 14px",
+              fontSize: 14,
+              background: "#ffffff",
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = "var(--brand-primary)";
+              e.target.style.boxShadow = "0 0 0 3px rgba(var(--brand-primary-rgb),0.12)";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "#d1d9e0";
+              e.target.style.boxShadow = "none";
+            }}
+          />
+        </div>
+        {/* Mirrors the Product Index's live count so the two catalog surfaces
+            describe their state the same way. */}
+        <div
+          className="text-sm font-semibold flex-shrink-0"
+          style={{ color: "#4b5563" }}
+          aria-live="polite"
+        >
+          {filtered
+            ? `${products.length} of ${totalCount} products`
+            : `${totalCount} products`}
+        </div>
+        {filtered && (
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="ipc-tap flex-shrink-0 text-sm font-semibold rounded-lg"
+            style={{
+              padding: "8px 14px",
+              border: "1px solid #d1d9e0",
+              background: "#ffffff",
+              color: "var(--brand-primary-text)",
+              cursor: "pointer",
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* The Product Index answers an empty result with a reason and a way
+          out; this grid used to be able to render nothing at all only because
+          it never filtered. Now that it can, it needs the same courtesy. */}
+      {products.length === 0 ? (
+        <div
+          className="rounded-xl text-center"
+          style={{ border: "1px dashed #d1d9e0", background: "#ffffff", padding: "48px 24px" }}
+        >
+          <div className="text-base font-bold" style={{ color: "#141414" }}>
+            No products found
+          </div>
+          <p className="mt-2 text-sm" style={{ color: "#4b5563" }}>
+            {query
+              ? `No results for “${query}”${activeFamily ? ` in ${activeFamily}` : ""}. Try a different term, or clear the filters.`
+              : `Nothing in ${activeFamily}.`}{" "}
+            Sizes are listed on each product page — if you know the size but not
+            the part number, call 630.771.0700 and we will point you at it.
+          </p>
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="ipc-tap mt-4 text-sm font-semibold rounded-lg"
+            style={{
+              padding: "10px 18px",
+              border: "none",
+              background: "var(--brand-primary)",
+              color: "var(--brand-primary-ink)",
+              cursor: "pointer",
+            }}
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
         {products.map((p) => {
           const photo =
@@ -8807,6 +9133,7 @@ function CatalogLanding({ products }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
@@ -8841,6 +9168,70 @@ function ProductPage({ products }) {
   const landing = !selectedId;
   const product = matched;
 
+  /**
+   * F1/F2 — the catalog landing is FILTERABLE and SEARCHABLE, at every width.
+   *
+   * The sidebar has always shown a per-family count next to each family name,
+   * which is the universal signature of a filter. It did not filter: clicking
+   * a family expanded an accordion of jump-links and left all 42 cards in the
+   * grid, in part-number order, led by conduit couplings. Meanwhile the same
+   * page at <lg rendered those families as chips that DID filter. Desktop —
+   * the primary B2B browsing context — was strictly worse at the catalog's
+   * core job than mobile. (UX audit F1)
+   *
+   * The state lives HERE rather than in ProductSidebar because two siblings
+   * need it: the sidebar (which sets it) and CatalogLanding (which renders the
+   * result). It was sidebar-local before, which is precisely why the grid
+   * never saw it.
+   *
+   * `family` is a URL param, not component state, so a filtered catalog is
+   * shareable and survives Back — and so the breadcrumb can link to one (F7).
+   * The search box is deliberately NOT in the URL: it is a within-page
+   * narrowing, it changes on every keystroke, and pushing history entries per
+   * character would trap Back.
+   */
+  const [familyParam] = useSearchParam("family");
+  const [, setSearchParamsRaw] = useSearchParams();
+  const [query, setQuery] = useState("");
+  const activeFamily = familyParam || null;
+
+  // Selecting a family means "show me this family's catalog", so it also
+  // clears any open product — otherwise the filter applies to a grid that
+  // isn't on screen and nothing appears to happen, which is the original
+  // defect again.
+  //
+  // ONE setSearchParams call, deliberately. Doing this as two useSearchParam
+  // setters (set family, then clear productId) looks equivalent and is not:
+  // both updaters receive the params as they were at the start of the tick,
+  // so the second rebuilds from a snapshot that never had `family` in it and
+  // silently drops the filter that was just set. Measured — the click changed
+  // the highlight and left all 42 cards in place, which reads exactly like
+  // the bug this whole change exists to fix.
+  const onFamilyFilter = useCallback(
+    (fam) => {
+      setSearchParamsRaw((prev) => {
+        const next = new URLSearchParams(prev);
+        if (fam) next.set("family", fam);
+        else next.delete("family");
+        next.delete("productId");
+        return next;
+      });
+    },
+    [setSearchParamsRaw],
+  );
+
+  const visibleProducts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return products.filter((p) => {
+      if (activeFamily && String(p.partType || "") !== activeFamily) return false;
+      if (!q) return true;
+      // Same haystack the Product Index searches on, so the two surfaces agree
+      // about what "no results" means.
+      return [p.sku, p.id, p.name, p.partType, p.description]
+        .some((v) => String(v || "").toLowerCase().includes(q));
+    });
+  }, [products, activeFamily, query]);
+
   // C33 — the breadcrumb trail for this route.
   const families = familyOrder(useContent());
   const crumbTrail = useMemo(() => {
@@ -8851,7 +9242,13 @@ function ProductPage({ products }) {
     if (!product) return t;
     const family = String(product.partType || "").trim();
     if (family && families.includes(family)) {
-      t.push({ label: family, page: "dashboard", params: { family } });
+      // F7 — this used to point at page:"dashboard", so the middle rung of the
+      // breadcrumb threw the visitor out of the catalog and into the Product
+      // Index: a different page with a different layout, on the way "up" from
+      // a product. A breadcrumb reads as a ladder up the page you are on.
+      // Now that /products can filter by family (F1), the rung has somewhere
+      // honest to point.
+      t.push({ label: family, page: "products", params: { family } });
     }
     t.push({ label: product.name, page: "products", params: { productId: product.id } });
     return t;
@@ -8937,7 +9334,10 @@ function ProductPage({ products }) {
       >
         <div className="max-w-7xl mx-auto px-6 py-12">
           <PageEyebrow>
-            Products
+            {/* F6 — orient the visitor arriving cold on a deep link. The
+                eyebrow said "Products" on every one of the 42 product pages,
+                which told them nothing they could not already see. */}
+            {product ? product.partType || "Products" : "Products"}
           </PageEyebrow>
           {/* A3 — deliberately a div, not an <h1>.
               /products always has a product selected, so this band said
@@ -8959,17 +9359,33 @@ function ProductPage({ products }) {
               Product Catalog
             </h1>
           ) : (
+            /* F6 — this div is the biggest text on the page at 36px, and on a
+               product page it said "Product Catalog" while the page's actual
+               subject, the product name, rendered at 20px some 200px further
+               down. The <h1> was already correct (see the A3 note above) so
+               this is a visual-hierarchy fix, not a semantic one: the div now
+               names the product it is sitting above. It stays a div — the
+               product-name <h1> in the detail header is still the only h1. */
             <div className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
-              Product Catalog
+              {product.name}
             </div>
           )}
           <p
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
+            {/* Once the catalog can be filtered (F1), "Browse all 42 products"
+                is false the moment a family is chosen — the page said 42 while
+                showing 12. Describe the view that is actually on screen. */}
             {landing || notFound
-              ? `Browse all ${products.length} products — heat shrink tubing, sleeving, tapes, adhesives and accessories. Select one for full specifications, its data sheet, and a quote request.`
-              : "Select another product from the list to view full specifications, data sheet, and request a quote."}
+              ? activeFamily
+                ? `${activeFamily} — showing ${visibleProducts.length} of ${products.length} products. Select one for full specifications, its data sheet, and a quote request.`
+                : `Browse all ${products.length} products — heat shrink tubing, sleeving, tapes, adhesives and accessories. Select one for full specifications, its data sheet, and a quote request.`
+              : /* F6 — "Select another product from the list…" instructed the
+                   visitor to do the thing they had already done, on a page
+                   showing the result. The product's own caption is the useful
+                   sentence here; the SKU is the fallback when it has none. */
+                product.caption || `Part ${product.sku || product.id} — full specifications, data sheet and quote request below.`}
           </p>
         </div>
       </div>
@@ -9028,6 +9444,8 @@ function ProductPage({ products }) {
         <ProductSidebar
           products={products}
           selectedId={product ? product.id : null}
+          activeFamily={activeFamily}
+          onFamilyFilter={onFamilyFilter}
           onNavigate={() => {
             // PageLink has already written ?productId= to the URL; this is only
             // the side effect the old onSelect performed alongside it.
@@ -9041,7 +9459,17 @@ function ProductPage({ products }) {
         />
         <div ref={detailRef} className="flex-1 min-w-0">
           {landing || notFound ? (
-            <CatalogLanding products={products} />
+            <CatalogLanding
+              products={visibleProducts}
+              totalCount={products.length}
+              query={query}
+              onQueryChange={setQuery}
+              activeFamily={activeFamily}
+              onClearFilters={() => {
+                setQuery("");
+                onFamilyFilter(null);
+              }}
+            />
           ) : (
             <ProductDetail product={product} allProducts={products} />
           )}
@@ -9220,6 +9648,15 @@ function ProductPage({ products }) {
             ) : null}
             <PageLink
               page="contact"
+              // F8 — this carried no params, so the sticky bar's "Request a
+              // Quote" landed on an EMPTY form while the identically-named
+              // button in the product card header sent ?part= and pre-filled
+              // it. Two controls, same label, same page, different outcome —
+              // and this is the one on screen after the visitor has scrolled
+              // the spec table, so it is the one they are most likely to
+              // press. The Data Sheet button beside it already knew which
+              // product it was on.
+              params={{ part: product.sku || product.id }}
               className="ipc-tap"
               style={{
                 display: "flex",
@@ -10044,9 +10481,16 @@ function DashboardPage({ products }) {
                             lineHeight: 1.5,
                           }}
                         >
+                          {/* F15 — "1/2 inch" is a plausible first query and
+                              returns 0 of 42, because this searches part ID,
+                              type and description and the sizes live in each
+                              product's own spec table. The placeholder is
+                              honest about the scope, but nobody re-reads a
+                              placeholder after a miss — say it here, where the
+                              miss actually happens. */}
                           {tableRows.length === 0
                             ? "Please wait while the product catalog loads."
-                            : `No results${search ? ` for "${search}"` : ""}${activeFamily !== "All" ? ` in ${activeFamily}` : ""}. Try a different search term or clear the category filter.`}
+                            : `No results${search ? ` for "${search}"` : ""}${activeFamily !== "All" ? ` in ${activeFamily}` : ""}. This searches part IDs, types and descriptions — sizes are listed on each product page. Try a different term, clear the category filter, or call 630.771.0700.`}
                         </div>
                         {(search || activeFamily !== "All") && (
                           <button
@@ -11054,10 +11498,14 @@ function ServicesPage() {
    * write a qualifier, and rewriting "\u2264 1 week (JIT by agreement)" into
    * "\u2264 1 week" would delete the very information he added.
    *
-   * So: the majority value is the headline, and anything else is counted in a
-   * note pointing at the per-service cards, which carry their own lead times
-   * anyway. With no majority there is nothing honest to headline, so it says
-   * so. Driven from three scratch content files in plan8-chrome.js \u2014 all six
+   * So: the majority value is the headline. A minority exception is NOT
+   * announced \u2014 see the note in the branch below for why that was removed.
+   * (An earlier version of this comment claimed the per-service cards "carry
+   * their own lead times anyway". They do not, and never did; that claim is
+   * what made the removed note look defensible.)
+   *
+   * With no majority there is nothing honest to headline, so it says so.
+   * Driven from three scratch content files in plan8-chrome.js \u2014 all six
    * identical, five plus one qualified, and six all different \u2014 because the
    * shipped data only exercises one of them.
    */
@@ -11072,13 +11520,17 @@ function ServicesPage() {
 
     if (ranked.length === 1) return { headline: top, note: "" };
 
-    if (topCount > vals.length / 2) {
-      const others = vals.length - topCount;
-      return {
-        headline: top,
-        note: `${others} service${others === 1 ? "" : "s"} differ${others === 1 ? "s" : ""} \u2014 see below`,
-      };
-    }
+    // The exception used to be counted into a note here: "1 service differs \u2014
+    // see below". Two problems. It never named the service, so the reader was
+    // handed a caveat about their own schedule with no way to resolve it; and
+    // "see below" was false \u2014 the service cards render title, desc and details
+    // and have never rendered leadTime, so the information it pointed at was
+    // not on the page. Removed at the owner's instruction. (UX audit F12)
+    //
+    // The qualifier that triggered it is Kitting & Bagging's "\u2264 1 week (JIT by
+    // agreement)". If that needs to be visible again, render svc.leadTime on
+    // the cards \u2014 do not reinstate a note pointing at nothing.
+    if (topCount > vals.length / 2) return { headline: top, note: "" };
     return { headline: "Varies by service", note: "Each service lists its own lead time below" };
   }, [services]);
 
@@ -11506,7 +11958,10 @@ function PrivacyPage() {
         </div>
 
         <p className="mt-6 text-xs text-center" style={{ color: "#4b5563" }}>
-          © {site.company.foundedYear}–{new Date().getFullYear()} {site.company.name} ·
+          {/* The line break after the middot is JSX whitespace, which is
+              trimmed at end of line — so this rendered "Corporation ·250
+              Gibraltar Dr". The explicit {" "} survives the trim. (F17) */}
+          © {site.company.foundedYear}–{new Date().getFullYear()} {site.company.name} ·{" "}
           {site.address.street}, {site.address.city}, {site.address.state} {site.address.zip}
         </p>
       </div>
