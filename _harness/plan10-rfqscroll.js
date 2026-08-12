@@ -57,14 +57,19 @@ const READ = () => {
   const hr = h ? h.getBoundingClientRect() : null;
   const ar = a ? a.getBoundingClientRect() : null;
   /* The label the VISITOR sees, which is not always the one the DOM associates.
-     On the message tab all four mapped labels carry htmlFor="rfq-subject"
-     (src/App.jsx:5455, a copy-paste from the RFQ form), so input[name=name].labels
-     is EMPTY there and the visible "Full Name *" above it is associated with a
-     different input entirely. That is a real defect and it is NOT item 3's — it
-     is logged in WHATS_LEFT.md §2, unfixed, per PLAN-10 §1.1. This check is
-     about what the visitor can see, so it falls back to the label rendered in
-     the field's own wrapper, and reports which mechanism found it so the
-     fallback cannot quietly become the norm. */
+
+     HISTORY: on the message tab all four mapped labels used to carry the
+     literal htmlFor="rfq-subject" (a copy-paste from the RFQ form) while the
+     inputs carried no id, so input[name=name].labels was EMPTY and the visible
+     "Full Name *" was associated with the Subject box instead. The UX audit
+     (F3) measured the consequence — clicking any of those four labels focused
+     Subject — and the ids are now derived per field as msg-${name}.
+
+     The wrapper fallback below is KEPT deliberately. It is what caught the
+     defect in the first place, and `labelVia` is what makes the difference
+     visible: every field should now report 'labels', and any future 'message'
+     tab row reporting 'wrapper' means the association has regressed. Do not
+     drop the fallback and do not stop reporting which mechanism found it. */
   let lab = a && a.labels && a.labels.length ? a.labels[0] : null;
   const labelVia = lab ? 'labels' : 'wrapper';
   if (!lab && a && a.parentElement) lab = a.parentElement.querySelector('label');

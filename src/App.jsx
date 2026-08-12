@@ -2642,12 +2642,15 @@ const MKT_MARKETS = [
     desc: "UV-rated PVC, dual-wall adhesive-lined tubing, and nonmetallic liquid-tight conduit fittings.",
     page: "industries",
   },
-  {
-    iconKey: "electronics",
-    label: "Electronics & Lab",
-    desc: "PTFE spaghetti tubing, thin-wall polyolefin, and Mylar high-dielectric for PCB and instrumentation work.",
-    page: "industries",
-  },
+  // There was a sixth card here, "Electronics & Lab". IPC does not advertise
+  // that as an industry — it was never a business decision, and no matching
+  // section was ever written for the Industries page, so its "Learn More →"
+  // dropped the visitor at the top of a page about five OTHER industries.
+  // Removed at the owner's instruction. (UX audit F4)
+  //
+  // This list must stay in step with content.json's `industryDetail`, which
+  // has five entries. marketAnchor() below still tolerates a mismatch — keep
+  // that tolerance, it is what stopped this from shipping a dangling fragment.
 ];
 
 /**
@@ -4681,7 +4684,14 @@ function ContactPage() {
       const body = new FormData(e.target);
       body.append("form_type", "message");
       const res  = await fetch("/contact.php", { method: "POST", body });
-      const json = await res.json().catch(() => ({ ok: false, error: "Unexpected server response." }));
+      // Deliberately carries NO `error`. This catch fires when the response
+      // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
+      // interstitial. It used to supply "Unexpected server response.", which
+      // satisfied the `json.error ||` below and so SHADOWED cf.submitError,
+      // the owner-editable fallback that has the phone number in it. The
+      // visitor lost a whole RFQ and got a developer's phrase with no way to
+      // reach anyone. Leaving error unset lets the real fallback through. (F9)
+      const json = await res.json().catch(() => ({ ok: false }));
       if (json.ok) {
         setSubmittedTab("message");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
@@ -4722,7 +4732,14 @@ function ContactPage() {
       const body = new FormData(e.target);
       body.append("form_type", "rfq");
       const res  = await fetch("/contact.php", { method: "POST", body });
-      const json = await res.json().catch(() => ({ ok: false, error: "Unexpected server response." }));
+      // Deliberately carries NO `error`. This catch fires when the response
+      // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
+      // interstitial. It used to supply "Unexpected server response.", which
+      // satisfied the `json.error ||` below and so SHADOWED cf.submitError,
+      // the owner-editable fallback that has the phone number in it. The
+      // visitor lost a whole RFQ and got a developer's phrase with no way to
+      // reach anyone. Leaving error unset lets the real fallback through. (F9)
+      const json = await res.json().catch(() => ({ ok: false }));
       if (json.ok) {
         setSubmittedTab("rfq");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
@@ -5459,14 +5476,22 @@ function ContactPage() {
                   },
                 ].map((f) => (
                   <div key={f.name}>
+                    {/* The htmlFor was the literal "rfq-subject" for all four
+                        of these, and the inputs carried no id at all. Every
+                        label therefore pointed at the Subject box: clicking
+                        FULL NAME, EMAIL, PHONE or COMPANY put the cursor in
+                        Subject, and the four fields were unlabelled to a
+                        screen reader. Derive both from f.name so they cannot
+                        drift apart again. (UX audit F3) */}
                     <label
-                      htmlFor="rfq-subject"
+                      htmlFor={`msg-${f.name}`}
                       className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                       style={{ color: "#6b7280" }}
                     >
                       {f.label}
                     </label>
                     <input
+                      id={`msg-${f.name}`}
                       type={f.type}
                       name={f.name}
                       value={msgForm[f.name]}
@@ -5482,14 +5507,18 @@ function ContactPage() {
                 ))}
               </div>
               <div>
+                {/* Was the one label on this form with no htmlFor at all, so
+                    clicking "SUBJECT" focused nothing. The msg- prefix also
+                    retires the rfq- ids this form was borrowing. (F3) */}
                 <label
+                  htmlFor="msg-subject"
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
                   {cf.subjectLabel}
                 </label>
                 <input
-                  id="rfq-subject"
+                  id="msg-subject"
                   type="text"
                   name="subject"
                   value={msgForm.subject}
@@ -5503,14 +5532,14 @@ function ContactPage() {
               </div>
               <div>
                 <label
-                  htmlFor="rfq-message"
+                  htmlFor="msg-message"
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
                   {cf.messageLabel}
                 </label>
                 <textarea
-                  id="rfq-message"
+                  id="msg-message"
                   name="message"
                   value={msgForm.message}
                   onChange={onMsgChange}
@@ -11035,10 +11064,14 @@ function ServicesPage() {
    * write a qualifier, and rewriting "\u2264 1 week (JIT by agreement)" into
    * "\u2264 1 week" would delete the very information he added.
    *
-   * So: the majority value is the headline, and anything else is counted in a
-   * note pointing at the per-service cards, which carry their own lead times
-   * anyway. With no majority there is nothing honest to headline, so it says
-   * so. Driven from three scratch content files in plan8-chrome.js \u2014 all six
+   * So: the majority value is the headline. A minority exception is NOT
+   * announced \u2014 see the note in the branch below for why that was removed.
+   * (An earlier version of this comment claimed the per-service cards "carry
+   * their own lead times anyway". They do not, and never did; that claim is
+   * what made the removed note look defensible.)
+   *
+   * With no majority there is nothing honest to headline, so it says so.
+   * Driven from three scratch content files in plan8-chrome.js \u2014 all six
    * identical, five plus one qualified, and six all different \u2014 because the
    * shipped data only exercises one of them.
    */
@@ -11053,13 +11086,17 @@ function ServicesPage() {
 
     if (ranked.length === 1) return { headline: top, note: "" };
 
-    if (topCount > vals.length / 2) {
-      const others = vals.length - topCount;
-      return {
-        headline: top,
-        note: `${others} service${others === 1 ? "" : "s"} differ${others === 1 ? "s" : ""} \u2014 see below`,
-      };
-    }
+    // The exception used to be counted into a note here: "1 service differs \u2014
+    // see below". Two problems. It never named the service, so the reader was
+    // handed a caveat about their own schedule with no way to resolve it; and
+    // "see below" was false \u2014 the service cards render title, desc and details
+    // and have never rendered leadTime, so the information it pointed at was
+    // not on the page. Removed at the owner's instruction. (UX audit F12)
+    //
+    // The qualifier that triggered it is Kitting & Bagging's "\u2264 1 week (JIT by
+    // agreement)". If that needs to be visible again, render svc.leadTime on
+    // the cards \u2014 do not reinstate a note pointing at nothing.
+    if (topCount > vals.length / 2) return { headline: top, note: "" };
     return { headline: "Varies by service", note: "Each service lists its own lead time below" };
   }, [services]);
 
@@ -11487,7 +11524,10 @@ function PrivacyPage() {
         </div>
 
         <p className="mt-6 text-xs text-center" style={{ color: "#4b5563" }}>
-          © {site.company.foundedYear}–{new Date().getFullYear()} {site.company.name} ·
+          {/* The line break after the middot is JSX whitespace, which is
+              trimmed at end of line — so this rendered "Corporation ·250
+              Gibraltar Dr". The explicit {" "} survives the trim. (F17) */}
+          © {site.company.foundedYear}–{new Date().getFullYear()} {site.company.name} ·{" "}
           {site.address.street}, {site.address.city}, {site.address.state} {site.address.zip}
         </p>
       </div>

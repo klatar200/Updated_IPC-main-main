@@ -87,12 +87,6 @@
             "label": "Marine & Outdoor",
             "desc": "UV-rated PVC, dual-wall adhesive-lined tubing, and nonmetallic liquid-tight conduit fittings.",
             "page": "industries"
-        },
-        {
-            "iconKey": "electronics",
-            "label": "Electronics & Lab",
-            "desc": "PTFE spaghetti tubing, thin-wall polyolefin, and Mylar high-dielectric for PCB and instrumentation work.",
-            "page": "industries"
         }
     ],
     "industryDetail": [

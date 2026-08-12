@@ -387,7 +387,22 @@ Ordered by value. Nothing here blocks the upload.
 - [x] **4.31** ~~`content.php` renders 418 unlabelled form controls.~~ **SHIPPED 2026-08-06 (Plan 4)** — **`AMENDED`: the precise figures are 418 controls with zero `for`/`id` association, of which 397 had no accessible name at all** (the remaining 21 were named by their placeholder). All now labelled, ids unique and stable across reordering, sections are `<fieldset>`/`<legend>`. **Posted variable count unchanged at 421 — the plan's "423" was itself an over-count.** See §1b and §4k.
 - [x] **4.32** ~~9.3 MB of unoptimised images (`Front-Cover.jpg` 1.5 MB, `VALUE-ADDED.png` 683 KB, …).~~ **SHIPPED 2026-08-06 (Plan 5)** — 9,357,354 → 2,668,995 bytes, `du -sh` **9.1M → 2.7M**, largest file 198,726 B, zero over 300 KB, no filename changed, no crop, no retouch. `AMENDED`: the measured total was 9.1 MB / 9,357,354 bytes, not 9.3 MB. Original wording and the earlier partial note kept below for the record. **PARTIALLY SHIPPED 2026-08-05:** the second half of this item — "served `immutable, max-age=31536000`, so an FTP'd photo fix won't reach returning visitors for a year" — was misfiled here as an image-weight problem. It was a mis-scoped `FilesMatch` in `public/.htaccess` with no path restriction, and it is fixed (NB1). **The image-weight work remains open.**
 
-- [ ] **`/contact` message tab: four labels all point at the wrong input.** Found
+- [x] **`/contact` message tab: four labels all point at the wrong input.**
+  **SHIPPED 2026-08-12 (UX audit F3).** The four mapped labels now derive
+  `htmlFor` from the field's own `name` (`msg-${f.name}`) and each input
+  carries the matching `id`; the Subject label gained the `htmlFor` it never
+  had, and Subject/Message moved off the borrowed `rfq-` ids onto `msg-`.
+  Measured in the browser after the fix: clicking **Full Name → name, Email →
+  email, Phone → phone, Company → company, Subject → subject, Message →
+  message** (previously the first four all landed on Subject and Subject
+  landed on nothing), and **zero** visible fields on the tab are left without
+  an associated label. The acceptance check the entry below asked for exists
+  and is re-runnable. `_harness/plan10-rfqscroll.js` keeps its wrapper
+  fallback deliberately — `labelVia` should now read `labels` for every field,
+  and a `wrapper` reading on the message tab means this has regressed.
+  Original entry follows for the record.
+
+  ~~Found
   2026-08-10 while measuring PLAN-10 item 3 (A10-012), which required the
   message tab to be measured rather than assumed. In the General Message form,
   the four mapped fields — Full Name, Email, Phone, Company — each render
@@ -405,7 +420,7 @@ Ordered by value. Nothing here blocks the upload.
   already uses — small, and it wants its own acceptance check. Recorded in
   `_harness/plan10-rfqscroll.js`, which falls back to the label rendered in the
   field's own wrapper and reports which mechanism found it, so the fallback
-  cannot quietly become the norm.
+  cannot quietly become the norm.~~
 
 - [ ] **Six admin pages redeclare the shared header that `admin/nav.php` owns,
   and one of the copies silently defeated a fix.** Found 2026-08-11 while
