@@ -715,6 +715,21 @@ function Navbar({ products = [], catalogFailed = false }) {
             const open = openDropdown === "products";
             return (
               <div
+                // F10 — Escape only ever closed this menu while focus was
+                // still on the trigger, because that is where the handler
+                // lived. Tab once and you are inside the menu, where Escape
+                // did nothing: aria-expanded stayed true and focus did not
+                // move, so a keyboard user who opened the menu and changed
+                // their mind had to tab through all thirteen items or reach
+                // for the mouse. Handling it on the wrapper catches the key
+                // wherever focus is inside, and focus is returned to the
+                // trigger rather than left orphaned in a hidden subtree.
+                onKeyDown={(e) => {
+                  if (e.key !== "Escape") return;
+                  e.stopPropagation();
+                  setOpenDropdown(null);
+                  e.currentTarget.querySelector("button")?.focus();
+                }}
                 style={{
                   position: "relative",
                   display: "flex",
@@ -1033,6 +1048,14 @@ function Navbar({ products = [], catalogFailed = false }) {
             const open = openDropdown === "company";
             return (
               <div
+                // F10 — same as the Products menu above: Escape from inside
+                // the open panel left it open with focus stranded.
+                onKeyDown={(e) => {
+                  if (e.key !== "Escape") return;
+                  e.stopPropagation();
+                  setOpenDropdown(null);
+                  e.currentTarget.querySelector("button")?.focus();
+                }}
                 style={{
                   position: "relative",
                   display: "flex",
@@ -3000,8 +3023,37 @@ function DatasheetsPage({ products }) {
         </div>
 
         {groups.length === 0 ? (
-          <div className="bg-white rounded-xl p-6 text-center text-sm" style={{ border: "1px solid #e5e9ee", color: "#6b7280" }}>
-            No datasheets match “{q}”.
+          /* F11 — this was one sentence and no way out, while the Product
+             Index's equivalent state explains itself and offers "Clear all
+             filters". Two search surfaces, two standards, and this was the one
+             giving the least help. F15 — the scope note is here rather than in
+             the placeholder because "1/2 inch" returning nothing is only
+             confusing at the moment it happens: sizes live in each product's
+             spec table, which this filter does not read. */
+          <div className="bg-white rounded-xl p-8 text-center" style={{ border: "1px solid #e5e9ee" }}>
+            <div className="text-base font-bold" style={{ color: "#141414" }}>
+              No datasheets found
+            </div>
+            <p className="mt-2 text-sm" style={{ color: "#4b5563" }}>
+              Nothing matches “{q}”. This filter covers part numbers, product
+              names and families — sizes are listed inside each datasheet, so
+              try the part number or call 630.771.0700 and we will point you at
+              the right one.
+            </p>
+            <button
+              type="button"
+              onClick={() => setQ("")}
+              className="ipc-tap mt-4 text-sm font-semibold rounded-lg"
+              style={{
+                padding: "10px 18px",
+                border: "none",
+                background: "var(--brand-primary)",
+                color: "var(--brand-primary-ink)",
+                cursor: "pointer",
+              }}
+            >
+              Clear filter
+            </button>
           </div>
         ) : (
           <div className="space-y-8">
@@ -3107,6 +3159,43 @@ function HomePage() {
           ceiling and cannot go larger or retina — measured in the amendment. */}
       {(img.bandTeamPhoto || img.bandBuildingPhoto) ? (
       <section className="px-6 py-14" style={{ background: "#f5f7fa" }}>
+        {/* F14 — these two photographs sat between "Talk to Our Sales Team"
+            and "Industries Served" with no heading, caption or link: a sighted
+            visitor saw two uncaptioned images and had to guess, while the alt
+            text ("The Insulation Products Corporation team outside the
+            Bolingbrook facility") gave a screen-reader user the better
+            experience. They are trust assets — a real team and a real building
+            for a fifty-year-old firm — and were doing none of that work. The
+            alt text is left alone; it describes the image, which is its job.
+            This is the on-screen sentence it was missing. */}
+        <div className="max-w-7xl mx-auto mb-6">
+          <div
+            className="text-xs font-bold tracking-widest uppercase"
+            style={{ color: "var(--brand-primary-text)" }}
+          >
+            Bolingbrook, Illinois
+          </div>
+          <h2
+            className="text-2xl font-extrabold mt-1"
+            style={{ color: "#141414" }}
+          >
+            The same team, the same building, since 1974
+          </h2>
+          <p className="mt-2 text-sm max-w-2xl" style={{ color: "#4b5563" }}>
+            IPC has stocked, cut and shipped from 250 Gibraltar Drive for over
+            fifty years — privately held, independent, and ISO 9001 registered.{" "}
+            <PageLink
+              page="about"
+              style={{
+                color: "var(--brand-primary-text)",
+                textDecoration: "underline",
+                fontWeight: 600,
+              }}
+            >
+              More about IPC →
+            </PageLink>
+          </p>
+        </div>
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
           {img.bandTeamPhoto ? (
           <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
@@ -10385,9 +10474,16 @@ function DashboardPage({ products }) {
                             lineHeight: 1.5,
                           }}
                         >
+                          {/* F15 — "1/2 inch" is a plausible first query and
+                              returns 0 of 42, because this searches part ID,
+                              type and description and the sizes live in each
+                              product's own spec table. The placeholder is
+                              honest about the scope, but nobody re-reads a
+                              placeholder after a miss — say it here, where the
+                              miss actually happens. */}
                           {tableRows.length === 0
                             ? "Please wait while the product catalog loads."
-                            : `No results${search ? ` for "${search}"` : ""}${activeFamily !== "All" ? ` in ${activeFamily}` : ""}. Try a different search term or clear the category filter.`}
+                            : `No results${search ? ` for "${search}"` : ""}${activeFamily !== "All" ? ` in ${activeFamily}` : ""}. This searches part IDs, types and descriptions — sizes are listed on each product page. Try a different term, clear the category filter, or call 630.771.0700.`}
                         </div>
                         {(search || activeFamily !== "All") && (
                           <button
