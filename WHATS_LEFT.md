@@ -3930,3 +3930,45 @@ individually and confirmed as *"no spec table scrolls horizontally at 1440"*
 
 See the PLAN-9 handback (PR body): the §9 list re-run at the end of the
 branch, same three expected exceptions, plus the five plan9 suites green.
+
+---
+
+## 2i. Open after the PLAN-10 public-site screenshot crawl (2026-08-11)
+
+Found while standing the harness up for the crawl that produced
+`site-screenshots/2026-08-11-after-plan10/`. Recorded, not repaired — the crawl
+was a capture-and-report task and this belongs to whoever owns the docs.
+
+- [ ] **GUARDRAILS §4.2 names the wrong ini for :8123, and it is the one that
+  breaks the contact form.** The server table at `plans/GUARDRAILS.md:244` says
+  port 8123 runs `php-extra.ini`. `_harness/php-extra.ini` sets no
+  `sendmail_path`, so on that server every `contact.php` POST dies in the "mail
+  server could not send" branch and nothing past it runs — which is the exact
+  false-result class §4.2 itself exists to warn about. `_harness/php-mail.ini:18`
+  is the one that sets `sendmail_path = "../fakemail.sh"`, and its own header
+  comment (`_harness/php-mail.ini:2-5`) says so in terms.
+
+  The two authorities disagree: `_harness/README.md:26` — the file GUARDRAILS
+  §4.1 designates as "the live suite list" — launches :8123 with
+  `php-mail.ini`, and so does its ten-server fleet at `_harness/README.md:50`.
+  GUARDRAILS is binding and `_harness/README.md` is merely current, so an
+  executor who follows the binding document gets the broken configuration.
+
+  Evidence: this crawl ran :8123 on `php-mail.ini` and the
+  `states/contact-failed-submit__390.png` frame reached its state; `invariants`
+  17/17 under the same server. Not re-tested under `php-extra.ini` — the failure
+  is read off the absent `sendmail_path`, so treat the breakage itself as
+  reasoned rather than measured.
+
+  Fix is one word in one table row, but §4.2 is inside a binding document, so it
+  wants an owner rather than a drive-by edit.
+
+- [ ] **GUARDRAILS §4.2's opening line still says `_harness/` is gitignored.**
+  `plans/GUARDRAILS.md:232` — "`_harness/` is gitignored, ~30 MB, and must never
+  be deployed". Only the three generated directories are ignored now
+  (`.gitignore:67-69`: `_harness/site/`, `_harness/pristine/`, `_harness/out/`);
+  the suite code is tracked — 214 files including this crawl's own script — and `.gitignore`
+  carries a comment explaining the deliberate change. §4.1 already documents the
+  new state, so §4.2's line is a leftover from before it. Harmless today, but it
+  is the sentence an executor reads before deciding whether a new suite they
+  wrote will survive the session. AMENDED-style correction, same owner as above.
