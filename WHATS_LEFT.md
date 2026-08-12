@@ -388,21 +388,26 @@ Ordered by value. Nothing here blocks the upload.
 - [x] **4.32** ~~9.3 MB of unoptimised images (`Front-Cover.jpg` 1.5 MB, `VALUE-ADDED.png` 683 KB, …).~~ **SHIPPED 2026-08-06 (Plan 5)** — 9,357,354 → 2,668,995 bytes, `du -sh` **9.1M → 2.7M**, largest file 198,726 B, zero over 300 KB, no filename changed, no crop, no retouch. `AMENDED`: the measured total was 9.1 MB / 9,357,354 bytes, not 9.3 MB. Original wording and the earlier partial note kept below for the record. **PARTIALLY SHIPPED 2026-08-05:** the second half of this item — "served `immutable, max-age=31536000`, so an FTP'd photo fix won't reach returning visitors for a year" — was misfiled here as an image-weight problem. It was a mis-scoped `FilesMatch` in `public/.htaccess` with no path restriction, and it is fixed (NB1). **The image-weight work remains open.**
 
 - [x] **`/contact` message tab: four labels all point at the wrong input.**
-  **SHIPPED 2026-08-12 (UX audit F3).** The four mapped labels now derive
-  `htmlFor` from the field's own `name` (`msg-${f.name}`) and each input
-  carries the matching `id`; the Subject label gained the `htmlFor` it never
-  had, and Subject/Message moved off the borrowed `rfq-` ids onto `msg-`.
-  Measured in the browser after the fix: clicking **Full Name → name, Email →
-  email, Phone → phone, Company → company, Subject → subject, Message →
-  message** (previously the first four all landed on Subject and Subject
-  landed on nothing), and **zero** visible fields on the tab are left without
-  an associated label. The acceptance check the entry below asked for exists
-  and is re-runnable. `_harness/plan10-rfqscroll.js` keeps its wrapper
-  fallback deliberately — `labelVia` should now read `labels` for every field,
-  and a `wrapper` reading on the message tab means this has regressed.
-  Original entry follows for the record.
+  **SHIPPED 2026-08-12** — during a pre-launch verification of the contact
+  form. The fix is what this entry predicted: four `htmlFor`s and one `id` per
+  field, on the `msg-` prefix the form already used for its honeypot, plus the
+  `htmlFor` the Subject label never had. `rfq-message` → `msg-message` came
+  with it: the two tabs render the same field names and only one is mounted at
+  a time, so a shared `rfq-` prefix was a duplicate id waiting for the day both
+  are. Re-measured in the browser — on the message tab `input[name=name].labels`
+  is now `["Full Name *"]`, the Subject input has exactly **one** label (was
+  five, four of them naming other fields), clicking any label focuses its own
+  field, and there are no duplicate ids on either tab. **This entry's condition
+  for the fix — "it wants its own acceptance check" — is met by the `labels`
+  scenario of `_harness/contactflow.js`**, which asserts association *and* text
+  on both tabs (association alone passes if every label points at one input
+  carrying the wrong words; text alone passes on the broken tree, because the
+  right words were on screen the whole time, sitting above the wrong input).
+  `contactflow-selftest.js` puts the defect back in the built bundle and
+  requires that check to fail. `plan10-rfqscroll.js` keeps its wrapper fallback
+  deliberately — see the comment there. Original entry below.
 
-  ~~Found
+  Found
   2026-08-10 while measuring PLAN-10 item 3 (A10-012), which required the
   message tab to be measured rather than assumed. In the General Message form,
   the four mapped fields — Full Name, Email, Phone, Company — each render
@@ -420,7 +425,7 @@ Ordered by value. Nothing here blocks the upload.
   already uses — small, and it wants its own acceptance check. Recorded in
   `_harness/plan10-rfqscroll.js`, which falls back to the label rendered in the
   field's own wrapper and reports which mechanism found it, so the fallback
-  cannot quietly become the norm.~~
+  cannot quietly become the norm.
 
 - [ ] **Six admin pages redeclare the shared header that `admin/nav.php` owns,
   and one of the copies silently defeated a fix.** Found 2026-08-11 while

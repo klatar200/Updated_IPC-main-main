@@ -5605,13 +5605,20 @@ function ContactPage() {
                   },
                 ].map((f) => (
                   <div key={f.name}>
-                    {/* The htmlFor was the literal "rfq-subject" for all four
-                        of these, and the inputs carried no id at all. Every
-                        label therefore pointed at the Subject box: clicking
-                        FULL NAME, EMAIL, PHONE or COMPANY put the cursor in
-                        Subject, and the four fields were unlabelled to a
-                        screen reader. Derive both from f.name so they cannot
-                        drift apart again. (UX audit F3) */}
+                    {/* htmlFor/id pairing, on the `msg-` prefix this form
+                        already uses for its honeypot.
+                        All four of these carried htmlFor="rfq-subject" — a
+                        copy-paste from the RFQ form's Subject field, and it
+                        was live. Measured: input[name=name].labels was EMPTY
+                        on this tab (it is ["Full Name *"] on the RFQ tab), so
+                        the accessible name fell back to the placeholder; the
+                        Subject input carried FIVE labels, four of which name
+                        other fields; and clicking any of "Full Name", "Email",
+                        "Phone" or "Company" moved focus to Subject.
+                        The ids must NOT be `rfq-`: the two tabs render the
+                        same field names, and only one tab is mounted at a
+                        time, so a shared prefix is a duplicate-id waiting for
+                        the day both are. (WHATS_LEFT §2) */}
                     <label
                       htmlFor={`msg-${f.name}`}
                       className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
@@ -5620,8 +5627,8 @@ function ContactPage() {
                       {f.label}
                     </label>
                     <input
-                      id={`msg-${f.name}`}
                       type={f.type}
+                      id={`msg-${f.name}`}
                       name={f.name}
                       value={msgForm[f.name]}
                       onChange={onMsgChange}
@@ -5636,9 +5643,9 @@ function ContactPage() {
                 ))}
               </div>
               <div>
-                {/* Was the one label on this form with no htmlFor at all, so
-                    clicking "SUBJECT" focused nothing. The msg- prefix also
-                    retires the rfq- ids this form was borrowing. (F3) */}
+                {/* This label carried no htmlFor at all and does not wrap its
+                    input, so it labelled nothing — while four labels naming
+                    OTHER fields pointed at the input below it. */}
                 <label
                   htmlFor="msg-subject"
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
