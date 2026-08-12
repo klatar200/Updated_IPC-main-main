@@ -7512,7 +7512,7 @@ const SIDEBAR_EXCLUDED = new Set([""]);
 // now carries only the side effects (sticky bar + scroll); PageLink owns the
 // URL. The family filter pills and the family accordion are UI state, not
 // navigation, so they stay <button>. (PLAN-1 4.21)
-function ProductSidebar({ products, selectedId, onNavigate }) {
+function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFamilyFilter }) {
   const order = familyOrder(useContent());
   const families = useMemo(() => {
     const map = new Map();
@@ -7573,7 +7573,13 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
     if (!selectedFamily) return;
     setOpenFamilies((prev) => (prev.has(selectedFamily) ? prev : new Set(prev).add(selectedFamily)));
   }, [selectedFamily]);
-  const [mobileFamily, setMobileFamily] = useState(null); // null = "All"
+  // F1 — this was `mobileFamily`, sidebar-local state that only the <lg chip
+  // row could set and only the <lg pill list could see. The desktop grid was
+  // structurally incapable of reading it, which is why the desktop counts
+  // filtered nothing. The filter now lives in ProductPage and arrives as a
+  // prop, so one value drives the chips, the pills, the accordion highlight
+  // and the card grid at every width.
+  const setFamilyFilter = onFamilyFilter || (() => {});
 
   const toggleFamily = (fam) => {
     setOpenFamilies((prev) => {
@@ -7584,14 +7590,14 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
     });
   };
 
-  // Products visible in mobile filtered view
+  // Products listed under the <lg chip row, following the shared filter.
   const mobileProducts = useMemo(() => {
     const all = [];
     for (const [fam, items] of families) {
-      if (!mobileFamily || fam === mobileFamily) all.push(...items);
+      if (!activeFamily || fam === activeFamily) all.push(...items);
     }
     return all;
-  }, [families, mobileFamily]);
+  }, [families, activeFamily]);
 
   const familyList = useMemo(() => Array.from(families.keys()), [families]);
 
@@ -7617,17 +7623,17 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
             }}
           >
             <button
-              onClick={() => setMobileFamily(null)}
+              onClick={() => setFamilyFilter(null)}
               className="ipc-tap"
               style={{
                 padding: "6px 14px",
                 borderRadius: 20,
                 fontSize: 12,
                 fontWeight: 600,
-                background: !mobileFamily ? "var(--brand-primary)" : "#ffffff",
+                background: !activeFamily ? "var(--brand-primary)" : "#ffffff",
                 // 4.23: follow the ink when this pill is the brand-colored one.
-                color: !mobileFamily ? "var(--brand-primary-ink)" : "#4b5563",
-                border: !mobileFamily ? "none" : "1px solid #d1d9e0",
+                color: !activeFamily ? "var(--brand-primary-ink)" : "#4b5563",
+                border: !activeFamily ? "none" : "1px solid #d1d9e0",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
               }}
@@ -7640,11 +7646,11 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
               )
             </button>
             {familyList.map((fam) => {
-              const active = mobileFamily === fam;
+              const active = activeFamily === fam;
               return (
                 <button
                   key={fam}
-                  onClick={() => setMobileFamily(active ? null : fam)}
+                  onClick={() => setFamilyFilter(active ? null : fam)}
                   className="ipc-tap"
                   style={{
                     padding: "6px 14px",
@@ -7767,43 +7773,87 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
         </div>
 
         <div className="bg-white">
+          {/* F1 — the way back to the full catalog. With every family row now
+              a filter, there has to be an unfiltered state that is reachable
+              in one click and visibly current; otherwise the first filter a
+              visitor applies is a one-way door. */}
+          <button
+            type="button"
+            onClick={() => setFamilyFilter(null)}
+            aria-pressed={!activeFamily}
+            className="w-full flex items-center justify-between px-5 py-2.5 text-left"
+            style={{
+              background: !activeFamily ? "rgba(var(--brand-primary-rgb),0.10)" : "#ffffff",
+              border: "none",
+              borderBottom: "1px solid #e5e9ee",
+              borderLeft: !activeFamily
+                ? "3px solid var(--brand-primary)"
+                : "3px solid transparent",
+              cursor: "pointer",
+            }}
+          >
+            <span
+              className="text-xs font-bold uppercase tracking-widest"
+              style={{ color: !activeFamily ? "var(--brand-primary-text)" : "#4b5563" }}
+            >
+              All products
+            </span>
+            <span
+              className="text-xs font-semibold px-1.5 py-0.5 rounded"
+              style={{
+                background: "rgba(var(--brand-primary-rgb),0.1)",
+                color: "var(--brand-primary-text)",
+              }}
+            >
+              {products.filter((p) => !SIDEBAR_EXCLUDED.has(p.sku || "")).length}
+            </span>
+          </button>
           {Array.from(families.entries()).map(([family, items]) => {
             const isOpen = openFamilies.has(family);
             const hasActive = items.some((p) => p.id === selectedId);
+            const isFiltered = activeFamily === family;
             return (
               <div key={family}>
-                <button
-                  type="button"
-                  onClick={() => toggleFamily(family)}
-                  // B27 — this is an accordion toggle and never said so. With
-                  // every family open on first paint the omission was easy to
-                  // miss; now that the sidebar arrives collapsed, a screen
-                  // reader user given ten unlabelled buttons has no way to know
-                  // any of them expands anything, or which one is already open.
-                  // It is also the only honest way to MEASURE the open state —
-                  // the alternative is inferring it from child counts.
-                  aria-expanded={isOpen}
-                  aria-label={`${family}, ${items.length} product${items.length === 1 ? "" : "s"}`}
-                  className="w-full flex items-center justify-between px-5 py-2.5 text-left"
+                {/* F1 — one row, two jobs, and they used to be one button.
+                    The whole row toggled the accordion, so the family name and
+                    its count — which read as a filter — did nothing to the
+                    grid. Splitting them keeps BOTH affordances: the name and
+                    count filter the catalog, the chevron still expands the
+                    list in place so a visitor on a product page can browse
+                    siblings without navigating away. */}
+                <div
+                  className="w-full flex items-stretch"
                   style={{
-                    background: hasActive ? "rgba(var(--brand-primary-rgb),0.04)" : "#f8fafc",
-                    border: "none",
+                    background: isFiltered
+                      ? "rgba(var(--brand-primary-rgb),0.10)"
+                      : hasActive
+                        ? "rgba(var(--brand-primary-rgb),0.04)"
+                        : "#f8fafc",
                     borderBottom: "1px solid #e5e9ee",
                     borderTop: "1px solid #e5e9ee",
-                    cursor: "pointer",
-                    width: "100%",
+                    borderLeft: isFiltered ? "3px solid var(--brand-primary)" : "3px solid transparent",
                   }}
                 >
-                  <span
-                    data-testid="family-heading"
-                    className="text-xs font-bold uppercase tracking-widest"
-                    style={{ color: hasActive ? "var(--brand-primary-text)" : "#4b5563" }}
+                  <button
+                    type="button"
+                    onClick={() => setFamilyFilter(isFiltered ? null : family)}
+                    aria-pressed={isFiltered}
+                    aria-label={`${isFiltered ? "Clear filter" : "Show only"} ${family}, ${items.length} product${items.length === 1 ? "" : "s"}`}
+                    className="flex-1 flex items-center justify-between gap-2 px-5 py-2.5 text-left"
+                    style={{ background: "none", border: "none", cursor: "pointer", minWidth: 0 }}
                   >
-                    {family}
-                  </span>
-                  <span className="flex items-center gap-2">
                     <span
-                      className="text-xs font-semibold px-1.5 py-0.5 rounded"
+                      data-testid="family-heading"
+                      className="text-xs font-bold uppercase tracking-widest"
+                      style={{
+                        color:
+                          isFiltered || hasActive ? "var(--brand-primary-text)" : "#4b5563",
+                      }}
+                    >
+                      {family}
+                    </span>
+                    <span
+                      className="text-xs font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
                       style={{
                         background: "rgba(var(--brand-primary-rgb),0.1)",
                         color: "var(--brand-primary-text)",
@@ -7811,6 +7861,28 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                     >
                       {items.length}
                     </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleFamily(family)}
+                    // B27 — this is an accordion toggle and never said so. With
+                    // every family open on first paint the omission was easy to
+                    // miss; now that the sidebar arrives collapsed, a screen
+                    // reader user given ten unlabelled buttons has no way to know
+                    // any of them expands anything, or which one is already open.
+                    // It is also the only honest way to MEASURE the open state —
+                    // the alternative is inferring it from child counts.
+                    aria-expanded={isOpen}
+                    aria-label={`${isOpen ? "Collapse" : "Expand"} ${family} product list`}
+                    className="flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      width: 40,
+                      paddingRight: 8,
+                    }}
+                  >
                     <span
                       style={{
                         color: "#4b5563",
@@ -7822,8 +7894,8 @@ function ProductSidebar({ products, selectedId, onNavigate }) {
                     >
                       ▼
                     </span>
-                  </span>
-                </button>
+                  </button>
+                </div>
 
                 {isOpen &&
                   items.map((p) => {
@@ -8741,9 +8813,117 @@ function findProductByParam(products, raw) {
  * products carry such a URL, and rendering it would put back the external
  * request A7 removed — on a page that did not exist when A7 shipped.
  */
-function CatalogLanding({ products }) {
+function CatalogLanding({
+  products,
+  totalCount,
+  query,
+  onQueryChange,
+  activeFamily,
+  onClearFilters,
+}) {
+  const searchId = useId();
+  const filtered = !!(query || activeFamily);
   return (
     <div>
+      {/* F2 — /products had no search box at all.
+          Every prominent route into the catalog lands here: the hero "Browse
+          Products", "View Full Catalog", all the product-category cards, the
+          closing CTA and the footer's "Product Catalog". The only product
+          search on the site was on /dashboard, reachable as the second item in
+          a dropdown. Buyers in this category arrive with a part number or a
+          spec, so the site funnelled almost everyone into 42 unsearchable
+          cards while the good tool sat one level down. */}
+      <div className="mb-5 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1">
+          <label htmlFor={searchId} className="sr-only">
+            Search the product catalog
+          </label>
+          <input
+            id={searchId}
+            type="text"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder="Search by part number, name or type…"
+            className="w-full rounded-lg outline-none transition-all duration-200"
+            style={{
+              border: "1px solid #d1d9e0",
+              padding: "10px 14px",
+              fontSize: 14,
+              background: "#ffffff",
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = "var(--brand-primary)";
+              e.target.style.boxShadow = "0 0 0 3px rgba(var(--brand-primary-rgb),0.12)";
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = "#d1d9e0";
+              e.target.style.boxShadow = "none";
+            }}
+          />
+        </div>
+        {/* Mirrors the Product Index's live count so the two catalog surfaces
+            describe their state the same way. */}
+        <div
+          className="text-sm font-semibold flex-shrink-0"
+          style={{ color: "#4b5563" }}
+          aria-live="polite"
+        >
+          {filtered
+            ? `${products.length} of ${totalCount} products`
+            : `${totalCount} products`}
+        </div>
+        {filtered && (
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="ipc-tap flex-shrink-0 text-sm font-semibold rounded-lg"
+            style={{
+              padding: "8px 14px",
+              border: "1px solid #d1d9e0",
+              background: "#ffffff",
+              color: "var(--brand-primary-text)",
+              cursor: "pointer",
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* The Product Index answers an empty result with a reason and a way
+          out; this grid used to be able to render nothing at all only because
+          it never filtered. Now that it can, it needs the same courtesy. */}
+      {products.length === 0 ? (
+        <div
+          className="rounded-xl text-center"
+          style={{ border: "1px dashed #d1d9e0", background: "#ffffff", padding: "48px 24px" }}
+        >
+          <div className="text-base font-bold" style={{ color: "#141414" }}>
+            No products found
+          </div>
+          <p className="mt-2 text-sm" style={{ color: "#4b5563" }}>
+            {query
+              ? `No results for “${query}”${activeFamily ? ` in ${activeFamily}` : ""}. Try a different term, or clear the filters.`
+              : `Nothing in ${activeFamily}.`}{" "}
+            Sizes are listed on each product page — if you know the size but not
+            the part number, call 630.771.0700 and we will point you at it.
+          </p>
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="ipc-tap mt-4 text-sm font-semibold rounded-lg"
+            style={{
+              padding: "10px 18px",
+              border: "none",
+              background: "var(--brand-primary)",
+              color: "var(--brand-primary-ink)",
+              cursor: "pointer",
+            }}
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
         {products.map((p) => {
           const photo =
@@ -8817,6 +8997,7 @@ function CatalogLanding({ products }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
@@ -8851,6 +9032,70 @@ function ProductPage({ products }) {
   const landing = !selectedId;
   const product = matched;
 
+  /**
+   * F1/F2 — the catalog landing is FILTERABLE and SEARCHABLE, at every width.
+   *
+   * The sidebar has always shown a per-family count next to each family name,
+   * which is the universal signature of a filter. It did not filter: clicking
+   * a family expanded an accordion of jump-links and left all 42 cards in the
+   * grid, in part-number order, led by conduit couplings. Meanwhile the same
+   * page at <lg rendered those families as chips that DID filter. Desktop —
+   * the primary B2B browsing context — was strictly worse at the catalog's
+   * core job than mobile. (UX audit F1)
+   *
+   * The state lives HERE rather than in ProductSidebar because two siblings
+   * need it: the sidebar (which sets it) and CatalogLanding (which renders the
+   * result). It was sidebar-local before, which is precisely why the grid
+   * never saw it.
+   *
+   * `family` is a URL param, not component state, so a filtered catalog is
+   * shareable and survives Back — and so the breadcrumb can link to one (F7).
+   * The search box is deliberately NOT in the URL: it is a within-page
+   * narrowing, it changes on every keystroke, and pushing history entries per
+   * character would trap Back.
+   */
+  const [familyParam] = useSearchParam("family");
+  const [, setSearchParamsRaw] = useSearchParams();
+  const [query, setQuery] = useState("");
+  const activeFamily = familyParam || null;
+
+  // Selecting a family means "show me this family's catalog", so it also
+  // clears any open product — otherwise the filter applies to a grid that
+  // isn't on screen and nothing appears to happen, which is the original
+  // defect again.
+  //
+  // ONE setSearchParams call, deliberately. Doing this as two useSearchParam
+  // setters (set family, then clear productId) looks equivalent and is not:
+  // both updaters receive the params as they were at the start of the tick,
+  // so the second rebuilds from a snapshot that never had `family` in it and
+  // silently drops the filter that was just set. Measured — the click changed
+  // the highlight and left all 42 cards in place, which reads exactly like
+  // the bug this whole change exists to fix.
+  const onFamilyFilter = useCallback(
+    (fam) => {
+      setSearchParamsRaw((prev) => {
+        const next = new URLSearchParams(prev);
+        if (fam) next.set("family", fam);
+        else next.delete("family");
+        next.delete("productId");
+        return next;
+      });
+    },
+    [setSearchParamsRaw],
+  );
+
+  const visibleProducts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return products.filter((p) => {
+      if (activeFamily && String(p.partType || "") !== activeFamily) return false;
+      if (!q) return true;
+      // Same haystack the Product Index searches on, so the two surfaces agree
+      // about what "no results" means.
+      return [p.sku, p.id, p.name, p.partType, p.description]
+        .some((v) => String(v || "").toLowerCase().includes(q));
+    });
+  }, [products, activeFamily, query]);
+
   // C33 — the breadcrumb trail for this route.
   const families = familyOrder(useContent());
   const crumbTrail = useMemo(() => {
@@ -8861,7 +9106,13 @@ function ProductPage({ products }) {
     if (!product) return t;
     const family = String(product.partType || "").trim();
     if (family && families.includes(family)) {
-      t.push({ label: family, page: "dashboard", params: { family } });
+      // F7 — this used to point at page:"dashboard", so the middle rung of the
+      // breadcrumb threw the visitor out of the catalog and into the Product
+      // Index: a different page with a different layout, on the way "up" from
+      // a product. A breadcrumb reads as a ladder up the page you are on.
+      // Now that /products can filter by family (F1), the rung has somewhere
+      // honest to point.
+      t.push({ label: family, page: "products", params: { family } });
     }
     t.push({ label: product.name, page: "products", params: { productId: product.id } });
     return t;
@@ -8977,8 +9228,13 @@ function ProductPage({ products }) {
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
+            {/* Once the catalog can be filtered (F1), "Browse all 42 products"
+                is false the moment a family is chosen — the page said 42 while
+                showing 12. Describe the view that is actually on screen. */}
             {landing || notFound
-              ? `Browse all ${products.length} products — heat shrink tubing, sleeving, tapes, adhesives and accessories. Select one for full specifications, its data sheet, and a quote request.`
+              ? activeFamily
+                ? `${activeFamily} — showing ${visibleProducts.length} of ${products.length} products. Select one for full specifications, its data sheet, and a quote request.`
+                : `Browse all ${products.length} products — heat shrink tubing, sleeving, tapes, adhesives and accessories. Select one for full specifications, its data sheet, and a quote request.`
               : "Select another product from the list to view full specifications, data sheet, and request a quote."}
           </p>
         </div>
@@ -9038,6 +9294,8 @@ function ProductPage({ products }) {
         <ProductSidebar
           products={products}
           selectedId={product ? product.id : null}
+          activeFamily={activeFamily}
+          onFamilyFilter={onFamilyFilter}
           onNavigate={() => {
             // PageLink has already written ?productId= to the URL; this is only
             // the side effect the old onSelect performed alongside it.
@@ -9051,7 +9309,17 @@ function ProductPage({ products }) {
         />
         <div ref={detailRef} className="flex-1 min-w-0">
           {landing || notFound ? (
-            <CatalogLanding products={products} />
+            <CatalogLanding
+              products={visibleProducts}
+              totalCount={products.length}
+              query={query}
+              onQueryChange={setQuery}
+              activeFamily={activeFamily}
+              onClearFilters={() => {
+                setQuery("");
+                onFamilyFilter(null);
+              }}
+            />
           ) : (
             <ProductDetail product={product} allProducts={products} />
           )}
