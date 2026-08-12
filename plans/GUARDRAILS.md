@@ -59,6 +59,7 @@ These are absolute. There is no plan-level exception.
 | Introduce a paid dependency, service, or tier | $0 budget. Genuine perpetual free tiers only |
 | Resume the `src/pages/` `src/components/` `src/lib/` extraction | Settled and closed. The directories were deleted 2026-08-12 after four weeks of reading as live source while importing into nothing. Do not recreate them |
 | Re-upload `data/products-all.json` or `pdfs/` from the repo | Settled 2026-08-04 |
+| Delete anything from `public/images/site/` because nothing references it | The five photo slots in `admin/content.php:295-299` are free-text path fields and no picker lists the folder, so an unreferenced image is an option the owner has not taken yet, not an orphan. Deleting one makes the path he later types render a broken frame under a successful save. Seven were deleted on this reasoning on 2026-08-12 and restored the same day (`WHATS_LEFT.md` §1o) |
 | Treat any in-repo copy of the deployed site as source | `_localsite/` was one — a mirror of an older deploy, tracked despite being gitignored, holding a **working admin credential** on a public repo. Deleted 2026-08-12. If you need a deploy diff, take it from the server, keep it outside the repo, and never let it carry `config.local.php` |
 
 ---

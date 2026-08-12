@@ -4320,6 +4320,34 @@ failed, and the second because that failure prompted a second sweep for
 `execFileSync`/`spawnSync` across the whole harness. Run that sweep — not a
 grep of the docs — before deleting any `_harness/*.php`.
 
+### Seven images were deleted and restored — `public/images/site/` is not a build folder
+
+The sweep deleted `spiralwrap.jpg`, `spiralwrap-1.jpg`, `coulplings1.png`,
+`coulplings2.png`, `conduit-drawing2.png`, `download.png` and
+`tubingkits-e1470671026976.png` on the grounds that nothing in the tree
+referenced them. **That test does not apply to this folder**, and the seven were
+restored the same day.
+
+The five marketing photo slots in `admin/content.php:295-299` are
+`'type' => 'text'` — free-text path fields the owner types into. PLAN-7 item 3b,
+the picker that would have listed the folder as thumbnails, was never built
+(§2h). So there is no directory listing, no manifest, and nothing anywhere in
+the repo that records which images the owner might select next. **An image in
+`public/images/site/` that nothing references is not an orphan; it is an option
+he has not taken yet.** Delete one and the path he later types renders a broken
+frame, with the admin reporting a successful save.
+
+§2h already stated the rule for the unbuilt picker — *"may OFFER
+`public/images/site/` but must never DELETE from it"* — and PLAN-7 §4 put the
+folder on the do-not-re-upload list (§1h). Both were read during this sweep and
+neither was applied to the sweep's own deletions, because "referenced by
+nothing" felt like a stronger signal than a rule written for a feature that does
+not exist. It is not. The rule is now a GUARDRAILS §2 prohibition rather than a
+note inside a deferred item, so it binds a session that never opens §2h.
+
+`public/images/_unmatched/adhesiveLined.webp` is in the same class and was never
+touched — the directory name is the whole record of why it is there.
+
 ### Not deleted, pending an owner decision
 
 `site-screenshots/2026-08-11-after-plan10/` — 62 MB, 83 PNGs, and the single
