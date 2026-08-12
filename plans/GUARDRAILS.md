@@ -273,8 +273,27 @@ check that has never failed proves nothing — two invariant checks in session 3
 passed against a broken assertion because they were matching the incident
 comments quoting the old buggy pattern, not the code.
 
-Where a plan names a negative control, run it. `_harness/negctl.php` and
-`_harness/php-nb2-off.ini` exist because a suite that cannot fail is decoration.
+Where a plan names a negative control, run it. A suite that cannot fail is
+decoration. The live one is **`_harness/plan2-trunc.js`**, which needs `:8123`,
+`:8124` **and** `:8125`:
+
+| Port | ini | Role |
+|---|---|---|
+| 8124 | `php-trunc.ini` | the production shape — `max_input_vars=100`, `display_errors=Off` |
+| 8125 | `php-nb2-off.ini` | **the negative control** — same truncation, `display_errors=On` |
+
+The content form posts 439 variables, so PHP genuinely discards everything past
+the 100th on both. `:8125` then asserts the PHP warning **does** surface there —
+which is what proves the `:8124` assertion ("no raw warning leaks") is measuring
+something rather than passing by default. It also asserts the guard refuses the
+save on both ports, so the control cannot be mistaken for a behaviour change.
+
+**Corrected 2026-08-11.** This sentence named `_harness/negctl.php`. That file
+has **never been tracked in this repo** — it is a standalone probe that survives
+only in a working tree carried over from an early session, the same class of
+artifact §4.1 describes above, and it is superseded by `plan2-trunc.js`, which
+exercises the same control through the real form instead of a synthetic POST.
+Do not go looking for it; run `plan2-trunc` and confirm it reports 13/13.
 
 ---
 
