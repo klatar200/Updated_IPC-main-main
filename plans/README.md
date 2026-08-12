@@ -1,219 +1,79 @@
 # Plans
 
-**Plans 0–5 are complete and merged.** All 21 items they covered are closed —
-see `WHATS_LEFT.md` §1b and `PATCH_NOTES.md`. They are kept as the record of how
-each was approached and what each was measured against.
+**Read [GUARDRAILS.md](GUARDRAILS.md) first.** It is binding on every plan. A
+plan may add constraints; it may never relax one from there.
 
-**PLAN-6 is complete and merged** (items 4, 3 and 1, 2026-08-07).
-
-**Two plans are open.**
-
-**[PLAN-8](PLAN-8-audit-remediation.md) — the 2026-08-08 UI/UX audit.** 50 items
-from [`UI_UX_AUDIT_2026-08-08.md`](../UI_UX_AUDIT_2026-08-08.md): 7 severity-A,
-21 severity-B, 22 suggestions, in six sequenced phases. **Start with its §0** —
-four items need an owner decision and must not be guessed, one of them a
-certification claim. Its §1.2 also records that GUARDRAILS §4.1's regression
-baseline is **stale**: eleven of the thirteen commands it lists name scripts that
-no longer exist in the tree. Use PLAN-8 §1.2's list until that is corrected.
-
-**[PLAN-7](PLAN-7-marketing-imagery.md) — marketing imagery.** Item 2 of the
-2026-08-07 admin-surface review, held back for a scope decision. Like PLAN-6 it
-is not a bug-closing plan, with one exception: item 1 closes a real hazard in
-`_harness/backdrop.js`, which silently skips a raster background layer and would
-report a passing contrast number for text sitting on a photograph.
-
-PLAN-8's C37 (empty regions in the primary layouts) deliberately stops short of
-what PLAN-7 covers. If both run, PLAN-7 goes second — it changes the images
-PLAN-8's screenshots are measured against.
+**The last completed plan is [PLAN-10](PLAN-10-audit10-remediation.md)** —
+remediation of AUDIT-10's severity A and B tiers, shipped 2026-08-11 and
+independently verified by AUDIT-11 the same day.
 
 ---
 
-## Plans 0–5 — closing out `WHATS_LEFT.md` §2 (complete)
+## Where the earlier plans went
 
-Six plans covering **all 21 open items**, plus the `seo: []` amendment and one
-regression introduced by commit `6284708`.
+**PLAN-0 through PLAN-9 were deleted 2026-08-12.** All ten shipped. A completed
+plan is an instruction sheet for a session that has already happened; keeping ten
+of them made this directory read as a backlog when none of it was open.
 
-Written 2026-08-05 against `main` @ `6284708`. Every file:line reference in these
-plans was verified against the working tree on that date, not copied from an
-earlier audit.
+Nothing was lost with them, because a plan was never where the outcome lived:
 
----
+| What you might have wanted a plan for | Where it actually is |
+|---|---|
+| What shipped, and what it measured | `WHATS_LEFT.md` §1-series (§1b … §1n) and its §4-series evidence blocks |
+| The owner-facing summary of the whole release | `PATCH_NOTES.md` |
+| What is still open | `WHATS_LEFT.md` §2-series |
+| Which suite proves which item | `_harness/README.md` |
+| The regression baseline every plan preserved | GUARDRAILS §4.1 — 65 suites, measured 2026-08-11 |
+| Settled decisions and refuted findings | GUARDRAILS §7 |
 
-## Read this first
+Two things that lived only in the deleted plans were moved rather than dropped:
 
-**[GUARDRAILS.md](GUARDRAILS.md)** — binding for every plan. Scope discipline,
-hard prohibitions, the twelve invariants, how to arm the harness, the regression
-baseline, and the handback format.
-
-A plan may add constraints. It may never relax one from GUARDRAILS.
-
----
-
-## Execution order
-
-| Plan | Items | Effort | Risk | Why here |
-|---|---|---|---|---|
-| **[0 — Dev loop](PLAN-0-dev-loop.md)** | dev regression, 4.24 | S | Low | **Blocks everything.** `npm run dev` currently shows no products, and theming and content run on defaults, so every other plan would be verified against a lie |
-| **[1 — SEO](PLAN-1-seo.md)** | 4.21, 4.3, 4.1, `seo: []` | M | **High** | The only plan that changes what the business gets. 4.21 touches every nav control — do 4.3 and 4.1 first for a green baseline |
-| **[2 — Owner safety](PLAN-2-owner-safety.md)** | NB-copy, 4.12, 4.13, 4.23, `form_complete` | M | Med | Each item lets Rick do damage he cannot see. NB-copy first — it silently destroys work |
-| **[3 — Lead capture](PLAN-3-lead-capture.md)** | 4.5, 4.15b | M | Low | Every defect here costs an enquiry |
-| **[4 — Accessibility](PLAN-4-accessibility.md)** | 4.31, 4.30, 4.19, 4.20 | L | Low | **After Plan 1** — 4.21 changes what is a link vs a button |
-| **[5 — Correctness & perf](PLAN-5-correctness-perf.md)** | 4.27, 4.29, 4.26, 4.32, 4.14, 4.11b | M | Low | **Last** — 4.32 changes image bytes every other plan's screenshots depend on |
-
-Plans 2, 3 and 5 are independent of each other and of Plan 1. Plan 0 gates
-everything; Plan 4 follows Plan 1; Plan 5 goes last.
-
-Plan 5 was followed by two unplanned rounds recorded only in `WHATS_LEFT.md`:
-**5b** (`sidebar-active-border`, `password.php`'s throttle, the sitemap) and
-**5c** (the page-header eyebrow, the teal accent text, and `sitemap.php`).
+- **PLAN-7 item 3b (the image picker) was never built.** Its full specification —
+  including the one rule that matters, that the picker may *offer*
+  `public/images/site/` but must never *delete* from it, because that folder is
+  build output the next deploy would silently restore — is duplicated verbatim in
+  `WHATS_LEFT.md` §2h. That is now its only home.
+- **PLAN-10 §12's out-of-scope list** — the six severity-C clusters that make the
+  natural PLAN-11 — is still in PLAN-10, which stays.
 
 ---
 
-## Plan 6 — widening the admin surface (complete)
+## What is open
 
-| Plan | Items | Effort | Risk | Why here |
-|---|---|---|---|---|
-| **[6 — Admin surface](PLAN-6-admin-surface.md)** | product families, auto-reply copy, social platforms | M | Med | Not defects. Three places where routine business change currently needs a developer. Item 1 is also a **latent defect** — the eleven category names are three separate literals that agree today and nothing keeps them agreeing |
-
-Shipped **4, then 3, then 1** — ascending risk and blast radius. Items 1 and 3
-both added fields under `content.php`'s `max_input_vars` sentinel; the posted
-variable count moved 421 → 424 → **435**, each step re-run against a real
-`max_input_vars=100` server. §0 of that plan is the procedure for any future
-field.
-
----
-
-## Plan 7 — marketing imagery (open)
-
-| Plan | Items | Effort | Risk | Why here |
-|---|---|---|---|---|
-| **[7 — Marketing imagery](PLAN-7-marketing-imagery.md)** | harness raster gap, four image slots, owner-selectable images | M | Med | The homepage, About and Services pages paint no photography at all while the customer's own photographs ship to the server unused. Item 1 is a **latent harness defect** — a `url()` background layer is silently skipped by the contrast core, so the first photo behind text would be scored as if it were not there |
-
-**Item 3b (the datasheet index) shipped 2026-08-07** — it was not in the original
-plan, needed no data-shape change and no design decision, and turned up a live
-broken `pdfUrl` plus the fact that nothing in the harness had ever checked one.
-
-Take item **1 first** — it is the measurement that makes item 2 checkable, and
-it is worth landing whether or not any image ships. Item 3 adds fields under the
-same `max_input_vars` sentinel; read PLAN-6 §0 before it. Item 2 needs a scope
-decision (PLAN-7 §5).
-
-A fourth candidate — owner-editable marketing imagery — was reviewed and left
-out. It needs a scope decision first and may need photography rather than code.
+1. **The 39 severity-C and 9 severity-D findings from AUDIT-10.** Untouched, and
+   recorded **only** in `_harness/AUDIT10-REPORT.md`. That file is not an audit
+   record to be tidied away — it is the backlog. PLAN-10 §12 names the six
+   clusters the report groups as one fix each; that is the shape of a PLAN-11.
+2. **Everything in `WHATS_LEFT.md` §2-series**, including PLAN-7 item 3b, the
+   `/contact` message tab's four mislabelled fields, and A10-037 (the ISO 9001
+   revision contradiction), which is blocked on an owner decision.
+3. **Nothing is deployed.** `PATCH_NOTES.md` describes a release that is still
+   only in this repo.
 
 ---
 
-## Plan 8 — the 2026-08-08 UI/UX audit (partly executed)
+## Writing the next plan
 
-**Status, 2026-08-08.** Phases A, B, C and D are **shipped and merged**; the
-four `§0` decisions were taken by the owner. Partway through, scope was cut to
-severity **A and B only**, so the severity-C suggestions are deferred except the
-four that sat inside items already being fixed (C32, C45, C47, C48).
-**Phases E and F were not started.** Evidence and the full 50-ID outcome table
-are in `WHATS_LEFT.md` §1c/§2b/§4o and `PATCH_NOTES.md`.
+The pattern every plan here was held to, and the reason each part of it exists:
 
-| Phase | Items | Status |
-|---|---|---|
-| **A — Product-page truth** | A1, A2, C32, C45, C47 | **shipped.** A1 measured **20** of 42 disagreeing pages, not the audit's 18 — `CT` and `IP49VP` fell outside the audit's comparison and were the worst two |
-| **B — Indexability & sharing** | A3, A5, A4, B25 | **shipped** (Option B — no URL moved). Found and fixed a defect the audit missed: `base: './'` made every URL with 2+ path segments a **blank white page**. C29 and C33 deferred |
-| **C — Catalog browsing** | A6, B19, B20, B27, B12, C48 | **shipped.** Product Index page 9,460px → 5,042px. C30, C35, C46, C49 deferred |
-| **D — Lead capture** | B16, B17, B18, B22, B26 | **shipped.** B26 landed last, after the other phases: the quote form was 1,213px down the page on a phone and is now 638px, moved in the DOM rather than by CSS so keyboard order follows it. C31, C39, C40 deferred |
-| **F — Chrome, assets, copy** | B13, B21, B23, B11, A7 | **shipped.** The mobile menu became a real dialog — the page behind it used to scroll freely and Escape did nothing. The footer's missing space, the doubled lead-time banner, and the photo's unreserved box are all fixed. C34, C37, C38, C41, C44 deferred; C42, C43 are owner actions |
-| **E — Legibility & input** | B8, B9, B10, B14, B15, B24, B28 | **shipped.** The WCAG tier. Part numbers went 1.64:1 → ~7:1; the footer's 286 white-alpha instances became solid; a skip link exists for the first time (2.4.1 Level A). Asserting *zero* animations under `reduce` found a third the audit never named. C50 deferred |
-
-New suites left behind: `plan8-certs`, `plan8-meta`, `plan8-catalog`,
-`plan8-lead`, `plan8-contrast`, `plan8-motion`, `plan8-keyboard`,
-`plan8-mobile`, plus `cssdiff.js` and `run.js`.
-
-Two deviations from the suite list in §4. `plan8-counts` was not written —
-B12's four counts are asserted inside `plan8-catalog`, from rendered text.
-`plan8-keyboard` is not in §4 at all; B15 and B28 needed real `Tab`/`Enter`
-driving and a heading-level sweep, which sit with neither the motion nor the
-mobile file. `plan8-mobile` covers only B24 of the three items §4 assigns it —
-B13 is Phase F and B26 is logged open, and both are named in that file as
-absent rather than quietly omitted.
-
-`cssdiff.js` earns its place: the Tailwind comment-extractor trap fired
-**three more times** during this plan, every time in a comment written to
-explain an unrelated fix, and twice in the sentence explaining the previous
-occurrence. Five occurrences in this repo's history now. The build summary's
-byte count does not catch it.
-
-Same reason 4.32 went last in PLAN-5. Phases C, D and F are independent of each
-other.
-
-**Nine of the 50 items live in `data/*.json`**, which GUARDRAILS §2 forbids
-touching. PLAN-8 tags every item `CODE` / `DATA` / `BOTH` and its §6 is the
-owner-action list those `DATA` items produce — the fix is an admin edit, not a
-commit.
-
-PLAN-8 §7 requires the executing agent to append a dated section to
-`PATCH_NOTES.md` — **append**, since that file is the record of the 12 merged PRs
-in the 2026-07-08 → 2026-08-07 release and overwriting it destroys that.
-
----
-
-## Coverage
-
-Every item from `WHATS_LEFT.md` §2, accounted for exactly once.
-
-| Item | Plan | | Item | Plan |
-|---|---|---|---|---|
-| 4.1 FAQ JSON-LD deps | 1 | | 4.23 no contrast guard | 2 |
-| 4.3 canonical / og:url | 1 | | 4.24 no DEV branch | 0 |
-| 4.5 `alert()` errors | 3 | | 4.26 leaked scroll listeners | 5 |
-| 4.11b footer social icons | 5 | | 4.27 duplicate React keys | 5 |
-| 4.12 unvalidated Industries SKU | 2 | | 4.29 empty spec tables | 5 |
-| 4.13 unconfirmed ✕ delete | 2 | | 4.30 spec editor focus | 4 |
-| 4.14 login throttle | 5 | | 4.31 418 unlabelled controls | 4 |
-| 4.15b plus/dot addressing | 3 | | 4.32 9.1 MB images | 5 |
-| 4.19 sort headers | 4 | | NB-copy key drift | 2 |
-| 4.20 collapsed FAQ answers | 4 | | `form_complete` position | 2 |
-| 4.21 no crawlable links | 1 | | `seo: []` (§4 amendment) | 1 |
-
-**21 §2 items + `seo: []` + the dev-loop regression = 23, across 6 plans.**
-
-Not covered, deliberately — these are decisions, not tasks, and live in
-`WHATS_LEFT.md` §3: the `src/pages`/`components`/`lib` extraction, the git-history
-rewrite for `169c0d7`, the `products-all.json` upload question, and the
-no-paid-tooling rule.
-
----
-
-## The regression that is not in §2
-
-Commit `6284708` removed `public/products-all.json` as one of three duplicated
-catalog copies. That was correct, but it orphaned the `import.meta.env.DEV`
-branch at `src/App.jsx:4142`, which pointed at it.
-
-Vite's SPA fallback answers the missing path with `index.html` and a **200**, so
-`res.ok` is true and the failure only appears when `res.json()` throws.
-`npm run dev` now renders **"Catalog Unavailable"** on `/products`.
-
-**Production is unaffected** — the non-DEV branch reads `/data/products-all.json`.
-Plan 0 fixes it properly rather than restoring the duplicate.
-
----
-
-## How each plan is held to account
-
-Every plan ends with acceptance criteria that are **measurements, not
-assertions**. The pattern throughout:
-
-- Reproduce the symptom and **watch a new check fail** before fixing it. Two
+- **Reproduce the symptom and watch a new check fail before fixing it.** Two
   invariant checks in session 3 passed against a broken assertion because they
-  were matching incident comments quoting the old buggy pattern.
-- Where a negative control exists, run it, because a suite that cannot fail is
+  were matching incident comments that quoted the old buggy pattern.
+- **Where a negative control exists, run it** — a suite that cannot fail is
   decoration. The live one is `_harness/plan2-trunc.js` against `:8125`
   (`_harness/php-nb2-off.ini`, `display_errors=On`), which asserts the PHP
-  truncation warning **does** surface there — proving the production-shaped
+  truncation warning **does** surface there, proving the production-shaped
   assertion on `:8124` is measuring something. *Corrected 2026-08-11: this named
   `_harness/negctl.php`, which has never been tracked in this repo and is
-  superseded by `plan2-trunc.js`. See `GUARDRAILS.md` §4.4.*
-- Restore any `data/*.json` touched by a test from `_harness/pristine/` and prove
-  byte-identity with `cmp`.
-- Label anything depending on `.htaccess` or `.user.ini` as `[UNVERIFIED]`.
-  `php -S` ignores both.
-
-The baseline every plan must preserve is in GUARDRAILS §4.1. Run it before you
-start so you know what you inherited.
+  superseded by `plan2-trunc.js`. See GUARDRAILS §4.4.*
+- **Restore any `data/*.json` a test touched** from `_harness/pristine/`, and
+  prove byte-identity with `cmp`.
+- **Label anything depending on `.htaccess` or `.user.ini` as `[UNVERIFIED]`.**
+  `php -S` ignores both, so the `admin/` and `data/` file-blocking rules are
+  never exercised locally. Apache is the real gate.
+- **Fields added to `admin/content.php` move the posted-variable count** and must
+  stay above the `form_complete` sentinel (invariant 6, enforced positionally).
+  Re-run `plan2-formlast` and `plan2-trunc` against the real
+  `max_input_vars=100` server after any such change.
+- **Run the GUARDRAILS §4.1 baseline before you start**, so you know what you
+  inherited rather than what you broke.

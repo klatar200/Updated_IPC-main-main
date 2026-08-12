@@ -57,9 +57,9 @@ These are absolute. There is no plan-level exception.
 | Use `preg_replace` on anything that writes a bcrypt hash | Every bcrypt hash contains `$2y$12$`; as a replacement string those are backreferences. Use `preg_replace_callback`. The shipped code once wrote `y$…` and the password page was 0% functional |
 | Add a form field after `form_complete` in `admin/content.php` | It is the `max_input_vars` truncation sentinel and is enforced **positionally**. It must remain the last field in the form |
 | Introduce a paid dependency, service, or tier | $0 budget. Genuine perpetual free tiers only |
-| Resume the `src/pages/` `src/components/` `src/lib/` extraction | Settled and closed. Nothing imports them; editing them has zero effect on the bundle |
+| Resume the `src/pages/` `src/components/` `src/lib/` extraction | Settled and closed. The directories were deleted 2026-08-12 after four weeks of reading as live source while importing into nothing. Do not recreate them |
 | Re-upload `data/products-all.json` or `pdfs/` from the repo | Settled 2026-08-04 |
-| Touch `_localsite/` | A reference copy of an older deploy. It is evidence, not source |
+| Treat any in-repo copy of the deployed site as source | `_localsite/` was one — a mirror of an older deploy, tracked despite being gitignored, holding a **working admin credential** on a public repo. Deleted 2026-08-12. If you need a deploy diff, take it from the server, keep it outside the repo, and never let it carry `config.local.php` |
 
 ---
 
@@ -260,8 +260,9 @@ that breaks the contact form: it sets no `sendmail_path`, so every
 `contact.php` POST dies in the "mail server could not send" branch and nothing
 past it runs — including the auto-reply cap. It has already cost a real false
 regression: AUDIT-10 pass-6 recorded `plan8-lead` crashing with a timeout for
-exactly this reason. `_harness/README.md` and `plans/audit10/routes.json` both
-said `php-mail.ini` all along, so an executor following the **binding** document
+exactly this reason. `_harness/README.md` said `php-mail.ini` all along (so did
+`plans/audit10/routes.json`, until that directory was deleted 2026-08-12), so an
+executor following the **binding** document
 got the broken configuration while the merely-current ones were right.
 
 `_harness/php-extra.ini` has been **deleted** rather than left in place. It was
@@ -374,11 +375,100 @@ cycle:
 - "Six Industries links wrong"
 - "Mega-menus broken on touch"
 - Apache 2.2 `.htaccess` syntax
-- `src/pages` / `src/components` / `src/lib` being dead code
+- `src/pages` / `src/components` / `src/lib` being dead code — the directories
+  are gone as of 2026-08-12, so this can only come back as "we should extract
+  `App.jsx`". That is a scope decision, not a finding.
 - The 17 items already listed in `WHATS_LEFT.md` §2 as open
 - The security posture — `require_auth()`, `csrf_check()`, upload validation,
   `basename()`+`realpath()` containment, `h()` on every echo, optimistic
   concurrency. **Re-verify it; do not re-derive it.**
+
+### 7.1 Environment artifacts, not site defects
+
+The measurement is wrong, not the page. Each of these has produced a plausible
+false finding already:
+
+- **`plan8-polish` 16/17 on Linux (C49).** `fc-match system-ui` resolves to
+  **DejaVu Sans** on these boxes, which is wider than Arial. Re-measure any
+  width, wrap, truncation or overflow claim with the document forced to
+  **Liberation Sans** (metric-compatible with Arial) before it becomes a
+  finding. Under that control the 1440 spec-table overflow is **0px on all 42
+  product pages**. Four more leads died the same way: three `/contact`
+  placeholder cuts plus `/datasheets`'s `ds-filter`, the tablet-1024 footer link
+  wrapping, and `/dashboard` mobile card titles wrapping to 4–6 lines.
+- **`plan3-autoreply` `[UNVERIFIED]` on Windows** — `fakemail.sh` is POSIX.
+- **`:focus-visible` does not match programmatic focus in Chromium.** Drive real
+  Tab/Enter, never `.focus()`.
+- **The Tailwind extractor emits rules for bare utility words in comments.**
+  `cssdiff.js` is the guard.
+- **`admin/logo.svg` reads as 45 broken images in the mirror.** `sync.sh` copies
+  only `admin/*.php` and `admin/*.js`; `router.php` then answers the request with
+  the SPA shell, 200 `text/html`, `naturalWidth 0`. The file is tracked and does
+  deploy. Copy it into the mirror before believing any admin image count.
+- **The mirror has no `uploads/` directory**, which is what drives the admin
+  health banner in every mirror screenshot, and what makes two homepage images
+  read as invisible at 834 and 390.
+- **Playwright paints a sticky element once, at an arbitrary position, in a
+  full-page capture.** Three reviewers reported "the sticky Save bar covers a
+  field" on `admin/content.php` from full-page shots. Measure overlap live at
+  real scroll positions with `elementFromPoint`.
+- **`page.click(selector)` performs an actionability scroll before dispatching.**
+  This is the mechanism behind the single most re-chaseable finding in the repo
+  — see 7.2.
+
+### 7.2 Refuted with measurements — do not re-chase
+
+- **"Browser Back does not restore scroll on `/products`" (A10-056).** It does:
+  1200 → 1200 at all three viewports, 6 of 6 visitor-shaped runs. The published
+  0 and 61 reproduce **only** when the harness's own scroll-into-view runs first,
+  which commits the history entry at the scrolled-to offset. Full three-arm table
+  in `_harness/AUDIT10-REPORT.md` § Refuted.
+- **Six probe defects** that each produced a plausible false finding — a
+  non-unique `cssPath()` ("314 unreachable controls", really 0), a flat 500-Tab
+  cap on a 797-stop page ("297 unreachable fields", really 0), `blur()` not
+  resetting Chromium's sequential-focus start, a non-zero
+  `getBoundingClientRect()` inside a collapsed `<details>` taken as proof of
+  tabbability, live rects used as an ordering key inside a scroller, and treating
+  every `[aria-expanded]` button as an accordion. Same section of that report.
+- **Slot override → CLS.** Refuted: every photo slot pins its box with
+  `aspect-ratio` + `object-fit: cover`, so an override's intrinsic shape never
+  reaches layout. Measured **CLS 0.0000** both arms with the most differently
+  shaped file available (773×1000 portrait into a 16:9 slot).
+- **`COPY_CLEARABLE`'s `.*Photo` regex over-matching.** Refuted by enumerating
+  all 113 leaf keys in `COPY_DEFAULTS`: the clearable set is exactly
+  `heroPhoto, bandTeamPhoto, bandBuildingPhoto, aboutPhoto, servicesPhoto,
+  subhead`. The change was strictly widening.
+- **`BreadcrumbList` validity (C33).** Valid on exact-id URLs and the three
+  catalog views — every `ListItem` carries an absolute `item` and the trailing
+  item equals the page canonical. Only alias/unknown ids break the contract, and
+  that is its own recorded finding.
+- **FAQ accessibility under stress (C41).** Not reproduced. The open set is the
+  single source of truth, stale keys are pruned on a mid-session owner edit, the
+  400 ms fallback timer is cleaned up on unmount, and `plan8-faq` forces
+  transitions off to cover the background-tab case deterministically.
+- **`privacyNote` cleared (C39).** Not in `COPY_CLEARABLE`, so clearing restores
+  the default. The Privacy Policy link is appended in code and cannot be orphaned
+  or repointed. Worst case is a doubled period.
+- **Hero photo downloaded on mobile.** 0 requests for `Marker-Sample-2.jpg` at
+  390 across a full-page scroll.
+- **"The RFQ link loses product context."** A selector that clicked the navbar
+  CTA instead of the detail page's Request Quote button, which does carry
+  `?part=…` and does arrive prefilled.
+
+### 7.3 Settled decisions
+
+Not defects. Each was decided, with a reason:
+
+- Logo `alt=""` with `aria-label` on the link (C43) is deliberate.
+- A3/C29 Option B: `?productId=` URLs stay.
+- C34 datasheet file sizes, C40 no-JS JSON response, C31 catalog scoping, and
+  PLAN-7 slot 5 are deferred with reasons.
+- The shipped `data/content.json` lacking `copy.siteImages` is by design
+  post-PLAN-9 — the admin prefills, and the first save materialises it.
+- The three expected regression exceptions in §4.1 are documented state:
+  `plan8-contrast` 34/35 (`EXEMPT_BRAND_SURFACE`), `plan8-polish` 16/17 on Linux
+  (the C49 font check only), and `brandtext` at ≤ 13 failing — **judge the
+  failing count, not the ratio.**
 
 ---
 

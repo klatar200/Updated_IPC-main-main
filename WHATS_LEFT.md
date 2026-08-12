@@ -4233,3 +4233,149 @@ evidence.
 **The allowance is what made this get fixed rather than filed.** The check
 fails when a `$knownDupes` entry is no longer needed, so leaving it after the
 renumber would have gone red — an exemption that cannot outlive its collision.
+---
+
+## 1o. Audited 2026-08-12 — what the stale-file sweep found before deleting anything
+
+The repo had grown to 104 MB tracked across 700 files, most of it the residue of
+ten finished plans and five audits. The sweep to remove it was run **reference
+first**: for every candidate, find what still points at it, read what the pointer
+claims, and decide whether the substance lives in the candidate or in the
+pointer. Three of the answers changed the plan.
+
+### `_harness/AUDIT10-REPORT.md` is not an audit record — it is the backlog
+
+It was on the delete list as a two-day-old audit. It holds **39 severity-C and 9
+severity-D findings that no plan has actioned and that exist nowhere else in this
+repo**: `WHATS_LEFT.md` names 6 of the 63 `A10-` ids, all of them A or B items
+PLAN-10 closed. Deleting the report would have destroyed the entire remaining
+defect inventory for this site, 184 KB out of an 89 MB sweep — 0.2% of the space
+for 100% of the open work.
+
+**Kept whole**, and `plans/README.md` now says so in terms, because the next
+person to run a cleanup will read "AUDIT-10 report" and reach the same wrong
+conclusion this sweep did.
+
+### 30 of the C/D findings name an `audit10-*.js` probe as their reproduce step
+
+Each finding carries a **Probe:** line and a **Reproduce** block naming the file
+that measured it. A probe cited by a live finding is that finding's only
+executable reproduce step, so the deletion rule for that cohort is citation, not
+age: **an `audit10-*.js` may go only once no finding in the report cites it.**
+
+Applied: 35 of 60 cited and kept, 25 uncited and deleted — every one of the 25
+backing an A or B finding PLAN-10 closed and AUDIT-11 verified. The test and the
+one exception (`audit10-p7reverify.js`, kept regardless as the before/after
+instrument) are written into `_harness/README.md` so the rule survives this
+session.
+
+### `_localsite/admin/config.local.php` still holds a live credential, tracked, on a public repo
+
+`.gitignore:8-11` lists `_localsite/` and its comment asserts the directory is
+"never tracked". It is: `git ls-files _localsite | wc -l` returns **138**. The
+directory was committed in `cad013b` *before* the ignore rule was added, and git
+ignores nothing it is already tracking.
+
+This is the unexecuted half of a fix that was recorded as done.
+`DEPLOY_READINESS_v2.md` §9 step 1 specifies T1.1 as *"fresh cost-12 hash,
+`git rm --cached _localsite/admin/config.local.php`, add `_localsite/` and
+`dist/` to `.gitignore`"*. The hash was rotated and the ignore rule was added;
+the `git rm --cached` never happened, and the ignore rule made the omission
+invisible to every subsequent `git status`. §8 D3 asks whether the repo is
+public. **It is** — confirmed 2026-08-12 against the GitHub API,
+`"visibility": "public"`.
+
+Deleting the file does not resolve this: the blob stays readable at `cad013b`.
+**The admin password needs rotating on the live server**, independently of any
+cleanup. Logged in §2 as open.
+
+### What was moved rather than dropped
+
+| From | To |
+|---|---|
+| `_harness/AUDIT-REPORT-2026-08-09.md` § Refuted — 8 measured refutations | GUARDRAILS §7.2 |
+| `plans/audit10/guardrails.json` `known_issues_do_not_report` | GUARDRAILS §7.1 and §7.3 |
+| AUDIT-10's environment artifacts (the DejaVu/C49 font class, the `admin/logo.svg` mirror gap, the sticky-bar capture artifact) | GUARDRAILS §7.1 |
+| `AUDIT_v3_FINDINGS.md` D17 — cited by `CLAUDE.md` invariant 9 | Already inlined there; the citation became a date |
+| PLAN-7 item 3b's specification | Already duplicated in §2h above; `plans/README.md` now records that as its only home |
+| The `src/components`/`pages`/`lib` warning | `CLAUDE.md` React section, rewritten for a tree where the directories no longer exist |
+
+### Two files a reference grep called dead and a test run called live
+
+Both were on the delete list and both were restored, because "no document names
+it" and "nothing needs it" are different questions:
+
+- **`_harness/approvaldump.php`** — `plan7-approvals.js:82` runs it through
+  `execFileSync('php', …)` to get the PHP side of the approval-drift comparison.
+  It appears in no `.md` and in no `require()`, so both a doc scan and an
+  import scan reported it unreferenced. It is in the GUARDRAILS §4.1 gate at
+  11/11.
+- **`_harness/dump-copy-groups.php`** — invoked the same way by `copydrift.js`,
+  which `lint.php` wraps. Deleting it took `lint.php` red on the copy-key drift
+  check, which is how it was caught.
+
+**A cross-language invocation is invisible to every single-language search.**
+Neither file was recovered by reasoning; the first came back because `lint.php`
+failed, and the second because that failure prompted a second sweep for
+`execFileSync`/`spawnSync` across the whole harness. Run that sweep — not a
+grep of the docs — before deleting any `_harness/*.php`.
+
+### Not deleted, pending an owner decision
+
+`site-screenshots/2026-08-11-after-plan10/` — 62 MB, 83 PNGs, and the single
+largest object in the repo. Its README frames it as the "after" half of a
+before/after pair whose "before" set was never captured, so today it compares
+against nothing. Regenerable at any commit from `plan10-crawl.js` and
+`plan10-admincrawl.js`, both kept for that reason. Held rather than deleted
+because whether that comparison is still wanted is not a question the tree can
+answer.
+
+### The one that could not be moved
+
+`DEPLOY_READINESS_v2.md` keeps seven dangling `_localsite/` references and one
+to `src/components/`. It is **frozen** by GUARDRAILS §2 and its value is that it
+did not change, so the references stay stale on purpose — the same standing this
+file has under the doc-drift check.
+
+---
+
+## 2j. Open after the stale-file sweep (2026-08-12)
+
+- [ ] **Rotate the admin password on the live server.** `_localsite/admin/config.local.php`
+  published a working `$2y$12$` hash on a public repo (§1o). Removing the file
+  from the working tree does not remove it from history — the blob is readable
+  at `cad013b` and at every commit after it. Until the live password is changed,
+  anyone who has read this repository can sign in to the dashboard. This is an
+  **owner action on the server**, not a code change: generate a fresh hash
+  (`php -r "echo password_hash('new-pass', PASSWORD_DEFAULT);"`), write it into
+  `public_html/admin/config.local.php` by FTP, and confirm the old password no
+  longer works. A history rewrite (`git filter-repo`) is optional after that and
+  does not substitute for it.
+
+- [ ] **`plans/README.md`'s claim that AUDIT-10's C/D findings are the natural
+  PLAN-11 has no plan behind it.** 48 findings, six named clusters, no owner and
+  no sequencing. Recorded so the gap is visible; writing that plan is not itself
+  open work until someone decides the tier is in scope.
+
+- [ ] **A10-037 — the site states four different ISO 9001 claims.** *Logged here
+  2026-08-12; it should have been logged 2026-08-11.* PLAN-10 §10 required its
+  owner action to be recorded in §2 and it never was, which AUDIT-11 §11 caught
+  and this sweep confirmed: before today the only record of it in the repo was
+  `_harness/AUDIT10-REPORT.md` itself. That is the drift the report-keeping rules
+  exist to prevent, so the item is restated here in full rather than cited.
+
+  Four distinct claims render across the site: **`ISO 9001:2008`** (homepage hero
+  stat ×2, the "ISO 9001 Quality" card's paragraph, and an About certification
+  card), **`ISO 9001`** unversioned (an About card and the footer badge on all 15
+  chrome-bearing routes), **`ISO9001:2000`** unspaced (the VALUE-ADDED product
+  description and its spec chips, plus that row's Specifications cell on
+  `/dashboard`), and the bare footer form. Two of the dated claims name revisions
+  withdrawn in 2008 and 2015.
+
+  **This is an owner action, not a code change.** All four strings live in
+  owner-owned data — `data/content.json:31, :495, :597, :604` and
+  `data/products-all.json` under product `VALUE-ADDED` — which GUARDRAILS §2
+  forbids editing from a session. The site is reporting a contradiction it was
+  given; which revision IPC actually holds is a question only the owner can
+  answer, and the edit is then four admin saves. Still reproducing as of
+  AUDIT-11 (`audit10-p7reverify.js`, fresh context, all nodes `visible:true`).
