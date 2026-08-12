@@ -57,14 +57,16 @@ const READ = () => {
   const hr = h ? h.getBoundingClientRect() : null;
   const ar = a ? a.getBoundingClientRect() : null;
   /* The label the VISITOR sees, which is not always the one the DOM associates.
-     On the message tab all four mapped labels carry htmlFor="rfq-subject"
-     (src/App.jsx:5455, a copy-paste from the RFQ form), so input[name=name].labels
-     is EMPTY there and the visible "Full Name *" above it is associated with a
-     different input entirely. That is a real defect and it is NOT item 3's — it
-     is logged in WHATS_LEFT.md §2, unfixed, per PLAN-10 §1.1. This check is
-     about what the visitor can see, so it falls back to the label rendered in
-     the field's own wrapper, and reports which mechanism found it so the
-     fallback cannot quietly become the norm. */
+     On the message tab all four mapped labels used to carry htmlFor="rfq-subject",
+     a copy-paste from the RFQ form, so input[name=name].labels was EMPTY there
+     and the visible "Full Name *" above it was associated with a different input
+     entirely. That was a real defect and it was NOT item 3's; it is FIXED as of
+     2026-08-12 and its acceptance check is the `labels` scenario of
+     `contactflow.js`, which asserts association and text on both tabs.
+     The wrapper fallback STAYS. It is what let this suite measure the message
+     tab while the defect was live, it is what `labelVia` exists to report, and
+     a check that quietly starts depending on the fix cannot measure the next
+     regression of it. `labelVia` should now read `labels` on both tabs. */
   let lab = a && a.labels && a.labels.length ? a.labels[0] : null;
   const labelVia = lab ? 'labels' : 'wrapper';
   if (!lab && a && a.parentElement) lab = a.parentElement.querySelector('label');
