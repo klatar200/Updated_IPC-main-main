@@ -185,16 +185,17 @@ What holds it back is **product findability on desktop** and one **broken form o
 - **How to change:** Hold the "sent" state in component state set by the successful POST, and strip the parameter with the existing `{ replace: true }` setter after render — the routing shim already supports exactly this "read the param, then strip it" cleanup. A visitor arriving at `?sent=1` cold then sees the form.
 - **Effort guess:** S.
 
-### [F6] The product detail page is headed "Product Catalog", not the product
+### [F6] The product detail page's dominant heading says "Product Catalog", not the product
 - **Severity:** Medium
 - **Persona(s):** Customer
 - **Where:** `/products?productId=<id>` — page header band
-- **What happened:** On `/products?productId=IP33PO` the H1 is **"Product Catalog"** and the subtitle reads *"Select another product from the list to view full specifications, data sheet, and request a quote."* — an instruction to do the thing already done. The product name appears lower, inside the detail card, under a small "PRODUCT DETAIL" eyebrow. The breadcrumb and `<title>` are both correct ("Heat Shrinkable Polyolefin Tubing — IP33PO — …").
+- **CORRECTION (2026-08-12, during the fix pass):** this finding originally said *"the H1 is 'Product Catalog'"*. That was wrong about the mechanism. Measured, the `<h1>` **is** the product name — "Heat Shrinkable Polyolefin Tubing", 20px, at y=388 — and the "Product Catalog" text at 36px, y=171 is a **`div`**, made one deliberately (there is a comment in `App.jsx` explaining the demotion). So the page was already correct semantically and for SEO. The defect is **visual hierarchy only**, and the observation below — the biggest text on screen names the wrong thing — stands as recorded.
+- **What happened:** On `/products?productId=IP33PO` the largest text on the page (36px) reads **"Product Catalog"**, and the subtitle beneath it reads *"Select another product from the list to view full specifications, data sheet, and request a quote."* — an instruction to do the thing already done, on a page showing the result. The product's own name renders at 20px, some 200px further down, inside the detail card. The breadcrumb and `<title>` are both correct ("Heat Shrinkable Polyolefin Tubing — IP33PO — …").
 - **Why it fails UX:** The largest text on the page describes the wrong thing. This matters most for the visitor arriving cold from a search engine or a shared link, whose first orientation cue contradicts the page they're on — and the subtitle actively suggests they haven't selected anything yet.
 - **Evidence:** Journey C6; shot `06_product_detail_IP33PO.png`.
 - **Dead end?** No.
-- **Recommendation:** When a product is selected, make the page header the product.
-- **How to change:** Swap the H1 to the product name with the part number beneath it (the `<title>` tag already composes exactly this), and replace the subtitle with the product's short description — "Shrink over terminals for insulation and strain relief." is already rendered under the image and would serve. Keep "Product Catalog" as the H1 only on the unfiltered `/products` view.
+- **Recommendation:** When a product is selected, make the page header name the product.
+- **How to change:** Point the 36px `div` at the product name and replace the subtitle with the product's `caption` ("Shrink over terminals for insulation and strain relief."), which is already rendered under the image. Leave it a `div` — the product-name `<h1>` in the detail card should stay the only `h1`. Keep "Product Catalog" on the unfiltered `/products` view, where it is a real `h1`.
 - **Effort guess:** S.
 
 ### [F9] The generic submit-failure message offers no way to recover

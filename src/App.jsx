@@ -2430,6 +2430,28 @@ const STATS_ICONS = {
   ),
 };
 
+/**
+ * The stat bar under the hero. Its job is to add to the hero, not repeat it.
+ *
+ * F13 — it used to run "50+ Years · 25M+ Feet in Stock · $50 Minimum Order ·
+ * ≤1 Day Shipment Available" directly beneath a hero already showing "$50
+ * Minimum Order · 25M+ Feet in Stock · Same Day Shipment · ISO 9001", roughly
+ * 400px apart. Two of the four were verbatim repeats including the sub-line,
+ * and the shipping tile CONTRADICTED the hero: "Same Day / On in-stock items"
+ * against "≤1 Day / On most stock items". A buyer choosing on lead time could
+ * not tell which was the commitment.
+ *
+ * Shipping now lives in the hero only, and this row carries facts the hero
+ * does not: the company's age, the size of the published catalog, and the
+ * fabrication lead time from the Services page.
+ *
+ * "$50 Minimum Order" is KEPT here on purpose and is the one deliberate
+ * repeat. It is IPC's headline commercial term — it appears in the hero, the
+ * footer blurb and the About page too — and the `dollar` icon is the only one
+ * in STATS_ICONS it can honestly carry. Every value here is a claim already
+ * made elsewhere on the site; do not put a number in this row that nothing
+ * else supports.
+ */
 const STATS_DATA = [
   {
     value: "50+",
@@ -2438,9 +2460,9 @@ const STATS_DATA = [
     iconKey: "years",
   },
   {
-    value: "25M+",
-    label: "Feet in Stock",
-    sub: "Ready to ship today",
+    value: "42",
+    label: "Products Stocked",
+    sub: "Datasheet published for every one",
     iconKey: "stock",
   },
   {
@@ -2450,9 +2472,9 @@ const STATS_DATA = [
     iconKey: "dollar",
   },
   {
-    value: "≤1 Day",
-    label: "Shipment Available",
-    sub: "On most stock items",
+    value: "≤1 week",
+    label: "Custom Fabrication",
+    sub: "Cut · mark · spool · kit",
     iconKey: "ship",
   },
 ];
@@ -4092,6 +4114,24 @@ const FAQ_CATEGORIES = [
           question: "Do you ship internationally?",
           answer:
             "Please contact our sales team at sales@insulationproducts.com or call 630.771.0700 to discuss international shipping options, export compliance, and any restrictions for your specific products and destination.",
+        },
+        {
+          // F16 — the site had no vendor-facing content of any kind. A term
+          // sweep of all ten pages for vendor / supplier / partner / reseller
+          // / line card / careers returned only IPC describing ITSELF as a
+          // distributor, or IPC supporting its automotive CUSTOMERS' supplier
+          // requirements. /careers 404s. A supplier or manufacturer's rep had
+          // no entry point and no way to tell whether IPC wanted to hear from
+          // them; the only usable surface was a contact form whose default tab
+          // is a buyer's RFQ demanding a part number and a quantity.
+          //
+          // This is the smallest honest fix: one line that names the route.
+          // It deliberately promises nothing about outcomes — IPC is a
+          // stocking distributor, not a marketplace, and inventing a supplier
+          // programme here would be a business claim the site cannot support.
+          question: "I'm a supplier or manufacturer's rep — who do I contact?",
+          answer:
+            "Supplier, distribution and partnership enquiries go to the same team: email sales@insulationproducts.com with \"Supplier enquiry\" in the subject line, or call 630.771.0700 (Mon–Fri, 8am–5pm CT). You can also use the \"Send a Message\" tab on our Contact page — that form is for general enquiries, so there is no need to fill in a part number or quantity.",
         },
       ],
     },
@@ -9198,7 +9238,10 @@ function ProductPage({ products }) {
       >
         <div className="max-w-7xl mx-auto px-6 py-12">
           <PageEyebrow>
-            Products
+            {/* F6 — orient the visitor arriving cold on a deep link. The
+                eyebrow said "Products" on every one of the 42 product pages,
+                which told them nothing they could not already see. */}
+            {product ? product.partType || "Products" : "Products"}
           </PageEyebrow>
           {/* A3 — deliberately a div, not an <h1>.
               /products always has a product selected, so this band said
@@ -9220,8 +9263,15 @@ function ProductPage({ products }) {
               Product Catalog
             </h1>
           ) : (
+            /* F6 — this div is the biggest text on the page at 36px, and on a
+               product page it said "Product Catalog" while the page's actual
+               subject, the product name, rendered at 20px some 200px further
+               down. The <h1> was already correct (see the A3 note above) so
+               this is a visual-hierarchy fix, not a semantic one: the div now
+               names the product it is sitting above. It stays a div — the
+               product-name <h1> in the detail header is still the only h1. */
             <div className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
-              Product Catalog
+              {product.name}
             </div>
           )}
           <p
@@ -9235,7 +9285,11 @@ function ProductPage({ products }) {
               ? activeFamily
                 ? `${activeFamily} — showing ${visibleProducts.length} of ${products.length} products. Select one for full specifications, its data sheet, and a quote request.`
                 : `Browse all ${products.length} products — heat shrink tubing, sleeving, tapes, adhesives and accessories. Select one for full specifications, its data sheet, and a quote request.`
-              : "Select another product from the list to view full specifications, data sheet, and request a quote."}
+              : /* F6 — "Select another product from the list…" instructed the
+                   visitor to do the thing they had already done, on a page
+                   showing the result. The product's own caption is the useful
+                   sentence here; the SKU is the fallback when it has none. */
+                product.caption || `Part ${product.sku || product.id} — full specifications, data sheet and quote request below.`}
           </p>
         </div>
       </div>
@@ -9498,6 +9552,15 @@ function ProductPage({ products }) {
             ) : null}
             <PageLink
               page="contact"
+              // F8 — this carried no params, so the sticky bar's "Request a
+              // Quote" landed on an EMPTY form while the identically-named
+              // button in the product card header sent ?part= and pre-filled
+              // it. Two controls, same label, same page, different outcome —
+              // and this is the one on screen after the visitor has scrolled
+              // the spec table, so it is the one they are most likely to
+              // press. The Data Sheet button beside it already knew which
+              // product it was on.
+              params={{ part: product.sku || product.id }}
               className="ipc-tap"
               style={{
                 display: "flex",

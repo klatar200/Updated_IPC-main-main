@@ -40,9 +40,9 @@
         },
         {
             "iconKey": "stock",
-            "value": "25M+",
-            "label": "Feet in Stock",
-            "sub": "Ready to ship today"
+            "value": "42",
+            "label": "Products Stocked",
+            "sub": "Datasheet published for every one"
         },
         {
             "iconKey": "dollar",
@@ -52,9 +52,9 @@
         },
         {
             "iconKey": "ship",
-            "value": "≤1 Day",
-            "label": "Shipment Available",
-            "sub": "On most stock items"
+            "value": "≤1 week",
+            "label": "Custom Fabrication",
+            "sub": "Cut · mark · spool · kit"
         }
     ],
     "markets": [
@@ -459,6 +459,11 @@
             "category": "Support & Documentation",
             "question": "Do you ship internationally?",
             "answer": "Please contact our sales team at sales@insulationproducts.com or call 630.771.0700 to discuss international shipping options, export compliance, and any restrictions for your specific products and destination."
+        },
+        {
+            "category": "Support & Documentation",
+            "question": "I'm a supplier or manufacturer's rep — who do I contact?",
+            "answer": "Supplier, distribution and partnership enquiries go to the same team: email sales@insulationproducts.com with \"Supplier enquiry\" in the subject line, or call 630.771.0700 (Mon–Fri, 8am–5pm CT). You can also use the \"Send a Message\" tab on our Contact page — that form is for general enquiries, so there is no need to fill in a part number or quantity."
         }
     ],
     "capabilities": [
