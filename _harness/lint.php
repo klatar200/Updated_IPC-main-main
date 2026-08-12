@@ -231,13 +231,45 @@ if ($reintroduced) {
 //     gitignored" is not a path.
 //   - WHATS_LEFT.md is NOT scanned. It is append-only and deliberately holds
 //     references to files that no longer exist; that is its job.
+//
+// BARE filenames are matched too, and that is not a refinement — without it the
+// check missed the defect it was written for. The `:8123` server row names its
+// ini as `php-extra.ini`, not `_harness/php-extra.ini`, so a prefix-only pattern
+// scanned straight past it. The v1 mutation test "passed" only because the
+// mutation was written path-qualified; restoring the original row verbatim was
+// still green. A bare name is resolved by BASENAME anywhere in the repo, which
+// is what keeps `config.php`, `contact.php` and `vite.config.js` from tripping
+// it — they live outside `_harness/` but they do exist.
 $docs = [
     __DIR__ . '/../plans/GUARDRAILS.md',
     __DIR__ . '/../plans/README.md',
     __DIR__ . '/../CLAUDE.md',
 ];
 $generated = ['_harness/site/', '_harness/pristine/', '_harness/out/'];
-$retired = '/\b(deleted|never (been )?tracked|no longer|used to|superseded|does not exist|not in the repo)\b/i';
+// "**Corrected <date>.**" is this document's own marker for a paragraph that
+// exists to describe what a claim USED to say. Those paragraphs quote the dead
+// name on purpose. Keying on the convention rather than growing the vocabulary
+// list: the keyword list below already missed "this row said X" and "are not
+// tracked in the repo", and every miss is a false positive that pressures the
+// next person to delete the check.
+$retired = '/^\*\*Corrected\b|\b(deleted|never (been )?tracked|no longer|used to|superseded|does not exist|not in the repo)\b/i';
+
+// Every basename in the repo, for resolving bare references. Skips the
+// directories that are generated or vendored — a name that only resolves inside
+// node_modules/ or dist/ has not been shown to exist as a source file.
+$repoBasenames = [];
+$skipDirs = ['.git', 'node_modules', 'dist', 'site', 'pristine', 'out'];
+$it = new RecursiveIteratorIterator(
+    new RecursiveCallbackFilterIterator(
+        new RecursiveDirectoryIterator(__DIR__ . '/..', FilesystemIterator::SKIP_DOTS),
+        function ($f) use ($skipDirs) {
+            return !($f->isDir() && in_array($f->getFilename(), $skipDirs, true));
+        }
+    )
+);
+foreach ($it as $f) {
+    if ($f->isFile()) $repoBasenames[$f->getFilename()] = true;
+}
 $missingRefs = [];
 $refCount = 0;
 foreach ($docs as $doc) {
@@ -252,14 +284,22 @@ foreach ($docs as $doc) {
     // did not fail until this loop was inverted.
     $seen = [];
     foreach (preg_split('/\n\s*\n/', $text) as $p) {
-        if (!preg_match_all('/`(_harness\/[A-Za-z0-9._\/-]+\.[A-Za-z0-9]+)`/', $p, $m)) continue;
-        $isRetirement = (bool)preg_match($retired, $p);
-        foreach (array_unique($m[1]) as $ref) {
+        preg_match_all('/`(_harness\/[A-Za-z0-9._\/-]+\.[A-Za-z0-9]+)`/', $p, $mPath);
+        // Bare names are limited to the three extensions the harness actually
+        // uses. Widening past these buys nothing and starts matching prose.
+        preg_match_all('/`([A-Za-z0-9._-]+\.(?:ini|js|php))`/', $p, $mBare);
+        $refs = array_merge($mPath[1], $mBare[1]);
+        if (!$refs) continue;
+        $isRetirement = (bool)preg_match($retired, ltrim($p));
+        foreach (array_unique($refs) as $ref) {
             foreach ($generated as $g) {
                 if (strncmp($ref, $g, strlen($g)) === 0) continue 2;
             }
             if (!isset($seen[$ref])) { $seen[$ref] = true; $refCount++; }
-            if (file_exists(__DIR__ . '/../' . $ref)) continue;
+            $exists = strpos($ref, '/') !== false
+                ? file_exists(__DIR__ . '/../' . $ref)
+                : isset($repoBasenames[$ref]);
+            if ($exists) continue;
             if ($isRetirement) continue;
             $key = "$rel -> $ref";
             if (!in_array($key, $missingRefs, true)) $missingRefs[] = $key;
@@ -268,12 +308,12 @@ foreach ($docs as $doc) {
 }
 if ($missingRefs) {
     $fail++;
-    echo "FAIL  doc drift\n      a binding document names a _harness/ file that does not exist:\n";
+    echo "FAIL  doc drift\n      a binding document names a harness file that does not exist:\n";
     foreach ($missingRefs as $r) echo "        $r\n";
     echo "      fix the document, or restore the file — an executor told to run a\n"
        . "      missing script gets a failure that looks like their own mistake\n";
 } else {
-    echo "doc drift                 $refCount _harness/ paths in 3 binding docs, all resolve\n";
+    echo "doc drift                 $refCount harness file refs in 3 binding docs, all resolve\n";
 }
 
 exit(($fail + $jsFail) === 0 ? 0 : 1);

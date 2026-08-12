@@ -3972,3 +3972,186 @@ was a capture-and-report task and this belongs to whoever owns the docs.
   new state, so §4.2's line is a leftover from before it. Harmless today, but it
   is the sentence an executor reads before deciding whether a new suite they
   wrote will survive the session. AMENDED-style correction, same owner as above.
+
+---
+
+## 1c. Shipped 2026-08-11 — the admin Help page documents the whole dashboard
+
+The owner asked for `admin/help.php` to cover the dashboard's newer
+capabilities, in the pattern and outline the page already uses. Documentation
+only: no behaviour changed, and every claim below was read off the code rather
+than off `PATCH_NOTES.md`, because the point of the page is to describe what the
+dashboard actually does today.
+
+| Area | What the page said before | What it says now |
+|---|---|---|
+| **Part Type** | "This list is fixed — if you need a new category added, ask your web developer." | **This was false**, and it was costing Rick a phone call for a self-service job. `ipc_product_families()` (`admin/config.php:630`) reads `productFamilies` out of `content.json`, which is the **Page Content → Product Families / Categories** editor. The row now says he controls the list himself, and carries the renaming caveat below |
+| **Renaming a category** | not covered | A product stores its category as text, so renaming a family leaves its products under the old name until each is re-saved. `content.php:261` already warns about this in the editor; the Help page now warns before he gets there. Adding is safe and instant; renaming is a two-step job |
+| **Audit log** | five actions — `add`, `edit`, `delete`, `upload-pdf`, `remove-pdf` | all **eleven** the log actually writes, with the badge colours `action_color()` (`admin/audit-log.php:40-55`) really assigns: the five above plus `upload-image`, `remove-image`, `settings`, `content`, `restore`, `password`. The intro no longer implies the log is products-only |
+| **Named content saves** | not covered | A10-027's outcome, in Rick's terms: a Page Content save now names the pages and sections it changed instead of logging "Homepage content updated" every time |
+| **Approvals & Certifications** | not covered at all | The Add Product form's approvals card (`admin/add.php:200`) and its twelve fixed values (`IPC_APPROVALS`, `config.php:536`), plus why a tick-box is not the same thing as typing "RoHS" as a feature badge |
+| **Search Engine Text (SEO)** | not covered | The `seo` section of Page Content (`content.php:234`) — browser-tab title and meta description per page, `home` as the site-wide default |
+| **Site Images** | not covered | The five page-level photos (`content.php:294-300`) and the fact that clearing one **removes** the picture rather than restoring the default |
+| **Sign-in lockout** | "will pause briefly" | Accurate numbers: 5 free attempts, back-off to a **5-minute** ceiling (`LOGIN_COOLOFF_MAX`), failures forgotten after 15 quiet minutes (`LOGIN_THROTTLE_WINDOW`). "Briefly" understated a 5-minute wait to the one person who must never think he is locked out |
+| **Server health warnings** | not covered | New section `#health`, in the Advanced group, for the red "Server setup problem" box (`admin/index.php:118-155`): the three silent-failure folders and the open password-reset window, each with the FTP fix and the `Close it now` control |
+
+Four Quick Reference rows and one table-of-contents entry were added so the new
+material is reachable the same way as everything else.
+
+### One suite constant was updated, deliberately
+
+`_harness/plan10-helpwidth.js` asserted `tableCount === 11`. The new `#health`
+section adds a twelfth `table.field-ref`, so that check went red at 20/21.
+
+**The constant was updated only after confirming the substantive checks passed
+against the new table** — they are what A10-022 is actually about, and they ran
+green before anything was touched: page overflow **0px** at 390, **0 of 12**
+tables extending past the viewport without a working scroller, and all 12 still
+rendering a full-width explanation column at 834 and 1024 (narrowest 156.8px
+against a floor of 80). The count is a guard against a table *vanishing*, so it
+stays an exact count rather than a floor, and it now carries a comment saying
+why the number moved.
+
+### Verification
+
+```
+plan10-help           29/29        plan10-helpwidth      21/21   (was 20/21 on the count alone)
+plan4-admin           19/19        plan10-auditlog       13/13
+plan10-adminnav       25/25        plan10-adminrows      15/15
+plan7-approvals       11/11        plan6-families        13/13
+invariants            17/17        php -l                19 files, 0 failing
+lint.php              green — 11 families, 12 approvals, 5 photo-slot defaults, all PHP/JS identical
+git diff --stat data/ pdfs/ uploads/    empty
+_harness/pristine/content.json vs the mirror's    byte-identical after plan10-auditlog
+```
+
+Both new sections were also looked at rather than only measured, at 1440 and
+390: the badge legend renders the eleven real colours, and the `#health` table
+keeps both columns readable at 390 with no horizontal overflow.
+
+---
+
+## 1d. Fixed 2026-08-12 — the doc-drift check could not see the defect it was written for
+
+Found while auditing the seven branches that were not in `main`, not by the
+check itself. `origin/claude/guardrails-harness-doc-fix` proposed a different
+§4.2 fix; chasing why it existed led back to the check added a day earlier.
+
+`lint.php`'s `doc drift` matched only **backticked, path-qualified** references
+(`` `_harness/php-extra.ini` ``). The `:8123` server row — the actual defect,
+the one that cost a false regression in AUDIT-10 pass-6 — names its ini
+**bare**: `` `php-extra.ini` ``. So the check scanned straight past the row it
+was built to guard.
+
+**The v1 mutation test passed only because the mutation was unfaithful.** It
+re-added the ini in the path-qualified form. Restoring the original row
+verbatim, in its own bare form, left the check green:
+
+```
+mutation, bare (the real defect)          v1: PASS   ← should have failed
+mutation, path-qualified (what was tested) v1: FAIL
+```
+
+Fixed by matching bare filenames too, resolved by **basename anywhere in the
+repo** — which is what keeps `config.php`, `contact.php` and `vite.config.js`
+from tripping it, since they exist outside `_harness/`. Bare matching is limited
+to `.ini`, `.js` and `.php`; wider buys nothing and starts matching prose.
+
+Retirement detection also had to grow, and deliberately not by adding words. The
+keyword list already missed *"this row said X"* and *"are not tracked in the
+repo"* — both real paragraphs, both would now be false positives, and a false
+positive is what pressures the next person to delete the check. It now keys on
+the documents' own convention: a paragraph opening `**Corrected <date>.**` is a
+historical note and quotes dead names on purpose.
+
+Coverage went **8 → 46** references. Four mutations, all failing correctly:
+
+| mutation | result |
+|---|---|
+| `:8123` row back to bare `php-extra.ini` — the original defect verbatim | FAIL ✓ |
+| same, path-qualified | FAIL ✓ |
+| §4.4 table's `php-trunc.ini` → a name that does not exist | FAIL ✓ |
+| `**Corrected**` marker stripped from a correction paragraph | FAIL ✓ (marker is load-bearing) |
+
+Clean tree green at 46/46. §4.1's `lint.php` baseline now lists the line; it
+had been omitted when the check was added.
+
+**The lesson is about the mutation, not the regex.** A mutation test proves only
+that the check catches *the defect you wrote*. Write it in the form the real
+defect took — copy the original text — or the test grades your paraphrase.
+
+---
+
+## 1e. Audited 2026-08-12 — what the 30 stale branches held, and what `main` was missing
+
+The repo carried 31 branches. 23 were fully merged into `main` (every commit
+reachable from it). The other **7 held commits `main` did not**, which is the
+only part that could hide lost work. Each was checked against `main` rather than
+assumed superseded.
+
+### The four with no shared history — superseded, nothing lost
+
+`ipc-plan-2-owner-safety`, `ipc-plan-5-correctness-perf`, `ipc-plan-6-admin-surface`,
+`ipc-website-audit`. All four root at `12dff61 "first"` (2026-05-20). **`main`
+roots at `088c5cb` (2026-08-09)** — it was re-created with a fresh root, so git
+reports no merge base and `--no-merged` lists them forever. Three independent
+checks, all clean:
+
+1. **File presence.** Every tracked file on all four exists on `main` except
+   `dist/**` (generated, gitignored), `_harness/php-extra.ini` (deleted on
+   purpose, §4.2) and `public/sitemap.xml` (absent on purpose — CLAUDE.md: a
+   real file would make the `!-f` catch-all serve it and the `sitemap.php`
+   rewrite would only *look* like it worked).
+2. **Continuity.** `main`'s root against the newest of the four is
+   **+7,353 / −336** — pure PLAN-8 accumulation. No file dropped; every deletion
+   sits in a file with far larger insertions beside it.
+3. **The two commits outside that lineage.** `plan-5`'s PLAN-7 approvals commit
+   and `plan-6`'s plan doc are both in `main` — `plan7-approvals.js`, `add.php`
+   and `edit.php` byte-identical, and `main` is *ahead* on `config.php`, whose
+   `UL Recognized` pattern gained the reversed "Recognized … Underwriters'
+   Laboratories" alternative that CT needs.
+
+### `plan-10-phase-c` — the rival implementation, `main` strictly ahead
+
+The concurrent session's items 11+12. `main` carries the same accent-rgb tokens
+**plus** the four dedicated dark shades (`--brand-dark-2`, `-panel`, `-drawer`,
+`--brand-primary-deep`) it lacks — the reuse approach that was rejected on
+measurement (ΔE2000 5.29 / 3.22 / 2.24 against 1.27). Suite 547 lines vs 484,
+baseline 14,695 keys vs 26. Nothing to recover.
+
+### `guardrails-harness-doc-fix` — one half already in `main`, one half declined
+
+Its first commit is the same two §4.2 fixes `main` shipped. Its second deletes
+§4.4's server table as a duplicate of §4.2's. **Not adopted:** they answer
+different questions — §4.2 is *which ini to start each port with*, §4.4 is *what
+role each port plays in the negative control*. Deleting the second loses the
+role column. Chasing this branch is what surfaced §1d above, which is the real
+value it had.
+
+### `admin-help-new-capabilities` — a genuine gap in `main`, now closed
+
+The one branch carrying work `main` actually needed. Verified against the code
+before taking it, not against its own claims:
+
+| claim | checked against `main` |
+|---|---|
+| the log writes 11 action types, Help lists 5 | `audit_log()` call sites emit **11**; Help's dropdown line named 5 |
+| lockout backs off to 5 min, forgotten after 15 | `LOGIN_COOLOFF_MAX 300`, `LOGIN_THROTTLE_WINDOW 900` — Help said "pause briefly" |
+| Approvals, Product Families, Site Images, SEO undocumented | **0 mentions each** in `main`'s `help.php`, all four shipped |
+| Part Type list "is fixed — ask your web developer" | false since PLAN-6; `ipc_product_families()` reads `content.json` |
+
+Merged here. `#health` confirmed genuinely new (`main` had no `id="health"`,
+11 field-ref tables → 12), all 23 in-page anchors resolve, `php -l` clean.
+`plan10-helpwidth` **21/21** with `EXPECTED_TABLES = 12`, and fail-first
+re-proven: forcing 11 gives 20/21. `plan10-help` 29/29 · `plan10-auditlog` 13/13
+· `plan10-adminnav` 25/25 · `plan10-adminrows` 15/15 · `invariants` 17/17 ·
+`lint.php` green. `data/`, `pdfs/`, `uploads/` untouched.
+
+### Branch deletion could not be done from the session
+
+`git push --delete` and tag pushes both return **HTTP 403** — this session's
+credential can push commits but not delete or tag refs. The proxy is not the
+cause (`recentRelayFailures` empty). A probe confirming pushes still work left
+`tmp/push-probe` behind, which needs deleting too. **Tag the seven before
+deleting any of them**: four share no history with `main`, so their commits
+become unreachable the moment the branch goes.

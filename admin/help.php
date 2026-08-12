@@ -217,6 +217,7 @@ $navActive = 'help';
       <div class="toc-group">⚙️ Advanced</div>
       <a href="#backups">Backups &amp; undo</a>
       <a href="#auditlog">Audit log / change history</a>
+      <a href="#health">Server warnings on the dashboard</a>
 
       <div class="toc-group">📚 Reference</div>
       <a href="#faq">Troubleshooting &amp; FAQ</a>
@@ -265,6 +266,10 @@ $navActive = 'help';
           <tr><td><strong>Change your password</strong></td><td><a href="#password">Your admin password</a> — you can do this yourself</td></tr>
           <tr><td>Change the phone number, address, hours, logo or colours</td><td><a href="#business">Business Details</a></td></tr>
           <tr><td>Change wording on the site, the FAQ, services or footer links</td><td><a href="#pagecontent">Page Content</a></td></tr>
+          <tr><td>Add or rename a product category</td><td><a href="#pagecontent">Page Content</a> → Product Families / Categories — you can do this yourself</td></tr>
+          <tr><td>Change the title or description Google shows for a page</td><td><a href="#pagecontent">Page Content</a> → Search Engine Text (SEO)</td></tr>
+          <tr><td>Swap the homepage, About or Services photo</td><td><a href="#pagecontent">Page Content</a> → Site Images</td></tr>
+          <tr><td><strong>A red "server setup problem" box appeared</strong></td><td><a href="#health">If the dashboard warns you about the server</a></td></tr>
           <tr><td>See quote requests and messages from the website</td><td><a href="#inquiries">Inquiries</a></td></tr>
           <tr><td>Check who changed something and when</td><td><a href="#auditlog">Audit log / change history</a></td></tr>
           <tr><td>Something looks wrong or won't save</td><td><a href="#faq">Troubleshooting &amp; FAQ</a></td></tr>
@@ -282,7 +287,7 @@ $navActive = 'help';
         </ol>
         <div class="callout callout-warning">
           <b>If your password is rejected repeatedly</b>
-          After 5 incorrect attempts in a row, the sign-in page will pause briefly before letting you try again. This is a normal security precaution against guessing attacks, not an error — wait a few seconds and re-enter your password carefully (check that Caps Lock isn't on).
+          After 5 incorrect attempts in a row, the sign-in page will pause before letting you try again. The wait starts at a few seconds and grows if the wrong password keeps being entered, up to a maximum of <strong>5 minutes</strong> — it never locks you out permanently, and it forgets the failed attempts entirely after 15 quiet minutes. This is a normal security precaution against guessing attacks, not an error. Wait it out and re-enter your password carefully (check that Caps Lock isn't on).
         </div>
         <h3>Signing out</h3>
         <p>Click <strong>Sign Out</strong> in the top-right corner of any page. Your sign-in stays active until you do this — simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed.</p>
@@ -411,7 +416,7 @@ $navActive = 'help';
             <strong>Fill in Basic Information.</strong> Three fields are required (marked with *):
             <table class="field-ref">
               <tr><td>SKU / Part Number *</td><td>A short, unique code for this part (e.g. <code>IP33PO</code>). This becomes part of the product's web address <em>and</em> the filename of its PDF, so keep it to letters, numbers, and dashes — no spaces. It must be different from every other SKU already in your catalog.</td></tr>
-              <tr><td>Part Type *</td><td>Pick the category from the dropdown. This decides which section of the catalog (and which page grouping) the product appears under. The available categories are: Polyolefin Heat Shrink, PVDF Heat Shrink, Dual-Wall Heat Shrink, Medical Grade Heat Shrink, Elastomeric Heat Shrink, Fiberglass Sleeving, Expandable Sleeving, End Cap, Tape, Adhesive, and Accessory. This list is fixed — if you need a new category added, ask your web developer.</td></tr>
+              <tr><td>Part Type *</td><td>Pick the category from the dropdown. This decides which section of the catalog (and which page grouping) the product appears under. <strong>You control this list yourself</strong> — it comes from <strong>Page Content → Product Families / Categories</strong>, where you can add a category, rename one, or reorder them with the ↑ ↓ buttons — that order is the order the catalogue sidebar and the Products menu use. See <a href="#pagecontent">Page Content</a>.</td></tr>
               <tr><td>Product Name *</td><td>The full name shown to customers, e.g. "3:1 Polyolefin Heat Shrink Tubing."</td></tr>
               <tr><td>Operating Temperature</td><td>Optional. Free text, e.g. <code>-55°C to 135°C</code>.</td></tr>
               <tr><td>Image Caption</td><td>Optional short line shown underneath the product photo.</td></tr>
@@ -426,6 +431,10 @@ $navActive = 'help';
           <li>
             <strong>Description Paragraphs</strong> — one paragraph per line. Each line you type becomes its own paragraph of body text on the product page.
             <div class="visual-note"><span class="vn-icon">🔤</span>Badges and description text show up exactly as typed — plain text only. Typing formatting like <code>&lt;b&gt;bold&lt;/b&gt;</code> or markdown-style asterisks won't make anything bold on the live page; it'll show up as literal characters instead.</div>
+          </li>
+          <li>
+            <strong>Approvals &amp; Certifications</strong> — tick every approval this part genuinely holds. These are tick-boxes rather than free text on purpose: they drive the approval filters and the certification badges on the public site, so they have to be the same words everywhere. The twelve available are <code>UL Recognized</code>, <code>UL Listed</code>, <code>UL Approved</code>, <code>cUL</code>, <code>CSA</code>, <code>MIL-SPEC</code>, <code>RoHS</code>, <code>FDA</code>, <code>USP Class VI</code>, <code>ISO 10993-5</code>, <code>UL VW-1</code> and <code>UL-94</code>.
+            <div class="visual-note"><span class="vn-icon">✅</span>Ticking a box here is not the same as typing "RoHS" as a Feature Badge. The badge is decoration; the tick-box is the fact a buyer can filter on. If a part is RoHS compliant, do both.</div>
           </li>
           <li>
             <strong>Specifications</strong> — this is the label/value list customers see (Material, Color, Shrink Ratio, etc.). Use the visual builder — see <a href="#specs">Building the specifications list</a> below for a full walkthrough.
@@ -716,8 +725,20 @@ $navActive = 'help';
       <section class="help-section" id="pagecontent">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>📝 Page Content</h2>
-        <p>Click <strong>Page Content</strong> in the header. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the footer links, and the privacy/terms text.</p>
+        <p>Click <strong>Page Content</strong> in the header. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the navigation menus, the footer links, the contact-page tips, and the privacy/terms text.</p>
         <p>Each block is a row. Rows have <strong>↑ ↓</strong> buttons to reorder them, an <strong>✕</strong> to remove them, and a <strong>+ Add</strong> button at the bottom of each section.</p>
+        <div class="callout callout-warning">
+          <b>Renaming a product category does not move the products in it</b>
+          <strong>Product Families / Categories</strong> is where the Part Type list on the Add and Edit forms comes from, so you can add or rename a category yourself. But each product stores its own category as text: rename <em>Tape</em> to <em>Tapes</em> and the products stay under <em>Tape</em> until you open each one and re-save it. The number beside each row tells you how many products that is before you start. Adding a new category is safe and instant; renaming one is a two-step job.
+        </div>
+        <div class="callout callout-tip">
+          <b>The photos on the homepage, About and Services pages</b>
+          The <strong>Site Images</strong> section holds the five pictures that are part of the pages themselves rather than of any product: the homepage hero photo, the two photos in the homepage band (your team and your building), the About page photo and the Services page photo. Each is a path to a file already on your server. <strong>Clearing one removes that picture from the page</strong> rather than restoring the original — which is the point, if you would rather show no photo than the wrong one.
+        </div>
+        <div class="callout callout-tip">
+          <b>It also controls what Google shows</b>
+          The <strong>Search Engine Text (SEO)</strong> section sets the browser-tab title and the description that appears under your link in search results — and the preview card when someone shares a page on social media. There is one row per page, and the <strong>home</strong> row is the site-wide default used by any page without its own. You are writing for two readers at once here: a search engine, and a buyer deciding whether to click. Describe the page plainly and include the words a customer would actually type.
+        </div>
         <div class="callout callout-tip">
           <b>Deleting every row of a section really does empty it</b>
           If you remove all eight footer links, the site shows no footer links. Earlier versions quietly put the originals back; this one does what you asked. The same is true for FAQ entries, services, industries, milestones and the privacy text.
@@ -780,11 +801,11 @@ $navActive = 'help';
       <section class="help-section" id="auditlog">
         <div class="eyebrow eyebrow-advanced">Advanced</div>
         <h2>🕒 Audit log / change history</h2>
-        <p>Every add, edit, deletion, and PDF upload or removal made through this dashboard is automatically recorded — who made it (by IP address), exactly when, and what changed.</p>
+        <p><strong>Everything you can change from this dashboard is recorded here</strong> — not just products. Adding, editing and deleting parts; uploading and removing data sheets and photos; saving Business Details; saving Page Content; restoring a backup; and changing your password. Each entry records what happened, which product it was about, exactly when, and the IP address it came from.</p>
         <ol class="steps">
           <li>Click <strong>Audit Log</strong> in the header navigation.</li>
           <li>Browse the list — newest changes are always at the top.</li>
-          <li>Use the filter boxes to narrow it down: type a SKU to see everything that's happened to one specific product, or pick an action type (add, edit, delete, upload-pdf, remove-pdf) from the dropdown.</li>
+          <li>Use the filter boxes to narrow it down: type a SKU to see everything that's happened to one specific product, or pick an action type from the dropdown. The dropdown lists every action in the table below.</li>
           <li>Click <strong>Clear</strong> to reset the filters.</li>
         </ol>
         <h3>What each colored badge means</h3>
@@ -794,11 +815,38 @@ $navActive = 'help';
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">delete</span></td><td>A product was permanently removed.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#cffafe;color:#155e75;">upload-pdf</span></td><td>A data sheet was uploaded or replaced.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">upload-image</span></td><td>A product photo was uploaded from a computer.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">remove-image</span></td><td>A product photo was removed, and the file deleted from the server because nothing else was using it.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">settings</span></td><td>Business Details was saved. The entry names the sections you changed.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#f3e8ff;color:#6b21a8;">password</span></td><td>The admin password was changed. The password itself is never recorded.</td></tr>
         </table>
+        <div class="callout callout-tip">
+          <b>Page Content saves say what you actually edited</b>
+          The Page Content form covers the whole site at once, so a save used to be logged as "Homepage content updated" whatever you had been working on — which made the history useless for the one question it exists to answer. Entries now name it: <em>"Updated: Privacy page — banner"</em>, or <em>"Updated: Search Engine Text (SEO), Privacy page — banner"</em> when you changed two things. If you save without changing anything, it says so rather than pretending a change happened.
+        </div>
         <div class="visual-note"><span class="vn-icon">🔍</span>Handy for questions like "did someone change this product's price recently?" or "who deleted that part last week?" — check here first before assuming something is a bug.</div>
         <div class="callout callout-tip">
           <b>What the audit log can (and can't) tell you</b>
           Because everyone signs in with the same shared password (see <a href="#signing-in">Signing in &amp; out</a>), the log identifies changes by IP address and timestamp, not by employee name. That's usually enough to tell "this came from the office" versus "this came from somewhere else," and it always shows exactly what changed and when — just not automatically which person was at the keyboard.
+        </div>
+      </section>
+
+      <section class="help-section" id="health">
+        <div class="eyebrow eyebrow-advanced">Advanced</div>
+        <h2>🩺 If the dashboard warns you about the server</h2>
+        <p>Three things can go wrong on the server itself in a way that is completely silent — the dashboard keeps saying "saved", and nothing actually is. So the <strong>Products</strong> page checks for them every time you open it, and shows a red box at the top headed <strong>"Server setup problem — please send this to your developer"</strong> if it finds one.</p>
+        <p><strong>If you never see that box, there is nothing to do here.</strong> If you do, it is a permissions problem on the hosting account, not something you did wrong, and the box tells you exactly which folder to fix over FTP.</p>
+        <table class="field-ref">
+          <tr><td>The <code>admin</code> folder is not writable</td><td>The most serious one. <strong>Sales leads from the contact form are being discarded</strong>, the change history cannot record anything, and the Password page cannot save. Set <code>admin/</code> to 755 (or 775) over FTP.</td></tr>
+          <tr><td>The <code>data</code> folder is not writable</td><td>Nothing you edit on any page can be saved at all. Set <code>data/</code> to 755 (or 775) over FTP.</td></tr>
+          <tr><td>The <code>uploads/images</code> folder is missing or not writable</td><td>Product photo uploads will fail. Create <code>public_html/uploads/images/</code> over FTP and set it to 755.</td></tr>
+          <tr><td>The password-reset window is OPEN</td><td>While a file called <code>ALLOW-PASSWORD-RESET</code> sits in your admin folder, <strong>anyone on the internet</strong> who opens your admin address is shown a "Set Admin Password" form and can lock you out. It closes by itself an hour after the file was uploaded, and the warning carries a <strong>Close it now</strong> button so you can shut it immediately. See <a href="#password">Your admin password</a>.</td></tr>
+        </table>
+        <div class="callout callout-warning">
+          <b>Why this page exists at all</b>
+          On some hosting setups the account you use for FTP and the account the website runs as are two different users. When that happens the website can read your files but not write them — and the failure is invisible, because the part that would have told you is the part that cannot write. The warning box is there so a dropped sales lead is something you find out about in a day, not in a quarter.
         </div>
       </section>
 
