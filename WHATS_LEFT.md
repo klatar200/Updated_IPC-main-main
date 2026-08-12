@@ -3975,7 +3975,7 @@ was a capture-and-report task and this belongs to whoever owns the docs.
 
 ---
 
-## 1c. Shipped 2026-08-11 — the admin Help page documents the whole dashboard
+## 1k. Shipped 2026-08-11 — the admin Help page documents the whole dashboard
 
 The owner asked for `admin/help.php` to cover the dashboard's newer
 capabilities, in the pattern and outline the page already uses. Documentation
@@ -4031,7 +4031,7 @@ keeps both columns readable at 390 with no horizontal overflow.
 
 ---
 
-## 1d. Fixed 2026-08-12 — the doc-drift check could not see the defect it was written for
+## 1l. Fixed 2026-08-12 — the doc-drift check could not see the defect it was written for
 
 Found while auditing the seven branches that were not in `main`, not by the
 check itself. `origin/claude/guardrails-harness-doc-fix` proposed a different
@@ -4082,7 +4082,7 @@ defect took — copy the original text — or the test grades your paraphrase.
 
 ---
 
-## 1e. Audited 2026-08-12 — what the 30 stale branches held, and what `main` was missing
+## 1m. Audited 2026-08-12 — what the 30 stale branches held, and what `main` was missing
 
 The repo carried 31 branches. 23 were fully merged into `main` (every commit
 reachable from it). The other **7 held commits `main` did not**, which is the
@@ -4125,7 +4125,7 @@ Its first commit is the same two §4.2 fixes `main` shipped. Its second deletes
 §4.4's server table as a duplicate of §4.2's. **Not adopted:** they answer
 different questions — §4.2 is *which ini to start each port with*, §4.4 is *what
 role each port plays in the negative control*. Deleting the second loses the
-role column. Chasing this branch is what surfaced §1d above, which is the real
+role column. Chasing this branch is what surfaced §1l above, which is the real
 value it had.
 
 ### `admin-help-new-capabilities` — a genuine gap in `main`, now closed
@@ -4155,3 +4155,45 @@ cause (`recentRelayFailures` empty). A probe confirming pushes still work left
 `tmp/push-probe` behind, which needs deleting too. **Tag the seven before
 deleting any of them**: four share no history with `main`, so their commits
 become unreachable the moment the branch goes.
+
+---
+
+## 1n. Fixed 2026-08-12 — three section numbers were reused, and now a check says so
+
+Caught by reading the file rather than by any check, immediately after PR #38
+merged. This document had reached `## 1j.`; three sections landed on 2026-08-11
+and 08-12 reusing **`1c`, `1d` and `1e`** — one from the Help-page merge, two
+written in the same sitting as the audit above. Renumbered to **`1k`, `1l`,
+`1m`**, and the one cross-reference that pointed at the reused `§1d` now points
+at `§1l`.
+
+Nothing noticed, because nothing reads 4,100 lines at once — which is the
+property that makes a duplicate expensive rather than untidy. `§1d` in a
+cross-reference resolves to whichever section the reader scrolls to first.
+
+`lint.php` gains a tenth check, **`section drift`**: no `##`-level section number
+may be used twice. Four mutations, all correct — a fresh collision fails, a
+*third* occurrence of an exempted number fails, and an exemption that is no
+longer needed fails so it cannot linger.
+
+### One collision is older than this session and is NOT fixed
+
+**`## 4j.` is used twice** — *Plan 3, lead capture* (~1791) and *Plan 4,
+accessibility* (~1904), both 2026-08-06. It is left alone deliberately, because
+it is not a typo that can be corrected in place:
+
+- every letter from `4j` to `4u` is already taken, so neither section has a free
+  number to move to;
+- the **Plan 5** evidence is not a section at all — it sits inside the second
+  block as a `### §4k` subsection (line ~2036), so the 13 `§4k` references point
+  at something that is not a heading;
+- **13 `§4j` and 13 `§4k` cross-references** are split across the two blocks by
+  plan, so renumbering either one cascades through all 26.
+
+Resolving it is an editorial decision about this record, not a mechanical fix,
+and the plausible answers differ materially — promote `§4k` to a real section
+and give Plan 4 a new letter, or fold Plan 4 into `§4j` as a `###` subsection in
+the pattern `§4k` already uses. **Left for the owner.** It is carried in
+`lint.php` as a single named, dated allowance pinned to the count of 2 — not a
+rule that excuses the number — so a third `4j` still fails, and the allowance
+itself fails once the collision is resolved.

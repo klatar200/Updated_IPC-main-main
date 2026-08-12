@@ -316,4 +316,71 @@ if ($missingRefs) {
     echo "doc drift                 $refCount harness file refs in 3 binding docs, all resolve\n";
 }
 
+// ── section drift: WHATS_LEFT.md must not reuse a section number ─────────────
+//
+// Added 2026-08-12, immediately after doing this. WHATS_LEFT.md is append-only
+// and 4,100+ lines; the numbering had reached `## 1j.` and three sections landed
+// on the same day reusing `1c`, `1d` and `1e`. Nothing noticed, because nothing
+// reads the whole file at once — which is exactly the property that makes a
+// duplicate expensive: `§1d` in a cross-reference silently points at whichever
+// one the reader scrolls to first.
+//
+// This is the only structural rule the file has, so it is the only one checked.
+// The file's CONTENT is deliberately unconstrained — it holds stale references
+// on purpose, which is why the doc-drift check above skips it entirely.
+// ONE known exemption, named and dated rather than excused by a rule — a
+// blanket "skip anything that looks pre-existing" is how the doc-drift check
+// above ended up unable to see its own defect.
+//
+// `## 4j.` is used twice: Plan 3 lead capture (line ~1791) and Plan 4
+// accessibility (~1904), both 2026-08-06. It is NOT a typo that can be
+// corrected in place. Every letter j–u is already taken, the Plan 5 evidence
+// sits INSIDE the second block as a `### §4k` subsection rather than a section
+// of its own, and 13 `§4j` and 13 `§4k` cross-references are split across the
+// two. Renumbering either one cascades through all 26. Left for the owner to
+// decide; remove this line when it is resolved.
+// Pinned to the known COUNT, not just the number. An exemption that says
+// "ignore 4j" would go on ignoring a third and a fourth 4j — caught by this
+// check's own mutation test, which appended one and stayed green.
+$knownDupes = ['4j' => 2];
+$wl = (string)@file_get_contents(__DIR__ . '/../WHATS_LEFT.md');
+$counts = [];
+$headings = [];
+if (preg_match_all('/^(##+)\s+(\d+[a-z]?)\.\s/m', $wl, $hm, PREG_SET_ORDER)) {
+    foreach ($hm as $h) {
+        $counts[$h[2]] = ($counts[$h[2]] ?? 0) + 1;
+        $headings[$h[1] . ' ' . $h[2]] = true;
+    }
+}
+$dupes = [];
+foreach ($counts as $n => $c) {
+    if ($c > ($knownDupes[$n] ?? 1)) $dupes[$n] = $c;
+}
+if ($dupes) {
+    $fail++;
+    echo "FAIL  section drift\n      WHATS_LEFT.md reuses a section number:\n";
+    foreach ($dupes as $n => $c) echo "        §$n appears $c times\n";
+    echo "      renumber the newer one — a cross-reference to a reused number\n"
+       . "      points at whichever section the reader reaches first\n";
+} else {
+    // A stale exemption is the same drift class the check exists to stop: once
+    // §4j is renumbered, the allowance must go with it or it silently licenses
+    // the next collision on that number.
+    $stale = [];
+    foreach ($knownDupes as $n => $allowed) {
+        if (($counts[$n] ?? 0) < $allowed) $stale[] = $n;
+    }
+    if ($stale) {
+        $fail++;
+        echo "FAIL  section drift\n      a known-duplicate allowance is no longer needed: §"
+           . implode(' §', $stale) . "\n"
+           . "      the collision was fixed — drop it from \$knownDupes, or it will\n"
+           . "      license the next reuse of that number\n";
+    } else {
+        echo "section drift             " . count($headings) . " WHATS_LEFT sections, no number reused"
+           . ($knownDupes ? " (unresolved, allowed: §" . implode(' §', array_keys($knownDupes)) . ")" : "")
+           . "\n";
+    }
+}
+
 exit(($fail + $jsFail) === 0 ? 0 : 1);
