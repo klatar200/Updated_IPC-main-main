@@ -156,21 +156,60 @@ by design the same pixels. That half is what `_harness/plan10-repalette.js`
 
 ---
 
-## Not in this set: the admin
+## The admin set — `admin/`
 
-**Public pages only.** `/dashboard` here is the public **Product Index**, not the
-admin dashboard — different page, despite the name.
+**Added 2026-08-11**, closing the gap the rest of this README was written to
+describe. Six of PLAN-10's twelve remediated findings live behind the admin
+login, so a public-only set left half the work with no visual record.
 
-Six of PLAN-10's twelve remediated findings live behind the admin login and are
-therefore **not represented by any image in this folder**:
+Note that `/dashboard` in the page set above is the public **Product Index**,
+not the admin dashboard — different page, despite the name.
 
-- **Phase D** — A10-020 (the sliced Delete button on every product row), A10-021
-  (the admin menu falling out of its bar on a phone), A10-022 (the Help page
-  689 px wide on a 390 px screen), A10-027 (every content save logged as
-  "Homepage content updated").
-- **Phase E** — A10-028 (the process diagram telling Rick to paste a photo URL)
-  and A10-029 (the worked size chart showing a maximum below its minimum). Both
-  are on the admin Help page.
+`node _harness/plan10-admincrawl.js` · **43 shots**
 
-If an admin set is wanted later, it needs a login step and a throwaway credential
-in the frame, which is why it was kept out of a committed, public artifact.
+| | |
+|---|---|
+| 12 authenticated pages × 3 viewports | 36 |
+| the signed-out login form, 1440 + 390 | 2 |
+| `admin/states/` | 5 |
+
+### What each state frame is evidence of
+
+| frame | finding |
+|---|---|
+| `index-actions__1440` · `__1024` | **A10-020** — Delete now sits inside the table on a wrapped second line. 1024 is included because it is the width where *widening* the column would still have clipped it |
+| `nav-13-items__390` | **A10-021** — all 13 nav items contained in the bar. `upload-image.php` is shot deliberately: it injects **two** `$navExtra` links, giving it more items than `edit.php` or `upload-pdf.php` at 12, so it is the real worst case — a point PLAN-10's own records got wrong and AUDIT-11 corrected |
+| `help-tables__390` | **A10-022** — a reference table with both columns readable at 390 |
+| `delete-confirm__1440` | the destructive path at its confirmation step, **never confirmed** |
+
+`audit-log__*` and `content__*` carry **A10-027**: the log rows now name the
+section that changed, and the Page Content subtitle no longer claims the form
+edits only the homepage. `help__*` also carries **A10-028** and **A10-029** —
+the four-step diagram and the worked size chart, both on that page.
+
+### Safe to commit to a public repo — checked, not assumed
+
+- **No credential is in any frame.** The login shot is the empty form; the
+  mirror password (`audit-pass-123`, written by `sh _harness/sync.sh`) is a
+  throwaway for the local mirror and never appears on screen.
+- **No customer data.** `inquiries.php` renders the mirror's own
+  `inquiries.jsonl`, which holds four synthetic rows — *Harness Tester*,
+  `harness@example.com`, `127.0.0.1`. The audit log is harness activity.
+- **The crawl is read-only.** Nothing submits a form, so no `data/*.json`,
+  `pdfs/` or `uploads/` write is possible and no pristine restore is owed.
+  `delete.php` and the upload handlers are opened at their confirmation step
+  and never confirmed.
+
+### If the sign-in fails, every shot is the login form
+
+That is the failure mode worth knowing about: 43 plausible-looking screenshots,
+all wrong. `_harness/site/admin/config.local.php` is deleted at the end of every
+session and recreated by `sh _harness/sync.sh`. The crawl asserts it reached an
+authenticated page and exits non-zero if it did not, rather than trusting the
+redirect — but run `sync.sh` first regardless.
+
+### Two pages are very tall
+
+`content.php` reaches **48,459 px** at 390 and `help.php` **38,743 px**; their
+PNGs are ~3 MB each. That is the real page, not a capture artifact — the Page
+Content form renders 99 textareas.
