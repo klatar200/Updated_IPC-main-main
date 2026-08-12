@@ -129,6 +129,7 @@ is why it had been skipped since PLAN-8.
 php _harness/lint.php     php -l 19/0 · node --check 9/0 · JSON 17/10/42
                           copy drift 110 matched, 0 JS-only · 11 families · 12 approvals
                           · 5 photo-slot defaults · no family literals
+                          · doc drift 46 harness file refs, all resolve
 npm run build             0 errors, 368.07 kB JS / 23.41 kB CSS
 
 invariants                17/17          invariants-selftest   15/15

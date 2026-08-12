@@ -154,7 +154,17 @@ async function signIn(ctx) {
   fs.writeFileSync(path.join(OUT, 'helpwidth.json'), JSON.stringify(data, null, 2));
 
   const m = data['mobile-390'];
-  note(m.tableCount === 11, `the Help page renders all 11 field-ref tables (${m.tableCount})`);
+  // 11 when A10-022 was fixed; 12 since 2026-08-11, when the Help page gained a
+  // "server warnings on the dashboard" section with its own reference table.
+  // This is a guard against a table VANISHING, so it stays an exact count rather
+  // than a floor — but it is descriptive of the page, not an acceptance
+  // criterion of A10-022. The checks that ARE the criterion (page overflow 0, no
+  // table past the viewport without a working scroller, every explanation column
+  // reachable) all ran against the new table and passed before this was touched.
+  const EXPECTED_TABLES = 12;
+  note(m.tableCount === EXPECTED_TABLES,
+    `the Help page renders all ${EXPECTED_TABLES} field-ref tables (${m.tableCount})`,
+    'a table disappeared, or one was added without updating EXPECTED_TABLES');
 
   // ── 1. page-level overflow gone ───────────────────────────────────────────
   note(m.overflowX === 0,
