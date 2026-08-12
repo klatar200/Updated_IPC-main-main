@@ -203,8 +203,13 @@ assertions**. The pattern throughout:
 - Reproduce the symptom and **watch a new check fail** before fixing it. Two
   invariant checks in session 3 passed against a broken assertion because they
   were matching incident comments quoting the old buggy pattern.
-- Where a negative control exists, run it. `_harness/negctl.php` and
-  `_harness/php-nb2-off.ini` exist because a suite that cannot fail is decoration.
+- Where a negative control exists, run it, because a suite that cannot fail is
+  decoration. The live one is `_harness/plan2-trunc.js` against `:8125`
+  (`_harness/php-nb2-off.ini`, `display_errors=On`), which asserts the PHP
+  truncation warning **does** surface there — proving the production-shaped
+  assertion on `:8124` is measuring something. *Corrected 2026-08-11: this named
+  `_harness/negctl.php`, which has never been tracked in this repo and is
+  superseded by `plan2-trunc.js`. See `GUARDRAILS.md` §4.4.*
 - Restore any `data/*.json` touched by a test from `_harness/pristine/` and prove
   byte-identity with `cmp`.
 - Label anything depending on `.htaccess` or `.user.ini` as `[UNVERIFIED]`.

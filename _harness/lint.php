@@ -200,4 +200,80 @@ if ($reintroduced) {
     echo "family literals           none in add.php or edit.php\n";
 }
 
+// ── doc drift: every _harness/ path a binding document names must exist ─────
+//
+// Added 2026-08-11. This is the fifth drift check and it exists because the
+// same defect kept recurring in the documents rather than the code. In two
+// days, four separate claims in GUARDRAILS.md were found stale — the 30-suite
+// regression baseline against a 65-suite harness, `_harness/negctl.php` (never
+// tracked, in a rule telling people to run it), the `:8123` server row naming
+// an ini that breaks contact.php, and "_harness/ is gitignored". Each was
+// found by a human or an audit noticing in passing; none by a check.
+//
+// A document that names a file which does not exist sends an executor to run
+// something that cannot run, and the failure looks like their mistake. The
+// three files scanned are the ones an executor is told to treat as binding or
+// authoritative, so a stale path in them is the expensive kind.
+//
+// Scope is deliberately narrow, and each exclusion below was forced by a false
+// positive this check produced on its own first run:
+//
+//   - Paths under the three GENERATED directories (`_harness/site/`,
+//     `pristine/`, `out/`) are skipped. They legitimately do not exist at rest
+//     — `site/admin/config.local.php` is deleted at the end of every session by
+//     design — so requiring them would fail on a clean checkout.
+//   - A reference inside a PARAGRAPH that flags the file as gone is a
+//     correction, not a claim. Matching on the containing paragraph rather than
+//     the containing line, because these corrections wrap: the sentence that
+//     retires `negctl.php` puts "never been tracked" and "superseded" on two
+//     different lines.
+//   - Only backticked paths with a real extension. Prose like "_harness/ is
+//     gitignored" is not a path.
+//   - WHATS_LEFT.md is NOT scanned. It is append-only and deliberately holds
+//     references to files that no longer exist; that is its job.
+$docs = [
+    __DIR__ . '/../plans/GUARDRAILS.md',
+    __DIR__ . '/../plans/README.md',
+    __DIR__ . '/../CLAUDE.md',
+];
+$generated = ['_harness/site/', '_harness/pristine/', '_harness/out/'];
+$retired = '/\b(deleted|never (been )?tracked|no longer|used to|superseded|does not exist|not in the repo)\b/i';
+$missingRefs = [];
+$refCount = 0;
+foreach ($docs as $doc) {
+    $text = (string)@file_get_contents($doc);
+    if ($text === '') continue;
+    $rel = basename(dirname($doc)) === 'plans' ? 'plans/' . basename($doc) : basename($doc);
+    // Per OCCURRENCE, not per file. Excusing a path file-wide because one
+    // paragraph retires it would mean a single "X has been deleted" note
+    // permanently licenses every other mention of X in that document —
+    // including the stale row that made the note necessary. Caught by the
+    // check's own mutation test: re-adding the retired ini to the :8123 row
+    // did not fail until this loop was inverted.
+    $seen = [];
+    foreach (preg_split('/\n\s*\n/', $text) as $p) {
+        if (!preg_match_all('/`(_harness\/[A-Za-z0-9._\/-]+\.[A-Za-z0-9]+)`/', $p, $m)) continue;
+        $isRetirement = (bool)preg_match($retired, $p);
+        foreach (array_unique($m[1]) as $ref) {
+            foreach ($generated as $g) {
+                if (strncmp($ref, $g, strlen($g)) === 0) continue 2;
+            }
+            if (!isset($seen[$ref])) { $seen[$ref] = true; $refCount++; }
+            if (file_exists(__DIR__ . '/../' . $ref)) continue;
+            if ($isRetirement) continue;
+            $key = "$rel -> $ref";
+            if (!in_array($key, $missingRefs, true)) $missingRefs[] = $key;
+        }
+    }
+}
+if ($missingRefs) {
+    $fail++;
+    echo "FAIL  doc drift\n      a binding document names a _harness/ file that does not exist:\n";
+    foreach ($missingRefs as $r) echo "        $r\n";
+    echo "      fix the document, or restore the file — an executor told to run a\n"
+       . "      missing script gets a failure that looks like their own mistake\n";
+} else {
+    echo "doc drift                 $refCount _harness/ paths in 3 binding docs, all resolve\n";
+}
+
 exit(($fail + $jsFail) === 0 ? 0 : 1);

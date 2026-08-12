@@ -229,8 +229,16 @@ worth knowing, because more will surface:
 
 ### 4.2 Arming the harness
 
-`_harness/` is gitignored, ~30 MB, and must never be deployed. It is a
-`public_html` mirror served by `php -S`.
+`_harness/` **must never be deployed.** It is a `public_html` mirror served by
+`php -S`, plus the suite code that drives it.
+
+**Corrected 2026-08-11.** This said "`_harness/` is gitignored, ~30 MB". Only
+the three *generated* directories are ignored — `_harness/site/`,
+`_harness/pristine/` and `_harness/out/` (`.gitignore:67-69`). **The suite code
+is tracked**: 214 files, including every `plan*.js`, the `php-*.ini` files and
+`lint.php`. That matters before you write a new suite — it will be committed and
+reviewed like any other code, not left behind in a container. §4.1 already
+described the new state; this line was a leftover from before it.
 
 ```bash
 php _harness/setpw.php
@@ -241,9 +249,25 @@ Sets the admin password to `audit-pass-123` **in the mirror only**, using
 
 | Port | ini | Purpose |
 |---|---|---|
-| 8123 | `php-extra.ini` | Main. `display_errors=On`, default `max_input_vars` |
+| 8123 | **`php-mail.ini`** | Main. `display_errors=On`, default `max_input_vars`, **and `sendmail_path`** |
 | 8124 | `php-trunc.ini` | `display_errors=Off`, `max_input_vars=100` — forces a genuine truncation |
 | 8125 | `php-nb2-off.ini` | `display_errors=On`, `max_input_vars=100` — the NB2 negative control |
+
+**Corrected 2026-08-11.** This row said `php-extra.ini`, and that ini is the one
+that breaks the contact form: it sets no `sendmail_path`, so every
+`contact.php` POST dies in the "mail server could not send" branch and nothing
+past it runs — including the auto-reply cap. It has already cost a real false
+regression: AUDIT-10 pass-6 recorded `plan8-lead` crashing with a timeout for
+exactly this reason. `_harness/README.md` and `plans/audit10/routes.json` both
+said `php-mail.ini` all along, so an executor following the **binding** document
+got the broken configuration while the merely-current ones were right.
+
+`_harness/php-extra.ini` has been **deleted** rather than left in place. It was
+a strict subset of `php-mail.ini` — same seven settings, minus `sendmail_path`
+and the opcache setting — so it offered nothing except a way to pick wrong, and
+this row was the only live thing still naming it. If you ever need a
+deliberately-mail-less server as a negative control for `contact.php`'s failure
+branch, add it back under a name that says so.
 
 Each runs `php -c <ini> -S 127.0.0.1:<port> -t site router.php`. Launch them
 detached; `router.php` emulates the `.htaccess` SPA rewrite.
@@ -273,8 +297,27 @@ check that has never failed proves nothing — two invariant checks in session 3
 passed against a broken assertion because they were matching the incident
 comments quoting the old buggy pattern, not the code.
 
-Where a plan names a negative control, run it. `_harness/negctl.php` and
-`_harness/php-nb2-off.ini` exist because a suite that cannot fail is decoration.
+Where a plan names a negative control, run it. A suite that cannot fail is
+decoration. The live one is **`_harness/plan2-trunc.js`**, which needs `:8123`,
+`:8124` **and** `:8125`:
+
+| Port | ini | Role |
+|---|---|---|
+| 8124 | `php-trunc.ini` | the production shape — `max_input_vars=100`, `display_errors=Off` |
+| 8125 | `php-nb2-off.ini` | **the negative control** — same truncation, `display_errors=On` |
+
+The content form posts 439 variables, so PHP genuinely discards everything past
+the 100th on both. `:8125` then asserts the PHP warning **does** surface there —
+which is what proves the `:8124` assertion ("no raw warning leaks") is measuring
+something rather than passing by default. It also asserts the guard refuses the
+save on both ports, so the control cannot be mistaken for a behaviour change.
+
+**Corrected 2026-08-11.** This sentence named `_harness/negctl.php`. That file
+has **never been tracked in this repo** — it is a standalone probe that survives
+only in a working tree carried over from an early session, the same class of
+artifact §4.1 describes above, and it is superseded by `plan2-trunc.js`, which
+exercises the same control through the real form instead of a synthetic POST.
+Do not go looking for it; run `plan2-trunc` and confirm it reports 13/13.
 
 ---
 
