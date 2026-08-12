@@ -328,21 +328,17 @@ if ($missingRefs) {
 // This is the only structural rule the file has, so it is the only one checked.
 // The file's CONTENT is deliberately unconstrained — it holds stale references
 // on purpose, which is why the doc-drift check above skips it entirely.
-// ONE known exemption, named and dated rather than excused by a rule — a
-// blanket "skip anything that looks pre-existing" is how the doc-drift check
-// above ended up unable to see its own defect.
+// No exemptions, and the list is deliberately empty. The one it briefly held --
+// `## 4j.` used for BOTH Plan 3 and Plan 4 evidence -- was resolved on
+// 2026-08-12: Plan 4's block became `## 4k.` and its eight cross-references
+// moved with it (WHATS_LEFT section 1n). The stale-allowance branch below is
+// what forced it to be dropped here rather than left sitting as decoration.
 //
-// `## 4j.` is used twice: Plan 3 lead capture (line ~1791) and Plan 4
-// accessibility (~1904), both 2026-08-06. It is NOT a typo that can be
-// corrected in place. Every letter j–u is already taken, the Plan 5 evidence
-// sits INSIDE the second block as a `### §4k` subsection rather than a section
-// of its own, and 13 `§4j` and 13 `§4k` cross-references are split across the
-// two. Renumbering either one cascades through all 26. Left for the owner to
-// decide; remove this line when it is resolved.
-// Pinned to the known COUNT, not just the number. An exemption that says
-// "ignore 4j" would go on ignoring a third and a fourth 4j — caught by this
-// check's own mutation test, which appended one and stayed green.
-$knownDupes = ['4j' => 2];
+// If one is ever needed again, pin it to the COUNT, not the number:
+// ['4j' => 2], never ['4j']. An allowance that excuses the number goes on
+// excusing a third and a fourth -- caught by this check's own mutation test,
+// which appended one and stayed green.
+$knownDupes = [];
 $wl = (string)@file_get_contents(__DIR__ . '/../WHATS_LEFT.md');
 $counts = [];
 $headings = [];
