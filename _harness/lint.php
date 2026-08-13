@@ -185,6 +185,53 @@ if (count($phpPh) !== 5 || count($jsPh) !== 5) {
     echo "photo-default drift       5 slot defaults, PHP and JS identical\n";
 }
 
+// ── audit-action drift ──────────────────────────────────────────────────────
+// The audit-log action vocabulary lived in three places with nothing comparing
+// them: config.php's call sites, audit-log.php's <option> filter, and
+// audit-log.php's colour switch. DEPLOY_READINESS_v2 4.34 was the filter
+// offering `import`, which no call site writes, so the filter silently always
+// returned "No entries match". The reverse — a written action that is not
+// filterable — was live for the three sign-in actions until A-09.
+//
+// IPC_AUDIT_ACTIONS in config.php is now the single list. This compares it, in
+// BOTH directions, against the literal first argument of every audit_log()
+// call under admin/ and public/. Comparison is on the SET, not the order: the
+// list is display order and the call sites are in file order, and demanding
+// they match would fail on a reordering that changes nothing.
+// (audit-runs/audit1.md A-15)
+$declared = [];
+$cfg = (string)@file_get_contents(__DIR__ . '/../admin/config.php');
+if (preg_match('/const IPC_AUDIT_ACTIONS = \[(.*?)\];/s', $cfg, $m)) {
+    preg_match_all("/'([^']+)'/", $m[1], $mm);
+    $declared = $mm[1];
+}
+$called = [];
+foreach (array_merge(glob(__DIR__ . '/../admin/*.php') ?: [], glob(__DIR__ . '/../public/*.php') ?: []) as $f) {
+    if (preg_match_all("/audit_log\(\s*'([^']+)'/", (string)@file_get_contents($f), $mm)) {
+        foreach ($mm[1] as $a) $called[$a] = true;
+    }
+}
+$called = array_keys($called);
+// audit-log.php must read the shared list, not carry a fourth copy.
+$literalBack = (bool)preg_match("/foreach\s*\(\s*\[\s*'add'\s*,/", (string)@file_get_contents(__DIR__ . '/../admin/audit-log.php'));
+$missing = array_values(array_diff($called, $declared));   // written, not offered
+$unused  = array_values(array_diff($declared, $called));   // offered, never written
+if (!$declared || !$called) {
+    $fail++;
+    echo "FAIL  audit-action drift\n      could not read one of the two lists (declared "
+       . count($declared) . ", called " . count($called) . ") — has IPC_AUDIT_ACTIONS been renamed?\n";
+} elseif ($literalBack) {
+    $fail++;
+    echo "FAIL  audit-action drift\n      audit-log.php carries a hardcoded action list again — iterate IPC_AUDIT_ACTIONS instead\n";
+} elseif ($missing || $unused) {
+    $fail++;
+    echo "FAIL  audit-action drift\n      IPC_AUDIT_ACTIONS and the audit_log() call sites disagree\n"
+       . ($missing ? "      written but not offered in the filter: " . json_encode($missing) . "\n" : '')
+       . ($unused  ? "      offered in the filter but never written: " . json_encode($unused)  . "\n" : '');
+} else {
+    echo "audit-action drift        " . count($declared) . " actions, filter list and call sites identical\n";
+}
+
 // The two $partTypes literals this item removed must not come back.
 $reintroduced = [];
 foreach (['add.php', 'edit.php'] as $f) {

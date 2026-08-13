@@ -50,6 +50,12 @@ function action_color(string $a): array {
         case 'content':     return ['#e0f2fe', '#075985'];
         case 'restore':     return ['#fef3c7', '#92400e'];
         case 'password':    return ['#f3e8ff', '#6b21a8'];
+        // A9 — authentication events. Green/grey read as routine; the failed
+        // attempt is red because a run of them is the one thing on this page
+        // that wants the owner's eye. (audit-runs/audit1.md A-09)
+        case 'sign-in':        return ['#dcfce7', '#166534'];
+        case 'sign-out':       return ['#f3f4f6', '#374151'];
+        case 'sign-in-failed': return ['#fee2e2', '#991b1b'];
         default:            return ['#f3f4f6', '#374151'];
     }
 }
@@ -105,14 +111,25 @@ function action_color(string $a): array {
   <?php endif; ?>
 
   <form method="GET" class="filters">
-    <input type="text" name="sku" placeholder="Filter by SKU…" value="<?= h($filterSku) ?>" />
-    <select name="action">
+    <?php /* A12 — aria-label rather than a visible <label>. This is a one-line
+             inline filter bar and a placeholder is not an accessible name:
+             assistive tech announced both controls unnamed. Visible labels
+             would push the bar onto two rows, which the sprint's guardrail
+             rules out, and the names here say exactly what the placeholder and
+             the first option already say on screen.
+             (audit-runs/audit1.md A-12) */ ?>
+    <input type="text" name="sku" placeholder="Filter by SKU…" aria-label="Filter by SKU" value="<?= h($filterSku) ?>" />
+    <select name="action" aria-label="Filter by action">
       <option value="">All actions</option>
       <?php /* 'import' was listed for a feature that does not exist anywhere in
                the codebase — the filter always returned "No entries match".
                Replaced with the actions that are actually written.
                (DEPLOY_READINESS_v2 4.34) */ ?>
-      <?php foreach (['add','edit','delete','upload-pdf','remove-pdf','upload-image','remove-image','settings','content','restore','password'] as $a): ?>
+      <?php /* A15 — read from config.php's IPC_AUDIT_ACTIONS rather than a
+               literal here. The literal was the third copy of this list and
+               nothing compared it to the call sites; lint.php now does, in
+               both directions. (audit-runs/audit1.md A-15) */ ?>
+      <?php foreach (IPC_AUDIT_ACTIONS as $a): ?>
         <option value="<?= h($a) ?>" <?= $filterAction === $a ? 'selected' : '' ?>><?= h($a) ?></option>
       <?php endforeach; ?>
     </select>

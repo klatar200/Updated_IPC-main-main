@@ -16,7 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $products = load_products();
     $sku = post_str('sku');
 
-    if (empty($sku)) { $errors[] = 'SKU is required.'; }
+    // A6 — shared with edit.php via config.php. Covers the "required" case too,
+    // so the old empty() branch is gone rather than duplicated.
+    $skuErrors = sku_problems($sku);
+    if ($skuErrors) { $errors = array_merge($errors, $skuErrors); }
     // No htmlspecialchars() here — the error list renders every entry through
     // h(), so escaping twice showed the admin  O&amp;#039;Brien  in his own
     // error message. Escape at the render boundary only.
@@ -215,11 +218,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="card">
       <div class="card-title">Feature Badges</div>
+      <?php /* A7 — a card-title <div> is not a label. These four textareas
+               carried an id and no <label for>, so all four were announced as
+               a bare "edit text" while edit.php labelled the same four fields
+               correctly. Label text matches edit.php's word for word so the two
+               pages describe one field the same way.
+               (audit-runs/audit1.md A-07) */ ?>
+      <label for="badges">One badge per line</label>
       <textarea id="badges" name="badges" rows="4" placeholder="Flame Retardant&#10;RoHS Compliant&#10;2:1 Shrink Ratio"><?= h(is_array($product['badges'] ?? '') ? implode("\n", $product['badges']) : ($product['badges'] ?? '')) ?></textarea>
     </div>
 
     <div class="card">
       <div class="card-title">Description Paragraphs</div>
+      <label for="description">One paragraph per line</label>
       <textarea id="description" name="description" rows="6" placeholder="One paragraph per line..."><?= h(is_array($product['description'] ?? '') ? implode("\n", $product['description']) : ($product['description'] ?? '')) ?></textarea>
     </div>
 
@@ -232,14 +243,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  repopulated correctly. (AUDIT_v3_FINDINGS NB11) */ ?>
         <input type="text" id="specTable1_title" name="specTable1_title" value="<?= h($st1TitleVal) ?>" />
       </div>
-      <label>Rows JSON</label>
-      <textarea name="specTable1_rows" rows="8" class="mono"><?= h($emptyRows) ?></textarea>
+      <label for="specTable1_rows">Rows JSON</label>
+      <textarea id="specTable1_rows" name="specTable1_rows" rows="8" class="mono"><?= h($emptyRows) ?></textarea>
       <div class="hint">Array of {"label": "..." or null, "value": "..."} objects.</div>
     </div>
 
     <div class="card">
       <div class="card-title">Size chart</div>
-      <textarea name="specTable2_json" rows="12" class="mono"><?= h($emptyTable2) ?></textarea>
+      <label for="specTable2_json">Full Table JSON</label>
+      <textarea id="specTable2_json" name="specTable2_json" rows="12" class="mono"><?= h($emptyTable2) ?></textarea>
     </div>
 
     <div class="form-actions">

@@ -76,7 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/><link rel="icon" type="image/svg+xml" href="logo.svg" /><title>IPC Admin — Delete <?= h($sku) ?></title>
+  <?php /* A8 — the viewport tag. Every other admin page carries it; this one
+           did not, so the one page where misreading the SKU costs a product
+           rendered desktop-zoomed on a phone. (audit-runs/audit1.md A-08) */ ?>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><link rel="icon" type="image/svg+xml" href="logo.svg" /><title>IPC Admin — Delete <?= h($sku) ?></title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; }

@@ -118,7 +118,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($updated['contact']['email'] !== '' && !filter_var($updated['contact']['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'The email address is not valid.';
     }
-    foreach (['twitter', 'facebook', 'linkedin', 'youtube', 'pinterest'] as $s) {
+    // EVERY key in $updated['social'] must appear here. The list used to name
+    // five of the seven, and the two it left out are rendered by FooterSocial
+    // exactly like the other five: measured saving  javascript:alert(1)  into
+    // social_tiktok and finding it as a live, clickable href in the footer of
+    // every page, and  instagram.com/x  rendering as a same-site relative link
+    // that 404s. If a channel is added to SOCIAL_CHANNELS in src/App.jsx and to
+    // the $updated['social'] array above, it belongs in this list too.
+    // (audit-runs/audit1.md A-01)
+    foreach (array_keys($updated['social']) as $s) {
         $u = $updated['social'][$s];
         if ($u !== '' && !preg_match('#^https?://#i', $u)) {
             $errors[] = 'The ' . $s . ' link should be a full URL starting with http:// or https://';

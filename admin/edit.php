@@ -129,7 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate required fields
     if (empty($updated['name']))    $errors[] = 'Product name is required.';
-    if (empty($updated['sku']))     $errors[] = 'SKU is required.';
+    // A6 — the same shared rule add.php uses. A rename could previously turn a
+    // working SKU into one whose derived upload filenames are dotfiles.
+    $errors = array_merge($errors, sku_problems($updated['sku']));
     if (empty($updated['partType'])) $errors[] = 'Part type is required.';
 
     // Block renaming an SKU onto another existing product. Without this,
@@ -138,7 +140,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors) && $updated['sku'] !== $sku) {
         $clashIdx = find_product($products, $updated['sku']);
         if ($clashIdx !== -1 && $clashIdx !== $idx) {
-            $errors[] = 'Another product already uses SKU "' . h($updated['sku']) . '". Pick a different one.';
+            // No h() here — the error list escapes every entry on render
+            // (edit.php's <ul class="error-list">), so escaping now produces
+            // the double-escaped text. Measured before the fix: a clashing SKU
+            // of O'Brien was reported as O&amp;#039;Brien. Same class as
+            // AUDIT_v3 NB18, which fixed add.php and upload-pdf.php and missed
+            // this one. (audit-runs/audit1.md A-11)
+            $errors[] = 'Another product already uses SKU "' . $updated['sku'] . '". Pick a different one.';
         }
     }
 

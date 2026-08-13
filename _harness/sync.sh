@@ -26,6 +26,14 @@ rm -rf _harness/site/assets
 cp -r dist/. _harness/site/
 cp admin/*.php _harness/site/admin/
 cp admin/*.js  _harness/site/admin/
+# logo.svg was never copied, so every admin page in the mirror rendered a broken
+# <img> and a 404 favicon — the brand mark is missing from every admin
+# screenshot in the audit record, and any suite measuring the header was
+# measuring a header without its logo. Deliberately NOT a `cp admin/*`:
+# admin/.htaccess must stay out, because `php -S` ignores it and its presence in
+# the mirror would imply file-blocking coverage the harness does not have.
+# (audit-runs/audit1.md A-14)
+cp admin/logo.svg _harness/site/admin/
 
 # pdfs/ is served by the datasheet index and by every product page's download
 # button. Without it in the mirror every pdfUrl 404s for a reason that has
@@ -42,3 +50,32 @@ php _harness/setpw.php
 
 echo "mirror bundle: $(grep -o 'index-[A-Za-z0-9_-]*\.js' _harness/site/index.html)"
 echo "built  bundle: $(grep -o 'index-[A-Za-z0-9_-]*\.js' dist/index.html)"
+
+# STALE-dist GUARD.
+#
+# The header above says to run this after every edit under admin/ or public/,
+# and for admin/ that is true — those files are copied straight across. public/
+# is NOT: Vite's publicDir copies it into dist/, so a public/ file reaches the
+# mirror only through `npm run build`. Running sync.sh alone after editing
+# public/contact.php serves the PREVIOUS file, and the two bundle lines printed
+# above cannot reveal it — a contact.php edit does not change the bundle hash,
+# so both lines match and everything looks fine.
+#
+# Measured 2026-08-13: the first pass of a contact.php change was verified
+# against a stale mirror and reported the old behaviour as still live.
+# Compare the two trees instead of trusting the bundle hash.
+# (audit-runs/audit2.md B-03)
+stale=''
+for f in public/*; do
+  [ -f "$f" ] || continue
+  b=$(basename "$f")
+  if [ ! -f "dist/$b" ] || ! cmp -s "$f" "dist/$b"; then
+    stale="$stale $b"
+  fi
+done
+if [ -n "$stale" ]; then
+  echo "STALE:        dist/ does not match public/ for:$stale"
+  echo "              The mirror is serving the OLD copies. Run: npm run build && sh _harness/sync.sh"
+  exit 1
+fi
+echo "public/ vs dist/: in sync"

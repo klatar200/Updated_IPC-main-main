@@ -10,6 +10,46 @@ Options -MultiViews +FollowSymLinks
 RewriteEngine On
 RewriteBase /
 
+# Force HTTPS. admin/.htaccess has carried this rule since the admin shipped;
+# this tree had nothing, so a visitor who arrived on http:// stayed there — and
+# /contact.php collects a name, an email address, a phone number and a company
+# name. That is the lead form posting PII in cleartext. Same rule, same
+# conditions as the admin's, and it must come BEFORE the sitemap rewrite and
+# the SPA catch-all so the redirect happens on the original URL.
+#
+# The X-Forwarded-Proto condition is not optional: behind a TLS-terminating
+# proxy %{HTTPS} is "off" on every request and the first condition alone
+# redirect-loops. (audit-runs/audit1.md A-02)
+<IfModule mod_rewrite.c>
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+# Defense-in-depth response headers, mirroring admin/.htaccess.
+#
+# NO Content-Security-Policy here, deliberately. The admin can carry one because
+# it is server-rendered HTML with no external JS; this tree is a React bundle
+# that sets inline styles at hundreds of call sites and loads product photos
+# from placehold.co for five SKUs, so a CSP written without measuring every
+# route against it would break the site while looking like hardening. Adding one
+# is real work with its own verification pass, not a line in this block.
+#
+# X-Frame-Options rather than frame-ancestors for the same reason — it needs no
+# policy for the rest of the page.
+<IfModule mod_headers.c>
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  # env=HTTPS so this is never sent over plain HTTP, where it is meaningless
+  # and, on a host that later drops TLS, actively harmful.
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+</IfModule>
+
+# Suppress version disclosure and directory listings, as the admin already does.
+ServerSignature Off
+Options -Indexes
+
 # The sitemap is generated from the live catalog (see sitemap.php) but keeps its
 # conventional address, so robots.txt, Search Console and any existing
 # submission never have to learn that it became dynamic. This must come BEFORE
