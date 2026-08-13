@@ -60,10 +60,10 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
 
 ### React side ([src/App.jsx](src/App.jsx))
 
-- **One 12,270-line file is the entire app.** Routing shims, data fetch, every
+- **One ~12,900-line file is the entire app.** Routing shims, data fetch, every
   page, every component, every icon set. Search by name; there is no per-page
-  split in use. (Said 8,500 until 2026-08-11; it had grown by ~3,800 lines
-  across PLAN-8, 9 and 10 without the figure being revisited. Re-measure with
+  split in use. (Said 8,500 until 2026-08-11 and 12,270 until 2026-08-13; it
+  grows every release without the figure being revisited. Re-measure with
   `wc -l src/App.jsx` rather than trusting this number — it will drift again.)
 - **There is no per-page split. Do not go looking for one, and do not start
   one.** `src/components/`, `src/pages/` and `src/lib/` used to exist, fully
@@ -166,6 +166,37 @@ incident.
     extensions and corporate proxies strip it; rejecting cost real leads.
 12. **`require_auth()` renders a page on POST instead of redirecting.** A 302
     turns the POST into a GET and silently discards everything typed.
+13. **`.ipc-container` is the ONE page-width rule, and it lives in
+    `src/index.css`.** It replaced 31 `max-w-7xl mx-auto` pairs and 6 inline
+    `maxWidth: 1280` objects — the same cap written two ways, which is why the
+    navbar (inline, no Tailwind class) was invisible to a grep. It is in
+    `index.css` for invariant 9's reason twice over: `Navbar` renders above the
+    catalog gate and `CatalogSkeleton` *is* the loading state. Its wide value is
+    `80vw`, **not `80%`** — a percentage max-width resolves against the
+    containing block, and four homepage containers sit inside a section with its
+    own `px-6`, so `80%` put a 19px step in the left edge at 1600/1920/2560.
+14. **Custom CSS in `src/index.css` loses to Tailwind utilities regardless of
+    where you put it.** Tailwind v3 does not emit `@tailwind utilities` at the
+    directive on line 3 — it hoists the whole utility layer to the END of the
+    compiled sheet (measured: `.ipc-catalog-grid` at line 1437, `.xl\:grid-cols-3`
+    at 1920). Equal specificity, later wins. `.ipc-catalog-grid` therefore
+    doubles its class to reach (0,2,0). Anything overriding a utility needs
+    specificity, not source order.
+15. **`admin_head()` (`admin/config.php`) must be echoed BEFORE the page's own
+    `<style>`.** It carries only the *majority* variant of each shared rule;
+    pages that genuinely differ keep their declaration in their own `<style>`
+    and win on source order. Reverse the order and thirteen pages restyle at
+    once. Narrow pages (Password, Delete, both uploads) opt out of the wide
+    container by simply not carrying `.admin-wide` — do not add it "for
+    consistency"; `_harness/adminwidth.js` fails if you do.
+16. **A no-op save returns `true`, and `backup_before_write()` returning `null`
+    no longer means failure.** `save_products()` / `save_site_info()` /
+    `save_content()` compare the **encoded JSON** against disk (not the input
+    array — `save_products()` sorts by SKU first, so an unsorted-but-equivalent
+    array is not a change) and skip both the write and the backup when it
+    matches. Returning `false` there would surface "could not save" for a file
+    that is already correct and would strand the optimistic-concurrency pages.
+    Pages that need to word it differently call `last_save_was_noop()`.
 
 ## Security posture (verified, keep it this way)
 

@@ -40,47 +40,27 @@ $navActive = 'products';
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Products</title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body  { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
-    /* Header */
-    header { background: #0d2d52; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
-    .logo  { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-mark { width: 36px; height: 36px; background: #005da3; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; color: #fff; }
-    .logo-title { color: #fff; font-size: 13px; font-weight: 700; }
-    .logo-sub   { color: rgba(255,255,255,0.5); font-size: 10px; }
-    nav a   { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; margin-left: 20px; }
-    nav a:hover { color: #fff; }
-    .logout { color: rgba(255,255,255,0.5) !important; }
-    /* Layout */
-    main { max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+    /* Layout — the reset, body, container, buttons and alerts now come from
+       admin_head() in config.php; what is left here is this page only. */
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
     .page-header h1 { font-size: 22px; font-weight: 800; margin: 0; }
     .page-header p  { font-size: 13px; color: #6b7280; margin: 2px 0 0; }
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; transition: background 0.15s; }
-    .btn-primary  { background: #005da3; color: #fff; }
-    .btn-primary:hover  { background: #004e8c; }
-    .btn-sm { padding: 5px 12px; font-size: 12px; }
-    .btn-edit   { background: rgba(0,93,163,0.08); color: #005da3; }
-    .btn-edit:hover { background: rgba(0,93,163,0.15); }
-    .btn-danger { background: rgba(220,38,38,0.08); color: #dc2626; }
-    .btn-danger:hover { background: rgba(220,38,38,0.15); }
-    .btn-pdf    { background: rgba(0,190,242,0.1); color: #0369a1; }
-    .btn-pdf:hover { background: rgba(0,190,242,0.2); }
     /* Stats bar */
     .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
     .stat  { background: #fff; border: 1px solid #e5e9ee; border-radius: 10px; padding: 14px 20px; flex: 1; min-width: 140px; }
     .stat-val { font-size: 22px; font-weight: 800; color: #005da3; line-height: 1; }
     .stat-lbl { font-size: 11px; color: #6b7280; margin-top: 3px; }
-    /* Alert */
-    .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; }
-    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .alert-error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
     /* Table */
     .section { margin-bottom: 32px; }
     .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #e5e9ee; }
     /* Fixed layout + shared column widths so every category table lines up
        identically down the page (headers and columns align across sections). */
+    /* KEEP: the narrow-screen safety net. `overflow-x: auto` is what lets the
+       table scroll inside its card at 834 and 390 instead of pushing the page
+       sideways — plan10-adminrows.js asserts both. Do not remove it while
+       tuning the column widths below. */
     .table-wrap { overflow-x: auto; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
     table { width: 100%; min-width: 980px; table-layout: fixed; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
     th    { background: #0d2d52; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 16px; text-align: left; }
@@ -89,12 +69,55 @@ $navActive = 'products';
     th:nth-child(1), td:nth-child(1) { width: 160px; word-break: break-word; }
     th:nth-child(3), td:nth-child(3) { width: 150px; }
     th:nth-child(4), td:nth-child(4) { width: 120px; }
+    /* Actions.
+     *
+     * 350px never held the button set. Measured on this machine's system-ui:
+     * Edit 51 + Manage PDF 109 + Photo 64 + View 71 + Delete 68, plus four 6px
+     * gaps, is 387px of buttons against a content box of 350 - 16 - 16 = 318.
+     * All 42 rows wrapped Delete onto a second line. The same measurement on
+     * another machine came out at 340px of buttons — still 22px over — where
+     * instead of wrapping, the row filled the box edge to edge and Delete sat
+     * flush on the cell border with no visible gap. Same defect; which of the
+     * two you see depends only on how your system font renders, which is why
+     * it reproduced for some people and not others.
+     *
+     * Widening the PAGE does not fix it: `table-layout: fixed` pins columns
+     * 1/3/4/5 at their declared widths and gives every extra pixel to the Name
+     * column, so Actions stayed at 350 no matter how wide the admin got. The
+     * number has to change here.
+     *
+     * 350 stays as the DEFAULT and 460 arrives at >=1140px, deliberately.
+     * 387px of buttons + 16 + 20 of padding needs a 423px column, and adding
+     * that to the other three fixed columns (160 + 150 + 120) plus a readable
+     * ~200px Name column needs 1090px of table — which does not fit a 1024px
+     * viewport, where the content area is 976px. Forcing it there just moved
+     * the defect: measured at 1024 with a flat 460, the table overflowed its
+     * wrapper and Delete sat 987..1056 outside a container clipped at 1000,
+     * i.e. clipped again (plan10-adminrows.js caught this, 14/15). Below 1140
+     * the buttons wrap onto a second line instead, which is what they already
+     * did and what `flex-wrap` is there for.
+     *
+     * 1140 is the smallest viewport where the widened table fits without
+     * scrolling: 1140 - 48 of page padding = 1092 >= the 1090 min-width. */
     th:nth-child(5), td:nth-child(5) { width: 350px; }
+    @media (min-width: 1140px) {
+      table { min-width: 1090px; }
+      th:nth-child(5), td:nth-child(5) { width: 460px; }
+    }
+    /* The floor that removes the machine-to-machine variance. The declared
+       `padding: 12px 16px` above is real but was fully consumed by the button
+       row, so on a narrow-font machine the last button rendered flush against
+       the cell border. 20px on the last column means the row can never sit on
+       the border again even if the button set grows. */
+    td:last-child { padding-right: 20px; }
     td:nth-child(2) { word-break: break-word; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(0,93,163,0.02); }
     .sku  { font-weight: 700; color: #005da3; font-size: 12px; }
     .type-badge { background: rgba(17,158,200,0.1); color: #0369a1; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
+    /* KEEP: flex-wrap stays. With the column at 460 it should never fire, but
+       it is the last line of defence on a font wider than anything measured —
+       wrapping is ugly, a clipped Delete button is not recoverable. */
     .actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .actions .btn { flex-shrink: 0; }
     /* Search */
@@ -105,7 +128,7 @@ $navActive = 'products';
 </head>
 <body>
 <?php include 'nav.php'; ?>
-<main>
+<main class="admin-wide">
   <div class="page-header">
     <div>
       <h1>Product Catalog</h1>

@@ -576,10 +576,13 @@ function Navbar({ products = [], catalogFailed = false }) {
       onMouseLeave={() => setOpenDropdown(null)}
     >
       {/* ── Main bar ── */}
+      {/* The navbar's container carried the 1280 cap as an inline style and no
+          Tailwind class, so it was invisible to a `max-w-7xl` grep — widening
+          only the page bodies would have left the header narrower than
+          everything under it. */}
       <div
+        className="ipc-container"
         style={{
-          maxWidth: 1280,
-          margin: "0 auto",
           padding: "0 24px",
           height: 64,
           display: "flex",
@@ -1328,9 +1331,8 @@ function Navbar({ products = [], catalogFailed = false }) {
           }}
         >
           <div
+            className="ipc-container"
             style={{
-              maxWidth: 1280,
-              margin: "0 auto",
               padding: "8px 24px 16px",
             }}
           >
@@ -1780,7 +1782,7 @@ function Hero() {
         }}
       />
 
-      <div className="relative max-w-7xl mx-auto px-6 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="relative ipc-container px-6 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         {/* Left — value proposition */}
         <div>
           <div
@@ -1853,7 +1855,7 @@ function Hero() {
             x=104 — under the headline, not beside it. Measured, not guessed. */}
         <div>
         {/* Proof cards: 2×2 grid on desktop, stacked 2×2 with tighter padding on mobile */}
-        <div className="grid grid-cols-2 gap-3">
+        <div id="ipc-sec-heroProofPoints" className="grid grid-cols-2 gap-3">
           {proofPoints.map((p, i) => (
             <div
               key={`${i}-${p.label}`}
@@ -1935,7 +1937,11 @@ function Hero() {
       </div>
 
       {/* Bottom trust rail — infinite horizontal marquee */}
+      {/* id — E2. On the RAIL, not on the .ipc-marquee-track inside it: the
+          track sits under an `overflow: hidden` ancestor and is 5,012px wide,
+          so scrollIntoView on it landed at top=0, under the navbar. */}
       <div
+        id="ipc-sec-heroTrust"
         style={{
           background: "rgba(0,0,0,0.3)",
           borderTop: "1px solid rgba(255,255,255,0.08)",
@@ -2334,8 +2340,10 @@ function Features() {
   const { features, copy } = useContent();
   const c = copy.homeFeatures;
   return (
-    <section className="py-20 px-6" style={{ background: "#f5f7fa" }}>
-      <div className="max-w-7xl mx-auto">
+    // id — E2. Matches the `features` key in admin/content.php's $SECTIONS so
+    // Page Content can deep-link at this block. Offset lives in index.css.
+    <section id="ipc-sec-features" className="py-20 px-6" style={{ background: "#f5f7fa" }}>
+      <div className="ipc-container">
         <SectionHeader
           eyebrow={c.eyebrow}
           title={c.title}
@@ -2510,8 +2518,8 @@ const STATS_DATA = [
 function StatsBar() {
   const { stats } = useContent();
   return (
-    <section className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4">
+    <section id="ipc-sec-stats" className="bg-white border-b border-gray-200">
+      <div className="ipc-container px-6 grid grid-cols-2 md:grid-cols-4">
         {stats.map((s, i) => (
           <div
             key={`${i}-${s.label}`}
@@ -2980,7 +2988,7 @@ function DatasheetsPage({ products }) {
         ]}
       />
       <div className="ipc-page-header">
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>{c.eyebrow}</PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             {c.title}
@@ -2991,7 +2999,7 @@ function DatasheetsPage({ products }) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="ipc-container px-6 py-12">
         <div className="mb-8" style={{ maxWidth: 420 }}>
           <label htmlFor="ds-filter" className="sr-only">Filter datasheets</label>
           <input
@@ -3168,7 +3176,7 @@ function HomePage() {
             for a fifty-year-old firm — and were doing none of that work. The
             alt text is left alone; it describes the image, which is its job.
             This is the on-screen sentence it was missing. */}
-        <div className="max-w-7xl mx-auto mb-6">
+        <div className="ipc-container mb-6">
           <div
             className="text-xs font-bold tracking-widest uppercase"
             style={{ color: "var(--brand-primary-text)" }}
@@ -3196,7 +3204,7 @@ function HomePage() {
             </PageLink>
           </p>
         </div>
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="ipc-container grid grid-cols-1 md:grid-cols-3 gap-5">
           {img.bandTeamPhoto ? (
           <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
             <img
@@ -3236,8 +3244,8 @@ function HomePage() {
       ) : null}
 
       {/* Markets section */}
-      <section className="py-20 px-6" style={{ background: "#ffffff" }}>
-        <div className="max-w-7xl mx-auto">
+      <section id="ipc-sec-markets" className="py-20 px-6" style={{ background: "#ffffff" }}>
+        <div className="ipc-container">
           <SectionHeader
             eyebrow={mk.eyebrow}
             title={mk.title}
@@ -3336,7 +3344,7 @@ function HomePage() {
           background: "linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%)",
         }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-14 flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="ipc-container px-6 py-14 flex flex-col md:flex-row items-center justify-between gap-8">
           <div>
             <h2 className="text-2xl font-extrabold ipc-ink-header mb-2">
               {site.stats.minimumOrder} minimum order. {site.stats.feetInStock} feet in stock. Ships today.
@@ -3622,7 +3630,7 @@ function AboutPage() {
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
       {/* Page header */}
       <div className="ipc-page-header">
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>
             {c.eyebrow}
           </PageEyebrow>
@@ -3638,7 +3646,7 @@ function AboutPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-16 space-y-16">
+      <div className="ipc-container px-6 py-16 space-y-16">
         {/* 4.1 / 4.4 — Verified company narrative + sidebar facts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div
@@ -3728,7 +3736,7 @@ function AboutPage() {
           </div>
           {/* CSS Grid timeline — 3 columns: [year badge] [dot+line] [content card].
               The line is a flex column in the middle grid cell — no pixel positioning needed. */}
-          <div>
+          <div id="ipc-sec-milestones">
             {milestones.map((m, i) => {
               const isLast = i === milestones.length - 1;
               return (
@@ -3834,7 +3842,7 @@ function AboutPage() {
           >
             {c.certsTitle}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div id="ipc-sec-certs" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {certs.map((c, i) => (
               <div
                 key={`${i}-${c.title}`}
@@ -3885,7 +3893,7 @@ function AboutPage() {
           >
             {c.teamTitle}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div id="ipc-sec-capabilities" className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {capabilities.map((c, i) => (
               <TeamCard
                 key={`${i}-${c.name}`}
@@ -4316,7 +4324,7 @@ function FaqPage() {
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
       {/* Page header */}
       <div className="ipc-page-header">
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>
             {c.eyebrow}
           </PageEyebrow>
@@ -4449,7 +4457,7 @@ function FaqPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-16 space-y-12">
+      <div id="ipc-sec-faq" className="max-w-4xl mx-auto px-6 py-16 space-y-12">
         {categories.map((cat, catIdx) => (
           <div
             key={cat.name}
@@ -4929,7 +4937,7 @@ function ContactPage() {
       // covered without this and the footer simply rises to meet the content.
       <div style={{ background: "#f5f7fa" }}>
         <div className="ipc-page-header">
-          <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="ipc-container px-6 py-12">
             {/* B18 — this was the only page header on the site with no eyebrow
                 above its h1. */}
             <PageEyebrow>Request Sent</PageEyebrow>
@@ -5073,7 +5081,7 @@ function ContactPage() {
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
       {/* Page header */}
       <div className="ipc-page-header">
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>
             {c.eyebrow}
           </PageEyebrow>
@@ -5089,7 +5097,7 @@ function ContactPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="ipc-container px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* B26 — the form is FIRST in the DOM, and `lg:order-2` puts it back on
             the right at desktop width.
             It used to come second, after the contact rail and the "for fastest
@@ -5786,7 +5794,7 @@ function ContactPage() {
               </div>
             </div>
           ))}
-          <div className="rounded-xl p-5" style={{ background: "var(--brand-dark)" }}>
+          <div id="ipc-sec-contactTips" className="rounded-xl p-5" style={{ background: "var(--brand-dark)" }}>
             <div className="text-xs font-bold ipc-ink-dark mb-3 uppercase tracking-wide">
               {cf.tipsTitle}
             </div>
@@ -5954,7 +5962,7 @@ function Breadcrumb({ trail, ld = true }) {
      * The vertical padding is not decoration either: at 12px these links
      * measured 18px tall and WCAG 2.5.8 wants 24 (plan8-mobile).
      */
-    <nav aria-label="Breadcrumb" className="max-w-7xl mx-auto px-6 pt-4 pb-1">
+    <nav aria-label="Breadcrumb" className="ipc-container px-6 pt-4 pb-1">
       <ol className="flex flex-wrap items-center gap-x-2" style={{ fontSize: 12 }}>
         {items.map((c, i) => {
           const last = i === items.length - 1;
@@ -7092,7 +7100,7 @@ function NotFoundPage() {
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
       <div className="ipc-page-header">
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>Error 404</PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             Page not found
@@ -7106,7 +7114,7 @@ function NotFoundPage() {
           </p>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="ipc-container px-6 py-12">
         <div className="flex flex-wrap gap-3">
           <PageLink
             page="products"
@@ -7738,7 +7746,10 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
   const familyList = useMemo(() => Array.from(families.keys()), [families]);
 
   return (
-    <aside className="w-full lg:w-72 flex-shrink-0">
+    // id — E2. The catalogue sidebar is what Page Content =>
+    // "Product Families / Categories" actually drives; the anchor was first
+    // put on the /dashboard pill strip, which is a different page.
+    <aside id="ipc-sec-productFamilies" className="w-full lg:w-72 flex-shrink-0">
       {/* ── MOBILE VIEW: horizontal pill strip + product grid ── */}
       <div className="lg:hidden mb-4">
         {/* Family filter pills — horizontal scroll */}
@@ -9060,81 +9071,111 @@ function CatalogLanding({
           </button>
         </div>
       ) : (
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-        {products.map((p) => {
-          const photo =
-            p.photoUrl && !String(p.photoUrl).includes("placehold.co") ? p.photoUrl : "";
-          return (
-            <PageLink
-              key={p.id}
-              page="products"
-              params={{ productId: p.id }}
-              data-ipc-catalog-card=""
-              className="bg-white rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
-              style={{
-                border: "1px solid #e5e9ee",
-                boxShadow: "0 2px 10px rgba(var(--brand-primary-rgb),0.05)",
-                textDecoration: "none",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              {photo ? (
-                <img
-                  src={photo}
-                  alt={p.name}
-                  loading="lazy"
-                  width="400"
-                  height="267"
-                  className="w-full object-cover"
-                  style={{ aspectRatio: "3 / 2", borderBottom: "1px solid #e5e9ee" }}
-                />
-              ) : (
-                <div
-                  className="w-full flex items-center justify-center"
-                  style={{
-                    aspectRatio: "3 / 2",
-                    borderBottom: "1px solid #e5e9ee",
-                    background: "linear-gradient(135deg, #f5f7fa, #e8eef7)",
-                    color: "var(--brand-primary-text)",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  IMAGE COMING SOON
-                </div>
-              )}
-              <div className="px-4 py-3 flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: "0.04em",
-                      padding: "2px 8px",
-                      borderRadius: 5,
-                      background: "rgba(var(--brand-primary-rgb),0.08)",
-                      color: "var(--brand-primary-text)",
-                    }}
-                  >
-                    {p.sku || p.id}
-                  </span>
-                  <span style={{ fontSize: 11, color: "#4b5563" }}>{p.partType}</span>
-                </div>
-                <span
-                  className="text-sm font-semibold"
-                  style={{ color: "#141414", lineHeight: 1.35 }}
-                >
-                  {p.name}
-                </span>
-              </div>
-            </PageLink>
-          );
-        })}
+      // ipc-catalog-grid adds a FOURTH column on a very wide screen. Not
+      // Tailwind's `2xl:` — see the measurement in src/index.css; 1536 is far
+      // too early and would make the cards worse, not better.
+      <div className="ipc-catalog-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+        {products.map((p) => (
+          <CatalogCard key={p.id} product={p} />
+        ))}
       </div>
       )}
     </div>
+  );
+}
+
+/**
+ * One card in the /products grid.
+ *
+ * A component rather than inline JSX purely so it can own a `photoFailed`
+ * boolean. ProductDetail has had that fallback since T2.7, but the grid card
+ * rendered a bare <img> with no onError at all — and the SPA rewrite means a
+ * missing image is NOT a 404: `public/.htaccess`'s `!-f` catch-all (and Vite's
+ * dev server) answer with index.html and a 200, so the browser gets HTML where
+ * it expected a JPEG and draws a broken-image icon. Nothing in the network
+ * stack can tell "missing" from "served"; onError is the only signal.
+ *
+ * The state has to live per card. Lifting one boolean into CatalogLanding would
+ * blank all 42 photos the moment any single one failed; the alternative, a Set
+ * of failed ids in the parent, re-renders the whole grid on each failure. One
+ * card, one boolean.
+ *
+ * Both branches are unchanged from the inline version — a failure now simply
+ * routes into the same "IMAGE COMING SOON" panel the placehold.co products
+ * already get, which keeps the 3/2 box reserved and the layout from shifting.
+ */
+function CatalogCard({ product: p }) {
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const photo =
+    p.photoUrl && !String(p.photoUrl).includes("placehold.co") && !photoFailed
+      ? p.photoUrl
+      : "";
+  return (
+    <PageLink
+      page="products"
+      params={{ productId: p.id }}
+      data-ipc-catalog-card=""
+      className="bg-white rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+      style={{
+        border: "1px solid #e5e9ee",
+        boxShadow: "0 2px 10px rgba(var(--brand-primary-rgb),0.05)",
+        textDecoration: "none",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {photo ? (
+        <img
+          src={photo}
+          alt={p.name}
+          loading="lazy"
+          width="400"
+          height="267"
+          onError={() => setPhotoFailed(true)}
+          className="w-full object-cover"
+          style={{ aspectRatio: "3 / 2", borderBottom: "1px solid #e5e9ee" }}
+        />
+      ) : (
+        <div
+          className="w-full flex items-center justify-center"
+          style={{
+            aspectRatio: "3 / 2",
+            borderBottom: "1px solid #e5e9ee",
+            background: "linear-gradient(135deg, #f5f7fa, #e8eef7)",
+            color: "var(--brand-primary-text)",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+          }}
+        >
+          IMAGE COMING SOON
+        </div>
+      )}
+      <div className="px-4 py-3 flex flex-col gap-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.04em",
+              padding: "2px 8px",
+              borderRadius: 5,
+              background: "rgba(var(--brand-primary-rgb),0.08)",
+              color: "var(--brand-primary-text)",
+            }}
+          >
+            {p.sku || p.id}
+          </span>
+          <span style={{ fontSize: 11, color: "#4b5563" }}>{p.partType}</span>
+        </div>
+        <span
+          className="text-sm font-semibold"
+          style={{ color: "#141414", lineHeight: 1.35 }}
+        >
+          {p.name}
+        </span>
+      </div>
+    </PageLink>
   );
 }
 
@@ -9294,7 +9335,7 @@ function ProductPage({ products }) {
     return (
       <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
         <div className="ipc-page-header">
-          <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="ipc-container px-6 py-12">
             <h1
               className="text-4xl font-extrabold"
               style={{ color: "var(--brand-header-ink)" }}
@@ -9304,7 +9345,7 @@ function ProductPage({ products }) {
           </div>
         </div>
         <div
-          className="max-w-7xl mx-auto px-6 py-16 text-center"
+          className="ipc-container px-6 py-16 text-center"
           style={{ color: "#6b7280" }}
         >
           No products found in catalog.
@@ -9332,7 +9373,7 @@ function ProductPage({ products }) {
         className="ipc-page-header"
         style={{ borderBottom: "none" }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>
             {/* F6 — orient the visitor arriving cold on a deep link. The
                 eyebrow said "Products" on every one of the 42 product pages,
@@ -9397,7 +9438,7 @@ function ProductPage({ products }) {
       {notFound && (
         <div
           role="alert"
-          className="max-w-7xl mx-auto px-6 pt-6"
+          className="ipc-container px-6 pt-6"
         >
           <div
             style={{
@@ -9440,7 +9481,7 @@ function ProductPage({ products }) {
           `min-w-0` cannot help: it bounds shrinking, and nothing was shrinking.
           items-start is still what we want once the row layout kicks in at lg.
           (AUDIT_v3_FINDINGS NB18) */}
-      <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col lg:flex-row gap-8 items-stretch lg:items-start">
+      <div className="ipc-container px-6 py-10 flex flex-col lg:flex-row gap-8 items-stretch lg:items-start">
         <ProductSidebar
           products={products}
           selectedId={product ? product.id : null}
@@ -9503,7 +9544,7 @@ function ProductPage({ products }) {
             is position:fixed the overflow creates no scrollbar — "Request a
             Quote" was simply off-screen and untappable, on the conversion
             control. (DEPLOY_READINESS_v2 T2.9) */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+        <div className="ipc-container px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2 sm:gap-4">
           {/* Left: current product name */}
           <div className="min-w-0 hidden sm:block">
             {/* SKU badge — pulses cyan on first appearance to draw the eye */}
@@ -9887,7 +9928,7 @@ function DashboardPage({ products }) {
         ]}
       />
       <div className="ipc-page-header">
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>
             Product Index
           </PageEyebrow>
@@ -9906,10 +9947,8 @@ function DashboardPage({ products }) {
       </div>
 
       <div
+        className="ipc-container"
         style={{
-          maxWidth: 1280,
-          marginLeft: "auto",
-          marginRight: "auto",
           padding: "2.5rem 24px",
         }}
       >
@@ -10963,7 +11002,7 @@ function IndustriesPage() {
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
       {/* Page header */}
       <div className="ipc-page-header">
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>
             {c.eyebrow}
           </PageEyebrow>
@@ -10979,7 +11018,7 @@ function IndustriesPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-14 space-y-10">
+      <div className="ipc-container px-6 py-14 space-y-10">
         {industries.map((ind, i) => (
           <div
             key={`${i}-${ind.name}`}
@@ -11545,7 +11584,7 @@ function ServicesPage() {
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
       {/* Page header */}
       <div className="ipc-page-header">
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>
             {c.eyebrow}
           </PageEyebrow>
@@ -11561,7 +11600,7 @@ function ServicesPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-14">
+      <div className="ipc-container px-6 py-14">
         {/* Lead time callout banner */}
         <div
           className="rounded-xl p-5 mb-10 flex flex-wrap items-center justify-between gap-4"
@@ -11655,7 +11694,7 @@ function ServicesPage() {
         ) : null}
 
         {/* Services grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div id="ipc-sec-services" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {services.map((svc, i) => (
             <div
               key={`${i}-${svc.title}`}
@@ -11885,7 +11924,7 @@ function PrivacyPage() {
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
       {/* Page header */}
       <div className="ipc-page-header">
-        <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="ipc-container px-6 py-12">
           <PageEyebrow>
             {c.eyebrow}
           </PageEyebrow>
@@ -11906,7 +11945,7 @@ function PrivacyPage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-14">
+      <div id="ipc-sec-privacySections" className="max-w-3xl mx-auto px-6 py-14">
         <div
           className="bg-white rounded-2xl p-8 space-y-8"
           style={{
@@ -12249,7 +12288,7 @@ function Footer() {
 
   return (
     <footer style={{ background: "#0a2240", borderTop: "3px solid var(--brand-accent)" }}>
-      <div className="max-w-7xl mx-auto px-6 py-14">
+      <div className="ipc-container px-6 py-14">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
           {/* Brand column — SVG logo mark */}
           <div className="md:col-span-2">
@@ -12378,6 +12417,7 @@ function Footer() {
               {fc.quickLinksTitle}
             </div>
             <div
+              id="ipc-sec-footerLinks"
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr",
@@ -12458,14 +12498,11 @@ function CatalogSkeleton() {
       <span className="sr-only">Loading the product catalog…</span>
         {/* Skeleton Hero */}
         <div
-          className="grid grid-cols-1 lg:grid-cols-2"
+          className="ipc-container grid grid-cols-1 lg:grid-cols-2"
           style={{
             background: "linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))",
             padding: "60px 24px",
             gap: 48,
-            maxWidth: 1280,
-            margin: "0 auto",
-            width: "100%",
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -12560,14 +12597,11 @@ function CatalogSkeleton() {
 
         {/* Skeleton Stats */}
         <div
-          className="grid grid-cols-2 md:grid-cols-4"
+          className="ipc-container grid grid-cols-2 md:grid-cols-4"
           style={{
             background: "#ffffff",
             borderBottom: "1px solid #e5e9ee",
             padding: "0 24px",
-            maxWidth: 1280,
-            margin: "0 auto",
-            width: "100%",
           }}
         >
           {[1, 2, 3, 4].map((i) => (
@@ -12606,13 +12640,15 @@ function CatalogSkeleton() {
 
         {/* Skeleton Feature Cards */}
         <div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          className="ipc-container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
           style={{
-            maxWidth: 1280,
-            margin: "32px auto",
+            /* The horizontal half of the old `margin: "32px auto"` is now
+               .ipc-container's margin-inline; only the vertical rhythm is
+               this element's own. */
+            marginTop: 32,
+            marginBottom: 32,
             padding: "0 24px",
             gap: 20,
-            width: "100%",
           }}
         >
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -12737,6 +12773,30 @@ function App() {
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash) return;
     window.scrollTo({ top: 0, behavior: "instant" });
+  }, [page]);
+
+  // C30, generalised to every page. The effect above deliberately steps aside
+  // when there IS a hash — but until now nothing took over except on
+  // /industries, which carried its own copy of this (IndustriesPage still has
+  // it; two calls to the same idempotent scroll are harmless).
+  //
+  // Everywhere else a cold load with a fragment simply did not scroll. The
+  // browser resolves a fragment once, at parse time, when this app has rendered
+  // nothing yet; by the time React mounts the section the moment has passed.
+  // Measured across the fourteen id="ipc-sec-…" targets before this existed:
+  // /#ipc-sec-features, /services#…, /about#…, / #ipc-sec-footerLinks and
+  // three more all landed at scrollY 0. Some others appeared to work, which was
+  // worse — whether the element happened to exist in time was a race, so the
+  // same link behaved differently run to run.
+  //
+  // This is what makes the admin's "Show me on the site ↗" links (E2,
+  // admin/content.php) land on the section instead of the top of the page.
+  // scrollToAnchor already retries for 24 animation frames, which covers the
+  // catalog-gated pages where content appears only after the fetch resolves.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const id = (window.location.hash || "").replace(/^#/, "");
+    if (id) scrollToAnchor(id);
   }, [page]);
 
   // Animation 7 — Shimmer skeleton replaces the spinner.

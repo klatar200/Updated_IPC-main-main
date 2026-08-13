@@ -139,28 +139,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8"/><link rel="icon" type="image/svg+xml" href="logo.svg" /><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Upload PDF: <?= h($sku) ?></title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
-    header { background: #0d2d52; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
-    .logo { color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; }
-    nav a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; margin-left: 16px; }
     main { max-width: 600px; margin: 0 auto; padding: 40px 24px; }
-    h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
     .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
-    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 20px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
-    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 6px; }
+    /* Kept, against admin_head()'s shared 5px: these two upload pages and
+       password.php have always used 6px here. One pixel, but the point of
+       the extraction was that it changed nothing on screen. */
+    label { margin-bottom: 6px; }
     .hint { font-size: 11px; color: #9ca3af; margin-top: 5px; }
     input[type=file] { width: 100%; padding: 10px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: 13px; cursor: pointer; transition: border-color 0.15s; }
     input[type=file]:hover { border-color: #005da3; }
     .btn { display: inline-flex; align-items: center; padding: 10px 22px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
     .btn-primary { background: #005da3; color: #fff; width: 100%; justify-content: center; margin-top: 16px; }
-    .btn-primary:hover { background: #004e8c; }
     .btn-secondary { background: #f0f4f8; color: #141414; font-size: 13px; padding: 8px 16px; }
     .current-pdf { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f0f4f8; border-radius: 8px; font-size: 13px; }
-    .error-list { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
   </style>
 </head>
 <body>

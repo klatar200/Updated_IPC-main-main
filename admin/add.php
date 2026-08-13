@@ -130,38 +130,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8"/><link rel="icon" type="image/svg+xml" href="logo.svg" /><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Add Product</title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
-    header { background: #0d2d52; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
-    .logo { color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; }
-    nav a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; margin-left: 16px; }
-    main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
     h1 { font-size: 22px; font-weight: 800; margin: 0 0 6px; }
     .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
-    .btn { display: inline-flex; align-items: center; padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
-    .btn-primary { background: #005da3; color: #fff; }
-    .btn-primary:hover { background: #004e8c; }
-    .btn-secondary { background: #fff; color: #141414; border: 1px solid #d1d9e0; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
-    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 20px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-group { margin-bottom: 16px; }
-    .form-group.full { grid-column: 1 / -1; }
-    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 5px; }
-    .hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
-    input[type=text], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; transition: border-color 0.15s; }
     input:focus, select:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
-    textarea { resize: vertical; }
-    .mono { font-family: 'Courier New', monospace; font-size: 12px; }
-    .error-list { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-    .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
     @media(max-width:600px) { .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 <?php $navActive = 'add'; include 'nav.php'; ?>
-<main>
+<main class="admin-wide">
   <h1>Add New Product</h1>
   <p class="sub">Fill in the product details. All required fields are marked with *.</p>
 

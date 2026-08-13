@@ -48,10 +48,29 @@
   };
 
   var CSS =
-    "main{max-width:1340px;}" +
+    // `main{max-width:1340px}` used to live here, overriding edit.php's own
+    // 900px so the editor had room for the preview beside it. Both are gone:
+    // admin_head() in config.php now gives every content page one container
+    // (1280px, then 80vw above 1600) and edit.php's <main> carries
+    // .admin-wide. Re-declaring a width here would fight it — and would win
+    // below 1600, since this <style> is appended to <head> at runtime and so
+    // comes last.
     ".ipc-editor-layout{display:flex;gap:24px;align-items:flex-start;}" +
     ".ipc-editor-layout>form{flex:1 1 auto;min-width:0;}" +
-    ".ipc-preview-col{flex:0 0 400px;}" +
+    // D1a — the preview column was a flat 400px, which is why it read as a
+    // phone-width view of the site. It is not a mobile layout: the panel is
+    // bespoke markup (.pp-name, .pp-meta, .pp-sthead …) that approximates the
+    // product page in a single column, so it never reproduces the real
+    // two-column desktop layout at any width. Widening it does not make it
+    // faithful; it makes the approximation legible, which is what it is for.
+    //
+    // clamp() rather than another fixed number, so the panel takes a share of
+    // the growth once .admin-wide starts widening the page instead of handing
+    // every extra pixel to the form. 440px floor at 1280 (up from 400), ~34%
+    // of the container above that, capped at 760 so the form never drops below
+    // roughly half the width. At 2560 the container is 2048 and the preview
+    // lands at ~680px — a panel you can actually read a spec table in.
+    ".ipc-preview-col{flex:0 0 clamp(440px, 34%, 760px);min-width:0;}" +
     ".ipc-preview-inner{position:sticky;top:24px;max-height:calc(100vh - 40px);overflow:auto;background:#fff;border:1px solid #e5e9ee;border-radius:12px;box-shadow:0 1px 4px rgba(0,45,82,0.06);}" +
     ".ipc-preview-head{position:sticky;top:0;background:#0d2d52;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;padding:10px 16px;z-index:1;}" +
     ".ipc-preview-body{padding:16px;}" +
@@ -81,7 +100,14 @@
     ".pp-ph{color:#aeb8c4 !important;}" +
     ".pp-ghost{opacity:.5;}" +
     ".pp-ghost-tag{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#aeb8c4;margin:0 0 12px;}" +
-    "@media(max-width:1024px){main{max-width:900px;}.ipc-editor-layout{flex-direction:column;}.ipc-preview-col{flex:1 1 auto;width:100%;}.ipc-preview-inner{position:static;max-height:none;}}";
+    // D2 — the stacking rule, rechecked. 1024 is still the right breakpoint:
+    // at 1025 the container is ~977px inside its padding, the clamp floor puts
+    // the preview at 440 and leaves the form 513px, which is still usable;
+    // below that the form would start losing fields to wrapping. What did
+    // change is `main{max-width:900px}`, dropped for the same reason as above —
+    // the shared container owns the page width now, so a stacked editor at
+    // 1024 uses the full 1024 instead of being pinned 124px narrower.
+    "@media(max-width:1024px){.ipc-editor-layout{flex-direction:column;}.ipc-preview-col{flex:1 1 auto;width:100%;}.ipc-preview-inner{position:static;max-height:none;}}";
 
   function injectCSS() {
     var s = document.createElement("style");
