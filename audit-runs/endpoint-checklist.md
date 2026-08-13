@@ -119,3 +119,21 @@ Status values: `pending` → `in_progress` → `done` | `blocked`
 | E107 | config | `.claude/launch.json` | build | done | 2026-08-13 | B-04 — `php-admin` config serves the repo root |
 | E108 | config | `package-lock.json` | build | done | 2026-08-13 | lockfileVersion 3, 183 packages, ranges match `package.json` — clean |
 | E109 | data | `plans/audit10/**` (20 JSON files) | docs | done | 2026-08-13 | all parse; planning artifacts, not runtime — clean |
+
+## Run 3 — re-audit notes (2026-08-13)
+
+All 109 items re-audited. Coverage sweep found **no misses**. Run 3 targeted
+what Runs 1 and 2 read but never executed; every product flow behaved
+correctly and all six findings were in the verification layer.
+
+| ID | Re-audit note |
+|---|---|
+| E047 | C-01 — Run 1's required-field change 422'd 3 harness fixtures; 14 assertions silently red |
+| E055–E073 | every admin write path executed for the first time: uploads, restore, password change, FTP recovery, reset-window expiry, content row add/reorder/remove |
+| E063 | real PDF upload + non-PDF rejection exercised |
+| E064 | real image upload + PHP-as-PNG rejection exercised; runtime `uploads/.htaccess` verified |
+| E067 | restore exercised, incl. path traversal refused |
+| E070 | password change exercised end to end — invariant 1 holds in practice |
+| E059 | FTP recovery + 1-hour expiry exercised; an expired window writes no password |
+| E066 | row add/reorder/remove exercised; `form_complete` still last of 452 controls |
+| E105 | C-02/C-03/C-04/C-05 — four pre-existing harness defects found and fixed |

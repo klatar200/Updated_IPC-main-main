@@ -445,9 +445,15 @@ function missingFields(body, values) {
     clearMail();
     for (let i = 0; i < 5; i++) {
       const b = new FormData();
+      // A-04 (audit-runs/audit1.md): contact.php now enforces the two fields
+      // the rendered form already marks required. This fixture predates that
+      // and omitted subject, so the POST 422s and the assertions below measure a
+      // submission that never happened. The real form always sends it.
+      // (audit-runs/audit3.md C-04)
       b.append('form_type', 'message');
       b.append('name', 'Window Filler');
       b.append('email', `filler${i}@example-rl.test`);
+      b.append('subject', 'Rate-limit filler');
       b.append('message', 'consuming a rate-limit slot');
       await fetch(`${BASE}/contact.php`, { method: 'POST', body: b });
     }
@@ -655,11 +661,17 @@ function missingFields(body, values) {
     clearMail();
     const marker = `VERIFY-${Date.now()}`;
     const body = new FormData();
+    // A-04 (audit-runs/audit1.md): contact.php now enforces the two fields
+    // the rendered form already marks required. This fixture predates that
+    // and omitted quantity, so the POST 422s and the assertions below measure a
+    // submission that never happened. The real form always sends it.
+    // (audit-runs/audit3.md C-04)
     body.append('form_type', 'rfq');
     body.append('name', `Lead ${marker}`);
     body.append('email', 'viewer@example-read.test');
     body.append('company', COMPANY);
     body.append('partNumber', 'IP30HS');
+    body.append('quantity', '500 ft');
     body.append('specialReqs', SPEC);
     await fetch(`${BASE}/contact.php`, { method: 'POST', body });
 

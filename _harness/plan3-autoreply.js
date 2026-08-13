@@ -107,9 +107,15 @@ async function submit(email) {
   // run — it is a separate guard with its own suite, not what is under test.
   clearTmp('ipc_rl_');
   const body = new FormData();
+  // A-04 (audit-runs/audit1.md): contact.php now enforces the two fields
+  // the rendered form already marks required. This fixture predates that
+  // and omitted subject, so the POST 422s and the assertions below measure a
+  // submission that never happened. The real form always sends it.
+  // (audit-runs/audit3.md C-04)
   body.append('form_type', 'message');
   body.append('name', 'Cap Test');
   body.append('email', email);
+  body.append('subject', 'Auto-reply cap check');
   body.append('message', 'checking the auto-reply cap');
   const res = await fetch(`${BASE}/contact.php`, { method: 'POST', body });
   return res.json();

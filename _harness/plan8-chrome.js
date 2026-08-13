@@ -280,8 +280,25 @@ const readBanner = () => {
   note(b.fivePlusQualified.headline && !/·/.test(b.fivePlusQualified.headline),
     `five plus one qualified -> "${b.fivePlusQualified.headline}" (no joined duplicate)`,
     JSON.stringify(b.fivePlusQualified));
-  note(b.fivePlusQualified.block && /differ|except|vary|varies/i.test(b.fivePlusQualified.block),
-    'the exception is mentioned rather than joined into the headline',
+  // SUPERSEDED BY UX-audit F12, updated 2026-08-13 (audit-runs/audit3.md C-01).
+  //
+  // This used to require the block to say "differ|except|vary|varies" — B21's
+  // original behaviour, where a minority lead time raised "1 service differs —
+  // see below". F12 deleted that clause at the owner's instruction, because it
+  // named no service and "see below" pointed at nothing: the service cards
+  // render title, desc and details and have never rendered leadTime. The code
+  // comment in ServicesPage's leadTimeSummary says so and says what to do
+  // instead (render svc.leadTime on the cards).
+  //
+  // The assertion was left pinned to the pre-F12 wording, so it had been red on
+  // every run since — a permanently-failing check trains people to ignore the
+  // suite, which is the same fault audit2.md B-05 found in plan8-catalog.
+  //
+  // What B21 still guarantees, and what is checked here now: the majority value
+  // is headlined ALONE. The minority qualifier must not be joined into the
+  // headline (asserted above), and must not leak into the block either.
+  note(!!b.fivePlusQualified.block && !/JIT by agreement/.test(b.fivePlusQualified.block),
+    'the minority qualifier is not joined into the banner (F12: the clause was deleted, not reworded)',
     JSON.stringify(b.fivePlusQualified.block));
   note(b.allDifferent.headline && !/·/.test(b.allDifferent.headline),
     `six all different -> "${b.allDifferent.headline}" (not six values joined)`,
