@@ -83,3 +83,57 @@ The sweep matches on basename and over-reports; these were all already in scope:
   them that can be audited.
 - `plans/PLAN-*.md`, the root `*.md` documents — covered by project-map §7 and
   by `lint.php`'s existing `doc drift` check.
+
+---
+
+# Run 4 sweep (2026-08-13)
+
+Same census as Run 3, re-run against `812c45b`: every tracked file minus
+`site-screenshots/`, `audit-runs/`, `_harness/out/` and binary assets, matched
+against `project-map.md` + `endpoint-checklist.md` by full path *and* by
+basename.
+
+**222 files. Two named in neither document.**
+
+| File | Absorbed as | Outcome |
+|---|---|---|
+| `Email to Rick - Admin Dashboard Handoff.md` | E110 | Read in full. Nav labels, the landing `<h1>`, the backup/restore promises and the "about a minute" cache claim all check out against the shipped admin. It deliberately does not contain the password. **No finding.** |
+| `uploads/images/.gitkeep` | E111 | Placeholder for a runtime upload folder. **No finding.** |
+
+## The miss that mattered was not a file
+
+Runs 1–3 all measured coverage as *"is this file named somewhere"*. That
+question was already answered — the real gap was **files that are named and
+never executed**.
+
+`_harness/` holds 134 `.js` files. 34 of them assert and set a failing exit
+status; the other 100 are one-shot probes and report generators from AUDIT-10
+and the ink/colour work (`inkaudit`, `findwhite`, `audit10-p*`, `probeink`, …)
+that neither assert nor fail. Classifier:
+
+```
+assertive  =  /process\.exit\(\s*(fail|bad|err|\w*fail\w*)/i  ||  'process.exitCode'
+           && /\bok\(|\bcheck\(|\bassert/
+```
+
+Cross-referencing those 34 against every `scorecards-run*.md` left **six** with
+no recorded result. One (`invariants`) runs every cycle as a gate and is
+covered under another name. The other five had never been executed by any audit:
+
+| Suite | First result |
+|---|---|
+| `plan10-adminrows` | 15/15 |
+| `plan10-header` | 8/8 |
+| `plan10-helpwidth` | 21/21 |
+| `plan10-rfqscroll` | 24/24 |
+| `plan10-repalette` | **28/33** → D-02 |
+
+**Absorbed as:** E112, and as a standing rule — a suite that exists and has no
+recorded result is a coverage gap on the same footing as an unaudited file.
+
+## Not misses (checked, already covered)
+
+- The 100 non-asserting `_harness/*.js` probes. They are instruments, not
+  acceptance criteria; running them produces reports, not verdicts. Listing
+  them as gaps would bury the five that were real.
+- Everything Run 3's "not misses" list already covers, re-confirmed unchanged.

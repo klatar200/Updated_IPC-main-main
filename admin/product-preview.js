@@ -138,7 +138,13 @@
     var html = "";
 
     var nameV = val("name").trim();
-    html += nameV ? '<h3 class="pp-name">' + esc(nameV) + "</h3>" : '<h3 class="pp-name pp-ph">' + SAMPLE.name + "</h3>";
+    // A div, not an h3. This panel is a PICTURE of the public product card, not
+    // a section of the admin page, and it was the admin page's outline that it
+    // joined: add.php and edit.php both go <h1> straight to this <h3>, so a
+    // screen reader announcing the page structure hears a level skipped and a
+    // heading that is really a form preview. The class carries all the styling,
+    // so the panel looks identical. (audit-runs/audit4.md D-05)
+    html += nameV ? '<div class="pp-name">' + esc(nameV) + "</div>" : '<div class="pp-name pp-ph">' + SAMPLE.name + "</div>";
 
     var metaParts = [esc(val("sku")), esc(val("partType")), esc(val("operatingTemp"))].filter(Boolean);
     html += metaParts.length

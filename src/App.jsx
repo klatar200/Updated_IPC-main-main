@@ -11726,7 +11726,7 @@ function ServicesPage() {
               {/* Card footer strip — always rendered to preserve card silhouette.
                   Contains the brochure download link when one exists, otherwise
                   remains empty (just a visual cap on the card).               */}
-              {svc.brochure ? (
+              {svc.brochure && isSafeLinkUrl(svc.brochure.url) ? (
                 <a
                   href={svc.brochure.url}
                   target="_blank"
@@ -12076,6 +12076,43 @@ function isSafeExternalUrl(value) {
   }
 }
 
+/**
+ * Same guard, for the owner-editable links that are allowed to be LOCAL.
+ *
+ * A-01 added isSafeExternalUrl and applied it to exactly one call site,
+ * FooterSocial. Two other owner-editable strings reach an href and neither was
+ * covered: site.catalogPdfUrl, written by settings.php and rendered in the
+ * footer of every page, and services[].brochure.url, written by content.php
+ * and rendered on the Services cards. Measured through the real admin forms:
+ * a script-scheme value saved into either one came back as a live, clickable
+ * href, while the identical value in social_facebook was neutralised — the
+ * control that makes it the missing guard and nothing else.
+ * (audit-runs/audit4.md D-01)
+ *
+ * Not isSafeExternalUrl itself, and not a widening of it: these two fields
+ * normally hold "/pdfs/something.pdf", which is exactly the relative value
+ * A-01 rejects on purpose for a social channel. So this one also accepts a
+ * same-origin absolute path — one leading slash, never two. "//evil.com" is
+ * protocol-relative, not local, and is rejected with everything else.
+ *
+ * additionalPdfs[].url is deliberately NOT routed through here. edit.php's F6
+ * check is stricter (it requires a .pdf target and blocks the save), and
+ * loosening that to match this would be a downgrade.
+ */
+function isSafeLinkUrl(value) {
+  if (typeof value !== "string") return false;
+  const v = value.trim();
+  if (v === "") return false;
+  if (v.startsWith("//")) return false;
+  if (v.startsWith("/")) return true;
+  try {
+    const scheme = new URL(v).protocol;
+    return scheme === "http:" || scheme === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function FooterSocial({ social }) {
   const live = SOCIAL_CHANNELS.filter((c) => isSafeExternalUrl(social && social[c.key]));
   // No container at all when every field is empty — not an empty container.
@@ -12300,7 +12337,7 @@ function Footer() {
                   in the site footer". Either the field or the sentence had to
                   go; the field is the one Rick can fill in.
                   (AUDIT_v3_FINDINGS NB18) */}
-              {site.catalogPdfUrl ? (
+              {isSafeLinkUrl(site.catalogPdfUrl) ? (
                 <div className="flex items-center gap-2">
                   <PdfIcon />
                   <a

@@ -64,7 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'caption' => post_str('caption'),
             'operatingTemp'          => post_str('operatingTemp'),
             'specificationsSummary'  => post_str('specificationsSummary'),
-            'photoUrl'=> post_str('photoUrl'),
+            // Always blank on create. This read post_str('photoUrl') for a
+            // field add.php's form has never rendered, so it was always '' —
+            // the same value the skeleton above already sets — while reading as
+            // though a photo could be attached here. It cannot: photos are
+            // assigned per-SKU on the Upload Image page, which is also what
+            // clears them. (audit-runs/audit4.md D-04)
+            'photoUrl'=> '',
             // post_str() first: explode() on an array is a TypeError on PHP 8
             // and a warning + null on 7.4. (AUDIT_v3_FINDINGS NB12)
             // Whitelisted against the vocabulary. A NEW product always gets an

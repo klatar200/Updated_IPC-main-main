@@ -115,6 +115,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
 
     if ($updated['company']['name'] === '') $errors[] = 'Company name is required.';
+    // D-01: this field is rendered as an href in the footer of every page, and
+    // it took any string at all — a script-scheme value saved here came back as
+    // a live, clickable link. App.jsx now refuses to render an unsafe one; this
+    // is so a mistyped one is refused here with a reason instead of quietly
+    // never appearing. (audit-runs/audit4.md D-01)
+    $catalogProblem = link_url_problem($updated['catalogPdfUrl'], 'The catalog PDF URL');
+    if ($catalogProblem !== '') $errors[] = $catalogProblem;
     if ($updated['contact']['email'] !== '' && !filter_var($updated['contact']['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'The email address is not valid.';
     }

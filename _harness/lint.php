@@ -426,4 +426,53 @@ if ($dupes) {
     }
 }
 
+// ── owner-editable href guards ──────────────────────────────────────────────
+// A-01 gave FooterSocial isSafeExternalUrl() and stopped there. Two other
+// owner-editable strings were rendered straight into href — site.catalogPdfUrl
+// in the footer of every page, and services[].brochure.url on the Services
+// cards — and both accepted a script scheme, measured live through the real
+// admin forms. This is the check that stops a third one appearing, and stops
+// either of these two losing its guard in a refactor.
+//
+// Anchored on the guard wrapping the render, not on the href line: an href can
+// legitimately be reformatted, but the condition that decides whether the
+// element renders at all is the security property. Both directions matter, so
+// the PHP validators are asserted too — without them the owner gets no message
+// and the link silently never appears. (audit-runs/audit4.md D-01)
+$app = (string)@file_get_contents(__DIR__ . '/../src/App.jsx');
+$guardGaps = [];
+if (strpos($app, 'function isSafeLinkUrl(') === false) {
+    $guardGaps[] = 'src/App.jsx no longer defines isSafeLinkUrl()';
+}
+if (!preg_match('/isSafeLinkUrl\(\s*site\.catalogPdfUrl\s*\)/', $app)) {
+    $guardGaps[] = 'site.catalogPdfUrl is rendered without isSafeLinkUrl() (footer, every page)';
+}
+if (!preg_match('/isSafeLinkUrl\(\s*svc\.brochure\.url\s*\)/', $app)) {
+    $guardGaps[] = 'svc.brochure.url is rendered without isSafeLinkUrl() (Services cards)';
+}
+// "//evil.com" is protocol-relative, not a local path. A guard that accepts it
+// is not a guard, and the one-char difference is exactly the edit that would.
+if (strpos($app, 'if (v.startsWith("//")) return false;') === false) {
+    $guardGaps[] = 'isSafeLinkUrl() no longer rejects a protocol-relative "//" value';
+}
+foreach ([
+    'admin/config.php'   => 'function link_url_problem(',
+    'admin/settings.php' => 'link_url_problem($updated[\'catalogPdfUrl\']',
+    'admin/content.php'  => 'link_url_problem((string)$row[\'brochure\'][\'url\']',
+] as $rel => $needle) {
+    if (strpos((string)@file_get_contents(__DIR__ . '/../' . $rel), $needle) === false) {
+        $guardGaps[] = "$rel no longer calls the shared link validator";
+    }
+}
+if ($guardGaps) {
+    $fail++;
+    echo "FAIL  href guard drift\n";
+    foreach ($guardGaps as $g) echo "      $g\n";
+    echo "      an owner-editable string that reaches href must be guarded on BOTH\n"
+       . "      sides — App.jsx so a stored value cannot render, the admin so the\n"
+       . "      owner is told why (audit-runs/audit4.md D-01)\n";
+} else {
+    echo "href guard drift          2 owner-editable href fields, guarded client and server side\n";
+}
+
 exit(($fail + $jsFail) === 0 ? 0 : 1);

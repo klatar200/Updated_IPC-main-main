@@ -347,12 +347,23 @@ async function settle(page) {
   if (SAVE) {
     const base = {
       _note: 'Computed paint properties of every brand-painting element, in document ' +
-             'order, captured from the UNMODIFIED tree with the DEFAULT palette, before ' +
-             "PLAN-10 phase C. Items 11 and 12 must leave the shipped site's appearance " +
-             'byte-identical: a repalette fix that changes the default render is a ' +
-             'regression, not a fix. Per element, not a global band — an average hides a ' +
-             'surface that moved among the ones that did not.',
+             'order, captured from the UNMODIFIED tree with the DEFAULT palette. A ' +
+             'repalette change that alters the default render is a regression, not a ' +
+             'fix, and this is the arm that catches it. Per element, not a global band ' +
+             '— an average hides a surface that moved among the ones that did not. ' +
+             'RE-BASING IS A DELIBERATE, REVIEWED ACT, NOT A WAY TO QUIET THE SUITE: ' +
+             'regenerating a baseline that a regression is hiding in launders the ' +
+             'regression, so name the per-element delta first and record why every ' +
+             'difference is intended. The first capture was taken 2026-08-10, before ' +
+             'PLAN-10 phase C. It was re-based on 2026-08-13 after that phase and the ' +
+             'UX audit (PR #42) both merged and legitimately changed the DOM around the ' +
+             'palette: five element-set mismatches, all explained in ' +
+             'audit-runs/audit4.md D-02, against which every gradient and both live ' +
+             'arms still passed. Run it from a tree that builds clean and whose other ' +
+             'suites pass — a baseline captured over a broken build is worse than a ' +
+             'stale one.',
       captured: new Date().toISOString().slice(0, 10),
+      rebased_over: 'PLAN-10 phase C + UX audit PR #42 (audit-runs/audit4.md D-02)',
       states: {},
     };
     for (const slug of Object.keys(captured)) {
