@@ -42,6 +42,17 @@ cp admin/logo.svg _harness/site/admin/
 # on every sync.
 cp -ru pdfs _harness/site/ 2>/dev/null || cp -r pdfs _harness/site/
 
+# uploads/images/ is where upload-image.php writes and where every product photo
+# is served from. A fresh mirror has no such directory — the repo's
+# uploads/images/ is empty, so no `cp` above carried it across — and
+# admin/config.php's writability probe then fails, putting a red "Server setup
+# problem — the uploads/images folder is missing or not writable" banner at the
+# top of every admin page. That banner is about the SERVER, so reading it in a
+# local screenshot sends you looking for a deploy fault that does not exist.
+# Measured 2026-08-13: present on every admin page of a first-run mirror.
+mkdir -p _harness/site/uploads/images
+cp -ru uploads/images/. _harness/site/uploads/images/ 2>/dev/null || true
+
 cp _harness/pristine/content.json      _harness/site/data/content.json
 cp _harness/pristine/site-info.json    _harness/site/data/site-info.json
 cp _harness/pristine/products-all.json _harness/site/data/products-all.json
