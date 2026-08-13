@@ -134,7 +134,15 @@ const MUTATIONS = [
   {
     name: 'the message-tab label bug is put back (four labels -> one input)',
     file: bundlePath,
-    find: 'htmlFor:`msg-${j.name}`',
+    // A REGEX, not a fixed string. This anchored on `${j.name}` — and `j` is a
+    // name esbuild chose for a local, not anything the source controls. The
+    // bundle emits `${P.name}` today and emitted `${P.name}` before this
+    // release too, so the anchor had been dead for some time: the selftest
+    // correctly refused to give a vacuous pass, and correctly reported the
+    // drift, but its negative control for the label bug was not running.
+    // Any edit anywhere in App.jsx can re-roll that letter, so pinning it is a
+    // trap that resets itself. (audit-runs/audit3.md C-03)
+    find: /htmlFor:`msg-\$\{\w+\.name\}`/,
     repl: 'htmlFor:"msg-subject"',
     tag: 'labels',
     expect: 'every message field has an associated label',
@@ -150,7 +158,8 @@ const MUTATIONS = [
       const file = m.file();
       remember(file);
       const before = originals.get(file);
-      if (!before.includes(m.find)) {
+      const anchored = m.find instanceof RegExp ? m.find.test(before) : before.includes(m.find);
+      if (!anchored) {
         note(false, `mutation applies: ${m.name}`,
           `the anchor was not found in ${path.basename(file)} — the mirror has drifted from what this selftest was written against, so the result below would be vacuous`);
         continue;

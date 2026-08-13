@@ -43,8 +43,20 @@ const path = require('path');
 const { launch } = require('./browser');
 
 const BASE = process.env.CRAWL_BASE || 'http://127.0.0.1:8123';
+// DEFAULT OUT is _harness/out/ (gitignored), NOT the dated folder under
+// site-screenshots/.
+//
+// That folder is a TRACKED historical record — 83 PNGs captured on 2026-08-11
+// and referenced by name in WHATS_LEFT.md. Writing there by default meant that
+// merely RUNNING this suite rewrote 40+ tracked files in place, under a date
+// they were no longer from, and left the working tree dirty; anyone who then
+// committed would have replaced the record with a re-shoot while keeping its
+// old name. Measured 2026-08-13: one run dirtied 40 tracked screenshots.
+//
+// Set CRAWL_OUT explicitly when the intent really is to regenerate the record.
+// (audit-runs/audit3.md C-06)
 const OUT = process.env.CRAWL_OUT ||
-  path.join(__dirname, '..', 'site-screenshots', '2026-08-11-after-plan10');
+  path.join(__dirname, 'out', 'plan10-crawl');
 
 const FORCE = `*, *::before, *::after { font-family: "Liberation Sans", sans-serif !important; }`;
 const FORCE_FONT = process.env.CRAWL_FONT === 'liberation';
