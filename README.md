@@ -120,7 +120,7 @@ hand-deployed password file.
 | `data/site-info.json`, `data/content.json` | Same — the owner edits these through the admin. |
 | `pdfs/` | Live customer state. Same rule. |
 | `uploads/` | Live customer state (product photos). `upload-image.php` creates `uploads/images/` and its `.htaccess` at runtime if absent. |
-| `_localsite/`, `_harness/`, `node_modules/`, `src/`, `*.md` | Not part of the deployed site. |
+| `_harness/`, `node_modules/`, `src/`, `*.md` | Not part of the deployed site. |
 
 `data/`, `pdfs/` and `uploads/` were uploaded once, on the first deploy, and are
 now owned by the customer. Re-uploading them destroys his edits.

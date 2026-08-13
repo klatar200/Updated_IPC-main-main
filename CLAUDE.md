@@ -65,9 +65,14 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
   split in use. (Said 8,500 until 2026-08-11; it had grown by ~3,800 lines
   across PLAN-8, 9 and 10 without the figure being revisited. Re-measure with
   `wc -l src/App.jsx` rather than trusting this number — it will drift again.)
-- **`src/components/`, `src/pages/` and `src/lib/` exist but nothing imports
-  them.** They are an abandoned extraction. Editing them has zero effect on the
-  bundle. `App.jsx` is the source of truth for runtime behaviour.
+- **There is no per-page split. Do not go looking for one, and do not start
+  one.** `src/components/`, `src/pages/` and `src/lib/` used to exist, fully
+  populated and imported by nothing — an abandoned extraction that survived
+  long enough for `IMPLEMENTATION_PLAN.md` to record Phase 4 as landed on the
+  strength of the directories being there. They were deleted 2026-08-12. The
+  directories were the hazard: they read as the live source and editing them
+  had zero effect on the bundle. `App.jsx` and `src/main.jsx` are the whole
+  React tree; `src/index.css` is the only other file under `src/` that ships.
 - **Routing shim at the top of `App.jsx`.** Ported from OverAI. The `"page"` key
   reads/writes the URL **pathname**; every other key is a search param. The
   setter takes an optional `{ replace: true }` — use it for any
@@ -151,7 +156,7 @@ incident.
    situation it exists for. `.ipc-page-header` is deliberately in **both**
    (`index.css:49` and `App.jsx`'s `GlobalStyles`) — the two are complementary
    and nothing is broken. The earlier wording said "not in `GlobalStyles`",
-   which was false as written. (AUDIT_v3_FINDINGS D17)
+   which was false as written. (Corrected 2026-08-05.)
 10. **`public/contact.php`'s `s()` does not HTML-escape.** Its destinations are a
     `text/plain` email and a JSONL line. `strip_tags()` ate `<1/4 inch and >`
     out of a real quote request, and the double-escape showed the owner

@@ -127,10 +127,36 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 
 `inkaudit`, `whitesurfaces`, `fgsurfaces`, `findwhite`, `findtranslucent`,
 `findwarn`, `classifywhite`, `probeink`, `checkskus`, `derived`, `navyshot`,
-`accentaudit`, `accentshot`, `gradientshot` — measurement. `inkpatch{,2,3}`,
-`inkfix{,2}`, `inkclass`, `fgpatch{,2}` — the codemods that did the brand-color
+`accentaudit`, `accentshot`, `gradientshot` — measurement. `inkpatch`,
+`inkfix`, `inkclass`, `fgpatch` — the codemods that did the brand-color
 migrations. They are cited in `WHATS_LEFT.md` §4h/§4i and are how the numbers
-there were produced.
+there were produced. (Their `2`/`3` follow-up passes were deleted 2026-08-12;
+the numbered variants were incremental re-runs of the same codemod, and the
+first of each is the readable one.)
+
+## `audit10-*.js` — kept for the findings that are still open
+
+Thirty-five of these survive, and **the rule that selects them is not
+chronology.** `_harness/AUDIT10-REPORT.md` still carries 39 severity-C and 9
+severity-D findings that nothing has actioned, and each one names the probe that
+measured it under **Probe:** and again in its **Reproduce** block. A probe the
+report cites is the only executable form of a live finding's reproduce steps.
+
+So: **an `audit10-*.js` file may be deleted only once no finding in that report
+cites it.** Twenty-five were deleted on 2026-08-12 under exactly that test —
+every one of them backed a severity-A or -B finding that PLAN-10 closed and
+AUDIT-11 verified. Re-run the test before deleting any more:
+
+```sh
+for f in _harness/audit10-*.js; do
+  grep -q "$(basename "$f")" _harness/AUDIT10-REPORT.md || echo "uncited: $f"
+done
+```
+
+`audit10-p7reverify.js` is the one to keep regardless of that test. It is the
+audit's own before/after instrument: it flipped from demonstrating the twelve B
+defects to demonstrating their absence **without its code changing**, which is
+what made PLAN-10's evidence proof rather than self-report.
 
 Plan 5 added:
 
