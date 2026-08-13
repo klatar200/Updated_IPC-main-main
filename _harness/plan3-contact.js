@@ -41,9 +41,16 @@ const OUT = path.join(__dirname, 'out', 'plan3');
 // The literal strings contact.php returns for a submission missing required
 // fields. Asserted verbatim: "the server's specific message is displayed, not a
 // generic one" is the whole point of the item.
+// Updated 2026-08-13 for audit-runs/audit1.md A-04. contact.php now enforces
+// the two fields the rendered form already marked required (RFQ `quantity`,
+// message `subject`) and names ONLY the fields actually missing, instead of
+// reciting every required field whether or not it was supplied. These are the
+// strings an EMPTY submission produces, which is what the probe below sends.
+// The assertion itself is unchanged and is still the point of the item: the
+// app must render the server's own message verbatim, not a generic one.
 const SERVER_MSG = {
-  rfq: 'Name and a valid email address are required.',
-  message: 'Name, a valid email address, and a message are required.',
+  rfq: 'Please add your name, a valid email address and the quantity required.',
+  message: 'Please add your name, a valid email address, a subject and a message.',
 };
 
 // cf.networkError, straight out of the pristine content.json — the copy is

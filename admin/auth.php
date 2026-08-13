@@ -16,6 +16,10 @@ $error = '';
 // page can't force-log-out the admin via a stray <img>/<a> to ?logout=1.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
     csrf_check(false);               // verify token before tearing the session down
+    // A9 — log BEFORE the session is destroyed; audit_log() itself needs no
+    // session, but doing it here keeps the line ordered with the sign-in it
+    // closes. (audit-runs/audit1.md A-09)
+    audit_log('sign-out', '-', 'Signed out');
     $_SESSION = [];                  // clear all session variables
     session_unset();                 // unset individual variables
     session_destroy();               // destroy the session file
@@ -134,6 +138,12 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
         // succeeds so any pre-set IPCADMIN cookie is invalidated.
         regenerate_session_id();
         $_SESSION[ADMIN_SESSION_KEY] = true;
+        // A9 — the audit log recorded all eleven content actions and no
+        // authentication event at all, so on an admin whose only recovery path
+        // is an FTP-placed flag file there was no record of who signed in,
+        // when, or how many attempts failed first. audit_log() already stores
+        // the IP and the user agent. (audit-runs/audit1.md A-09)
+        audit_log('sign-in', '-', 'Signed in');
         login_reset_failures($clientIp);   // clear this IP's failure streak
         header('Location: index.php');
         exit;
@@ -143,6 +153,11 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
         // so in the same breath as "wrong password" instead of leaving the next
         // page load to explain it.
         $cooloff = login_cooloff_remaining($clientIp);
+        // A9 — the DETAIL must never carry the attempted password or any part
+        // of it. The useful facts are the count and whether the attempt armed
+        // a cool-off; the IP and user agent are recorded by audit_log() itself.
+        audit_log('sign-in-failed', '-',
+            'Incorrect password (failure #' . login_failure_count($clientIp) . ' from this address)');
         $error = 'Incorrect password. Please try again.';
         if ($cooloff > 0) $error .= ' ' . login_cooloff_message($cooloff);
     }

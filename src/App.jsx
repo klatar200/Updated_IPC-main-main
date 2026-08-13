@@ -9934,7 +9934,13 @@ function DashboardPage({ products }) {
             {search ? ` · "${search}"` : ''}
           </summary>
           <div style={{ marginTop: 12 }}>
+            {/* A5 — htmlFor/id. This label sits ABOVE the wrapper div rather
+                than around the control, so without the pair it labelled
+                nothing: the select was the only control on the entire public
+                site with no accessible name, announced as just "combo box".
+                (audit-runs/audit1.md A-05) */}
             <label
+              htmlFor="ipc-dashboard-family"
               style={{
                 display: "block",
                 fontSize: 11,
@@ -9949,6 +9955,7 @@ function DashboardPage({ products }) {
             </label>
             <div style={{ position: "relative" }}>
               <select
+                id="ipc-dashboard-family"
                 value={activeFamily}
                 onChange={(e) => {
                   setActiveFamily(e.target.value);
@@ -12033,11 +12040,44 @@ const SOCIAL_CHANNELS = [
   },
 ];
 
+/**
+ * A1 — is this value safe to put in an href a visitor will click?
+ *
+ * settings.php validates the scheme on save, and that is the primary gate.
+ * This is the second one, and it is not redundant: site-info.json is a plain
+ * file on the server, so an FTP edit, a restored backup written before the
+ * save-side rule existed, or a hand-repaired file all reach this component
+ * without ever passing through settings.php. Measured before both halves
+ * existed: a `javascript:` URL saved through the admin rendered as a live
+ * clickable footer link on every page of the site, with no React warning.
+ *
+ * NOTE: do not write that scheme followed by a call to the browser's modal
+ * dialog function anywhere in this file, in code OR in a comment.
+ * `_harness/plan3-contact.js` asserts a literal `grep -c` for that token
+ * returns 0 across the whole file — it is how 4.5 proves no dialog survived —
+ * and a comment containing it fails the check exactly like real code would.
+ * The same hazard as `_harness/copydrift.js` and apostrophes in COPY_DEFAULTS.
+ *
+ * Only http and https. A relative value like `instagram.com/x` is rejected
+ * too — it resolved against the current path and sent the visitor to an
+ * in-site 404, which reads as a broken site rather than a mistyped setting.
+ * (audit-runs/audit1.md A-01)
+ */
+function isSafeExternalUrl(value) {
+  if (typeof value !== "string") return false;
+  const v = value.trim();
+  if (v === "") return false;
+  try {
+    const scheme = new URL(v).protocol;
+    return scheme === "http:" || scheme === "https:";
+  } catch {
+    // Not an absolute URL at all — relative, scheme-less, or malformed.
+    return false;
+  }
+}
+
 function FooterSocial({ social }) {
-  const live = SOCIAL_CHANNELS.filter((c) => {
-    const url = social && social[c.key];
-    return typeof url === "string" && url.trim() !== "";
-  });
+  const live = SOCIAL_CHANNELS.filter((c) => isSafeExternalUrl(social && social[c.key]));
   // No container at all when every field is empty — not an empty container.
   if (!live.length) return null;
   return (
@@ -12642,7 +12682,23 @@ function App() {
   // ALL hooks must be called before any conditional return (React rules of hooks).
   // Scroll to top on every page navigation. (Title + meta description are handled
   // by <PageMeta>, which lives inside SiteInfoProvider so it can localize them.)
+  //
+  // A3 — but NOT when the URL names a fragment.
+  //
+  // Child effects run before parent effects, so on a cold load of
+  // /industries#industry-medical the order was: IndustriesPage's effect asks
+  // scrollToAnchor for the section, then THIS effect scrolls back to the top
+  // and cancels it. Measured before the guard: all five #industry-* anchors
+  // linked from the homepage landed at scrollY 0, three runs each, with and
+  // without prefers-reduced-motion. In-app clicks were unaffected — they
+  // navigate after mount — so the failure only ever showed on a shared link,
+  // a bookmark or a refresh, which is exactly where it costs a visitor.
+  //
+  // Reading location.hash rather than adding a dep: the effect must keep
+  // firing once per page change and nothing else. A hash-free navigation and a
+  // hash-free cold load both still land at the top.
   useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash) return;
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [page]);
 

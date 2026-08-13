@@ -143,8 +143,18 @@ const READ_TABLE = () => {
       const el = boxes[0];
       if (!el) return null;
       // A family heading is a control that toggles a group open.
+      // `text` is the toggle's own textContent, which is JUST the chevron
+      // glyph — the family name is not inside the button, it is in the
+      // aria-label ("Collapse Polyolefin Heat Shrink product list"). Reading
+      // textContent made the "which family is open" assertion below compare
+      // against "\u25bc" and fail permanently, whatever the sidebar actually
+      // did; `openCount` beside it was measuring correctly the whole time, so
+      // the suite reported a behavioural failure that was not happening.
+      // Capture both and let the assertion pick the one that names a family.
+      // (audit-runs/audit2.md B-05)
       const headers = [...el.querySelectorAll('button')].map((b) => ({
         text: b.textContent.trim().slice(0, 40),
+        label: (b.getAttribute('aria-label') || '').slice(0, 60),
         expanded: b.getAttribute('aria-expanded'),
         top: Math.round(b.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop),
       }));
@@ -154,7 +164,7 @@ const READ_TABLE = () => {
         headerCount: headers.length,
         headersBelowFold: headers.filter((h) => h.top > el.clientHeight).length,
         openCount: headers.filter((h) => h.expanded === 'true').length,
-        headers: headers.map((h) => ({ text: h.text, expanded: h.expanded })),
+        headers: headers.map((h) => ({ text: h.text, label: h.label, expanded: h.expanded })),
         // What the browser will actually paint for the scroll affordance.
         scrollbarColor: getComputedStyle(el).scrollbarColor,
       };
@@ -308,8 +318,12 @@ const READ_TABLE = () => {
     sb ? JSON.stringify(sb.headers) : 'no sidebar');
 
   const open = sb && sb.headers.find((h) => h.expanded === 'true');
-  note(!!open && /polyolefin/i.test(open.text),
-    `the open family is the one containing IP33PO ("${open ? open.text : '?'}")`);
+  // Match on whichever of the two carries the family name — see the capture
+  // above. The property being asserted is unchanged: the family holding
+  // ?productId=IP33PO (Polyolefin Heat Shrink) must be the open one.
+  const openName = open ? `${open.label} ${open.text}`.trim() : '';
+  note(!!open && /polyolefin/i.test(openName),
+    `the open family is the one containing IP33PO ("${openName || '?'}")`);
 
   // Contrast of the scrollbar thumb against its own track, from the value the
   // browser computed rather than from the stylesheet text.

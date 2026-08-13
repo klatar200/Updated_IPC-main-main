@@ -227,7 +227,16 @@ $navActive = 'products';
                  title="Open this product on the public website in a new tab">View ↗</a>
               <a href="delete.php?sku=<?= urlencode($p['sku'] ?? $p['id'] ?? '') ?>"
                  class="btn btn-sm btn-danger"
-                 data-confirm="Delete <?= h($p['sku'] ?? '') ?>? This cannot be undone.">Delete</a>
+                 <?php /* A10 — "This cannot be undone." was the exact wording
+                          AUDIT_v3 D13 corrected on delete.php, which now reads
+                          "This can be undone. A backup of the whole catalog is
+                          saved immediately before the deletion". The page was
+                          fixed and this dialog was not, so the two directly
+                          contradicted each other — and this is the one the
+                          owner reads first. It still names the SKU and it is
+                          still a confirmation; only the false claim is gone.
+                          (audit-runs/audit1.md A-10) */ ?>
+                 data-confirm="Delete <?= h($p['sku'] ?? '') ?>? You will be asked to confirm on the next page. A backup is saved first, so this can be undone from Backups.">Delete</a>
             </div>
           </td>
         </tr>

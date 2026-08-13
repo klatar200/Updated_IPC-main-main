@@ -176,6 +176,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 define('IPC_MAX_LINE', 200);    // name, email, phone, company, subject, part…
 define('IPC_MAX_TEXT', 5000);   // message, additionalNotes, specialReqs
 
+/**
+ * "Please add a subject and a message." — naming only what is actually absent.
+ *
+ * The single combined sentence this replaces ("Name, a valid email address,
+ * and a message are required.") named every required field whether or not the
+ * sender had supplied it, so someone who typed everything but a subject was
+ * told their name and email were missing too and went looking for a fault in
+ * the fields that were fine. The React handler renders this string verbatim
+ * (4.5), so it is the whole of what the visitor sees.
+ * (audit-runs/audit1.md A-04)
+ */
+function ipc_missing_message(array $missing): string {
+    $n = count($missing);
+    if ($n === 1) return 'Please add ' . $missing[0] . '.';
+    $last = array_pop($missing);
+    return 'Please add ' . implode(', ', $missing) . ' and ' . $last . '.';
+}
+
 function s($val, int $max = IPC_MAX_LINE): string {
     if (is_array($val)) return '';           // 4.17: an array here used to be a fatal
     if (is_object($val)) return '';
@@ -398,9 +416,20 @@ if ($formType === 'rfq') {
     $specialReqs = s($_POST['specialReqs']     ?? '', IPC_MAX_TEXT);
     $notes       = s($_POST['additionalNotes'] ?? '', IPC_MAX_TEXT);
 
-    if ($name === '' || $email === '') {
+    // `quantity` carries `required` on the rendered input (src/App.jsx
+    // rfq-quantity) and was checked NOWHERE on the server, so any submission
+    // that did not come from the browser form — a bot, a replayed request, a
+    // browser with validation disabled — reached sales as a quote request with
+    // a blank quantity, which is the one field a quote cannot be produced
+    // without. The client rule and the server rule now name the same fields.
+    // (audit-runs/audit1.md A-04)
+    $missing = [];
+    if ($name === '')     $missing[] = 'your name';
+    if ($email === '')    $missing[] = 'a valid email address';
+    if ($quantity === '') $missing[] = 'the quantity required';
+    if ($missing) {
         http_response_code(422);
-        echo json_encode(['ok' => false, 'error' => 'Name and a valid email address are required.']);
+        echo json_encode(['ok' => false, 'error' => ipc_missing_message($missing)]);
         exit;
     }
 
@@ -450,9 +479,19 @@ if ($formType === 'rfq') {
     $subj    = s($_POST['subject'] ?? '');
     $message = s($_POST['message'] ?? '', IPC_MAX_TEXT);
 
-    if ($name === '' || $email === '' || $message === '') {
+    // `subject` is the RFQ `quantity` case again: `required` on the rendered
+    // input (src/App.jsx msg-subject), unchecked here. A subject-less
+    // submission mailed with a blank "Subject:" line in the body and the
+    // generic "General Inquiry" in the header, so the one line that tells sales
+    // what the message is about was silently droppable. (audit-runs/audit1.md A-04)
+    $missing = [];
+    if ($name === '')    $missing[] = 'your name';
+    if ($email === '')   $missing[] = 'a valid email address';
+    if ($subj === '')    $missing[] = 'a subject';
+    if ($message === '') $missing[] = 'a message';
+    if ($missing) {
         http_response_code(422);
-        echo json_encode(['ok' => false, 'error' => 'Name, a valid email address, and a message are required.']);
+        echo json_encode(['ok' => false, 'error' => ipc_missing_message($missing)]);
         exit;
     }
 

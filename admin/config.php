@@ -650,6 +650,31 @@ function save_content(array $content): bool {
     return file_put_contents($path, $json, LOCK_EX) !== false;
 }
 
+/**
+ * Every action name audit_log() is ever called with, in display order.
+ *
+ * ONE list, because there were three and nothing compared them: the `<option>`
+ * filter in audit-log.php, the colour switch beside it, and the call sites
+ * themselves. That is precisely the shape of DEPLOY_READINESS_v2 4.34, where
+ * the filter offered `import` — a feature that exists nowhere in the codebase —
+ * so choosing it always returned "No entries match", and nothing could have
+ * told anyone. The reverse case is worse and was live until this release: the
+ * three sign-in actions A-09 adds would have been written to the log and been
+ * unfilterable.
+ *
+ * `_harness/lint.php`'s "audit-action drift" check compares this list against
+ * the literal first argument of every audit_log() call under admin/ and
+ * public/, in BOTH directions, and fails the build on either mismatch — the
+ * same treatment the family, approval and copy-key lists already get.
+ * (audit-runs/audit1.md A-15)
+ */
+const IPC_AUDIT_ACTIONS = [
+    'add', 'edit', 'delete',
+    'upload-pdf', 'remove-pdf', 'upload-image', 'remove-image',
+    'settings', 'content', 'restore', 'password',
+    'sign-in', 'sign-out', 'sign-in-failed',
+];
+
 // Helper: write a line to the admin audit log (#6 — audit logging).
 // Returns false if the write failed — on a host where the PHP user differs
 // from the FTP user, admin/ is not writable and the log, the inquiry file and
@@ -1005,6 +1030,50 @@ function product_reference_resolves(array $products, string $needle): bool {
             || ipc_sku_segment_match((string)($p['id'] ?? ''), $needle)) return true;
     }
     return false;
+}
+
+/**
+ * What is wrong with this SKU? [] means nothing is.
+ *
+ * add.php and edit.php checked only "non-empty" and "not already taken", so the
+ * catalogue would accept literally any string. Measured: `<script>x</script>`
+ * and `...` were both stored as live SKUs. The second is the one that actually
+ * breaks something — pdf_filename_for_sku() and image_filename_for_sku() strip
+ * every non-alphanumeric, so a SKU with none at all derives the filenames
+ * `.pdf` and `.png`, and public/.htaccess's `<FilesMatch "^\.">` rule then
+ * denies them. The upload reports success and the datasheet link is dead, with
+ * nothing anywhere saying why.
+ *
+ * The rule is deliberately loose, because a rule that rejects a SKU the owner
+ * needs is worse than the bug it prevents:
+ *
+ *   - AT LEAST ONE alphanumeric. This is the whole of the filename fix.
+ *   - Only characters the catalogue already uses or the site's three-tier
+ *     lookup already understands: letters, digits, space and - _ . / & + ,
+ *     (see ipc_sku_segment_match, which splits on -, / and ,). All 42 shipped
+ *     SKUs use only letters, digits and "-"; the `id` field additionally
+ *     carries " & " and " / " forms, so those stay legal here.
+ *   - 64 characters. The longest shipped SKU is 27.
+ *
+ * Shared here rather than copied into both pages for the reason the family list
+ * and the approval vocabulary are shared: two copies of one rule is how they
+ * come to disagree. (audit-runs/audit1.md A-06)
+ */
+function sku_problems(string $sku): array {
+    $errors = [];
+    if ($sku === '') {
+        return ['SKU is required.'];
+    }
+    if (!preg_match('/[A-Za-z0-9]/', $sku)) {
+        $errors[] = 'The SKU must contain at least one letter or number — it is used to name the uploaded data sheet and photo files.';
+    }
+    if (preg_match('#[^A-Za-z0-9 \-_./&+,]#', $sku)) {
+        $errors[] = 'The SKU may only contain letters, numbers, spaces and the characters - _ . / & + , — for example IP33PO or IP44A2 & IP45A3.';
+    }
+    if (mb_strlen($sku) > 64) {
+        $errors[] = 'The SKU is too long (64 characters maximum).';
+    }
+    return $errors;
 }
 
 // Helper: find a product by SKU

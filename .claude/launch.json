@@ -8,10 +8,11 @@
       "port": 5173
     },
     {
-      "name": "php-admin",
-      "runtimeExecutable": "C:\\php\\php.exe",
-      "runtimeArgs": ["-S", "localhost:8080", "-t", "."],
-      "port": 8080
+      "//": "B-04 (audit-runs/audit2.md). This served the REPO ROOT: -t . put data/, admin/config.local.php (the live password hash), admin/admin-log.jsonl, admin/inquiries.jsonl and _localsite/ on http://localhost with no .htaccess in force, because PHP's built-in server ignores .htaccess entirely. It also hardcoded C:\\php\\php.exe, so it could only ever run on one Windows machine. The docroot below is the one _harness/README.md documents and the one every admin suite uses; run `npm run build && sh _harness/sync.sh` first to populate it.",
+      "name": "php-admin (harness mirror)",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["-S", "127.0.0.1:8123", "-t", "_harness/site", "-c", "_harness/php-mail.ini", "_harness/router.php"],
+      "port": 8123
     }
   ]
 }
