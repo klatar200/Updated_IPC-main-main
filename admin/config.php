@@ -1076,6 +1076,39 @@ function sku_problems(string $sku): array {
     return $errors;
 }
 
+/**
+ * Is an owner-typed link safe to write into a field the site renders as an href?
+ *
+ * Returns '' when the value is fine, or a ready-to-show message naming $what.
+ * An EMPTY value is fine — both callers treat blank as "no link", which is how
+ * the owner removes one.
+ *
+ * The mirror of isSafeLinkUrl() in src/App.jsx: one leading slash for a file on
+ * this site, or a full http(s) URL, and nothing else. Two slashes is
+ * protocol-relative, not local. Kept deliberately identical in effect to the
+ * client-side guard, and both are needed — the client guard is what actually
+ * stops a script-scheme href reaching a visitor, including for values already
+ * sitting in data/ from before this check existed, while this one is what stops
+ * the owner from saving a broken link and getting no explanation for why it
+ * never appeared. (audit-runs/audit4.md D-01)
+ *
+ * Shared rather than copied for the same reason as sku_problems(): settings.php
+ * and content.php disagreeing about what a link is would be the next defect.
+ * This is looser than edit.php's F6 rule for additionalPdfs, which also
+ * requires a .pdf target — do not consolidate them; F6 being stricter is the
+ * point of F6.
+ */
+function link_url_problem(string $url, string $what): string {
+    $u = trim($url);
+    if ($u === '') return '';
+    if (strpos($u, '//') === 0) {
+        return $what . ' must start with a single / for a file on this site, or with http:// or https://.';
+    }
+    if ($u[0] === '/') return '';
+    if (preg_match('#^https?://\S+$#i', $u)) return '';
+    return $what . ' is not a valid link — use a path on this site such as /pdfs/catalog.pdf, or a full address starting http:// or https://.';
+}
+
 // Helper: find a product by SKU
 function find_product(array $products, string $sku): int {
     foreach ($products as $i => $p) {

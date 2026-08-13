@@ -137,3 +137,29 @@ correctly and all six findings were in the verification layer.
 | E059 | FTP recovery + 1-hour expiry exercised; an expired window writes no password |
 | E066 | row add/reorder/remove exercised; `form_complete` still last of 452 controls |
 | E105 | C-02/C-03/C-04/C-05 — four pre-existing harness defects found and fixed |
+
+## Added after the Run 4 coverage sweep (see `missed-coverage.md`)
+
+| ID | Type | Path / Locator | Area | Status | Audited at | Notes |
+|---|---|---|---|---|---|---|
+| E110 | doc | `Email to Rick - Admin Dashboard Handoff.md` | docs | done | 2026-08-13 | every claim checked against the shipped admin; holds. Deliberately carries no password — correct |
+| E111 | element | `uploads/images/.gitkeep` | uploads | done | 2026-08-13 | placeholder for the runtime upload folder — clean |
+| E112 | element | `_harness` assertion suites never recorded as run | harness | done | 2026-08-13 | 5 found; 4 pass first time, 1 is D-02 |
+
+## Run 4 — re-audit notes (2026-08-13)
+
+All 112 items re-audited. Coverage sweep found **two** unnamed files (E110,
+E111), neither a defect. Run 4 went after the last class Runs 1–3 had never
+executed — the assertion suites with no recorded result — and after the one
+question A-01 raised but did not finish answering.
+
+| ID | Re-audit note |
+|---|---|
+| E011 | D-01 — `site.catalogPdfUrl` reached the footer `href` on every page with no scheme guard; now guarded client and server side |
+| E018 | D-01 — `services[].brochure.url` reached the Services card `href` with no scheme guard; same fix |
+| E055 | D-04 — `add.php` read a `photoUrl` POST field its own form never renders |
+| E058 | D-05 — the product preview's `<h3>` joined the admin page's outline; now a `div` |
+| E091 | `sitemap.php` re-verified: 52 URLs = 10 routes + 42 products, well-formed, no duplicates |
+| E093 | catalog data integrity: no duplicate/empty SKU, all 42 PDFs resolve, no orphans, all local images resolve |
+| E100 | D-03 — `react-router-dom@6.30.3` carries 3 moderate advisories; no in-range patch, measured unreachable, deferred to the owner |
+| E112 | `plan10-adminrows` 15/15, `plan10-header` 8/8, `plan10-helpwidth` 21/21, `plan10-rfqscroll` 24/24, `plan10-repalette` 28/33 → D-02 |

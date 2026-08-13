@@ -557,6 +557,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $out[$sec] = $clean;
     }
 
+    // ── D-01: a service's brochure link is rendered as an href ──────────────
+    // This field took any string at all, and a script-scheme value saved here
+    // came back as a live, clickable link on the Services cards — the same
+    // hazard A-01 raised for the social channels, in a field A-01 did not
+    // reach. App.jsx now refuses to render an unsafe one; this is what tells
+    // the owner why, naming the card so he knows which of the six to fix.
+    //
+    // ERRORS and refuses to save, unlike 4.12 below, which warns. The two are
+    // different cases: an industry card can legitimately be written before its
+    // product exists, but there is no order of work in which a link the site
+    // will not render is the intended state. (audit-runs/audit4.md D-01)
+    foreach (($out['services'] ?? []) as $row) {
+        if (empty($row['brochure']['url'])) continue;
+        $card = trim((string)($row['title'] ?? ''));
+        if ($card === '') $card = 'a service card';
+        $p = link_url_problem((string)$row['brochure']['url'], 'The brochure link on “' . $card . '”');
+        if ($p !== '') $errors[] = $p;
+    }
+
     // ── 4.12: the Industries product codes are checked against the catalog ───
     // This field used to validate against NOTHING, while the help text above it
     // promises "the SKU must match a real product so the link works". A typo
