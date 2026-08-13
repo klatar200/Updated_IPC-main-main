@@ -123,6 +123,128 @@ svg[stroke="#005da3"] {
   .ipc-skeleton { animation: none; }
 }
 
+/* The one page container. Replaces 31 `max-w-7xl mx-auto` pairs and 6 inline
+   `maxWidth: 1280` objects, which were the same cap written two ways — and the
+   reason a grep-driven widening would have missed the navbar, whose container
+   carries no Tailwind class at all.
+ *
+ * HERE AND NOT IN GlobalStyles — invariant 9, and this one is load-bearing in
+ * two separate ways. The <Navbar> renders ABOVE the catalog loading gate
+ * (invariant 8) and CatalogSkeleton IS the loading state, while GlobalStyles
+ * mounts inside the tree that only renders once the fetch has resolved. Putting
+ * this rule there would leave the header and the whole skeleton uncontained for
+ * exactly as long as the page is loading, then snap them into place. Do not
+ * "tidy" it into GlobalStyles with the rest of the layout CSS.
+ *
+ * The breakpoint, so it does not get simplified into a flat `width: 80%`:
+ * 80% of 1600 is exactly 1280, so the two rules meet at 1600 with no jump and
+ * NOTHING AT OR BELOW 1600 MOVES. A flat 80% would instead make every screen
+ * narrower than today — 1440 would drop 1280 -> 1152, and a 390px phone would
+ * lose a fifth of its width and fight the `px-6` these containers already
+ * carry. Above the crossover it grows: 1920 -> 1536, 2560 -> 2048.
+ *
+ * `width: 100%` is what the inline versions said explicitly and what the
+ * Tailwind ones got implicitly from being block-level; it is stated so the
+ * class behaves the same when it lands on a grid or flex child.
+ *
+ * 80vw AND NOT 80%. A percentage max-width resolves against the containing
+ * block, not the viewport, and four of these containers on the homepage sit
+ * inside a section that carries its own `px-6`. Measured with `80%` at 2560:
+ * those four came out 2010px wide at x=275 while their siblings were 2048 at
+ * x=256 — a 19px step in the left edge running down the page, at 1600 and at
+ * 1920 too. `max-w-7xl` never showed this because 1280px is an absolute length
+ * that measures the same wherever it lands. `vw` restores that property: it is
+ * the viewport either way, so every container agrees regardless of what its
+ * parent is padded by. Confirmed by re-measuring: all nine homepage containers
+ * report identical edges at all seven test widths.
+ *
+ * 80vw cannot overflow: `width: 100%` already caps each box at its parent, and
+ * max-width only ever shrinks. The classic vw-vs-scrollbar hazard needs a box
+ * at or near 100vw; 80vw clears a scrollbar at any viewport above ~75px. */
+.ipc-container {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+}
+
+@media (min-width: 1600px) {
+  .ipc-container { max-width: 80vw; }
+}
+
+/* E2 — fragment targets for the admin's "Show me on the site ↗" links.
+ *
+ * Page Content (admin/content.php) edits ~17 blocks scattered across six pages,
+ * and described each one only in prose ("the four-up stat strip below the
+ * hero"). Every section that can be pointed at now carries an
+ * id="ipc-sec-<key>" matching its key in $SECTIONS, so the admin can link
+ * straight at it instead of dropping the owner at the top of the page.
+ *
+ * The offset is here, once, rather than as a `scrollMarginTop` on each of the
+ * seventeen wrappers: most of them already carry a `style` object, and merging
+ * one property into each is exactly the edit that produced the duplicate-
+ * `style`-prop bug C30 hit (esbuild warned, JSX kept the last one, and the
+ * offset was silently dropped). An attribute selector cannot be dropped that
+ * way.
+ *
+ * 84px matches the value C30 settled on for the /industries deep links — the
+ * navbar is 64-65px and the target is a heading, so 84 clears it with ~20px of
+ * air. Do not lower it: the sticky header covers whatever the fragment just
+ * scrolled to.
+ *
+ * In index.css and not GlobalStyles, per invariant 9 — the navbar this is
+ * compensating for renders above the catalog loading gate. */
+[id^="ipc-sec-"] {
+  scroll-margin-top: 84px;
+}
+
+/* The catalog grid's fourth column, on very wide screens only.
+ *
+ * Once .ipc-container starts growing past 1280 the grid's `xl:grid-cols-3`
+ * keeps three cards in a row and simply makes each one bigger. Measured card
+ * widths: 291px at 1440, 376px at 1920, 547px at 2560 — against product
+ * photographs that are 400px wide. At 2560 that is a 1.37x upscale on an
+ * object-cover box, i.e. every card on the page visibly soft.
+ *
+ * The breakpoint is measured, not guessed. Taking 400px (the native photo
+ * width) as the target and modelling row content as ~0.8W - 367 from the two
+ * measurements above, the width where a 4-column card lands closer to 400 than
+ * a 3-column card is 2234px:
+ *
+ *     W      3-col   4-col   better
+ *     1920    376     277    3 cols
+ *     2048    410     303    3 cols
+ *     2234    460     340    -- crossover --
+ *     2560    547     405    4 cols
+ *
+ * So NOT Tailwind's `2xl:grid-cols-4`. `2xl` is 1536px, where a 3-column card
+ * is ~10px off native and a 4-column card is ~97px too narrow — it would fire
+ * 700px early and make the common 1920 monitor worse. 2240 is the round number
+ * just above the real crossover.
+ *
+ * Declared here rather than in tailwind.config.js because `theme.extend` is
+ * empty and adding a screen there would put a new named breakpoint into every
+ * utility's vocabulary for the sake of one grid.
+ *
+ * THE DOUBLED SELECTOR IS LOAD-BEARING. `.ipc-catalog-grid` on its own matches
+ * the element and still loses: Tailwind v3 does not emit `@tailwind utilities`
+ * where the directive sits (line 3), it hoists the whole utility layer to the
+ * END of the compiled sheet — measured in the dev server's own output, this
+ * block lands at line 1437 and `.xl\:grid-cols-3` at line 1920. Two selectors
+ * of equal specificity, and the later one wins, so the grid stayed at three
+ * columns at 2560 with the rule matching and doing nothing. Repeating the class
+ * makes it (0,2,0) against the utility's (0,1,0), which settles it on
+ * specificity instead of source order — and unlike `!important` it stays
+ * overridable, and unlike `.ipc-catalog-grid.grid` it does not quietly depend
+ * on a second class staying on the element.
+ *
+ * .ipc-container above needs none of this: nothing on the site carries both it
+ * and a `max-w-*` utility (checked), so its max-width is uncontested. */
+@media (min-width: 2240px) {
+  .ipc-catalog-grid.ipc-catalog-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 /* B15 — the skip link (WCAG 2.4.1 Bypass Blocks, Level A).
  *
  * Here rather than in GlobalStyles, for the same reason .ipc-skeleton is here:

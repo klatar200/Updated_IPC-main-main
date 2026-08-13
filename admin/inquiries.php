@@ -91,12 +91,8 @@ $navActive = 'inquiries';
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Inquiries</title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
-    main { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
-    h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 24px; }
     .empty { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 40px; text-align: center; color: #9ca3af; font-size: 14px; }
     .inq { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
     .inq summary { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; list-style: none; flex-wrap: wrap; }
@@ -130,7 +126,7 @@ $navActive = 'inquiries';
 </head>
 <body>
 <?php include 'nav.php'; ?>
-<main>
+<main class="admin-wide">
   <h1>Inquiries</h1>
   <p class="sub">Every quote request and message submitted through the website's contact form — including ones the mail server failed to deliver, so no lead is ever lost. Reply from your own email client.</p>
 

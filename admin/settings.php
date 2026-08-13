@@ -5,6 +5,8 @@ require_auth();
 $info   = load_site_info();
 $errors = [];
 $saved  = isset($_GET['saved']);
+// F3 — ?saved=nochange is still a successful save; it just wrote nothing.
+$noChange = ($_GET['saved'] ?? '') === 'nochange';
 
 // Optimistic-concurrency signature, same mechanism as edit.php:17-31. Without
 // it, two tabs open on this page silently clobbered each other: the stale tab's
@@ -142,8 +144,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         if (save_site_info($updated)) {
-            audit_log('settings', 'site-info', 'Business details updated');
-            header('Location: settings.php?saved=1');
+            // F3 — a save that changed nothing still succeeds, still redirects,
+            // and still refreshes the optimistic-concurrency signature on the
+            // way back in (the signature is recomputed from disk on load, and
+            // disk is unchanged, so it matches). Only the wording differs.
+            $noop = last_save_was_noop();
+            audit_log('settings', 'site-info', $noop
+                ? 'Business details submitted — no changes'
+                : 'Business details updated');
+            header('Location: settings.php?saved=' . ($noop ? 'nochange' : '1'));
             exit;
         }
         $errors[] = 'Failed to save site-info.json. Check file permissions on the data/ folder.';
@@ -172,25 +181,21 @@ $navActive = 'settings';
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Business Details</title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
-    main { max-width: 1340px; margin: 0 auto; padding: 32px 24px; }
-    h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 24px; }
     .layout { display: flex; gap: 24px; align-items: flex-start; }
     .layout > form { flex: 1 1 auto; min-width: 0; }
-    .preview-col { flex: 0 0 380px; }
+    /* D2 — the same clamp as .ipc-preview-col in product-preview.js, and for
+       the same reason: a flat 380px stayed 380px while .admin-wide grew the
+       page to 2048, so every extra pixel went to the form and the preview kept
+       shrinking in relative terms. Applied here for consistency with the
+       product editor's panel — if only one of the two previews should widen,
+       this is the one to revert. */
+    .preview-col { flex: 0 0 clamp(400px, 32%, 720px); min-width: 0; }
     .preview-inner { position: sticky; top: 24px; max-height: calc(100vh - 40px); overflow: auto; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
     .preview-head { position: sticky; top: 0; background: #0d2d52; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; padding: 10px 16px; }
     .preview-body { padding: 16px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 18px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-group { margin-bottom: 16px; }
-    .form-group.full { grid-column: 1 / -1; }
-    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 5px; }
-    .hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
     /* 4.23 — contrast readout under each brand color. Three states: ok (quiet,
        so the page is not shouting when nothing is wrong), warn, and bad. */
     .cnote { font-size: 11px; margin-top: 6px; line-height: 1.45; border-radius: 6px; padding: 6px 8px; }
@@ -201,24 +206,19 @@ $navActive = 'settings';
     input[type=text], textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; }
     input[type=text]:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     textarea { resize: vertical; line-height: 1.5; }
-    .error-list { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-    .error-list li { font-size: 13px; margin-bottom: 4px; }
-    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
     .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
-    .btn-primary { background: #005da3; color: #fff; }
-    .btn-primary:hover { background: #004e8c; }
-    .btn-secondary { background: #fff; color: #141414; border: 1px solid #d1d9e0; }
     .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 4px; }
     @media(max-width: 1024px) { .layout { flex-direction: column; } .preview-col { flex: 1 1 auto; width: 100%; } .preview-inner { position: static; max-height: none; } .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 <?php include 'nav.php'; ?>
-<main>
+<main class="admin-wide">
   <h1>Business Details</h1>
   <p class="sub">These details appear across the public website — header, footer, contact page, and search-engine data. Changes go live within about a minute.</p>
 
-  <?php if ($saved): ?><div class="alert-success">✅ Business details saved. The website will reflect the changes within ~60 seconds.</div><?php endif; ?>
+  <?php if ($saved && $noChange): ?><div class="alert-info">No changes to save — the business details already say exactly this, so nothing was written and no backup was used.</div>
+  <?php elseif ($saved): ?><div class="alert-success">✅ Business details saved. The website will reflect the changes within ~60 seconds.</div><?php endif; ?>
   <?php if (!empty($errors)): ?>
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
   <?php endif; ?>

@@ -3,11 +3,18 @@ require_once 'config.php';
 require_auth();
 
 /**
- * Backup restore — every save writes a timestamped backup (keep BACKUP_KEEP
- * per file, see config.php);
- * this page lists them and restores one with a single click. Restoring goes
+ * Backup restore — every save that CHANGES the file writes a timestamped
+ * backup (keep BACKUP_KEEP per file, see config.php); a save whose encoded
+ * JSON matches what is already on disk writes neither the file nor a backup
+ * (F2/F1 in config.php), so this list holds BACKUP_KEEP distinct versions
+ * rather than BACKUP_KEEP copies of the same one.
+ * This page lists them and restores one with a single click. Restoring goes
  * through the same save_*() helpers, so the current state is itself backed up
  * first — a restore can always be undone by restoring the newer backup.
+ *
+ * Note the interaction: restoring a version identical to the live file is now
+ * a no-op too. That is correct — there is nothing to roll back to — and it
+ * still reports success rather than an error.
  */
 
 // Which live files have backups, and how to load/save them.
@@ -140,12 +147,8 @@ $navActive = 'backups';
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Backups</title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
-    main { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
-    h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 24px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
     .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
     .row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f4f8; font-size: 13px; }
@@ -157,16 +160,14 @@ $navActive = 'backups';
     .btn { display: inline-flex; align-items: center; padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: 1px solid #d1d9e0; background: #fff; color: #141414; }
     .btn:hover { border-color: #005da3; background: #eef4fb; }
     .none { color: #9ca3af; font-size: 13px; }
-    .error-list { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
     .note { font-size: 12px; color: #9ca3af; }
   </style>
 </head>
 <body>
 <?php include 'nav.php'; ?>
-<main>
+<main class="admin-wide">
   <h1>Backups</h1>
-  <p class="sub">A backup is saved automatically every time you change products, business details, or page content (the <?= (int)BACKUP_KEEP ?> most recent are kept per file). Restore rolls the live file back to that moment — and backs up the current state first, so a restore can always be undone. Note that <em>every</em> photo upload, PDF upload, add and delete also counts as a save, so these fill up faster than you would expect.</p>
+  <p class="sub">A backup is saved automatically every time you <em>change</em> products, business details, or page content (the <?= (int)BACKUP_KEEP ?> most recent are kept per file). Restore rolls the live file back to that moment — and backs up the current state first, so a restore can always be undone. Pressing Save without having changed anything writes nothing and uses no slot, so every entry below is a genuinely different version. Note that photo uploads, PDF uploads, adds and deletes all count as changes, so these still fill up faster than you would expect.</p>
 
   <?php if (!empty($errors)): ?>
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>

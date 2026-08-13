@@ -4407,3 +4407,220 @@ file has under the doc-drift check.
   given; which revision IPC actually holds is a question only the owner can
   answer, and the edit is then four admin saves. Still reproducing as of
   AUDIT-11 (`audit10-p7reverify.js`, fresh context, all nodes `visible:true`).
+
+---
+
+## 1p. Shipped 2026-08-13 — product photos, page width, admin width/backups
+
+Six-part brief (A–F). Sections A/B are the public site, C–F the admin. Every
+figure below is measured, not estimated; the suites named are in `_harness/`.
+
+### A — the two "broken" product photos
+
+**The brief's diagnosis did not reproduce, and applying it would have broken two
+working products.** It reported `data/products-all.json` pointing at
+`/images/products/ip12ga.jpg` and `ip63es.jpg` while the files on disk were
+`IP12GA.jpg` / `IP63ES.jpg`, and asked for the JSON to be uppercased.
+
+Measured in this repo: the files on disk **are** lowercase, the JSON already
+matches them byte for byte, and both serve `200 image/jpeg` from the dev server.
+The uppercase names are the ones that fall through to the SPA shell. Git shows
+the uppercase variants never existed on any branch. A Playwright pass over
+`/products` at 1600px, scrolled to the bottom to trigger every lazy load, found
+**0 broken images out of 39** and no non-image response under `/images/`.
+
+So **A1 was not applied** (owner's decision, asked and confirmed). A2 stands as
+an owner action: the live server's `data/` is customer state and was not
+reachable from this session — `www.insulationproducts.com` failed TLS through
+the agent proxy, so production could not be checked either way. If two photos
+really are broken there, the fix is two "Photo URL" edits in `admin/edit.php`
+against whatever the server's filenames actually are.
+
+- **A3 done.** `CatalogLanding`'s grid card rendered a bare `<img>` with no
+  `onError` while `ProductDetail` has had that fallback since T2.7. Extracted
+  the card to `CatalogCard` with its own `photoFailed` boolean — per card, not
+  one lifted into the parent, which would blank all 42 photos on any single
+  failure. Verified by aborting exactly one image request: 37 photos → 36,
+  5 "IMAGE COMING SOON" panels → 6, 0 broken `<img>` left on screen.
+- **A4 done.** `_harness/imgcheck.js` — 79 local asset paths, byte-exact case,
+  matched against `readdirSync` listings rather than `fs.existsSync` (which is
+  case-insensitive on Windows/macOS and would pass for the exact defect it
+  exists to catch). Self-tested by injecting three faults: it named the real
+  filename for both case mismatches and exited 1. Clean on the shipped data.
+- **A5 done.** `npm run build && sh _harness/sync.sh`.
+
+### B — site width, 1280 → 80% above 1600
+
+`.ipc-container` in `src/index.css` replaces 31 `max-w-7xl mx-auto` pairs and 6
+inline `maxWidth: 1280` objects. Three of those six were mislabelled in the
+brief as the footer; they are `CatalogSkeleton`, which is why the rule had to go
+in `index.css` (invariant 9) rather than `GlobalStyles`. The footer has exactly
+one container.
+
+Two things were found by measuring rather than by reading:
+
+1. **`80%` is wrong, `80vw` is right.** A percentage max-width resolves against
+   the containing block. Four homepage containers sit inside a section carrying
+   its own `px-6`, so with `80%` they came out 2010px wide at x=275 while their
+   siblings were 2048 at x=256 — a 19px step in the left edge down the page, at
+   1600, 1920 and 2560.
+2. **Tailwind v3 hoists its utility layer to the end of the compiled sheet.**
+   `.ipc-catalog-grid` landed at line 1437 and `.xl\:grid-cols-3` at 1920, so the
+   4-column rule matched the element and did nothing. Fixed by doubling the
+   class for specificity. Recorded as invariant 14 — it applies to any future
+   custom rule that overrides a utility.
+
+Regression-checked against the unmodified source at 390 / 768 / 1280 / 1440 /
+1600: **byte-identical geometry, every page, every width.** 1920 goes 1280 →
+1536 and 2560 goes 1280 → 2048. No horizontal scroll anywhere. Navbar and body
+share both edges at every width.
+
+`max-w-4xl` (≈4374, ≈4452) and `max-w-3xl` (≈11909) left alone — prose caps.
+
+**B5 — the catalog grid gained a fourth column, at 2240px.** Measured card
+widths against the 400px-wide product photographs: 291 at 1440, 376 at 1920,
+547 at 2560 — a 1.37× upscale on an object-cover box. Modelling row content as
+~0.8W − 367 from those measurements, 4 columns land closer to native than 3
+above **2234px**. Tailwind's `2xl:` (1536) would have fired 700px early and made
+the common 1920 monitor worse. Verified: 3-up at 1920/2048, 4-up at 2240/2560.
+
+**B6** — neither `_harness/shots.js` nor `_harness/sweep.js` exists (the brief
+names both). Every harness script pins ≤1440, below the crossover, so none
+needed updating.
+
+### C — shared admin CSS, and the Actions column
+
+There was no shared admin stylesheet at all; `main { max-width }` disagreed nine
+ways across thirteen pages. `admin_head()` in `config.php` now carries the reset,
+body, container, typography, cards, forms, buttons and alerts. It is emitted
+before each page's own `<style>` and carries only the majority variant of each
+rule, so deviating pages keep their deviations and nothing restyled — see
+invariant 15.
+
+Also deleted: six pages' worth of `header` / `.logo` / `.logo-mark` /
+`.logo-title` / `.logo-sub` / `nav a` / `.logout` rules. All thirteen pages
+include `nav.php` and none emits its own `<header>`, so every one of those was
+dead — already outranked by `.ipc-admin-header`, which is exactly what the
+A10-021 note in `nav.php` had to add `height: auto` to beat. `.logo-mark` had no
+matching element anywhere. help.php's `header { position: sticky }` was the one
+live property and stays.
+
+**The Delete button.** The brief measured 340px of buttons against a 318px
+content box (−22px). On this machine's `system-ui` it is **387px** (Edit 51 +
+Manage PDF 109 + Photo 64 + View 71 + Delete 68, plus four 6px gaps) — a 68px
+overflow, and **all 42 rows wrapped**. Same defect, wider font; the machine-to-
+machine spread is exactly why it jams for some people and wraps for others.
+
+Fix: Actions 350 → **460px at ≥1140px only**, plus `td:last-child { padding-right:
+20px }`. Not a flat 460 — at 1024 the widened table (min-width 1090) overflows
+the 976px wrapper and Delete lands at 987..1056 outside a container clipped at
+1000, i.e. clipped again. `plan10-adminrows.js` caught that at 14/15. Below 1140
+the buttons wrap as before, which is what `flex-wrap` is for. 1140 is the
+smallest viewport where the widened table fits: 1140 − 48 = 1092 ≥ 1090.
+Result: 0 wrapped rows and a 38px gap at 1280/1440/1920/2560; suite back to 15/15.
+
+"Manage PDF" (109px, the widest label) was **kept** — the column now has room,
+and the label is clearer than "PDF" for the audience.
+
+**C3** — new suite `_harness/adminwidth.js`, 39/39: nine wide pages at the
+1280/80vw crossover across five viewports, four narrow pages pinned (Password
+520, both uploads 600, Delete's card 440), no horizontal scroll, and a check
+that the shared body background still resolves on every page so an over-trimmed
+`<style>` cannot pass as merely "laid out". The nine pre-existing admin suites
+still pass (`plan10-admincrawl`, `-adminnav`, `-auditlog`, `-help`,
+`-helpwidth`, `-dashboard`, `plan4-admin`, `plan10-header`,
+`audit10-admincontrast`).
+
+### D — the edit-product preview (D1a, owner's choice)
+
+`.ipc-preview-col` was a flat 400px; `product-preview.js` also forced
+`main{max-width:1340px}`, which now fights the shared container. Both replaced
+with `flex: 0 0 clamp(440px, 34%, 760px)` so the panel takes a share of the
+growth instead of handing every extra pixel to the form. Measured: 440 at
+1280–1600 (was 400), 506 at 1920, 680 at 2560; stacked below 1024 as before.
+
+**D2** — the 1024 stacking breakpoint was rechecked and kept (at 1025 the clamp
+floor leaves the form 513px). `settings.php`'s sibling `.preview-col` got the
+same treatment (`clamp(400px, 32%, 720px)`, 400 → 640 at 2560) **for
+consistency, not on instruction** — if only one of the two previews should
+widen, that is the one to revert.
+
+### E — Page Content now shows where each section is
+
+`$SECTIONS` gained optional `page` / `anchor` / `example` keys, rendered as a
+"Show me on the site ↗" pill plus an explanatory note. 17 sections, 16 links,
+14 with precise anchors; `seo` correctly has no link.
+
+This required 14 `id="ipc-sec-…"` targets in `src/App.jsx` and one
+`[id^="ipc-sec-"] { scroll-margin-top: 84px }` rule in `index.css` — the offset
+is a single attribute selector rather than a `scrollMarginTop` merged into
+fourteen existing `style` objects, which is the edit that produced C30's
+duplicate-`style`-prop bug.
+
+**Two real defects fell out of testing the links, both fixed:**
+
+1. **Fragment scrolling was broken on every page except `/industries`.** The
+   browser resolves a fragment once, at parse time, when this SPA has rendered
+   nothing. `IndustriesPage` carried a private `useEffect` for this (C30); no
+   other page did. Measured: `/#ipc-sec-features`, `/services#…`, `/about#…`,
+   `/#ipc-sec-footerLinks` and three more all landed at scrollY 0 — and some
+   others *appeared* to work, which is worse, because whether the element
+   existed in time was a race. Generalised the C30 effect into the shell, keyed
+   on `page`. `scrollToAnchor` already retries for 24 frames, which covers the
+   catalog-gated pages.
+2. **Two anchors were on the wrong element.** `heroTrust` sat on the 5,012px
+   `.ipc-marquee-track` under an `overflow: hidden` ancestor and scrolled to
+   top=0, under the navbar; moved to the rail wrapper. `productFamilies` sat on
+   the `/dashboard` pill strip while the section governs the `/products`
+   catalogue sidebar — it resolved to *no such element* on the page the link
+   opened. Moved to `ProductSidebar`.
+
+New suite `_harness/contentlinks.js`, 18/18: reads the links out of the rendered
+admin page (not the PHP source), follows each into the real site, and asserts
+the target exists and clears the navbar. All 14 now land at top=84.
+
+**E3 was not built, deliberately.** Its own criterion is "sections whose
+location is not obvious from a link", and it names Hero Trust Ticker, Contact
+Sidebar Tips and SEO text. The first two now have working anchors, so a link
+does show them. The third is `<head>` metadata — a screenshot of the site cannot
+contain it, and a mock-up of a Google result is precisely the hand-made artifact
+E3 forbids. All three carry an `example` note instead. `_harness/shots.js`, which
+E3 says to generate the thumbnails with, does not exist in this repo.
+
+### F — no more identical backups
+
+`backup_before_write()` copied unconditionally, with no content comparison.
+`BACKUP_KEEP` is 30, so duplicates **evict** recoverable states — the damage
+`help.php` warns about.
+
+- **F1** — skip the copy when the file is byte-identical to the newest existing
+  backup (size check first, `hash_file('sha256')` only when sizes agree).
+  Return-value audit: exactly three call sites, all in `config.php`'s `save_*()`,
+  **none of which reads the result**, so the new "skipped" outcome cannot be
+  mistaken for the old "failed" one. It returns the existing backup rather than
+  null, so a future caller gets a truthful answer.
+- **F2** — the three `save_*()` now encode first and skip the write *and* the
+  backup when the encoded JSON matches disk. Compared as encoded JSON, not as
+  arrays: `save_products()` sorts by SKU before encoding, so an unsorted-but-
+  equivalent array produces an identical file and is not a change. Also added a
+  `json_encode() === false` guard — invalid UTF-8 from a form post used to make
+  `file_put_contents($path, false)` write an **empty file** and return 0, which
+  is `!== false`, i.e. the catalog was blanked and reported as saved.
+- **F3** — a no-op returns `true` and redirects normally, so the optimistic-
+  concurrency signature is recomputed from unchanged disk and matches.
+  `last_save_was_noop()` drives a blue "No changes to save" notice on
+  `settings.php` and `content.php` and a "— no changes" flash from `edit.php`.
+  The audit log records the no-op honestly rather than "updated".
+- **F4** — `backup_path()` and `backup_list()` untouched (invariant 5).
+- **F5** — copy corrected in `backups.php` (page text + file header) and
+  `help.php` (two places).
+
+New suite `_harness/nodupbackups.js`, 10/10. One finding worth carrying to the
+live site: **the owner's first Save on Business Details will still write a
+backup.** `settings.php` rebuilds the file from the form and the form carries two
+fields the shipped file lacks (`social.instagram`, `social.tiktok`); they arrive
+as `""` and are written. Measured against a fresh mirror the diff is exactly
+those two keys plus the resulting reordering. Every save after that is free.
+The first run of this suite reported 2/9 against a working implementation
+because it took the pre-settle state as its baseline — the suite now settles
+first and says why.

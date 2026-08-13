@@ -10,34 +10,26 @@ $navActive = 'help';
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Help &amp; Documentation</title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body  { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
 
     /* Header (matches index.php) */
-    header { background: #0d2d52; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
-    .logo  { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-title { color: #fff; font-size: 13px; font-weight: 700; }
-    .logo-sub   { color: rgba(255,255,255,0.5); font-size: 10px; }
-    nav a   { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; margin-left: 20px; }
+    /* Only the sticky part. Every other property this rule used to carry
+       (background, padding, height, display, align-items, justify-content) was
+       a copy of nav.php's `.ipc-admin-header`, which outranks a bare `header`
+       and was already winning — see the A10-021 note there, which had to add
+       `height: auto` precisely to beat these copies. `position` is the one
+       thing nav.php does not set, so Help's sticky nav is real and stays. */
+    header { position: sticky; top: 0; z-index: 20; }
     nav a:hover, nav a.current { color: #fff; }
     nav a.current { border-bottom: 2px solid #005da3; padding-bottom: 4px; }
-    .logout { color: rgba(255,255,255,0.5) !important; }
-
-    main { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
 
     .page-header { margin-bottom: 28px; background: linear-gradient(135deg, #0d2d52 0%, #005da3 100%); border-radius: 16px; padding: 28px 32px; display: flex; align-items: center; gap: 20px; box-shadow: 0 8px 24px rgba(13,45,82,0.18); }
     .page-header-icon { font-size: 30px; width: 58px; height: 58px; flex-shrink: 0; background: rgba(255,255,255,0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
     .page-header h1 { font-size: 26px; font-weight: 800; margin: 0 0 6px; color: #fff; }
     .page-header p  { font-size: 14px; color: rgba(255,255,255,0.82); margin: 0; max-width: 720px; line-height: 1.6; }
 
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; }
-    .btn-primary  { background: #005da3; color: #fff; }
-    .btn-sm { padding: 5px 12px; font-size: 12px; }
-    .btn-edit   { background: rgba(0,93,163,0.08); color: #005da3; }
-    .btn-danger { background: rgba(220,38,38,0.08); color: #dc2626; }
-    .btn-pdf    { background: rgba(0,190,242,0.1); color: #0369a1; }
     .btn-mock { pointer-events: none; cursor: default; }
     /* Inline reproduction of the badges on the Inquiries page. */
     .badge-mock { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 9px; border-radius: 20px; background: rgba(107,114,128,0.12); color: #4b5563; white-space: nowrap; }
@@ -180,7 +172,7 @@ $navActive = 'help';
 <body>
 <?php include 'nav.php'; ?>
 
-<main>
+<main class="admin-wide">
   <div class="page-header">
     <div class="page-header-icon">📘</div>
     <div>
@@ -782,7 +774,7 @@ $navActive = 'help';
         <div class="eyebrow eyebrow-advanced">Advanced</div>
         <h2>↩️ Backups &amp; undo</h2>
         <p>Click <strong>Backups</strong> in the header. <strong>You can undo your own mistakes — you do not need to call anyone.</strong></p>
-        <p>Every time you save products, business details or page content, a dated copy of the previous version is written first. The <?= (int)BACKUP_KEEP ?> most recent are kept for each of the three. Each entry shows what's inside it ("41 products", "17 content rows", your company name and phone) so you're not choosing between identical timestamps.</p>
+        <p>Every time you save a <em>change</em> to products, business details or page content, a dated copy of the previous version is written first. The <?= (int)BACKUP_KEEP ?> most recent are kept for each of the three. If you press Save without having changed anything, nothing is written and no backup slot is used — so the list never fills up with identical copies of the same version, and the <?= (int)BACKUP_KEEP ?> slots hold <?= (int)BACKUP_KEEP ?> genuinely different versions. Each entry shows what's inside it ("41 products", "17 content rows", your company name and phone) so you're not choosing between identical timestamps.</p>
         <ol class="steps">
           <li>Find the entry from just before the change you want to undo.</li>
           <li>Click <strong>Restore this version</strong> and confirm.</li>
@@ -794,7 +786,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-warning">
           <b>Act sooner rather than later</b>
-          Only the <?= (int)BACKUP_KEEP ?> most recent are kept per file, and <em>every</em> save counts — including each photo upload, PDF upload, add and delete. A busy afternoon can push an older mistake off the end of the list.
+          Only the <?= (int)BACKUP_KEEP ?> most recent are kept per file, and every save that <em>changes</em> something counts — including each photo upload, PDF upload, add and delete. Re-saving an unchanged page no longer uses a slot, but a busy afternoon of real edits can still push an older mistake off the end of the list.
         </div>
       </section>
 

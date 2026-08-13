@@ -84,11 +84,9 @@ $navActive = 'password';
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Change Password</title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
     main { max-width: 520px; margin: 0 auto; padding: 40px 24px; }
-    h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
     .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
     .form-group { margin-bottom: 18px; }
@@ -98,9 +96,6 @@ $navActive = 'password';
     .hint { font-size: 11px; color: #9ca3af; margin-top: 5px; }
     .btn-primary { width: 100%; padding: 12px; background: #005da3; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
     .btn-primary:hover { background: #004e8c; }
-    .error-list { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-    .error-list li { font-size: 13px; margin-bottom: 4px; }
-    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
     .note { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 12px 16px; font-size: 12px; margin-top: 16px; }
   </style>
 </head>

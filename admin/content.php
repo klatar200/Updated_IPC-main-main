@@ -76,6 +76,8 @@ $SECTIONS = [
     'features' => [
         'title'    => 'Products &amp; Services Cards',
         'sub'      => 'The card grid under “A Complete Insulation Supply Source” on the homepage. Any number of cards works.',
+        'page'     => '/',
+        'anchor'   => 'ipc-sec-features',
         'addLabel' => 'Card',
         'icons'    => $FEATURE_ICONS,
         'fields'   => [
@@ -87,6 +89,8 @@ $SECTIONS = [
     'stats' => [
         'title'    => 'Trust Bar Stats',
         'sub'      => 'The four-up stat strip below the hero. Works best with exactly 4 items so the row stays balanced.',
+        'page'     => '/',
+        'anchor'   => 'ipc-sec-stats',
         'addLabel' => 'Stat',
         'icons'    => $STAT_ICONS,
         'fields'   => [
@@ -99,6 +103,8 @@ $SECTIONS = [
     'markets' => [
         'title'    => 'Industries Grid',
         'sub'      => 'The “Trusted Across Demanding Markets” cards on the homepage. Each links to the Industries page.',
+        'page'     => '/',
+        'anchor'   => 'ipc-sec-markets',
         'addLabel' => 'Industry',
         'icons'    => $MARKET_ICONS,
         'fields'   => [
@@ -110,6 +116,8 @@ $SECTIONS = [
     'industryDetail' => [
         'title'    => 'Industries Page — Detail Sections',
         'sub'      => 'The big per-industry blocks on the Industries page: applications, linked IPC products, and certification chips. In the “IPC products” box use one product per line as <code>SKU | Display name</code> — the SKU must match a real product so the link works.',
+        'page'     => '/industries',
+        'example'  => 'Each row becomes one of the big blocks down the Industries page, in this order.',
         'addLabel' => 'Industry section',
         'icons'    => $INDUSTRY_ICONS,
         'fields'   => [
@@ -124,6 +132,8 @@ $SECTIONS = [
     'services' => [
         'title'    => 'Value-Added Services',
         'sub'      => 'The fabrication service cards on the Services page. The “bullet points” box takes one item per line; the brochure link is optional.',
+        'page'     => '/services',
+        'anchor'   => 'ipc-sec-services',
         'addLabel' => 'Service',
         'icons'    => $SERVICE_ICONS,
         'fields'   => [
@@ -139,6 +149,8 @@ $SECTIONS = [
     'milestones' => [
         'title'    => 'About — Company Timeline',
         'sub'      => 'The milestone timeline on the About page.',
+        'page'     => '/about',
+        'anchor'   => 'ipc-sec-milestones',
         'addLabel' => 'Milestone',
         'icons'    => [],
         'fields'   => [
@@ -150,6 +162,8 @@ $SECTIONS = [
     'faq' => [
         'title'    => 'FAQ / Resources',
         'sub'      => 'Questions on the Resources / FAQ page. Items are grouped by the Category text — reuse the exact same category name to keep questions together.',
+        'page'     => '/faq',
+        'anchor'   => 'ipc-sec-faq',
         'addLabel' => 'Question',
         'icons'    => [],
         'fields'   => [
@@ -161,6 +175,8 @@ $SECTIONS = [
     'capabilities' => [
         'title'    => 'About — Team &amp; Capabilities',
         'sub'      => 'The “Our Team & Capabilities” cards on the About page. The icon is an emoji.',
+        'page'     => '/about',
+        'anchor'   => 'ipc-sec-capabilities',
         'addLabel' => 'Capability',
         'icons'    => [],
         'fields'   => [
@@ -172,6 +188,8 @@ $SECTIONS = [
     'certs' => [
         'title'    => 'About — Certifications &amp; Standards',
         'sub'      => 'The certification cards on the About page.',
+        'page'     => '/about',
+        'anchor'   => 'ipc-sec-certs',
         'addLabel' => 'Certification',
         'icons'    => $CERT_ICONS,
         'fields'   => [
@@ -183,6 +201,8 @@ $SECTIONS = [
     'companyNav' => [
         'title'    => 'Navigation — Company Menu',
         'sub'      => 'The “Company” dropdown in the site header. Destination is limited to real pages.',
+        'page'     => '/',
+        'example'  => 'These are the items inside the <strong>Company &#9662;</strong> menu in the header — open the site and hover it. There is no place on the page to scroll to, which is why this link just opens the homepage.',
         'addLabel' => 'Menu item',
         'icons'    => [],
         'fields'   => [
@@ -194,6 +214,8 @@ $SECTIONS = [
     'footerLinks' => [
         'title'    => 'Navigation — Footer Quick Links',
         'sub'      => 'The “Quick Links” column in the site footer. Destination is limited to real pages.',
+        'page'     => '/',
+        'anchor'   => 'ipc-sec-footerLinks',
         'addLabel' => 'Footer link',
         'icons'    => [],
         'fields'   => [
@@ -204,6 +226,8 @@ $SECTIONS = [
     'heroProofPoints' => [
         'title'    => 'Homepage — Hero Proof Points',
         'sub'      => 'The four small stat cards on the right side of the hero.',
+        'page'     => '/',
+        'anchor'   => 'ipc-sec-heroProofPoints',
         'addLabel' => 'Proof point',
         'icons'    => [],
         'fields'   => [
@@ -215,6 +239,9 @@ $SECTIONS = [
     'heroTrust' => [
         'title'    => 'Homepage — Hero Trust Ticker',
         'sub'      => 'The scrolling strip of short credentials beneath the hero.',
+        'page'     => '/',
+        'anchor'   => 'ipc-sec-heroTrust',
+        'example'  => 'It scrolls continuously, so which item you see first depends on when the page loaded — the link takes you to the strip, not to one item. Click into it and the scrolling pauses.',
         'addLabel' => 'Ticker item',
         'icons'    => [],
         'fields'   => [
@@ -224,6 +251,8 @@ $SECTIONS = [
     'privacySections' => [
         'title'    => 'Privacy Policy — Sections',
         'sub'      => 'Each titled block of your privacy policy. Contact details inside the text auto-update from Business Details.',
+        'page'     => '/privacy',
+        'anchor'   => 'ipc-sec-privacySections',
         'addLabel' => 'Section',
         'icons'    => [],
         'fields'   => [
@@ -234,6 +263,7 @@ $SECTIONS = [
     'seo' => [
         'title'    => 'Search Engine Text (SEO)',
         'sub'      => 'The browser-tab title and description for each page — also used for social-media share previews. The "home" row is the site-wide default.',
+        'example'  => 'Nothing on the page itself shows this. It is the text in the browser tab, in Google results, and in the preview card that appears when someone pastes a link into Teams or LinkedIn. To check it, open a page and read the browser tab.',
         'addLabel' => 'Page',
         'icons'    => [],
         'fields'   => [
@@ -245,6 +275,8 @@ $SECTIONS = [
     'contactTips' => [
         'title'    => 'Contact Page — Sidebar Tips',
         'sub'      => 'The “for fastest response, include:” checklist in the contact sidebar.',
+        'page'     => '/contact',
+        'anchor'   => 'ipc-sec-contactTips',
         'addLabel' => 'Tip',
         'icons'    => [],
         'fields'   => [
@@ -259,6 +291,8 @@ $SECTIONS = [
     'productFamilies' => [
         'title'    => 'Product Families / Categories',
         'sub'      => 'The categories products are grouped under, in the order they appear in the catalogue sidebar and the Products menu. <strong>Renaming one does not rename the products in it</strong> — each product stores its own category, so a renamed family leaves its products under the old name until you re-save each of them. The count beside each row is how many products would be affected.',
+        'page'     => '/products',
+        'anchor'   => 'ipc-sec-productFamilies',
         'addLabel' => 'Family',
         'icons'    => [],
         'fields'   => [
@@ -458,6 +492,9 @@ $errors = [];
 $warnings = [];
 
 $saved  = isset($_GET['saved']);
+// F3 — ?saved=nochange is still a successful save; it just wrote nothing. It
+// must keep $saved true, or the warnings flash read just below is swallowed.
+$noChange = ($_GET['saved'] ?? '') === 'nochange';
 
 // A successful save redirects to ?saved=1, which would swallow any warning that
 // save produced — the one message this feature exists to show. Carry them over
@@ -684,13 +721,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sku = count($changedKeys) === 1 ? $changedKeys[0] : (count($changedKeys) === 0 ? 'none' : 'multiple');
 
         if (save_content($out)) {
+            // F3 — see settings.php. A no-op save still redirects normally so
+            // the concurrency signature is refreshed from disk on the way back
+            // in; only the banner wording changes.
+            $noop = last_save_was_noop();
             // The unmatched-product-code suffix is preserved verbatim (4.12:
             // that path warns and still saves, by owner decision).
-            audit_log('content', $sku, $detail
+            audit_log('content', $sku, ($noop ? 'Submitted — no changes' : $detail)
                 . (!empty($warnings) ? ' — ' . count($warnings) . ' unmatched product code(s)' : ''));
             // 4.12: survive the redirect. See the flash read near $saved.
             if (!empty($warnings)) $_SESSION['content_warnings'] = $warnings;
-            header('Location: content.php?saved=1');
+            header('Location: content.php?saved=' . ($noop ? 'nochange' : '1'));
             exit;
         }
         $errors[] = 'Failed to save content.json. Check file permissions on the data/ folder.';
@@ -948,12 +989,8 @@ $navActive = 'content';
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Page Content</title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
-    main { max-width: 1000px; margin: 0 auto; padding: 32px 24px; }
-    h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 24px; }
     /* 4.31 — each section is now a <fieldset> so the grouping reaches the
        accessibility tree. A fieldset carries UA border/padding/min-width of its
        own; reset them so the card looks exactly as it did. min-width:0 matters:
@@ -967,11 +1004,16 @@ $navActive = 'content';
     .vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
           overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     .card > .sub { margin-top: -8px; margin-bottom: 18px; }
+    /* E1/E2 — the "where does this appear" line under each section's prose. */
+    .where { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: -10px 0 18px; }
+    .where-link { flex-shrink: 0; font-size: 12px; font-weight: 700; color: #005da3; text-decoration: none; background: rgba(0,93,163,0.08); border-radius: 6px; padding: 5px 10px; }
+    .where-link:hover { background: rgba(0,93,163,0.16); }
+    .where-link:focus-visible { outline: 3px solid #005da3; outline-offset: 2px; }
+    .where-note { font-size: 12px; color: #6b7280; line-height: 1.5; flex: 1 1 240px; min-width: 0; }
+    @media (pointer: coarse) { .where-link { padding: 12px 14px; } }
     .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-group { margin-bottom: 0; }
-    .form-group.full { grid-column: 1 / -1; }
-    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 5px; }
     input[type=text], textarea, select.ci { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; background: #fff; }
     input[type=text]:focus, textarea:focus, select.ci:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     textarea { resize: vertical; line-height: 1.5; }
@@ -997,9 +1039,6 @@ $navActive = 'content';
     .rbtn:hover:not(:disabled) { background: #eef4fb; border-color: #005da3; }
     .rbtn:disabled { opacity: 0.35; cursor: default; }
     .rbtn.danger:hover:not(:disabled) { background: #fef2f2; border-color: #dc2626; color: #dc2626; }
-    .error-list { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-    .error-list li { font-size: 13px; margin-bottom: 4px; }
-    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
     /* 4.12 — amber, distinct from the red .error-list (nothing was lost) and
        from the green banner it sits under. The left bar is what makes it read
        as a callout rather than more body copy. */
@@ -1008,16 +1047,13 @@ $navActive = 'content';
     .warn-list ul { margin: 0; padding-left: 20px; }
     .warn-list li { font-size: 13px; margin-bottom: 4px; line-height: 1.5; }
     .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
-    .btn-primary { background: #005da3; color: #fff; }
-    .btn-primary:hover { background: #004e8c; }
-    .btn-secondary { background: #fff; color: #141414; border: 1px solid #d1d9e0; }
     .save-bar { position: sticky; bottom: 0; background: #f0f4f8; padding: 16px 0; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e5e9ee; }
     @media(max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 <?php include 'nav.php'; ?>
-<main>
+<main class="admin-wide">
   <h1>Page Content</h1>
   <!-- A10-027 — this said "Edit the homepage sections below" on a form that
        edits every page of the site: homepage, Services, Industries, About,
@@ -1025,7 +1061,8 @@ $navActive = 'content';
        footer. Same defect as the hardcoded audit-log line above, in the copy. -->
   <p class="sub">Edit the wording and lists for every page of the site below — homepage, Services, Industries, About, FAQ, Contact, Privacy, search-engine text, menus and footer. Add, remove, or reorder items — changes go live within about a minute.</p>
 
-  <?php if ($saved): ?><div class="alert-success">✅ Content saved. The website will reflect the changes within ~60 seconds.</div><?php endif; ?>
+  <?php if ($saved && $noChange): ?><div class="alert-info">No changes to save — the page content already says exactly this, so nothing was written and no backup was used.</div>
+  <?php elseif ($saved): ?><div class="alert-success">✅ Content saved. The website will reflect the changes within ~60 seconds.</div><?php endif; ?>
   <?php if (!empty($errors)): ?>
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
   <?php endif; ?>
@@ -1075,6 +1112,37 @@ $navActive = 'content';
       <fieldset class="card" data-section="<?= h($sec) ?>" data-section-title="<?= h((string)($cfg['title'] ?? '')) ?>">
         <legend class="card-title"><?= $cfg['title'] ?></legend>
         <p class="sub"><?= $cfg['sub'] ?></p>
+        <?php /* E1/E2 — "where does this actually appear?"
+                 Every group already described its location in prose ("the
+                 four-up stat strip below the hero"). Prose is the right thing
+                 to READ and the wrong thing to act on: there are 17 of these
+                 spread over six pages, and the owner has to hold the mapping in
+                 his head.
+
+                 The link is the baseline deliverable on purpose — it is
+                 generated from the live site, so it cannot go stale the way a
+                 checked-in screenshot can (this repo has a documented history
+                 of exactly that: the deleted public/products-all.json, the
+                 stale sitemap.xml manifest row). 14 of the 17 sections carry an
+                 `anchor` matching an id="ipc-sec-…" in src/App.jsx and land on
+                 the block itself; the rest open the right page and say why
+                 there is nothing to scroll to.
+
+                 target="_blank" so the owner does not lose a half-filled form
+                 to a navigation — this page has an unsaved-changes guard
+                 (unsaved.js) and bouncing off it to look at the site would be
+                 the most predictable way to trip it. rel="noopener" with it. */ ?>
+        <?php if (!empty($cfg['example']) || !empty($cfg['page'])): ?>
+          <p class="where">
+            <?php if (!empty($cfg['page'])): ?>
+              <a class="where-link"
+                 href="<?= h($cfg['page']) ?><?= !empty($cfg['anchor']) ? '#' . h($cfg['anchor']) : '' ?>"
+                 target="_blank" rel="noopener"
+                 title="Opens the live site in a new tab<?= !empty($cfg['anchor']) ? ', scrolled to this section' : '' ?>">Show me on the site &#8599;</a>
+            <?php endif; ?>
+            <?php if (!empty($cfg['example'])): ?><span class="where-note"><?= $cfg['example'] ?></span><?php endif; ?>
+          </p>
+        <?php endif; ?>
         <div class="rows">
           <?php foreach ($rows as $i => $row) echo render_row($sec, (int)$i, $cfg, is_array($row) ? $row : []); ?>
         </div>

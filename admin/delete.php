@@ -80,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            did not, so the one page where misreading the SKU costs a product
            rendered desktop-zoomed on a phone. (audit-runs/audit1.md A-08) */ ?>
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><link rel="icon" type="image/svg+xml" href="logo.svg" /><title>IPC Admin — Delete <?= h($sku) ?></title>
+  <?= admin_head() ?>
   <style>
-    * { box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; }
     main { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 60px); padding: 24px; }
     .card { background: #fff; border-radius: 12px; padding: 40px; max-width: 440px; width: 100%; box-shadow: 0 4px 24px rgba(0,45,82,0.12); text-align: center; }

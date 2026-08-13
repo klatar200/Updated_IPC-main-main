@@ -232,6 +232,115 @@ function csrf_token(): string {
     return $_SESSION['csrf_token'];
 }
 
+/**
+ * The shared admin stylesheet. Echo it in <head> BEFORE the page's own <style>.
+ *
+ * Why this exists
+ * ---------------
+ * There was no shared admin CSS at all: every page restated the reset, the body
+ * rule, the buttons, the cards, the form controls and the alert boxes in its
+ * own inline <style>, and they had drifted apart. `main { max-width }` alone
+ * disagreed nine ways across thirteen pages — 1280, 1340, 1100, 1000, 900, 800,
+ * 600, 520, 440 — so the admin had no consistent width at all, and the widest
+ * page used barely half of a 2560px screen.
+ *
+ * ORDER IS THE WHOLE DESIGN. This block is emitted first and carries only the
+ * MAJORITY variant of each rule; a page that genuinely differs keeps its own
+ * declaration in its own <style>, which comes later in the document and so wins
+ * at equal specificity. Nothing here uses !important and nothing here is more
+ * specific than a single class, precisely so a page can still override it. That
+ * is why extracting these rules changed no page's appearance: the deviating
+ * pages still carry their deviations.
+ *
+ * The dead header rules are NOT here. Six pages carried their own
+ * `header { background: #0d2d52; height: 60px; ... }`, plus `.logo`, `.logo-mark`,
+ * `.logo-title`, `.logo-sub`, `nav a` and `.logout` — all of it targeting markup
+ * that nav.php owns and all of it already outranked by nav.php's
+ * `.ipc-admin-header ...` selectors (see the A10-021 note there, which had to
+ * add `height: auto` specifically to beat these copies). `.logo-mark` had no
+ * matching element on any page at all. Those rules were deleted from the pages
+ * rather than moved here. help.php's `header { position: sticky }` was the one
+ * live property among them and stays on help.php.
+ *
+ * auth.php is deliberately not a caller: it is the signed-out login card, has
+ * no nav and no <main>, and shares none of this layout.
+ */
+function admin_head(): string {
+    return <<<'CSS'
+<style>
+  /* ── Reset + page shell ─────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
+
+  /* THE container rule. Mirrors .ipc-container on the public site
+     (src/index.css) so the admin and the site it edits agree about how wide a
+     page is: 1280px up to 1600, then 80% of the viewport.
+
+     80vw AND NOT 80%, for the same reason as the public side — a percentage
+     max-width resolves against the containing block, so it would measure
+     differently depending on what each page nests <main> inside.
+
+     The crossover is opt-in via .admin-wide rather than applied to every
+     <main>, so the four genuinely narrow pages cannot be caught by it by
+     accident. Password, Delete and the two upload pages are single-purpose
+     forms — one file field, or one confirm button — and 80% of an ultrawide
+     screen would stretch a 440px confirmation dialog across two feet of glass.
+     They keep their own `main { max-width }` in their own <style>, which wins
+     over the 1280px default below by source order. */
+  main { width: 100%; max-width: 1280px; margin: 0 auto; padding: 32px 24px; }
+  @media (min-width: 1600px) {
+    main.admin-wide { max-width: 80vw; }
+  }
+
+  /* ── Typography ─────────────────────────────────────────────────────── */
+  h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #6b7280; margin: 0 0 24px; }
+
+  /* ── Cards ──────────────────────────────────────────────────────────── */
+  .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 20px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
+
+  /* ── Forms ──────────────────────────────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 5px; }
+  .hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+  input[type=text], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; transition: border-color 0.15s; }
+  input[type=text]:focus, select:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
+  textarea { resize: vertical; }
+  .mono { font-family: 'Courier New', monospace; font-size: 12px; }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* ── Buttons ────────────────────────────────────────────────────────── */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; transition: background 0.15s; }
+  .btn-primary { background: #005da3; color: #fff; }
+  .btn-primary:hover { background: #004e8c; }
+  .btn-secondary { background: #fff; color: #141414; border: 1px solid #d1d9e0; }
+  .btn-secondary:hover { background: #f0f4f8; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-edit { background: rgba(0,93,163,0.08); color: #005da3; }
+  .btn-edit:hover { background: rgba(0,93,163,0.15); }
+  .btn-danger { background: rgba(220,38,38,0.08); color: #dc2626; }
+  .btn-danger:hover { background: rgba(220,38,38,0.15); }
+  .btn-pdf { background: rgba(0,190,242,0.1); color: #0369a1; }
+  .btn-pdf:hover { background: rgba(0,190,242,0.2); }
+
+  /* ── Alerts ─────────────────────────────────────────────────────────── */
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; }
+  .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+  .alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  /* F3 — the "nothing to save" banner. Deliberately informational rather than
+     green: the save DID succeed, but telling the owner "Saved" when no byte
+     changed is what trained him not to trust the banner. Palette matches
+     help.php's .callout-tip. */
+  .alert-info { background: #eff8ff; color: #0c4a6e; border: 1px solid #bfe0f7; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+  .error-list { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+  .error-list li { font-size: 13px; margin-bottom: 4px; }
+</style>
+CSS;
+}
+
 // A bare `die('Invalid CSRF token…')` was what an admin saw when his session
 // expired mid-edit: an unstyled white page, no navigation, no mention that his
 // unsaved work was still recoverable, on the one page (long About paragraphs,
@@ -412,18 +521,83 @@ function backup_path(string $dir, string $prefix): string {
     return $base . '-' . str_pad((string)$next, 2, '0', STR_PAD_LEFT) . '.json';
 }
 
-// Copy $path aside, then prune to the BACKUP_KEEP most recent. Returns the
-// backup path written, or null if there was nothing to back up / copy failed.
+// Copy $path aside, then prune to the BACKUP_KEEP most recent.
+//
+// Returns the backup that now represents this content — the file just written,
+// or the existing newest one when the copy was skipped as a duplicate. Returns
+// null when there was nothing to back up (no file yet) or the copy failed.
+//
+// RETURN-VALUE AUDIT (F1): this has exactly three call sites — save_products(),
+// save_site_info() and save_content(), all below — and not one of them looks at
+// the result; each calls it as a bare statement. So nothing in the admin can
+// mistake the new "skipped" outcome for the pre-existing "failed" one. The
+// distinction is still worth making rather than returning null for both, so
+// that a future caller which does check gets a truthful answer instead of an
+// error for a file that is safely backed up already.
 function backup_before_write(string $path, string $prefix): ?string {
     $dir = dirname($path);
     if (!file_exists($path)) return null;
+
+    // F1 — do not copy a file we already have an identical copy of.
+    //
+    // This ran unconditionally on every write, and eleven save_*() call sites
+    // across eight files route through it — every photo upload, PDF upload,
+    // add, delete and restore is a full-catalog save. The Backups page filled
+    // with runs of entries that were all "42 products / 241 KB", and with
+    // BACKUP_KEEP at 30 those duplicates EVICT recoverable states: a busy
+    // afternoon could push the real pre-mistake copy off the end of the list,
+    // which is exactly what help.php warns about. Skipping identical copies is
+    // what makes the 30 slots hold 30 distinct states.
+    //
+    // Compared against the newest backup only, not all 30: backups are written
+    // in order, so anything the current file could duplicate is the last one
+    // written. Size first because it settles the common "genuinely changed"
+    // case with a stat instead of reading 241KB twice; hash_file() only runs
+    // when the sizes already agree.
+    $existing = backup_list($dir, $prefix); // oldest first
+    if ($existing) {
+        $newest = $existing[count($existing) - 1];
+        $sizeA = @filesize($path);
+        $sizeB = @filesize($newest);
+        if ($sizeA !== false && $sizeA === $sizeB) {
+            $hashA = @hash_file('sha256', $path);
+            $hashB = @hash_file('sha256', $newest);
+            if ($hashA !== false && $hashA === $hashB) return $newest;
+        }
+    }
+
     $backupPath = backup_path($dir, $prefix);
     if (!@copy($path, $backupPath)) return null;
-    $backups = backup_list($dir, $prefix); // oldest first, by mtime
+    $backups = backup_list($dir, $prefix); // oldest first, by parsed (stamp, seq)
     if (count($backups) > BACKUP_KEEP) {
         foreach (array_slice($backups, 0, count($backups) - BACKUP_KEEP) as $old) @unlink($old);
     }
     return $backupPath;
+}
+
+// F2 — is this write worth doing at all?
+//
+// Compares the ENCODED JSON against what is on disk, byte for byte, and not
+// the input array against the loaded one. That distinction is the whole point
+// for save_products(): it sorts by SKU before encoding, so an array that is
+// merely in a different order is not "changed" — the file it would produce is
+// identical. Comparing arrays would call that a change and write it.
+//
+// A missing or unreadable file always needs the write.
+function json_write_needed(string $path, string $json): bool {
+    if (!is_file($path)) return true;
+    $current = @file_get_contents($path);
+    return $current === false || $current !== $json;
+}
+
+// Set by the three save_*() helpers below; read by the pages that want to say
+// "No changes to save" instead of "Saved". A no-op save is a SUCCESS — see the
+// note on save_products() — so a page cannot tell the two apart from the bool.
+$GLOBALS['ipc_last_save_noop'] = false;
+
+/** True when the most recent save_*() call found the file already correct. */
+function last_save_was_noop(): bool {
+    return !empty($GLOBALS['ipc_last_save_noop']);
 }
 
 // All backups for one prefix, OLDEST FIRST.
@@ -459,16 +633,37 @@ function backup_list(string $dir, string $prefix): array {
 // Helper: save products array to JSON
 // Uses LOCK_EX to prevent corruption from concurrent writes.
 // Creates a timestamped backup before overwriting.
+// F2 — encode FIRST, then decide whether the write is needed at all. The
+// backup no longer happens before we know there is something to back up: a
+// save that changes nothing now touches neither the JSON file nor the backup
+// folder.
+//
+// A no-op still returns TRUE. From the owner's point of view he pressed Save
+// and the file says what he wanted it to say, which is success; returning
+// false would surface "could not save" for a file that is already correct, and
+// would strand the optimistic-concurrency pages on an error page instead of
+// redirecting and refreshing their signature. Pages that want to word it
+// differently read last_save_was_noop().
 function save_products(array $products): bool {
     $path = PRODUCTS_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
     }
-    backup_before_write($path, 'products-all');
     // Sort by SKU before saving
     usort($products, fn($a, $b) => strcmp($a['sku'] ?? '', $b['sku'] ?? ''));
     $json = json_encode($products, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    // json_encode() returns false on invalid UTF-8, which a form post can
+    // carry. file_put_contents($path, false) writes an EMPTY FILE and returns
+    // 0, which is !== false — so the catalog would be blanked and reported as
+    // saved. Fail loudly instead and leave the file alone.
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    if (!json_write_needed($path, $json)) {
+        $GLOBALS['ipc_last_save_noop'] = true;
+        return true;
+    }
+    $GLOBALS['ipc_last_save_noop'] = false;
+    backup_before_write($path, 'products-all');
     // LOCK_EX prevents concurrent write corruption (#3)
     return file_put_contents($path, $json, LOCK_EX) !== false;
 }
@@ -487,8 +682,14 @@ function save_site_info(array $info): bool {
     $path = SITE_INFO_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
-    backup_before_write($path, 'site-info');
     $json = json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    if (!json_write_needed($path, $json)) {          // F2
+        $GLOBALS['ipc_last_save_noop'] = true;
+        return true;
+    }
+    $GLOBALS['ipc_last_save_noop'] = false;
+    backup_before_write($path, 'site-info');
     return file_put_contents($path, $json, LOCK_EX) !== false;
 }
 
@@ -645,8 +846,14 @@ function save_content(array $content): bool {
     $path = CONTENT_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
-    backup_before_write($path, 'content');
     $json = json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    if (!json_write_needed($path, $json)) {          // F2
+        $GLOBALS['ipc_last_save_noop'] = true;
+        return true;
+    }
+    $GLOBALS['ipc_last_save_noop'] = false;
+    backup_before_write($path, 'content');
     return file_put_contents($path, $json, LOCK_EX) !== false;
 }
 

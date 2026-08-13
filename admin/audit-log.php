@@ -67,14 +67,8 @@ function action_color(string $a): array {
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IPC Admin — Audit Log</title>
+  <?= admin_head() ?>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
-    header { background: #0d2d52; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
-    .logo { color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; }
-    nav a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; margin-left: 16px; }
-    nav a:hover { color: #fff; }
-    main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
     h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
     .sub { font-size: 13px; color: #6b7280; margin: 0; }
@@ -98,7 +92,7 @@ function action_color(string $a): array {
 </head>
 <body>
 <?php $navActive = 'auditlog'; include 'nav.php'; ?>
-<main>
+<main class="admin-wide">
   <div class="page-header">
     <div>
       <h1>Audit Log</h1>
