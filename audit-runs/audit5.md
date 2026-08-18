@@ -12,12 +12,12 @@ outcomes — one finding's mechanism was wrong (the outcome held), two were
 retracted by the round that raised them, and several severities moved in both
 directions.
 
-| Severity | Count |
-|---|---|
-| **Blocker** | **2** |
-| High | 7 |
-| Medium | 19 |
-| Low | 22 |
+| Severity | Count | Status |
+|---|---|---|
+| **Blocker** | **2** | **Fixed** 2026-08-18 (`WHATS_LEFT.md` §1q) |
+| High | 7 | **Fixed** 2026-08-18 (§1r) |
+| Medium | 19 | **Fixed** 2026-08-18 (§1s) |
+| Low | 22 | Open — recorded below |
 
 ## Nothing previously verified has regressed
 

@@ -47,6 +47,10 @@ _to_delete/
 # Customer-uploaded product photos (live server state, like pdfs/)
 uploads/images/*
 !uploads/images/.gitkeep
+# A-5.18 — owner-supplied marketing photos belong here rather than in
+# images/site/, which ships with the build and is overwritten on every deploy.
+uploads/site/*
+!uploads/site/.gitkeep
 
 # Local deploy/backup archives — never ship these to the server or the repo
 *.zip

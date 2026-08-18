@@ -118,6 +118,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $isReplacement = file_exists($destPath);
             if (move_uploaded_file($file['tmp_name'], $destPath)) {
+                // A-5.16 — bound the pixel size once the file is in place.
+                $wasResized = image_downscale_in_place($destPath, $ext);
                 // If the extension changed, clean up the old managed file
                 // (unless another product still points at it).
                 if ($isManaged && basename($currentPhoto) !== $filename) {
@@ -134,7 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $products[$idx]['photoUrl'] = $destUrl;
                 if (save_products($products)) {
                     audit_log('upload-image', $sku, ($isReplacement ? 'Replaced' : 'Uploaded') . ' photo: ' . $filename);
-                    $success      = ($isReplacement ? 'Photo replaced' : 'Photo uploaded') . ' and product updated.';
+                    $success      = ($isReplacement ? 'Photo replaced' : 'Photo uploaded') . ' and product updated.'
+                                    // A-5.16 — say so rather than quietly handing back a different file.
+                                    . ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '');
                     $currentPhoto = $destUrl;
                     $isManaged    = true;
                     $product      = $products[$idx];

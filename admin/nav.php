@@ -80,7 +80,7 @@ $navExtra  = $navExtra  ?? '';
     <a href="password.php" class="<?= $navActive === 'password' ? 'current' : '' ?>">Password</a>
     <a href="help.php" class="<?= $navActive === 'help' ? 'current' : '' ?>">Help</a>
     <a href="/" target="_blank" rel="noopener" title="Opens the public site in a new tab">View Live Site ↗</a>
-    <form method="POST" action="auth.php" style="display:inline;margin:0;">
+    <form method="POST" action="auth.php" style="display:inline;margin:0;" data-no-guard>
       <input type="hidden" name="logout" value="1">
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
       <button type="submit" class="logout" style="background:none;border:none;padding:0;margin-left:20px;font:inherit;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">Sign Out</button>

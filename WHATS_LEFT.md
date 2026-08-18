@@ -4694,6 +4694,10 @@ remediation cycle.
 
 ### Medium and Low
 
+**All nineteen Medium items shipped 2026-08-18 — see §1s.** The twenty-two Low
+items remain open and are listed in full in `audit-runs/audit5.md`.
+
+
 Nineteen Medium and twenty-two Low, listed in full in `audit-runs/audit5.md`.
 The ones most likely to reach the owner or a customer first: the spec editors
 seed a phantom row so every new product ships two junk blocks (browser-measured,
@@ -4836,3 +4840,42 @@ Reordering the filter alone does not fix it. Measured against the same 603-line
 log: old logic 0 of 3 owner edits; corrected order but still a 500-line window,
 **also 0**; corrected order with the 4MB tail, **3**. The window mattered as
 much as the ordering, which is why both changed.
+
+---
+
+## 1s. Shipped 2026-08-18 — all nineteen Medium findings from audit 5
+
+Closes the Medium tier. The 22 Low items stay recorded in `audit-runs/audit5.md`
+and are untouched.
+
+| ID | What changed |
+|---|---|
+| **A-5.11** | `spectable-editor.js` keeps its blank editing row on screen but no longer SERIALISES it. A product added without opening the spec editors used to ship `rows: [{label: null, value: ""}]` and `rows: [[""]]`, which pass App.jsx's `if (!rows.length) return null` guard, so its public page drew an empty "SPECIFICATIONS:" bar and a one-column "Order Size" table. Deleting the last row re-seeded it too, so a table could never be emptied from the visual editor. Browser-measured before and after: both fields now post empty. |
+| **A-5.12** | New `spec_table1_problem()` / `spec_table2_problem()` in `config.php`, called by both `add.php` and `edit.php`. `is_array(json_decode(...))` was the only check, while the renderer needs `{label,value}` objects and a row MATRIX — so `{"rows":["8.0","9.0"]}` saved cleanly and crashed that product's page to the ErrorBoundary with nothing naming the cause. |
+| **A-5.13** | `isSafeLinkUrl()` and `link_url_problem()` now normalise the way a URL parser does — strip tab/LF/CR, treat `\` as `/` — before deciding. `/\evil.com/x.pdf` passed both gates as a local path and resolved to `https://evil.com/x.pdf` in the browser. |
+| **A-5.14** | New `useRefetchOnReturn()`; `SiteInfoProvider` and `ContentProvider` now revalidate on `visibilitychange`/`focus` past a 60s TTL, as the catalog already did. The admin promises "within ~60 seconds" on three separate screens, and for an already-open tab that was false — the phone number never refreshed. |
+| **A-5.15** | `BACKUP_KEEP` 30 → 90. One new product is three catalog saves, so ten products in one sitting rotated the entire window. `help.php` reads the constant, so its wording followed automatically. |
+| **A-5.16** | New `image_downscale_in_place()`; uploads wider than 1600px are scaled after the move, and the success message says so. Nothing resized anything before — a 4032×3024 phone photo became the eagerly-loaded LCP image. GIF is skipped rather than flattened, and a missing GD leaves the upload working at full size. |
+| **A-5.17** | `date_default_timezone_set()` in both `config.php` and `contact.php` (which includes neither). PHP defaulted to UTC, so an Illinois business read every timestamp five or six hours ahead — a 3pm quote request logged at 21:00. |
+| **A-5.18** | The Site Images labels now warn that `images/…` is part of the deployed site and is replaced on the next deploy, and point at `uploads/site/` — which now ships as a folder and is gitignored — for photos that must survive. |
+| **A-5.19** | **Closed by A-5.5.** `rename()` is atomic within a filesystem, so the live file is never truncated in place and the torn-read window a visitor could land in no longer exists. |
+| **A-5.20** | `edit.php` loads `unsaved.js`. It was the only editing page without it, and it lost both jobs: the `beforeunload` prompt and the 5-minute session keepalive. |
+| **A-5.21** | Both editors dispatch `ipc:structural-change`, which the guard listens for. Reorder, remove and add-row mutate the DOM from `click` and fire neither `input` nor `change`, so reordering the FAQ and clicking away lost the work silently. Deliberately not dispatched from `reindex()`, which also runs at DOMContentLoaded and would arm the guard on every page load. |
+| **A-5.22** | The submit listener re-arms when `defaultPrevented` is set, and the Sign Out form carries `data-no-guard`. A cancelled submit — the invalid-JSON block, the family-rename confirm — used to disarm the guard permanently. |
+| **A-5.23** | The scroll-to-top effect keys on the product id as well as the route. Measured: y=2509 → 0 on a product-to-product move, where the new product used to render with its heading off-screen. |
+| **A-5.24** | `JSON_INVALID_UTF8_SUBSTITUTE` in `audit_log()` and `ipc_log_inquiry()`, and `audit_log()` returns false rather than writing a blank line. One malformed User-Agent byte made `json_encode()` return false, `false . "\n"` wrote a bare newline, and the viewer skipped it — so a brute-force run left no `sign-in-failed` rows and the compromise no `sign-in` row. |
+| **A-5.25** | A rejected submission stores 500 characters instead of 5,000. At the per-IP cap that was ~11.5MB/day of permanent growth, and rotated archives are deliberately never deleted. |
+| **A-5.26** | `session.use_strict_mode = 1`. Without it PHP adopted any well-formed id a client supplied, and `ping.php` is deliberately unauthenticated, so one cheap request per made-up id created a session file living up to 8 hours. |
+| **A-5.27** | `settings.php` validates the four brand colours with the `ipc_parse_hex_color()` it already uses for the readability note. They were the one owner-writable value on the page with no check, and they are injected verbatim into CSS custom properties on every public page. |
+| **A-5.28** | `PageMeta` applies the product axis only on the products route. A stray `?productId=` on any other URL rewrote that page's head — measured, `/contact?productId=zzz` served the ordinary Contact page while its head said "Part not found", `noindex`, and no canonical. |
+| **A-5.29** | `load_products()` guards the inner value, not just the wrapper. `{"products": "..."}` was an uncaught TypeError against a declared `array` return — a 500 on every admin page, where fully-invalid JSON degrades politely to `[]`. |
+
+Guarded by `_harness/audit5-medium.js` (**20/20**), alongside `audit5-high.js`
+(30/30) and `audit5-blockers.js` (18/18).
+
+### The drift check earned its keep again
+
+`$COPY_GROUPS` in `content.php` carries an inline warning — no apostrophes in
+comments inside that literal — and the A-5.18 comment I added two lines below it
+used one ("FTP'd"). `lint.php`'s copy-key drift check failed immediately with
+"$COPY_GROUPS is unbalanced". Fixed before it reached a commit.

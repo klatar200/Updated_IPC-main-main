@@ -94,6 +94,12 @@
     var tas = host.querySelectorAll("textarea");
     for (var i = 0; i < tas.length; i++) autoGrow(tas[i]);
   }
+  function structural(el) {
+    try {
+      (el || document).dispatchEvent(new Event('ipc:structural-change', { bubbles: true }));
+    } catch (e) { /* older browser: the guard simply stays as it was */ }
+  }
+
   function hideOriginal(ta) {
     ta.style.display = "none";
     var prev = ta.previousElementSibling;
@@ -138,8 +144,20 @@
     var announce = makeAnnouncer(wrap);
 
     function serialize() {
+      // A-5.11 — the editor keeps one blank row so there is always somewhere to
+      // type, and that row used to be SERIALISED. So a product added without
+      // ever opening this editor shipped `rows: [{label: null, value: ""}]`,
+      // and App.jsx's 4.29 guard is `if (!rows.length) return null` — length 1
+      // passes it — so the public page drew a dark "SPECIFICATIONS:" bar over
+      // one empty row. Deleting the last row re-seeds it too, so through the
+      // visual editor a spec table could never be emptied at all.
+      // A row the owner has not filled in is not data: drop the empty ones on
+      // the way out, keep them on screen.
+      var kept = data.filter(function (r) {
+        return String(r.label).trim() !== "" || String(r.value).trim() !== "";
+      });
       ta.value = JSON.stringify(
-        data.map(function (r) {
+        kept.map(function (r) {
           return { label: r.label.trim() === "" ? null : r.label, value: r.value };
         }),
         null,
@@ -202,6 +220,7 @@
           var at = data.indexOf(r);
           data.splice(at, 1);
           if (data.length === 0) data.push({ label: "", value: "" });
+          structural(wrap);
           // Land on the nearest SURVIVING row's equivalent control, so a
           // keyboard user can delete several in a row without hunting.
           buildRows({ row: Math.min(at, data.length - 1), sel: ".ste-x" });
@@ -220,6 +239,7 @@
     }
     addBtn.addEventListener("click", function () {
       data.push({ label: "", value: "" });
+      structural(wrap);
       buildRows({ row: data.length - 1, sel: ".ste-lab" });
       serialize();
       renderPreview();
@@ -295,6 +315,15 @@
     var announce = makeAnnouncer(wrap);
 
     function serialize() {
+      // A-5.11, size-grid half. `rows = [[]]` is seeded so the grid has a row to
+      // type into, and add.php's own seed is an empty `rows: []` — but this
+      // serialised the placeholder, so an untouched Add form posted
+      // `rows: [[""]]` and every new product got a one-column "Order Size"
+      // table with a single empty cell on its public page. Keep the placeholder
+      // visible; do not save it.
+      var keptRows = rows.filter(function (r) {
+        return (r || []).some(function (c) { return String(c == null ? "" : c).trim() !== ""; });
+      });
       ta.value = JSON.stringify(
         {
           columnSpans: groups.map(function (g) {
@@ -302,7 +331,7 @@
               ? { label: g.label, colspan: g.subs.length, sub: g.subs.slice() }
               : { label: g.label, colspan: 1, sub: null };
           }),
-          rows: rows
+          rows: keptRows
         },
         null,
         2
@@ -483,6 +512,7 @@
         del.addEventListener("click", function () {
           rows.splice(ri, 1);
           if (rows.length === 0) rows = [[]];
+          structural(host);
           fixRows(); serialize(); build(); renderPreview();
           // build() rebuilds host.innerHTML, so focus is on the document unless
           // it is put back deliberately — land on the nearest surviving row.
@@ -505,7 +535,7 @@
       bar.querySelector('[data-a="row"]').addEventListener("click", function () {
         var n = leafCount(), nr = [];
         for (var i = 0; i < n; i++) nr.push("");
-        rows.push(nr); serialize(); build(); renderPreview();
+        rows.push(nr); serialize(); build(); renderPreview(); structural(host);
       });
       bar.querySelector('[data-a="col"]').addEventListener("click", function () {
         groups.push({ label: "New column", subs: [] });

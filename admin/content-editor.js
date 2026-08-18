@@ -29,6 +29,16 @@
   }
 
   // Renumber every row's fields (and its visible label) after any change.
+  // A-5.21 — tell unsaved.js that the page changed. Deliberately NOT dispatched
+  // from reindex(): that also runs once at DOMContentLoaded to normalise
+  // server-rendered rows, and arming the guard on page load would prompt on
+  // every ordinary navigation. Only the click handlers below are real edits.
+  function structural(el) {
+    try {
+      (el || document).dispatchEvent(new Event('ipc:structural-change', { bubbles: true }));
+    } catch (e) { /* older browser: the guard simply stays as it was */ }
+  }
+
   function reindex(section) {
     var rows = rowsOf(section);
     var title = titleOf(section);
@@ -78,6 +88,7 @@
     var clone = tpl.content.firstElementChild.cloneNode(true);
     wrap.appendChild(clone);
     reindex(section);
+    structural(wrap);
     var first = clone.querySelector('input, textarea, select');
     if (first) first.focus();
   }
@@ -96,16 +107,20 @@
     var section = sectionOf(row);
     if (action === 'remove') {
       e.preventDefault();
+      var rowParent = row.parentNode;
       row.remove();
       reindex(section);
+      structural(rowParent);
     } else if (action === 'up') {
       e.preventDefault();
       if (row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
       reindex(section);
+      structural(row);
     } else if (action === 'down') {
       e.preventDefault();
       if (row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
       reindex(section);
+      structural(row);
     }
   });
 

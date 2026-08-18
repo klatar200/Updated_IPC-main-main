@@ -54,6 +54,18 @@ define('ADMIN_SESSION_KEY', 'ipc_admin_authenticated');
 if (file_exists(__DIR__ . '/config.local.php')) {
     require_once __DIR__ . '/config.local.php';
 }
+// A-5.17 — no timezone was set anywhere, so PHP fell back to UTC (its documented
+// default when date.timezone is empty) and every admin-facing timestamp — the
+// activity log, the inquiry list, backup filenames — was five or six hours ahead
+// of the business. A customer calling at 3pm about the quote request he just
+// filed appeared in the log at 21:00, and on the Backups page the owner picks a
+// version by a time that is not the time he made it.
+//
+// Defined with a guard so config.local.php can override it for a different
+// site without editing this file.
+if (!defined('IPC_TIMEZONE')) define('IPC_TIMEZONE', 'America/Chicago');
+@date_default_timezone_set(IPC_TIMEZONE);
+
 // Sentinel: not a valid bcrypt digest, so password_verify() returns false for
 // every input. ADMIN_PASSWORD_CONFIGURED tells the UI to offer recovery
 // instead of an unpassable login box.
@@ -446,6 +458,14 @@ if (session_status() === PHP_SESSION_NONE) {
     // still browser-session-scoped (lifetime 0) so closing the browser signs
     // out. (DEPLOY_READINESS_v2 T1.8)
     @ini_set('session.gc_maxlifetime', '28800');
+    // A-5.26 — without strict mode PHP creates a session file for ANY
+    // well-formed id a client supplies, and ping.php is deliberately
+    // unauthenticated, so one cheap request per made-up id created one file
+    // living up to the 8 hours set above. On shared hosting that is an
+    // inode attack on the session store — and if that store shares /tmp with
+    // the contact form's limiter files, filling it also stops those counting.
+    // Strict mode makes PHP mint its own id instead of adopting the caller's.
+    @ini_set('session.use_strict_mode', '1');
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',
@@ -539,8 +559,13 @@ function load_products(): array {
     $json = file_get_contents($path);
     $data = json_decode($json, true);
     if (!is_array($data)) return [];
-    // Handle both plain array and { products: [...] } formats
-    if (isset($data['products'])) return $data['products'];
+    // Handle both plain array and { products: [...] } formats.
+    // A-5.29 — the WRAPPER was checked and the inner value was not, while the
+    // declared return type is `array`. A hand-edited `{"products": "..."}` was
+    // therefore an uncaught TypeError — a 500 on every admin page with no "the
+    // file is corrupt" message anywhere, where fully-invalid JSON degrades
+    // politely to []. backups.php:27 has always guarded the same shape.
+    if (isset($data['products'])) return is_array($data['products']) ? $data['products'] : [];
     return $data;
 }
 
@@ -554,7 +579,13 @@ function load_products(): array {
 //   2. Keeping 5 counted *saves*, not *mistakes* — every photo upload, PDF
 //      upload, add, delete and restore is a full-catalog save, so an ordinary
 //      afternoon rotated the pre-mistake state off the disk. Keep 30.
-define('BACKUP_KEEP', 30);
+// A-5.15 — one new product is THREE catalog saves (add, then the photo upload,
+// then the data-sheet upload), so adding ten parts in one sitting rotated a
+// 30-slot window completely and the owner's pre-mistake state was gone by the
+// next morning. The ordering and pruning mechanism was never the problem; the
+// size of the window was. 90 keeps roughly thirty products' worth of work, and
+// the files are ~236KB each at today's catalog size.
+define('BACKUP_KEEP', 90);
 
 // Returns a path that does not already exist: prefix.backup.YYYYmmdd-His.json,
 // then -01, -02 … within the same second.
@@ -960,6 +991,14 @@ function audit_log(string $action, string $sku, string $detail = ''): bool {
     if (is_file($logPath) && @filesize($logPath) >= ADMIN_LOG_ROTATE_BYTES) {
         @rename($logPath, __DIR__ . '/admin-log-' . date('Y-m-d-His') . '.jsonl');
     }
+    // A-5.24 — JSON_INVALID_UTF8_SUBSTITUTE, because 'ua' is an
+    // attacker-controlled header and json_encode() returns FALSE on a single
+    // malformed byte. `false . "\n"` is a bare newline, which the viewer then
+    // skips as an empty line, and the function still reported success — so
+    // `curl -A $'\xFF'` produced no `sign-in-failed` row for a guessing run and
+    // no `sign-in` row for the compromise that followed. The byte-based
+    // substr() below can also split a legitimate multibyte character and cause
+    // exactly the same loss.
     $entry = json_encode([
         'ts'     => date('Y-m-d H:i:s'),
         'action' => $action,
@@ -967,7 +1006,9 @@ function audit_log(string $action, string $sku, string $detail = ''): bool {
         'detail' => $detail,
         'ip'     => $_SERVER['REMOTE_ADDR'] ?? '',
         'ua'     => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 120),
-    ]) . "\n";
+    ], JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($entry === false) return false;   // never write a blank line and call it success
+    $entry .= "\n";
     return @file_put_contents($logPath, $entry, FILE_APPEND | LOCK_EX) !== false;
 }
 
@@ -1472,8 +1513,137 @@ function sku_problems(string $sku): array {
  * requires a .pdf target — do not consolidate them; F6 being stricter is the
  * point of F6.
  */
+/**
+ * A-5.12 — shape validation for the two spec tables.
+ *
+ * `add.php` and `edit.php` accepted whatever `json_decode()` produced as long
+ * as it was an array, while the renderer assumes a specific shape: the
+ * Specifications list is rows of `{label, value}` objects, and the size grid is
+ * a matrix — `rows` is a list of LISTS. A plausible hand-edit of the raw JSON,
+ * `{"rows":["8.0","9.0"]}`, satisfied `is_array()` and saved cleanly, and then
+ * `row.map(...)` threw on a string: measured, that product's page rendered the
+ * ErrorBoundary ("Something went wrong", no heading) while every other product
+ * rendered fine on the same load. The keyed ErrorBoundary contains it to the one
+ * page, but nothing anywhere pointed at the cause, and the owner's only clue
+ * was that a product he had just edited went blank.
+ *
+ * Returns '' when the value is fine, or a sentence naming the row to fix.
+ */
+/**
+ * A-5.16 — bound an uploaded photo's PIXEL size, not just its byte size.
+ *
+ * Nothing in the tree resized an upload: the only limit was the 8MB cap, and
+ * help.php gives a floor ("at least 800 pixels wide") with no ceiling. A modern
+ * phone photographs a part at 4032x3024 and 3-5MB, which is exactly what the
+ * Help page tells the owner to do — and that file then became the eagerly
+ * loaded LCP image on the product page, for a buyer standing in a plant on a
+ * phone. The 42 shipped photos total 2.7MB between them.
+ *
+ * 1600px wide covers the largest slot at 2x pixel density. Anything narrower is
+ * left completely alone, so this cannot degrade a photo that was already sized
+ * sensibly. GIF is skipped rather than flattened — silently destroying an
+ * animation would be worse than a large file. If GD is missing, or the specific
+ * format is unsupported, the upload still succeeds at its original size: a
+ * working upload matters more than an optimised one.
+ *
+ * Returns true only when the file on disk was actually replaced.
+ */
+define('IMG_MAX_WIDTH', 1600);
+
+function image_downscale_in_place(string $path, string $ext): bool {
+    if (!extension_loaded('gd') || !function_exists('imagescale')) return false;
+    $ext = strtolower($ext);
+    if ($ext === 'gif') return false;                       // never flatten an animation
+    $info = @getimagesize($path);
+    if (!is_array($info) || empty($info[0])) return false;
+    $w = (int)$info[0];
+    if ($w <= IMG_MAX_WIDTH) return false;                  // already sensible
+
+    $loaders = ['jpg' => 'imagecreatefromjpeg', 'jpeg' => 'imagecreatefromjpeg',
+                'png' => 'imagecreatefrompng',  'webp' => 'imagecreatefromwebp'];
+    if (!isset($loaders[$ext]) || !function_exists($loaders[$ext])) return false;
+    $src = @$loaders[$ext]($path);
+    if (!$src) return false;
+
+    $dst = @imagescale($src, IMG_MAX_WIDTH);
+    if (!$dst) { imagedestroy($src); return false; }
+    if ($ext === 'png' || $ext === 'webp') {                // keep transparency
+        @imagealphablending($dst, false);
+        @imagesavealpha($dst, true);
+    }
+    // Write beside the target and rename in, for the same reason save_*() does:
+    // a failure part-way must not leave a truncated image where a valid one was.
+    $tmp = $path . '.' . getmypid() . '-' . mt_rand(1000, 999999) . '.tmp';
+    $okWrite = false;
+    if ($ext === 'jpg' || $ext === 'jpeg') $okWrite = @imagejpeg($dst, $tmp, 82);
+    elseif ($ext === 'png')                $okWrite = @imagepng($dst, $tmp, 6);
+    elseif ($ext === 'webp')               $okWrite = @imagewebp($dst, $tmp, 82);
+    imagedestroy($src);
+    imagedestroy($dst);
+    if (!$okWrite || !is_file($tmp) || @filesize($tmp) < 1) { @unlink($tmp); return false; }
+    $perms = @fileperms($path);
+    if ($perms !== false) @chmod($tmp, $perms & 0777);
+    if (!@rename($tmp, $path)) { @unlink($tmp); return false; }
+    return true;
+}
+
+function spec_table1_problem($rows): string {
+    if (!is_array($rows)) return 'The Specifications table must be a list of rows.';
+    foreach ($rows as $i => $r) {
+        $n = $i + 1;
+        // A row must be an object; a bare list means someone typed ["a","b"].
+        if (!is_array($r) || array_values($r) === $r) {
+            return 'Specifications row ' . $n . ' must be written as {"label": "...", "value": "..."}.';
+        }
+        foreach (['label', 'value'] as $k) {
+            if (array_key_exists($k, $r) && $r[$k] !== null && !is_scalar($r[$k])) {
+                return 'Specifications row ' . $n . ' has a "' . $k . '" that is not text.';
+            }
+        }
+    }
+    return '';
+}
+
+function spec_table2_problem($st2): string {
+    if (!is_array($st2)) return 'The Size / Dimension table must be an object with "columnSpans" and "rows".';
+    $spans = $st2['columnSpans'] ?? [];
+    $rows  = $st2['rows'] ?? [];
+    if (!is_array($spans)) return 'The Size / Dimension table\'s "columnSpans" must be a list.';
+    foreach ($spans as $i => $g) {
+        $n = $i + 1;
+        if (!is_array($g) || array_values($g) === $g) {
+            return 'Size / Dimension column ' . $n . ' must be written as {"label": "...", "colspan": 1, "sub": null}.';
+        }
+        if (array_key_exists('sub', $g) && $g['sub'] !== null && !is_array($g['sub'])) {
+            return 'Size / Dimension column ' . $n . ' has a "sub" that is neither a list nor null.';
+        }
+        if (array_key_exists('colspan', $g) && !is_numeric($g['colspan'])) {
+            return 'Size / Dimension column ' . $n . ' has a "colspan" that is not a number.';
+        }
+    }
+    if (!is_array($rows)) return 'The Size / Dimension table\'s "rows" must be a list.';
+    foreach ($rows as $i => $r) {
+        $n = $i + 1;
+        if (!is_array($r) || array_values($r) !== $r) {
+            return 'Size / Dimension row ' . $n . ' must be a list of cells, such as ["1/2", "0.75"].';
+        }
+        foreach ($r as $c) {
+            if ($c !== null && !is_scalar($c)) {
+                return 'Size / Dimension row ' . $n . ' has a cell that is not text.';
+            }
+        }
+    }
+    return '';
+}
+
 function link_url_problem(string $url, string $what): string {
-    $u = trim($url);
+    // A-5.13 — normalise exactly as isSafeLinkUrl() does, and for the same
+    // reason: a URL parser strips tab/LF/CR and treats a backslash as a solidus
+    // for special schemes, so `/\evil.com/x.pdf` reads as a local path here and
+    // as https://evil.com/x.pdf in the browser. Keep the two in step; they are
+    // the write gate and the render gate on the same values.
+    $u = trim(str_replace(["\t", "\n", "\r"], '', $url));
+    $u = str_replace('\\', '/', $u);
     if ($u === '') return '';
     if (strpos($u, '//') === 0) {
         return $what . ' must start with a single / for a file on this site, or with http:// or https://.';

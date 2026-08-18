@@ -113,7 +113,7 @@ function ipc_log_inquiry(array $entry): void {
             }
             @file_put_contents(
                 $path,
-                json_encode($entry, JSON_UNESCAPED_UNICODE) . "\n",
+                json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . "\n",
                 FILE_APPEND | LOCK_EX
             );
             return;
@@ -173,6 +173,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // log line, and a handful of those filled the inquiry log. Truncation is
 // announced in the value itself so nobody quotes half a spec back to a
 // customer without knowing it was cut. (AUDIT_v3_FINDINGS B3)
+// A-5.17 — this file stamps every inquiry record and every mail body, and it
+// does not include admin/config.php, so it needs the timezone of its own. UTC
+// (PHP's fallback when date.timezone is unset) put every lead five or six hours
+// ahead of the business that received it.
+if (!defined('IPC_TIMEZONE')) define('IPC_TIMEZONE', 'America/Chicago');
+@date_default_timezone_set(IPC_TIMEZONE);
+
 define('IPC_MAX_LINE', 200);    // name, email, phone, company, subject, part…
 define('IPC_MAX_TEXT', 5000);   // message, additionalNotes, specialReqs
 
@@ -296,7 +303,13 @@ function ipc_partial_entry(string $type, string $note, string $ip): array {
         'email'   => s($_POST['email'] ?? ''),
         'phone'   => s($_POST['phone'] ?? ''),
         'subject' => s($_POST['subject'] ?? ''),
-        'message' => s($_POST['message'] ?? $_POST['additionalNotes'] ?? '', IPC_MAX_TEXT),
+        // A-5.25 — a rejected submission is kept so a real lead caught by a
+        // guard is still recoverable, but it does not need the full 5,000
+        // characters: at the 5-per-10-minute cap that is ~11.5MB a day per IP
+        // of permanent growth, and rotated archives are deliberately never
+        // deleted. 500 characters is plenty to recognise a genuine enquiry and
+        // ask the sender to resend, and it cuts the worst-case growth ~10x.
+        'message' => s($_POST['message'] ?? $_POST['additionalNotes'] ?? '', 500),
         'ip'      => $ip,
         'sent'    => false,
         'note'    => $note,

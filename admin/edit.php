@@ -103,6 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($st1Raw !== '') {
         $st1Rows = json_decode($st1Raw, true);
         if (is_array($st1Rows)) {
+            // A-5.12 — same shape check as the size grid below.
+            $shape1 = spec_table1_problem($st1Rows);
+            if ($shape1 !== '') $errors[] = $shape1;
             $updated['specTable1']['rows']  = $st1Rows;
             $updated['specTable1']['title'] = post_str('specTable1_title', 'Specifications:');
         } else {
@@ -119,6 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($st2Raw !== '') {
         $st2 = json_decode($st2Raw, true);
         if (is_array($st2)) {
+            // A-5.12 — is_array() is not the shape the renderer needs.
+            $shape = spec_table2_problem($st2);
+            if ($shape !== '') $errors[] = $shape;
             $updated['specTable2'] = $st2;
         } else {
             $errors[] = 'Size / Dimension Table JSON is invalid (' . json_last_error_msg() . '). Fix the syntax or clear the field.';
@@ -446,6 +452,12 @@ include 'nav.php';
     </div>
   </form>
 </main>
+<!-- A-5.20 — edit.php was the only editing page without this. It carries the
+     longest typing sessions in the admin (descriptions, hand-edited spec JSON)
+     and it lost BOTH of unsaved.js's jobs: the beforeunload prompt, and the
+     5-minute ping.php keepalive that stops a long edit timing out. Omission,
+     not exemption — it was never wired. -->
+<script src="unsaved.js" defer></script>
 <script src="spectable-editor.js"></script>
 <script src="product-preview.js"></script>
 </body>

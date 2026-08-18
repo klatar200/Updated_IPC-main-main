@@ -6537,6 +6537,55 @@ function localizeProse(text, site) {
   return out;
 }
 
+/**
+ * Re-fetch a runtime JSON file when the tab is brought back to the front.
+ *
+ * A-5.14 — `useProducts()` grew this recheck because a declared TTL alone did
+ * nothing: the effect had `[]` deps, so nothing re-evaluated it during a
+ * session. The two providers were left with the original single fetch, and they
+ * hold the phone number, the address and every word of editable copy. So the
+ * admin's promise — "the website will reflect the changes within ~60 seconds",
+ * said on settings.php, content.php and the Help page — was false for any tab
+ * that was already open: the owner corrects a wrong phone number, switches to
+ * the site tab he has had open all morning, and the products refresh while the
+ * phone number does not, for as long as that tab lives.
+ *
+ * Same shape as the catalog's recheck: only when the document becomes visible
+ * or the window regains focus, only past the TTL, and cancelled on unmount.
+ */
+function useRefetchOnReturn(url, label, apply, ttlMs = 60000) {
+  useEffect(() => {
+    let cancelled = false;
+    let last = 0;
+    const load = () => {
+      last = Date.now();
+      fetch(`${url}?v=${Math.floor(Date.now() / 60000)}`)
+        .then((res) => jsonOrThrow(res, label))
+        .then((data) => {
+          if (!cancelled && data) apply(data);
+        })
+        .catch(() => {
+          /* keep whatever is already rendered — never blank the chrome */
+        });
+    };
+    load();
+    const recheck = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - last < ttlMs) return;
+      load();
+    };
+    document.addEventListener("visibilitychange", recheck);
+    window.addEventListener("focus", recheck);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", recheck);
+      window.removeEventListener("focus", recheck);
+    };
+    // `apply` is a stable module-level setter wrapper at both call sites.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, label, ttlMs]);
+}
+
 const SiteInfoContext = createContext(SITE_DEFAULTS);
 // Let the class-based ErrorBoundary read live business details on its crash screen.
 ErrorBoundary.contextType = SiteInfoContext;
@@ -6546,21 +6595,8 @@ function useSiteInfo() {
 
 function SiteInfoProvider({ children }) {
   const [info, setInfo] = useState(SITE_DEFAULTS);
-  useEffect(() => {
-    let cancelled = false;
-    const cacheBuster = Math.floor(Date.now() / 60000);
-    fetch(`${SITE_INFO_URL}?v=${cacheBuster}`)
-      .then((res) => jsonOrThrow(res, "site info"))
-      .then((data) => {
-        if (!cancelled && data) setInfo(mergeSiteInfo(data));
-      })
-      .catch(() => {
-        /* keep SITE_DEFAULTS — the site still renders correctly */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const apply = useCallback((data) => setInfo(mergeSiteInfo(data)), []);
+  useRefetchOnReturn(SITE_INFO_URL, "site info", apply);
   return <SiteInfoContext.Provider value={info}>{children}</SiteInfoContext.Provider>;
 }
 
@@ -7032,21 +7068,8 @@ function useContent() {
 
 function ContentProvider({ children }) {
   const [content, setContent] = useState(contentDefaults);
-  useEffect(() => {
-    let cancelled = false;
-    const cacheBuster = Math.floor(Date.now() / 60000);
-    fetch(`${CONTENT_URL}?v=${cacheBuster}`)
-      .then((res) => jsonOrThrow(res, "page content"))
-      .then((data) => {
-        if (!cancelled && data) setContent(mergeContent(data));
-      })
-      .catch(() => {
-        /* keep CONTENT_DEFAULTS — the site still renders correctly */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const apply = useCallback((data) => setContent(mergeContent(data)), []);
+  useRefetchOnReturn(CONTENT_URL, "page content", apply);
   return <ContentContext.Provider value={content}>{children}</ContentContext.Provider>;
 }
 
@@ -7199,14 +7222,23 @@ function PageMeta({ products }) {
     // PLAN-9 item 3 — matched via findProductByParam, the SAME ladder
     // ProductPage renders with. Exact-id-only matching here meant an alias
     // URL rendered a product whose head described a different page.
+    // A-5.28 — the product axis belongs to the route that RENDERS products.
+    // It used to apply on every route, so a stray `?productId=` carried onto
+    // any other page rewrote that page's head: measured, /contact?productId=zzz
+    // rendered the ordinary Contact page (h1 "Get in Touch") while its head
+    // said title "Part not found", robots noindex, and no canonical — the
+    // site's conversion page de-indexing itself because an inbound link picked
+    // up a tracking parameter. `productId` is only meaningful where ProductPage
+    // reads it, so only there can it decide the head.
+    const productAxis = key === "products";
     const matched =
-      productId && Array.isArray(products)
+      productAxis && productId && Array.isArray(products)
         ? findProductByParam(products, productId)
         : null;
     // An id that matches nothing renders the catalog landing under a
     // not-found banner (item 2) — a soft-404 on the product axis, treated
     // exactly as A5 treats an unknown path segment.
-    const unknownProduct = !!productId && !matched;
+    const unknownProduct = productAxis && !!productId && !matched;
 
     // Title fallback. Two things used to go wrong here:
     //
@@ -12164,7 +12196,16 @@ function isSafeExternalUrl(value) {
  */
 function isSafeLinkUrl(value) {
   if (typeof value !== "string") return false;
-  const v = value.trim();
+  // A-5.13 — normalise the way a URL PARSER does before deciding, or the guard
+  // and the browser disagree about what the string means. Two rules from the
+  // WHATWG URL spec do the damage: tab, LF and CR are removed anywhere in the
+  // input, and for special schemes a backslash is treated as a solidus. So
+  // `/\evil.com/x.pdf` failed the "//" test, passed the "/" test as a local
+  // path, and then resolved to https://evil.com/x.pdf in the browser — an
+  // off-site link in the footer of all ten pages. Measured with the real
+  // parser: new URL("/\evil.com/x.pdf", origin).href === "https://evil.com/x.pdf",
+  // and the interior-tab spelling resolves identically.
+  const v = value.replace(/[\t\n\r]/g, "").trim().replace(/\\/g, "/");
   if (v === "") return false;
   if (v.startsWith("//")) return false;
   if (v.startsWith("/")) return true;
@@ -12773,6 +12814,9 @@ function App() {
   // invisible to React.
   useSetSearchParamRef();
   const [page] = useSearchParam("page");
+  // A-5.23 — the scroll effect below needs to know when the PRODUCT changed,
+  // not just when the route did.
+  const [productParam] = useSearchParam("productId");
   const unknownRoute = useIsUnknownRoute();
   const { products, loading, error } = useProducts();
 
@@ -12794,10 +12838,18 @@ function App() {
   // Reading location.hash rather than adding a dep: the effect must keep
   // firing once per page change and nothing else. A hash-free navigation and a
   // hash-free cold load both still land at the top.
+  //
+  // A-5.23 — `page` alone is not "the page changed". Moving between products is
+  // a `?productId=` change on the SAME route, so this never fired for it:
+  // measured, a visitor scrolled to the Related Products strip at y=2509,
+  // clicked through to IP55FL, and the new product rendered with the viewport
+  // still at 1549 — its heading, photo and specs off-screen above. Keying on
+  // the product id as well makes a product-to-product move behave like every
+  // other navigation.
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash) return;
     window.scrollTo({ top: 0, behavior: "instant" });
-  }, [page]);
+  }, [page, productParam]);
 
   // C30, generalised to every page. The effect above deliberately steps aside
   // when there IS a hash — but until now nothing took over except on
