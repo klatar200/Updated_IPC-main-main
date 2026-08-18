@@ -7,6 +7,17 @@ Options -Indexes
 ServerSignature Off
 AddDefaultCharset UTF-8
 
+# Keep the raw JSON out of search results WITHOUT hiding it from a crawler's
+# renderer. The SPA builds every page from these files, so blocking them in
+# robots.txt made the whole catalog render as an error for Googlebot
+# (audit-runs/audit5.md A-5.2). A header does the job a crawl block cannot:
+# the file is still fetched and rendered, and still never indexed on its own.
+<IfModule mod_headers.c>
+  <FilesMatch "\.json$">
+    Header set X-Robots-Tag "noindex"
+  </FilesMatch>
+</IfModule>
+
 # Block PHP execution outright — this directory only holds JSON.
 <FilesMatch "\.(php|phtml|phps|php\d?)$">
   Order Allow,Deny

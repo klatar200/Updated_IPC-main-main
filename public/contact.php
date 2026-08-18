@@ -212,6 +212,50 @@ function hdr($val): string {
     return trim(preg_replace('/[\r\n]+/', ' ', s($val)) ?: '');
 }
 
+// Third destination: a BODY slot inside the auto-reply.
+//
+// s() keeps newlines on purpose — its destinations are a text/plain mail to
+// IPC and a JSONL record, and `<1/4 inch and >2 inch ID` must survive intact
+// (invariant 10). hdr() covers header values. But the auto-reply is the one
+// mail whose RECIPIENT the visitor chooses, and it echoes visitor text back,
+// so those two rules left a third case uncovered: an anonymous POST could put
+// freely line-broken prose into the body of a mail sent from this domain, with
+// its SPF/DKIM, to any address. Measured: a forged "invoice overdue — pay
+// online now" notice arrived intact at a third party. (audit-runs/audit5.md
+// A-5.1)
+//
+// Collapse every whitespace run — newlines included — to a single space and cap
+// short. A real quote confirmation still reads correctly; a forged notice
+// cannot be assembled, because nothing the sender supplies can open a line of
+// its own. Applied ONLY to the reply's copies: the sales notification and the
+// inquiry record keep the value exactly as it was typed.
+function reply_slot($val, int $max = 80): string {
+    // No /u — a non-UTF-8 byte made preg_replace() return null and 500 (NB6).
+    $v = preg_replace('/\s+/', ' ', s($val));
+    $v = trim($v === null ? '' : $v);
+    if ($v === '') return '';
+    // A link is what turns a mangled fragment into a working phish: it is the
+    // one payload that survives being quoted inside someone else's template,
+    // and it arrives carrying this domain's reputation. None of the slots this
+    // function guards — the sender's name, a part number, a material, a
+    // quantity, a date — has any legitimate reason to contain one.
+    $v = preg_replace('~\b(?:https?://|ftp://|mailto:|www\.)\S*~i', '[link removed]', $v);
+    $v = trim($v === null ? '' : $v);
+    if ($v === '') return '';
+    // mbstring is present on every supported host, but it is an extension and
+    // not guaranteed; fall back to a byte cut rather than fatalling. A split
+    // multibyte character here is cosmetic — this value's only destination is a
+    // text/plain body, never JSON, so nothing downstream can fail on it.
+    $mb = function_exists('mb_strlen') && function_exists('mb_substr');
+    if ($mb && mb_strlen($v, 'UTF-8') > $max) {
+        return rtrim(mb_substr($v, 0, $max, 'UTF-8')) . '…';
+    }
+    if (!$mb && strlen($v) > $max) {
+        return rtrim(substr($v, 0, $max)) . '...';
+    }
+    return $v;
+}
+
 // The auto-reply cap's key — the MAILBOX, not the string that was typed.
 //
 // This value is used for ONE thing: md5()'d into the per-recipient cap
@@ -604,18 +648,24 @@ $noticePara = $notice === '' ? '' : "{$notice}\n\n";
 if ($rfqPromise === '') $rfqPromise = 'Our sales team will review your request and respond within one business day — often the same day for in-stock items.';
 if ($msgPromise === '') $msgPromise = 'Our team will respond within one business day.';
 
+// A-5.1 — every visitor-supplied value that reaches THIS body is neutralised
+// first. The sales notification built above still carries the raw text, and so
+// does the JSONL record, so nothing IPC needs is lost.
+$rName = reply_slot($name, 60);
+if ($rName === '') $rName = 'there';
+
 if ($formType === 'rfq') {
     $replySubject = hdr("We received your quote request — {$bizName}");
-    $replyBody    = "Hello {$name},\n\n"
+    $replyBody    = "Hello {$rName},\n\n"
                   . "Thank you for submitting a quote request to {$bizName}.\n\n"
                   . "{$rfqPromise}\n\n"
                   . $noticePara
                   . "YOUR REQUEST SUMMARY\n"
                   . "--------------------\n"
-                  . "Part Number:   {$partNumber}\n"
-                  . "Material Type: {$material}\n"
-                  . "Quantity:      {$quantity}\n"
-                  . "Required By:   {$reqDate}\n\n"
+                  . "Part Number:   " . reply_slot($partNumber, 80) . "\n"
+                  . "Material Type: " . reply_slot($material, 80) . "\n"
+                  . "Quantity:      " . reply_slot($quantity, 80) . "\n"
+                  . "Required By:   " . reply_slot($reqDate, 40) . "\n\n"
                   . "For urgent needs, reach us directly:\n"
                   . "  Phone: {$bizPhone} ({$bizHours})\n"
                   . "  Fax:   {$bizFax}\n"
@@ -624,7 +674,7 @@ if ($formType === 'rfq') {
                   . "{$bizAddr}\n";
 } else {
     $replySubject = hdr("We received your message — {$bizName}");
-    $replyBody    = "Hello {$name},\n\n"
+    $replyBody    = "Hello {$rName},\n\n"
                   . "Thank you for contacting {$bizName}.\n\n"
                   . "{$msgPromise}\n\n"
                   . $noticePara

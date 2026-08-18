@@ -1,10 +1,24 @@
 User-agent: *
 Allow: /
 
-# Admin panel and data files — no benefit to indexing these
+# Admin panel — no benefit to indexing, and nothing here renders the site.
 Disallow: /admin/
-Disallow: /data/
-Disallow: /uploads/
 Disallow: /contact.php
+
+# NOTE — /data/ and /uploads/ are deliberately NOT disallowed.
+#
+# This site is rendered entirely in the browser: every page is built from
+# /data/products-all.json, /data/site-info.json and /data/content.json
+# (src/App.jsx). A crawler's renderer obeys robots.txt for those fetches, so
+# "Disallow: /data/" did not hide the files — it made all 42 product pages plus
+# /products, /dashboard and /datasheets render the catalog-error state for
+# Googlebot, while sitemap.php (a server-side read, unaffected) went on
+# advertising those 52 URLs. Under the robots protocol the longest match wins,
+# so the rule also beat "Allow: /".
+#
+# The files stay out of search results by header instead — data/.htaccess sends
+# X-Robots-Tag: noindex — which keeps the raw JSON unindexed AND lets the
+# renderer fetch it. /uploads/ holds product photos, which should reach Google
+# Images. (audit-runs/audit5.md A-5.2)
 
 Sitemap: https://www.insulationproducts.com/sitemap.xml

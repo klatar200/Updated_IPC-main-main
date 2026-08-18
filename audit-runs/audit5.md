@@ -53,6 +53,10 @@ never written to look at.
 
 ## A-5.1 — The contact form is an unauthenticated, content-controlled mail relay under IPC's own identity
 
+> **FIXED 2026-08-18** — `reply_slot()` in `public/contact.php`; evidence and
+> residual risk in `WHATS_LEFT.md` §1q. Left here as written, because the
+> finding is the record of what was true at audit time.
+
 `public/contact.php:197-207` (`s()`), `:609-625` (auto-reply body), `:639-646` (send)
 
 `s()` deliberately does not HTML-escape — that is invariant 10 and it is
@@ -108,6 +112,9 @@ echoing 1,000 characters of stranger-supplied text to a stranger-supplied
 address.
 
 ## A-5.2 — `robots.txt` makes the entire product catalog un-indexable
+
+> **FIXED 2026-08-18** — `public/robots.txt` + `X-Robots-Tag` in
+> `data/.htaccess`; see `WHATS_LEFT.md` §1q.
 
 `public/robots.txt:6`
 

@@ -4641,8 +4641,8 @@ remediation cycle.
 
 ### Launch blockers
 
-- [ ] **A-5.1 — `public/contact.php` is an unauthenticated content-controlled
-  mail relay.** `s()`'s control-char class excludes `\x0A`/`\x0D`, so newlines
+- [x] **A-5.1** ~~`public/contact.php` is an unauthenticated content-controlled
+  mail relay.~~ **SHIPPED 2026-08-18 — see §1q.** `s()`'s control-char class excludes `\x0A`/`\x0D`, so newlines
   survive, and five attacker-supplied fields are interpolated into the
   auto-reply body — which is mailed to the attacker-supplied `email` address
   from `noreply@insulationproducts.com` with IPC's SPF/DKIM. **Executed:** one
@@ -4651,8 +4651,8 @@ remediation cycle.
   a chosen third party. ~1,000 chars of attacker prose, ~720 victims/day from
   one IP. Fix is in the body slots (`hdr()` already exists), not in `s()` —
   invariant 10 stays intact. `public/contact.php:197-207, 609-625, 639-646`.
-- [ ] **A-5.2 — `robots.txt:6` `Disallow: /data/` makes the whole catalog
-  un-indexable.** The SPA is 100% client-rendered and Google's WRS honours
+- [x] **A-5.2** ~~`robots.txt:6` `Disallow: /data/` makes the whole catalog
+  un-indexable.~~ **SHIPPED 2026-08-18 — see §1q.** The SPA is 100% client-rendered and Google's WRS honours
   robots.txt for subresources; longest-match means the rule beats `Allow: /`.
   Measured: no fallback catalog exists in the bundle, and all 42 product pages
   plus `/products`, `/dashboard`, `/datasheets` render `CatalogError` to a
@@ -4729,3 +4729,57 @@ verify `display_errors` is Off on the live server rather than assuming.
   Recommendation: take the free bump; the v7 migration stays the owner's call.
 - **`D-02` (audit 4) is closed.** `plan10-repalette` is **33/33** — the stale
   baseline was re-based in PR #46.
+
+
+---
+
+## 1q. Shipped 2026-08-18 — the two audit-5 launch blockers
+
+Both fixes were written test-first per GUARDRAILS §4.4: the new suite
+`_harness/audit5-blockers.js` was written against the unfixed tree and watched
+to fail (**9/17**) before either file was touched.
+
+| ID | File | What changed |
+|---|---|---|
+| **A-5.1** | `public/contact.php` | New `reply_slot()` next to `s()` and `hdr()`, and applied **only** to the auto-reply's copies of the five visitor-supplied slots (`name` 60, `partNumber`/`material`/`quantity` 80, `requiredDate` 40). It collapses every whitespace run — newlines included — to one space, redacts `https?://`, `ftp://`, `mailto:` and `www.` tokens to `[link removed]`, and caps short. The sales notification to IPC and the `inquiries.jsonl` lead record are **untouched** and still carry the value exactly as typed, which the suite asserts in both directions. `s()` is unchanged, so invariant 10 stands. |
+| **A-5.2** | `public/robots.txt`, `data/.htaccess` | `Disallow: /data/` and `Disallow: /uploads/` removed, with the reasoning left in the file so neither comes back. The raw JSON stays out of the index by header instead — `data/.htaccess` now sends `X-Robots-Tag: noindex` for `*.json` inside an `<IfModule mod_headers.c>` guard — which a crawl block cannot do, because a crawl block also stops the renderer fetching. `/admin/` and `/contact.php` still disallowed. |
+
+**Evidence.** The same attack payload, before and after, against the live
+harness with its capturing sendmail:
+
+```
+BEFORE                                AFTER
+Hello Valued Customer,                Hello Valued Customer, ACTION REQUIRED:
+                                        invoice #48812 is 30 days…,
+ACTION REQUIRED: invoice #48812 is
+30 days overdue.,                     Thank you for submitting a quote request…
+...                                   ...
+Quantity: Pay online now:             Quantity:      Pay online now: [link removed]
+  https://evil.example/ipc-pay-invoice
+Required By: Regards,                 Required By:   Regards, IPC Accounts Receivable
+IPC Accounts Receivable
+```
+
+`_harness/audit5-blockers.js` **18/18** after, from 9/17 before. A legitimate
+request is asserted unchanged in the same run — `Hello Jane Buyer,` /
+`Part Number:   IP38FE` / `Quantity:      500 ft`.
+
+**Residual, stated rather than hidden.** Echoing the request back to the sender
+is the feature, so short fragments of sender text still appear as field values.
+What the fix guarantees is narrower and is what the suite tests: nothing the
+sender writes can open a line of its own, carry a link, or run longer than a
+labelled value. The result reads as a garbled form confirmation, not as a
+letter. Removing the summary echo entirely would close the remainder and is a
+one-line change if the owner prefers it.
+
+**Test-suite defect found and fixed while writing the suite.** The first draft
+located the auto-reply with `includes('To: <addr>')`, which also matches the
+sales notification's `Reply-To: <addr>` header — so every assertion was reading
+the wrong message, and a fix that changed nothing would have looked correct.
+The matcher is now anchored to `^To: <addr>$`. Two assertions were also
+re-scoped after the design settled: they originally demanded that no sender
+words reach the reply at all, which is stricter than the feature allows, and
+now test the three properties above instead.
+
+**Not changed.** No other finding from `audit-runs/audit5.md` — the rest stay
+open in §2k.
