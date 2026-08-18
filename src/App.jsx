@@ -5275,6 +5275,18 @@ function ContactPage() {
               <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
                 {cf.requiredLegend}
               </p>
+              {/* A-5.1/A-5.3 — the discriminator contact.php routes on.
+                  It was appended ONLY by the fetch handlers, so a native submit
+                  (the no-JS path this form's method/action exist for) arrived
+                  without it, defaulted to the message branch, and was rejected
+                  422 for a missing subject and message — fields this form does
+                  not have. That exit happens before mail() AND before the
+                  inquiry log, so the lead was not merely undelivered, it left
+                  no trace at all. Measured: identical payload without this
+                  field → 422 and zero log lines; with it → 200 and one logged
+                  lead. PHP takes the last duplicate key, so the JS append still
+                  wins when scripting is on. (audit-runs/audit5.md A-5.3) */}
+              <input type="hidden" name="form_type" value="rfq" />
               {/* Honeypot — hidden from humans, bots fill it in */}
               <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
                 <label htmlFor="rfq-website">Website</label>
@@ -5561,6 +5573,18 @@ function ContactPage() {
               <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
                 {cf.requiredLegend}
               </p>
+              {/* A-5.1/A-5.3 — the discriminator contact.php routes on.
+                  It was appended ONLY by the fetch handlers, so a native submit
+                  (the no-JS path this form's method/action exist for) arrived
+                  without it, defaulted to the message branch, and was rejected
+                  422 for a missing subject and message — fields this form does
+                  not have. That exit happens before mail() AND before the
+                  inquiry log, so the lead was not merely undelivered, it left
+                  no trace at all. Measured: identical payload without this
+                  field → 422 and zero log lines; with it → 200 and one logged
+                  lead. PHP takes the last duplicate key, so the JS append still
+                  wins when scripting is on. (audit-runs/audit5.md A-5.3) */}
+              <input type="hidden" name="form_type" value="message" />
               {/* Honeypot — hidden from humans, bots fill it in */}
               <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
                 <label htmlFor="msg-website">Website</label>

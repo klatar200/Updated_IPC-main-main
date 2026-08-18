@@ -4661,31 +4661,31 @@ remediation cycle.
 
 ### High
 
-- [ ] **A-5.3 — the RFQ form loses the lead when JS does not run.** No hidden
+- [x] **A-5.3 — SHIPPED 2026-08-18 (§1r) — the RFQ form loses the lead when JS does not run.** No hidden
   `form_type`, so a native submit routes to the message branch and 422s before
   `mail()` and before the JSONL log. Measured A/B against a live server: same
   payload without the field → 422, log delta **0**; with it → 200, delta **+1**.
   RFQ is the default tab. `src/App.jsx:5257-5261`, `public/contact.php:398, 487-496`.
-- [ ] **A-5.4 — one bot floods the Audit Log's 500-line window in 1.7 days.**
+- [x] **A-5.4 — SHIPPED 2026-08-18 (§1r) — one bot floods the Audit Log's 500-line window in 1.7 days.**
   `audit-log.php` slices before it filters, and `admin-log.jsonl` has no
   rotation; the owner's own history becomes unreachable behind
   *Sign-in failed* rows and a filter returns "No entries match".
-- [ ] **A-5.5 — a failed write destroys the live catalog silently.** No
+- [x] **A-5.5 — SHIPPED 2026-08-18 (§1r) — a failed write destroys the live catalog silently.** No
   temp+`rename()`; reproduced a 102,400-of-300,000-byte truncation under
   `ulimit`, after which `load_products()` returns 0 products, the dashboard says
   "0 products across 0 categories" with no health banner, and the next Add
   Product writes a one-product catalog under a success message.
-- [ ] **A-5.6 — `mail()` true ≠ delivered, and no surface tells the owner a lead
+- [x] **A-5.6 — SHIPPED 2026-08-18 (§1r) — `mail()` true ≠ delivered, and no surface tells the owner a lead
   arrived.** No unread count, badge or digest anywhere; spam-foldered leads are
   logged `sent: true` with a green "Emailed" badge.
-- [ ] **A-5.7 — unauthenticated `password[]=x` fatals the login page**, printing
+- [x] **A-5.7 — SHIPPED 2026-08-18 (§1r) — unauthenticated `password[]=x` fatals the login page**, printing
   the absolute server path and the first 16 chars of the live bcrypt hash.
   Suppressed in production only by `public/.user.ini` — a dotfile FTP clients
   hide, omitted from the `DEPLOY_READINESS_v2 §7` upload row, and inert under
   mod_php.
-- [ ] **A-5.8 — an unwritable `admin/` disables the login throttle *and* the
+- [x] **A-5.8 — SHIPPED 2026-08-18 (§1r) — an unwritable `admin/` disables the login throttle *and* the
   audit log together**, and the health banner names neither.
-- [ ] **A-5.9 — both contact-form abuse controls fail open silently.** Limiter
+- [x] **A-5.9 — SHIPPED 2026-08-18 (§1r) — both contact-form abuse controls fail open silently.** Limiter
   state lives in `sys_get_temp_dir()` behind `@`-suppressed writes, is never
   cleaned up (`grep unlink public/contact.php` → 0), and has no health check.
 - [ ] **A-5.10 — client-only rendering with no prerender.** Beyond Google,
@@ -4783,3 +4783,56 @@ now test the three properties above instead.
 
 **Not changed.** No other finding from `audit-runs/audit5.md` — the rest stay
 open in §2k.
+
+---
+
+## 1r. Shipped 2026-08-18 — all seven High findings from audit 5
+
+The two Blockers shipped earlier the same day (§2k). This closes the High tier.
+Everything at Medium and Low remains recorded in §2k and untouched — GUARDRAILS
+§1 keeps work found outside a plan logged rather than changed in place, and
+these nine were fixed because they were asked for by name.
+
+| ID | File(s) | What changed |
+|---|---|---|
+| **A-5.3** | `src/App.jsx` | A hidden `form_type` input in **both** contact forms. It was appended only by the fetch handlers, so a native submit — the no-JS path the forms' `method`/`action` exist for — routed to the message branch and 422'd for a subject and message the RFQ form does not have, exiting before `mail()` **and** before the inquiry log. Measured: without the field, 422 and zero log lines; with it, 200 and one logged lead. |
+| **A-5.4** | `admin/audit-log.php`, `admin/config.php`, `.gitignore` | The viewer parses and **filters before** keeping the newest 500, and reads a bounded 4MB tail instead of `file()`-ing the whole log. `admin-log.jsonl` gains the 16MB rotation `inquiries.jsonl` has had since B3. Both halves were needed: with the old 500-line window, even the corrected order finds 0 of 3 owner edits buried under 600 lines of sign-in noise. Rotated logs of both kinds are now gitignored — they matched no pattern, on a public repo. |
+| **A-5.5** | `admin/config.php` | New `json_write_atomic()` — temp file in the same directory, byte count checked, `rename()` into place — replaces the bare `file_put_contents(..., LOCK_EX) !== false` in all three `save_*()` helpers. Measured under a genuine short write (SIGXFSZ suppressed so the write returns instead of killing the process): the old path left the live catalog **corrupt at 102,400 bytes**; the new one reports failure and leaves it **byte-identical and still parsing**, with no temp leftovers. The temp name ends in `.tmp`, which `data/.htaccess` already blocks. |
+| **A-5.6** | `admin/config.php`, `nav.php`, `index.php`, `inquiries.php` | `mail()` returning true means the local MTA accepted the message and nothing more, so the JSONL log is the real safety net — and nothing ever prompted anyone to open it. An unread count now sits in the nav and at the top of the dashboard, cleared by reading the page. Counting is incremental (only the bytes appended since the mark) because `nav.php` runs on every admin page and the log may reach 16MB. The badge that read **"Emailed"** now reads **"Sent to mail server"**, because delivery is not something this code can observe. |
+| **A-5.7** | `admin/config.php`, `auth.php`, `backups.php`, `edit.php`, `delete.php`, `upload-image.php`, `upload-pdf.php`, `audit-log.php` | New `raw_str()` (no trim — whitespace in a password is significant) guards the one **pre-auth** instance; `as_str()` guards `csrf_token`, `backup` and the four `?sku=` pages. `password[]=x` used to be an uncaught `TypeError` whose stack trace printed the absolute server path **and the first 16 characters of the live bcrypt hash** to an anonymous client. Now: no fatal, no hash, no path, on all of them. |
+| **A-5.8** | `admin/index.php` | The health banner now states that an unwritable `admin/` also switches off the login cool-off and stops recording failed sign-ins. Both controls share that one failure mode and the banner named neither. Failing open is deliberate — it must not lock the owner out — which is precisely why it has to be said out loud. A missing `pdfs/` writability check was added alongside. |
+| **A-5.9** | `public/contact.php`, `admin/index.php` | `ipc_rl_save()` reports whether the state persisted, and stale `ipc_rl_*`/`ipc_ar_*` files are pruned — nothing ever removed one, so they accumulated per visitor IP forever, an inode-quota attack from an unauthenticated form. The split that matters: **lead intake still fails open**, because refusing submissions over a temp-file problem would lose real quote requests, while the **auto-reply fails closed**, since that is the outbound-to-a-stranger half and the lead is captured either way. An unwritable temp dir is now surfaced in the dashboard. |
+
+Guarded by `_harness/audit5-high.js` (**30/30**), written against the unfixed
+tree and watched to fail first, alongside `audit5-blockers.js` (**18/18**).
+
+Regression state with the full fleet up: **69/71 suites clean**, the two reds
+being the documented expected-reds (`plan8-polish` 16/17 Linux DejaVu artifact;
+`brandtext` 11 failing against a ceiling of 13). `lint.php` green on every
+check, `invariants.js` **17/17**, `npm run build` clean.
+
+### Two harness probes were wrong, and the change exposed them
+
+Neither was a page regression — both were verified against the live page before
+being touched, per GUARDRAILS §7.2's rule about probe defects:
+
+- **`plan8-lead` (B26)** took `querySelector('form input, …')` as "the first
+  field", i.e. whichever control comes first in source order. That was the
+  off-screen honeypot before, and the hidden `form_type` after — a zero-height
+  box at top 0 — so it reported the form starting at 0px and the `tel:` link
+  "below" it. Measured on the page at 390: `tel:` at **314px**, first real field
+  (`name`) at **736px**; the property holds and always did. The probe now finds
+  the first field a visitor can actually see.
+- **`contactflow`** enumerated every named control for its label checks,
+  excluding the honeypot and the submit button but not hidden inputs, so it
+  reported `form_type` as unlabelled and paired it with the honeypot's
+  "Website" label. A hidden input cannot be seen, focused or announced; a label
+  for one is meaningless markup. `type !== 'hidden'` joins the existing
+  exclusions.
+
+### One thing worth knowing about the A-5.4 fix
+
+Reordering the filter alone does not fix it. Measured against the same 603-line
+log: old logic 0 of 3 owner edits; corrected order but still a 500-line window,
+**also 0**; corrected order with the 4MB tail, **3**. The window mattered as
+much as the ordering, which is why both changed.

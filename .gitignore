@@ -29,7 +29,13 @@ Thumbs.db
 admin/config.local.php
 admin/config.local.php.bak.*
 admin/admin-log.jsonl
+# Rotated logs. Both writers rename at 16MB and never delete the archive, and
+# the rotated names matched no pattern here — so a bulk `git add` could commit a
+# 16MB file of customer names, emails and phone numbers to a PUBLIC repo.
+admin/admin-log-*.jsonl
+admin/inquiries-*.jsonl
 admin/.login-throttle.json
+admin/.inquiries-seen.json
 admin/inquiries.jsonl
 admin/ALLOW-PASSWORD-RESET
 

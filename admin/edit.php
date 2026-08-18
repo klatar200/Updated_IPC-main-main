@@ -2,7 +2,7 @@
 require_once 'config.php';
 require_auth();
 
-$sku      = $_GET['sku'] ?? '';
+$sku      = as_str($_GET['sku'] ?? null);   // A-5.7 — ?sku[]=x fatalled find_product(string)
 $products = load_products();
 $idx      = find_product($products, $sku);
 $errors   = [];

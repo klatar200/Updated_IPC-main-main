@@ -52,6 +52,8 @@ $navExtra  = $navExtra  ?? '';
   .ipc-admin-header nav a:hover, .ipc-admin-header nav a.current { color: #fff; }
   .ipc-admin-header nav a.current { border-bottom: 2px solid #005da3; padding-bottom: 4px; }
   .ipc-admin-header .logout { color: rgba(255,255,255,0.5) !important; }
+  .ipc-admin-header nav a .nav-badge { display: inline-block; min-width: 18px; margin-left: 6px; padding: 1px 6px;
+    border-radius: 9px; background: #d92d20; color: #fff; font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; }
 </style>
 <header class="ipc-admin-header">
   <a class="logo" href="index.php">
@@ -67,7 +69,12 @@ $navExtra  = $navExtra  ?? '';
     <a href="add.php" class="<?= $navActive === 'add' ? 'current' : '' ?>">+ Add Product</a>
     <a href="settings.php" class="<?= $navActive === 'settings' ? 'current' : '' ?>">Business Details</a>
     <a href="content.php" class="<?= $navActive === 'content' ? 'current' : '' ?>">Page Content</a>
-    <a href="inquiries.php" class="<?= $navActive === 'inquiries' ? 'current' : '' ?>">Inquiries</a>
+    <?php /* A-5.6 — the only place the owner is TOLD a lead arrived. mail()
+             reporting success is not delivery, so the log is the safety net;
+             a safety net nobody is prompted to look at is not one. */
+          $navNewLeads = function_exists('inquiries_new_count') ? inquiries_new_count() : 0; ?>
+    <a href="inquiries.php" class="<?= $navActive === 'inquiries' ? 'current' : '' ?>">Inquiries<?php
+      if ($navNewLeads > 0): ?><span class="nav-badge" aria-label="<?= (int)$navNewLeads ?> new since you last looked"><?= (int)$navNewLeads ?></span><?php endif; ?></a>
     <a href="backups.php" class="<?= $navActive === 'backups' ? 'current' : '' ?>">Backups</a>
     <a href="audit-log.php" class="<?= $navActive === 'auditlog' ? 'current' : '' ?>">Audit Log</a>
     <a href="password.php" class="<?= $navActive === 'password' ? 'current' : '' ?>">Password</a>

@@ -90,7 +90,20 @@ async function submitRfq(page) {
       const page = await ctx.newPage();
       await page.goto(`${BASE}/contact`, { waitUntil: 'networkidle' });
       rec.mobile = await page.evaluate(() => {
-        const f = document.querySelector('form input, form textarea, form select');
+        // The first field a VISITOR meets, not the first node in the DOM.
+        // querySelector() took whichever control came first in source order,
+        // which was the off-screen honeypot (left:-9999px) and later the hidden
+        // form_type discriminator (a zero-height box at top 0). Both gave a
+        // number, so the check kept reporting one — and with form_type present
+        // it reported the form starting at 0px and the tel: link "below" it,
+        // while the page was in fact unchanged: measured 2026-08-18, tel at
+        // 314px and the real first field (name) at 736px.
+        const f = [...document.querySelectorAll('form input, form textarea, form select')]
+          .find((e) => {
+            if (e.type === 'hidden') return false;
+            const b = e.getBoundingClientRect();
+            return b.width > 1 && b.height > 1 && b.left > -1000;
+          });
         const r = f ? f.getBoundingClientRect() : null;
         const firstFieldTop = r ? Math.round(r.top + window.scrollY) : null;
         // PLAN-8: "Keep the phone number visible near the top; it is the other

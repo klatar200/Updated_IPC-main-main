@@ -598,7 +598,13 @@ function missingFields(body, values) {
       const { page, form } = await openContact(ctx, { tab });
       const fields = await form.evaluate((f) =>
         [...f.elements]
-          .filter((el) => el.name && el.name !== 'website' && el.type !== 'submit')
+          // `hidden` joins the honeypot and the submit button in the exclusions:
+          // a hidden input cannot be seen, focused or announced, so a label for
+          // one would be meaningless markup. The form_type discriminator that
+          // A-5.3 added is the first one this form has carried, and without this
+          // the suite reported it as an unlabelled field and paired it with the
+          // honeypot's "Website" label. (audit-runs/audit5.md A-5.3)
+          .filter((el) => el.name && el.name !== 'website' && el.type !== 'submit' && el.type !== 'hidden')
           .map((el) => {
             // The label the visitor sees: the one rendered in this field's own
             // wrapper, which is what the eye associates regardless of the DOM.

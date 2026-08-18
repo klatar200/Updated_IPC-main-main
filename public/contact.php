@@ -344,9 +344,48 @@ $state['hits'] = array_values(array_filter($state['hits'], function ($t) use ($n
 if (empty($state['hits'])) $state['blocked'] = 0;   // the window rolled over
 
 /** Persist the limiter state; used by every exit path below. */
-function ipc_rl_save(string $file, array $state): void {
-    @file_put_contents($file, json_encode($state), LOCK_EX);
+function ipc_rl_save(string $file, array $state): bool {
+    $json  = json_encode($state);
+    if ($json === false) return false;
+    $bytes = @file_put_contents($file, $json, LOCK_EX);
+    return $bytes !== false && $bytes === strlen($json);
 }
+
+/**
+ * Both limiters keep their state in the shared temp dir behind @-suppressed
+ * writes, and nothing checked whether the write landed or ever removed a file.
+ * Two consequences, and they pull in opposite directions:
+ *
+ *  - If the write fails — temp dir not writable under this host's open_basedir
+ *    or TMPDIR, or the account's inode quota reached — the next request reads
+ *    an absent file, counts zero hits, and BOTH controls are simply off, with
+ *    nothing anywhere reporting it.
+ *  - Nothing pruned, so one file accumulated per distinct visitor IP and per
+ *    distinct auto-reply recipient, forever, in the same directory as PHP's
+ *    session files. That is an inode-quota attack from an unauthenticated
+ *    form, and inode exhaustion is itself the condition in the first bullet.
+ *
+ * Prune on roughly 1 request in 25 — often enough to stay bounded under real
+ * traffic, rare enough that a scandir() is not on the hot path.
+ * (audit-runs/audit5.md A-5.9)
+ */
+function ipc_prune_limiter_files(int $now): void {
+    if (mt_rand(1, 25) !== 1) return;
+    $dir = sys_get_temp_dir();
+    $h   = @opendir($dir);
+    if (!$h) return;
+    $cutoff = 86400 * 2;          // both windows (10 min, 24 h) are well inside this
+    $budget = 500;                 // never let a sweep run away on a huge temp dir
+    while ($budget-- > 0 && ($f = readdir($h)) !== false) {
+        if (strncmp($f, 'ipc_rl_', 7) !== 0 && strncmp($f, 'ipc_ar_', 7) !== 0) continue;
+        $full = $dir . '/' . $f;
+        $mt   = @filemtime($full);
+        if ($mt !== false && ($now - $mt) > $cutoff) @unlink($full);
+    }
+    closedir($h);
+}
+
+ipc_prune_limiter_files($now);
 
 if (count($state['hits']) >= $maxHits) {
     if ($state['blocked'] < $maxLogged) {
@@ -364,7 +403,12 @@ if (count($state['hits']) >= $maxHits) {
     exit;
 }
 $state['hits'][] = $now;
-ipc_rl_save($rateFile, $state);
+// A-5.9 — if the state cannot be persisted, the rate limit is not enforcing.
+// The lead intake deliberately still FAILS OPEN here: refusing submissions
+// because a temp file will not write would lose real quote requests, which is
+// the one outcome this whole file exists to prevent. The AUTO-REPLY, which is
+// the outbound-to-a-stranger half, fails CLOSED instead — see below.
+$limiterPersisted = ipc_rl_save($rateFile, $state);
 
 // ── Same-origin referer check ──────────────────────────────────
 // An ABSENT Referer is not evidence of abuse. Privacy extensions,
@@ -621,11 +665,23 @@ if ($replyTo !== '') {
     $ar = array_values(array_filter($ar, function ($t) use ($now, $arWindow) {
         return ($now - (int)$t) < $arWindow;
     }));
+    // A-5.9 — no persisted cap means no cap. Sending anyway would put an
+    // uncapped outbound channel, addressed by a stranger, on this domain's
+    // reputation; not sending costs the sender a courtesy confirmation while
+    // the lead itself is already captured (sales notification + inquiry log,
+    // both above). Fail closed.
+    if (!$limiterPersisted) {
+        $autoReplyOk = false;
+    }
     if (count($ar) >= $arMax) {
         $autoReplyOk = false;      // the sales notification above already went out
     } else {
         $ar[] = $now;
-        @file_put_contents($arFile, json_encode($ar), LOCK_EX);
+        // Same rule: if the updated cap cannot be stored, do not send — the
+        // next request would read a missing file and start counting from zero.
+        $arJson  = json_encode($ar);
+        $arBytes = $arJson === false ? false : @file_put_contents($arFile, $arJson, LOCK_EX);
+        if ($arBytes === false || $arBytes !== strlen((string)$arJson)) $autoReplyOk = false;
     }
 }
 // PLAN-6 item 3. The prose is editable; the REQUEST SUMMARY below is not, and

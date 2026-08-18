@@ -222,6 +222,22 @@ function as_str($v, string $default = ''): string {
     return is_string($v) ? trim($v) : $default;
 }
 
+/**
+ * Type guard WITHOUT trimming, for values where surrounding whitespace is
+ * significant. A password is the case that matters — post_str()/as_str() would
+ * silently change what was typed — and it is also the one unauthenticated
+ * entry point, where `password[]=x` reached password_verify() as an array and
+ * threw an uncaught TypeError. On PHP 8 that is a 500 whose stack trace prints
+ * the absolute server path AND the first characters of the live bcrypt hash,
+ * to an anonymous client. `display_errors` normally hides it, but that depends
+ * on public/.user.ini having been uploaded (it is a dotfile, and the deploy
+ * manifest omits it) and it does nothing at all under mod_php — so the page
+ * must fail closed on its own. (audit-runs/audit5.md A-5.7)
+ */
+function raw_str($v, string $default = ''): string {
+    return is_string($v) ? $v : $default;
+}
+
 // CSRF token helper — call csrf_token() to get/generate, csrf_check() to verify.
 // Session is already started by the block at the bottom of this file before any
 // page-level code runs, so no need to start it here.
@@ -405,7 +421,7 @@ function csrf_check(bool $requireAuth = true): void {
         && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
         csrf_fail_page('toolarge');
     }
-    $token        = $_POST['csrf_token'] ?? '';
+    $token        = raw_str($_POST['csrf_token'] ?? null);   // A-5.7 — csrf_token[]=x fatalled all 11 mutating pages through this one line
     $sessionToken = $_SESSION['csrf_token'] ?? '';
     // No session token at all means the session itself is gone (expired or
     // garbage-collected), which is a different problem from a mismatched one.
@@ -467,6 +483,53 @@ function require_auth(): void {
     }
     header('Location: auth.php');
     exit;
+}
+
+/**
+ * Write JSON to $path so a reader never sees a half-written file.
+ *
+ * The three save_*() helpers used to end in
+ * `file_put_contents($path, $json, LOCK_EX) !== false`, which has two holes:
+ *
+ *  1. file_put_contents() truncates the target when it opens it, so ANY write
+ *     that dies part-way — a quota ceiling, a process killed by the host's
+ *     resource limiter — leaves the LIVE file truncated. Every loader maps a
+ *     corrupt file onto the same value as a missing one
+ *     (`if (!is_array($data)) return []`), so the catalog came back as zero
+ *     products with nothing reporting a problem: the dashboard read "0 products
+ *     across 0 categories" with no health banner (data_writable() is still
+ *     true), and the next Add Product appended to that empty array and saved a
+ *     ONE-product catalog under a success message. Reproduced under
+ *     `ulimit -f 100`: 102,400 of 300,000 bytes on disk, and load_products()
+ *     then returned 0 with "Control character error".
+ *  2. It returns the number of bytes WRITTEN, so a short write on a full disk
+ *     is a positive integer, and `!== false` called that success.
+ *
+ * Writing to a temp file in the same directory and rename()-ing over the target
+ * fixes both: rename() within a filesystem is atomic, so a reader gets either
+ * the whole old file or the whole new one, and a failed write never touches the
+ * live file. The byte count is checked before the rename.
+ *
+ * The temp name ends in `.tmp` on purpose — data/.htaccess blocks that suffix,
+ * so a leftover from a killed process is not web-readable.
+ * (audit-runs/audit5.md A-5.5)
+ */
+function json_write_atomic(string $path, string $json): bool {
+    $tmp   = $path . '.' . getmypid() . '-' . mt_rand(1000, 999999) . '.tmp';
+    $bytes = @file_put_contents($tmp, $json);
+    if ($bytes === false || $bytes !== strlen($json)) {
+        @unlink($tmp);
+        return false;
+    }
+    // Carry the replaced file's permissions across; a fresh temp file is
+    // created under the process umask, which is not always the same thing.
+    $perms = @fileperms($path);
+    if ($perms !== false) @chmod($tmp, $perms & 0777);
+    if (!@rename($tmp, $path)) {
+        @unlink($tmp);
+        return false;
+    }
+    return true;
 }
 
 // Helper: load products array from JSON
@@ -664,8 +727,7 @@ function save_products(array $products): bool {
     }
     $GLOBALS['ipc_last_save_noop'] = false;
     backup_before_write($path, 'products-all');
-    // LOCK_EX prevents concurrent write corruption (#3)
-    return file_put_contents($path, $json, LOCK_EX) !== false;
+    return json_write_atomic($path, $json);   // A-5.5 — temp file + atomic rename
 }
 
 // Helper: load business details (site-info.json). Returns [] if missing/invalid.
@@ -690,7 +752,7 @@ function save_site_info(array $info): bool {
     }
     $GLOBALS['ipc_last_save_noop'] = false;
     backup_before_write($path, 'site-info');
-    return file_put_contents($path, $json, LOCK_EX) !== false;
+    return json_write_atomic($path, $json);
 }
 
 // Helper: load editable page content (homepage sections, etc.). Returns [] if
@@ -854,7 +916,7 @@ function save_content(array $content): bool {
     }
     $GLOBALS['ipc_last_save_noop'] = false;
     backup_before_write($path, 'content');
-    return file_put_contents($path, $json, LOCK_EX) !== false;
+    return json_write_atomic($path, $json);
 }
 
 /**
@@ -887,8 +949,17 @@ const IPC_AUDIT_ACTIONS = [
 // from the FTP user, admin/ is not writable and the log, the inquiry file and
 // the login throttle ALL silently no-op. admin_writable() surfaces that on the
 // dashboard instead of leaving it invisible (DEPLOY_READINESS_v2 §3.3).
+// Rotation ceiling for admin-log.jsonl. inquiries.jsonl has had one since B3;
+// this file had none, and it grows on every save AND on every failed sign-in —
+// so a single credential scanner appends to it forever. Same size and the same
+// never-delete-the-archive rule as the inquiry log. (audit-runs/audit5.md A-5.4)
+define('ADMIN_LOG_ROTATE_BYTES', 16 * 1024 * 1024);
+
 function audit_log(string $action, string $sku, string $detail = ''): bool {
     $logPath = __DIR__ . '/admin-log.jsonl';
+    if (is_file($logPath) && @filesize($logPath) >= ADMIN_LOG_ROTATE_BYTES) {
+        @rename($logPath, __DIR__ . '/admin-log-' . date('Y-m-d-His') . '.jsonl');
+    }
     $entry = json_encode([
         'ts'     => date('Y-m-d H:i:s'),
         'action' => $action,
@@ -898,6 +969,102 @@ function audit_log(string $action, string $sku, string $detail = ''): bool {
         'ua'     => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 120),
     ]) . "\n";
     return @file_put_contents($logPath, $entry, FILE_APPEND | LOCK_EX) !== false;
+}
+
+/**
+ * New-lead counter for the admin chrome.
+ *
+ * `mail()` returning true means the local MTA ACCEPTED the message, nothing
+ * more. The far more common shared-hosting outcome — accepted, then
+ * SPF/DKIM-rejected, greylisted or spam-foldered at the recipient — is
+ * indistinguishable from delivery here, and it was recorded as `sent: true`
+ * and rendered with a green "Emailed" badge.
+ *
+ * The inquiry log is the designed safety net and it is complete: every path,
+ * including every rejection, writes a record before exiting. What it lacked was
+ * any way to be NOTICED. Nothing in the dashboard, the nav or anywhere else
+ * said "leads arrived that you have not read", so a quiet month and a month of
+ * silently undelivered quote requests looked exactly the same to the owner.
+ *
+ * Counting is streamed, so it stays O(1) memory whatever the file grows to, and
+ * the seen-marker is a single integer written when the Inquiries page renders.
+ * (audit-runs/audit5.md A-5.6)
+ */
+define('INQUIRIES_SEEN_FILE', __DIR__ . '/.inquiries-seen.json');
+
+function inquiries_total_count(): int {
+    $path = __DIR__ . '/inquiries.jsonl';
+    $fh = @fopen($path, 'rb');
+    if (!$fh) return 0;
+    $n = 0;
+    while (($chunk = fread($fh, 1024 * 1024)) !== false && $chunk !== '') {
+        $n += substr_count($chunk, "\n");
+    }
+    fclose($fh);
+    return $n;
+}
+
+function inquiries_seen_state(): array {
+    $raw = @file_get_contents(INQUIRIES_SEEN_FILE);
+    if ($raw === false) return ['seen' => 0, 'size' => -1];
+    $d = json_decode((string)$raw, true);
+    if (!is_array($d)) return ['seen' => 0, 'size' => -1];
+    return ['seen' => max(0, (int)($d['seen'] ?? 0)), 'size' => (int)($d['size'] ?? -1)];
+}
+
+function inquiries_mark_seen(int $n): void {
+    $size = @filesize(__DIR__ . '/inquiries.jsonl');
+    @file_put_contents(
+        INQUIRIES_SEEN_FILE,
+        json_encode(['seen' => $n, 'size' => $size === false ? 0 : $size, 'ts' => date('c')]),
+        LOCK_EX
+    );
+}
+
+/** Newlines in [$from, $to) — the bytes appended since the mark. */
+function inquiries_count_range(string $path, int $from, int $to): int {
+    $fh = @fopen($path, 'rb');
+    if (!$fh) return 0;
+    if ($from > 0) fseek($fh, $from);
+    $n = 0;
+    $remaining = $to - $from;
+    while ($remaining > 0 && ($chunk = fread($fh, min(1024 * 1024, $remaining))) !== false && $chunk !== '') {
+        $n += substr_count($chunk, "\n");
+        $remaining -= strlen($chunk);
+    }
+    fclose($fh);
+    return $n;
+}
+
+/**
+ * Unread count. A seen-marker ABOVE the total means the log rotated at its
+ * 16MB ceiling and started again, so the marker no longer refers to this file;
+ * treat everything in the new file as unread rather than silently reporting
+ * zero, because under-reporting is the failure this whole function exists to
+ * prevent.
+ */
+function inquiries_new_count(): int {
+    $path = __DIR__ . '/inquiries.jsonl';
+    if (!is_file($path)) return 0;
+    $size  = (int)@filesize($path);
+    $state = inquiries_seen_state();
+
+    // nav.php calls this on EVERY admin page, and the log is allowed to reach
+    // 16MB before it rotates, so counting the whole file each time would put a
+    // 16MB read on every page view. The file only ever appends, so the size at
+    // the moment of the mark is enough: unchanged means nothing new, and larger
+    // means only the appended bytes need counting.
+    if ($state['size'] >= 0 && $size === $state['size']) return 0;
+    if ($state['size'] >= 0 && $size > $state['size']) {
+        return inquiries_count_range($path, $state['size'], $size);
+    }
+
+    // Smaller than the mark (the log rotated at its ceiling and started again)
+    // or no mark at all: count the file. Treat everything present as unread
+    // rather than reporting zero — under-reporting is the failure this exists
+    // to prevent.
+    $total = inquiries_total_count();
+    return $state['size'] < 0 ? max(0, $total - $state['seen']) : $total;
 }
 
 // True when the admin/ folder can actually be written by the PHP user.
