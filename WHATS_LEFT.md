@@ -4879,3 +4879,67 @@ Guarded by `_harness/audit5-medium.js` (**20/20**), alongside `audit5-high.js`
 comments inside that literal — and the A-5.18 comment I added two lines below it
 used one ("FTP'd"). `lint.php`'s copy-key drift check failed immediately with
 "$COPY_GROUPS is unbalanced". Fixed before it reached a commit.
+
+---
+
+## 1t. Shipped 2026-08-18 — the Low tier, and the audit-5 backlog is empty
+
+Closes the last of `audit-runs/audit5.md`. Four of the twenty-two were already
+closed by earlier tiers and are marked as such rather than counted twice.
+
+**Correctness and robustness**
+
+| ID | What changed |
+|---|---|
+| Wrong-type fields | New `asList()` / `asText()` coercers, applied at the five sites that crashed. A string `description` killed the product page and a string `badges` killed the whole `/dashboard` index, while siblings guarded the same fields. A wrong type now degrades to something renderable, exactly as a missing one already did. |
+| `null` array row | Filtered at both boundaries — `fetchProductsCached()` drops non-object rows, `mergeContent` drops null entries. One null row threw in Navbar and Footer, which render OUTSIDE the ErrorBoundary (it wraps only `<main>`), so React 18 unmounted the root and the whole site went blank, phone number included. Invariant 8 puts them above the *loading gate*, which is a different thing. |
+| Empty-but-loaded catalog | `/dashboard` said "Loading catalog…" forever at three call sites; it now says the catalog is empty, as `/products` already did. |
+| `pdfUrl` / `additionalPdfs[].url` | New `safeHref()` on all five sinks. They were write-gated only, and A1's own argument is that a write gate is not enough when `data/` is a plain file an FTP edit or a restored pre-F6 backup can reach. |
+| Soft-404 description | `setMeta` skipped empty values, so a soft-404 kept the previous route's description. It now writes the empty string and only skips when nothing was passed. |
+
+**Admin**
+
+| ID | What changed |
+|---|---|
+| Password write, quote style | The replace and read-back regexes accept `'` or `"`. A hand-deployed `define("ADMIN_PASSWORD_HASH", "$2y$…")` is legal PHP that works at login but did not match, so the new define was APPENDED, PHP kept the first, and the page reported "Password changed" while the old password went on working. Verified end to end against a double-quoted file: one define, replaced in place, new password verifies, old one does not. Invariant 1's `preg_replace_callback` is untouched. |
+| Password write, failure wording | The message claimed "the previous password was restored. Nothing changed." on the path where the backup copy had failed and the restore was skipped — pointing away from the ALLOW-PASSWORD-RESET recovery that is the only way back. It now distinguishes the two outcomes. |
+| Backup name allocation | The name is claimed with `fopen(…, 'x')` — atomic — and re-derived on collision, so two writers in the same second cannot both take one sequence and have the second silently overwrite the first. `backup_path()` still computes max-used + 1, so invariant 5 is unchanged; `nodupbackups` stays 10/10. |
+| Reader locks | **Closed by A-5.5.** `rename()` is atomic, so a reader sees either the whole old file or the whole new one — the torn read a `LOCK_SH` would have guarded against cannot occur. |
+| `settings-preview.js` | Renders all seven social channels. `instagram` and `tiktok` were added to the save list and the public footer by A-01 and never here, so the preview contradicted the page it previews. |
+| `help.php` photos | The steps described a "Choose Image → preview → Upload" flow that does not exist (the real controls are **Choose File** and **Upload Photo →**), and the removal advice recommended clearing the Photo URL — which forgets the link and orphans the file — while claiming it deletes it. Now documents **Remove Photo**, says plainly what the Edit-screen route does instead, and mentions the new automatic downscaling. |
+| `file()` whole-log read, GET array fatals, missing `pdfs/` check | **Closed by A-5.4, A-5.7 and A-5.8.** |
+
+**Hosting and rules**
+
+| ID | What changed |
+|---|---|
+| `pdfs/.htaccess` | The script block now matches `uploads/`'s breadth: case-insensitive, `(\.|$)`-anchored so the `x.php.pdf` double-extension form is caught, and covering phtml/phar/pl/py/cgi/sh. |
+| `uploads/.htaccess` | **Comment corrected; rules deliberately unchanged.** It promised deny-by-default and implemented an allow-list. A real deny-by-default means adding `<Files "*">Deny from all</Files>`, and whether images survive that depends on how Apache merges the two sections — untestable here, because `php -S` ignores `.htaccess` (GUARDRAILS §4.3). Getting it wrong 404s every product photo on the live site, which is far worse than the gap it closes, and nothing can land in that folder today anyway. Flagged for a session with a real Apache. |
+| Runtime `uploads/.htaccess` | No longer writes `php_flag engine off` — a **mod_php-only** directive, and this project targets CGI/FastCGI, where Apache answers an unknown directive with a 500 for the whole directory. It fired only when the folder was created at runtime, i.e. exactly the recovery case it exists to serve. It now writes the shipped file's rules. |
+| HSTS | `SetEnvIf` on `X-Forwarded-Proto` as well as `HTTPS`. It was gated `env=HTTPS`, which mod_ssl sets only when TLS terminates locally — while the redirect four lines above exists precisely because it often does not. The two rules assumed opposite topologies, and in the proxy case the header was silently never sent. |
+| `/assets/` fallthrough | A missing file under `/assets/` now 404s instead of falling into the SPA catch-all and returning `index.html` as `text/html`, which the browser then tries to execute — a blank page for the length of an FTP deploy window. |
+| `data/.htaccess` | `AddType application/json .json`. `jsonOrThrow` REQUIRES that content-type, and nothing guaranteed it; on a host that does not map `.json`, all three fetches throw and the site renders hardcoded defaults while looking fine. |
+| `X-Mailer` | Removed from both mails. It announced the exact PHP patch level to the sales address and, via the auto-reply, to any address a stranger types into the form. |
+| Auto-reply `From` | The display name is RFC 5322-quoted. `hdr()` closes injection but adds no quoting, so "Insulation Products, Inc." parsed as an address list and strict MTAs would reject every auto-reply, silently. |
+
+**Repo and docs**
+
+| ID | What changed |
+|---|---|
+| Rotated inquiry logs | **Closed by A-5.4.** |
+| `README.md` | The dev-loop section described machinery deleted in Plan 0 (`import.meta.env.DEV`, `npx serve .`) — the workaround it recommended would now also expose `admin/` and the logs on localhost. The layout note still documented `base: './'`, the exact configuration PLAN-8 A5 measured as a white screen on every ≥2-segment URL. Line count refreshed. |
+| `_harness/README.md` | GUARDRAILS calls this "the live suite list" and fourteen assertive suites were absent — every `plan8-*` acceptance suite among them, so an executor judged against it would have skipped them. All listed, plus the three audit-5 suites, plus the mechanical rule for regenerating the list. |
+| `admin/README.md` | The security notes still described the pre-4.14 throttle — a bare `sleep()` and an unlocked read-modify-write — which 4.14 replaced on 2026-08-06 with the flock'd cool-off. It now describes what ships, including that an unwritable `admin/` disables it. |
+| `CLAUDE.md` | Invariant 9 cited `index.css:49`; the rule is at `:341`. |
+| `DEPLOY_READINESS_v2 §7` | **Not edited — the document is frozen.** Its upload row omits `public/.user.ini`, the file A-5.7's suppression depends on. `README.md`'s manifest already lists it and already declares itself authoritative over §7, so the deploy instructions a person actually follows are correct. Recorded here rather than fixed there. |
+
+### The invariant harness caught this tier too
+
+Folding the null-row filter into `mergeContent`'s ternary —
+`Array.isArray(v) ? v.filter(…) : dv` — is semantically identical to the
+original and still failed **INV3**, which matches that expression textually.
+GUARDRAILS §3 says the change is wrong until proven otherwise, and the right
+reading here is that the invariant is the *decision* (an empty array is a
+deletion) while dropping null rows is a separate question asked afterwards.
+Written as two statements, the guarded expression stays byte-identical and the
+behaviour is the same: `[]` → `[]`, `[null]` → `[]`, missing → defaults.

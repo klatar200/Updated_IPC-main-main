@@ -633,7 +633,13 @@ $headers  = "From: IPC Website <noreply@insulationproducts.com>\r\n";
 $headers .= "Reply-To: " . hdr($replyTo) . "\r\n";
 $headers .= "MIME-Version: 1.0\r\n";
 $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-$headers .= "X-Mailer: PHP/" . PHP_VERSION . "\r\n";
+// X-Mailer removed. It served no delivery purpose and announced the exact
+// PHP patch level — to the SALES address on one path, and on the other to any
+// address a stranger types into the form, who only has to submit it once to
+// read the version off their own auto-reply. Both .htaccess files already turn
+// off ServerSignature and unset X-Powered-By; this was the hole in that same
+// posture. (audit-runs/audit5.md, Low tier)
+
 
 $sent = @mail($to, $subject, $body, $headers); // @ — a mail warning must never corrupt the JSON response
 
@@ -755,11 +761,19 @@ if ($formType === 'rfq') {
                   . "{$bizAddr}\n";
 }
 
-$replyHeaders  = "From: " . hdr($bizName) . " <noreply@insulationproducts.com>\r\n";
+// RFC 5322 quoting on the display name. hdr() closes header INJECTION (4.16)
+// but adds no quoting, so an unquoted name containing a comma — "Insulation
+// Products, Inc." is the obvious one — parses as an address LIST: "Insulation
+// Products" and "Inc. <noreply@…>". Strict MTAs reject that, and mail() here is
+// best-effort and @-suppressed, so every auto-reply would simply stop with
+// nothing reporting it. Quote it, and escape any quote or backslash inside.
+// (audit-runs/audit5.md, Low tier)
+$fromName      = '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], hdr($bizName)) . '"';
+$replyHeaders  = "From: " . $fromName . " <noreply@insulationproducts.com>\r\n";
 $replyHeaders .= "Reply-To: " . hdr($to) . "\r\n";
 $replyHeaders .= "MIME-Version: 1.0\r\n";
 $replyHeaders .= "Content-Type: text/plain; charset=UTF-8\r\n";
-$replyHeaders .= "X-Mailer: PHP/" . PHP_VERSION . "\r\n";
+
 
 if ($autoReplyOk) {
     @mail($replyTo, $replySubject, $replyBody, $replyHeaders); // best-effort, no error check

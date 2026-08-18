@@ -127,6 +127,39 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `plan10-help.js` | PLAN-10 items 9 + 10 / AUDIT-10 **A10-028 + A10-029** — the Help page must not teach a workflow the dashboard abandoned, or a spec shape that cannot be right. 29 checks over 4 viewports. **Reads the diagram through `svg.querySelectorAll('text')`, never `innerText`** — inline SVG text is not in `innerText`, and pass-7's first attempt at A10-028 reported that real finding as "does not reproduce" for exactly that reason. The Min/Max check is conditional on the **header**: a column smaller than its neighbour is only a defect when something claims the pair is a minimum and a maximum, so `Recovered < Expanded` (correct physics) must keep passing. Also asserts the three data rows byte-identical, that the sub-column feature keeps its explanation (16 spans in the catalog use it), and 0 PHP notices / console errors at every viewport |
 | `plan10-shot.js` | not a suite — the visual-confirmation shooter for whichever PLAN-10 item is under work. `node _harness/plan10-shot.js <slug> <url> [viewport...]`, with `PLAN10_SHOT_TO=<selector>` to scroll a below-the-fold target into view and clip around it |
 
+## Audit-5 acceptance
+
+The three tiers of `audit-runs/audit5.md`. Each suite was written against the
+UNFIXED tree and watched to fail before the fix went in.
+
+| File | Item |
+|---|---|
+| `audit5-blockers.js` | A-5.1 the auto-reply mail relay, A-5.2 the robots.txt catalog block. 18 checks. Asserts in BOTH directions: the reply cannot carry composed prose or a link, and the sales notification and inquiry record still store the value exactly as typed. Locates the auto-reply by `^To: <addr>$` — a substring test also matches the sales mail's `Reply-To:`, which pointed every assertion at the wrong message |
+| `audit5-high.js` | The seven High findings. 30 checks. The A-5.5 arm runs PHP under `ulimit -f` with `SIGXFSZ` ignored, so the write returns SHORT instead of killing the process — that is what makes it a real short-write test rather than a simulated one |
+| `audit5-medium.js` | The nineteen Medium findings. 20 checks, spanning PHP helpers, the rendered admin and the public site |
+
+## Suites named nowhere until 2026-08-18
+
+`plans/GUARDRAILS.md` calls this file "the live suite list", and fourteen
+assertive suites were missing from it — every `plan8-*` acceptance suite among
+them. An executor judged against this list would have skipped them. They are
+listed here now; the mechanical check is `git ls-files _harness` filtered to
+files that both assert and set a failing exit status.
+
+| File | Item |
+|---|---|
+| `plan8-certs.js` | PLAN-8 — certification claims render from site-info |
+| `plan8-meta.js` | PLAN-8 — per-route title/description/canonical |
+| `plan8-catalog.js` | PLAN-8 — catalog listing, filters and empty states |
+| `plan8-lead.js` | PLAN-8 B26 — the lead path and where the first field sits |
+| `plan8-motion.js` | PLAN-8 — reduced-motion compliance |
+| `plan8-chrome.js` | PLAN-8 — navbar/footer chrome across viewports |
+| `plan8-keyboard.js` | PLAN-8 — keyboard reachability and focus order |
+| `plan8-mobile.js` | PLAN-8 — mobile layout and tap targets |
+| `plan8-polish.js` | PLAN-8 — copy and layout polish. **Expected red at 16/17 on Linux**: `fc-match system-ui` resolves to DejaVu Sans, which is wider than Arial (GUARDRAILS §7.1) |
+| `plan10-admincrawl.js` | PLAN-10 — crawls every admin page for PHP notices and console errors |
+| `copydrift-selftest.js` | Proves `copydrift.js` can fail — a check that has never failed proves nothing |
+
 ## Investigative tools (one-shot, kept as evidence)
 
 `inkaudit`, `whitesurfaces`, `fgsurfaces`, `findwhite`, `findtranslucent`,

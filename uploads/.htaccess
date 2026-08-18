@@ -11,7 +11,22 @@ Options -Indexes
   Deny from all
 </FilesMatch>
 
-# Only image types are served; everything else in here is blocked.
+# Image types are explicitly allowed. NOTE — this is an allow-list on top of the
+# script blacklist above, NOT a deny-by-default: a file whose extension is in
+# neither list (.svg, .html, .txt) is still served by Apache's default. The
+# comment here used to claim "everything else in here is blocked", which was
+# true of the intent and false of the rules.
+#
+# Left as an allow-list deliberately. A real deny-by-default means adding a
+# `<Files "*">Deny from all</Files>` above this, and whether images survive it
+# depends on how Apache merges the two sections — which cannot be tested here,
+# because `php -S` ignores .htaccess entirely (GUARDRAILS 4.3). Getting that
+# wrong 404s every product photo on the live site, which is a far worse outcome
+# than the gap it closes: nothing can land in this folder today except the five
+# image types upload-image.php whitelists and cross-checks with getimagesize()
+# and finfo, with SVG deliberately excluded. Fix the comment, keep the rules,
+# and revisit with a real Apache to test against.
+# (audit-runs/audit5.md, Low tier)
 <FilesMatch "\.(?i:jpe?g|png|webp|gif)$">
   Order Deny,Allow
   Allow from all

@@ -2792,7 +2792,7 @@ function productApprovals(p) {
     return APPROVAL_NAMES.filter((n) => p.approvals.includes(n));
   }
   const hay = [
-    (p.badges || []).join(" | "),
+    asList(p.badges).map(asText).join(" | "),
     p.specificationsSummary || "",
     Array.isArray(p.description) ? p.description.join(" ") : String(p.description || ""),
     JSON.stringify(p.specTable1 || {}),
@@ -2943,7 +2943,7 @@ function DatasheetsPage({ products }) {
     for (const p of products) {
       if (!p.pdfUrl) continue;
       if (needle) {
-        const hay = `${p.sku || ""} ${p.name || ""} ${p.partType || ""} ${(p.badges || []).join(" ")}`.toLowerCase();
+        const hay = `${p.sku || ""} ${p.name || ""} ${p.partType || ""} ${asList(p.badges).map(asText).join(" ")}`.toLowerCase();
         if (!hay.includes(needle)) continue;
       }
       (g[p.partType || "Other"] ||= []).push(p);
@@ -3076,7 +3076,7 @@ function DatasheetsPage({ products }) {
                   {rows.map((p) => (
                     <a
                       key={p.sku || p.id}
-                      href={p.pdfUrl}
+                      href={safeHref(p.pdfUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-lg flex items-start gap-3 transition-all duration-150 hover:shadow-md"
@@ -6285,11 +6285,20 @@ function fetchProductsCached() {
     .then((data) => {
       // Null guard: a truncated or partially-written file parses to `null`,
       // and `data.products` on null throws instead of degrading.
-      const arr = Array.isArray(data)
+      const raw = Array.isArray(data)
         ? data
         : data && Array.isArray(data.products)
           ? data.products
           : [];
+      // L2 — and drop any row that is not an object. A literal `null` in the
+      // array (a hand edit, a merge gone wrong) threw on the first `p.sku` in
+      // Navbar's sidebar grouping — and Navbar renders OUTSIDE the
+      // ErrorBoundary, which wraps only <main>, so React 18 unmounted the whole
+      // root and every page went blank, phone number included. Invariant 8 puts
+      // the providers and chrome above the LOADING gate, which is a different
+      // thing from being inside the boundary. Filtering here fixes it for every
+      // consumer at once rather than guarding each one.
+      const arr = raw.filter((p) => p && typeof p === "object" && !Array.isArray(p));
       if (timer) clearTimeout(timer);
       _productsCache = arr;
       _productsCacheAt = Date.now();
@@ -6639,6 +6648,40 @@ function groupFaq(flat) {
 // the SPA rewrite answers it with index.html — a broken frame where the
 // photograph belongs. Absolute http(s) and root-relative values pass through.
 // (PLAN-9 item 5, audit 2026-08-09 finding 5.)
+// Owner data is a hand-editable JSON file, so a field can arrive as the wrong
+// TYPE — a string where the code expects a list, a number where it expects
+// text. The guards were inconsistent about it: DashboardPage and the Product
+// JSON-LD both Array.isArray-guarded `description`, while the product page did
+// `(product.description || []).map(...)`, which throws on a string; and one
+// string `badges` took down the whole /dashboard index through productApprovals.
+// The ErrorBoundary contains the damage to one page, but the page is still gone.
+// Coerce instead of crashing — a wrong type should degrade to something
+// renderable, exactly as a missing one already does.
+// (audit-runs/audit5.md, Low tier)
+// L4 — the render-side half for data-sheet links.
+//
+// `pdfUrl` and `additionalPdfs[].url` are gated where they are WRITTEN —
+// upload-pdf.php derives the name, edit.php's F6 regex validates the extras —
+// but not where they are rendered, which is the same argument A1 rejected for
+// the footer link: data/ is a plain file, so an FTP edit or a backup restored
+// from before those gates existed reaches the component with nothing in
+// between. One call per sink, using the guard that already exists.
+function safeHref(value) {
+  return isSafeLinkUrl(value) ? value : undefined;
+}
+
+function asList(v) {
+  if (Array.isArray(v)) return v.filter((x) => x !== null && x !== undefined);
+  if (v === null || v === undefined || v === "") return [];
+  return [v];
+}
+function asText(v) {
+  if (typeof v === "string") return v;
+  if (v === null || v === undefined) return "";
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return "";
+}
+
 function slotSrc(p) {
   if (!p || p.startsWith("/") || /^[a-z]+:/i.test(p)) return p;
   return "/" + p;
@@ -7023,6 +7066,18 @@ function mergeContent(data) {
     const v = data[k];
     if (Array.isArray(dv)) {
       out[k] = Array.isArray(v) ? v : dv;
+      // L2 — a null row here reaches Footer's link map, and Footer renders
+      // OUTSIDE the ErrorBoundary, so one bad row blanks the entire site rather
+      // than one page.
+      //
+      // Deliberately a SEPARATE statement. Invariant 3 lives in the ternary
+      // above and `invariants.js` matches it textually, so folding the filter
+      // into it — `Array.isArray(v) ? v.filter(…) : dv` — fails INV3 even
+      // though the semantics are identical. The invariant is the decision
+      // (an empty array is a deletion, never re-seeded); dropping null rows is
+      // a separate question asked afterwards, and writing it that way keeps
+      // the guarded expression byte-identical.
+      if (Array.isArray(out[k])) out[k] = out[k].filter((x) => x !== null && x !== undefined);
     } else if (dv && typeof dv === "object") {
       out[k] = {};
       for (const g of Object.keys(dv)) {
@@ -7317,7 +7372,12 @@ function PageMeta({ products }) {
     // Update <meta name="description"> plus the Open Graph share tags so search
     // engines and social previews reflect the editable copy.
     const setMeta = (attr, key, val) => {
-      if (!val) return;
+      // L5 — an empty value used to early-return, so a soft-404 that
+      // deliberately sets an empty description simply kept whatever the
+      // PREVIOUS route wrote: /prodcuts described the product page the visitor
+      // came from. Write the empty string instead; only skip when the caller
+      // passed nothing at all. (audit-runs/audit5.md, Low tier)
+      if (val === undefined || val === null) return;
       let el = document.querySelector(`meta[${attr}="${key}"]`);
       if (!el) {
         el = document.createElement("meta");
@@ -8444,7 +8504,7 @@ function ProductDetail({ product, allProducts }) {
   // C32 — Features carries what the approvals block does not already say.
   // Filtered, not sliced: the standards are scattered through `badges` in the
   // owner's own order, not grouped at one end.
-  const featureBadges = (product.badges || []).filter((b) => !isStandardBadge(b));
+  const featureBadges = asList(product.badges).map(asText).filter((b) => !isStandardBadge(b));
 
   // 2.4 — Related products: same partType, excluding current, up to 4
   // I3 fix + Fix 12: NON_RELATABLE_TYPES at module level — see const above ProductDetail
@@ -8555,7 +8615,7 @@ function ProductDetail({ product, allProducts }) {
               <>
                 {/* Primary PDF — uses pdfLabel if set (e.g. "Molded Cap" for IP52EC), else "Download PDF" */}
                 <a
-                  href={product.pdfUrl}
+                  href={safeHref(product.pdfUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
@@ -8589,7 +8649,7 @@ function ProductDetail({ product, allProducts }) {
                   product.additionalPdfs.map((extra, i) => (
                     <a
                       key={`${i}-${extra.url}`}
-                      href={extra.url}
+                      href={safeHref(extra.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
@@ -8684,7 +8744,7 @@ function ProductDetail({ product, allProducts }) {
         {/* Left — photo */}
         <div className="p-5 sm:p-8 border-b border-gray-200 md:border-b-0 md:border-r md:border-gray-200">
           {/* Product image — show real photo if available, branded placeholder if placehold.co */}
-          {product.photoUrl && !product.photoUrl.includes("placehold.co") && !photoFailed ? (
+          {product.photoUrl && !asText(product.photoUrl).includes("placehold.co") && !photoFailed ? (
             <img
               src={product.photoUrl}
               alt={product.name}
@@ -8849,7 +8909,7 @@ function ProductDetail({ product, allProducts }) {
             </div>
           )}
           <div className="space-y-3">
-            {(product.description || []).map((para, i) => (
+            {asList(product.description).map(asText).map((para, i) => (
               <p
                 key={i}
                 className="text-sm leading-relaxed"
@@ -9649,7 +9709,7 @@ function ProductPage({ products }) {
               <>
                 {/* Primary PDF — uses pdfLabel if set, else generic "Data Sheet" */}
                 <a
-                  href={product.pdfUrl}
+                  href={safeHref(product.pdfUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ipc-tap"
@@ -9697,7 +9757,7 @@ function ProductPage({ products }) {
                   product.additionalPdfs.map((extra, i) => (
                     <a
                       key={`${i}-${extra.url}`}
-                      href={extra.url}
+                      href={safeHref(extra.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="ipc-tap"
@@ -10333,8 +10393,12 @@ function DashboardPage({ products }) {
         <div className="sm:hidden space-y-3">
           {filtered.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-500">
+              {/* L3 — DashboardPage renders only after loading is false, so zero
+                   rows means the catalog is EMPTY, not still arriving. This said
+                   "Loading catalog…" forever, where /products says honestly that
+                   the catalog is empty. (audit-runs/audit5.md, Low tier) */}
               {tableRows.length === 0
-                ? 'Loading catalog…'
+                ? 'No products in the catalog yet.'
                 : `No results${search ? ` for "${search}"` : ''}${activeFamily !== 'All' ? ` in ${activeFamily}` : ''}.`}
             </div>
           ) : (
@@ -10573,7 +10637,7 @@ function DashboardPage({ products }) {
                           }}
                         >
                           {tableRows.length === 0
-                            ? "Loading catalog…"
+                            ? "No products in the catalog yet"
                             : "No products found"}
                         </div>
                         <div
@@ -10591,7 +10655,7 @@ function DashboardPage({ products }) {
                               placeholder after a miss — say it here, where the
                               miss actually happens. */}
                           {tableRows.length === 0
-                            ? "Please wait while the product catalog loads."
+                            ? "Add your first product from the Products page in the dashboard."
                             : `No results${search ? ` for "${search}"` : ""}${activeFamily !== "All" ? ` in ${activeFamily}` : ""}. This searches part IDs, types and descriptions — sizes are listed on each product page. Try a different term, clear the category filter, or call 630.771.0700.`}
                         </div>
                         {(search || activeFamily !== "All") && (

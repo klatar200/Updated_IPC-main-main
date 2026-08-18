@@ -154,7 +154,7 @@ incident.
    `GlobalStyles` mounts inside the tree that only renders *after* loading
    finishes, so defining the skeleton only there made it styleless in the exact
    situation it exists for. `.ipc-page-header` is deliberately in **both**
-   (`index.css:49` and `App.jsx`'s `GlobalStyles`) — the two are complementary
+   (`index.css:341` and `App.jsx`'s `GlobalStyles`) — the two are complementary
    and nothing is broken. The earlier wording said "not in `GlobalStyles`",
    which was false as written. (Corrected 2026-08-05.)
 10. **`public/contact.php`'s `s()` does not HTML-escape.** Its destinations are a

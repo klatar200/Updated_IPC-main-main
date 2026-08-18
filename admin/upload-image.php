@@ -74,12 +74,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $uploadsHt = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
         if (is_dir(dirname($uploadsHt)) && !file_exists($uploadsHt)) {
+            // `php_flag` is a mod_php directive. This project targets PHP as
+            // CGI/FastCGI — public/.user.ini exists precisely because php_value
+            // and php_flag do not work there — and Apache answers an unknown
+            // directive with "Invalid command 'php_flag'" and a 500 for the
+            // WHOLE directory, which here would be every product photo on the
+            // site. This branch only runs when uploads/.htaccess is missing
+            // (the folder was created at runtime rather than deployed), so it
+            // was a latent 500 waiting for exactly the recovery case it exists
+            // to serve. Write the shipped file's rules instead — they are
+            // stronger anyway, and they contain nothing mod_php-only.
+            // (audit-runs/audit5.md, Low tier)
             @file_put_contents($uploadsHt, "# Uploaded files are DATA. Never let the web server execute anything here.\n"
-                . "php_flag engine off\n"
-                . "AddType text/plain .php .php3 .php4 .php5 .phtml .pl .py .cgi .sh .htaccess\n"
-                . "<FilesMatch \"\\.(php|php[3-9]|phtml|pl|py|cgi|sh)$\">\n"
-                . "  Order allow,deny\n"
+                . "# Written at runtime by admin/upload-image.php because this folder was\n"
+                . "# created on the server rather than deployed. Mirrors uploads/.htaccess.\n"
+                . "Options -Indexes\n"
+                . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
+                . "  Order Allow,Deny\n"
                 . "  Deny from all\n"
+                . "</FilesMatch>\n"
+                . "<FilesMatch \"\\.(?i:jpe?g|png|webp|gif)$\">\n"
+                . "  Order Deny,Allow\n"
+                . "  Allow from all\n"
                 . "</FilesMatch>\n");
         }
         $file = $_FILES['image_file'];

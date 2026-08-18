@@ -51,7 +51,12 @@
     if (feet) badges += '<span class="sp-badge">' + esc(feet) + " ft in stock</span>";
 
     var socials = "";
-    [["facebook", "Facebook"], ["linkedin", "LinkedIn"], ["twitter", "Twitter"], ["youtube", "YouTube"], ["pinterest", "Pinterest"]]
+    // All SEVEN channels settings.php offers. instagram and tiktok were added to
+      // the save list and to the public footer by A-01 but never here, so typing
+      // an Instagram URL changed nothing visible in the preview — the one screen
+      // whose whole job is to show what the save will look like.
+      // (audit-runs/audit5.md, Low tier)
+      [["facebook", "Facebook"], ["instagram", "Instagram"], ["linkedin", "LinkedIn"], ["twitter", "Twitter"], ["youtube", "YouTube"], ["pinterest", "Pinterest"], ["tiktok", "TikTok"]]
       .forEach(function (s) { var u = v("social_" + s[0]); if (u) socials += '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + s[1] + "</a>"; });
 
     var html = '<div class="sp-name">' + esc(name) + "</div>";

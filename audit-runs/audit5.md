@@ -17,7 +17,7 @@ directions.
 | **Blocker** | **2** | **Fixed** 2026-08-18 (`WHATS_LEFT.md` §1q) |
 | High | 7 | **Fixed** 2026-08-18 (§1r) |
 | Medium | 19 | **Fixed** 2026-08-18 (§1s) |
-| Low | 22 | Open — recorded below |
+| Low | 22 | **Fixed** 2026-08-18 (§1t) — 4 of them already closed by the tiers above |
 
 ## Nothing previously verified has regressed
 

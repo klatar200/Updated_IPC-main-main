@@ -43,7 +43,15 @@ RewriteBase /
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   # env=HTTPS so this is never sent over plain HTTP, where it is meaningless
   # and, on a host that later drops TLS, actively harmful.
-  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+  # env=HTTPS is set by mod_ssl only when TLS terminates on THIS server. The
+  # redirect above exists because it often does not — %{HTTPS} reads "off" on
+  # every request behind a TLS-terminating proxy (audit1 A-02) — so the two
+  # rules assumed opposite topologies and, in the proxy case, the one header
+  # meant to pin browsers to HTTPS was silently never sent. Set it when either
+  # signal says the request arrived over TLS.
+  SetEnvIf X-Forwarded-Proto "^https$" IPC_TLS=1
+  SetEnvIf HTTPS "^on$" IPC_TLS=1
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=IPC_TLS
 </IfModule>
 
 # Suppress version disclosure and directory listings, as the admin already does.
@@ -59,6 +67,16 @@ Options -Indexes
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
 # Serve existing files and directories normally (assets, JSON, .well-known, etc.)
+# A missing file under /assets/ must NOT fall through to the SPA shell. The
+# build emits content-hashed files there, so a request for one that is not on
+# disk is always a mistake — a stale URL, or an FTP deploy that has uploaded the
+# new index.html but not yet the new bundle. Answering it with index.html means
+# a 200 and Content-Type: text/html where the browser expects JavaScript, which
+# it then tries to execute: a blank page and a console error, silently, for the
+# length of the upload window. This is the same HTML-as-JS chain PLAN-8 A5
+# documents for base:'./'. Let it 404 honestly instead.
+# (audit-runs/audit5.md, Low tier)
+RewriteCond %{REQUEST_URI} !^/assets/
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 

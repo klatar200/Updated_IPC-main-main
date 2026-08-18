@@ -132,7 +132,16 @@ function admin_password_write(string $newPlain): array {
     $path = LOCAL_CONFIG_PATH;
     $hash = password_hash($newPlain, PASSWORD_BCRYPT, ['cost' => 12]);
     $defineLine = "define('ADMIN_PASSWORD_HASH', '" . $hash . "');";
-    $re = "/define\\(\\s*'ADMIN_PASSWORD_HASH'\\s*,\\s*'[^']*'\\s*\\)\\s*;/";
+    // Either quote style. This matched single quotes only, and
+    // define("ADMIN_PASSWORD_HASH", "$2y$…") is legal PHP that works perfectly
+    // at login — a bcrypt hash contains no interpolatable variable, so "$2y" is
+    // literal. A file hand-deployed that way therefore did not match, the new
+    // define was APPENDED, PHP kept the FIRST definition and ignored the second,
+    // and the read-back check below matched the appended line and passed — so
+    // the page said "Password changed" while the old password went on working,
+    // permanently, with every later change stacking another dead define.
+    // (audit-runs/audit5.md, Low tier)
+    $re = "/define\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)*)\\2\\s*\\)\\s*;/";
 
     if (file_exists($path)) {
         $body = (string)file_get_contents($path);
@@ -187,11 +196,24 @@ function admin_password_write(string $newPlain): array {
     }
 
     $check = (string)@file_get_contents($path);
-    $ok = preg_match("/define\\(\\s*'ADMIN_PASSWORD_HASH'\\s*,\\s*'([^']+)'\\s*\\)\\s*;/", $check, $m)
-          && password_verify($newPlain, $m[1]);
+    $ok = preg_match("/define\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)+)\\2\\s*\\)\\s*;/", $check, $m)
+          && password_verify($newPlain, $m[3]);   // group 3 — 1 and 2 are the quote characters
     if (!$ok) {
-        if ($backupPath && file_exists($backupPath)) @copy($backupPath, $path);
-        return ['ok' => false, 'error' => 'Verification of the written file failed — the previous password was restored. Nothing changed.'];
+        // L11 — say what actually happened. The restore only runs when a backup
+        // exists, and @copy() above is unchecked, so on the path where the copy
+        // failed this returned "the previous password was restored. Nothing
+        // changed." about a file that had just been rewritten and not restored.
+        // If that leaves config.local.php unusable the sentinel fails closed and
+        // NOBODY can sign in — and the message pointed away from the one thing
+        // that recovers it.
+        $restored = false;
+        if ($backupPath && file_exists($backupPath)) $restored = @copy($backupPath, $path);
+        return ['ok' => false, 'error' => $restored
+            ? 'Verification of the written file failed — the previous password was restored. Nothing changed.'
+            : 'Verification of the written file failed, AND the previous version could not be restored. '
+              . 'Your password may now be in an unusable state. Check admin/config.local.php over FTP — '
+              . 'a backup copy may exist alongside it as config.local.php.bak.* — or use the '
+              . 'ALLOW-PASSWORD-RESET recovery described in admin/README.md.'];
     }
     @unlink(PASSWORD_RESET_FLAG); // a successful write closes any open reset window
     return ['ok' => true, 'error' => ''];
@@ -660,8 +682,33 @@ function backup_before_write(string $path, string $prefix): ?string {
         }
     }
 
-    $backupPath = backup_path($dir, $prefix);
-    if (!@copy($path, $backupPath)) return null;
+    // L13 — claim the name before copying into it.
+    //
+    // backup_path() globs, picks max-used + 1, and returns; the copy happens
+    // afterwards. Two writers inside the same second can both glob before
+    // either has copied, both compute the same sequence, and the second
+    // silently overwrites the first — losing a recoverable state on the one
+    // page whose entire job is not to lose them. Creating the file with 'x'
+    // (O_CREAT|O_EXCL, atomic) makes the claim the same operation as the check,
+    // so the loser sees the collision and takes the next sequence instead.
+    // The allocation rule itself is unchanged — still max-used + 1, per
+    // invariant 5 — because backup_path() is still what computes it.
+    $backupPath = null;
+    for ($try = 0; $try < 10; $try++) {
+        $candidate = backup_path($dir, $prefix);
+        $claim = @fopen($candidate, 'x');
+        if ($claim !== false) {
+            fclose($claim);
+            $backupPath = $candidate;
+            break;
+        }
+        // Someone took it between the glob and here; recompute and retry.
+    }
+    // Ten collisions means ten writers in one second, which does not happen on a
+    // one-owner admin — but fall back to the old behaviour rather than skipping
+    // the backup, because no backup at all is the worse outcome.
+    if ($backupPath === null) $backupPath = backup_path($dir, $prefix);
+    if (!@copy($path, $backupPath)) { @unlink($backupPath); return null; }
     $backups = backup_list($dir, $prefix); // oldest first, by parsed (stamp, seq)
     if (count($backups) > BACKUP_KEEP) {
         foreach (array_slice($backups, 0, count($backups) - BACKUP_KEEP) as $old) @unlink($old);
