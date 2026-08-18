@@ -36,6 +36,32 @@ php -S 127.0.0.1:8125 -t _harness/site -c _harness/php-nb2-off.ini _harness/rout
 so `php -S` serves it, and it serves it from the **docroot**, not from the
 router's own directory.
 
+### On Windows
+
+`sync.sh` is a POSIX shell script — run it through Git Bash (`bash
+_harness/sync.sh`, or `& 'C:\Program Files\Git\bin\bash.exe' _harness/sync.sh`
+if it is not on PATH), not PowerShell. It needs `cp -ru`, `cmp` and `grep -o`,
+all of which Git Bash has, and it shells out to `php`, which Git Bash picks up
+from the inherited Windows PATH.
+
+Start each `php -S` in its own terminal. Windows PowerShell 5.1 has no trailing
+`&`; the equivalent is `Start-Process php -ArgumentList '-S','127.0.0.1:8123',...`,
+but two terminals is simpler and keeps the request logs visible. Bind
+`127.0.0.1` rather than `0.0.0.0` — all-interfaces raises a Defender Firewall
+prompt and buys nothing for a local browser.
+
+**`mail()` does not go through `fakemail.sh` on Windows.** `sendmail_path` is a
+Unix-only directive; PHP for Windows routes `mail()` through the `SMTP` /
+`smtp_port` ini settings instead, so it dials localhost:25, finds nothing, and
+`contact.php` stops at its "mail server could not send" branch. Every suite that
+reads the captured mail — `contactflow.js`, `plan3-autoreply.js` — is therefore
+[UNVERIFIED] on Windows unless something is listening on 25. Browsing the site
+and the whole admin are unaffected.
+
+Line endings are governed by [`.gitattributes`](../.gitattributes); if `bash`
+reports `set: -` as an invalid option or `cd: $'...\r'`, the checkout predates
+that file — see its comment for the one-line repair.
+
 `plan5-throttle.js` additionally needs a **fleet** of ten servers, because one
 `php -S` answers one request at a time and neither of 4.14's faults — a lost
 count in an unlocked read-modify-write, and a `sleep()` that several
