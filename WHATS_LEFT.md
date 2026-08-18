@@ -4624,3 +4624,108 @@ those two keys plus the resulting reordering. Every save after that is free.
 The first run of this suite reported 2/9 against a working implementation
 because it took the pre-settle state as its baseline — the suite now settles
 first and says why.
+
+---
+
+## 2k. Open after the three-round audit (2026-08-18)
+
+Full report with evidence: [`audit-runs/audit5.md`](audit-runs/audit5.md).
+Base `98c8450`. Nothing here is a regression — the full suite was run first and
+came back **66/68 clean**, both reds being the documented expected-reds, with
+`lint.php` green, `invariants.js` 17/17 and all 16 CLAUDE.md invariants
+re-verified in code. These are areas the suites were never written to cover.
+
+Findings are recorded, **not fixed**: GUARDRAILS §1 says work found outside a
+plan is logged here rather than changed in place, and this was an audit, not a
+remediation cycle.
+
+### Launch blockers
+
+- [ ] **A-5.1 — `public/contact.php` is an unauthenticated content-controlled
+  mail relay.** `s()`'s control-char class excludes `\x0A`/`\x0D`, so newlines
+  survive, and five attacker-supplied fields are interpolated into the
+  auto-reply body — which is mailed to the attacker-supplied `email` address
+  from `noreply@insulationproducts.com` with IPC's SPF/DKIM. **Executed:** one
+  anonymous POST delivered "ACTION REQUIRED: invoice #48812 is 30 days overdue
+  … Pay online now: https://evil.example/… Regards, IPC Accounts Receivable" to
+  a chosen third party. ~1,000 chars of attacker prose, ~720 victims/day from
+  one IP. Fix is in the body slots (`hdr()` already exists), not in `s()` —
+  invariant 10 stays intact. `public/contact.php:197-207, 609-625, 639-646`.
+- [ ] **A-5.2 — `robots.txt:6` `Disallow: /data/` makes the whole catalog
+  un-indexable.** The SPA is 100% client-rendered and Google's WRS honours
+  robots.txt for subresources; longest-match means the rule beats `Allow: /`.
+  Measured: no fallback catalog exists in the bundle, and all 42 product pages
+  plus `/products`, `/dashboard`, `/datasheets` render `CatalogError` to a
+  compliant crawler — while `sitemap.php` (a server-side read, unaffected)
+  advertises those 52 URLs. One-line fix.
+
+### High
+
+- [ ] **A-5.3 — the RFQ form loses the lead when JS does not run.** No hidden
+  `form_type`, so a native submit routes to the message branch and 422s before
+  `mail()` and before the JSONL log. Measured A/B against a live server: same
+  payload without the field → 422, log delta **0**; with it → 200, delta **+1**.
+  RFQ is the default tab. `src/App.jsx:5257-5261`, `public/contact.php:398, 487-496`.
+- [ ] **A-5.4 — one bot floods the Audit Log's 500-line window in 1.7 days.**
+  `audit-log.php` slices before it filters, and `admin-log.jsonl` has no
+  rotation; the owner's own history becomes unreachable behind
+  *Sign-in failed* rows and a filter returns "No entries match".
+- [ ] **A-5.5 — a failed write destroys the live catalog silently.** No
+  temp+`rename()`; reproduced a 102,400-of-300,000-byte truncation under
+  `ulimit`, after which `load_products()` returns 0 products, the dashboard says
+  "0 products across 0 categories" with no health banner, and the next Add
+  Product writes a one-product catalog under a success message.
+- [ ] **A-5.6 — `mail()` true ≠ delivered, and no surface tells the owner a lead
+  arrived.** No unread count, badge or digest anywhere; spam-foldered leads are
+  logged `sent: true` with a green "Emailed" badge.
+- [ ] **A-5.7 — unauthenticated `password[]=x` fatals the login page**, printing
+  the absolute server path and the first 16 chars of the live bcrypt hash.
+  Suppressed in production only by `public/.user.ini` — a dotfile FTP clients
+  hide, omitted from the `DEPLOY_READINESS_v2 §7` upload row, and inert under
+  mod_php.
+- [ ] **A-5.8 — an unwritable `admin/` disables the login throttle *and* the
+  audit log together**, and the health banner names neither.
+- [ ] **A-5.9 — both contact-form abuse controls fail open silently.** Limiter
+  state lives in `sys_get_temp_dir()` behind `@`-suppressed writes, is never
+  cleaned up (`grep unlink public/contact.php` → 0), and has no health check.
+- [ ] **A-5.10 — client-only rendering with no prerender.** Beyond Google,
+  nothing sees the catalog: Bing, the AI answer engines and every social
+  unfurler get the generic shell.
+
+### Medium and Low
+
+Nineteen Medium and twenty-two Low, listed in full in `audit-runs/audit5.md`.
+The ones most likely to reach the owner or a customer first: the spec editors
+seed a phantom row so every new product ships two junk blocks (browser-measured,
+and unfixable from the visual editor because deleting the last row re-seeds it);
+a malformed-but-savable spec table crashes the product page (measured with a
+control); `isSafeLinkUrl` is bypassable with a backslash (`/\evil.com` resolves
+off-site, measured); `site-info.json` and `content.json` never re-check, so the
+admin's "within ~60 seconds" promise is false in any already-open tab; ten new
+products consume all thirty backup slots; no timezone is set anywhere, so an
+Illinois business reads UTC timestamps; and rotated inquiry logs are not
+gitignored on a public repo.
+
+### Owner actions, not code
+
+`audit-runs/audit5.md` § *Owner actions for launch* carries the full list. The
+two already tracked in §2j — **rotate the live admin password** (a working hash
+is in this public repo's history) and **resolve the four contradictory ISO 9001
+claims** — are genuinely launch-gating despite being filed under "not launch
+blockers". Newly added: publish SPF/DKIM/DMARC and confirm the `noreply@`
+mailbox; set up Search Console and submit the sitemap; add an uptime monitor and
+a form self-test; decide apex-vs-www and check the certificate covers both;
+verify `display_errors` is Off on the live server rather than assuming.
+
+### Corrected records
+
+- **`D-03` (audit 4) is stale as written.** "No in-range patch" no longer holds:
+  `npm audit fix` resolves semver-compatibly to `react-router-dom@6.30.4` +
+  `@remix-run/router@1.23.3` and closes GHSA-2j2x-hqr9-3h42. Two advisories
+  still need 7.18+, and a **fourth** has appeared since — GHSA-jjmj-jmhj-qwj2
+  (CVE-2026-53668), affecting 6.30.2–6.30.4, i.e. both the shipped and the
+  bumped version. All require an app-level open redirect; re-verified that every
+  `setSearchParams({page: …})` call site passes a literal, so none is reachable.
+  Recommendation: take the free bump; the v7 migration stays the owner's call.
+- **`D-02` (audit 4) is closed.** `plan10-repalette` is **33/33** — the stale
+  baseline was re-based in PR #46.
