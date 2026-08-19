@@ -5198,3 +5198,109 @@ catalog-shape change), `plan5-images` 12/12 (the pixel ceiling), `adminwidth`
 `contactflow` 85/85, `copydrift` and `plan2-trunc` 13/13. All three audit-5
 suites held: `audit5-blockers` 18/18, `audit5-high` 30/30, `audit5-medium`
 20/20.
+
+
+---
+
+## 2m. Open after audit 7 (2026-08-19)
+
+Full report with evidence: [`audit-runs/audit7.md`](audit-runs/audit7.md).
+Base `ff62280` — main immediately after PR #50 merged the audit-6 work.
+
+**No Blockers and no High findings.** After two consecutive remediation rounds
+that closed 59 items, that is the honest outcome and it is recorded as such
+rather than padded. Seven findings: four Medium, three Low.
+
+Nothing is a regression. The full suite was run first with all thirteen servers
+up and came back **70/72 clean**, both reds being the documented expected-reds,
+with `lint.php` green, `invariants.js` 17/17, `npm run build` clean, `audit6`
+45/45 and all three audit-5 suites holding.
+
+Findings are recorded, **not fixed** — GUARDRAILS §1.
+
+Two lenses were new this round, and both earned their place: **follow one
+person through a whole task** rather than asserting properties of the code
+(A-7.1, A-7.2), and **ask what the code costs a stranger** rather than what it
+lets them do (A-7.3). Six previous rounds examined the session's hardening;
+none asked what starting one for an anonymous caller costs.
+
+### Medium
+
+- [ ] **A-7.1 — the 422 is the only rejection path that leaves no record, and a
+  real customer can reach it.** Every other exit in `contact.php` logs before
+  exiting; the 422 does not, and A-5.3 fixed one *cause* of reaching it without
+  changing the exit. It is reachable because **the browser and the server
+  disagree about what an email address is**: measured with Chromium's constraint
+  API and PHP side by side, `jane@acmecorp` and `jane@localhost` are ACCEPTED by
+  `type="email"` and REJECTED by `FILTER_VALIDATE_EMAIL` (HTML5 permits a
+  dotless domain). Measured end to end against the live harness — 422 with **log
+  delta +0** for three malformed addresses, 200 and **+1** for a valid one.
+  `public/contact.php:551-555, 613-617`.
+- [ ] **A-7.2 — the no-JS submitter sees `{"ok":true}` and nothing else.**
+  `Content-Type: application/json` is set unconditionally at
+  `public/contact.php:21` and no HTML branch exists. Measured in a real browser
+  with `javaScriptEnabled:false`: lands on `/contact.php`, **no heading, no link
+  back to the site**, body text `{"ok":true}` — against the JS path's "REQUEST
+  SENT / Quote Request Received". The lead IS captured (A-5.3 works); the buyer
+  cannot tell. `fetch()` here sends no Accept header while a native submit sends
+  `text/html`, so content negotiation is a clean discriminator.
+- [ ] **A-7.3 — every anonymous request to `/admin/*` mints a session file that
+  lives eight hours.** `config.php` calls `session_start()` unconditionally at
+  include time and raises `gc_maxlifetime` to 28800. Measured: 10 anonymous
+  `GET /admin/ping.php` → **+10 zero-byte `sess_` files**; auth.php +5; `/admin/`
+  +5. A-5.26 stopped an attacker *choosing* the id; a self-minted id still costs
+  a file. `ping.php` is the sharp edge — unauthenticated by design, unthrottled,
+  machine-polled, and needing nothing from the session. ~288k inodes at 10 req/s
+  for 8h against typical shared-host quotas of 100k–500k — and A-5.9 already
+  names inode exhaustion as the condition that stops the contact form's limiter
+  files being written, so the two compound.
+- [ ] **A-7.4 — the record A-5.6 made authoritative is the one with no failure
+  signal.** `ipc_log_inquiry()` returns `void`, its `file_put_contents` is
+  `@`-suppressed and unchecked, and it `return`s silently if neither candidate
+  `admin/` exists. "Best-effort by design" was reasonable when written — but
+  A-5.6 added the badge, the dashboard panel and copy that says *"this is the
+  list to trust"*. Of the four mail/log outcomes exactly one is silent, and it
+  is the bad one: **mail ok + log fails → 200 success, no record.**
+  `admin_writable()` catches the permission case; a full disk or exhausted inode
+  quota returns `is_writable() === true`. `public/contact.php:107-124`.
+
+### Low
+
+- [ ] **A-7.5 — `Editing-Your-Site-Content.md:84` still says 30 backups.**
+  `BACKUP_KEEP` is 90 since A-5.15. A-6.9 swept this drift and fixed
+  `admin/README.md` but grepped only the developer docs, so the copy the owner
+  actually reads stayed wrong. A full re-sweep of every `.md` outside the
+  append-only records found this and nothing else.
+- [ ] **A-7.6 — a photo too large to resize ships silently at full size.**
+  A-6.6's ceiling is right, but `upload-image.php:157` only speaks when the
+  resize happened, so an over-ceiling upload gets a message identical to a photo
+  that needed nothing — while a 60 MP file becomes that page's LCP image. A gap
+  in audit 6's own fix.
+- [ ] **A-7.7 — no print stylesheet, on a site whose buyers print spec pages.**
+  Measured with `emulateMedia({media:'print'})`: **0** `@media print` rules in
+  the whole stylesheet, 440px of footer and 65px of header printed, the `<h1>`
+  starting at y=364 on a ~1800px (2-page) document, and 94 dark blocks totalling
+  ~13.1M px². A gap rather than a defect, and cheap to close.
+
+### Re-verified clean — recorded so nobody re-derives them
+
+- **The shipped site throws nothing.** Ten routes plus three product pages
+  crawled in Chromium: 0 console errors, 0 failed requests, 0 responses ≥400.
+- **The catalog scales — and the measurement retired the hypothesis.** 42 → 500
+  products is 0.10 MB → 1.24 MB of JSON and `/dashboard` 844 ms → 883 ms
+  (500 rows rendered). A 12× catalog costs 39 ms. There is no scaling cliff, and
+  saying so is worth more than a speculative finding.
+- **A-6.3's broadened redaction has no catastrophic backtracking.** It nests a
+  quantifier, which is the classic ReDoS shape, so it was timed rather than
+  reasoned about: six adversarial 200-char inputs at 0.029 ms/call worst case.
+- **No regex is ever built from user input** — `new RegExp` appears nowhere in
+  `src/App.jsx` or the admin JS, and every `preg_*` pattern is a literal.
+
+### Carried forward, not re-reported
+
+**A-5.10** (no prerender), §2k's **D-03** free `react-router-dom@6.30.6` bump,
+and the owner actions — rotate the live admin password, resolve the four ISO
+9001 claims, publish SPF/DKIM/DMARC, Search Console, uptime monitor,
+apex-vs-www, verify `display_errors` is Off. Plus **A-6.2's deploy note**: the
+three data-tree `.htaccess` files must be uploaded by hand on the next deploy or
+half of A-5.2 stays on the laptop.
