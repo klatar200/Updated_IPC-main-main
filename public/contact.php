@@ -247,6 +247,27 @@ function reply_slot($val, int $max = 80): string {
     // function guards — the sender's name, a part number, a material, a
     // quantity, a date — has any legitimate reason to contain one.
     $v = preg_replace('~\b(?:https?://|ftp://|mailto:|www\.)\S*~i', '[link removed]', $v);
+    // A-5.1 covered SCHEMES; this covers what was left, and
+    // what is left is what actually lands. Measured against the shipped
+    // function: `evil-example.com/ipc-pay` and `ipc-billing.net/pay` passed
+    // straight through, and so did `xhttps://evil.example/pay` — the word
+    // boundary above does not fire between `x` and `h`. Outlook and Gmail both
+    // autolink a bare domain.tld/path in a text/plain body, so a surviving
+    // token is a live, clickable link carrying this domain's reputation.
+    //
+    // The first label must be 2+ characters so an initial keeps working:
+    // `J. Smith` and `J.Smith` are names, `evil.com` is not. That is a real
+    // trade — `Jo.Smith` would be redacted — and it is the right way round,
+    // because none of the five slots this guards (sender name, part number,
+    // material, quantity, required-by date) has any legitimate reason to
+    // contain a host, while every one of them can contain a person's name.
+    // The 2+ letter TLD is what keeps `8.0 mil` and `1.5` intact.
+    // (audit-runs/audit6.md A-6.3)
+    $v = preg_replace(
+        '~[a-z0-9][a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,24}(?:[/?#]\S*)?~i',
+        '[link removed]',
+        $v
+    );
     $v = trim($v === null ? '' : $v);
     if ($v === '') return '';
     // mbstring is present on every supported host, but it is an extension and

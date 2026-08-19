@@ -117,6 +117,23 @@ hand-deployed password file.
 | `images/` | `dist/images/` (copied from `public/images/`) | when changed |
 | `admin/` | `admin/` | this release |
 | `admin/config.local.php` | (hand-deployed, gitignored) | this release — carries the password |
+| `data/.htaccess`, `pdfs/.htaccess`, `uploads/.htaccess` | the repo, **not** `dist/` | **when changed — see below** |
+
+**The three `.htaccess` files are the exception to the do-not-upload rule, and
+they are easy to miss.** They live inside folders that are otherwise live
+customer state, they are the only files in this tree that Vite never copies into
+`dist/`, and nothing downstream will carry them to the server. The folders are
+do-not-upload because of **what is inside them**; the `.htaccess` inside them is
+repo code and has to be re-uploaded whenever it changes. Upload the file, never
+the folder.
+
+This is not hypothetical. Audit 5 changed all three, and the release before this
+one shipped `robots.txt` — which is in `dist/` — dropping `Disallow: /data/`,
+while the compensating `X-Robots-Tag: noindex` in `data/.htaccess` stayed on the
+laptop. The two halves of one fix travel on different trees, and only one of
+them travels by itself. `data/.htaccess` also carries the
+`AddType application/json .json` line that `jsonOrThrow()` in `src/App.jsx`
+depends on. (audit-runs/audit6.md A-6.2.)
 
 **Do NOT upload:**
 
@@ -127,6 +144,9 @@ hand-deployed password file.
 | `pdfs/` | Live customer state. Same rule. |
 | `uploads/` | Live customer state (product photos). `upload-image.php` creates `uploads/images/` and its `.htaccess` at runtime if absent. |
 | `_harness/`, `node_modules/`, `src/`, `*.md` | Not part of the deployed site. |
+
+The `data/`, `pdfs/` and `uploads/` rows mean each folder's **contents**. The
+`.htaccess` inside each one is repo code and belongs in the upload table above.
 
 `data/`, `pdfs/` and `uploads/` were uploaded once, on the first deploy, and are
 now owned by the customer. Re-uploading them destroys his edits.

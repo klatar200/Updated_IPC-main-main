@@ -334,11 +334,15 @@ $COPY_GROUPS = [
         // images/site/ by FTP therefore reverts, silently, on the next deploy.
         // The label carries the warning because there is no other place on this
         // page the owner would see it, and labels render as raw HTML here.
+        // Audit 6: it went on heroPhoto only, while all FIVE default
+        // into images/site/ and each is its own field with its own label — so
+        // four of the five slots the warning is about did not carry it.
+        // (audit-runs/audit6.md A-6.8)
         ['key' => 'heroPhoto',          'type' => 'text', 'label' => 'Homepage hero — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
-        ['key' => 'bandTeamPhoto',      'type' => 'text', 'label' => 'Homepage band — team photo (empty removes it)',     'default' => 'images/site/staff.jpg'],
-        ['key' => 'bandBuildingPhoto',  'type' => 'text', 'label' => 'Homepage band — building photo (empty removes it)', 'default' => 'images/site/IPC-Building.jpg'],
-        ['key' => 'aboutPhoto',         'type' => 'text', 'label' => 'About page — photo (empty removes it)',             'default' => 'images/site/IPC-Building.jpg'],
-        ['key' => 'servicesPhoto',      'type' => 'text', 'label' => 'Services page — photo (empty removes it)',          'default' => 'images/site/Marker-Sample-2.jpg'],
+        ['key' => 'bandTeamPhoto',      'type' => 'text', 'label' => 'Homepage band — team photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',     'default' => 'images/site/staff.jpg'],
+        ['key' => 'bandBuildingPhoto',  'type' => 'text', 'label' => 'Homepage band — building photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/IPC-Building.jpg'],
+        ['key' => 'aboutPhoto',         'type' => 'text', 'label' => 'About page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',             'default' => 'images/site/IPC-Building.jpg'],
+        ['key' => 'servicesPhoto',      'type' => 'text', 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
     ]],
     'hero' => ['title' => 'Homepage — Hero', 'fields' => [
         ['key' => 'badge',             'type' => 'text',     'label' => 'Badge (small text above headline)'],

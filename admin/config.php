@@ -433,13 +433,21 @@ function csrf_fail_page(string $reason): void {
            . '<li>Open <a href="auth.php" target="_blank" rel="noopener">the sign-in page</a> in a <strong>new tab</strong> and sign in again.</li>'
            . '<li>Return to your page and click Save. It will go through.</li>'
            . '</ol>'
-           . '<p><button type="button" class="btn btn-primary" onclick="history.back()">← Back to my unsaved page</button>'
+           . '<p><button type="button" class="btn btn-primary" data-ipc-back>← Back to my unsaved page</button>'
            . '<a class="btn" href="auth.php">Sign in again</a></p>';
     } else {
-        echo '<p><button type="button" class="btn btn-primary" onclick="history.back()">← Go back</button>'
+        echo '<p><button type="button" class="btn btn-primary" data-ipc-back>← Go back</button>'
            . '<a class="btn" href="index.php">Dashboard</a></p>';
     }
-    echo '</div></body></html>';
+    // A-6.1 — the handler lives in an external file because this page is served
+    // under the admin CSP (script-src 'self', no 'unsafe-inline'), which refuses
+    // an inline onclick outright. Measured in Chromium: with the header the
+    // button did nothing; without it, it went back. This is the page invariant
+    // 12 exists to render, so a dead Back button loses exactly the typing the
+    // page was rendered to save. Same-origin src, so the policy allows it, and
+    // every caller of this function is a page directly under /admin/.
+    // (audit-runs/audit6.md A-6.1)
+    echo '</div><script src="csrf-back.js"></script></body></html>';
     exit;
 }
 
@@ -1597,6 +1605,32 @@ function sku_problems(string $sku): array {
  */
 define('IMG_MAX_WIDTH', 1600);
 
+/**
+ * A-6.6 — and a ceiling on what may be DECODED, which is a different question
+ * from what may be uploaded.
+ *
+ * The guard above is on width alone, so anything wider than 1600px went
+ * straight into imagecreatefromjpeg() however many pixels it actually held.
+ * `memory_limit` does not help, and that is the counter-intuitive part worth
+ * writing down: GD allocates through libgd rather than the Zend allocator, so
+ * PHP never sees it. Measured on a 4032x3024 phone photo — process RSS 35.8MB
+ * to 90.5MB, while memory_get_peak_usage() reported 2MB, and the downscale
+ * still completed with memory_limit set to 8M. The real ceiling is the host's
+ * per-process RAM, which is not knowable from here.
+ *
+ * upload-image.php admits files up to 8MB, and an 8MB JPEG can hold 60+
+ * megapixels. An out-of-memory kill is a fatal PHP cannot catch, and this call
+ * sits AFTER move_uploaded_file() and BEFORE save_products() — so the failure
+ * mode is: the photo lands on disk, the catalog is never updated, and the owner
+ * gets a blank page. Retrying reproduces it exactly, forever.
+ *
+ * 40 megapixels is past every phone and every full-frame DSLR, so the ceiling
+ * only ever catches the pathological case, and it degrades to "uploaded at its
+ * original size" — the same outcome as a host with no GD — rather than to a
+ * dead page. getimagesize() already gives us the height; nothing new is read.
+ */
+define('IMG_MAX_PIXELS', 40000000);
+
 function image_downscale_in_place(string $path, string $ext): bool {
     if (!extension_loaded('gd') || !function_exists('imagescale')) return false;
     $ext = strtolower($ext);
@@ -1604,7 +1638,9 @@ function image_downscale_in_place(string $path, string $ext): bool {
     $info = @getimagesize($path);
     if (!is_array($info) || empty($info[0])) return false;
     $w = (int)$info[0];
+    $h = (int)($info[1] ?? 0);
     if ($w <= IMG_MAX_WIDTH) return false;                  // already sensible
+    if ($h < 1 || $w * $h > IMG_MAX_PIXELS) return false;   // too big to decode safely — keep the upload
 
     $loaders = ['jpg' => 'imagecreatefromjpeg', 'jpeg' => 'imagecreatefromjpeg',
                 'png' => 'imagecreatefrompng',  'webp' => 'imagecreatefromwebp'];

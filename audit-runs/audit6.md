@@ -17,12 +17,17 @@ correct in the repository and does not reach, or does not work on, the live
 server. That shape is exactly what the local harness cannot see
 (GUARDRAILS §4.3), which is why it survived five rounds.
 
-| Severity | Count |
-|---|---|
-| Blocker | 0 |
-| **High** | **2** |
-| Medium | 4 |
-| Low | 3 |
+| Severity | Count | Status |
+|---|---|---|
+| Blocker | 0 | — |
+| **High** | **2** | **Fixed** 2026-08-19 (`WHATS_LEFT.md` §1u) |
+| Medium | 4 | **Fixed** 2026-08-19 (§1u) |
+| Low | 3 | **Fixed** 2026-08-19 (§1u) |
+
+All nine are fixed and guarded by `_harness/audit6.js`, which was written
+against the unfixed tree and watched to fail first (GUARDRAILS §4.4): **16/41
+before, 45/45 after**. The findings below are left exactly as written, because
+the finding is the record of what was true at audit time.
 
 ## Nothing has regressed
 
@@ -54,6 +59,8 @@ resolves to a file that exists.
 # High
 
 ## A-6.1 — The admin's own CSP makes the session-expiry recovery button inert
+
+> **FIXED 2026-08-19** — external handler in `admin/csrf-back.js`, `data-ipc-back` on both buttons. Evidence in `WHATS_LEFT.md` §1u.
 
 `admin/config.php:436` and `:439` (inside `csrf_fail_page()`),
 `admin/.htaccess:33`
@@ -112,6 +119,8 @@ served from `/admin/` so the request resolves even with the session gone. A
 `javascript:` href is not an alternative; CSP blocks those too.
 
 ## A-6.2 — Three `.htaccess` files changed this release, and the deploy manifest says never to upload their folders
+
+> **FIXED 2026-08-19** — a new row and two paragraphs in `README.md`, which already declares itself authoritative over the frozen §7. Evidence in `WHATS_LEFT.md` §1u.
 
 `data/.htaccess` (+25 lines), `pdfs/.htaccess` (±15), `uploads/.htaccess` (±17),
 against `README.md:113-133` and `DEPLOY_READINESS_v2.md:445-456`
@@ -173,6 +182,8 @@ over §7, so `README.md` is the correct and sufficient place.
 
 ## A-6.3 — `reply_slot()`'s link redaction does not cover scheme-less hosts
 
+> **FIXED 2026-08-19** — a second redaction pass in `reply_slot()` for host-shaped tokens. Evidence in `WHATS_LEFT.md` §1u.
+
 `public/contact.php`, `reply_slot()`
 
 A-5.1's `reply_slot()` redacts `https?://`, `ftp://`, `mailto:` and `www.`
@@ -207,6 +218,8 @@ values either way.
 
 ## A-6.4 — The compression list omits the MIME type modern Apache gives `.js`
 
+> **FIXED 2026-08-19** — `text/javascript`, `application/x-javascript`, `application/xml`, `text/xml`, `text/plain` added. Evidence in `WHATS_LEFT.md` §1u.
+
 `public/.htaccess:120`
 
 ```apache
@@ -239,6 +252,8 @@ is also absent.
 
 ## A-6.5 — The HSTS proxy fix landed on the public tree and not on the admin
 
+> **FIXED 2026-08-19** — the same `SetEnvIf IPC_TLS` pair the public tree already carries. Evidence in `WHATS_LEFT.md` §1u.
+
 `admin/.htaccess:33` vs `public/.htaccess:47-56`
 
 Audit 5's Low tier fixed HSTS in `public/.htaccess`, with the reasoning written
@@ -263,6 +278,8 @@ which is how the asymmetry stayed invisible.
 **Fix.** The same three lines.
 
 ## A-6.6 — Photo downscaling decodes with no pixel ceiling, and `memory_limit` does not bound it
+
+> **FIXED 2026-08-19** — `IMG_MAX_PIXELS` (40 MP) checked before the decode; an over-budget upload is kept at full size. Evidence in `WHATS_LEFT.md` §1u.
 
 `admin/config.php`, `image_downscale_in_place()`; `admin/upload-image.php:137`
 
@@ -304,6 +321,8 @@ oversized case degrades to "uploaded at full size" instead of a dead page.
 
 ## A-6.7 — `sitemap.php` accepts only one of the two catalog shapes the rest of the code accepts
 
+> **FIXED 2026-08-19** — `sitemap_product_ids()` unwraps `{ "products": [...] }`. Evidence in `WHATS_LEFT.md` §1u.
+
 `public/sitemap.php`, `sitemap_product_ids()`
 
 `config.php`'s `load_products()` handles both a bare array and
@@ -317,6 +336,8 @@ and the intolerant one fails silently.
 
 ## A-6.8 — One of the five Site Images labels carries the deploy warning
 
+> **FIXED 2026-08-19** — the warning is on all five labels. Evidence in `WHATS_LEFT.md` §1u.
+
 `admin/content.php:337-341`
 
 A-5.18's section comment says "The label carries the warning because there is no
@@ -326,6 +347,8 @@ plain labels — and all four default to `images/site/…`, the folder the warni
 exists to say gets overwritten on every deploy.
 
 ## A-6.9 — `admin/README.md` still documents 30 backups
+
+> **FIXED 2026-08-19** — `90 kept per prefix` in both places, with `BACKUP_KEEP` named. Evidence in `WHATS_LEFT.md` §1u.
 
 `admin/README.md:31` and `:62`
 
