@@ -20,7 +20,7 @@ Corrections and the reasoning behind them are in `DEPLOY_READINESS_v2.md`.
 Updated_IPC-main-main/
 ├── index.html              Vite entry — produces dist/index.html on build
 ├── package.json
-├── vite.config.js          base: './' so assets work from any deploy path
+├── vite.config.js          base: '/' — see the comment in the file; './' white-screens deep links
 ├── tailwind.config.js
 ├── postcss.config.js
 ├── public/                 Copied verbatim into dist/ on build
@@ -32,7 +32,7 @@ Updated_IPC-main-main/
 │   └── images/             Product and marketing imagery
 ├── src/
 │   ├── main.jsx
-│   ├── App.jsx             Entire React app (single file, 8,500+ lines)
+│   ├── App.jsx             Entire React app (single file, ~13000 lines)
 │   └── index.css           Tailwind entry + first-paint-critical CSS
 ├── data/                   NOT bundled by Vite — deploy separately, ONCE
 │   ├── .htaccess           Blocks backups, dotfiles, PHP execution
@@ -72,11 +72,17 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-`npm run dev` fetches `/data/products-all.json`, which Vite does not serve from
-the repo root. `PRODUCTS_JSON_URL` has an `import.meta.env.DEV` branch for this;
-`SITE_INFO_URL` and `CONTENT_URL` do not, so theming and editable content run on
-their hardcoded defaults in dev. To exercise the real files, run a static server
-over the repo root (`npx serve .`) — no HMR in that mode.
+`npm run dev` serves the repo's real `data/` folder at `/data/*`, through the
+`serveDataDir` middleware in `vite.config.js`. All three runtime files —
+`products-all.json`, `site-info.json`, `content.json` — are fetched from the
+same URLs in dev and in production, so `mergeSiteInfo` and `mergeContent` (which
+hold invariants 3 and 4) are exercised locally.
+
+There is no `import.meta.env.DEV` branch, and the old `npx serve .` workaround is
+obsolete — it predates that middleware and would now also expose `admin/` and the
+logs on localhost. A missing file under `/data/` returns a real 404 rather than
+the SPA shell, because a 200 carrying `index.html` is precisely the failure that
+hid a deleted catalog once already.
 
 ## Production build
 

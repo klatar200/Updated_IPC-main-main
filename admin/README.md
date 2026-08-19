@@ -335,12 +335,21 @@ admin's own Password page calls `opcache_invalidate()` so it applies at once.
   sentinel; the real hash lives only in the hand-deployed `config.local.php`.
 - Auth is PHP-session-only, over forced HTTPS (`admin/.htaccess`). Session
   cookies are `HttpOnly`, `Secure`, and `SameSite=Lax`.
-- After 5 failed logins each subsequent attempt sleeps 1–8 seconds. This slows
-  a serial attacker but is **not** a strong control: the delay is `sleep()`, so
-  parallel connections sleep concurrently, and the failure counter is a
-  read-modify-write with no lock. Treat a long, random password as the actual
-  defence. (Earlier revisions of this file claimed "online brute-force is
-  impractical"; that is not supported by the implementation.)
+- After 5 failed logins the address is put in a cool-off that doubles from 15s
+  to a 300s ceiling. The count and the decision happen inside ONE `flock`, so
+  parallel connections queue and each takes its own number — an attacker cannot
+  amortise the wait across concurrent requests, and an attempt refused during a
+  cool-off is neither counted nor logged. (This paragraph described the
+  pre-4.14 implementation until 2026-08-18: a bare `sleep()` and an unlocked
+  read-modify-write. Both were replaced on 2026-08-06; the text was not.)
+- That control depends on `admin/` being writable. If it is not,
+  `login_throttle_mutate()` cannot open its file, the gate falls through with no
+  wait, and `audit_log()` no-ops in the same failure — so guessing is neither
+  slowed nor recorded. Failing open is deliberate (it must not lock the owner
+  out) and the dashboard health banner says so explicitly.
+- Treat a long, random password as the actual defence. (Earlier revisions of
+  this file claimed "online brute-force is impractical"; that was not supported
+  by the implementation then and is not the claim being made now.)
 - For an extra layer, add cPanel Basic Auth in front of `/admin/`
   (cPanel → Directory Privacy).
 - The audit log records IPs and User-Agents. `admin/.htaccess` blocks direct

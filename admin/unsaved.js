@@ -23,10 +23,29 @@
 
   function markDirty() { dirty = true; }
 
+  // A-5.21 — the guard armed only on `input`/`change`, but the content and spec
+  // editors mutate the DOM from `click`: removing a row, reordering with the
+  // ↑/↓ arrows, adding a row. Reordering the FAQ and then clicking a nav link
+  // lost the work silently — and the delete confirm even promises the row "is
+  // deleted for good when you click Save Content", which is exactly the state
+  // this guard exists to protect. The editors announce those edits by
+  // dispatching a bubbling `ipc:structural-change`.
+  document.addEventListener("ipc:structural-change", markDirty, true);
+
   forms().forEach(function (f) {
     f.addEventListener("input", markDirty, true);
     f.addEventListener("change", markDirty, true);
-    f.addEventListener("submit", function () { submitting = true; });
+    // A-5.22 — preventDefault() in another listener does not stop this one, and
+    // `submitting` was never reset, so any cancelled submit disarmed the guard
+    // for the rest of the page's life. Two in-repo listeners cancel submits:
+    // the Advanced-mode invalid-JSON block (which even says "nothing was
+    // saved") and content-editor's family-rename confirm. After the event has
+    // finished dispatching, defaultPrevented tells us the navigation is not
+    // happening, so the page is still dirty and still worth protecting.
+    f.addEventListener("submit", function (e) {
+      submitting = true;
+      setTimeout(function () { if (e.defaultPrevented) submitting = false; }, 0);
+    });
   });
 
   // Content/spec editors rebuild their DOM, so catch late-added controls too.

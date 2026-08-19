@@ -4624,3 +4624,322 @@ those two keys plus the resulting reordering. Every save after that is free.
 The first run of this suite reported 2/9 against a working implementation
 because it took the pre-settle state as its baseline — the suite now settles
 first and says why.
+
+---
+
+## 2k. Open after the three-round audit (2026-08-18)
+
+Full report with evidence: [`audit-runs/audit5.md`](audit-runs/audit5.md).
+Base `98c8450`. Nothing here is a regression — the full suite was run first and
+came back **66/68 clean**, both reds being the documented expected-reds, with
+`lint.php` green, `invariants.js` 17/17 and all 16 CLAUDE.md invariants
+re-verified in code. These are areas the suites were never written to cover.
+
+Findings are recorded, **not fixed**: GUARDRAILS §1 says work found outside a
+plan is logged here rather than changed in place, and this was an audit, not a
+remediation cycle.
+
+### Launch blockers
+
+- [x] **A-5.1** ~~`public/contact.php` is an unauthenticated content-controlled
+  mail relay.~~ **SHIPPED 2026-08-18 — see §1q.** `s()`'s control-char class excludes `\x0A`/`\x0D`, so newlines
+  survive, and five attacker-supplied fields are interpolated into the
+  auto-reply body — which is mailed to the attacker-supplied `email` address
+  from `noreply@insulationproducts.com` with IPC's SPF/DKIM. **Executed:** one
+  anonymous POST delivered "ACTION REQUIRED: invoice #48812 is 30 days overdue
+  … Pay online now: https://evil.example/… Regards, IPC Accounts Receivable" to
+  a chosen third party. ~1,000 chars of attacker prose, ~720 victims/day from
+  one IP. Fix is in the body slots (`hdr()` already exists), not in `s()` —
+  invariant 10 stays intact. `public/contact.php:197-207, 609-625, 639-646`.
+- [x] **A-5.2** ~~`robots.txt:6` `Disallow: /data/` makes the whole catalog
+  un-indexable.~~ **SHIPPED 2026-08-18 — see §1q.** The SPA is 100% client-rendered and Google's WRS honours
+  robots.txt for subresources; longest-match means the rule beats `Allow: /`.
+  Measured: no fallback catalog exists in the bundle, and all 42 product pages
+  plus `/products`, `/dashboard`, `/datasheets` render `CatalogError` to a
+  compliant crawler — while `sitemap.php` (a server-side read, unaffected)
+  advertises those 52 URLs. One-line fix.
+
+### High
+
+- [x] **A-5.3 — SHIPPED 2026-08-18 (§1r) — the RFQ form loses the lead when JS does not run.** No hidden
+  `form_type`, so a native submit routes to the message branch and 422s before
+  `mail()` and before the JSONL log. Measured A/B against a live server: same
+  payload without the field → 422, log delta **0**; with it → 200, delta **+1**.
+  RFQ is the default tab. `src/App.jsx:5257-5261`, `public/contact.php:398, 487-496`.
+- [x] **A-5.4 — SHIPPED 2026-08-18 (§1r) — one bot floods the Audit Log's 500-line window in 1.7 days.**
+  `audit-log.php` slices before it filters, and `admin-log.jsonl` has no
+  rotation; the owner's own history becomes unreachable behind
+  *Sign-in failed* rows and a filter returns "No entries match".
+- [x] **A-5.5 — SHIPPED 2026-08-18 (§1r) — a failed write destroys the live catalog silently.** No
+  temp+`rename()`; reproduced a 102,400-of-300,000-byte truncation under
+  `ulimit`, after which `load_products()` returns 0 products, the dashboard says
+  "0 products across 0 categories" with no health banner, and the next Add
+  Product writes a one-product catalog under a success message.
+- [x] **A-5.6 — SHIPPED 2026-08-18 (§1r) — `mail()` true ≠ delivered, and no surface tells the owner a lead
+  arrived.** No unread count, badge or digest anywhere; spam-foldered leads are
+  logged `sent: true` with a green "Emailed" badge.
+- [x] **A-5.7 — SHIPPED 2026-08-18 (§1r) — unauthenticated `password[]=x` fatals the login page**, printing
+  the absolute server path and the first 16 chars of the live bcrypt hash.
+  Suppressed in production only by `public/.user.ini` — a dotfile FTP clients
+  hide, omitted from the `DEPLOY_READINESS_v2 §7` upload row, and inert under
+  mod_php.
+- [x] **A-5.8 — SHIPPED 2026-08-18 (§1r) — an unwritable `admin/` disables the login throttle *and* the
+  audit log together**, and the health banner names neither.
+- [x] **A-5.9 — SHIPPED 2026-08-18 (§1r) — both contact-form abuse controls fail open silently.** Limiter
+  state lives in `sys_get_temp_dir()` behind `@`-suppressed writes, is never
+  cleaned up (`grep unlink public/contact.php` → 0), and has no health check.
+- [ ] **A-5.10 — client-only rendering with no prerender.** Beyond Google,
+  nothing sees the catalog: Bing, the AI answer engines and every social
+  unfurler get the generic shell.
+
+### Medium and Low
+
+**All nineteen Medium items shipped 2026-08-18 — see §1s.** The twenty-two Low
+items remain open and are listed in full in `audit-runs/audit5.md`.
+
+
+Nineteen Medium and twenty-two Low, listed in full in `audit-runs/audit5.md`.
+The ones most likely to reach the owner or a customer first: the spec editors
+seed a phantom row so every new product ships two junk blocks (browser-measured,
+and unfixable from the visual editor because deleting the last row re-seeds it);
+a malformed-but-savable spec table crashes the product page (measured with a
+control); `isSafeLinkUrl` is bypassable with a backslash (`/\evil.com` resolves
+off-site, measured); `site-info.json` and `content.json` never re-check, so the
+admin's "within ~60 seconds" promise is false in any already-open tab; ten new
+products consume all thirty backup slots; no timezone is set anywhere, so an
+Illinois business reads UTC timestamps; and rotated inquiry logs are not
+gitignored on a public repo.
+
+### Owner actions, not code
+
+`audit-runs/audit5.md` § *Owner actions for launch* carries the full list. The
+two already tracked in §2j — **rotate the live admin password** (a working hash
+is in this public repo's history) and **resolve the four contradictory ISO 9001
+claims** — are genuinely launch-gating despite being filed under "not launch
+blockers". Newly added: publish SPF/DKIM/DMARC and confirm the `noreply@`
+mailbox; set up Search Console and submit the sitemap; add an uptime monitor and
+a form self-test; decide apex-vs-www and check the certificate covers both;
+verify `display_errors` is Off on the live server rather than assuming.
+
+### Corrected records
+
+- **`D-03` (audit 4) is stale as written.** "No in-range patch" no longer holds:
+  `npm audit fix` resolves semver-compatibly to `react-router-dom@6.30.4` +
+  `@remix-run/router@1.23.3` and closes GHSA-2j2x-hqr9-3h42. Two advisories
+  still need 7.18+, and a **fourth** has appeared since — GHSA-jjmj-jmhj-qwj2
+  (CVE-2026-53668), affecting 6.30.2–6.30.4, i.e. both the shipped and the
+  bumped version. All require an app-level open redirect; re-verified that every
+  `setSearchParams({page: …})` call site passes a literal, so none is reachable.
+  Recommendation: take the free bump; the v7 migration stays the owner's call.
+- **`D-02` (audit 4) is closed.** `plan10-repalette` is **33/33** — the stale
+  baseline was re-based in PR #46.
+
+
+---
+
+## 1q. Shipped 2026-08-18 — the two audit-5 launch blockers
+
+Both fixes were written test-first per GUARDRAILS §4.4: the new suite
+`_harness/audit5-blockers.js` was written against the unfixed tree and watched
+to fail (**9/17**) before either file was touched.
+
+| ID | File | What changed |
+|---|---|---|
+| **A-5.1** | `public/contact.php` | New `reply_slot()` next to `s()` and `hdr()`, and applied **only** to the auto-reply's copies of the five visitor-supplied slots (`name` 60, `partNumber`/`material`/`quantity` 80, `requiredDate` 40). It collapses every whitespace run — newlines included — to one space, redacts `https?://`, `ftp://`, `mailto:` and `www.` tokens to `[link removed]`, and caps short. The sales notification to IPC and the `inquiries.jsonl` lead record are **untouched** and still carry the value exactly as typed, which the suite asserts in both directions. `s()` is unchanged, so invariant 10 stands. |
+| **A-5.2** | `public/robots.txt`, `data/.htaccess` | `Disallow: /data/` and `Disallow: /uploads/` removed, with the reasoning left in the file so neither comes back. The raw JSON stays out of the index by header instead — `data/.htaccess` now sends `X-Robots-Tag: noindex` for `*.json` inside an `<IfModule mod_headers.c>` guard — which a crawl block cannot do, because a crawl block also stops the renderer fetching. `/admin/` and `/contact.php` still disallowed. |
+
+**Evidence.** The same attack payload, before and after, against the live
+harness with its capturing sendmail:
+
+```
+BEFORE                                AFTER
+Hello Valued Customer,                Hello Valued Customer, ACTION REQUIRED:
+                                        invoice #48812 is 30 days…,
+ACTION REQUIRED: invoice #48812 is
+30 days overdue.,                     Thank you for submitting a quote request…
+...                                   ...
+Quantity: Pay online now:             Quantity:      Pay online now: [link removed]
+  https://evil.example/ipc-pay-invoice
+Required By: Regards,                 Required By:   Regards, IPC Accounts Receivable
+IPC Accounts Receivable
+```
+
+`_harness/audit5-blockers.js` **18/18** after, from 9/17 before. A legitimate
+request is asserted unchanged in the same run — `Hello Jane Buyer,` /
+`Part Number:   IP38FE` / `Quantity:      500 ft`.
+
+**Residual, stated rather than hidden.** Echoing the request back to the sender
+is the feature, so short fragments of sender text still appear as field values.
+What the fix guarantees is narrower and is what the suite tests: nothing the
+sender writes can open a line of its own, carry a link, or run longer than a
+labelled value. The result reads as a garbled form confirmation, not as a
+letter. Removing the summary echo entirely would close the remainder and is a
+one-line change if the owner prefers it.
+
+**Test-suite defect found and fixed while writing the suite.** The first draft
+located the auto-reply with `includes('To: <addr>')`, which also matches the
+sales notification's `Reply-To: <addr>` header — so every assertion was reading
+the wrong message, and a fix that changed nothing would have looked correct.
+The matcher is now anchored to `^To: <addr>$`. Two assertions were also
+re-scoped after the design settled: they originally demanded that no sender
+words reach the reply at all, which is stricter than the feature allows, and
+now test the three properties above instead.
+
+**Not changed.** No other finding from `audit-runs/audit5.md` — the rest stay
+open in §2k.
+
+---
+
+## 1r. Shipped 2026-08-18 — all seven High findings from audit 5
+
+The two Blockers shipped earlier the same day (§2k). This closes the High tier.
+Everything at Medium and Low remains recorded in §2k and untouched — GUARDRAILS
+§1 keeps work found outside a plan logged rather than changed in place, and
+these nine were fixed because they were asked for by name.
+
+| ID | File(s) | What changed |
+|---|---|---|
+| **A-5.3** | `src/App.jsx` | A hidden `form_type` input in **both** contact forms. It was appended only by the fetch handlers, so a native submit — the no-JS path the forms' `method`/`action` exist for — routed to the message branch and 422'd for a subject and message the RFQ form does not have, exiting before `mail()` **and** before the inquiry log. Measured: without the field, 422 and zero log lines; with it, 200 and one logged lead. |
+| **A-5.4** | `admin/audit-log.php`, `admin/config.php`, `.gitignore` | The viewer parses and **filters before** keeping the newest 500, and reads a bounded 4MB tail instead of `file()`-ing the whole log. `admin-log.jsonl` gains the 16MB rotation `inquiries.jsonl` has had since B3. Both halves were needed: with the old 500-line window, even the corrected order finds 0 of 3 owner edits buried under 600 lines of sign-in noise. Rotated logs of both kinds are now gitignored — they matched no pattern, on a public repo. |
+| **A-5.5** | `admin/config.php` | New `json_write_atomic()` — temp file in the same directory, byte count checked, `rename()` into place — replaces the bare `file_put_contents(..., LOCK_EX) !== false` in all three `save_*()` helpers. Measured under a genuine short write (SIGXFSZ suppressed so the write returns instead of killing the process): the old path left the live catalog **corrupt at 102,400 bytes**; the new one reports failure and leaves it **byte-identical and still parsing**, with no temp leftovers. The temp name ends in `.tmp`, which `data/.htaccess` already blocks. |
+| **A-5.6** | `admin/config.php`, `nav.php`, `index.php`, `inquiries.php` | `mail()` returning true means the local MTA accepted the message and nothing more, so the JSONL log is the real safety net — and nothing ever prompted anyone to open it. An unread count now sits in the nav and at the top of the dashboard, cleared by reading the page. Counting is incremental (only the bytes appended since the mark) because `nav.php` runs on every admin page and the log may reach 16MB. The badge that read **"Emailed"** now reads **"Sent to mail server"**, because delivery is not something this code can observe. |
+| **A-5.7** | `admin/config.php`, `auth.php`, `backups.php`, `edit.php`, `delete.php`, `upload-image.php`, `upload-pdf.php`, `audit-log.php` | New `raw_str()` (no trim — whitespace in a password is significant) guards the one **pre-auth** instance; `as_str()` guards `csrf_token`, `backup` and the four `?sku=` pages. `password[]=x` used to be an uncaught `TypeError` whose stack trace printed the absolute server path **and the first 16 characters of the live bcrypt hash** to an anonymous client. Now: no fatal, no hash, no path, on all of them. |
+| **A-5.8** | `admin/index.php` | The health banner now states that an unwritable `admin/` also switches off the login cool-off and stops recording failed sign-ins. Both controls share that one failure mode and the banner named neither. Failing open is deliberate — it must not lock the owner out — which is precisely why it has to be said out loud. A missing `pdfs/` writability check was added alongside. |
+| **A-5.9** | `public/contact.php`, `admin/index.php` | `ipc_rl_save()` reports whether the state persisted, and stale `ipc_rl_*`/`ipc_ar_*` files are pruned — nothing ever removed one, so they accumulated per visitor IP forever, an inode-quota attack from an unauthenticated form. The split that matters: **lead intake still fails open**, because refusing submissions over a temp-file problem would lose real quote requests, while the **auto-reply fails closed**, since that is the outbound-to-a-stranger half and the lead is captured either way. An unwritable temp dir is now surfaced in the dashboard. |
+
+Guarded by `_harness/audit5-high.js` (**30/30**), written against the unfixed
+tree and watched to fail first, alongside `audit5-blockers.js` (**18/18**).
+
+Regression state with the full fleet up: **69/71 suites clean**, the two reds
+being the documented expected-reds (`plan8-polish` 16/17 Linux DejaVu artifact;
+`brandtext` 11 failing against a ceiling of 13). `lint.php` green on every
+check, `invariants.js` **17/17**, `npm run build` clean.
+
+### Two harness probes were wrong, and the change exposed them
+
+Neither was a page regression — both were verified against the live page before
+being touched, per GUARDRAILS §7.2's rule about probe defects:
+
+- **`plan8-lead` (B26)** took `querySelector('form input, …')` as "the first
+  field", i.e. whichever control comes first in source order. That was the
+  off-screen honeypot before, and the hidden `form_type` after — a zero-height
+  box at top 0 — so it reported the form starting at 0px and the `tel:` link
+  "below" it. Measured on the page at 390: `tel:` at **314px**, first real field
+  (`name`) at **736px**; the property holds and always did. The probe now finds
+  the first field a visitor can actually see.
+- **`contactflow`** enumerated every named control for its label checks,
+  excluding the honeypot and the submit button but not hidden inputs, so it
+  reported `form_type` as unlabelled and paired it with the honeypot's
+  "Website" label. A hidden input cannot be seen, focused or announced; a label
+  for one is meaningless markup. `type !== 'hidden'` joins the existing
+  exclusions.
+
+### One thing worth knowing about the A-5.4 fix
+
+Reordering the filter alone does not fix it. Measured against the same 603-line
+log: old logic 0 of 3 owner edits; corrected order but still a 500-line window,
+**also 0**; corrected order with the 4MB tail, **3**. The window mattered as
+much as the ordering, which is why both changed.
+
+---
+
+## 1s. Shipped 2026-08-18 — all nineteen Medium findings from audit 5
+
+Closes the Medium tier. The 22 Low items stay recorded in `audit-runs/audit5.md`
+and are untouched.
+
+| ID | What changed |
+|---|---|
+| **A-5.11** | `spectable-editor.js` keeps its blank editing row on screen but no longer SERIALISES it. A product added without opening the spec editors used to ship `rows: [{label: null, value: ""}]` and `rows: [[""]]`, which pass App.jsx's `if (!rows.length) return null` guard, so its public page drew an empty "SPECIFICATIONS:" bar and a one-column "Order Size" table. Deleting the last row re-seeded it too, so a table could never be emptied from the visual editor. Browser-measured before and after: both fields now post empty. |
+| **A-5.12** | New `spec_table1_problem()` / `spec_table2_problem()` in `config.php`, called by both `add.php` and `edit.php`. `is_array(json_decode(...))` was the only check, while the renderer needs `{label,value}` objects and a row MATRIX — so `{"rows":["8.0","9.0"]}` saved cleanly and crashed that product's page to the ErrorBoundary with nothing naming the cause. |
+| **A-5.13** | `isSafeLinkUrl()` and `link_url_problem()` now normalise the way a URL parser does — strip tab/LF/CR, treat `\` as `/` — before deciding. `/\evil.com/x.pdf` passed both gates as a local path and resolved to `https://evil.com/x.pdf` in the browser. |
+| **A-5.14** | New `useRefetchOnReturn()`; `SiteInfoProvider` and `ContentProvider` now revalidate on `visibilitychange`/`focus` past a 60s TTL, as the catalog already did. The admin promises "within ~60 seconds" on three separate screens, and for an already-open tab that was false — the phone number never refreshed. |
+| **A-5.15** | `BACKUP_KEEP` 30 → 90. One new product is three catalog saves, so ten products in one sitting rotated the entire window. `help.php` reads the constant, so its wording followed automatically. |
+| **A-5.16** | New `image_downscale_in_place()`; uploads wider than 1600px are scaled after the move, and the success message says so. Nothing resized anything before — a 4032×3024 phone photo became the eagerly-loaded LCP image. GIF is skipped rather than flattened, and a missing GD leaves the upload working at full size. |
+| **A-5.17** | `date_default_timezone_set()` in both `config.php` and `contact.php` (which includes neither). PHP defaulted to UTC, so an Illinois business read every timestamp five or six hours ahead — a 3pm quote request logged at 21:00. |
+| **A-5.18** | The Site Images labels now warn that `images/…` is part of the deployed site and is replaced on the next deploy, and point at `uploads/site/` — which now ships as a folder and is gitignored — for photos that must survive. |
+| **A-5.19** | **Closed by A-5.5.** `rename()` is atomic within a filesystem, so the live file is never truncated in place and the torn-read window a visitor could land in no longer exists. |
+| **A-5.20** | `edit.php` loads `unsaved.js`. It was the only editing page without it, and it lost both jobs: the `beforeunload` prompt and the 5-minute session keepalive. |
+| **A-5.21** | Both editors dispatch `ipc:structural-change`, which the guard listens for. Reorder, remove and add-row mutate the DOM from `click` and fire neither `input` nor `change`, so reordering the FAQ and clicking away lost the work silently. Deliberately not dispatched from `reindex()`, which also runs at DOMContentLoaded and would arm the guard on every page load. |
+| **A-5.22** | The submit listener re-arms when `defaultPrevented` is set, and the Sign Out form carries `data-no-guard`. A cancelled submit — the invalid-JSON block, the family-rename confirm — used to disarm the guard permanently. |
+| **A-5.23** | The scroll-to-top effect keys on the product id as well as the route. Measured: y=2509 → 0 on a product-to-product move, where the new product used to render with its heading off-screen. |
+| **A-5.24** | `JSON_INVALID_UTF8_SUBSTITUTE` in `audit_log()` and `ipc_log_inquiry()`, and `audit_log()` returns false rather than writing a blank line. One malformed User-Agent byte made `json_encode()` return false, `false . "\n"` wrote a bare newline, and the viewer skipped it — so a brute-force run left no `sign-in-failed` rows and the compromise no `sign-in` row. |
+| **A-5.25** | A rejected submission stores 500 characters instead of 5,000. At the per-IP cap that was ~11.5MB/day of permanent growth, and rotated archives are deliberately never deleted. |
+| **A-5.26** | `session.use_strict_mode = 1`. Without it PHP adopted any well-formed id a client supplied, and `ping.php` is deliberately unauthenticated, so one cheap request per made-up id created a session file living up to 8 hours. |
+| **A-5.27** | `settings.php` validates the four brand colours with the `ipc_parse_hex_color()` it already uses for the readability note. They were the one owner-writable value on the page with no check, and they are injected verbatim into CSS custom properties on every public page. |
+| **A-5.28** | `PageMeta` applies the product axis only on the products route. A stray `?productId=` on any other URL rewrote that page's head — measured, `/contact?productId=zzz` served the ordinary Contact page while its head said "Part not found", `noindex`, and no canonical. |
+| **A-5.29** | `load_products()` guards the inner value, not just the wrapper. `{"products": "..."}` was an uncaught TypeError against a declared `array` return — a 500 on every admin page, where fully-invalid JSON degrades politely to `[]`. |
+
+Guarded by `_harness/audit5-medium.js` (**20/20**), alongside `audit5-high.js`
+(30/30) and `audit5-blockers.js` (18/18).
+
+### The drift check earned its keep again
+
+`$COPY_GROUPS` in `content.php` carries an inline warning — no apostrophes in
+comments inside that literal — and the A-5.18 comment I added two lines below it
+used one ("FTP'd"). `lint.php`'s copy-key drift check failed immediately with
+"$COPY_GROUPS is unbalanced". Fixed before it reached a commit.
+
+---
+
+## 1t. Shipped 2026-08-18 — the Low tier, and the audit-5 backlog is empty
+
+Closes the last of `audit-runs/audit5.md`. Four of the twenty-two were already
+closed by earlier tiers and are marked as such rather than counted twice.
+
+**Correctness and robustness**
+
+| ID | What changed |
+|---|---|
+| Wrong-type fields | New `asList()` / `asText()` coercers, applied at the five sites that crashed. A string `description` killed the product page and a string `badges` killed the whole `/dashboard` index, while siblings guarded the same fields. A wrong type now degrades to something renderable, exactly as a missing one already did. |
+| `null` array row | Filtered at both boundaries — `fetchProductsCached()` drops non-object rows, `mergeContent` drops null entries. One null row threw in Navbar and Footer, which render OUTSIDE the ErrorBoundary (it wraps only `<main>`), so React 18 unmounted the root and the whole site went blank, phone number included. Invariant 8 puts them above the *loading gate*, which is a different thing. |
+| Empty-but-loaded catalog | `/dashboard` said "Loading catalog…" forever at three call sites; it now says the catalog is empty, as `/products` already did. |
+| `pdfUrl` / `additionalPdfs[].url` | New `safeHref()` on all five sinks. They were write-gated only, and A1's own argument is that a write gate is not enough when `data/` is a plain file an FTP edit or a restored pre-F6 backup can reach. |
+| Soft-404 description | `setMeta` skipped empty values, so a soft-404 kept the previous route's description. It now writes the empty string and only skips when nothing was passed. |
+
+**Admin**
+
+| ID | What changed |
+|---|---|
+| Password write, quote style | The replace and read-back regexes accept `'` or `"`. A hand-deployed `define("ADMIN_PASSWORD_HASH", "$2y$…")` is legal PHP that works at login but did not match, so the new define was APPENDED, PHP kept the first, and the page reported "Password changed" while the old password went on working. Verified end to end against a double-quoted file: one define, replaced in place, new password verifies, old one does not. Invariant 1's `preg_replace_callback` is untouched. |
+| Password write, failure wording | The message claimed "the previous password was restored. Nothing changed." on the path where the backup copy had failed and the restore was skipped — pointing away from the ALLOW-PASSWORD-RESET recovery that is the only way back. It now distinguishes the two outcomes. |
+| Backup name allocation | The name is claimed with `fopen(…, 'x')` — atomic — and re-derived on collision, so two writers in the same second cannot both take one sequence and have the second silently overwrite the first. `backup_path()` still computes max-used + 1, so invariant 5 is unchanged; `nodupbackups` stays 10/10. |
+| Reader locks | **Closed by A-5.5.** `rename()` is atomic, so a reader sees either the whole old file or the whole new one — the torn read a `LOCK_SH` would have guarded against cannot occur. |
+| `settings-preview.js` | Renders all seven social channels. `instagram` and `tiktok` were added to the save list and the public footer by A-01 and never here, so the preview contradicted the page it previews. |
+| `help.php` photos | The steps described a "Choose Image → preview → Upload" flow that does not exist (the real controls are **Choose File** and **Upload Photo →**), and the removal advice recommended clearing the Photo URL — which forgets the link and orphans the file — while claiming it deletes it. Now documents **Remove Photo**, says plainly what the Edit-screen route does instead, and mentions the new automatic downscaling. |
+| `file()` whole-log read, GET array fatals, missing `pdfs/` check | **Closed by A-5.4, A-5.7 and A-5.8.** |
+
+**Hosting and rules**
+
+| ID | What changed |
+|---|---|
+| `pdfs/.htaccess` | The script block now matches `uploads/`'s breadth: case-insensitive, `(\.|$)`-anchored so the `x.php.pdf` double-extension form is caught, and covering phtml/phar/pl/py/cgi/sh. |
+| `uploads/.htaccess` | **Comment corrected; rules deliberately unchanged.** It promised deny-by-default and implemented an allow-list. A real deny-by-default means adding `<Files "*">Deny from all</Files>`, and whether images survive that depends on how Apache merges the two sections — untestable here, because `php -S` ignores `.htaccess` (GUARDRAILS §4.3). Getting it wrong 404s every product photo on the live site, which is far worse than the gap it closes, and nothing can land in that folder today anyway. Flagged for a session with a real Apache. |
+| Runtime `uploads/.htaccess` | No longer writes `php_flag engine off` — a **mod_php-only** directive, and this project targets CGI/FastCGI, where Apache answers an unknown directive with a 500 for the whole directory. It fired only when the folder was created at runtime, i.e. exactly the recovery case it exists to serve. It now writes the shipped file's rules. |
+| HSTS | `SetEnvIf` on `X-Forwarded-Proto` as well as `HTTPS`. It was gated `env=HTTPS`, which mod_ssl sets only when TLS terminates locally — while the redirect four lines above exists precisely because it often does not. The two rules assumed opposite topologies, and in the proxy case the header was silently never sent. |
+| `/assets/` fallthrough | A missing file under `/assets/` now 404s instead of falling into the SPA catch-all and returning `index.html` as `text/html`, which the browser then tries to execute — a blank page for the length of an FTP deploy window. |
+| `data/.htaccess` | `AddType application/json .json`. `jsonOrThrow` REQUIRES that content-type, and nothing guaranteed it; on a host that does not map `.json`, all three fetches throw and the site renders hardcoded defaults while looking fine. |
+| `X-Mailer` | Removed from both mails. It announced the exact PHP patch level to the sales address and, via the auto-reply, to any address a stranger types into the form. |
+| Auto-reply `From` | The display name is RFC 5322-quoted. `hdr()` closes injection but adds no quoting, so "Insulation Products, Inc." parsed as an address list and strict MTAs would reject every auto-reply, silently. |
+
+**Repo and docs**
+
+| ID | What changed |
+|---|---|
+| Rotated inquiry logs | **Closed by A-5.4.** |
+| `README.md` | The dev-loop section described machinery deleted in Plan 0 (`import.meta.env.DEV`, `npx serve .`) — the workaround it recommended would now also expose `admin/` and the logs on localhost. The layout note still documented `base: './'`, the exact configuration PLAN-8 A5 measured as a white screen on every ≥2-segment URL. Line count refreshed. |
+| `_harness/README.md` | GUARDRAILS calls this "the live suite list" and fourteen assertive suites were absent — every `plan8-*` acceptance suite among them, so an executor judged against it would have skipped them. All listed, plus the three audit-5 suites, plus the mechanical rule for regenerating the list. |
+| `admin/README.md` | The security notes still described the pre-4.14 throttle — a bare `sleep()` and an unlocked read-modify-write — which 4.14 replaced on 2026-08-06 with the flock'd cool-off. It now describes what ships, including that an unwritable `admin/` disables it. |
+| `CLAUDE.md` | Invariant 9 cited `index.css:49`; the rule is at `:341`. |
+| `DEPLOY_READINESS_v2 §7` | **Not edited — the document is frozen.** Its upload row omits `public/.user.ini`, the file A-5.7's suppression depends on. `README.md`'s manifest already lists it and already declares itself authoritative over §7, so the deploy instructions a person actually follows are correct. Recorded here rather than fixed there. |
+
+### The invariant harness caught this tier too
+
+Folding the null-row filter into `mergeContent`'s ternary —
+`Array.isArray(v) ? v.filter(…) : dv` — is semantically identical to the
+original and still failed **INV3**, which matches that expression textually.
+GUARDRAILS §3 says the change is wrong until proven otherwise, and the right
+reading here is that the invariant is the *decision* (an empty array is a
+deletion) while dropping null rows is a separate question asked afterwards.
+Written as two statements, the guarded expression stays byte-identical and the
+behaviour is the same: `[]` → `[]`, `[null]` → `[]`, missing → defaults.

@@ -3,9 +3,34 @@
 # file must be public. Everything else in this directory (backups, logs,
 # anything starting with a dot) must be blocked.
 
+# The React app asserts the Content-Type on all three of these files
+# (jsonOrThrow in src/App.jsx) — deliberately, because Vite's dev server and the
+# SPA rewrite both answer a missing path with index.html and a 200, and without
+# that assertion a wrong-content 200 fails deep inside a .then() instead of
+# taking the error path. Nothing here guaranteed the type: it came from the
+# host's mime.types. If a host does not map .json, all three fetches throw at
+# once — the catalog shows Catalog Unavailable and BOTH providers silently fall
+# back to hardcoded defaults, so the site looks fine while serving business
+# details that no longer track the admin. One line removes the whole failure
+# mode. (audit-runs/audit5.md, Low tier)
+<IfModule mod_mime.c>
+  AddType application/json .json
+</IfModule>
+
 Options -Indexes
 ServerSignature Off
 AddDefaultCharset UTF-8
+
+# Keep the raw JSON out of search results WITHOUT hiding it from a crawler's
+# renderer. The SPA builds every page from these files, so blocking them in
+# robots.txt made the whole catalog render as an error for Googlebot
+# (audit-runs/audit5.md A-5.2). A header does the job a crawl block cannot:
+# the file is still fetched and rendered, and still never indexed on its own.
+<IfModule mod_headers.c>
+  <FilesMatch "\.json$">
+    Header set X-Robots-Tag "noindex"
+  </FilesMatch>
+</IfModule>
 
 # Block PHP execution outright — this directory only holds JSON.
 <FilesMatch "\.(php|phtml|phps|php\d?)$">

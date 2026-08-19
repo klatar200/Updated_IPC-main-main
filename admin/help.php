@@ -568,17 +568,19 @@ $navActive = 'help';
         <p>Every product on the dashboard has a <span class="btn btn-sm btn-edit btn-mock">Photo</span> button on its row. That is the whole feature — you pick a picture from your own computer and it is uploaded to your server. <strong>You do not need Dropbox, Google Drive, or any image-hosting service</strong>, and you do not need to know what a "direct link" is.</p>
         <ol class="steps">
           <li>On the <strong>Products</strong> page, find the product and click <span class="btn btn-sm btn-edit btn-mock">Photo</span>.</li>
-          <li>Click <strong>Choose Image</strong> and pick a <code>.jpg</code>, <code>.png</code>, <code>.gif</code> or <code>.webp</code> file. It must be <strong><?= h(min_upload_label(8)) ?> or smaller</strong>.</li>
-          <li>You'll see a preview. Click <strong>Upload</strong>.</li>
+          <li>Click <strong>Choose File</strong> and pick a <code>.jpg</code>, <code>.png</code>, <code>.gif</code> or <code>.webp</code> file. It must be <strong><?= h(min_upload_label(8)) ?> or smaller</strong>.</li>
+          <li>Click <strong>Upload Photo →</strong>.</li>
           <li>That's it — the product's Photo URL field is filled in for you automatically. The new picture appears on the public site within about a minute.</li>
         </ol>
         <div class="callout callout-tip">
           <b>What makes a good product photo</b>
-          A plain, well-lit shot of the part on a white or light background, roughly square, at least 800&nbsp;pixels wide. Photos are shown fairly small on the site, so detail matters less than a clean background and sharp focus.
+          A plain, well-lit shot of the part on a white or light background, roughly square, at least 800&nbsp;pixels wide. Photos are shown fairly small on the site, so detail matters less than a clean background and sharp focus. A photo straight off your phone is fine — anything wider than <?= (int)IMG_MAX_WIDTH ?>&nbsp;pixels is scaled down automatically so pages stay fast, and the upload screen tells you when that happens.
         </div>
         <div class="callout callout-tip">
           <b>Replacing or removing one</b>
-          Uploading again simply replaces the old picture. To go back to the branded placeholder, open the product with <strong>Edit</strong> and clear the <strong>Photo URL</strong> box, then Save. Removing a photo that no other product uses also deletes the file from the server.
+          Uploading again simply replaces the old picture. To go back to the branded placeholder, open the <span class="btn btn-sm btn-edit btn-mock">Photo</span> screen again and click <strong>Remove Photo</strong> — that clears the product's Photo URL <em>and</em> deletes the file from the server, as long as no other product is still using it.
+          <br><br>
+          You can also clear the <strong>Photo URL</strong> box on the <strong>Edit</strong> screen, and the placeholder comes back the same way — but that only forgets the link. The image file itself stays on the server, where nothing lists it and nothing will ever clean it up. Use <strong>Remove Photo</strong> unless you have a reason not to.
         </div>
       </section>
 

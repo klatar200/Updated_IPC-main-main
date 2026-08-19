@@ -1,8 +1,19 @@
 # Prevent directory listing
 Options -Indexes
 
-# Block PHP execution — uploaded PDFs must never be executed as PHP
-<FilesMatch "\.php$">
+# Block script execution — uploaded PDFs must never be executed.
+#
+# This matched "\.php$" only, which is narrower than it looks and narrower than
+# the rule uploads/.htaccess already carries:
+#   * mod_mime resolves extensions case-INSENSITIVELY, so x.PHP slipped past;
+#   * "$"-anchoring misses the classic double-extension form x.php.pdf, which
+#     mod_mime does hand to the PHP handler on a typical AddHandler host;
+#   * phtml/phar/pl/py/cgi/sh were not covered at all.
+# Nothing can put such a file here today — upload-pdf.php validates extension
+# and sniffed MIME and derives its own filename — but this rule is the layer
+# that is supposed to hold when something else fails, so it should match the
+# stronger rule rather than trail it. (audit-runs/audit5.md, Low tier)
+<FilesMatch "\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\.|$)">
     Order Allow,Deny
     Deny from all
 </FilesMatch>

@@ -143,11 +143,26 @@ $navActive = 'products';
      it matters: the audit log stays empty, every inbound sales lead is dropped
      (inquiries.jsonl), and password changes cannot be written. Surface it.
      (DEPLOY_READINESS_v2 T3.3) */
+  // A-5.6 — leads waiting to be read. Deliberately NOT a $healthProblems entry:
+  // nothing is broken, and burying it among red permission warnings is how it
+  // would get ignored. It is the first thing on the dashboard instead.
+  $newLeads = inquiries_new_count();
+
   $healthProblems = [];
   if (!admin_writable()) {
+      // A-5.8 — this one condition takes down BOTH brute-force controls at once,
+      // and the banner used to name neither. login_throttle_mutate() opens
+      // .login-throttle.json and returns null when it cannot, so
+      // login_attempt_gate() falls through with wait = 0 and every request goes
+      // straight to password_verify() with no cool-off, permanently; audit_log()
+      // no-ops in the same failure, so the guessing run is also unrecorded.
+      // Failing open is deliberate (it must not lock the owner out) — which is
+      // exactly why it has to be said out loud here.
       $healthProblems[] = 'The <code>admin</code> folder is not writable by the web server. '
         . 'Sales leads from the contact form are being DISCARDED, the activity log cannot record anything, '
-        . 'and the Password page cannot save. Set admin/ to 755 (or 775) over FTP.';
+        . 'the Password page cannot save, and — because both depend on files in this folder — '
+        . '<strong>the login cool-off that limits password guessing is switched off and failed sign-ins are not being recorded</strong>. '
+        . 'Set admin/ to 755 (or 775) over FTP, then sign out and back in to confirm this warning is gone.';
   }
   if (!data_writable()) {
       $healthProblems[] = 'The <code>data</code> folder is not writable by the web server. '
@@ -156,6 +171,21 @@ $navActive = 'products';
   if (!is_dir(IMG_DIR) || !is_writable(IMG_DIR)) {
       $healthProblems[] = 'The <code>uploads/images</code> folder is missing or not writable. '
         . 'Product photo uploads will fail. Create public_html/uploads/images/ over FTP and set it to 755.';
+  }
+  // A-5.9 — the contact form's rate limit and its per-recipient auto-reply cap
+  // both keep their state in the system temp dir. If that is not writable the
+  // controls do not fail loudly, they simply stop counting, and nothing else
+  // in the dashboard would ever say so. The admin runs as the same PHP user,
+  // so this is the same question the form asks.
+  $tmpDir = sys_get_temp_dir();
+  if (!is_dir($tmpDir) || !is_writable($tmpDir)) {
+      $healthProblems[] = 'The server\'s temporary folder (<code>' . h($tmpDir) . '</code>) is not writable. '
+        . 'The contact form still works and still records every lead, but its spam rate limit is not counting, '
+        . 'and confirmation emails to senders are being held back as a precaution. Ask the host to fix permissions on it.';
+  }
+  if (!is_dir(PDF_DIR) || !is_writable(PDF_DIR)) {
+      $healthProblems[] = 'The <code>pdfs</code> folder is missing or not writable. '
+        . 'Data-sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.';
   }
   /* The password-reset window. While it is open, ANY visitor to /admin/ — signed
      in or not — is served the "Set Admin Password" form and can take the
@@ -177,6 +207,18 @@ $navActive = 'products';
         . 'It is more than an hour old so it no longer does anything, but it should not be left there.' . $closeBtn;
   }
   ?>
+  <?php /* A-5.6 — new leads, above everything else on the page. */ ?>
+  <?php if ($newLeads > 0): ?>
+    <div class="alert" role="status" style="text-align:left;background:#e8f4ff;border:1px solid #99c9ee;color:#0d2d52">
+      <strong><?= (int)$newLeads ?> new <?= $newLeads === 1 ? 'inquiry' : 'inquiries' ?> since you last looked.</strong>
+      <a href="inquiries.php" style="margin-left:8px;font-weight:700;color:#005da3">Read <?= $newLeads === 1 ? 'it' : 'them' ?> →</a>
+      <div style="margin-top:6px;font-size:13px">
+        Every quote request is saved here even when the notification email does not arrive,
+        so this is the list to trust.
+      </div>
+    </div>
+  <?php endif; ?>
+
   <?php if ($healthProblems): ?>
     <div class="alert alert-error" role="alert" style="text-align:left">
       <strong>Server setup problem — please send this to your developer.</strong>

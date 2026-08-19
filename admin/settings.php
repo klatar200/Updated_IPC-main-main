@@ -124,6 +124,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // never appearing. (audit-runs/audit4.md D-01)
     $catalogProblem = link_url_problem($updated['catalogPdfUrl'], 'The catalog PDF URL');
     if ($catalogProblem !== '') $errors[] = $catalogProblem;
+    // A-5.27 — the four brand colours were the one owner-writable value on this
+    // page with no validation at all, while every social URL, the email address
+    // and catalogPdfUrl above are all checked. They are injected verbatim into
+    // CSS custom properties on every public page (ThemeInjector), so a stored
+    // non-hex value becomes a live declaration site-wide — `url(https://…)` in
+    // a rule that consumes var(--brand-primary) is a visitor-tracking pingback,
+    // saved with no error and no way to notice. <input type="color"> constrains
+    // a browser, not a crafted POST. ipc_parse_hex_color() already exists and is
+    // used for the readability note on these same values a few lines below.
+    // (audit-runs/audit5.md A-5.27)
+    foreach ([
+        'primaryColor' => 'Primary colour',
+        'darkColor'    => 'Dark colour',
+        'accentColor'  => 'Accent colour',
+        'accent2Color' => 'Second accent colour',
+    ] as $k => $label) {
+        $v = $updated['theme'][$k];
+        if ($v !== '' && ipc_parse_hex_color($v) === null) {
+            $errors[] = $label . ' must be a hex colour such as #0d2d52. Leave it empty to use the built-in colour.';
+        }
+    }
     if ($updated['contact']['email'] !== '' && !filter_var($updated['contact']['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'The email address is not valid.';
     }

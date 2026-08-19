@@ -9,31 +9,59 @@ $entries = [];
 $truncated = false;
 $MAX_LINES = 500; // most recent N — bigger than this and we paginate later
 
+// Bounded tail read, mirroring inq_tail_lines() in inquiries.php. file() loads
+// every line at once, and this file now grows on every failed sign-in as well
+// as on every save, so the memory ceiling that took the Inquiries page down is
+// reachable here too. 4MB is far more than $MAX_LINES of ~260-byte entries and
+// leaves room for the filter below to search back through history.
+// (audit-runs/audit5.md A-5.4)
+define('AUDIT_TAIL_BYTES', 4 * 1024 * 1024);
+
+$lines = [];
 if (file_exists($logPath)) {
-    $lines = @file($logPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    if (is_array($lines)) {
-        if (count($lines) > $MAX_LINES) {
+    $fh = @fopen($logPath, 'rb');
+    if ($fh) {
+        $size  = (int)@filesize($logPath);
+        $start = max(0, $size - AUDIT_TAIL_BYTES);
+        if ($start > 0) fseek($fh, $start);
+        $buf = (string)stream_get_contents($fh);
+        fclose($fh);
+        if ($start > 0) {
+            $nl  = strpos($buf, "\n");        // drop the half-line we landed in
+            $buf = $nl === false ? '' : substr($buf, $nl + 1);
             $truncated = true;
-            $lines = array_slice($lines, -$MAX_LINES);
         }
-        // Newest first.
-        $lines = array_reverse($lines);
-        foreach ($lines as $line) {
-            $row = json_decode($line, true);
-            if (is_array($row)) $entries[] = $row;
-        }
+        $lines = preg_split('/\r\n|\n|\r/', $buf, -1, PREG_SPLIT_NO_EMPTY) ?: [];
     }
 }
 
 // Optional filter by SKU or action via querystring.
-$filterSku    = trim($_GET['sku'] ?? '');
-$filterAction = trim($_GET['action'] ?? '');
-if ($filterSku !== '' || $filterAction !== '') {
-    $entries = array_values(array_filter($entries, function ($e) use ($filterSku, $filterAction) {
-        if ($filterSku !== '' && stripos($e['sku'] ?? '', $filterSku) === false) return false;
-        if ($filterAction !== '' && ($e['action'] ?? '') !== $filterAction) return false;
-        return true;
-    }));
+$filterSku    = as_str($_GET['sku'] ?? null);   // A-5.7 — trim(array) fatals on PHP 8
+$filterAction = as_str($_GET['action'] ?? null);
+
+// Parse and FILTER first, and only then keep the newest $MAX_LINES.
+//
+// This used to slice to the last 500 lines and filter what survived, so the
+// filter could only ever search the tail of the file. That is fine until the
+// tail stops being the owner's own history: every cool-off expiry lets one
+// failed sign-in through to be logged, so a single credential scanner writes
+// ~288 lines a day and fills the whole 500-line window in under two days. The
+// owner then opens Activity Log, sees nothing but "Sign-in failed", picks
+// "edit" from the filter, and is told "No entries match" — while his edits sit
+// in the file, just outside the slice. (audit-runs/audit5.md A-5.4)
+$filtering = ($filterSku !== '' || $filterAction !== '');
+foreach (array_reverse($lines) as $line) {          // newest first
+    $row = json_decode($line, true);
+    if (!is_array($row)) continue;
+    if ($filtering) {
+        if ($filterSku !== '' && stripos($row['sku'] ?? '', $filterSku) === false) continue;
+        if ($filterAction !== '' && ($row['action'] ?? '') !== $filterAction) continue;
+    }
+    $entries[] = $row;
+    if (count($entries) >= $MAX_LINES) {
+        $truncated = true;
+        break;
+    }
 }
 
 // Action badge colors

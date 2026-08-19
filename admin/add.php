@@ -39,6 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($st1Raw !== '') {
         $decoded = json_decode($st1Raw, true);
         if (is_array($decoded)) {
+            // A-5.12 — the renderer needs {label,value} objects, not any array.
+            $shape1 = spec_table1_problem($decoded);
+            if ($shape1 !== '') $errors[] = $shape1;
             $st1Rows = $decoded;
         } else {
             $errors[] = 'Specifications Table JSON is invalid (' . json_last_error_msg() . '). Fix the syntax or clear the field.';
@@ -50,6 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($st2Raw !== '') {
         $decoded = json_decode($st2Raw, true);
         if (is_array($decoded)) {
+            // A-5.12 — rows must be a matrix; a flat list crashes the page.
+            $shape2 = spec_table2_problem($decoded);
+            if ($shape2 !== '') $errors[] = $shape2;
             $st2 = $decoded;
         } else {
             $errors[] = 'Size / Dimension Table JSON is invalid (' . json_last_error_msg() . '). Fix the syntax or clear the field.';

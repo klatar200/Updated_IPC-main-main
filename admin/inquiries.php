@@ -53,6 +53,8 @@ $entries = [];
 $total   = 0;
 if (file_exists(INQUIRIES_FILE)) {
     $total = inq_count_lines(INQUIRIES_FILE);
+    // A-5.6 — viewing the page is what clears the nav badge.
+    inquiries_mark_seen($total);
     foreach (inq_tail_lines(INQUIRIES_FILE, $MAX_SHOW) as $line) {
         $e = json_decode($line, true);
         if (is_array($e)) $entries[] = $e;
@@ -132,7 +134,7 @@ $navActive = 'inquiries';
 
   <div class="stats">
     <div class="stat"><div class="stat-num"><?= $total ?></div><div class="stat-lbl">Total received</div></div>
-    <div class="stat"><div class="stat-num <?= $failed > 0 ? 'bad' : '' ?>"><?= $failed ?></div><div class="stat-lbl">Email delivery failed<?= $total > $MAX_SHOW ? ' (last ' . $MAX_SHOW . ')' : '' ?></div></div>
+    <div class="stat"><div class="stat-num <?= $failed > 0 ? 'bad' : '' ?>"><?= $failed ?></div><div class="stat-lbl">Mail server refused<?= $total > $MAX_SHOW ? ' (last ' . $MAX_SHOW . ')' : '' ?></div></div>
     <?php if ($rejected > 0): ?>
       <div class="stat"><div class="stat-num"><?= $rejected ?></div><div class="stat-lbl">Blocked as spam<?= $total > $MAX_SHOW ? ' (last ' . $MAX_SHOW . ')' : '' ?></div></div>
     <?php endif; ?>
@@ -157,7 +159,11 @@ $navActive = 'inquiries';
         <span class="badge badge-blocked"><?= h($rej['label']) ?></span>
       <?php else: ?>
         <span class="badge <?= $isRfq ? 'badge-rfq' : 'badge-msg' ?>"><?= $isRfq ? 'Quote' : 'Message' ?></span>
-        <span class="badge <?= $sent ? 'badge-sent' : 'badge-failed' ?>"><?= $sent ? 'Emailed' : 'Email failed' ?></span>
+        <?php /* A-5.6 — "Emailed" claimed delivery this code cannot observe.
+                 mail() only reports that the local mail server ACCEPTED the
+                 message; SPF/DKIM rejection, greylisting and spam-foldering all
+                 happen afterwards and all look identical from here. */ ?>
+        <span class="badge <?= $sent ? 'badge-sent' : 'badge-failed' ?>" title="<?= $sent ? 'Handed to the mail server. That is not proof it reached the inbox — check with the sender if in doubt.' : 'The mail server refused the message outright.' ?>"><?= $sent ? 'Sent to mail server' : 'Email failed' ?></span>
       <?php endif; ?>
       <span class="who"><?= h($e['name'] ?? '') !== '' ? h($e['name']) : '—' ?> <small><?= h($e['company'] ?? '') ?></small></span>
       <?php if ($rej): ?><small style="color:#9ca3af"><?= h($rej['blurb']) ?></small><?php endif; ?>

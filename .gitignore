@@ -29,7 +29,13 @@ Thumbs.db
 admin/config.local.php
 admin/config.local.php.bak.*
 admin/admin-log.jsonl
+# Rotated logs. Both writers rename at 16MB and never delete the archive, and
+# the rotated names matched no pattern here — so a bulk `git add` could commit a
+# 16MB file of customer names, emails and phone numbers to a PUBLIC repo.
+admin/admin-log-*.jsonl
+admin/inquiries-*.jsonl
 admin/.login-throttle.json
+admin/.inquiries-seen.json
 admin/inquiries.jsonl
 admin/ALLOW-PASSWORD-RESET
 
@@ -41,6 +47,10 @@ _to_delete/
 # Customer-uploaded product photos (live server state, like pdfs/)
 uploads/images/*
 !uploads/images/.gitkeep
+# A-5.18 — owner-supplied marketing photos belong here rather than in
+# images/site/, which ships with the build and is overwritten on every deploy.
+uploads/site/*
+!uploads/site/.gitkeep
 
 # Local deploy/backup archives — never ship these to the server or the repo
 *.zip

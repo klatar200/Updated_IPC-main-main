@@ -46,7 +46,7 @@ $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
-    $file = basename($_POST['backup'] ?? ''); // basename() blocks path traversal
+    $file = basename(as_str($_POST['backup'] ?? null)); // basename() blocks path traversal; as_str() blocks backup[]=x (A-5.7)
 
     // The filename must match exactly one of our known backup patterns.
     // The -NN suffix is the same-second collision guard added in config.php's

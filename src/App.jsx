@@ -2792,7 +2792,7 @@ function productApprovals(p) {
     return APPROVAL_NAMES.filter((n) => p.approvals.includes(n));
   }
   const hay = [
-    (p.badges || []).join(" | "),
+    asList(p.badges).map(asText).join(" | "),
     p.specificationsSummary || "",
     Array.isArray(p.description) ? p.description.join(" ") : String(p.description || ""),
     JSON.stringify(p.specTable1 || {}),
@@ -2943,7 +2943,7 @@ function DatasheetsPage({ products }) {
     for (const p of products) {
       if (!p.pdfUrl) continue;
       if (needle) {
-        const hay = `${p.sku || ""} ${p.name || ""} ${p.partType || ""} ${(p.badges || []).join(" ")}`.toLowerCase();
+        const hay = `${p.sku || ""} ${p.name || ""} ${p.partType || ""} ${asList(p.badges).map(asText).join(" ")}`.toLowerCase();
         if (!hay.includes(needle)) continue;
       }
       (g[p.partType || "Other"] ||= []).push(p);
@@ -3076,7 +3076,7 @@ function DatasheetsPage({ products }) {
                   {rows.map((p) => (
                     <a
                       key={p.sku || p.id}
-                      href={p.pdfUrl}
+                      href={safeHref(p.pdfUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-lg flex items-start gap-3 transition-all duration-150 hover:shadow-md"
@@ -5275,6 +5275,18 @@ function ContactPage() {
               <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
                 {cf.requiredLegend}
               </p>
+              {/* A-5.1/A-5.3 — the discriminator contact.php routes on.
+                  It was appended ONLY by the fetch handlers, so a native submit
+                  (the no-JS path this form's method/action exist for) arrived
+                  without it, defaulted to the message branch, and was rejected
+                  422 for a missing subject and message — fields this form does
+                  not have. That exit happens before mail() AND before the
+                  inquiry log, so the lead was not merely undelivered, it left
+                  no trace at all. Measured: identical payload without this
+                  field → 422 and zero log lines; with it → 200 and one logged
+                  lead. PHP takes the last duplicate key, so the JS append still
+                  wins when scripting is on. (audit-runs/audit5.md A-5.3) */}
+              <input type="hidden" name="form_type" value="rfq" />
               {/* Honeypot — hidden from humans, bots fill it in */}
               <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
                 <label htmlFor="rfq-website">Website</label>
@@ -5561,6 +5573,18 @@ function ContactPage() {
               <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
                 {cf.requiredLegend}
               </p>
+              {/* A-5.1/A-5.3 — the discriminator contact.php routes on.
+                  It was appended ONLY by the fetch handlers, so a native submit
+                  (the no-JS path this form's method/action exist for) arrived
+                  without it, defaulted to the message branch, and was rejected
+                  422 for a missing subject and message — fields this form does
+                  not have. That exit happens before mail() AND before the
+                  inquiry log, so the lead was not merely undelivered, it left
+                  no trace at all. Measured: identical payload without this
+                  field → 422 and zero log lines; with it → 200 and one logged
+                  lead. PHP takes the last duplicate key, so the JS append still
+                  wins when scripting is on. (audit-runs/audit5.md A-5.3) */}
+              <input type="hidden" name="form_type" value="message" />
               {/* Honeypot — hidden from humans, bots fill it in */}
               <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
                 <label htmlFor="msg-website">Website</label>
@@ -6261,11 +6285,20 @@ function fetchProductsCached() {
     .then((data) => {
       // Null guard: a truncated or partially-written file parses to `null`,
       // and `data.products` on null throws instead of degrading.
-      const arr = Array.isArray(data)
+      const raw = Array.isArray(data)
         ? data
         : data && Array.isArray(data.products)
           ? data.products
           : [];
+      // L2 — and drop any row that is not an object. A literal `null` in the
+      // array (a hand edit, a merge gone wrong) threw on the first `p.sku` in
+      // Navbar's sidebar grouping — and Navbar renders OUTSIDE the
+      // ErrorBoundary, which wraps only <main>, so React 18 unmounted the whole
+      // root and every page went blank, phone number included. Invariant 8 puts
+      // the providers and chrome above the LOADING gate, which is a different
+      // thing from being inside the boundary. Filtering here fixes it for every
+      // consumer at once rather than guarding each one.
+      const arr = raw.filter((p) => p && typeof p === "object" && !Array.isArray(p));
       if (timer) clearTimeout(timer);
       _productsCache = arr;
       _productsCacheAt = Date.now();
@@ -6513,6 +6546,55 @@ function localizeProse(text, site) {
   return out;
 }
 
+/**
+ * Re-fetch a runtime JSON file when the tab is brought back to the front.
+ *
+ * A-5.14 — `useProducts()` grew this recheck because a declared TTL alone did
+ * nothing: the effect had `[]` deps, so nothing re-evaluated it during a
+ * session. The two providers were left with the original single fetch, and they
+ * hold the phone number, the address and every word of editable copy. So the
+ * admin's promise — "the website will reflect the changes within ~60 seconds",
+ * said on settings.php, content.php and the Help page — was false for any tab
+ * that was already open: the owner corrects a wrong phone number, switches to
+ * the site tab he has had open all morning, and the products refresh while the
+ * phone number does not, for as long as that tab lives.
+ *
+ * Same shape as the catalog's recheck: only when the document becomes visible
+ * or the window regains focus, only past the TTL, and cancelled on unmount.
+ */
+function useRefetchOnReturn(url, label, apply, ttlMs = 60000) {
+  useEffect(() => {
+    let cancelled = false;
+    let last = 0;
+    const load = () => {
+      last = Date.now();
+      fetch(`${url}?v=${Math.floor(Date.now() / 60000)}`)
+        .then((res) => jsonOrThrow(res, label))
+        .then((data) => {
+          if (!cancelled && data) apply(data);
+        })
+        .catch(() => {
+          /* keep whatever is already rendered — never blank the chrome */
+        });
+    };
+    load();
+    const recheck = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - last < ttlMs) return;
+      load();
+    };
+    document.addEventListener("visibilitychange", recheck);
+    window.addEventListener("focus", recheck);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", recheck);
+      window.removeEventListener("focus", recheck);
+    };
+    // `apply` is a stable module-level setter wrapper at both call sites.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, label, ttlMs]);
+}
+
 const SiteInfoContext = createContext(SITE_DEFAULTS);
 // Let the class-based ErrorBoundary read live business details on its crash screen.
 ErrorBoundary.contextType = SiteInfoContext;
@@ -6522,21 +6604,8 @@ function useSiteInfo() {
 
 function SiteInfoProvider({ children }) {
   const [info, setInfo] = useState(SITE_DEFAULTS);
-  useEffect(() => {
-    let cancelled = false;
-    const cacheBuster = Math.floor(Date.now() / 60000);
-    fetch(`${SITE_INFO_URL}?v=${cacheBuster}`)
-      .then((res) => jsonOrThrow(res, "site info"))
-      .then((data) => {
-        if (!cancelled && data) setInfo(mergeSiteInfo(data));
-      })
-      .catch(() => {
-        /* keep SITE_DEFAULTS — the site still renders correctly */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const apply = useCallback((data) => setInfo(mergeSiteInfo(data)), []);
+  useRefetchOnReturn(SITE_INFO_URL, "site info", apply);
   return <SiteInfoContext.Provider value={info}>{children}</SiteInfoContext.Provider>;
 }
 
@@ -6579,6 +6648,40 @@ function groupFaq(flat) {
 // the SPA rewrite answers it with index.html — a broken frame where the
 // photograph belongs. Absolute http(s) and root-relative values pass through.
 // (PLAN-9 item 5, audit 2026-08-09 finding 5.)
+// Owner data is a hand-editable JSON file, so a field can arrive as the wrong
+// TYPE — a string where the code expects a list, a number where it expects
+// text. The guards were inconsistent about it: DashboardPage and the Product
+// JSON-LD both Array.isArray-guarded `description`, while the product page did
+// `(product.description || []).map(...)`, which throws on a string; and one
+// string `badges` took down the whole /dashboard index through productApprovals.
+// The ErrorBoundary contains the damage to one page, but the page is still gone.
+// Coerce instead of crashing — a wrong type should degrade to something
+// renderable, exactly as a missing one already does.
+// (audit-runs/audit5.md, Low tier)
+// L4 — the render-side half for data-sheet links.
+//
+// `pdfUrl` and `additionalPdfs[].url` are gated where they are WRITTEN —
+// upload-pdf.php derives the name, edit.php's F6 regex validates the extras —
+// but not where they are rendered, which is the same argument A1 rejected for
+// the footer link: data/ is a plain file, so an FTP edit or a backup restored
+// from before those gates existed reaches the component with nothing in
+// between. One call per sink, using the guard that already exists.
+function safeHref(value) {
+  return isSafeLinkUrl(value) ? value : undefined;
+}
+
+function asList(v) {
+  if (Array.isArray(v)) return v.filter((x) => x !== null && x !== undefined);
+  if (v === null || v === undefined || v === "") return [];
+  return [v];
+}
+function asText(v) {
+  if (typeof v === "string") return v;
+  if (v === null || v === undefined) return "";
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return "";
+}
+
 function slotSrc(p) {
   if (!p || p.startsWith("/") || /^[a-z]+:/i.test(p)) return p;
   return "/" + p;
@@ -6963,6 +7066,18 @@ function mergeContent(data) {
     const v = data[k];
     if (Array.isArray(dv)) {
       out[k] = Array.isArray(v) ? v : dv;
+      // L2 — a null row here reaches Footer's link map, and Footer renders
+      // OUTSIDE the ErrorBoundary, so one bad row blanks the entire site rather
+      // than one page.
+      //
+      // Deliberately a SEPARATE statement. Invariant 3 lives in the ternary
+      // above and `invariants.js` matches it textually, so folding the filter
+      // into it — `Array.isArray(v) ? v.filter(…) : dv` — fails INV3 even
+      // though the semantics are identical. The invariant is the decision
+      // (an empty array is a deletion, never re-seeded); dropping null rows is
+      // a separate question asked afterwards, and writing it that way keeps
+      // the guarded expression byte-identical.
+      if (Array.isArray(out[k])) out[k] = out[k].filter((x) => x !== null && x !== undefined);
     } else if (dv && typeof dv === "object") {
       out[k] = {};
       for (const g of Object.keys(dv)) {
@@ -7008,21 +7123,8 @@ function useContent() {
 
 function ContentProvider({ children }) {
   const [content, setContent] = useState(contentDefaults);
-  useEffect(() => {
-    let cancelled = false;
-    const cacheBuster = Math.floor(Date.now() / 60000);
-    fetch(`${CONTENT_URL}?v=${cacheBuster}`)
-      .then((res) => jsonOrThrow(res, "page content"))
-      .then((data) => {
-        if (!cancelled && data) setContent(mergeContent(data));
-      })
-      .catch(() => {
-        /* keep CONTENT_DEFAULTS — the site still renders correctly */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const apply = useCallback((data) => setContent(mergeContent(data)), []);
+  useRefetchOnReturn(CONTENT_URL, "page content", apply);
   return <ContentContext.Provider value={content}>{children}</ContentContext.Provider>;
 }
 
@@ -7175,14 +7277,23 @@ function PageMeta({ products }) {
     // PLAN-9 item 3 — matched via findProductByParam, the SAME ladder
     // ProductPage renders with. Exact-id-only matching here meant an alias
     // URL rendered a product whose head described a different page.
+    // A-5.28 — the product axis belongs to the route that RENDERS products.
+    // It used to apply on every route, so a stray `?productId=` carried onto
+    // any other page rewrote that page's head: measured, /contact?productId=zzz
+    // rendered the ordinary Contact page (h1 "Get in Touch") while its head
+    // said title "Part not found", robots noindex, and no canonical — the
+    // site's conversion page de-indexing itself because an inbound link picked
+    // up a tracking parameter. `productId` is only meaningful where ProductPage
+    // reads it, so only there can it decide the head.
+    const productAxis = key === "products";
     const matched =
-      productId && Array.isArray(products)
+      productAxis && productId && Array.isArray(products)
         ? findProductByParam(products, productId)
         : null;
     // An id that matches nothing renders the catalog landing under a
     // not-found banner (item 2) — a soft-404 on the product axis, treated
     // exactly as A5 treats an unknown path segment.
-    const unknownProduct = !!productId && !matched;
+    const unknownProduct = productAxis && !!productId && !matched;
 
     // Title fallback. Two things used to go wrong here:
     //
@@ -7261,7 +7372,12 @@ function PageMeta({ products }) {
     // Update <meta name="description"> plus the Open Graph share tags so search
     // engines and social previews reflect the editable copy.
     const setMeta = (attr, key, val) => {
-      if (!val) return;
+      // L5 — an empty value used to early-return, so a soft-404 that
+      // deliberately sets an empty description simply kept whatever the
+      // PREVIOUS route wrote: /prodcuts described the product page the visitor
+      // came from. Write the empty string instead; only skip when the caller
+      // passed nothing at all. (audit-runs/audit5.md, Low tier)
+      if (val === undefined || val === null) return;
       let el = document.querySelector(`meta[${attr}="${key}"]`);
       if (!el) {
         el = document.createElement("meta");
@@ -8388,7 +8504,7 @@ function ProductDetail({ product, allProducts }) {
   // C32 — Features carries what the approvals block does not already say.
   // Filtered, not sliced: the standards are scattered through `badges` in the
   // owner's own order, not grouped at one end.
-  const featureBadges = (product.badges || []).filter((b) => !isStandardBadge(b));
+  const featureBadges = asList(product.badges).map(asText).filter((b) => !isStandardBadge(b));
 
   // 2.4 — Related products: same partType, excluding current, up to 4
   // I3 fix + Fix 12: NON_RELATABLE_TYPES at module level — see const above ProductDetail
@@ -8499,7 +8615,7 @@ function ProductDetail({ product, allProducts }) {
               <>
                 {/* Primary PDF — uses pdfLabel if set (e.g. "Molded Cap" for IP52EC), else "Download PDF" */}
                 <a
-                  href={product.pdfUrl}
+                  href={safeHref(product.pdfUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
@@ -8533,7 +8649,7 @@ function ProductDetail({ product, allProducts }) {
                   product.additionalPdfs.map((extra, i) => (
                     <a
                       key={`${i}-${extra.url}`}
-                      href={extra.url}
+                      href={safeHref(extra.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
@@ -8628,7 +8744,7 @@ function ProductDetail({ product, allProducts }) {
         {/* Left — photo */}
         <div className="p-5 sm:p-8 border-b border-gray-200 md:border-b-0 md:border-r md:border-gray-200">
           {/* Product image — show real photo if available, branded placeholder if placehold.co */}
-          {product.photoUrl && !product.photoUrl.includes("placehold.co") && !photoFailed ? (
+          {product.photoUrl && !asText(product.photoUrl).includes("placehold.co") && !photoFailed ? (
             <img
               src={product.photoUrl}
               alt={product.name}
@@ -8793,7 +8909,7 @@ function ProductDetail({ product, allProducts }) {
             </div>
           )}
           <div className="space-y-3">
-            {(product.description || []).map((para, i) => (
+            {asList(product.description).map(asText).map((para, i) => (
               <p
                 key={i}
                 className="text-sm leading-relaxed"
@@ -9593,7 +9709,7 @@ function ProductPage({ products }) {
               <>
                 {/* Primary PDF — uses pdfLabel if set, else generic "Data Sheet" */}
                 <a
-                  href={product.pdfUrl}
+                  href={safeHref(product.pdfUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ipc-tap"
@@ -9641,7 +9757,7 @@ function ProductPage({ products }) {
                   product.additionalPdfs.map((extra, i) => (
                     <a
                       key={`${i}-${extra.url}`}
-                      href={extra.url}
+                      href={safeHref(extra.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="ipc-tap"
@@ -10277,8 +10393,12 @@ function DashboardPage({ products }) {
         <div className="sm:hidden space-y-3">
           {filtered.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-500">
+              {/* L3 — DashboardPage renders only after loading is false, so zero
+                   rows means the catalog is EMPTY, not still arriving. This said
+                   "Loading catalog…" forever, where /products says honestly that
+                   the catalog is empty. (audit-runs/audit5.md, Low tier) */}
               {tableRows.length === 0
-                ? 'Loading catalog…'
+                ? 'No products in the catalog yet.'
                 : `No results${search ? ` for "${search}"` : ''}${activeFamily !== 'All' ? ` in ${activeFamily}` : ''}.`}
             </div>
           ) : (
@@ -10517,7 +10637,7 @@ function DashboardPage({ products }) {
                           }}
                         >
                           {tableRows.length === 0
-                            ? "Loading catalog…"
+                            ? "No products in the catalog yet"
                             : "No products found"}
                         </div>
                         <div
@@ -10535,7 +10655,7 @@ function DashboardPage({ products }) {
                               placeholder after a miss — say it here, where the
                               miss actually happens. */}
                           {tableRows.length === 0
-                            ? "Please wait while the product catalog loads."
+                            ? "Add your first product from the Products page in the dashboard."
                             : `No results${search ? ` for "${search}"` : ""}${activeFamily !== "All" ? ` in ${activeFamily}` : ""}. This searches part IDs, types and descriptions — sizes are listed on each product page. Try a different term, clear the category filter, or call 630.771.0700.`}
                         </div>
                         {(search || activeFamily !== "All") && (
@@ -12140,7 +12260,16 @@ function isSafeExternalUrl(value) {
  */
 function isSafeLinkUrl(value) {
   if (typeof value !== "string") return false;
-  const v = value.trim();
+  // A-5.13 — normalise the way a URL PARSER does before deciding, or the guard
+  // and the browser disagree about what the string means. Two rules from the
+  // WHATWG URL spec do the damage: tab, LF and CR are removed anywhere in the
+  // input, and for special schemes a backslash is treated as a solidus. So
+  // `/\evil.com/x.pdf` failed the "//" test, passed the "/" test as a local
+  // path, and then resolved to https://evil.com/x.pdf in the browser — an
+  // off-site link in the footer of all ten pages. Measured with the real
+  // parser: new URL("/\evil.com/x.pdf", origin).href === "https://evil.com/x.pdf",
+  // and the interior-tab spelling resolves identically.
+  const v = value.replace(/[\t\n\r]/g, "").trim().replace(/\\/g, "/");
   if (v === "") return false;
   if (v.startsWith("//")) return false;
   if (v.startsWith("/")) return true;
@@ -12749,6 +12878,9 @@ function App() {
   // invisible to React.
   useSetSearchParamRef();
   const [page] = useSearchParam("page");
+  // A-5.23 — the scroll effect below needs to know when the PRODUCT changed,
+  // not just when the route did.
+  const [productParam] = useSearchParam("productId");
   const unknownRoute = useIsUnknownRoute();
   const { products, loading, error } = useProducts();
 
@@ -12770,10 +12902,18 @@ function App() {
   // Reading location.hash rather than adding a dep: the effect must keep
   // firing once per page change and nothing else. A hash-free navigation and a
   // hash-free cold load both still land at the top.
+  //
+  // A-5.23 — `page` alone is not "the page changed". Moving between products is
+  // a `?productId=` change on the SAME route, so this never fired for it:
+  // measured, a visitor scrolled to the Related Products strip at y=2509,
+  // clicked through to IP55FL, and the new product rendered with the viewport
+  // still at 1549 — its heading, photo and specs off-screen above. Keying on
+  // the product id as well makes a product-to-product move behave like every
+  // other navigation.
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash) return;
     window.scrollTo({ top: 0, behavior: "instant" });
-  }, [page]);
+  }, [page, productParam]);
 
   // C30, generalised to every page. The effect above deliberately steps aside
   // when there IS a hash — but until now nothing took over except on

@@ -54,6 +54,18 @@ define('ADMIN_SESSION_KEY', 'ipc_admin_authenticated');
 if (file_exists(__DIR__ . '/config.local.php')) {
     require_once __DIR__ . '/config.local.php';
 }
+// A-5.17 — no timezone was set anywhere, so PHP fell back to UTC (its documented
+// default when date.timezone is empty) and every admin-facing timestamp — the
+// activity log, the inquiry list, backup filenames — was five or six hours ahead
+// of the business. A customer calling at 3pm about the quote request he just
+// filed appeared in the log at 21:00, and on the Backups page the owner picks a
+// version by a time that is not the time he made it.
+//
+// Defined with a guard so config.local.php can override it for a different
+// site without editing this file.
+if (!defined('IPC_TIMEZONE')) define('IPC_TIMEZONE', 'America/Chicago');
+@date_default_timezone_set(IPC_TIMEZONE);
+
 // Sentinel: not a valid bcrypt digest, so password_verify() returns false for
 // every input. ADMIN_PASSWORD_CONFIGURED tells the UI to offer recovery
 // instead of an unpassable login box.
@@ -120,7 +132,16 @@ function admin_password_write(string $newPlain): array {
     $path = LOCAL_CONFIG_PATH;
     $hash = password_hash($newPlain, PASSWORD_BCRYPT, ['cost' => 12]);
     $defineLine = "define('ADMIN_PASSWORD_HASH', '" . $hash . "');";
-    $re = "/define\\(\\s*'ADMIN_PASSWORD_HASH'\\s*,\\s*'[^']*'\\s*\\)\\s*;/";
+    // Either quote style. This matched single quotes only, and
+    // define("ADMIN_PASSWORD_HASH", "$2y$…") is legal PHP that works perfectly
+    // at login — a bcrypt hash contains no interpolatable variable, so "$2y" is
+    // literal. A file hand-deployed that way therefore did not match, the new
+    // define was APPENDED, PHP kept the FIRST definition and ignored the second,
+    // and the read-back check below matched the appended line and passed — so
+    // the page said "Password changed" while the old password went on working,
+    // permanently, with every later change stacking another dead define.
+    // (audit-runs/audit5.md, Low tier)
+    $re = "/define\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)*)\\2\\s*\\)\\s*;/";
 
     if (file_exists($path)) {
         $body = (string)file_get_contents($path);
@@ -175,11 +196,24 @@ function admin_password_write(string $newPlain): array {
     }
 
     $check = (string)@file_get_contents($path);
-    $ok = preg_match("/define\\(\\s*'ADMIN_PASSWORD_HASH'\\s*,\\s*'([^']+)'\\s*\\)\\s*;/", $check, $m)
-          && password_verify($newPlain, $m[1]);
+    $ok = preg_match("/define\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)+)\\2\\s*\\)\\s*;/", $check, $m)
+          && password_verify($newPlain, $m[3]);   // group 3 — 1 and 2 are the quote characters
     if (!$ok) {
-        if ($backupPath && file_exists($backupPath)) @copy($backupPath, $path);
-        return ['ok' => false, 'error' => 'Verification of the written file failed — the previous password was restored. Nothing changed.'];
+        // L11 — say what actually happened. The restore only runs when a backup
+        // exists, and @copy() above is unchecked, so on the path where the copy
+        // failed this returned "the previous password was restored. Nothing
+        // changed." about a file that had just been rewritten and not restored.
+        // If that leaves config.local.php unusable the sentinel fails closed and
+        // NOBODY can sign in — and the message pointed away from the one thing
+        // that recovers it.
+        $restored = false;
+        if ($backupPath && file_exists($backupPath)) $restored = @copy($backupPath, $path);
+        return ['ok' => false, 'error' => $restored
+            ? 'Verification of the written file failed — the previous password was restored. Nothing changed.'
+            : 'Verification of the written file failed, AND the previous version could not be restored. '
+              . 'Your password may now be in an unusable state. Check admin/config.local.php over FTP — '
+              . 'a backup copy may exist alongside it as config.local.php.bak.* — or use the '
+              . 'ALLOW-PASSWORD-RESET recovery described in admin/README.md.'];
     }
     @unlink(PASSWORD_RESET_FLAG); // a successful write closes any open reset window
     return ['ok' => true, 'error' => ''];
@@ -220,6 +254,22 @@ function post_str(string $key, string $default = ''): string {
 /** Same guard for a value already pulled out of a nested $_POST array. */
 function as_str($v, string $default = ''): string {
     return is_string($v) ? trim($v) : $default;
+}
+
+/**
+ * Type guard WITHOUT trimming, for values where surrounding whitespace is
+ * significant. A password is the case that matters — post_str()/as_str() would
+ * silently change what was typed — and it is also the one unauthenticated
+ * entry point, where `password[]=x` reached password_verify() as an array and
+ * threw an uncaught TypeError. On PHP 8 that is a 500 whose stack trace prints
+ * the absolute server path AND the first characters of the live bcrypt hash,
+ * to an anonymous client. `display_errors` normally hides it, but that depends
+ * on public/.user.ini having been uploaded (it is a dotfile, and the deploy
+ * manifest omits it) and it does nothing at all under mod_php — so the page
+ * must fail closed on its own. (audit-runs/audit5.md A-5.7)
+ */
+function raw_str($v, string $default = ''): string {
+    return is_string($v) ? $v : $default;
 }
 
 // CSRF token helper — call csrf_token() to get/generate, csrf_check() to verify.
@@ -405,7 +455,7 @@ function csrf_check(bool $requireAuth = true): void {
         && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
         csrf_fail_page('toolarge');
     }
-    $token        = $_POST['csrf_token'] ?? '';
+    $token        = raw_str($_POST['csrf_token'] ?? null);   // A-5.7 — csrf_token[]=x fatalled all 11 mutating pages through this one line
     $sessionToken = $_SESSION['csrf_token'] ?? '';
     // No session token at all means the session itself is gone (expired or
     // garbage-collected), which is a different problem from a mismatched one.
@@ -430,6 +480,14 @@ if (session_status() === PHP_SESSION_NONE) {
     // still browser-session-scoped (lifetime 0) so closing the browser signs
     // out. (DEPLOY_READINESS_v2 T1.8)
     @ini_set('session.gc_maxlifetime', '28800');
+    // A-5.26 — without strict mode PHP creates a session file for ANY
+    // well-formed id a client supplies, and ping.php is deliberately
+    // unauthenticated, so one cheap request per made-up id created one file
+    // living up to the 8 hours set above. On shared hosting that is an
+    // inode attack on the session store — and if that store shares /tmp with
+    // the contact form's limiter files, filling it also stops those counting.
+    // Strict mode makes PHP mint its own id instead of adopting the caller's.
+    @ini_set('session.use_strict_mode', '1');
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',
@@ -469,6 +527,53 @@ function require_auth(): void {
     exit;
 }
 
+/**
+ * Write JSON to $path so a reader never sees a half-written file.
+ *
+ * The three save_*() helpers used to end in
+ * `file_put_contents($path, $json, LOCK_EX) !== false`, which has two holes:
+ *
+ *  1. file_put_contents() truncates the target when it opens it, so ANY write
+ *     that dies part-way — a quota ceiling, a process killed by the host's
+ *     resource limiter — leaves the LIVE file truncated. Every loader maps a
+ *     corrupt file onto the same value as a missing one
+ *     (`if (!is_array($data)) return []`), so the catalog came back as zero
+ *     products with nothing reporting a problem: the dashboard read "0 products
+ *     across 0 categories" with no health banner (data_writable() is still
+ *     true), and the next Add Product appended to that empty array and saved a
+ *     ONE-product catalog under a success message. Reproduced under
+ *     `ulimit -f 100`: 102,400 of 300,000 bytes on disk, and load_products()
+ *     then returned 0 with "Control character error".
+ *  2. It returns the number of bytes WRITTEN, so a short write on a full disk
+ *     is a positive integer, and `!== false` called that success.
+ *
+ * Writing to a temp file in the same directory and rename()-ing over the target
+ * fixes both: rename() within a filesystem is atomic, so a reader gets either
+ * the whole old file or the whole new one, and a failed write never touches the
+ * live file. The byte count is checked before the rename.
+ *
+ * The temp name ends in `.tmp` on purpose — data/.htaccess blocks that suffix,
+ * so a leftover from a killed process is not web-readable.
+ * (audit-runs/audit5.md A-5.5)
+ */
+function json_write_atomic(string $path, string $json): bool {
+    $tmp   = $path . '.' . getmypid() . '-' . mt_rand(1000, 999999) . '.tmp';
+    $bytes = @file_put_contents($tmp, $json);
+    if ($bytes === false || $bytes !== strlen($json)) {
+        @unlink($tmp);
+        return false;
+    }
+    // Carry the replaced file's permissions across; a fresh temp file is
+    // created under the process umask, which is not always the same thing.
+    $perms = @fileperms($path);
+    if ($perms !== false) @chmod($tmp, $perms & 0777);
+    if (!@rename($tmp, $path)) {
+        @unlink($tmp);
+        return false;
+    }
+    return true;
+}
+
 // Helper: load products array from JSON
 function load_products(): array {
     $path = PRODUCTS_JSON;
@@ -476,8 +581,13 @@ function load_products(): array {
     $json = file_get_contents($path);
     $data = json_decode($json, true);
     if (!is_array($data)) return [];
-    // Handle both plain array and { products: [...] } formats
-    if (isset($data['products'])) return $data['products'];
+    // Handle both plain array and { products: [...] } formats.
+    // A-5.29 — the WRAPPER was checked and the inner value was not, while the
+    // declared return type is `array`. A hand-edited `{"products": "..."}` was
+    // therefore an uncaught TypeError — a 500 on every admin page with no "the
+    // file is corrupt" message anywhere, where fully-invalid JSON degrades
+    // politely to []. backups.php:27 has always guarded the same shape.
+    if (isset($data['products'])) return is_array($data['products']) ? $data['products'] : [];
     return $data;
 }
 
@@ -491,7 +601,13 @@ function load_products(): array {
 //   2. Keeping 5 counted *saves*, not *mistakes* — every photo upload, PDF
 //      upload, add, delete and restore is a full-catalog save, so an ordinary
 //      afternoon rotated the pre-mistake state off the disk. Keep 30.
-define('BACKUP_KEEP', 30);
+// A-5.15 — one new product is THREE catalog saves (add, then the photo upload,
+// then the data-sheet upload), so adding ten parts in one sitting rotated a
+// 30-slot window completely and the owner's pre-mistake state was gone by the
+// next morning. The ordering and pruning mechanism was never the problem; the
+// size of the window was. 90 keeps roughly thirty products' worth of work, and
+// the files are ~236KB each at today's catalog size.
+define('BACKUP_KEEP', 90);
 
 // Returns a path that does not already exist: prefix.backup.YYYYmmdd-His.json,
 // then -01, -02 … within the same second.
@@ -566,8 +682,33 @@ function backup_before_write(string $path, string $prefix): ?string {
         }
     }
 
-    $backupPath = backup_path($dir, $prefix);
-    if (!@copy($path, $backupPath)) return null;
+    // L13 — claim the name before copying into it.
+    //
+    // backup_path() globs, picks max-used + 1, and returns; the copy happens
+    // afterwards. Two writers inside the same second can both glob before
+    // either has copied, both compute the same sequence, and the second
+    // silently overwrites the first — losing a recoverable state on the one
+    // page whose entire job is not to lose them. Creating the file with 'x'
+    // (O_CREAT|O_EXCL, atomic) makes the claim the same operation as the check,
+    // so the loser sees the collision and takes the next sequence instead.
+    // The allocation rule itself is unchanged — still max-used + 1, per
+    // invariant 5 — because backup_path() is still what computes it.
+    $backupPath = null;
+    for ($try = 0; $try < 10; $try++) {
+        $candidate = backup_path($dir, $prefix);
+        $claim = @fopen($candidate, 'x');
+        if ($claim !== false) {
+            fclose($claim);
+            $backupPath = $candidate;
+            break;
+        }
+        // Someone took it between the glob and here; recompute and retry.
+    }
+    // Ten collisions means ten writers in one second, which does not happen on a
+    // one-owner admin — but fall back to the old behaviour rather than skipping
+    // the backup, because no backup at all is the worse outcome.
+    if ($backupPath === null) $backupPath = backup_path($dir, $prefix);
+    if (!@copy($path, $backupPath)) { @unlink($backupPath); return null; }
     $backups = backup_list($dir, $prefix); // oldest first, by parsed (stamp, seq)
     if (count($backups) > BACKUP_KEEP) {
         foreach (array_slice($backups, 0, count($backups) - BACKUP_KEEP) as $old) @unlink($old);
@@ -664,8 +805,7 @@ function save_products(array $products): bool {
     }
     $GLOBALS['ipc_last_save_noop'] = false;
     backup_before_write($path, 'products-all');
-    // LOCK_EX prevents concurrent write corruption (#3)
-    return file_put_contents($path, $json, LOCK_EX) !== false;
+    return json_write_atomic($path, $json);   // A-5.5 — temp file + atomic rename
 }
 
 // Helper: load business details (site-info.json). Returns [] if missing/invalid.
@@ -690,7 +830,7 @@ function save_site_info(array $info): bool {
     }
     $GLOBALS['ipc_last_save_noop'] = false;
     backup_before_write($path, 'site-info');
-    return file_put_contents($path, $json, LOCK_EX) !== false;
+    return json_write_atomic($path, $json);
 }
 
 // Helper: load editable page content (homepage sections, etc.). Returns [] if
@@ -854,7 +994,7 @@ function save_content(array $content): bool {
     }
     $GLOBALS['ipc_last_save_noop'] = false;
     backup_before_write($path, 'content');
-    return file_put_contents($path, $json, LOCK_EX) !== false;
+    return json_write_atomic($path, $json);
 }
 
 /**
@@ -887,8 +1027,25 @@ const IPC_AUDIT_ACTIONS = [
 // from the FTP user, admin/ is not writable and the log, the inquiry file and
 // the login throttle ALL silently no-op. admin_writable() surfaces that on the
 // dashboard instead of leaving it invisible (DEPLOY_READINESS_v2 §3.3).
+// Rotation ceiling for admin-log.jsonl. inquiries.jsonl has had one since B3;
+// this file had none, and it grows on every save AND on every failed sign-in —
+// so a single credential scanner appends to it forever. Same size and the same
+// never-delete-the-archive rule as the inquiry log. (audit-runs/audit5.md A-5.4)
+define('ADMIN_LOG_ROTATE_BYTES', 16 * 1024 * 1024);
+
 function audit_log(string $action, string $sku, string $detail = ''): bool {
     $logPath = __DIR__ . '/admin-log.jsonl';
+    if (is_file($logPath) && @filesize($logPath) >= ADMIN_LOG_ROTATE_BYTES) {
+        @rename($logPath, __DIR__ . '/admin-log-' . date('Y-m-d-His') . '.jsonl');
+    }
+    // A-5.24 — JSON_INVALID_UTF8_SUBSTITUTE, because 'ua' is an
+    // attacker-controlled header and json_encode() returns FALSE on a single
+    // malformed byte. `false . "\n"` is a bare newline, which the viewer then
+    // skips as an empty line, and the function still reported success — so
+    // `curl -A $'\xFF'` produced no `sign-in-failed` row for a guessing run and
+    // no `sign-in` row for the compromise that followed. The byte-based
+    // substr() below can also split a legitimate multibyte character and cause
+    // exactly the same loss.
     $entry = json_encode([
         'ts'     => date('Y-m-d H:i:s'),
         'action' => $action,
@@ -896,8 +1053,106 @@ function audit_log(string $action, string $sku, string $detail = ''): bool {
         'detail' => $detail,
         'ip'     => $_SERVER['REMOTE_ADDR'] ?? '',
         'ua'     => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 120),
-    ]) . "\n";
+    ], JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($entry === false) return false;   // never write a blank line and call it success
+    $entry .= "\n";
     return @file_put_contents($logPath, $entry, FILE_APPEND | LOCK_EX) !== false;
+}
+
+/**
+ * New-lead counter for the admin chrome.
+ *
+ * `mail()` returning true means the local MTA ACCEPTED the message, nothing
+ * more. The far more common shared-hosting outcome — accepted, then
+ * SPF/DKIM-rejected, greylisted or spam-foldered at the recipient — is
+ * indistinguishable from delivery here, and it was recorded as `sent: true`
+ * and rendered with a green "Emailed" badge.
+ *
+ * The inquiry log is the designed safety net and it is complete: every path,
+ * including every rejection, writes a record before exiting. What it lacked was
+ * any way to be NOTICED. Nothing in the dashboard, the nav or anywhere else
+ * said "leads arrived that you have not read", so a quiet month and a month of
+ * silently undelivered quote requests looked exactly the same to the owner.
+ *
+ * Counting is streamed, so it stays O(1) memory whatever the file grows to, and
+ * the seen-marker is a single integer written when the Inquiries page renders.
+ * (audit-runs/audit5.md A-5.6)
+ */
+define('INQUIRIES_SEEN_FILE', __DIR__ . '/.inquiries-seen.json');
+
+function inquiries_total_count(): int {
+    $path = __DIR__ . '/inquiries.jsonl';
+    $fh = @fopen($path, 'rb');
+    if (!$fh) return 0;
+    $n = 0;
+    while (($chunk = fread($fh, 1024 * 1024)) !== false && $chunk !== '') {
+        $n += substr_count($chunk, "\n");
+    }
+    fclose($fh);
+    return $n;
+}
+
+function inquiries_seen_state(): array {
+    $raw = @file_get_contents(INQUIRIES_SEEN_FILE);
+    if ($raw === false) return ['seen' => 0, 'size' => -1];
+    $d = json_decode((string)$raw, true);
+    if (!is_array($d)) return ['seen' => 0, 'size' => -1];
+    return ['seen' => max(0, (int)($d['seen'] ?? 0)), 'size' => (int)($d['size'] ?? -1)];
+}
+
+function inquiries_mark_seen(int $n): void {
+    $size = @filesize(__DIR__ . '/inquiries.jsonl');
+    @file_put_contents(
+        INQUIRIES_SEEN_FILE,
+        json_encode(['seen' => $n, 'size' => $size === false ? 0 : $size, 'ts' => date('c')]),
+        LOCK_EX
+    );
+}
+
+/** Newlines in [$from, $to) — the bytes appended since the mark. */
+function inquiries_count_range(string $path, int $from, int $to): int {
+    $fh = @fopen($path, 'rb');
+    if (!$fh) return 0;
+    if ($from > 0) fseek($fh, $from);
+    $n = 0;
+    $remaining = $to - $from;
+    while ($remaining > 0 && ($chunk = fread($fh, min(1024 * 1024, $remaining))) !== false && $chunk !== '') {
+        $n += substr_count($chunk, "\n");
+        $remaining -= strlen($chunk);
+    }
+    fclose($fh);
+    return $n;
+}
+
+/**
+ * Unread count. A seen-marker ABOVE the total means the log rotated at its
+ * 16MB ceiling and started again, so the marker no longer refers to this file;
+ * treat everything in the new file as unread rather than silently reporting
+ * zero, because under-reporting is the failure this whole function exists to
+ * prevent.
+ */
+function inquiries_new_count(): int {
+    $path = __DIR__ . '/inquiries.jsonl';
+    if (!is_file($path)) return 0;
+    $size  = (int)@filesize($path);
+    $state = inquiries_seen_state();
+
+    // nav.php calls this on EVERY admin page, and the log is allowed to reach
+    // 16MB before it rotates, so counting the whole file each time would put a
+    // 16MB read on every page view. The file only ever appends, so the size at
+    // the moment of the mark is enough: unchanged means nothing new, and larger
+    // means only the appended bytes need counting.
+    if ($state['size'] >= 0 && $size === $state['size']) return 0;
+    if ($state['size'] >= 0 && $size > $state['size']) {
+        return inquiries_count_range($path, $state['size'], $size);
+    }
+
+    // Smaller than the mark (the log rotated at its ceiling and started again)
+    // or no mark at all: count the file. Treat everything present as unread
+    // rather than reporting zero — under-reporting is the failure this exists
+    // to prevent.
+    $total = inquiries_total_count();
+    return $state['size'] < 0 ? max(0, $total - $state['seen']) : $total;
 }
 
 // True when the admin/ folder can actually be written by the PHP user.
@@ -1305,8 +1560,137 @@ function sku_problems(string $sku): array {
  * requires a .pdf target — do not consolidate them; F6 being stricter is the
  * point of F6.
  */
+/**
+ * A-5.12 — shape validation for the two spec tables.
+ *
+ * `add.php` and `edit.php` accepted whatever `json_decode()` produced as long
+ * as it was an array, while the renderer assumes a specific shape: the
+ * Specifications list is rows of `{label, value}` objects, and the size grid is
+ * a matrix — `rows` is a list of LISTS. A plausible hand-edit of the raw JSON,
+ * `{"rows":["8.0","9.0"]}`, satisfied `is_array()` and saved cleanly, and then
+ * `row.map(...)` threw on a string: measured, that product's page rendered the
+ * ErrorBoundary ("Something went wrong", no heading) while every other product
+ * rendered fine on the same load. The keyed ErrorBoundary contains it to the one
+ * page, but nothing anywhere pointed at the cause, and the owner's only clue
+ * was that a product he had just edited went blank.
+ *
+ * Returns '' when the value is fine, or a sentence naming the row to fix.
+ */
+/**
+ * A-5.16 — bound an uploaded photo's PIXEL size, not just its byte size.
+ *
+ * Nothing in the tree resized an upload: the only limit was the 8MB cap, and
+ * help.php gives a floor ("at least 800 pixels wide") with no ceiling. A modern
+ * phone photographs a part at 4032x3024 and 3-5MB, which is exactly what the
+ * Help page tells the owner to do — and that file then became the eagerly
+ * loaded LCP image on the product page, for a buyer standing in a plant on a
+ * phone. The 42 shipped photos total 2.7MB between them.
+ *
+ * 1600px wide covers the largest slot at 2x pixel density. Anything narrower is
+ * left completely alone, so this cannot degrade a photo that was already sized
+ * sensibly. GIF is skipped rather than flattened — silently destroying an
+ * animation would be worse than a large file. If GD is missing, or the specific
+ * format is unsupported, the upload still succeeds at its original size: a
+ * working upload matters more than an optimised one.
+ *
+ * Returns true only when the file on disk was actually replaced.
+ */
+define('IMG_MAX_WIDTH', 1600);
+
+function image_downscale_in_place(string $path, string $ext): bool {
+    if (!extension_loaded('gd') || !function_exists('imagescale')) return false;
+    $ext = strtolower($ext);
+    if ($ext === 'gif') return false;                       // never flatten an animation
+    $info = @getimagesize($path);
+    if (!is_array($info) || empty($info[0])) return false;
+    $w = (int)$info[0];
+    if ($w <= IMG_MAX_WIDTH) return false;                  // already sensible
+
+    $loaders = ['jpg' => 'imagecreatefromjpeg', 'jpeg' => 'imagecreatefromjpeg',
+                'png' => 'imagecreatefrompng',  'webp' => 'imagecreatefromwebp'];
+    if (!isset($loaders[$ext]) || !function_exists($loaders[$ext])) return false;
+    $src = @$loaders[$ext]($path);
+    if (!$src) return false;
+
+    $dst = @imagescale($src, IMG_MAX_WIDTH);
+    if (!$dst) { imagedestroy($src); return false; }
+    if ($ext === 'png' || $ext === 'webp') {                // keep transparency
+        @imagealphablending($dst, false);
+        @imagesavealpha($dst, true);
+    }
+    // Write beside the target and rename in, for the same reason save_*() does:
+    // a failure part-way must not leave a truncated image where a valid one was.
+    $tmp = $path . '.' . getmypid() . '-' . mt_rand(1000, 999999) . '.tmp';
+    $okWrite = false;
+    if ($ext === 'jpg' || $ext === 'jpeg') $okWrite = @imagejpeg($dst, $tmp, 82);
+    elseif ($ext === 'png')                $okWrite = @imagepng($dst, $tmp, 6);
+    elseif ($ext === 'webp')               $okWrite = @imagewebp($dst, $tmp, 82);
+    imagedestroy($src);
+    imagedestroy($dst);
+    if (!$okWrite || !is_file($tmp) || @filesize($tmp) < 1) { @unlink($tmp); return false; }
+    $perms = @fileperms($path);
+    if ($perms !== false) @chmod($tmp, $perms & 0777);
+    if (!@rename($tmp, $path)) { @unlink($tmp); return false; }
+    return true;
+}
+
+function spec_table1_problem($rows): string {
+    if (!is_array($rows)) return 'The Specifications table must be a list of rows.';
+    foreach ($rows as $i => $r) {
+        $n = $i + 1;
+        // A row must be an object; a bare list means someone typed ["a","b"].
+        if (!is_array($r) || array_values($r) === $r) {
+            return 'Specifications row ' . $n . ' must be written as {"label": "...", "value": "..."}.';
+        }
+        foreach (['label', 'value'] as $k) {
+            if (array_key_exists($k, $r) && $r[$k] !== null && !is_scalar($r[$k])) {
+                return 'Specifications row ' . $n . ' has a "' . $k . '" that is not text.';
+            }
+        }
+    }
+    return '';
+}
+
+function spec_table2_problem($st2): string {
+    if (!is_array($st2)) return 'The Size / Dimension table must be an object with "columnSpans" and "rows".';
+    $spans = $st2['columnSpans'] ?? [];
+    $rows  = $st2['rows'] ?? [];
+    if (!is_array($spans)) return 'The Size / Dimension table\'s "columnSpans" must be a list.';
+    foreach ($spans as $i => $g) {
+        $n = $i + 1;
+        if (!is_array($g) || array_values($g) === $g) {
+            return 'Size / Dimension column ' . $n . ' must be written as {"label": "...", "colspan": 1, "sub": null}.';
+        }
+        if (array_key_exists('sub', $g) && $g['sub'] !== null && !is_array($g['sub'])) {
+            return 'Size / Dimension column ' . $n . ' has a "sub" that is neither a list nor null.';
+        }
+        if (array_key_exists('colspan', $g) && !is_numeric($g['colspan'])) {
+            return 'Size / Dimension column ' . $n . ' has a "colspan" that is not a number.';
+        }
+    }
+    if (!is_array($rows)) return 'The Size / Dimension table\'s "rows" must be a list.';
+    foreach ($rows as $i => $r) {
+        $n = $i + 1;
+        if (!is_array($r) || array_values($r) !== $r) {
+            return 'Size / Dimension row ' . $n . ' must be a list of cells, such as ["1/2", "0.75"].';
+        }
+        foreach ($r as $c) {
+            if ($c !== null && !is_scalar($c)) {
+                return 'Size / Dimension row ' . $n . ' has a cell that is not text.';
+            }
+        }
+    }
+    return '';
+}
+
 function link_url_problem(string $url, string $what): string {
-    $u = trim($url);
+    // A-5.13 — normalise exactly as isSafeLinkUrl() does, and for the same
+    // reason: a URL parser strips tab/LF/CR and treats a backslash as a solidus
+    // for special schemes, so `/\evil.com/x.pdf` reads as a local path here and
+    // as https://evil.com/x.pdf in the browser. Keep the two in step; they are
+    // the write gate and the render gate on the same values.
+    $u = trim(str_replace(["\t", "\n", "\r"], '', $url));
+    $u = str_replace('\\', '/', $u);
     if ($u === '') return '';
     if (strpos($u, '//') === 0) {
         return $what . ' must start with a single / for a file on this site, or with http:// or https://.';

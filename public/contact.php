@@ -113,7 +113,7 @@ function ipc_log_inquiry(array $entry): void {
             }
             @file_put_contents(
                 $path,
-                json_encode($entry, JSON_UNESCAPED_UNICODE) . "\n",
+                json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . "\n",
                 FILE_APPEND | LOCK_EX
             );
             return;
@@ -173,6 +173,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // log line, and a handful of those filled the inquiry log. Truncation is
 // announced in the value itself so nobody quotes half a spec back to a
 // customer without knowing it was cut. (AUDIT_v3_FINDINGS B3)
+// A-5.17 — this file stamps every inquiry record and every mail body, and it
+// does not include admin/config.php, so it needs the timezone of its own. UTC
+// (PHP's fallback when date.timezone is unset) put every lead five or six hours
+// ahead of the business that received it.
+if (!defined('IPC_TIMEZONE')) define('IPC_TIMEZONE', 'America/Chicago');
+@date_default_timezone_set(IPC_TIMEZONE);
+
 define('IPC_MAX_LINE', 200);    // name, email, phone, company, subject, part…
 define('IPC_MAX_TEXT', 5000);   // message, additionalNotes, specialReqs
 
@@ -210,6 +217,50 @@ function s($val, int $max = IPC_MAX_LINE): string {
 // From, Reply-To). CRLF here is header injection. (4.16)
 function hdr($val): string {
     return trim(preg_replace('/[\r\n]+/', ' ', s($val)) ?: '');
+}
+
+// Third destination: a BODY slot inside the auto-reply.
+//
+// s() keeps newlines on purpose — its destinations are a text/plain mail to
+// IPC and a JSONL record, and `<1/4 inch and >2 inch ID` must survive intact
+// (invariant 10). hdr() covers header values. But the auto-reply is the one
+// mail whose RECIPIENT the visitor chooses, and it echoes visitor text back,
+// so those two rules left a third case uncovered: an anonymous POST could put
+// freely line-broken prose into the body of a mail sent from this domain, with
+// its SPF/DKIM, to any address. Measured: a forged "invoice overdue — pay
+// online now" notice arrived intact at a third party. (audit-runs/audit5.md
+// A-5.1)
+//
+// Collapse every whitespace run — newlines included — to a single space and cap
+// short. A real quote confirmation still reads correctly; a forged notice
+// cannot be assembled, because nothing the sender supplies can open a line of
+// its own. Applied ONLY to the reply's copies: the sales notification and the
+// inquiry record keep the value exactly as it was typed.
+function reply_slot($val, int $max = 80): string {
+    // No /u — a non-UTF-8 byte made preg_replace() return null and 500 (NB6).
+    $v = preg_replace('/\s+/', ' ', s($val));
+    $v = trim($v === null ? '' : $v);
+    if ($v === '') return '';
+    // A link is what turns a mangled fragment into a working phish: it is the
+    // one payload that survives being quoted inside someone else's template,
+    // and it arrives carrying this domain's reputation. None of the slots this
+    // function guards — the sender's name, a part number, a material, a
+    // quantity, a date — has any legitimate reason to contain one.
+    $v = preg_replace('~\b(?:https?://|ftp://|mailto:|www\.)\S*~i', '[link removed]', $v);
+    $v = trim($v === null ? '' : $v);
+    if ($v === '') return '';
+    // mbstring is present on every supported host, but it is an extension and
+    // not guaranteed; fall back to a byte cut rather than fatalling. A split
+    // multibyte character here is cosmetic — this value's only destination is a
+    // text/plain body, never JSON, so nothing downstream can fail on it.
+    $mb = function_exists('mb_strlen') && function_exists('mb_substr');
+    if ($mb && mb_strlen($v, 'UTF-8') > $max) {
+        return rtrim(mb_substr($v, 0, $max, 'UTF-8')) . '…';
+    }
+    if (!$mb && strlen($v) > $max) {
+        return rtrim(substr($v, 0, $max)) . '...';
+    }
+    return $v;
 }
 
 // The auto-reply cap's key — the MAILBOX, not the string that was typed.
@@ -252,7 +303,13 @@ function ipc_partial_entry(string $type, string $note, string $ip): array {
         'email'   => s($_POST['email'] ?? ''),
         'phone'   => s($_POST['phone'] ?? ''),
         'subject' => s($_POST['subject'] ?? ''),
-        'message' => s($_POST['message'] ?? $_POST['additionalNotes'] ?? '', IPC_MAX_TEXT),
+        // A-5.25 — a rejected submission is kept so a real lead caught by a
+        // guard is still recoverable, but it does not need the full 5,000
+        // characters: at the 5-per-10-minute cap that is ~11.5MB a day per IP
+        // of permanent growth, and rotated archives are deliberately never
+        // deleted. 500 characters is plenty to recognise a genuine enquiry and
+        // ask the sender to resend, and it cuts the worst-case growth ~10x.
+        'message' => s($_POST['message'] ?? $_POST['additionalNotes'] ?? '', 500),
         'ip'      => $ip,
         'sent'    => false,
         'note'    => $note,
@@ -300,9 +357,48 @@ $state['hits'] = array_values(array_filter($state['hits'], function ($t) use ($n
 if (empty($state['hits'])) $state['blocked'] = 0;   // the window rolled over
 
 /** Persist the limiter state; used by every exit path below. */
-function ipc_rl_save(string $file, array $state): void {
-    @file_put_contents($file, json_encode($state), LOCK_EX);
+function ipc_rl_save(string $file, array $state): bool {
+    $json  = json_encode($state);
+    if ($json === false) return false;
+    $bytes = @file_put_contents($file, $json, LOCK_EX);
+    return $bytes !== false && $bytes === strlen($json);
 }
+
+/**
+ * Both limiters keep their state in the shared temp dir behind @-suppressed
+ * writes, and nothing checked whether the write landed or ever removed a file.
+ * Two consequences, and they pull in opposite directions:
+ *
+ *  - If the write fails — temp dir not writable under this host's open_basedir
+ *    or TMPDIR, or the account's inode quota reached — the next request reads
+ *    an absent file, counts zero hits, and BOTH controls are simply off, with
+ *    nothing anywhere reporting it.
+ *  - Nothing pruned, so one file accumulated per distinct visitor IP and per
+ *    distinct auto-reply recipient, forever, in the same directory as PHP's
+ *    session files. That is an inode-quota attack from an unauthenticated
+ *    form, and inode exhaustion is itself the condition in the first bullet.
+ *
+ * Prune on roughly 1 request in 25 — often enough to stay bounded under real
+ * traffic, rare enough that a scandir() is not on the hot path.
+ * (audit-runs/audit5.md A-5.9)
+ */
+function ipc_prune_limiter_files(int $now): void {
+    if (mt_rand(1, 25) !== 1) return;
+    $dir = sys_get_temp_dir();
+    $h   = @opendir($dir);
+    if (!$h) return;
+    $cutoff = 86400 * 2;          // both windows (10 min, 24 h) are well inside this
+    $budget = 500;                 // never let a sweep run away on a huge temp dir
+    while ($budget-- > 0 && ($f = readdir($h)) !== false) {
+        if (strncmp($f, 'ipc_rl_', 7) !== 0 && strncmp($f, 'ipc_ar_', 7) !== 0) continue;
+        $full = $dir . '/' . $f;
+        $mt   = @filemtime($full);
+        if ($mt !== false && ($now - $mt) > $cutoff) @unlink($full);
+    }
+    closedir($h);
+}
+
+ipc_prune_limiter_files($now);
 
 if (count($state['hits']) >= $maxHits) {
     if ($state['blocked'] < $maxLogged) {
@@ -320,7 +416,12 @@ if (count($state['hits']) >= $maxHits) {
     exit;
 }
 $state['hits'][] = $now;
-ipc_rl_save($rateFile, $state);
+// A-5.9 — if the state cannot be persisted, the rate limit is not enforcing.
+// The lead intake deliberately still FAILS OPEN here: refusing submissions
+// because a temp file will not write would lose real quote requests, which is
+// the one outcome this whole file exists to prevent. The AUTO-REPLY, which is
+// the outbound-to-a-stranger half, fails CLOSED instead — see below.
+$limiterPersisted = ipc_rl_save($rateFile, $state);
 
 // ── Same-origin referer check ──────────────────────────────────
 // An ABSENT Referer is not evidence of abuse. Privacy extensions,
@@ -532,7 +633,13 @@ $headers  = "From: IPC Website <noreply@insulationproducts.com>\r\n";
 $headers .= "Reply-To: " . hdr($replyTo) . "\r\n";
 $headers .= "MIME-Version: 1.0\r\n";
 $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-$headers .= "X-Mailer: PHP/" . PHP_VERSION . "\r\n";
+// X-Mailer removed. It served no delivery purpose and announced the exact
+// PHP patch level — to the SALES address on one path, and on the other to any
+// address a stranger types into the form, who only has to submit it once to
+// read the version off their own auto-reply. Both .htaccess files already turn
+// off ServerSignature and unset X-Powered-By; this was the hole in that same
+// posture. (audit-runs/audit5.md, Low tier)
+
 
 $sent = @mail($to, $subject, $body, $headers); // @ — a mail warning must never corrupt the JSON response
 
@@ -577,11 +684,23 @@ if ($replyTo !== '') {
     $ar = array_values(array_filter($ar, function ($t) use ($now, $arWindow) {
         return ($now - (int)$t) < $arWindow;
     }));
+    // A-5.9 — no persisted cap means no cap. Sending anyway would put an
+    // uncapped outbound channel, addressed by a stranger, on this domain's
+    // reputation; not sending costs the sender a courtesy confirmation while
+    // the lead itself is already captured (sales notification + inquiry log,
+    // both above). Fail closed.
+    if (!$limiterPersisted) {
+        $autoReplyOk = false;
+    }
     if (count($ar) >= $arMax) {
         $autoReplyOk = false;      // the sales notification above already went out
     } else {
         $ar[] = $now;
-        @file_put_contents($arFile, json_encode($ar), LOCK_EX);
+        // Same rule: if the updated cap cannot be stored, do not send — the
+        // next request would read a missing file and start counting from zero.
+        $arJson  = json_encode($ar);
+        $arBytes = $arJson === false ? false : @file_put_contents($arFile, $arJson, LOCK_EX);
+        if ($arBytes === false || $arBytes !== strlen((string)$arJson)) $autoReplyOk = false;
     }
 }
 // PLAN-6 item 3. The prose is editable; the REQUEST SUMMARY below is not, and
@@ -604,18 +723,24 @@ $noticePara = $notice === '' ? '' : "{$notice}\n\n";
 if ($rfqPromise === '') $rfqPromise = 'Our sales team will review your request and respond within one business day — often the same day for in-stock items.';
 if ($msgPromise === '') $msgPromise = 'Our team will respond within one business day.';
 
+// A-5.1 — every visitor-supplied value that reaches THIS body is neutralised
+// first. The sales notification built above still carries the raw text, and so
+// does the JSONL record, so nothing IPC needs is lost.
+$rName = reply_slot($name, 60);
+if ($rName === '') $rName = 'there';
+
 if ($formType === 'rfq') {
     $replySubject = hdr("We received your quote request — {$bizName}");
-    $replyBody    = "Hello {$name},\n\n"
+    $replyBody    = "Hello {$rName},\n\n"
                   . "Thank you for submitting a quote request to {$bizName}.\n\n"
                   . "{$rfqPromise}\n\n"
                   . $noticePara
                   . "YOUR REQUEST SUMMARY\n"
                   . "--------------------\n"
-                  . "Part Number:   {$partNumber}\n"
-                  . "Material Type: {$material}\n"
-                  . "Quantity:      {$quantity}\n"
-                  . "Required By:   {$reqDate}\n\n"
+                  . "Part Number:   " . reply_slot($partNumber, 80) . "\n"
+                  . "Material Type: " . reply_slot($material, 80) . "\n"
+                  . "Quantity:      " . reply_slot($quantity, 80) . "\n"
+                  . "Required By:   " . reply_slot($reqDate, 40) . "\n\n"
                   . "For urgent needs, reach us directly:\n"
                   . "  Phone: {$bizPhone} ({$bizHours})\n"
                   . "  Fax:   {$bizFax}\n"
@@ -624,7 +749,7 @@ if ($formType === 'rfq') {
                   . "{$bizAddr}\n";
 } else {
     $replySubject = hdr("We received your message — {$bizName}");
-    $replyBody    = "Hello {$name},\n\n"
+    $replyBody    = "Hello {$rName},\n\n"
                   . "Thank you for contacting {$bizName}.\n\n"
                   . "{$msgPromise}\n\n"
                   . $noticePara
@@ -636,11 +761,19 @@ if ($formType === 'rfq') {
                   . "{$bizAddr}\n";
 }
 
-$replyHeaders  = "From: " . hdr($bizName) . " <noreply@insulationproducts.com>\r\n";
+// RFC 5322 quoting on the display name. hdr() closes header INJECTION (4.16)
+// but adds no quoting, so an unquoted name containing a comma — "Insulation
+// Products, Inc." is the obvious one — parses as an address LIST: "Insulation
+// Products" and "Inc. <noreply@…>". Strict MTAs reject that, and mail() here is
+// best-effort and @-suppressed, so every auto-reply would simply stop with
+// nothing reporting it. Quote it, and escape any quote or backslash inside.
+// (audit-runs/audit5.md, Low tier)
+$fromName      = '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], hdr($bizName)) . '"';
+$replyHeaders  = "From: " . $fromName . " <noreply@insulationproducts.com>\r\n";
 $replyHeaders .= "Reply-To: " . hdr($to) . "\r\n";
 $replyHeaders .= "MIME-Version: 1.0\r\n";
 $replyHeaders .= "Content-Type: text/plain; charset=UTF-8\r\n";
-$replyHeaders .= "X-Mailer: PHP/" . PHP_VERSION . "\r\n";
+
 
 if ($autoReplyOk) {
     @mail($replyTo, $replySubject, $replyBody, $replyHeaders); // best-effort, no error check

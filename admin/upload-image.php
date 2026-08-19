@@ -8,7 +8,7 @@ require_auth();
  * Vite build output, so redeploying the React app never clobbers photos.
  */
 
-$sku      = $_GET['sku'] ?? '';
+$sku      = as_str($_GET['sku'] ?? null);   // A-5.7 — ?sku[]=x fatalled find_product(string)
 $products = load_products();
 $idx      = find_product($products, $sku);
 $errors   = [];
@@ -74,12 +74,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $uploadsHt = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
         if (is_dir(dirname($uploadsHt)) && !file_exists($uploadsHt)) {
+            // `php_flag` is a mod_php directive. This project targets PHP as
+            // CGI/FastCGI — public/.user.ini exists precisely because php_value
+            // and php_flag do not work there — and Apache answers an unknown
+            // directive with "Invalid command 'php_flag'" and a 500 for the
+            // WHOLE directory, which here would be every product photo on the
+            // site. This branch only runs when uploads/.htaccess is missing
+            // (the folder was created at runtime rather than deployed), so it
+            // was a latent 500 waiting for exactly the recovery case it exists
+            // to serve. Write the shipped file's rules instead — they are
+            // stronger anyway, and they contain nothing mod_php-only.
+            // (audit-runs/audit5.md, Low tier)
             @file_put_contents($uploadsHt, "# Uploaded files are DATA. Never let the web server execute anything here.\n"
-                . "php_flag engine off\n"
-                . "AddType text/plain .php .php3 .php4 .php5 .phtml .pl .py .cgi .sh .htaccess\n"
-                . "<FilesMatch \"\\.(php|php[3-9]|phtml|pl|py|cgi|sh)$\">\n"
-                . "  Order allow,deny\n"
+                . "# Written at runtime by admin/upload-image.php because this folder was\n"
+                . "# created on the server rather than deployed. Mirrors uploads/.htaccess.\n"
+                . "Options -Indexes\n"
+                . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
+                . "  Order Allow,Deny\n"
                 . "  Deny from all\n"
+                . "</FilesMatch>\n"
+                . "<FilesMatch \"\\.(?i:jpe?g|png|webp|gif)$\">\n"
+                . "  Order Deny,Allow\n"
+                . "  Allow from all\n"
                 . "</FilesMatch>\n");
         }
         $file = $_FILES['image_file'];
@@ -118,6 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $isReplacement = file_exists($destPath);
             if (move_uploaded_file($file['tmp_name'], $destPath)) {
+                // A-5.16 — bound the pixel size once the file is in place.
+                $wasResized = image_downscale_in_place($destPath, $ext);
                 // If the extension changed, clean up the old managed file
                 // (unless another product still points at it).
                 if ($isManaged && basename($currentPhoto) !== $filename) {
@@ -134,7 +152,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $products[$idx]['photoUrl'] = $destUrl;
                 if (save_products($products)) {
                     audit_log('upload-image', $sku, ($isReplacement ? 'Replaced' : 'Uploaded') . ' photo: ' . $filename);
-                    $success      = ($isReplacement ? 'Photo replaced' : 'Photo uploaded') . ' and product updated.';
+                    $success      = ($isReplacement ? 'Photo replaced' : 'Photo uploaded') . ' and product updated.'
+                                    // A-5.16 — say so rather than quietly handing back a different file.
+                                    . ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '');
                     $currentPhoto = $destUrl;
                     $isManaged    = true;
                     $product      = $products[$idx];

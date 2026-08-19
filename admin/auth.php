@@ -120,7 +120,9 @@ if (!$resetUnlocked && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['se
 $cooloff = 0;
 
 if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $password = $_POST['password'] ?? '';
+    // A-5.7 — raw_str(), not post_str(): trimming would silently change the
+    // password that gets verified. `password[]=x` used to fatal here.
+    $password = raw_str($_POST['password'] ?? null);
     // Take an attempt slot BEFORE the password is looked at. The count and the
     // decision happen under one lock, so simultaneous connections queue and
     // only the ones inside the free allowance ever reach password_verify().
