@@ -5183,3 +5183,18 @@ harness suites          69/71 clean    running at commit time — recorded below
 The full 72-suite sweep was still running when this was committed. Its result is
 appended immediately below by the follow-up commit rather than predicted here;
 `data/` was confirmed byte-identical to `_harness/pristine/` before and after.
+
+**Sweep result (recorded after the fact, as promised above): 70/72 clean.**
+The only two reds are the documented expected-reds — `plan8-polish` 16/17
+(Linux DejaVu artifact, GUARDRAILS §7.1) and `brandtext` 36/47, i.e. **11
+failing against a ceiling of 13**, judged by the failing count as that section
+instructs. `plan8-contrast` 34/35 is its documented passing state.
+
+The suites most exposed to these nine changes were all green, which is the part
+worth recording: `plan3-contact` 51/51 and `plan3-autoreply` 22/22 (the
+`reply_slot()` change), `plan5b-sitemap` 9/9 and `plan5c-sitemap` 17/17 (the
+catalog-shape change), `plan5-images` 12/12 (the pixel ceiling), `adminwidth`
+39/39 and `plan10-helpwidth` 21/21 (the four longer Site Images labels),
+`contactflow` 85/85, `copydrift` and `plan2-trunc` 13/13. All three audit-5
+suites held: `audit5-blockers` 18/18, `audit5-high` 30/30, `audit5-medium`
+20/20.
