@@ -115,9 +115,24 @@ RewriteRule ^ index.html [QSA,L]
   </FilesMatch>
 </IfModule>
 
-# Gzip / Brotli where available
+# Gzip / Brotli where available.
+#
+# AddOutputFilterByType matches the RESPONSE Content-Type, which Apache assigns
+# from mime.types — and the current IANA-derived table maps .js to
+# `text/javascript`, not `application/javascript`. httpd has shipped that
+# mapping since 2.4.53. So on any host with a current mime.types this list
+# matched the CSS and the HTML and missed the one file that matters: the bundle
+# went out at 376 kB instead of 108 kB gzip, on the critical path of every cold
+# load, for a buyer looking up a part on a phone in a plant.
+#
+# Both spellings are listed because the correct one depends on the host's
+# Apache version, which is not knowable from here — and naming a type the
+# server never emits costs nothing. application/xml is sitemap.php.
+# (audit-runs/audit6.md A-6.4)
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml
+  AddOutputFilterByType DEFLATE text/javascript application/javascript application/x-javascript
+  AddOutputFilterByType DEFLATE application/json application/xml image/svg+xml
 </IfModule>
 
 # Dotfiles. Apache's stock <Files ".ht*"> does not cover .user.ini, which this

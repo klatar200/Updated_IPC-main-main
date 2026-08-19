@@ -31,7 +31,20 @@ AddDefaultCharset UTF-8
   Header always set X-Frame-Options "DENY"
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "same-origin"
-  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+  # env=HTTPS is set by mod_ssl only when TLS terminates on THIS server. The
+  # redirect above exists precisely because it often does not — %{HTTPS} reads
+  # "off" on every request behind a TLS-terminating proxy, which is why that
+  # rule needs its X-Forwarded-Proto condition. The two assumed opposite
+  # topologies, so in the proxy case the one header meant to pin browsers to
+  # HTTPS was silently never sent — on the half of the site that posts a
+  # password and holds the session cookie.
+  #
+  # public/.htaccess was fixed this way in audit 5 and described itself as
+  # "mirroring admin/.htaccess", which is how the asymmetry stayed invisible.
+  # (audit-runs/audit6.md A-6.5)
+  SetEnvIf X-Forwarded-Proto "^https$" IPC_TLS=1
+  SetEnvIf HTTPS "^on$" IPC_TLS=1
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=IPC_TLS
   # Conservative CSP — the admin uses inline <style> blocks but no external JS.
   Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: https://placehold.co; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 </IfModule>

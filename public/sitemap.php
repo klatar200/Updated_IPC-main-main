@@ -89,6 +89,21 @@ function sitemap_product_ids($file)
     if (!is_array($data)) {
         return [];
     }
+    // Both shapes, because the other two readers of this same file accept both:
+    // config.php's load_products() has always handled { "products": [...] }
+    // alongside a bare array, and so does App.jsx's fetchProductsCached(). This
+    // function iterated the top level only, so against a hand-edited wrapper
+    // every row failed the isset($p['id']) test below and it emitted ZERO
+    // product URLs — under a 200, with the ten static routes present, so
+    // nothing anywhere looked wrong. Three readers of one file, two tolerant
+    // and one not, and the intolerant one failing silently.
+    // (audit-runs/audit6.md A-6.7)
+    if (isset($data['products'])) {
+        if (!is_array($data['products'])) {
+            return [];
+        }
+        $data = $data['products'];
+    }
     $ids = [];
     foreach ($data as $p) {
         if (!is_array($p) || !isset($p['id'])) {

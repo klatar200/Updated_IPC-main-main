@@ -28,7 +28,7 @@ wrong and is already recorded as corrected in `CLAUDE.md` — AUDIT_v3 D7):
 | `data/products-all.json` | read / write |
 | `data/site-info.json` | read / write |
 | `data/content.json` | read / write |
-| `data/*.backup.*.json` | write / prune (30 kept per prefix) |
+| `data/*.backup.*.json` | write / prune (90 kept per prefix, `BACKUP_KEEP`) |
 | `pdfs/` | read / write / delete |
 | `uploads/images/` | read / write / delete (created at runtime if absent) |
 | `admin/admin-log.jsonl` | append |
@@ -59,7 +59,7 @@ public_html/
 │   ├── products-all.json   ← Live product catalog (admin edits this)
 │   ├── site-info.json      ← Business details (admin edits this)
 │   ├── content.json        ← Page content (admin edits this)
-│   └── *.backup.*.json     ← Auto-written before every save, 30 kept per prefix
+│   └── *.backup.*.json     ← Auto-written before every save, 90 kept per prefix
 ├── pdfs/
 │   ├── .htaccess           ← Blocks PHP execution in this folder
 │   └── *.pdf               ← Uploaded data sheets
