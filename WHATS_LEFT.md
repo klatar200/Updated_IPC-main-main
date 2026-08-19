@@ -4943,3 +4943,131 @@ reading here is that the invariant is the *decision* (an empty array is a
 deletion) while dropping null rows is a separate question asked afterwards.
 Written as two statements, the guarded expression stays byte-identical and the
 behaviour is the same: `[]` → `[]`, `[null]` → `[]`, missing → defaults.
+
+
+---
+
+## 2l. Open after audit 6 (2026-08-19)
+
+Full report with evidence: [`audit-runs/audit6.md`](audit-runs/audit6.md).
+Base `4d60ad9` — main immediately after PR #49 merged the audit-5 work. Nothing
+here is a regression: the full suite was run first with all thirteen servers up
+and came back **69/71 clean**, both reds being the documented expected-reds,
+with `lint.php` green, `invariants.js` 17/17, `npm run build` clean, and all
+three audit-5 suites green (`audit5-blockers` 18/18, `audit5-high` 30/30,
+`audit5-medium` 20/20).
+
+Findings are recorded, **not fixed** — GUARDRAILS §1.
+
+Two of the nine are High, and both are the same shape: **a change that is
+correct in the repository and does not reach, or does not work on, the live
+server.** That is precisely what the local harness cannot see (§4.3), which is
+why five previous rounds missed it. Worth keeping in mind for future audits: the
+`.htaccess` files and the deploy manifest are code, and nothing executes them
+here.
+
+### High
+
+- [ ] **A-6.1 — the admin's own CSP makes the session-expiry recovery button
+  inert.** `csrf_fail_page()` renders
+  `<button onclick="history.back()">← Back to my unsaved page</button>`
+  (`admin/config.php:436`, `:439`) while `admin/.htaccess:33` sets
+  `script-src 'self'` with no `'unsafe-inline'`. **Measured** in Chromium
+  against the real captured page and the real policy string, with a passing
+  control: without the header the click navigates back; with it the click does
+  nothing and Chromium logs *"Refused to execute inline event handler"*. This is
+  the page invariant 12 exists to render — a 302 would discard everything typed
+  — and its whole purpose is "click Back, your typing is restored". `php -S`
+  ignores `.htaccess`, so no suite could ever have caught it.
+  `admin/confirm.js` exists *specifically* because of this CSP rule and says so
+  in its header comment; these two are the ones that were missed.
+- [ ] **A-6.2 — three `.htaccess` files changed this release, and the deploy
+  manifest says never to upload their folders.** `data/.htaccess` (+25),
+  `pdfs/.htaccess` (±15), `uploads/.htaccess` (±17) all changed in PR #49, and
+  none is in `dist/` (verified). `README.md:113-133` lists only `dist/` items
+  plus `admin/`, its do-not-upload table names `data/`/`pdfs/`/`uploads/`
+  wholesale, and `DEPLOY_READINESS_v2.md:454` says `uploads/.htaccess` is
+  "first time only" — `data/.htaccess` and `pdfs/.htaccess` appear in neither.
+  **This half-undoes A-5.2 in the harmful direction:** `robots.txt` ships in
+  `dist/` and drops `Disallow: /data/`, while the compensating
+  `X-Robots-Tag: noindex` in `data/.htaccess` never arrives — so the raw catalog
+  JSON, the business address and the phone number become crawlable **and
+  indexable**, the exact outcome that fix's own comment says the header
+  prevents. `AddType application/json .json` (which `jsonOrThrow` hard-requires)
+  and the widened `pdfs/` script block are lost the same way. Fix is
+  documentation in `README.md`, which already declares itself authoritative
+  over the frozen §7.
+
+### Medium
+
+- [ ] **A-6.3 — `reply_slot()`'s link redaction misses scheme-less hosts.**
+  Measured: `evil-example.com/ipc-pay`, `ipc-billing.net/pay` and
+  `xhttps://evil.example/pay` all survive; `https://`, `www.` and the uppercase
+  form are redacted, and the newline collapse and length caps hold. Outlook and
+  Gmail autolink bare `domain.tld/path` in a `text/plain` body. The blocker
+  itself is **not** reopened — the load-bearing "cannot open a line of its own"
+  guarantee holds — but the PR's stated "cannot carry a link" does not.
+- [ ] **A-6.4 — the compression list omits the MIME type modern Apache gives
+  `.js`.** `public/.htaccess:120` lists `application/javascript`;
+  `/etc/mime.types` maps `.js` to `text/javascript`, as httpd has shipped since
+  2.4.53. On a current host the 376 kB bundle is served uncompressed instead of
+  108 kB gzip on every cold load. `[UNVERIFIED on the live host]` per §4.3 — the
+  current line is correct only on older builds, the fix is correct on both.
+- [ ] **A-6.5 — the HSTS proxy fix landed on the public tree and not on the
+  admin.** `public/.htaccess:47-56` now sets `IPC_TLS` from either `HTTPS` or
+  `X-Forwarded-Proto`, with the reasoning in the file. `admin/.htaccess:33` still
+  reads `env=HTTPS` while carrying the same `X-Forwarded-Proto` redirect three
+  lines above — the same contradiction, on the half that posts a password. The
+  public comment describes itself as "mirroring admin/.htaccess", which is how
+  the asymmetry stayed invisible.
+- [ ] **A-6.6 — photo downscaling decodes with no pixel ceiling, and
+  `memory_limit` does not bound it.** `image_downscale_in_place()` guards on
+  width only. **Measured:** a 4032x3024 JPEG takes process RSS from 35.8MB to
+  90.5MB while `memory_get_peak_usage()` reports **2MB** — GD allocates outside
+  the Zend allocator on this build, and the downscale still succeeds at
+  `memory_limit=8M`. The real ceiling is the host's per-process RAM, unknown.
+  An 8MB JPEG can be 60+MP. The call sits after `move_uploaded_file()` and
+  before `save_products()`, so an OOM kill leaves the file on disk, the catalog
+  un-updated and the owner on a blank page, reproducibly. `getimagesize()` two
+  lines above already returns the height.
+
+### Low
+
+- [ ] **A-6.7 — `sitemap.php` accepts only the bare-array catalog shape** that
+  `load_products()` and `fetchProductsCached()` both tolerate alongside
+  `{"products": […]}`. A wrapper-shaped file yields zero product URLs under a
+  200 with the ten static routes. Self-heals on the next admin save.
+- [ ] **A-6.8 — one of the five Site Images labels carries the deploy warning.**
+  A-5.18 put it on `heroPhoto`; `bandTeamPhoto`, `bandBuildingPhoto`,
+  `aboutPhoto` and `servicesPhoto` have plain labels and all four default into
+  `images/site/`, the folder the warning exists to name.
+- [ ] **A-6.9 — `admin/README.md:31` and `:62` still say 30 backups.**
+  `BACKUP_KEEP` is 90 since A-5.15; `help.php` and `backups.php` render the
+  constant and followed automatically.
+
+### Re-verified clean, recorded so it is not re-derived
+
+- **The A-5.7 array-input class has no stragglers.** Every remaining unguarded
+  `$_GET`/`$_POST` read was traced: `settings.php`'s `sf()`/`sfList()` guard with
+  `is_string()`, `content.php`'s row loop with `is_array()` plus `as_str()`, and
+  the rest compare with `===`/`in_array()`. `admin/index.php:24` reaches only
+  `h()`, which casts rather than throwing — a warning, not a 500.
+- **`spectable-editor.js`'s new empty-row filter is safe.** `String(r.label)`
+  would keep a literal-`null` label and the following `.map()` would throw on
+  `null.trim()` — but `enhanceSpecs()` normalises every row through
+  `r.label != null ? String(r.label) : ""` before `data` exists, so `label` is
+  always a string.
+- **Catalog data integrity.** 42 products, no duplicate SKUs, no duplicate ids,
+  and every `photoUrl`, `pdfUrl` and `additionalPdfs[].url` resolves to a file
+  that exists.
+
+### Carried forward, not re-reported
+
+`WHATS_LEFT.md` §2k's D-03 correction (take the free `react-router-dom@6.30.6`
+bump — re-verified this round that no `navigate()` call site takes anything but
+a literal, so nothing is reachable), **A-5.10** (no prerender), and the owner
+actions listed there, all unchanged.
+
+`CLAUDE.md`'s "~12,900-line" figure for `src/App.jsx` now measures **13,037**.
+The file already tells the reader to re-measure rather than trust it, so this is
+a refresh rather than a finding.
