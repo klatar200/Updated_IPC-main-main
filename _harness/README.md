@@ -138,6 +138,22 @@ UNFIXED tree and watched to fail before the fix went in.
 | `audit5-high.js` | The seven High findings. 30 checks. The A-5.5 arm runs PHP under `ulimit -f` with `SIGXFSZ` ignored, so the write returns SHORT instead of killing the process — that is what makes it a real short-write test rather than a simulated one |
 | `audit5-medium.js` | The nineteen Medium findings. 20 checks, spanning PHP helpers, the rendered admin and the public site |
 
+## Audit-6 and audit-7 acceptance
+
+Same rule as the audit-5 tier: written against the UNFIXED tree and watched to
+fail first.
+
+`audit6.js` was **absent from this file** until 2026-08-26 — the recurrence the
+section immediately below exists to prevent, one release after it was written.
+It is the acceptance suite for all nine audit-6 findings and it is 45 checks; an
+executor judged against this list would have skipped every one of them. Both
+rows are here now.
+
+| File | Item |
+|---|---|
+| `audit6.js` | All nine findings of `audit-runs/audit6.md`. 45 checks. The A-6.1 arm is the one that could not have been written any other way: it serves the real `csrf_fail_page()` with the real `script-src 'self'` policy string and **clicks the button**, with a no-CSP control that must pass — `php -S` ignores `.htaccess` (GUARDRAILS §4.3), so a source read cannot settle whether the browser runs the handler |
+| `audit7.js` | The two code findings of `audit-runs/audit7.md`. 30 checks. **A-7.1** writes six malformed spec/PDF shapes into the mirror catalog one at a time and requires the product page to render rather than throw into the ErrorBoundary — each arm scored against an untouched neighbouring product on the same catalog load, because "the page is broken" and "the mirror is broken" are otherwise the same observation. **A-7.2** routes `/data/*.json` to a handler that accepts and never responds, then asks the browser what became of each request after 15 s; the catalog fetch is the control, since it already carries the 12 s abort and must be seen to fire. Mutates the mirror only, restores from `pristine/` in a `finally`, and asserts the restore byte-for-byte before reporting |
+
 ## Suites named nowhere until 2026-08-18
 
 `plans/GUARDRAILS.md` calls this file "the live suite list", and fourteen

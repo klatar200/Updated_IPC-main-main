@@ -5198,3 +5198,181 @@ catalog-shape change), `plan5-images` 12/12 (the pixel ceiling), `adminwidth`
 `contactflow` 85/85, `copydrift` and `plan2-trunc` 13/13. All three audit-5
 suites held: `audit5-blockers` 18/18, `audit5-high` 30/30, `audit5-medium`
 20/20.
+
+
+---
+
+## 2m. Open after audit 7 (2026-08-26)
+
+Full report with evidence: [`audit-runs/audit7.md`](audit-runs/audit7.md).
+Base `ff62280` — main immediately after PR #50 merged the audit-6 work. Nothing
+here is a regression: the full 76-suite sweep was run **first** and came back
+clean apart from the two documented expected-reds (`plan8-polish` 16/17, the
+Linux DejaVu artifact; `brandtext` 36/47, i.e. 11 failing against a ceiling of
+13), with `plan8-contrast` at its documented passing 34/35, `lint.php` green,
+`invariants.js` 17/17 and `npm run build` clean.
+
+Findings were recorded here first, then fixed on the same branch at the owner's
+instruction — **all three shipped 2026-08-26, see §1v.** Each entry is left as
+written, because it is the record of what was true at audit time.
+
+**All three are the same shape: a fix that was applied to one half of its own
+surface.** That is what six rounds leave behind. The obvious defects are gone;
+what survives is the second call site of a rule written once, and the second
+file a one-line guard never reached. Worth carrying into round eight: when a
+finding is closed, the question that catches the next one is *"where else does
+this rule have to hold?"* — not *"is this file fixed?"*
+
+### High
+
+- [x] **A-7.1 — the A-5.12 spec-table shape gate is write-side only, and
+  `backups.php` walks straight past it.** `grep -rn 'A-5.12'` finds the marker
+  in `admin/add.php`, `admin/edit.php` and `admin/config.php` and in **no JSX**.
+  The renderer was never hardened — the same reasoning the L4 comment above
+  `safeHref()` already rejected in writing for `pdfUrl` ("data/ is a plain file,
+  so an FTP edit or a backup restored from before those gates existed reaches
+  the component with nothing in between"). And it needs no FTP:
+  `admin/backups.php:25-29` restores through `save_products()`, which runs none
+  of the form-level shape checks, and `BACKUP_KEEP` is 90 per prefix — so every
+  backup written before 2026-08-18 carries the pre-gate shape and restores with
+  a success message. **Measured**, six shapes, each against an untouched
+  neighbouring product as a control on the same catalog load: all six rendered
+  the ErrorBoundary with no `<h1>` while the control rendered correctly.
+  Navbar and footer survived, so it is a contained per-page crash and not L2's
+  whole-root unmount. `src/App.jsx` `SpecTable1` / `SpecTable2` /
+  `additionalPdfs`.
+
+### Medium
+
+- [x] **A-7.2 — T2.1's fetch timeout reached one of the three files it
+  protects.** `PRODUCTS_FETCH_TIMEOUT_MS` (12 s, `AbortController`) is applied
+  in `fetchProductsCached()` and nowhere else; `site-info.json` and
+  `content.json` go through `useRefetchOnReturn()`, which had a bare `fetch()`.
+  A hang does not blank the chrome — invariant 8 holds — but `last` is stamped
+  when the fetch *starts*, so each visibility change past the TTL opens another
+  request that also never settles, and six exhaust the per-origin connection
+  pool. The catalog's own 12 s abort cannot fire before it has a socket.
+  **Measured** against an origin that accepts and never responds, with the
+  guarded fetch as the control: catalog `failed`, site-info still `pending` at
+  15 s.
+- [x] **A-7.3 — `npm audit fix` was recommended in §2k and again in §2l and
+  never run.** 8 vulnerabilities at audit time (1 low, 4 moderate, 3 high). The
+  only one that ships is `react-router-dom` → the free 6.30.3 → **6.30.6** bump
+  those two sections both name; the rest (`postcss`, `nanoid`, `@babel/*`) are
+  build-only. `esbuild`/`vite` has **no in-range fix** and is deliberately not
+  taken — see §1v. After the fix: **8 → 4**, and each survivor was re-derived
+  against this app rather than carried over — including the one that is new
+  since §2l was written, GHSA-wrjc-x8rr-h8h6, an open redirect via **backslash**
+  in `<Link>`/`useNavigate`. That is the same backslash class as A-5.13, so it
+  was checked rather than assumed: all three `navigate()` call sites go through
+  `pageToPath()`, whose input is a literal at 38 `PageLink` sites and a
+  `content.php`-validated option list at the other seven, and a URL backslash
+  arrives percent-encoded so it resolves same-origin. The SSR advisory needs
+  `hydrateRoot`, which this tree does not contain. `audit-runs/audit7.md` §2
+  carries the table.
+
+### Re-verified clean, recorded so it is not re-derived
+
+- **The A-6.1 CSP class has no stragglers.** The whole admin was re-swept for
+  what audit 6 found: **zero** inline event handlers, **zero** inline `<script>`
+  blocks (the single grep hit is `<script>x</script>` inside a comment at
+  `config.php:1509`), zero `eval`, zero `new Function`. All 21 script tags carry
+  `src`. The policy at `admin/.htaccess:49` and the code agree.
+- **PHP version compatibility, both directions.** `CLAUDE.md` targets 7.4+ and
+  this container runs 8.4. All 19 files parse clean under both: no
+  `str_contains`/`?->`/`match()`/attributes (7.4 breakers), and no
+  implicit-nullable parameters (deprecated in 8.4, and a notice on any host that
+  left `display_errors` on). Arrow functions are the newest construct and are
+  7.4.
+- **The deploy manifest still matches what the build emits.** `dist/` holds
+  exactly the eleven entries `README.md`'s upload table names, plus the three
+  repo-only `.htaccess` files A-6.2 added. No row missing, none stale.
+- **The shipped bundle.** Production React, no source maps, no `localhost` or
+  `TODO` strings, `console.error`/`console.warn` only.
+- **Secrets.** No bcrypt hash in any tracked file outside frozen audit history
+  and the harness's own synthetic sentinel.
+- **`contact.php` and `sitemap.php`**, both re-read end to end. Every degrade
+  path returns a default rather than throwing; both abuse controls fail closed;
+  the sales notification and the JSONL record both land before the auto-reply is
+  attempted.
+
+### Carried forward, not re-reported
+
+**A-5.10** (no prerender), `brandtext`'s 11 failing combinations (the logged
+`brand-text-on-brand-surface` item, a contrast decision and not a stability
+defect), `uploads/.htaccess`'s allow-list (still untestable without a real
+Apache, still the right call), and the §2j owner actions — **rotate the live
+admin password** and **resolve the four contradictory ISO 9001 claims** — all
+unchanged. `audit-runs/audit7.md` §5 carries the full launch list.
+
+`CLAUDE.md`'s "~12,900-line" figure for `src/App.jsx` now measures **13,129**.
+The file already tells the reader to re-measure rather than trust it.
+
+
+---
+
+## 1v. Shipped 2026-08-26 — all three audit-7 findings
+
+Written test-first per GUARDRAILS §4.4: `_harness/audit7.js` was written against
+the unfixed tree and watched to fail — **16/28, with all six A-7.1 shapes
+reproduced and all six controls passing** — before any file was touched. The
+A-7.2 arm was measured separately against the pre-fix mirror bundle, with its
+own control, before the guard went in. **30/30** after.
+
+| ID | File | What changed |
+|---|---|---|
+| **A-7.1** | `src/App.jsx` | `specRows1()` / `specRows2()` — one definition each of "a row this component can draw" — and `specHasRows()` now counts the same thing, so the caller's layout condition and the component's early return still cannot disagree. `asText()` on every spec label, value, column label, sub-header and cell. `productExtraPdfs()` filters `additionalPdfs` at both render sites. |
+| **A-7.2** | `src/App.jsx` | The same `AbortController` + `PRODUCTS_FETCH_TIMEOUT_MS` pair `fetchProductsCached()` carries, in `useRefetchOnReturn()`, with the timer cleared on both settle paths. |
+| **A-7.3** | `package-lock.json` | `npm audit fix` — 21 semver-compatible patch bumps, `react-router-dom` 6.30.3 → 6.30.6 among them. |
+| **(with A-7.1)** | `src/App.jsx` | The five surviving `(X \|\| []).map(...)` sites — see below. |
+| **(doc)** | `_harness/README.md` | `audit6.js` and `audit7.js` added to the live suite list. |
+
+### `specHasRows()` had to move with the components, not after them
+
+The obvious fix is to filter the rows inside each component and leave
+`specHasRows()` alone. That reinstates the 4.29 defect from the other side: the
+caller draws the padded wrapper and the bordered box from `specHasRows()`, and
+the component inside it returns `null`. An empty panel next to the real specs is
+exactly what 4.29 removed.
+
+So `specHasRows()` counts **drawable** rows too. The two shapes cannot be
+confused — a `specTable1` row is an object and never an array, a `specTable2`
+row is an array and never a plain object — so one function answers for both, and
+the caller and the component are still reading the same definition.
+
+### The five `(X || []).map(...)` sites went with it, and why that is not scope creep
+
+The audit-5 Low tier introduced `asList()`/`asText()`, and its comment in
+`src/App.jsx` names the exact pattern it was written to kill:
+
+> the product page did `(product.description || []).map(...)`, **which throws on
+> a string** … Coerce instead of crashing — a wrong type should degrade to
+> something renderable, exactly as a missing one already does.
+
+It was then applied to "the five sites that crashed" and left five others
+carrying the named-unsafe pattern: `ind.useCases`, `ind.products`, `ind.certs`,
+`svc.details` and the `services` lead-time scan — every one reading an
+owner-editable `content.json` field. `(x || [])` guards null and undefined and
+does nothing about a string, which is the case the comment is about. This is the
+same finding as A-7.1 in a different file, not a second one.
+
+### What was deliberately NOT hardened
+
+Recorded so it is not re-derived. **The scalar product fields** (`product.name`,
+`product.sku`, `product.caption`, `partType`, …) are still rendered directly at
+about fifteen sites, and an object in one of those is the same React throw. Not
+taken: that would *invent* a rule rather than finish one. Those fields are
+written through `as_str()` on every path and no backup era exists in which they
+held anything but strings, so the only way in is an FTP hand-edit that types an
+object into a field which has always been a line of text — far less plausible
+than mangling a nested `rows` matrix, and a wide diff for it.
+
+### `vite`/`esbuild` was left on the old version, deliberately
+
+The last advisory needs `npm audit fix --force`, which installs `vite@8` — a
+breaking major, four versions on. GHSA-67mh-4wv8-2f99 is *"esbuild enables any
+website to send any requests to the **development server**"*: `vite` is a
+`devDependency`, the dev server never runs on the host, and nothing esbuild
+produces carries the flaw into `dist/`. Trading a working, seven-times-audited
+build for a major bundler bump days before launch, to close an advisory that
+cannot be reached from the deployed site, is the wrong trade.
