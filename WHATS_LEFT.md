@@ -5376,3 +5376,43 @@ website to send any requests to the **development server**"*: `vite` is a
 produces carries the flaw into `dist/`. Trading a working, seven-times-audited
 build for a major bundler bump days before launch, to close an advisory that
 cannot be reached from the deployed site, is the wrong trade.
+
+### Regression state — recorded after the fact, not predicted
+
+The full sweep was re-run against the fixed tree and is **identical to the
+baseline taken before any file was touched**, which is the claim that matters:
+the guards changed no behaviour that any of 78 suites can see.
+
+```
+                        at audit 7     after the fixes
+lint.php                green          green
+invariants              17/17          17/17
+invariants-selftest     15/15          15/15
+npm run build           clean          clean  (CSS byte-identical, same hash)
+audit7.js               16/28          30/30
+full sweep              74/76 clean    76/78 clean
+```
+
+Both reds are the documented expected-reds and are unmoved: `plan8-polish`
+16/17 (the Linux DejaVu width artifact, GUARDRAILS §7.1) and `brandtext` 36/47,
+i.e. **11 failing against a ceiling of 13** — judged by the failing count as
+that section instructs. `plan8-contrast` is 34/35, its documented passing state.
+
+The suites most exposed to these changes were all green, which is the part worth
+recording: `plan5-spectable` 13/13 (the spec-table shape change),
+`plan5-keys` 11/11 on a development-React bundle (the `additionalPdfs` key
+expressions), `plan7-datasheets` 8/8 and `plan5c-sitemap` 17/17, `plan8-catalog`
+16/16, `plan10-header` 8/8 and `plan10-dashboard` 25/25 (every product page at
+four viewports), `plan8-crumbs` 22/22 / `plan9-notfound` 8/8 /
+`plan9-slots-slash` 9/9 (the routing surface, under the bumped
+`react-router-dom@6.30.6`), `contactflow` 85/85 and `plan3-contact` 51/51.
+`plan10-repalette` held at 33/33, so the brand derivation is untouched. All
+three audit-5 suites held (`audit5-blockers` 18/18, `audit5-high` 30/30,
+`audit5-medium` 20/20) and `audit6` is 45/45.
+
+A separate 13-route smoke test over the shipped bundle — every public route plus
+three product pages — came back **13/13**: no ErrorBoundary, an `<h1>` on every
+page, the phone number present, zero horizontal overflow and zero console or
+page errors.
+
+`data/` was confirmed byte-identical to `_harness/pristine/` before and after.

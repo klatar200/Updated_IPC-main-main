@@ -302,3 +302,18 @@ Not code, and still outstanding — carried from `audit-runs/audit5.md`
 - Decide apex-vs-`www` and check the certificate covers both.
 - Verify `display_errors` is actually `Off` on the live server, and that
   `.user.ini` is being honoured — the admin Help page prints the live values.
+- **Confirm the five `.htaccess` files actually took effect**, once, after the
+  deploy. Nothing local can check this — `php -S` ignores `.htaccess` entirely
+  (GUARDRAILS §4.3) — and every one of them uses `Order Allow,Deny`, which is
+  Apache 2.2 syntax served by `mod_access_compat` on 2.4. The in-file comment
+  says the rule is "proven on this host", which is true of `data/.htaccess`
+  because it has been deployed; it is an inference for the rest. Four
+  one-request checks settle it:
+  - `curl -sI https://…/data/products-all.json` → `200`, `Content-Type:
+    application/json`, `X-Robots-Tag: noindex`. A `500` here means
+    `mod_access_compat` is absent and the catalog is down.
+  - `curl -sI https://…/.user.ini` → `403`.
+  - `curl -sI https://…/sitemap.xml` → `200` and XML, not the SPA shell.
+  - `curl -sI -H 'Accept-Encoding: gzip' https://…/assets/index-*.js` →
+    `Content-Encoding: gzip` (A-6.4's fix — 376 kB vs 108 kB on every cold
+    load).
