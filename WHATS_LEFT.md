@@ -5489,3 +5489,68 @@ minting one.
   host, and nothing esbuild produces carries the flaw into `dist/`. Trading a
   working, seven-times-audited build for a major bundler bump days before launch
   is the wrong trade.
+
+### Regression state — recorded after the fact, not predicted
+
+```
+                        at audit 7     after the fixes
+lint.php                green          green
+invariants              17/17          17/17
+invariants-selftest     15/15          15/15
+npm run build           clean          clean  (CSS byte-identical, same hash)
+audit7.js               16/28          30/30
+audit7-lead.js          12/23          23/23
+full sweep              clean*         79/79 clean*
+```
+
+`*` in both columns means: everything green except the two documented
+expected-reds, `plan8-polish` 16/17 (the Linux DejaVu width artifact, GUARDRAILS
+§7.1) and `brandtext` 36/47 — **11 failing against a ceiling of 13**, judged by
+the failing count as that section instructs. `plan8-contrast` is 34/35, its
+documented passing state. Both are unmoved from the baseline.
+
+The suites most exposed to these nine changes were all green, which is the part
+worth recording. For the contact-form rewrite: `contactflow` **85/85**,
+`plan3-contact` 51/51, `plan3-autoreply` 22/22, `plan8-lead` 16/16,
+`audit5-blockers` 18/18. `contactflow` is the decisive one — it drives the real
+React form in a real browser, so it is the control that proves A-7.2's content
+negotiation did not turn the AJAX path into an HTML page. For the admin
+changes: `plan4-admin` 19/19, `adminwidth` 39/39, `plan5b-pwthrottle` 10/10,
+`plan10-admincrawl` and `plan10-auditlog` 13/13. For the catalog guards:
+`plan5-spectable` 13/13 and `plan5-keys` 11/11 on a development-React bundle.
+`plan10-repalette` held at 33/33 and `audit6` at 45/45.
+
+`data/` was confirmed byte-identical to `_harness/pristine/` before and after.
+
+### One red that did not reproduce, and what is and is not known about it
+
+**`plan5-throttle` reported 11/12 in one sweep and 12/12 in every run since.**
+It is recorded here rather than quietly re-run, because a red that is explained
+away without evidence is how a real defect gets shipped.
+
+What is established:
+
+- The code path is **textually unchanged** for that suite. `IPC_SESSION_OPTIONAL`
+  is honoured only when a caller defines it, and neither `auth.php` nor
+  `index.php` does — so `session_status() === PHP_SESSION_NONE && (!defined(…) ||
+  …)` evaluates exactly as the old bare condition did for every page the throttle
+  suite touches.
+- It was **12/12 in the sweep taken after the first three fixes** (`after-b1`),
+  which had no PHP changes at all, and 12/12 in the baseline before that.
+- Five subsequent runs on the fixed commit were all **12/12**: standalone; again
+  standalone; **under deliberate load** (three browser suites hammering the same
+  single-threaded `php -S` servers concurrently); in the **original sweep order**,
+  immediately after `plan5-keys`/`plan5-spectable`/`plan5-images`/`plan5-social`/
+  `plan5-listeners`; and in a **full re-run of the whole 37-suite batch**, which
+  came back 37/37 with no reds at all.
+
+What is **not** established: which of the twelve checks failed. `run.js` prints
+only the score line, and the failure has not recurred to be caught. The suite's
+one genuinely wall-clock-dependent assertion is D's last — it sleeps out a real
+15-second cool-off window and then requires the correct password to be accepted
+— and that is the likeliest candidate, but that is a hypothesis and it is
+labelled as one rather than written down as a cause.
+
+The session-file store was checked as a possible mechanism (A-7.3's subject) and
+**ruled out**: 324 files, not the thousands that would make a probabilistic
+`session_start()` GC sweep cost real time.
