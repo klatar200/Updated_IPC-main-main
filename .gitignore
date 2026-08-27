@@ -36,6 +36,7 @@ admin/admin-log-*.jsonl
 admin/inquiries-*.jsonl
 admin/.login-throttle.json
 admin/.inquiries-seen.json
+admin/.inquiry-log-failed.json
 admin/inquiries.jsonl
 admin/ALLOW-PASSWORD-RESET
 

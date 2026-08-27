@@ -265,7 +265,7 @@ async function arm(page, tag, description, mutate) {
     );
     restoreMirror();
 
-    // ── A-7.2 — the two provider fetches carry no abort timeout ──────────────
+    // ── A-7.9 — the two provider fetches carry no abort timeout ──────────────
     //
     // T2.1 ("an origin that accepts the connection and then hangs used to leave
     // the site on the loading skeleton forever") was fixed with a 12 s
@@ -304,14 +304,14 @@ async function arm(page, tag, description, mutate) {
 
       note(
         catalog === 'failed',
-        'A-7.2 CONTROL — the catalog fetch aborts on a hanging origin (its guard already exists)',
+        'A-7.9 CONTROL — the catalog fetch aborts on a hanging origin (its guard already exists)',
         catalog !== 'failed'
           ? `catalog request is "${catalog}" after 15 s — the probe is not measuring the timeout`
           : ''
       );
       note(
         siteInfo === 'failed',
-        'A-7.2 — the site-info fetch aborts on a hanging origin',
+        'A-7.9 — the site-info fetch aborts on a hanging origin',
         siteInfo !== 'failed'
           ? `site-info request is still "${siteInfo}" after 15 s — no timeout, so nothing ` +
             'ever settles it and each visibility change past the TTL opens another'

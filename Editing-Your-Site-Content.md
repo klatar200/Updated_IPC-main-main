@@ -81,6 +81,6 @@ Clear one of those and it disappears from the site properly — the fax line van
 
 Double-check you clicked **Save Content** (or **Save** on Business Details) and give it a full minute plus a hard refresh.
 
-If a section still looks wrong, click **Backups** in the top navigation and restore the version from just before your change. You can do this yourself — and restoring is itself backed up first, so it can be undone. Backups are kept for the 30 most recent saves of each file. Note that photo uploads, PDF uploads, adding a product and deleting a product all count as saves, so they fill up faster than you'd expect: if you need to roll something back, do it sooner rather than later.
+If a section still looks wrong, click **Backups** in the top navigation and restore the version from just before your change. You can do this yourself — and restoring is itself backed up first, so it can be undone. Backups are kept for the 90 most recent saves of each file. Note that photo uploads, PDF uploads, adding a product and deleting a product all count as saves, so they fill up faster than you'd expect: if you need to roll something back, do it sooner rather than later.
 
 If the dashboard shows a red **"Server setup problem"** banner, that one is for your developer, not you — send them a screenshot.

@@ -6568,7 +6568,7 @@ function useRefetchOnReturn(url, label, apply, ttlMs = 60000) {
     let last = 0;
     const load = () => {
       last = Date.now();
-      // A-7.2 — the same hard timeout fetchProductsCached() carries, for the
+      // A-7.9 — the same hard timeout fetchProductsCached() carries, for the
       // same reason and against the same origin. T2.1 was "an origin that
       // accepts the connection and then hangs", and the guard was applied to
       // one of the three fetches of the three files in one folder. A hang here
@@ -6691,7 +6691,7 @@ function safeHref(value) {
 }
 
 /**
- * A-7.1 — the extra data-sheet rows a product can carry, with anything that is
+ * A-7.8 — the extra data-sheet rows a product can carry, with anything that is
  * not an object dropped.
  *
  * Both render sites keyed on `${i}-${extra.url}`, which throws on a null entry
@@ -8283,7 +8283,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
 }
 
 /**
- * A-7.1 — the RENDER-side half of A-5.12.
+ * A-7.8 — the RENDER-side half of A-5.12.
  *
  * A-5.12 ("a malformed-but-savable spec table crashes the product page") was
  * closed write-side only: add.php, edit.php and config.php gained shape
@@ -8334,7 +8334,7 @@ function specHasRows(table) {
 /** IPC Left spec table — dark header, clean row list */
 function SpecTable1({ table }) {
   // #1 fix: guard against null/undefined rows — PHP admin may produce empty specTable1
-  // A-7.1: and against rows that are not {label, value} objects at all.
+  // A-7.8: and against rows that are not {label, value} objects at all.
   const rows = specRows1(table);
   const title = asText(table?.title ?? "Specifications:");
   // 4.29 — no rows means no table AT ALL. The heading bar used to render on
@@ -8355,7 +8355,7 @@ function SpecTable1({ table }) {
       </div>
       <div className="bg-white divide-y" style={{ borderColor: "#e5e9ee" }}>
         {rows.map((row, i) => (
-          // A-7.1 — asText() on both slots. A label or value that arrives as an
+          // A-7.8 — asText() on both slots. A label or value that arrives as an
           // object is "Objects are not valid as a React child", i.e. the same
           // whole-page throw a malformed row shape produces; a number is
           // legitimate and still renders.
@@ -8386,7 +8386,7 @@ function SpecTable2({ table }) {
   // crash the page — destructuring null throws. Fall back to an empty table.
   const { columnSpans } = table ?? {};
   // Defensively guard both arrays against null/undefined from malformed catalog data
-  // A-7.1 — and against ENTRIES that are not the shape this component reads.
+  // A-7.8 — and against ENTRIES that are not the shape this component reads.
   // `colSpans.some(c => c.colspan > 1)` throws on a null entry, and a row that
   // is not itself a list has no `.map`, which is A-5.12's own reproduction
   // (`rows: ["8.0","9.0"]`). Both are dropped rather than thrown on.
@@ -8733,7 +8733,7 @@ function ProductDetail({ product, allProducts }) {
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants (e.g. IP52EC plugged-cap) — same styling */}
-                {/* A-7.1 — a null entry here is `extra.url` on null, which throws
+                {/* A-7.8 — a null entry here is `extra.url` on null, which throws
                     in the key expression before any guard downstream runs. Same
                     plain-file exposure as the spec tables. */}
                 {productExtraPdfs(product).map((extra, i) => (
@@ -9843,7 +9843,7 @@ function ProductPage({ products }) {
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants — same styling */}
-                {/* A-7.1 — a null entry here is `extra.url` on null, which throws
+                {/* A-7.8 — a null entry here is `extra.url` on null, which throws
                     in the key expression before any guard downstream runs. Same
                     plain-file exposure as the spec tables. */}
                 {productExtraPdfs(product).map((extra, i) => (

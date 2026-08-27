@@ -5202,30 +5202,47 @@ suites held: `audit5-blockers` 18/18, `audit5-high` 30/30, `audit5-medium`
 
 ---
 
-## 2m. Open after audit 7 (2026-08-26)
+## 2m. Open after audit 7 (2026-08-19 / 2026-08-26)
 
 Full report with evidence: [`audit-runs/audit7.md`](audit-runs/audit7.md).
-Base `ff62280` — main immediately after PR #50 merged the audit-6 work. Nothing
-here is a regression: the full 76-suite sweep was run **first** and came back
-clean apart from the two documented expected-reds (`plan8-polish` 16/17, the
-Linux DejaVu artifact; `brandtext` 36/47, i.e. 11 failing against a ceiling of
-13), with `plan8-contrast` at its documented passing 34/35, `lint.php` green,
+Base `ff62280` — main immediately after PR #50 merged the audit-6 work.
+
+**This section, and that report, are the merge of two independent audit-7
+passes.** Two sessions audited `ff62280` separately and both filed "audit 7".
+The first (2026-08-19) ran a *journey and cost* pass — follow one person through
+a whole task, and ask what the code costs a stranger — and recorded seven
+findings without fixing them, per GUARDRAILS §1. The second (2026-08-26) ran a
+*stability and dependency* pass and found three more.
+
+They were merged rather than left as two documents, because two files called
+`audit7.md` and two `§2m` sections cannot both exist: the second to merge would
+conflict, `lint.php`'s **section-drift check would fail on the duplicate
+`§2m`** — the exact rule §1n added — and a cross-reference to "A-7.1" would mean
+two different things. Findings 1–7 keep their original numbers because that pass
+came first; the second pass's three renumbered to **A-7.8, A-7.9, A-7.10**.
+
+Nothing here is a regression: both passes ran the full suite first and it came
+back clean apart from the two documented expected-reds (`plan8-polish` 16/17,
+the Linux DejaVu artifact; `brandtext` 36/47, i.e. 11 failing against a ceiling
+of 13), with `plan8-contrast` at its documented passing 34/35, `lint.php` green,
 `invariants.js` 17/17 and `npm run build` clean.
 
-Findings were recorded here first, then fixed on the same branch at the owner's
-instruction — **all three shipped 2026-08-26, see §1v.** Each entry is left as
+**Nine of the ten shipped 2026-08-26 — see §1v.** A-7.7 is deliberately not
+taken and is the one item this section leaves open. Each entry is left as
 written, because it is the record of what was true at audit time.
 
-**All three are the same shape: a fix that was applied to one half of its own
-surface.** That is what six rounds leave behind. The obvious defects are gone;
-what survives is the second call site of a rule written once, and the second
-file a one-line guard never reached. Worth carrying into round eight: when a
-finding is closed, the question that catches the next one is *"where else does
-this rule have to hold?"* — not *"is this file fixed?"*
+Worth carrying into round eight: **six of the ten are a fix that was applied to
+one half of its own surface** (A-7.1, A-7.3, A-7.4, A-7.6, A-7.8, A-7.9). After
+six rounds the obvious defects are gone, and what survives is the second call
+site of a rule written once and the second file a one-line guard never reached.
+The question that catches the next one is *"where else does this rule have to
+hold?"*, not *"is this file fixed?"* — and in three cases (A-5.26's own comment
+naming `ping.php`, A-5.9's naming inode exhaustion, A-6.6's own message) the
+earlier fix's comment **already named the gap**.
 
 ### High
 
-- [x] **A-7.1 — the A-5.12 spec-table shape gate is write-side only, and
+- [x] **A-7.8 — the A-5.12 spec-table shape gate is write-side only, and
   `backups.php` walks straight past it.** `grep -rn 'A-5.12'` finds the marker
   in `admin/add.php`, `admin/edit.php` and `admin/config.php` and in **no JSX**.
   The renderer was never hardened — the same reasoning the L4 comment above
@@ -5237,73 +5254,117 @@ this rule have to hold?"* — not *"is this file fixed?"*
   backup written before 2026-08-18 carries the pre-gate shape and restores with
   a success message. **Measured**, six shapes, each against an untouched
   neighbouring product as a control on the same catalog load: all six rendered
-  the ErrorBoundary with no `<h1>` while the control rendered correctly.
-  Navbar and footer survived, so it is a contained per-page crash and not L2's
+  the ErrorBoundary with no `<h1>` while the control rendered correctly. Navbar
+  and footer survived, so it is a contained per-page crash and not L2's
   whole-root unmount. `src/App.jsx` `SpecTable1` / `SpecTable2` /
   `additionalPdfs`.
 
 ### Medium
 
-- [x] **A-7.2 — T2.1's fetch timeout reached one of the three files it
+- [x] **A-7.1 — the 422 is the only rejection path that leaves no record, and a
+  real customer can reach it.** Every other exit in `contact.php` logs before
+  exiting; the 422 did not, and A-5.3 fixed one *cause* of reaching it without
+  changing the exit. It is reachable because **the browser and the server
+  disagree about what an email address is**: measured with Chromium's constraint
+  API and PHP side by side, `jane@acmecorp` and `jane@localhost` are ACCEPTED by
+  `type="email"` and REJECTED by `FILTER_VALIDATE_EMAIL` (HTML5 permits a
+  dotless domain). Measured end to end — 422 with **log delta +0** for three
+  malformed addresses, 200 and **+1** for a valid one.
+- [x] **A-7.2 — the no-JS submitter sees `{"ok":true}` and nothing else.**
+  `Content-Type: application/json` was set unconditionally and no HTML branch
+  existed. Measured with `javaScriptEnabled:false`: lands on `/contact.php`,
+  **no heading, no link back to the site**, body text `{"ok":true}` — against
+  the JS path's "REQUEST SENT / Quote Request Received". The lead IS captured
+  (A-5.3 works); the buyer cannot tell.
+- [x] **A-7.3 — every anonymous request to `/admin/*` mints a session file that
+  lives eight hours.** `config.php` calls `session_start()` unconditionally at
+  include time and raises `gc_maxlifetime` to 28800. Measured: 10 anonymous
+  `GET /admin/ping.php` → **+10 zero-byte `sess_` files**. A-5.26 stopped an
+  attacker *choosing* the id, and **its own comment already names `ping.php` as
+  the sharp edge**; a self-minted id still costs a file. ~288k inodes at 10
+  req/s for 8h against typical shared-host quotas of 100k–500k — and A-5.9
+  already names inode exhaustion as the condition that stops the contact form's
+  limiter files being written, so the two compound.
+- [x] **A-7.4 — the record A-5.6 made authoritative is the one with no failure
+  signal.** `ipc_log_inquiry()` returned `void`, its `file_put_contents` was
+  `@`-suppressed and unchecked. Of the four mail/log outcomes exactly one is
+  silent, and it is the bad one: **mail ok + log fails → 200 success, no
+  record.** `admin_writable()` is a bare `is_writable(__DIR__)`, so it catches
+  the permission case and returns true for a log file that is individually
+  unwritable, locked, or replaced by a directory.
+- [x] **A-7.9 — T2.1's fetch timeout reached one of the three files it
   protects.** `PRODUCTS_FETCH_TIMEOUT_MS` (12 s, `AbortController`) is applied
   in `fetchProductsCached()` and nowhere else; `site-info.json` and
   `content.json` go through `useRefetchOnReturn()`, which had a bare `fetch()`.
   A hang does not blank the chrome — invariant 8 holds — but `last` is stamped
   when the fetch *starts*, so each visibility change past the TTL opens another
   request that also never settles, and six exhaust the per-origin connection
-  pool. The catalog's own 12 s abort cannot fire before it has a socket.
-  **Measured** against an origin that accepts and never responds, with the
+  pool. **Measured** against an origin that accepts and never responds, with the
   guarded fetch as the control: catalog `failed`, site-info still `pending` at
   15 s.
-- [x] **A-7.3 — `npm audit fix` was recommended in §2k and again in §2l and
+- [x] **A-7.10 — `npm audit fix` was recommended in §2k and again in §2l and
   never run.** 8 vulnerabilities at audit time (1 low, 4 moderate, 3 high). The
   only one that ships is `react-router-dom` → the free 6.30.3 → **6.30.6** bump
   those two sections both name; the rest (`postcss`, `nanoid`, `@babel/*`) are
-  build-only. `esbuild`/`vite` has **no in-range fix** and is deliberately not
-  taken — see §1v. After the fix: **8 → 4**, and each survivor was re-derived
-  against this app rather than carried over — including the one that is new
-  since §2l was written, GHSA-wrjc-x8rr-h8h6, an open redirect via **backslash**
-  in `<Link>`/`useNavigate`. That is the same backslash class as A-5.13, so it
-  was checked rather than assumed: all three `navigate()` call sites go through
+  build-only. After the fix: **8 → 4**, each survivor re-derived against this
+  app rather than carried over — including the one that is new since §2l was
+  written, GHSA-wrjc-x8rr-h8h6, an open redirect via **backslash** in
+  `<Link>`/`useNavigate`. That is the same backslash class as A-5.13, so it was
+  checked rather than assumed: all three `navigate()` call sites go through
   `pageToPath()`, whose input is a literal at 38 `PageLink` sites and a
   `content.php`-validated option list at the other seven, and a URL backslash
   arrives percent-encoded so it resolves same-origin. The SSR advisory needs
-  `hydrateRoot`, which this tree does not contain. `audit-runs/audit7.md` §2
-  carries the table.
+  `hydrateRoot`, which this tree does not contain.
+
+### Low
+
+- [x] **A-7.5 — `Editing-Your-Site-Content.md:84` still says 30 backups.**
+  `BACKUP_KEEP` is 90 since A-5.15. A-6.9 swept this drift and fixed
+  `admin/README.md` but grepped only the developer docs, so the copy the owner
+  actually reads stayed wrong.
+- [x] **A-7.6 — a photo too large to resize ships silently at full size.**
+  A-6.6's ceiling is right, but the success message only spoke when the resize
+  happened, so an over-ceiling upload got a message identical to a photo that
+  needed nothing — while a 60 MP file becomes that page's LCP image. A gap in
+  audit 6's own fix.
+- [ ] **A-7.7 — no print stylesheet, on a site whose buyers print spec pages.**
+  Measured with `emulateMedia({media:'print'})`: **0** `@media print` rules,
+  440px of footer and 65px of header printed, the `<h1>` starting at y=364 on a
+  ~1800px (2-page) document, 94 dark blocks totalling ~13.1M px². **STILL
+  OPEN** — see §1v for why it was the one item deliberately not taken.
 
 ### Re-verified clean, recorded so it is not re-derived
 
-- **The A-6.1 CSP class has no stragglers.** The whole admin was re-swept for
-  what audit 6 found: **zero** inline event handlers, **zero** inline `<script>`
-  blocks (the single grep hit is `<script>x</script>` inside a comment at
-  `config.php:1509`), zero `eval`, zero `new Function`. All 21 script tags carry
-  `src`. The policy at `admin/.htaccess:49` and the code agree.
-- **PHP version compatibility, both directions.** `CLAUDE.md` targets 7.4+ and
-  this container runs 8.4. All 19 files parse clean under both: no
-  `str_contains`/`?->`/`match()`/attributes (7.4 breakers), and no
-  implicit-nullable parameters (deprecated in 8.4, and a notice on any host that
-  left `display_errors` on). Arrow functions are the newest construct and are
-  7.4.
-- **The deploy manifest still matches what the build emits.** `dist/` holds
-  exactly the eleven entries `README.md`'s upload table names, plus the three
-  repo-only `.htaccess` files A-6.2 added. No row missing, none stale.
-- **The shipped bundle.** Production React, no source maps, no `localhost` or
-  `TODO` strings, `console.error`/`console.warn` only.
+- **The shipped site throws nothing.** Ten routes plus three product pages
+  crawled in Chromium: 0 console errors, 0 failed requests, 0 responses ≥400.
+- **The catalog scales — and the measurement retired the hypothesis.** 42 → 500
+  products is 0.10 MB → 1.24 MB of JSON and `/dashboard` 844 ms → 883 ms. A 12×
+  catalog costs 39 ms. There is no scaling cliff.
+- **A-6.3's broadened redaction has no catastrophic backtracking** — six
+  adversarial 200-char inputs at 0.029 ms/call worst case.
+- **No regex is ever built from user input** — `new RegExp` appears nowhere in
+  `src/App.jsx` or the admin JS.
+- **The A-6.1 CSP class has no stragglers.** Zero inline event handlers, zero
+  inline `<script>` blocks (the single grep hit is `<script>x</script>` inside a
+  comment at `config.php:1509`), zero `eval`. All 21 script tags carry `src`.
+- **PHP version compatibility, both directions.** All 19 files parse clean on
+  7.4 (no `str_contains`/`?->`/`match()`/attributes) and on 8.4 (no
+  implicit-nullable parameters).
+- **The deploy manifest still matches what the build emits.** No row missing,
+  none stale.
 - **Secrets.** No bcrypt hash in any tracked file outside frozen audit history
   and the harness's own synthetic sentinel.
-- **`contact.php` and `sitemap.php`**, both re-read end to end. Every degrade
-  path returns a default rather than throwing; both abuse controls fail closed;
-  the sales notification and the JSONL record both land before the auto-reply is
-  attempted.
 
 ### Carried forward, not re-reported
 
 **A-5.10** (no prerender), `brandtext`'s 11 failing combinations (the logged
-`brand-text-on-brand-surface` item, a contrast decision and not a stability
+`brand-text-on-brand-surface` item — a contrast decision, not a stability
 defect), `uploads/.htaccess`'s allow-list (still untestable without a real
-Apache, still the right call), and the §2j owner actions — **rotate the live
-admin password** and **resolve the four contradictory ISO 9001 claims** — all
-unchanged. `audit-runs/audit7.md` §5 carries the full launch list.
+Apache), and the §2j owner actions — **rotate the live admin password** and
+**resolve the four contradictory ISO 9001 claims** — all unchanged.
+`audit-runs/audit7.md` §5 carries the full launch list, including **A-6.2's
+deploy note**: the three data-tree `.htaccess` files must be uploaded by hand or
+half of A-5.2 stays on the laptop.
 
 `CLAUDE.md`'s "~12,900-line" figure for `src/App.jsx` now measures **13,129**.
 The file already tells the reader to re-measure rather than trust it.
@@ -5311,36 +5372,61 @@ The file already tells the reader to re-measure rather than trust it.
 
 ---
 
-## 1v. Shipped 2026-08-26 — all three audit-7 findings
+## 1v. Shipped 2026-08-26 — nine of the ten audit-7 findings
 
-Written test-first per GUARDRAILS §4.4: `_harness/audit7.js` was written against
-the unfixed tree and watched to fail — **16/28, with all six A-7.1 shapes
-reproduced and all six controls passing** — before any file was touched. The
-A-7.2 arm was measured separately against the pre-fix mirror bundle, with its
-own control, before the guard went in. **30/30** after.
+Written test-first per GUARDRAILS §4.4. Two suites, both written against the
+unfixed tree and watched to fail before any file was touched:
+
+```
+                          BEFORE     AFTER
+_harness/audit7.js         16/28  →  30/30     A-7.8, A-7.9
+_harness/audit7-lead.js    12/23  →  23/23     A-7.1 … A-7.6
+```
+
+Every control passed in both directions — that is the part that matters. In
+`audit7.js` each malformed catalog shape is scored against an untouched
+neighbouring product on the same load, because "the page is broken" and "the
+mirror is broken" are otherwise the same observation. In `audit7-lead.js` the
+controls are a valid submission still logging exactly once, the `fetch()` path
+still receiving JSON, and `auth.php` still minting a session — each one the
+thing the fix could plausibly have broken.
 
 | ID | File | What changed |
 |---|---|---|
-| **A-7.1** | `src/App.jsx` | `specRows1()` / `specRows2()` — one definition each of "a row this component can draw" — and `specHasRows()` now counts the same thing, so the caller's layout condition and the component's early return still cannot disagree. `asText()` on every spec label, value, column label, sub-header and cell. `productExtraPdfs()` filters `additionalPdfs` at both render sites. |
-| **A-7.2** | `src/App.jsx` | The same `AbortController` + `PRODUCTS_FETCH_TIMEOUT_MS` pair `fetchProductsCached()` carries, in `useRefetchOnReturn()`, with the timer cleared on both settle paths. |
-| **A-7.3** | `package-lock.json` | `npm audit fix` — 21 semver-compatible patch bumps, `react-router-dom` 6.30.3 → 6.30.6 among them. |
-| **(with A-7.1)** | `src/App.jsx` | The five surviving `(X \|\| []).map(...)` sites — see below. |
-| **(doc)** | `_harness/README.md` | `audit6.js` and `audit7.js` added to the live suite list. |
+| **A-7.1** | `public/contact.php`, `admin/inquiries.php` | Both 422 exits log first, with a note naming the missing fields. The two new types are **registered in `$REJECTED`** — see below. |
+| **A-7.2** | `public/contact.php` | `respond()` — one exit for every response, content-negotiating on `Accept`. Plus `hesc()`, this file's first HTML render boundary. |
+| **A-7.3** | `admin/config.php`, `admin/ping.php` | `IPC_SESSION_OPTIONAL`, honoured only when the request carries no `IPCADMIN` cookie. `ping.php` opts in; `auth.php` does not. |
+| **A-7.4** | `public/contact.php`, `admin/index.php`, `.gitignore` | `ipc_log_inquiry()` returns `bool`, checks the byte count, clears or writes `admin/.inquiry-log-failed.json`, and the dashboard health banner reads it. |
+| **A-7.5** | `Editing-Your-Site-Content.md` | 30 → 90. |
+| **A-7.6** | `admin/config.php`, `admin/upload-image.php` | `image_downscale_in_place()` takes a `&$reason`; over the ceiling the owner is told the photo was saved at full size and asked to resize it. |
+| **A-7.8** | `src/App.jsx` | `specRows1()`/`specRows2()` and a `specHasRows()` that counts the same thing; `asText()` on every spec slot; `productExtraPdfs()` at both render sites. |
+| **A-7.9** | `src/App.jsx` | The same `AbortController` + `PRODUCTS_FETCH_TIMEOUT_MS` pair `fetchProductsCached()` carries, cleared on both settle paths. |
+| **A-7.10** | `package-lock.json` | `npm audit fix` — 21 patch bumps, `react-router-dom` 6.30.3 → 6.30.6 among them. |
+| **(doc)** | `_harness/README.md` | `audit6.js`, `audit7.js` and `audit7-lead.js` added to the live suite list. |
+
+### A-7.1's fix had a trap in it, and the suite caught it
+
+Adding the logging is four lines. Adding it **without** registering
+`rfq-incomplete` and `message-incomplete` in `admin/inquiries.php`'s `$REJECTED`
+map would have re-created the **NB10** defect that map exists for: an entry the
+map does not know is counted as a real inquiry with `sent = false`, so it lands
+in `$failed` — the number Rick watches to decide whether mail is broken. One
+mistyped email address would have pinned it above zero and sent him chasing a
+mail problem that did not exist. The fix for a lost-lead finding would have
+manufactured a false alarm about lost mail.
 
 ### `specHasRows()` had to move with the components, not after them
 
-The obvious fix is to filter the rows inside each component and leave
+The obvious A-7.8 fix is to filter the rows inside each component and leave
 `specHasRows()` alone. That reinstates the 4.29 defect from the other side: the
 caller draws the padded wrapper and the bordered box from `specHasRows()`, and
 the component inside it returns `null`. An empty panel next to the real specs is
-exactly what 4.29 removed.
+exactly what 4.29 removed. So `specHasRows()` counts **drawable** rows too. The
+two shapes cannot be confused — a `specTable1` row is an object and never an
+array, a `specTable2` row is an array and never a plain object — so one function
+answers for both.
 
-So `specHasRows()` counts **drawable** rows too. The two shapes cannot be
-confused — a `specTable1` row is an object and never an array, a `specTable2`
-row is an array and never a plain object — so one function answers for both, and
-the caller and the component are still reading the same definition.
-
-### The five `(X || []).map(...)` sites went with it, and why that is not scope creep
+### The five `(X || []).map(...)` sites went with A-7.8, and that is not scope creep
 
 The audit-5 Low tier introduced `asList()`/`asText()`, and its comment in
 `src/App.jsx` names the exact pattern it was written to kill:
@@ -5350,69 +5436,56 @@ The audit-5 Low tier introduced `asList()`/`asText()`, and its comment in
 > something renderable, exactly as a missing one already does.
 
 It was then applied to "the five sites that crashed" and left five others
-carrying the named-unsafe pattern: `ind.useCases`, `ind.products`, `ind.certs`,
-`svc.details` and the `services` lead-time scan — every one reading an
-owner-editable `content.json` field. `(x || [])` guards null and undefined and
-does nothing about a string, which is the case the comment is about. This is the
-same finding as A-7.1 in a different file, not a second one.
+carrying it: `ind.useCases`, `ind.products`, `ind.certs`, `svc.details` and the
+`services` lead-time scan — every one reading an owner-editable `content.json`
+field. Same finding in a different file, not a second one.
 
-### What was deliberately NOT hardened
+### Verified a no-op on real data before trusting the suite
 
-Recorded so it is not re-derived. **The scalar product fields** (`product.name`,
-`product.sku`, `product.caption`, `partType`, …) are still rendered directly at
-about fifteen sites, and an object in one of those is the same React throw. Not
-taken: that would *invent* a rule rather than finish one. Those fields are
-written through `as_str()` on every path and no backup era exists in which they
-held anything but strings, so the only way in is an FTP hand-edit that types an
-object into a field which has always been a line of text — far less plausible
-than mangling a nested `rows` matrix, and a wide diff for it.
+A guard that changes what a correct catalog renders is a regression wearing a
+fix's clothes, so both A-7.8 coercions were diffed against the shipped data
+first: `specHasRows()` returns **identically for all 42 products across all
+1,004 spec rows**, and `asList()` identically for **all 21** `content.json`
+lists. The CSS bundle is byte-identical (`index-DyC-SD2K.css`, unchanged hash).
 
-### `vite`/`esbuild` was left on the old version, deliberately
+### A-7.4's marker, and the limit of it
 
-The last advisory needs `npm audit fix --force`, which installs `vite@8` — a
-breaking major, four versions on. GHSA-67mh-4wv8-2f99 is *"esbuild enables any
-website to send any requests to the **development server**"*: `vite` is a
-`devDependency`, the dev server never runs on the host, and nothing esbuild
-produces carries the flaw into `dist/`. Trading a working, seven-times-audited
-build for a major bundler bump days before launch, to close an advisory that
-cannot be reached from the deployed site, is the wrong trade.
+The visitor still gets **200** when only the log write fails, deliberately: the
+mail did go, so telling them to resend would be wrong. The signal belongs on the
+owner's side. The marker is best-effort too, and the limit is stated rather than
+papered over: if the whole filesystem is out of space or inodes, creating it
+fails as well. What it covers is what `admin_writable()` cannot — a log file
+that is individually unwritable, locked, or replaced by a directory. It is
+cleared by the next write that succeeds, so the banner says *"this is happening
+now"*, not *"this happened once"*.
 
-### Regression state — recorded after the fact, not predicted
+### A-7.3 was scoped to `ping.php` on purpose
 
-The full sweep was re-run against the fixed tree and is **identical to the
-baseline taken before any file was touched**, which is the claim that matters:
-the guards changed no behaviour that any of 78 suites can see.
+`auth.php` genuinely needs a session on GET — it renders a CSRF token — and
+`index.php` needs one to decide whether to render the login screen, which
+invariant 12 requires it to do rather than redirect a POST. `ping.php` is the
+sharp edge: unauthenticated by design, unthrottled, machine-polled by every open
+editing tab, and needing nothing from the session except `is_authenticated()`,
+which is `false` by definition with no cookie. The suite asserts **both**
+halves: zero new session files from ten anonymous pings, and `auth.php` still
+minting one.
 
-```
-                        at audit 7     after the fixes
-lint.php                green          green
-invariants              17/17          17/17
-invariants-selftest     15/15          15/15
-npm run build           clean          clean  (CSS byte-identical, same hash)
-audit7.js               16/28          30/30
-full sweep              74/76 clean    76/78 clean
-```
+### What was deliberately NOT taken
 
-Both reds are the documented expected-reds and are unmoved: `plan8-polish`
-16/17 (the Linux DejaVu width artifact, GUARDRAILS §7.1) and `brandtext` 36/47,
-i.e. **11 failing against a ceiling of 13** — judged by the failing count as
-that section instructs. `plan8-contrast` is 34/35, its documented passing state.
-
-The suites most exposed to these changes were all green, which is the part worth
-recording: `plan5-spectable` 13/13 (the spec-table shape change),
-`plan5-keys` 11/11 on a development-React bundle (the `additionalPdfs` key
-expressions), `plan7-datasheets` 8/8 and `plan5c-sitemap` 17/17, `plan8-catalog`
-16/16, `plan10-header` 8/8 and `plan10-dashboard` 25/25 (every product page at
-four viewports), `plan8-crumbs` 22/22 / `plan9-notfound` 8/8 /
-`plan9-slots-slash` 9/9 (the routing surface, under the bumped
-`react-router-dom@6.30.6`), `contactflow` 85/85 and `plan3-contact` 51/51.
-`plan10-repalette` held at 33/33, so the brand derivation is untouched. All
-three audit-5 suites held (`audit5-blockers` 18/18, `audit5-high` 30/30,
-`audit5-medium` 20/20) and `audit6` is 45/45.
-
-A separate 13-route smoke test over the shipped bundle — every public route plus
-three product pages — came back **13/13**: no ErrorBoundary, an `<h1>` on every
-page, the phone number present, zero horizontal overflow and zero console or
-page errors.
-
-`data/` was confirmed byte-identical to `_harness/pristine/` before and after.
+- **A-7.7, the print stylesheet.** The one finding left open. It is a genuine
+  gap — buyers do print spec pages into requisitions — but closing it means
+  adding `@media print` rules, and this remediation was scoped explicitly to
+  *no structural or UI changes*. It is cheap and self-contained and should be
+  judged by eye as its own change rather than folded into a stability pass.
+- **The scalar product fields** (`product.name`, `product.sku`, …) are still
+  rendered directly at about fifteen sites, and an object in one of those is the
+  same React throw A-7.8 fixes. Not taken: that would *invent* a rule rather
+  than finish one. Those fields are written through `as_str()` on every path and
+  no backup era exists in which they held anything but strings.
+- **`vite`/`esbuild`.** The last advisory needs `npm audit fix --force`, which
+  installs `vite@8` — a breaking major, four versions on. GHSA-67mh-4wv8-2f99 is
+  *"esbuild enables any website to send any requests to the **development
+  server**"*: `vite` is a `devDependency`, the dev server never runs on the
+  host, and nothing esbuild produces carries the flaw into `dist/`. Trading a
+  working, seven-times-audited build for a major bundler bump days before launch
+  is the wrong trade.
