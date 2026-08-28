@@ -18,7 +18,10 @@
  * "Business Details"), with the original values as hardcoded fallbacks.
  */
 
-header('Content-Type: application/json; charset=utf-8');
+// A-7.2 — the Content-Type is decided per response now, in respond(), because
+// this endpoint answers TWO callers: the fetch() in src/App.jsx and a native
+// form navigation. Setting it unconditionally here is what left the no-JS
+// submitter looking at `{"ok":true}` on a white page.
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: no-store');
 
@@ -104,21 +107,63 @@ function ipc_copy_line(array $copy, string $key, string $default): string {
 // (AUDIT_v3_FINDINGS B3)
 define('IPC_INQUIRY_ROTATE_BYTES', 16 * 1024 * 1024);
 
-function ipc_log_inquiry(array $entry): void {
+/**
+ * A-7.4 — this returns bool now, and a failure leaves a signal.
+ *
+ * "Best-effort by design" was a reasonable call when it was written. **A-5.6
+ * changed what this file is for**: it added the unread-lead badge, the
+ * dashboard panel, and copy that tells the owner in as many words that this is
+ * the list to trust when a notification email does not arrive. The design
+ * intent moved and the failure handling did not follow.
+ *
+ * Of the four mail/log outcomes exactly one is silent, and it is the bad one:
+ *
+ *   mail ok    + log ok     → 200 success, record kept
+ *   mail fails + log ok     → 500 + phone number, record kept
+ *   mail ok    + log FAILS  → 200 success, NO RECORD          ← this one
+ *   mail fails + log fails  → 500 + phone number, no record
+ *
+ * The visitor still gets 200 on row 3 and that is deliberate — the mail did go,
+ * so telling them to resend would be wrong. The signal belongs on the owner's
+ * side instead, which is what the marker is for: admin/index.php reads it into
+ * the health banner.
+ *
+ * The marker is best-effort too, and its limit is stated rather than papered
+ * over: if the whole filesystem is out of space or inodes, creating it fails as
+ * well. It covers what `admin_writable()` cannot — that check is a bare
+ * `is_writable(__DIR__)`, so it catches the permission case and returns true
+ * for a log file that is individually unwritable, locked, or replaced by a
+ * directory.
+ */
+define('IPC_LOG_FAIL_MARKER', '.inquiry-log-failed.json');
+
+function ipc_log_inquiry(array $entry): bool {
     foreach ([__DIR__ . '/admin', __DIR__ . '/../admin'] as $dir) {
         if (is_dir($dir)) {
             $path = $dir . '/inquiries.jsonl';
             if (is_file($path) && @filesize($path) >= IPC_INQUIRY_ROTATE_BYTES) {
                 @rename($path, $dir . '/inquiries-' . date('Y-m-d-His') . '.jsonl');
             }
-            @file_put_contents(
-                $path,
-                json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) . "\n",
-                FILE_APPEND | LOCK_EX
-            );
-            return;
+            $line  = json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            // json_encode() can still return false; "false . \n" is a bare
+            // newline, which inquiries.php skips as empty — a lost lead that
+            // also inflates the count. Treat it as the failure it is.
+            $bytes = $line === false
+                ? false
+                : @file_put_contents($path, $line . "\n", FILE_APPEND | LOCK_EX);
+            $ok = ($bytes !== false && $bytes === strlen((string)$line) + 1);
+            if ($ok) {
+                @unlink($dir . '/' . IPC_LOG_FAIL_MARKER);
+            } else {
+                @file_put_contents($dir . '/' . IPC_LOG_FAIL_MARKER, json_encode([
+                    'ts'   => date('c'),
+                    'path' => 'admin/inquiries.jsonl',
+                ]), LOCK_EX);
+            }
+            return $ok;
         }
     }
+    return false;
 }
 
 $si        = ipc_site_info();
@@ -138,11 +183,91 @@ $ad        = $si['address'] ?? [];
 $bizAddr   = trim(($ad['street'] ?? '250 Gibraltar Dr') . ', ' . ($ad['city'] ?? 'Bolingbrook') . ', '
            . ($ad['state'] ?? 'IL') . ' ' . ($ad['zip'] ?? '60440'));
 
+/**
+ * A-7.2 — HTML escaping, for the one place in this file that renders HTML.
+ *
+ * Invariant 10 says `s()` deliberately does NOT escape, because its
+ * destinations are a text/plain email and a JSONL line, and that escaping
+ * belongs at the render boundary. respond()'s HTML branch IS that boundary and
+ * is the first one this file has ever had, so it gets its own function rather
+ * than changing what `s()` means.
+ */
+function hesc($v): string {
+    return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+/**
+ * Does this caller want a page, or a JSON object?
+ *
+ * A native form navigation sends `Accept: text/html,…`; `fetch()` with no
+ * explicit Accept sends `*&#47;*`, and the two handlers in src/App.jsx set no
+ * Accept header — verified, not assumed. So the header is a clean
+ * discriminator and needs no extra hidden field on the form.
+ *
+ * Deliberately a substring test rather than a full q-value parse: the only
+ * thing being decided is "did a browser navigate here", every real browser
+ * puts `text/html` first, and a wrong answer costs a JSON body to a person or
+ * an HTML body to a script that ignores it — not a lost lead.
+ */
+function ipc_wants_html(): bool {
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    return is_string($accept) && stripos($accept, 'text/html') !== false;
+}
+
+/**
+ * A-7.2 — the single exit for every response this endpoint makes.
+ *
+ * Both forms carry `method`/`action` deliberately — that native-submit path is
+ * the reason A-5.3 exists. A-5.3 made it SUCCEED; it did not make the visitor
+ * able to tell, because `Content-Type: application/json` was set
+ * unconditionally and there was no HTML branch anywhere in the file. Measured
+ * with JavaScript off: the lead was captured and the buyer was left on a white
+ * page reading `{"ok":true}`, with no confirmation, no phone number and no way
+ * back.
+ *
+ * The page is deliberately self-contained with inline styles: it is served at
+ * /contact.php, so the SPA's bundle and stylesheet are not loaded, and the one
+ * situation it exists for is the one where JavaScript did not run.
+ */
+function respond(int $code, array $payload): void {
+    global $bizPhone, $bizName, $to;
+    if ($code !== 200) http_response_code($code);
+
+    if (!ipc_wants_html()) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($payload);
+        exit;
+    }
+
+    $ok    = !empty($payload['ok']);
+    $title = $ok ? 'Message sent' : 'We could not send that';
+    $msg   = $ok
+        ? 'Thank you — your message has reached ' . $bizName . '. Our team will respond within one business day.'
+        : (string)($payload['error'] ?? 'Something went wrong. Please call us and we will help you directly.');
+
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+       . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+       . '<meta name="robots" content="noindex">'
+       . '<title>' . hesc($title) . ' — ' . hesc($bizName) . '</title></head>'
+       . '<body style="margin:0;background:#f8fafc;font-family:system-ui,-apple-system,\'Segoe UI\',sans-serif;color:#141414;line-height:1.55">'
+       . '<div style="max-width:38rem;margin:0 auto;padding:2.5rem 1.5rem">'
+       . '<h1 style="font-size:1.4rem;margin:0 0 .75rem">' . hesc($title) . '</h1>'
+       . '<p style="margin:0 0 1.25rem;padding:.75rem 1rem;background:#fff;border:1px solid #e5e9ee;border-radius:6px">'
+       . hesc($msg) . '</p>'
+       . '<p style="margin:0 0 .4rem"><strong>Phone</strong> <a href="tel:' . hesc(preg_replace('/[^0-9+]/', '', $bizPhone))
+       . '" style="color:#0a2240">' . hesc($bizPhone) . '</a></p>'
+       . '<p style="margin:0 0 1.25rem"><strong>Email</strong> <a href="mailto:' . hesc($to)
+       . '" style="color:#0a2240">' . hesc($to) . '</a></p>'
+       . '<p style="margin:0"><a href="/" style="color:#0a2240">← Back to ' . hesc($bizName) . '</a>'
+       . ' &nbsp;·&nbsp; <a href="/contact" style="color:#0a2240">Back to the contact form</a></p>'
+       . '</div></body></html>';
+    exit;
+}
+
 // ── POST only ──────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['ok' => false, 'error' => 'Method not allowed']);
-    exit;
+    respond(405, ['ok' => false, 'error' => 'Method not allowed']);
 }
 
 // ── Sanitise helpers ───────────────────────────────────────────
@@ -432,9 +557,7 @@ if (count($state['hits']) >= $maxHits) {
         ));
     }
     ipc_rl_save($rateFile, $state);
-    http_response_code(429);
-    echo json_encode(['ok' => false, 'error' => "Too many submissions. Please try again in a few minutes, or call {$bizPhone} directly."]);
-    exit;
+    respond(429, ['ok' => false, 'error' => "Too many submissions. Please try again in a few minutes, or call {$bizPhone} directly."]);
 }
 $state['hits'][] = $now;
 // A-5.9 — if the state cannot be persisted, the rate limit is not enforcing.
@@ -488,9 +611,7 @@ if (is_string($referer) && $referer !== '' && $host !== '') {
             . 'Usually a spam bot, occasionally a real customer behind an unusual proxy. No email was sent.',
             $ip
         ));
-        http_response_code(403);
-        echo json_encode(['ok' => false, 'error' => 'This form can only be submitted from the ' . $bizName . ' website. Please call ' . $bizPhone . ' if this keeps happening.']);
-        exit;
+        respond(403, ['ok' => false, 'error' => 'This form can only be submitted from the ' . $bizName . ' website. Please call ' . $bizPhone . ' if this keeps happening.']);
     }
 }
 
@@ -510,8 +631,7 @@ if (!empty($_POST['website'])) {
         'Rejected by the spam honeypot. Almost certainly a bot — but check it before deleting.',
         $ip
     ));
-    echo json_encode(['ok' => true]);
-    exit;
+    respond(200, ['ok' => true]);
 }
 
 // ── Routing ────────────────────────────────────────────────────
@@ -550,9 +670,28 @@ if ($formType === 'rfq') {
     if ($email === '')    $missing[] = 'a valid email address';
     if ($quantity === '') $missing[] = 'the quantity required';
     if ($missing) {
-        http_response_code(422);
-        echo json_encode(['ok' => false, 'error' => ipc_missing_message($missing)]);
-        exit;
+        // A-7.1 — record it before exiting. Every OTHER rejection in this file
+        // logs first — the 429, the 403, the honeypot, the 500 — each with a
+        // comment saying why, because each was a defect once. A-5.3's own
+        // words: "That exit happens before mail() AND before the inquiry log,
+        // so the lead was not merely undelivered, it left no trace at all."
+        // A-5.3 fixed one CAUSE of reaching the 422 and did not change the
+        // exit.
+        //
+        // It is reachable by a real customer, not just a malformed client,
+        // because the browser and the server disagree about what an email
+        // address is: HTML5 deliberately permits a dotless domain (intranet
+        // addresses are legal), so type="email" ACCEPTS `jane@acmecorp` and
+        // hands the form over, and FILTER_VALIDATE_EMAIL then rejects it. A
+        // dropped ".com" is an ordinary typo.
+        ipc_log_inquiry(ipc_partial_entry(
+            'rfq-incomplete',
+            'Refused because required fields were missing or unusable (' . implode('; ', $missing) . '). '
+            . 'Often a mistyped email address that the browser accepted and the server did not — '
+            . 'a real customer who thinks they submitted. No email was sent. Worth a call back.',
+            $ip
+        ));
+        respond(422, ['ok' => false, 'error' => ipc_missing_message($missing)]);
     }
 
     $subject = hdr('IPC Quote Request — ' . ($partNumber !== '' ? $partNumber : 'General RFQ') . ' — ' . $name);
@@ -612,9 +751,28 @@ if ($formType === 'rfq') {
     if ($subj === '')    $missing[] = 'a subject';
     if ($message === '') $missing[] = 'a message';
     if ($missing) {
-        http_response_code(422);
-        echo json_encode(['ok' => false, 'error' => ipc_missing_message($missing)]);
-        exit;
+        // A-7.1 — record it before exiting. Every OTHER rejection in this file
+        // logs first — the 429, the 403, the honeypot, the 500 — each with a
+        // comment saying why, because each was a defect once. A-5.3's own
+        // words: "That exit happens before mail() AND before the inquiry log,
+        // so the lead was not merely undelivered, it left no trace at all."
+        // A-5.3 fixed one CAUSE of reaching the 422 and did not change the
+        // exit.
+        //
+        // It is reachable by a real customer, not just a malformed client,
+        // because the browser and the server disagree about what an email
+        // address is: HTML5 deliberately permits a dotless domain (intranet
+        // addresses are legal), so type="email" ACCEPTS `jane@acmecorp` and
+        // hands the form over, and FILTER_VALIDATE_EMAIL then rejects it. A
+        // dropped ".com" is an ordinary typo.
+        ipc_log_inquiry(ipc_partial_entry(
+            'message-incomplete',
+            'Refused because required fields were missing or unusable (' . implode('; ', $missing) . '). '
+            . 'Often a mistyped email address that the browser accepted and the server did not — '
+            . 'a real customer who thinks they submitted. No email was sent. Worth a call back.',
+            $ip
+        ));
+        respond(422, ['ok' => false, 'error' => ipc_missing_message($missing)]);
     }
 
     $subject = hdr('IPC Contact Form — ' . ($subj !== '' ? $subj : 'General Inquiry') . ' — ' . $name);
@@ -670,12 +828,10 @@ $logEntry['sent'] = (bool)$sent;
 ipc_log_inquiry($logEntry);
 
 if (!$sent) {
-    http_response_code(500);
-    echo json_encode([
+    respond(500, [
         'ok'    => false,
         'error' => "The mail server could not send your message. Please call {$bizPhone} or email {$to} directly.",
     ]);
-    exit;
 }
 
 // ── Auto-reply to visitor ───────────────────────────────────────
@@ -800,4 +956,4 @@ if ($autoReplyOk) {
     @mail($replyTo, $replySubject, $replyBody, $replyHeaders); // best-effort, no error check
 }
 
-echo json_encode(['ok' => true]);
+respond(200, ['ok' => true]);

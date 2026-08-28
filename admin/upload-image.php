@@ -135,7 +135,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $isReplacement = file_exists($destPath);
             if (move_uploaded_file($file['tmp_name'], $destPath)) {
                 // A-5.16 — bound the pixel size once the file is in place.
-                $wasResized = image_downscale_in_place($destPath, $ext);
+                // A-7.6 — and keep the reason, so "too big to resize" can be
+                // said out loud instead of reading like "already fine".
+                $resizeReason = '';
+                $wasResized = image_downscale_in_place($destPath, $ext, $resizeReason);
                 // If the extension changed, clean up the old managed file
                 // (unless another product still points at it).
                 if ($isManaged && basename($currentPhoto) !== $filename) {
@@ -154,7 +157,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     audit_log('upload-image', $sku, ($isReplacement ? 'Replaced' : 'Uploaded') . ' photo: ' . $filename);
                     $success      = ($isReplacement ? 'Photo replaced' : 'Photo uploaded') . ' and product updated.'
                                     // A-5.16 — say so rather than quietly handing back a different file.
-                                    . ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '');
+                                    . ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '')
+                                    // A-7.6 — the third outcome. Over IMG_MAX_PIXELS the resize is
+                                    // skipped on purpose (A-6.6), and saying nothing made that read
+                                    // exactly like "this photo was already a sensible size" — while
+                                    // the full-size file becomes the product page's LCP image.
+                                    . ($resizeReason === 'too-many-pixels'
+                                        ? ' ⚠ It is too large for the server to resize automatically (over '
+                                          . (int)(IMG_MAX_PIXELS / 1000000) . ' megapixels), so it has been saved at its'
+                                          . ' original size and this product page may load slowly. Please resize it to about '
+                                          . IMG_MAX_WIDTH . ' pixels wide and upload it again.'
+                                        : '');
                     $currentPhoto = $destUrl;
                     $isManaged    = true;
                     $product      = $products[$idx];

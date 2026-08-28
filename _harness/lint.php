@@ -232,6 +232,73 @@ if (!$declared || !$called) {
     echo "audit-action drift        " . count($declared) . " actions, filter list and call sites identical\n";
 }
 
+// ── inquiry-type drift ──────────────────────────────────────────────────────
+// Same shape as audit-action drift above, and it exists because audit 7 walked
+// into it. A-7.1 added logging to contact.php's two 422 exits, which meant two
+// NEW inquiry types. admin/inquiries.php's $REJECTED map is what tells a
+// rejection apart from a real lead, and an entry the map does not know is
+// counted as a real inquiry with sent=false — so it lands in $failed, the
+// number Rick watches to decide whether mail is broken. One mistyped email
+// address would have pinned it above zero and sent him chasing a mail problem
+// that did not exist. That is NB10, which $REJECTED was created to fix.
+//
+// The instance was caught by hand and fixed. Nothing stopped the NEXT person
+// repeating it, which is what this check is for.
+//
+// The two directions are NOT symmetric, so they are not one comparison:
+//   - a type written by ipc_partial_entry() but absent from $REJECTED is the
+//     NB10 defect, and is a FAILURE;
+//   - a $REJECTED key nothing writes is a dead row — stale, harmless, and
+//     reported separately so the two are never confused.
+// The real lead types ('rfq', 'message') are written as `'type' => '...'` in
+// the log entry, not through ipc_partial_entry(), and must NEVER be in
+// $REJECTED — so they are asserted absent rather than ignored.
+// (audit-runs/audit8.md A-8.6)
+$contact = (string)@file_get_contents(__DIR__ . '/../public/contact.php');
+$inq     = (string)@file_get_contents(__DIR__ . '/../admin/inquiries.php');
+
+$rejWritten = [];
+if (preg_match_all("/ipc_partial_entry\(\s*'([^']+)'/s", $contact, $mm)) {
+    foreach ($mm[1] as $t) $rejWritten[$t] = true;
+}
+$rejWritten = array_keys($rejWritten);
+
+$rejDeclared = [];
+if (preg_match('/\$REJECTED\s*=\s*\[(.*?)\n\];/s', $inq, $m)) {
+    if (preg_match_all("/'([^']+)'\s*=>\s*\['label'/", $m[1], $mm)) {
+        $rejDeclared = $mm[1];
+    }
+}
+
+$leadTypes = [];
+if (preg_match_all("/'type'\s*=>\s*'([^']+)'/", $contact, $mm)) {
+    foreach ($mm[1] as $t) $leadTypes[$t] = true;
+}
+$leadTypes = array_keys($leadTypes);
+
+$notOffered = array_values(array_diff($rejWritten, $rejDeclared));   // NB10 again
+$deadRows   = array_values(array_diff($rejDeclared, $rejWritten));   // stale map row
+$leadInRej  = array_values(array_intersect($leadTypes, $rejDeclared)); // a real lead hidden
+
+if (!$rejWritten || !$rejDeclared) {
+    $fail++;
+    echo "FAIL  inquiry-type drift\n      could not read one of the two lists (written "
+       . count($rejWritten) . ", declared " . count($rejDeclared)
+       . ") — has \$REJECTED or ipc_partial_entry() been renamed?\n";
+} elseif ($notOffered || $deadRows || $leadInRej) {
+    $fail++;
+    echo "FAIL  inquiry-type drift\n"
+       . ($notOffered ? "      logged by contact.php but missing from \$REJECTED: " . json_encode($notOffered) . "\n"
+                      . "      each one counts as a real inquiry with sent=false, so it inflates the\n"
+                      . "      \"failed\" count Rick watches to decide whether mail is broken (NB10)\n" : '')
+       . ($deadRows   ? "      in \$REJECTED but never written: " . json_encode($deadRows) . "\n" : '')
+       . ($leadInRej  ? "      a REAL lead type is listed as a rejection: " . json_encode($leadInRej) . "\n"
+                      . "      those leads would be hidden behind the rejected filter\n" : '');
+} else {
+    echo "inquiry-type drift        " . count($rejDeclared) . " rejection types, contact.php and inquiries.php identical"
+       . " (+" . count($leadTypes) . " lead types, correctly not listed)\n";
+}
+
 // The two $partTypes literals this item removed must not come back.
 $reintroduced = [];
 foreach (['add.php', 'edit.php'] as $f) {

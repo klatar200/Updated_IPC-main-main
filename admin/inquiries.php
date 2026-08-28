@@ -76,6 +76,13 @@ $REJECTED = [
     'honeypot'        => ['label' => 'Spam trap',    'blurb' => 'Caught by the hidden spam field'],
     'rate-limited'    => ['label' => 'Rate limited', 'blurb' => 'Too many submissions from one internet connection'],
     'blocked-referer' => ['label' => 'Blocked',      'blurb' => 'Submitted from another website'],
+    // A-7.1 — the two 422 exits log now. They MUST be listed here: an entry
+    // this map does not know is counted as a real inquiry with sent=false, so
+    // it lands in $failed, the number Rick watches to decide whether mail is
+    // broken. That is exactly the NB10 defect described above, and adding the
+    // logging without adding these rows would have re-created it.
+    'rfq-incomplete'     => ['label' => 'Incomplete', 'blurb' => 'Required details were missing — often an email address the browser accepted and the server did not'],
+    'message-incomplete' => ['label' => 'Incomplete', 'blurb' => 'Required details were missing — often an email address the browser accepted and the server did not'],
 ];
 $failed   = 0;
 $rejected = 0;

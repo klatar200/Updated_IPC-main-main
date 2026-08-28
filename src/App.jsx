@@ -6568,12 +6568,32 @@ function useRefetchOnReturn(url, label, apply, ttlMs = 60000) {
     let last = 0;
     const load = () => {
       last = Date.now();
-      fetch(`${url}?v=${Math.floor(Date.now() / 60000)}`)
+      // A-7.9 — the same hard timeout fetchProductsCached() carries, for the
+      // same reason and against the same origin. T2.1 was "an origin that
+      // accepts the connection and then hangs", and the guard was applied to
+      // one of the three fetches of the three files in one folder. A hang here
+      // does not blank the chrome — the providers already render defaults —
+      // but nothing settles the request either, and `last` is stamped when the
+      // fetch STARTS, so every visibility change past the TTL opens another
+      // one. Six of those exhaust the browser's per-origin connection pool,
+      // and the seventh request to queue is whichever one the visitor needs
+      // next — including the catalog fetch, whose own 12 s abort cannot fire
+      // before it has a socket to abort. Bounding this bounds that.
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = controller
+        ? setTimeout(() => controller.abort(), PRODUCTS_FETCH_TIMEOUT_MS)
+        : null;
+      const done = () => {
+        if (timer) clearTimeout(timer);
+      };
+      fetch(`${url}?v=${Math.floor(Date.now() / 60000)}`, controller ? { signal: controller.signal } : undefined)
         .then((res) => jsonOrThrow(res, label))
         .then((data) => {
+          done();
           if (!cancelled && data) apply(data);
         })
         .catch(() => {
+          done();
           /* keep whatever is already rendered — never blank the chrome */
         });
     };
@@ -6668,6 +6688,23 @@ function groupFaq(flat) {
 // between. One call per sink, using the guard that already exists.
 function safeHref(value) {
   return isSafeLinkUrl(value) ? value : undefined;
+}
+
+/**
+ * A-7.8 — the extra data-sheet rows a product can carry, with anything that is
+ * not an object dropped.
+ *
+ * Both render sites keyed on `${i}-${extra.url}`, which throws on a null entry
+ * before `safeHref()` — the guard that is already there — is ever reached. L4
+ * hardened the URL and left the row itself unguarded, so this closes the same
+ * sink from one step further out. `edit.php`'s F6 regex validates these on
+ * write; `data/` is still a plain file, and `backups.php` restores through
+ * `save_products()`, which does not.
+ */
+function productExtraPdfs(product) {
+  return (Array.isArray(product?.additionalPdfs) ? product.additionalPdfs : []).filter(
+    (x) => x && typeof x === "object" && !Array.isArray(x),
+  );
 }
 
 function asList(v) {
@@ -8246,19 +8283,60 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
 }
 
 /**
+ * A-7.8 — the RENDER-side half of A-5.12.
+ *
+ * A-5.12 ("a malformed-but-savable spec table crashes the product page") was
+ * closed write-side only: add.php, edit.php and config.php gained shape
+ * validation and this file was never touched. That is the same reasoning the L4
+ * comment above safeHref() already rejected for pdfUrl — data/ is a plain file,
+ * so an FTP edit, or a backup restored from before those gates existed, reaches
+ * the component with nothing in between. backups.php restores through
+ * save_products(), which runs none of the form-level shape checks, so the path
+ * needs no FTP at all: 90 backups are kept per prefix and every one written
+ * before the gate landed carries the pre-gate shape.
+ *
+ * A row is only a row if the component that draws it can draw it. SpecTable1
+ * reads {label, value} off each row; SpecTable2 maps each row as a list of
+ * cells. Anything else — null, a bare string, a nested object — is dropped
+ * here rather than thrown on, which is the same "degrade to something
+ * renderable" rule asList()/asText() apply to the catalog's other fields.
+ *
+ * Measured before the fix (_harness/audit7.js, 16/28): all six malformed
+ * shapes rendered the ErrorBoundary with no <h1>, while an untouched
+ * neighbouring product rendered correctly on the same catalog load.
+ */
+function specRows1(table) {
+  return (Array.isArray(table?.rows) ? table.rows : []).filter(
+    (r) => r && typeof r === "object" && !Array.isArray(r),
+  );
+}
+
+function specRows2(table) {
+  return (Array.isArray(table?.rows) ? table.rows : []).filter((r) => Array.isArray(r));
+}
+
+/**
  * 4.29 — does this spec table have anything to show? Kept next to the two
  * table components so the caller's layout condition and the components' own
  * early return can never disagree about what "empty" means.
+ *
+ * It counts DRAWABLE rows for the same reason. Counting raw length here while
+ * the components counted drawable rows would reinstate the 4.29 defect from
+ * the other side: the caller would draw the padded wrapper and the bordered
+ * box around a component that returned null. The two shapes cannot be
+ * confused — a specTable1 row is an object and never an array, a specTable2
+ * row is an array and never a plain object — so one function answers for both.
  */
 function specHasRows(table) {
-  return Array.isArray(table?.rows) && table.rows.length > 0;
+  return specRows1(table).length > 0 || specRows2(table).length > 0;
 }
 
 /** IPC Left spec table — dark header, clean row list */
 function SpecTable1({ table }) {
   // #1 fix: guard against null/undefined rows — PHP admin may produce empty specTable1
-  const rows = Array.isArray(table?.rows) ? table.rows : [];
-  const title = table?.title ?? "Specifications:";
+  // A-7.8: and against rows that are not {label, value} objects at all.
+  const rows = specRows1(table);
+  const title = asText(table?.title ?? "Specifications:");
   // 4.29 — no rows means no table AT ALL. The heading bar used to render on
   // its own, announcing a section that is not there; a title Rick has typed
   // into an as-yet-unfilled table is not a reason to draw one. Callers also
@@ -8277,10 +8355,14 @@ function SpecTable1({ table }) {
       </div>
       <div className="bg-white divide-y" style={{ borderColor: "#e5e9ee" }}>
         {rows.map((row, i) => (
+          // A-7.8 — asText() on both slots. A label or value that arrives as an
+          // object is "Objects are not valid as a React child", i.e. the same
+          // whole-page throw a malformed row shape produces; a number is
+          // legitimate and still renders.
           <div key={i} className="px-4 py-3 text-sm">
-            {row.label && (
+            {asText(row.label) && (
               <span className="font-semibold" style={{ color: "var(--brand-primary-text)" }}>
-                {row.label}{" "}
+                {asText(row.label)}{" "}
               </span>
             )}
             <span
@@ -8289,7 +8371,7 @@ function SpecTable1({ table }) {
               // ("-55°C/+175°C(-67°F/+347°F)") longer than a 375px column.
               style={{ color: "#4b5563", fontSize: 12.5, overflowWrap: "anywhere" }}
             >
-              {row.value}
+              {asText(row.value)}
             </span>
           </div>
         ))}
@@ -8302,10 +8384,16 @@ function SpecTable1({ table }) {
 function SpecTable2({ table }) {
   // Guard the whole prop first: a product with no specTable2 (or null) must not
   // crash the page — destructuring null throws. Fall back to an empty table.
-  const { columnSpans, rows: rawRows } = table ?? {};
+  const { columnSpans } = table ?? {};
   // Defensively guard both arrays against null/undefined from malformed catalog data
-  const colSpans = Array.isArray(columnSpans) ? columnSpans : [];
-  const rows = Array.isArray(rawRows) ? rawRows : [];
+  // A-7.8 — and against ENTRIES that are not the shape this component reads.
+  // `colSpans.some(c => c.colspan > 1)` throws on a null entry, and a row that
+  // is not itself a list has no `.map`, which is A-5.12's own reproduction
+  // (`rows: ["8.0","9.0"]`). Both are dropped rather than thrown on.
+  const colSpans = (Array.isArray(columnSpans) ? columnSpans : []).filter(
+    (c) => c && typeof c === "object" && !Array.isArray(c),
+  );
+  const rows = specRows2(table);
   const hasSubHeaders = colSpans.some(
     (c) => c.colspan > 1 && Array.isArray(c.sub),
   );
@@ -8345,7 +8433,7 @@ function SpecTable2({ table }) {
                   border: "1px solid rgba(255,255,255,0.2)",
                 }}
               >
-                {col.label}
+                {asText(col.label)}
               </th>
             ))}
           </tr>
@@ -8365,7 +8453,7 @@ function SpecTable2({ table }) {
                         border: "1px solid rgba(255,255,255,0.2)",
                       }}
                     >
-                      {s}
+                      {asText(s)}
                     </th>
                   )),
                 )}
@@ -8388,7 +8476,7 @@ function SpecTable2({ table }) {
                     fontWeight: ci === 0 ? 600 : 400,
                   }}
                 >
-                  {cell}
+                  {asText(cell)}
                 </td>
               ))}
             </tr>
@@ -8641,12 +8729,14 @@ function ProductDetail({ product, allProducts }) {
                     <line x1="12" y1="18" x2="12" y2="12" />
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
-                  {product.pdfLabel || "Download PDF"}
+                  {asText(product.pdfLabel) || "Download PDF"}
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants (e.g. IP52EC plugged-cap) — same styling */}
-                {Array.isArray(product.additionalPdfs) &&
-                  product.additionalPdfs.map((extra, i) => (
+                {/* A-7.8 — a null entry here is `extra.url` on null, which throws
+                    in the key expression before any guard downstream runs. Same
+                    plain-file exposure as the spec tables. */}
+                {productExtraPdfs(product).map((extra, i) => (
                     <a
                       key={`${i}-${extra.url}`}
                       href={safeHref(extra.url)}
@@ -8675,7 +8765,7 @@ function ProductDetail({ product, allProducts }) {
                         <line x1="12" y1="18" x2="12" y2="12" />
                         <polyline points="9 15 12 18 15 15" />
                       </svg>
-                      {extra.label || "Download PDF"}
+                      {asText(extra.label) || "Download PDF"}
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
@@ -9749,12 +9839,14 @@ function ProductPage({ products }) {
                     <line x1="12" y1="18" x2="12" y2="12" />
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
-                  {product.pdfLabel || "Data Sheet"}
+                  {asText(product.pdfLabel) || "Data Sheet"}
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants — same styling */}
-                {Array.isArray(product.additionalPdfs) &&
-                  product.additionalPdfs.map((extra, i) => (
+                {/* A-7.8 — a null entry here is `extra.url` on null, which throws
+                    in the key expression before any guard downstream runs. Same
+                    plain-file exposure as the spec tables. */}
+                {productExtraPdfs(product).map((extra, i) => (
                     <a
                       key={`${i}-${extra.url}`}
                       href={safeHref(extra.url)}
@@ -9797,7 +9889,7 @@ function ProductPage({ products }) {
                         <line x1="12" y1="18" x2="12" y2="12" />
                         <polyline points="9 15 12 18 15 15" />
                       </svg>
-                      {extra.label || "Data Sheet"}
+                      {asText(extra.label) || "Data Sheet"}
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
@@ -11210,7 +11302,7 @@ function IndustriesPage() {
                   Common Applications
                 </div>
                 <ul className="space-y-2.5">
-                  {(ind.useCases || []).map((uc, i) => (
+                  {asList(ind.useCases).map((uc, i) => (
                     <li
                       key={`${i}-${uc}`}
                       className="flex items-start gap-2.5 text-sm"
@@ -11233,7 +11325,7 @@ function IndustriesPage() {
                       >
                         →
                       </span>
-                      {uc}
+                      {asText(uc)}
                     </li>
                   ))}
                 </ul>
@@ -11248,7 +11340,7 @@ function IndustriesPage() {
                   IPC Products
                 </div>
                 <ul className="space-y-2">
-                  {(ind.products || []).map((prod, i) => (
+                  {asList(ind.products).map((prod, i) => (
                     <li key={`${i}-${prod.sku}`}>
                       <PageLink
                         page="products"
@@ -11283,7 +11375,7 @@ function IndustriesPage() {
                               letterSpacing: "0.04em",
                             }}
                           >
-                            {prod.sku}
+                            {asText(prod.sku)}
                           </span>
                           <span
                             style={{
@@ -11293,7 +11385,7 @@ function IndustriesPage() {
                               marginTop: 1,
                             }}
                           >
-                            {prod.label}
+                            {asText(prod.label)}
                           </span>
                           <span
                             style={{
@@ -11323,7 +11415,7 @@ function IndustriesPage() {
                     Certifications
                   </div>
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {(ind.certs || []).map((cert, i) => (
+                    {asList(ind.certs).map((cert, i) => (
                       <span
                         key={`${i}-${cert}`}
                         className="text-xs font-semibold px-2.5 py-1 rounded"
@@ -11332,7 +11424,7 @@ function IndustriesPage() {
                           color: "var(--brand-primary-text)",
                         }}
                       >
-                        {cert}
+                        {asText(cert)}
                       </span>
                     ))}
                   </div>
@@ -11676,7 +11768,7 @@ function ServicesPage() {
    * shipped data only exercises one of them.
    */
   const leadTimeSummary = useMemo(() => {
-    const vals = (services || []).map((s) => (s.leadTime || "").trim()).filter(Boolean);
+    const vals = asList(services).map((s) => asText(s && s.leadTime).trim()).filter(Boolean);
     if (vals.length === 0) return { headline: "\u2264 1 Week", note: "" };
 
     const counts = new Map();
@@ -11859,7 +11951,7 @@ function ServicesPage() {
               {/* Details */}
               <div className="px-6 py-5 flex-1">
                 <ul className="space-y-2">
-                  {(svc.details || []).map((d, i) => (
+                  {asList(svc.details).map((d, i) => (
                     <li
                       key={`${i}-${d}`}
                       className="flex items-start gap-2 text-xs"
@@ -11876,7 +11968,7 @@ function ServicesPage() {
                       >
                         ✓
                       </span>
-                      {d}
+                      {asText(d)}
                     </li>
                   ))}
                 </ul>

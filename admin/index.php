@@ -187,6 +187,27 @@ $navActive = 'products';
       $healthProblems[] = 'The <code>pdfs</code> folder is missing or not writable. '
         . 'Data-sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.';
   }
+  /* A-7.4 — contact.php could not write the inquiry log.
+     This is the one mail/log outcome that is otherwise SILENT: the mail went,
+     so the visitor saw a success page and has no reason to resend, and A-5.6
+     made this log the record the owner is told to trust when a notification
+     does not arrive. The marker is written by ipc_log_inquiry() and cleared by
+     the next write that succeeds, so it says "this is happening now", not
+     "this happened once".
+     Deliberately not gated on admin_writable(): that is a bare
+     is_writable(__DIR__) and returns true for a log file that is individually
+     unwritable, locked, or replaced by a directory — which is the gap this
+     covers. */
+  $logFailMarker = __DIR__ . '/.inquiry-log-failed.json';
+  if (is_file($logFailMarker)) {
+      $when = @filemtime($logFailMarker);
+      $healthProblems[] = '<strong>Quote requests are arriving but cannot be recorded.</strong> '
+        . 'The website could not write to <code>admin/inquiries.jsonl</code>'
+        . ($when ? ' (last tried ' . h(date('M j, Y g:i a', $when)) . ')' : '') . '. '
+        . 'The notification emails are still being sent, so nothing is lost yet — but the '
+        . 'Inquiries page is not recording new leads. Usually a full disk or a permissions '
+        . 'change on public_html/admin/. This clears itself as soon as one write succeeds.';
+  }
   /* The password-reset window. While it is open, ANY visitor to /admin/ — signed
      in or not — is served the "Set Admin Password" form and can take the
      account. It used to be invisible: nothing on any page mentioned it, and

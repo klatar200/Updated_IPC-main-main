@@ -478,7 +478,31 @@ function csrf_check(bool $requireAuth = true): void {
 // Harden session cookies BEFORE session_start() — these flags only take
 // effect on the cookie that session_start() sets, so they have to be
 // configured first.
-if (session_status() === PHP_SESSION_NONE) {
+/**
+ * A-7.3 — a caller may declare that it does not need a session STARTED.
+ *
+ * Every admin entry point includes this file, and this block ran
+ * unconditionally — so a request with no cookie and no credentials still made
+ * PHP mint an id and write a session file, and `gc_maxlifetime` is raised to
+ * 28,800s three lines below for the owner's benefit, so each one is ineligible
+ * for collection for eight hours. Measured: 10 anonymous GETs to
+ * `admin/ping.php` produced 10 zero-byte `sess_` files.
+ *
+ * A-5.26 fixed the adjacent problem — strict mode, so an attacker cannot
+ * CHOOSE the id — and its comment already names ping.php as the sharp edge. A
+ * self-minted id still costs a file, which is the half that was left.
+ *
+ * The opt-out is honoured ONLY when the request carries no session cookie: a
+ * caller with no cookie cannot be authenticated, so the answer is unchanged and
+ * nothing is lost. With a cookie the session starts exactly as before, so a
+ * signed-in owner's keepalive still works. `auth.php` does not opt out — it
+ * renders a CSRF token on GET and genuinely needs one.
+ *
+ * The cookie name is read from the same literal `session_name()` sets below, in
+ * this file, so the two cannot drift apart.
+ */
+if (session_status() === PHP_SESSION_NONE
+    && (!defined('IPC_SESSION_OPTIONAL') || !empty($_COOKIE['IPCADMIN']))) {
     $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     // PHP's default session.gc_maxlifetime is 1440s (24 min). The admin writes
@@ -1631,25 +1655,43 @@ define('IMG_MAX_WIDTH', 1600);
  */
 define('IMG_MAX_PIXELS', 40000000);
 
-function image_downscale_in_place(string $path, string $ext): bool {
-    if (!extension_loaded('gd') || !function_exists('imagescale')) return false;
+/**
+ * A-7.6 — `$reason` tells the caller WHY a false was returned.
+ *
+ * A-6.6's pixel ceiling is right: over it, the upload is kept at its original
+ * size rather than risking an uncatchable OOM between move_uploaded_file() and
+ * save_products(). But the caller could not tell that apart from "already a
+ * sensible size", so upload-image.php printed the same success message for a
+ * 41-megapixel photo as for a correct one — and that photo is now the eagerly
+ * loaded LCP image on the product page. A gap in audit 6's own fix.
+ *
+ * An out-param rather than a changed return type: the bool contract is what
+ * the single caller reads, and `$reason` is additive, so nothing that ignores
+ * it changes behaviour.
+ */
+function image_downscale_in_place(string $path, string $ext, ?string &$reason = null): bool {
+    $reason = '';
+    if (!extension_loaded('gd') || !function_exists('imagescale')) { $reason = 'no-gd'; return false; }
     $ext = strtolower($ext);
-    if ($ext === 'gif') return false;                       // never flatten an animation
+    if ($ext === 'gif') { $reason = 'animation'; return false; }   // never flatten an animation
     $info = @getimagesize($path);
-    if (!is_array($info) || empty($info[0])) return false;
+    if (!is_array($info) || empty($info[0])) { $reason = 'unreadable'; return false; }
     $w = (int)$info[0];
     $h = (int)($info[1] ?? 0);
-    if ($w <= IMG_MAX_WIDTH) return false;                  // already sensible
-    if ($h < 1 || $w * $h > IMG_MAX_PIXELS) return false;   // too big to decode safely — keep the upload
+    if ($w <= IMG_MAX_WIDTH) { $reason = 'already-small'; return false; }
+    // Too big to decode safely — keep the upload at its original size. GD
+    // allocates outside the Zend allocator, so memory_limit does not bound
+    // this; the input is what has to be bounded. (audit-runs/audit6.md A-6.6)
+    if ($h < 1 || $w * $h > IMG_MAX_PIXELS) { $reason = 'too-many-pixels'; return false; }
 
     $loaders = ['jpg' => 'imagecreatefromjpeg', 'jpeg' => 'imagecreatefromjpeg',
                 'png' => 'imagecreatefrompng',  'webp' => 'imagecreatefromwebp'];
-    if (!isset($loaders[$ext]) || !function_exists($loaders[$ext])) return false;
+    if (!isset($loaders[$ext]) || !function_exists($loaders[$ext])) { $reason = 'no-loader'; return false; }
     $src = @$loaders[$ext]($path);
-    if (!$src) return false;
+    if (!$src) { $reason = 'decode-failed'; return false; }
 
     $dst = @imagescale($src, IMG_MAX_WIDTH);
-    if (!$dst) { imagedestroy($src); return false; }
+    if (!$dst) { imagedestroy($src); $reason = 'scale-failed'; return false; }
     if ($ext === 'png' || $ext === 'webp') {                // keep transparency
         @imagealphablending($dst, false);
         @imagesavealpha($dst, true);
@@ -1663,10 +1705,10 @@ function image_downscale_in_place(string $path, string $ext): bool {
     elseif ($ext === 'webp')               $okWrite = @imagewebp($dst, $tmp, 82);
     imagedestroy($src);
     imagedestroy($dst);
-    if (!$okWrite || !is_file($tmp) || @filesize($tmp) < 1) { @unlink($tmp); return false; }
+    if (!$okWrite || !is_file($tmp) || @filesize($tmp) < 1) { @unlink($tmp); $reason = 'write-failed'; return false; }
     $perms = @fileperms($path);
     if ($perms !== false) @chmod($tmp, $perms & 0777);
-    if (!@rename($tmp, $path)) { @unlink($tmp); return false; }
+    if (!@rename($tmp, $path)) { @unlink($tmp); $reason = 'rename-failed'; return false; }
     return true;
 }
 
