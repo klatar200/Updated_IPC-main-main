@@ -9,13 +9,20 @@ i.e. `main` @ `ff62280` plus the merged audit-7 work.
 |---|---|
 | Blocker | 0 |
 | High | 2 |
-| Medium | 3 |
+| Medium | 4 |
 | Low | 3 |
 
-**Five of the eight are fixed. Three are owner decisions that code must not
-make** — a certification claim, and two sentences of published privacy policy.
-They are named precisely, with the screen each is edited on, rather than left as
-a line on a list.
+*(This table read "Medium 3 / eight findings" until 2026-08-28. There are nine —
+A-8.6 is Medium and was not counted. Corrected rather than quietly re-totalled.)*
+
+**Seven of the nine are fixed**, and half of an eighth: A-8.9's `foundingDate`
+half is fixed and its "50 years" half was **withdrawn as wrong** — see §2.
+
+**One is still open, and it is the one code must not close**: A-8.5, the
+certification revisions, which needs the registrar. A-8.7 and A-8.8 — the two
+privacy-policy sentences — were fixed on 2026-08-28 at the owner's instruction;
+§3a records how, and why on a live site they are an admin edit rather than a
+deploy.
 
 ---
 
@@ -260,9 +267,7 @@ automatically, it is stored for rejected submissions as well as accepted ones,
 and it is personal data under both GDPR (settled in *Breyer*, CJEU C-582/14) and
 CCPA. The policy explicitly invokes both.
 
-**Not fixed:** the text lives in `data/content.json`, which is live customer
-state that GUARDRAILS forbids modifying, and it is legal wording. One sentence
-in Admin → Page Content → Privacy resolves it.
+**FIXED 2026-08-28**, at the owner's instruction, in both copies — see §3a.
 
 ### A-8.8 — LOW — the stated three-year retention ceiling is not implemented
 
@@ -273,9 +278,10 @@ Nothing expires. `contact.php`'s own comment states it: *"Rotated files are neve
 deleted."* There is no `unlink` of any inquiry file anywhere in `admin/` — zero
 occurrences. The log rotates at 16 MB and the rotated files accumulate forever.
 
-**Not fixed**, same reason as A-8.7: either the sentence changes or a deletion
-policy gets built, and both are the owner's call. Worth noting the cheap version
-is a note in the runbook to prune rotated `inquiries-*.jsonl` annually.
+**FIXED 2026-08-28**, at the owner's instruction — the sentence now describes
+what actually happens. The other way to close it, keeping a ceiling and adding
+an annual prune of the rotated `inquiries-*.jsonl`, is recorded in the runbook
+as the alternative. See §3a.
 
 ### A-8.9 — LOW — two small copy/data inconsistencies
 
@@ -284,11 +290,17 @@ is a note in the runbook to prune rotated `inquiries-*.jsonl` annually.
   *"incorporated on July 1, 1974"*. `site-info.json` carries only a year, so
   Jan 1 is a reasonable convention for a year-only value — recorded rather than
   changed, because fixing it properly means a new owner-editable field.
-- **"Celebrating 50 years"** (`content.json` `milestones`, and the matching
-  default) is 52 as of 2026. The footer's copyright is derived
-  (`© {foundedYear}–{new Date().getFullYear()}`); this number is typed by hand
-  and will keep aging. Owner-editable in Page Content; some businesses keep
-  "50+" deliberately, so it is a decision rather than a defect.
+- ~~**"Celebrating 50 years"** is 52 as of 2026.~~ **WITHDRAWN 2026-08-28 —
+  this half of A-8.9 was wrong, and the error is left visible rather than
+  deleted.** It was raised from a `grep` without opening the surrounding
+  structure. `milestones` is a **historical timeline**, and the row is
+  `year: "2024", label: "50 Years"` — the year they actually reached fifty. It
+  is correct as history and changing it would have introduced an error. The
+  About prose was checked at the same time and says "for **over** fifty years",
+  which is also correct. Recorded because "a number that looks stale" is
+  exactly the shape of finding that needs its context read before it is
+  believed — the same lesson as A-5.12's tier-2 SKU matching, where an
+  exact-match check would have flagged five working links as broken.
 
 ---
 
@@ -326,6 +338,93 @@ it on a first deploy means no catalog. Step 0 settles it with one URL.
 
 `README.md` stays authoritative on *what* to upload; the runbook is the
 *sequence*, and it says so.
+
+---
+
+## 3a. The privacy corrections (2026-08-28)
+
+A-8.7 and A-8.8 were fixed at the owner's instruction. Both were **published
+statements that were untrue**, on a policy that names GDPR and CCPA by name, so
+they are worth recording in full.
+
+### What changed
+
+**"Information We Collect"** enumerated only what the visitor types. It now also
+discloses the IP address and timestamp, says plainly that the address is *not*
+something you type, and says it is recorded for rejected submissions too — which
+is the part a visitor could not otherwise guess. The wording was checked field
+by field against a real stored record:
+
+```
+stored:    ts, type, name, company, email, phone, part, material,
+           quantity, reqDate, special, notes, ip, sent
+disclosed: name, company, email, phone, enquiry details (part numbers,
+           quantities, materials, required dates, special requirements),
+           IP address, date and time
+```
+
+`type` and `sent` are internal flags, not personal data. Everything else is now
+covered.
+
+**"Data Retention"** promised deletion "not to exceed three (3) years". Nothing
+expires — `contact.php`'s own comment says rotated files are never deleted, and
+there is no `unlink` of any inquiry file in `admin/`. The sentence now describes
+what actually happens and points at the deletion-on-request that the "Your
+Rights" section already offers, so the two are consistent.
+
+The alternative — keep the three-year ceiling and *build* an annual prune of the
+rotated `inquiries-*.jsonl` — is recorded in `GO-LIVE.md` as the other way to
+close it. It was not taken days before a launch: it is a new destructive
+mechanism over the lead log, which is the one file the business cannot lose.
+
+These are factual corrections, not legal advice, and the runbook says so.
+
+### The half that matters operationally
+
+The text was changed in **both** copies — `src/App.jsx`'s `PRIVACY_SECTIONS`
+defaults and `data/content.json` — but on an already-live site **neither reaches
+the page**:
+
+- `data/` is live customer state and is never re-uploaded (Step 0 / §B2.7);
+- `mergeContent()` does `out[k] = Array.isArray(v) ? v : dv`, so a live
+  `content.json` wins over the defaults entirely.
+
+So on a re-deploy this is an **admin edit**, not a file upload, and `GO-LIVE.md`
+§A now carries both replacement paragraphs ready to paste into
+Admin → Page Content → Privacy Policy. On a *first* deploy the repo's `data/`
+goes up and it is already done.
+
+This is the A-6.2 shape again — a fix travelling on a tree that does not get
+deployed — and it is why the runbook step exists rather than a line in a commit
+message.
+
+### The owner's Saturday operation was rehearsed, not assumed
+
+Asking someone to paste a 674-character paragraph into a 852-field form and
+trusting it works is not verification. It was driven end to end against the
+mirror — sign in, edit the *Information We Collect* row, click **Save Content**,
+then read both the saved JSON and the rendered `/privacy` page — **9/9**, with
+the marker carrying an accent, an em dash and a smart quote to catch any
+encoding loss. Nothing truncated; the admin returned *"✅ Content saved"*; the
+mirror was restored from `pristine/` and the restore asserted.
+
+Worth recording how the first run of that probe went, because it is the trap:
+it reported the save as **failing**. It was the probe that was wrong — it did
+`waitForLoadState()` after clicking, which can resolve against the *old* page
+before the server has finished writing, so it read the file too early. The
+give-away was that the same run then found the marker on `/privacy`, which is
+impossible if the write never happened. **A measurement that contradicts itself
+is the measurement's fault first**, and re-running with
+`waitForNavigation()` showed a clean save all along.
+
+### Harness note
+
+`data/content.json` legitimately changed, so `_harness/pristine/` was
+**deliberately re-seeded** (`rm -rf _harness/pristine && sh _harness/sync.sh`).
+`sync.sh` never refreshes it on its own, by design — "refreshing it from data/
+each time would silently launder exactly the corruption it exists to detect" —
+so an intentional data change is the one case where re-seeding is correct, and
+it is recorded here rather than done silently.
 
 ---
 
