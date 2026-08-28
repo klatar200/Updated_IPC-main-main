@@ -5753,3 +5753,38 @@ Getting it wrong is destructive both ways — re-uploading `data/` onto a live
 site destroys the owner's edits with no backup, and skipping it on a first
 deploy means no catalog. Step 0 settles it with one URL. `README.md` stays
 authoritative on *what* to upload; the runbook is the sequence, and says so.
+
+### Regression state — recorded after the fact, not predicted
+
+Audit 8 changed **no shipped file**: seven files, all documentation, one
+`lint.php` check and one new standalone suite. `npm run build` emits the byte-
+identical bundle the audit-7 work was verified against (`index-Bxjntl6G.js`,
+`index-DyC-SD2K.css`), so the sweep below is a result about the artifact that
+actually ships.
+
+```
+lint.php                green, including the new inquiry-type drift check
+invariants              17/17        invariants-selftest   15/15
+npm run build           clean, same bundle hashes as the audit-7 verification
+full sweep (79 suites)  79/79 clean*
+13-route smoke          13/13
+isoclaims                 2/4  ← EXPECTED RED (A-8.5, six withdrawn ISO claims)
+```
+
+`*` everything green except the two documented expected-reds, unmoved:
+`plan8-polish` 16/17 (the Linux DejaVu width artifact, GUARDRAILS §7.1) and
+`brandtext` 36/47 — **11 failing against a ceiling of 13**, judged by the
+failing count as that section instructs. `plan8-contrast` is 34/35, its
+documented passing state. `audit7` 30/30, `audit7-lead` 23/23, `audit6` 45/45
+and all three audit-5 suites held.
+
+**`plan5-throttle` was 12/12 in this sweep**, in the same batch position where it
+reported 11/12 once during audit 7. That is now seven consecutive green runs on
+this code with a single unreproduced red behind them; §1v records what is and is
+not known about it, and nothing here changes that assessment.
+
+The 13-route smoke covers every public route plus three product pages: no
+ErrorBoundary, an `<h1>` on every page, the phone number present, zero
+horizontal overflow, zero console or page errors.
+
+`data/` was confirmed byte-identical to `_harness/pristine/` before and after.
