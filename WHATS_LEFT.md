@@ -5554,3 +5554,202 @@ labelled as one rather than written down as a cause.
 The session-file store was checked as a possible mechanism (A-7.3's subject) and
 **ruled out**: 324 files, not the thousands that would make a probabilistic
 `session_start()` GC sweep cost real time.
+
+
+---
+
+## 2n. Open after audit 8 — the go-live audit (2026-08-27)
+
+Full report with evidence: [`audit-runs/audit8.md`](audit-runs/audit8.md).
+Base `1826a6d` — the audit-7 branch head. Run for the 2026-08-29/30 launch.
+
+Nothing here is a regression: the full 79-suite sweep was run **first** and came
+back green apart from the two documented expected-reds (`plan8-polish` 16/17,
+the Linux DejaVu artifact; `brandtext` 36/47, i.e. 11 failing against a ceiling
+of 13), with `plan8-contrast` at its documented passing 34/35, `lint.php` green
+and `invariants.js` 17/17.
+
+**Five of the eight shipped 2026-08-27 — see §1w. Three are owner decisions that
+code must not make**: a certification claim and two sentences of published
+privacy policy.
+
+**Two new lenses produced all eight**, and both are worth reusing rather than
+re-running the code-correctness pass an eighth time: *what actually happens on
+Saturday* (the deploy read as an ordered procedure, not as reference — four
+findings), and *is what the site says true* (certification, retention and
+privacy claims checked against what the code stores — three findings, and the
+ones with commercial rather than technical weight).
+
+### High
+
+- [ ] **A-8.5 — the site advertises two DIFFERENT withdrawn revisions of its ISO
+  certification, in six places, on two admin screens.** A2's comment settled the
+  hardcoded defaults correctly and deferred the live strings to the owner, but
+  two things in it were incomplete. It is **not three places, it is six**, and
+  not one withdrawn revision but two: `data/content.json` carries three
+  `ISO 9001:2008` (withdrawn September 2018) and `data/products-all.json`
+  carries three `ISO9001:2000` (superseded November 2008) on the `VALUE-ADDED`
+  product. And **three of the six are not in Page Content** — they are a
+  spec-table row, a specifications summary and a description paragraph, edited
+  under *Products → Edit → VALUE-ADDED*. Every prior owner-action line says
+  "the four contradictory ISO 9001 claims" and every prior description says
+  "three places" and "Page Content"; **no audit before this one named the
+  `:2000` strings at all**, so an owner following the list to the letter fixes
+  Page Content and ships a product page claiming a revision withdrawn in 2008.
+  High because buyers in aerospace, medical, automotive and defence check
+  certification claims during supplier qualification. **STILL OPEN — needs the
+  registrar, not a guess.** `node _harness/isoclaims.js` prints the six strings
+  and the screen each is edited on.
+- [x] **A-8.1 — `README.md` documented the opposite of what ships, on a
+  support-facing claim, for two releases.** `:213-218` said `SiteInfoProvider`
+  and `ContentProvider` "fetch once with `[]` deps and do not" re-check. Both
+  call `useRefetchOnReturn()` (`src/App.jsx:6628`, `:7164`) — **A-5.14 added
+  that on 2026-08-18**. The paragraph has now been wrong in *both* directions:
+  it first claimed all three expired after 60 s when none did, was corrected,
+  and A-5.14 made the correction false without it being re-corrected. It
+  matters because the admin promises "within ~60 seconds" on three screens and
+  this is the file a developer opens when the owner reports it did not.
+
+### Medium
+
+- [x] **A-8.2 — "Subsequent deploys" reopened the exact trap A-6.2 closed.**
+  The manifest gained the three-`.htaccess` exception in audit 6 (a High); forty
+  lines below, the section titled for deploy day still said "do not re-upload
+  `data/`, `pdfs/`, `uploads/`" with no exception. A reader who lands there
+  drops the `AddType application/json` line `jsonOrThrow()` requires and the
+  `X-Robots-Tag` half of A-5.2.
+- [x] **A-8.3 — the upload order that removes the blank-page window was known to
+  the code and absent from the instructions.** `public/.htaccess`'s own comment
+  describes the window ("a blank page and a console error, silently, for the
+  length of the upload window") and the rule only makes it *honest*. Uploading
+  `assets/` before `index.html` removes it: content-hashed bundles land beside
+  the old ones with nothing pointing at them, so the switch is a single
+  `index.html` overwrite onto a bundle already on disk. No document gave an
+  order.
+- [x] **A-8.4 — no rollback for a bad frontend deploy was documented anywhere.**
+  `data/` has one (Admin → Backups, 90 per file). The frontend's is simpler and
+  was unwritten: re-upload the **previous `index.html`** — content hashing means
+  the old bundle is still on the server. Without it, recovery on a bad Saturday
+  means rebuilding from a checkout at the moment you least want to need a
+  toolchain.
+- [x] **A-8.6 — round 7 walked into a trap that nothing prevented recurring.**
+  A-7.1's new inquiry types had to be registered in `admin/inquiries.php`'s
+  `$REJECTED` map or they would count as real inquiries with `sent = false` and
+  inflate `$failed`, the number Rick watches for mail health — i.e. NB10, the
+  defect that map exists to fix. Caught by hand and fixed; nothing stopped the
+  next person. `lint.php` already had the precedent — `audit-action drift` does
+  this job for the `audit_log()` vocabulary, and exists because that vocabulary
+  drifted the same way.
+
+### Low
+
+- [ ] **A-8.7 — the privacy policy does not disclose that every submission
+  stores the visitor's IP address.** *Information We Collect* enumerates what
+  the visitor provides; every stored record also carries `ip` from
+  `REMOTE_ADDR`, for rejected submissions as well as accepted ones. Read out of
+  a real record: `keys stored: ts, type, name, company, email, phone, part,
+  material, quantity, reqDate, special, notes, ip, sent`. The other undisclosed
+  keys are RFQ fields the visitor does provide; the IP is the one that is not,
+  and it is personal data under both GDPR (*Breyer*, C-582/14) and CCPA — both
+  of which the policy explicitly invokes. **STILL OPEN** — the text is in
+  `data/content.json`, live customer state, and it is legal wording. One
+  sentence in Admin → Page Content → Privacy.
+- [ ] **A-8.8 — the stated three-year retention ceiling is not implemented.**
+  The policy promises "not to exceed three (3) years". Nothing expires:
+  `contact.php`'s own comment says *"Rotated files are never deleted"*, and
+  there is no `unlink` of any inquiry file anywhere in `admin/` — zero
+  occurrences. **STILL OPEN**: either the sentence changes or a deletion policy
+  gets built. The cheap version is an annual prune of rotated
+  `inquiries-*.jsonl`.
+- [ ] **A-8.9 — two small copy/data inconsistencies.** The JSON-LD emits
+  `foundingDate: "1974-01-01"` while the About copy says "incorporated on **July
+  1**, 1974" — `site-info.json` carries only a year, so Jan 1 is a defensible
+  convention and fixing it properly means a new owner-editable field. And
+  "Celebrating 50 years" is **52** as of 2026; the footer copyright is derived,
+  this number is typed by hand and will keep aging. Both owner-editable, both
+  decisions rather than defects.
+
+### Re-verified clean, recorded so it is not re-derived
+
+- **Placeholder sweep** over live data and shipped source: no `lorem`, `TODO`,
+  `FIXME`, `example.com`, `yourdomain` or `localhost`. Every "placeholder" hit
+  is a legitimate form-field hint.
+- **Origin consistency.** `SITE_ORIGIN`, `sitemap.php`'s `$ORIGIN`,
+  `robots.txt`'s `Sitemap:`, `index.html`'s `og:url` and the JSON-LD
+  manufacturer URL all say `https://www.insulationproducts.com`. The code has
+  made the apex-vs-`www` decision consistently; what is left is a **server**
+  action (the 301 and a certificate covering both), now in the runbook.
+- **The A-7.4 marker is not web-readable** — `.inquiry-log-failed.json` matches
+  `admin/.htaccess`'s existing `.*\.json` deny rule.
+- **Cookies.** The policy's cookie section is accurate and conservative: the
+  public site sets none at all — `sitemap.php` starts no session by design,
+  `contact.php` starts none, only `/admin/` sets `IPCADMIN`.
+
+### Carried forward, not re-reported
+
+**A-7.7** (no print stylesheet), **A-5.10** (no prerender), `brandtext`'s 11
+failing combinations, `uploads/.htaccess`'s allow-list, and the §2j owner
+actions. `GO-LIVE.md` now carries the full launch sequence and
+`audit-runs/audit8.md` §5 the short list of what needs a person other than the
+developer.
+
+
+---
+
+## 1w. Shipped 2026-08-27 — five of the eight audit-8 findings
+
+| ID | File | What changed |
+|---|---|---|
+| **A-8.1** | `README.md` | The refetch paragraph now describes what ships, and carries its own two-corrections history so the next reader can see it has been wrong in both directions. |
+| **A-8.2** | `README.md` | *Subsequent deploys* carries the three-`.htaccess` exception, not just the manifest table forty lines above. |
+| **A-8.3** | `README.md`, `GO-LIVE.md` | `assets/` before `index.html`, with the reason stated. |
+| **A-8.4** | `README.md`, `GO-LIVE.md` | Re-upload the previous `index.html` — that one file is the whole frontend rollback. |
+| **A-8.6** | `_harness/lint.php` | New `inquiry-type drift` check. |
+| **A-8.5** | `_harness/isoclaims.js` (new) | Not a fix — the finding in executable form. Red on purpose until the owner resolves it. |
+| — | `GO-LIVE.md` (new) | One ordered runbook for the launch. |
+
+### The new drift check was proved to fail before it was trusted
+
+`inquiry-type drift` is built to the same shape as `audit-action drift` and
+asserts the two directions **separately**, because they are not symmetric: a
+type written but absent from `$REJECTED` is NB10 and a failure; a `$REJECTED`
+key nothing writes is a dead row; and a **real** lead type (`rfq`, `message`)
+appearing in the map would hide those leads behind the rejected filter, so it is
+asserted absent rather than ignored.
+
+```
+MUTATION 1 — remove rfq-incomplete from $REJECTED (the exact A-7.1 trap)
+  FAIL  logged by contact.php but missing from $REJECTED: ["rfq-incomplete"]
+
+MUTATION 2 — list a real lead type as a rejection
+  FAIL  in $REJECTED but never written: ["rfq"]
+        a REAL lead type is listed as a rejection: ["rfq"]
+
+CONTROL — restored tree green, both files byte-identical
+```
+
+### `isoclaims` is an expected red, and that is the point
+
+It reports **2/4** today. Not a regression and not a broken check — it is A-8.5
+in executable form, with a real pass state: green the moment the six strings are
+resolved. Treated exactly as `brandtext` is, a documented expected-red with its
+reason recorded. It also asserts `site-info.json` still holds the bare,
+unversioned `ISO 9001`: that field reaches every page, so a revision typed into
+Business Details would propagate everywhere at once.
+
+**It does not rewrite a claim, deliberately.** Writing `:2015` because it is the
+current standard would invent a certification for a supplier to aerospace,
+medical and automotive — which is A2's reasoning, and it is right.
+
+### Why `GO-LIVE.md` is a new file rather than another README section
+
+The deploy knowledge was spread across `README.md`'s manifest,
+`DEPLOY_READINESS_v2.md` §7 (frozen, stale by a row), `audit-runs/audit7.md` §5
+and §2j here. Every piece was correct; none was *the order*, and on deploy day
+nobody reads four documents and reassembles a sequence.
+
+It opens with a branch nobody had written down: **first deploy or re-deploy?**
+Getting it wrong is destructive both ways — re-uploading `data/` onto a live
+site destroys the owner's edits with no backup, and skipping it on a first
+deploy means no catalog. Step 0 settles it with one URL. `README.md` stays
+authoritative on *what* to upload; the runbook is the sequence, and says so.

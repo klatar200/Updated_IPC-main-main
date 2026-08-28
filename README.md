@@ -200,9 +200,42 @@ reset anything — it locks the admin completely.
 npm run build
 ```
 
-Then FTP the **contents** of `/dist` into `public_html/`, overwriting
-`index.html` and `assets/`. Do not re-upload `data/`, `pdfs/`, `uploads/`, or
-`admin/` unless you intend to change the admin code itself.
+Then FTP the **contents** of `/dist` into `public_html/`.
+
+**Upload `assets/` BEFORE `index.html`.** The two are not interchangeable in
+order, and the cost of getting it wrong is a blank site for the length of the
+upload. Vite content-hashes the bundle, so the new `assets/index-<hash>.js`
+lands *beside* the old one and nothing references it yet — the site keeps
+serving the old pair the whole time. Overwriting `index.html` is then the
+single moment the site switches, and it switches to a bundle that is already
+there. Do it the other way round and every visitor between the two uploads gets
+an `index.html` pointing at a file that does not exist yet.
+`public/.htaccess` makes that 404 honestly rather than serving the SPA shell as
+JavaScript, which is the difference between a blank page and a blank page with
+a console error — it does not stop the window happening. (audit-runs/audit8.md
+A-8.3.)
+
+**To roll a bad frontend deploy back**, re-upload the previous `index.html`.
+Content-hashed filenames mean the previous `assets/index-<hash>.js` and `.css`
+are still on the server unless someone deleted them, so the old shell finds its
+old bundle and the site is back. Keep the `dist/` you deployed last time, or
+download `index.html` before overwriting it — that one file is the whole
+rollback. (This is only the frontend: `data/` rolls back through Admin →
+Backups, which is a different mechanism. audit-runs/audit8.md A-8.4.)
+
+Do not re-upload the **contents** of `data/`, `pdfs/` or `uploads/` — they are
+live customer state — and do not re-upload `admin/` unless you intend to change
+the admin code itself.
+
+⚠ **The one exception, and it is easy to miss:** `data/.htaccess`,
+`pdfs/.htaccess` and `uploads/.htaccess` are repo code living inside folders
+that are otherwise customer state. They are the only files in this tree Vite
+never copies into `dist/`, so nothing downstream carries them. **Upload the
+file, never the folder**, whenever it has changed — see the manifest above.
+`data/.htaccess` alone carries the `AddType application/json` that
+`jsonOrThrow()` requires and the `X-Robots-Tag` half of the A-5.2 fix.
+(audit-runs/audit6.md A-6.2; this paragraph existed only in the manifest table
+until audit-runs/audit8.md A-8.2.)
 
 ## Architecture notes
 
@@ -210,12 +243,21 @@ Then FTP the **contents** of `/dist` into `public_html/`, overwriting
   `/data/site-info.json` and `/data/content.json` at runtime with a per-minute
   cache-buster; `data/.htaccess` caches for ~60 s. Admin edits appear publicly
   within about a minute of a page load.
-  For a tab that is *already open*, only the **product catalog** refreshes
-  itself: `useProducts()` re-checks its 60 s TTL whenever the tab is brought
-  back to the front. `SiteInfoProvider` and `ContentProvider` fetch once with
-  `[]` deps and do not — business details and page content need a reload.
-  (The previous wording claimed all three expired after 60 s; measured, none of
-  them did — AUDIT_v3 §3.1 / D11.)
+  For a tab that is *already open*, **all three** re-check when the tab is
+  brought back to the front or the window regains focus, past a 60 s TTL:
+  `useProducts()` through its own recheck, and `SiteInfoProvider` /
+  `ContentProvider` through `useRefetchOnReturn()`. No polling, and no work
+  while the tab is hidden.
+  (This paragraph twice described the opposite of what shipped. It first
+  claimed all three expired after 60 s when none of them did — AUDIT_v3 §3.1 /
+  D11 — and was corrected to "only the catalog refreshes; business details and
+  page content need a reload". **A-5.14 then made that false too**, on
+  2026-08-18, by giving both providers the same recheck; the correction was
+  never re-corrected, so the file asserted the pre-A-5.14 behaviour as measured
+  fact for the whole of two releases. It matters because the admin promises the
+  owner "within ~60 seconds" on three screens, and a developer reading this
+  would have chased a bug that was already fixed — or "fixed" it a second time.
+  audit-runs/audit8.md A-8.1.)
 - **`public/contact.php` is a second dynamic piece.** It ships into `dist/`,
   calls `mail()`, and appends to `admin/inquiries.jsonl`. The PHP admin is not
   the only server-side code.
