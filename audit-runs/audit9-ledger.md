@@ -4,32 +4,32 @@
 
 | ID | Type | Path / Locator | Area | Pass | Status | Audited at | Notes |
 |---|---|---|---|---|---|---|---|
-| E001 | page | `/` — `HomePage` (App.jsx:3125) | public | P6 | pending |  |  |
-| E002 | page | `/products` — `ProductPage` (App.jsx:9395) | public | P6 | pending |  |  |
-| E003 | page | `/dashboard` — `DashboardPage` (App.jsx:10023) | public | P6 | pending |  | A-05 unlabelled category select (2026-08-13, closed since — re-verify, do not re-report) |
-| E004 | page | `/datasheets` — `DatasheetsPage` (App.jsx:2935) | public | P6 | pending |  |  |
-| E005 | page | `/industries` — `IndustriesPage` (App.jsx:11208) | public | P6 | pending |  | A-03 anchor scroll fails on cold load (2026-08-13, closed since — re-verify, do not re-report) |
-| E006 | page | `/services` — `ServicesPage` (App.jsx:11748) | public | P6 | pending |  |  |
-| E007 | page | `/about` — `AboutPage` (App.jsx:3622) | public | P6 | pending |  |  |
-| E008 | page | `/faq` — `FaqPage` (App.jsx:4237) | public | P6 | pending |  |  |
-| E009 | page | `/contact` — `ContactPage` (App.jsx:4656) | public | P6 | pending |  |  |
-| E010 | page | `/privacy` — `PrivacyPage` (App.jsx:12136) | public | P6 | pending |  |  |
-| E011 | page | unknown route → `NotFoundPage` (App.jsx:7239) | public | P6 | pending |  |  |
-| E012 | element | `App` route switch + catalog gate (App.jsx:12973) | public | P7 | pending |  |  |
-| E013 | element | routing shim `useSearchParam`/`setSearchParam(s)` (App.jsx:28-197 (`hasExtraSegments` 28, `useSearchParam` 41, `setSearchParam` 114)) | public | P7 | pending |  |  |
-| E014 | element | `PageLink` navigation primitive (App.jsx:212) | public | P6 | pending |  |  |
-| E015 | element | `Navbar` + mega-menus (App.jsx:406) | public | P6 | pending |  |  |
-| E016 | element | `Navbar` mobile drawer dialog (App.jsx:1321) | public | P9 | pending |  |  |
-| E017 | element | `Footer` + `FooterSocial` (App.jsx:12410 / 12383) | public | P6 | pending |  | A-01 unvalidated social hrefs (2026-08-13, closed since — re-verify, do not re-report) |
-| E018 | element | `SiteInfoProvider` + `mergeSiteInfo` (App.jsx:6625) | public | P7 | pending |  |  |
-| E019 | element | `ContentProvider` + `mergeContent` (App.jsx:7161) | public | P7 | pending |  |  |
-| E020 | element | `useProducts` fetch/cache/TTL/abort | public | P7 | pending |  |  |
-| E021 | element | `PageMeta` title/desc/canonical/og/noindex (App.jsx:7305) | public | P6 | pending |  |  |
+| E001 | page | `/` — `HomePage` (App.jsx:3125) | public | P6 | done | 2026-09-14 |  |
+| E002 | page | `/products` — `ProductPage` (App.jsx:9395) | public | P6 | done | 2026-09-14 |  |
+| E003 | page | `/dashboard` — `DashboardPage` (App.jsx:10023) | public | P6 | done | 2026-09-14 | A-05 unlabelled category select (2026-08-13, closed since — re-verify, do not re-report) |
+| E004 | page | `/datasheets` — `DatasheetsPage` (App.jsx:2935) | public | P6 | done | 2026-09-14 |  |
+| E005 | page | `/industries` — `IndustriesPage` (App.jsx:11208) | public | P6 | done | 2026-09-14 | A-03 anchor scroll fails on cold load (2026-08-13, closed since — re-verify, do not re-report) |
+| E006 | page | `/services` — `ServicesPage` (App.jsx:11748) | public | P6 | done | 2026-09-14 |  |
+| E007 | page | `/about` — `AboutPage` (App.jsx:3622) | public | P6 | done | 2026-09-14 |  |
+| E008 | page | `/faq` — `FaqPage` (App.jsx:4237) | public | P6 | done | 2026-09-14 |  |
+| E009 | page | `/contact` — `ContactPage` (App.jsx:4656) | public | P6 | done | 2026-09-14 |  |
+| E010 | page | `/privacy` — `PrivacyPage` (App.jsx:12136) | public | P6 | done | 2026-09-14 |  |
+| E011 | page | unknown route → `NotFoundPage` (App.jsx:7239) | public | P6 | done | 2026-09-14 |  |
+| E012 | element | `App` route switch + catalog gate (App.jsx:12973) | public | P7 | done | 2026-09-14 |  |
+| E013 | element | routing shim `useSearchParam`/`setSearchParam(s)` (App.jsx:28-197 (`hasExtraSegments` 28, `useSearchParam` 41, `setSearchParam` 114)) | public | P7 | done | 2026-09-14 |  |
+| E014 | element | `PageLink` navigation primitive (App.jsx:212) | public | P6 | done | 2026-09-14 |  |
+| E015 | element | `Navbar` + mega-menus (App.jsx:406) | public | P6 | done | 2026-09-14 |  |
+| E016 | element | `Navbar` mobile drawer dialog (App.jsx:1321) | public | P9 | done | 2026-09-14 |  |
+| E017 | element | `Footer` + `FooterSocial` (App.jsx:12410 / 12383) | public | P6 | done | 2026-09-14 | A-01 unvalidated social hrefs (2026-08-13, closed since — re-verify, do not re-report) |
+| E018 | element | `SiteInfoProvider` + `mergeSiteInfo` (App.jsx:6625) | public | P7 | done | 2026-09-14 |  |
+| E019 | element | `ContentProvider` + `mergeContent` (App.jsx:7161) | public | P7 | done | 2026-09-14 |  |
+| E020 | element | `useProducts` fetch/cache/TTL/abort | public | P7 | done | 2026-09-14 |  |
+| E021 | element | `PageMeta` title/desc/canonical/og/noindex (App.jsx:7305) | public | P6 | done | 2026-09-14 |  |
 | E022 | element | `StructuredData` Organization JSON-LD (App.jsx:7170) | public | P4 | done | 2026-09-14 |  |
-| E023 | element | `ThemeInjector` brand vars + ink derivation (App.jsx:7654) | public | P9 | pending |  |  |
-| E024 | element | `GlobalStyles` (App.jsx:6057) + `src/index.css` | public | P9 | pending |  |  |
-| E025 | element | `ErrorBoundary` keyed on page | public | P7 | pending |  |  |
-| E026 | element | `CatalogSkeleton` / `CatalogError` (App.jsx:12723/12931) | public | P7 | pending |  |  |
+| E023 | element | `ThemeInjector` brand vars + ink derivation (App.jsx:7654) | public | P9 | done | 2026-09-14 |  |
+| E024 | element | `GlobalStyles` (App.jsx:6057) + `src/index.css` | public | P9 | done | 2026-09-14 |  |
+| E025 | element | `ErrorBoundary` keyed on page | public | P7 | done | 2026-09-14 |  |
+| E026 | element | `CatalogSkeleton` / `CatalogError` (App.jsx:12723/12931) | public | P7 | done | 2026-09-14 |  |
 | E027 | element | `Breadcrumb` + BreadcrumbList JSON-LD (App.jsx:5933) | public | P4 | done | 2026-09-14 |  |
 | E028 | element | `Hero` (App.jsx:1761) | public | P5a | done | 2026-09-14 |  |
 | E029 | element | `Features` / `FeatureCard` (App.jsx:2339 / 2045) | public | P5a | done | 2026-09-14 |  |
@@ -37,62 +37,62 @@
 | E031 | element | `SectionHeader` (App.jsx:2131) | public | P5a | done | 2026-09-14 |  |
 | E032 | element | `CatalogLanding` search + filters (App.jsx:9176) | public | P7 | pending |  |  |
 | E033 | element | `ApprovalFilter` / `ApprovalMarks` (App.jsx:2851 / 2824) | public | P7 | pending |  |  |
-| E034 | element | `ProductSidebar` (App.jsx:7819) | public | P6 | pending |  |  |
-| E035 | element | `ProductDetail` (App.jsx:8588) | public | P6 | pending |  |  |
+| E034 | element | `ProductSidebar` (App.jsx:7819) | public | P6 | done | 2026-09-14 |  |
+| E035 | element | `ProductDetail` (App.jsx:8588) | public | P6 | done | 2026-09-14 |  |
 | E036 | element | `SpecTable1` / `SpecTable2` (App.jsx:undefined / undefined) | public | P4 | done | 2026-09-14 |  |
-| E037 | element | Dashboard sortable headers + `aria-sort` (App.jsx:10023+) | public | P9 | pending |  |  |
+| E037 | element | Dashboard sortable headers + `aria-sort` (App.jsx:10023+) | public | P9 | done | 2026-09-14 |  |
 | E038 | element | `DashboardPage` search + family select (App.jsx:10023+; re-measure in pass) | public | P7 | pending |  |  |
-| E039 | element | `FaqItem` accordion + `#faq-ld` (App.jsx:3974) | public | P9 | pending |  |  |
-| E040 | flow | Contact RFQ form (App.jsx:5258, honeypot 5293) | public | P7 | pending |  | A-04 quantity not enforced server-side (2026-08-13, closed since — re-verify, do not re-report) |
-| E041 | flow | Contact Message form (App.jsx:5557, honeypot 5591) | public | P7 | pending |  | A-04 subject not enforced server-side (2026-08-13, closed since — re-verify, do not re-report) |
-| E042 | element | Contact inline error region + success panels | public | P6 | pending |  |  |
+| E039 | element | `FaqItem` accordion + `#faq-ld` (App.jsx:3974) | public | P9 | done | 2026-09-14 |  |
+| E040 | flow | Contact RFQ form (App.jsx:5258, honeypot 5293) | public | P7 | done | 2026-09-14 | A-04 quantity not enforced server-side (2026-08-13, closed since — re-verify, do not re-report) |
+| E041 | flow | Contact Message form (App.jsx:5557, honeypot 5591) | public | P7 | done | 2026-09-14 | A-04 subject not enforced server-side (2026-08-13, closed since — re-verify, do not re-report) |
+| E042 | element | Contact inline error region + success panels | public | P6 | done | 2026-09-14 |  |
 | E043 | flow | Product → "Request Quote" → `/contact?part=SKU` prefill | public | P7 | pending |  |  |
-| E044 | element | `scrollToAnchor` + `#industry-*` hash targets (App.jsx:199) | public | P6 | pending |  |  |
+| E044 | element | `scrollToAnchor` + `#industry-*` hash targets (App.jsx:199) | public | P6 | done | 2026-09-14 |  |
 | E045 | element | `TeamCard` + cert icons (App.jsx:3403) | public | P5a | done | 2026-09-14 |  |
 | E046 | element | `Badge` (App.jsx:11537), `RelatedArrow` (8550), `PageEyebrow` (309) | public | P5a | done | 2026-09-14 |  |
 | E047 | api | `POST /contact.php` (public/contact.php) | api | P3 | done | 2026-09-14 | A-04 required-field parity gap (2026-08-13, closed since — re-verify, do not re-report) |
-| E048 | api | `GET /sitemap.xml` → `public/sitemap.php` | api | P6 | pending |  |  |
+| E048 | api | `GET /sitemap.xml` → `public/sitemap.php` | api | P6 | done | 2026-09-14 |  |
 | E049 | config | `public/.htaccess` rewrite + cache + dotfile rules | public | P3 | done | 2026-09-14 | A-02 no HTTPS redirect / no security headers (2026-08-13, closed since — re-verify, do not re-report) |
-| E050 | config | `public/.user.ini` | public | P2 | pending |  |  |
+| E050 | config | `public/.user.ini` | public | P2 | done | 2026-09-14 |  |
 | E051 | config | `public/robots.txt`, `manifest.json`, `favicon.svg`, `logo.svg` | public | P4 | done | 2026-09-14 | A-13 manifest icon missing (2026-08-13, closed since — re-verify, do not re-report) |
 | E052 | config | `index.html` shell | public | P4 | done | 2026-09-14 |  |
 | E053 | config | `vite.config.js` incl. `serveDataDir` dev middleware | build | P1 | done | 2026-09-14 |  |
 | E054 | config | `package.json` / `tailwind.config.js` / `postcss.config.js` | build | P1 | done | 2026-09-14 |  |
 | E055 | page | `/admin/index.php` dashboard | admin | P3 | done | 2026-09-14 | A-10 delete dialog text wrong (2026-08-13, closed since — re-verify, do not re-report) |
-| E056 | flow | `index.php` POST — close password-reset window | admin | P7 | pending |  |  |
+| E056 | flow | `index.php` POST — close password-reset window | admin | P7 | done | 2026-09-14 |  |
 | E057 | page | `/admin/auth.php` — login | admin | P3 | done | 2026-09-14 | A-09 no auth audit-logging (2026-08-13, closed since — re-verify, do not re-report) |
 | E058 | flow | `auth.php` — logout | admin | P3 | done | 2026-09-14 | A-09 no auth audit-logging (2026-08-13, closed since — re-verify, do not re-report) |
-| E059 | flow | `auth.php` — `ALLOW-PASSWORD-RESET` recovery | admin | P7 | pending |  |  |
+| E059 | flow | `auth.php` — `ALLOW-PASSWORD-RESET` recovery | admin | P7 | done | 2026-09-14 |  |
 | E060 | page | `/admin/add.php` | admin | P3 | done | 2026-09-14 | A-06 SKU validation; A-07 unlabelled controls (2026-08-13, closed since — re-verify, do not re-report) |
-| E061 | page | `/admin/edit.php?sku=` | admin | P7 | pending |  | A-06 SKU validation; A-11 double-escape (2026-08-13, closed since — re-verify, do not re-report) |
+| E061 | page | `/admin/edit.php?sku=` | admin | P7 | done | 2026-09-14 | A-06 SKU validation; A-11 double-escape (2026-08-13, closed since — re-verify, do not re-report) |
 | E062 | page | `/admin/delete.php?sku=` | admin | P3 | done | 2026-09-14 | A-08 no viewport meta (2026-08-13, closed since — re-verify, do not re-report) |
 | E063 | page | `/admin/upload-pdf.php?sku=` (+ `action=remove`) | admin | P3 | done | 2026-09-14 |  |
 | E064 | page | `/admin/upload-image.php?sku=` (+ `action=remove`) | admin | P3 | done | 2026-09-14 |  |
-| E065 | page | `/admin/settings.php` | admin | P7 | pending |  | A-01 social URL validation gap (2026-08-13, closed since — re-verify, do not re-report) |
-| E066 | page | `/admin/content.php` | admin | P7 | pending |  | A-16 no-op save rewrites file (2026-08-13, closed since — re-verify, do not re-report) |
-| E067 | page | `/admin/backups.php` | admin | P7 | pending |  |  |
+| E065 | page | `/admin/settings.php` | admin | P7 | done | 2026-09-14 | A-01 social URL validation gap (2026-08-13, closed since — re-verify, do not re-report) |
+| E066 | page | `/admin/content.php` | admin | P7 | done | 2026-09-14 | A-16 no-op save rewrites file (2026-08-13, closed since — re-verify, do not re-report) |
+| E067 | page | `/admin/backups.php` | admin | P7 | done | 2026-09-14 |  |
 | E068 | page | `/admin/audit-log.php` (`?sku=`, `?action=`) | admin | P5b | done | 2026-09-14 | A-12 unlabelled filters; A-15 vocabulary drift (2026-08-13, closed since — re-verify, do not re-report) |
 | E069 | page | `/admin/inquiries.php` | admin | P3 | done | 2026-09-14 |  |
-| E070 | page | `/admin/password.php` | admin | P7 | pending |  |  |
+| E070 | page | `/admin/password.php` | admin | P7 | done | 2026-09-14 |  |
 | E071 | page | `/admin/help.php` | admin | P5b | done | 2026-09-14 |  |
-| E072 | element | `/admin/nav.php` partial | admin | P6 | pending |  |  |
+| E072 | element | `/admin/nav.php` partial | admin | P6 | done | 2026-09-14 |  |
 | E073 | api | `/admin/ping.php` keepalive | admin | P3 | done | 2026-09-14 |  |
 | E074 | element | `admin/config.php` — session + cookie hardening | admin | P3 | done | 2026-09-14 |  |
 | E075 | element | `admin/config.php` — CSRF token/check | admin | P3 | done | 2026-09-14 |  |
 | E076 | element | `admin/config.php` — `require_auth()` / `is_authenticated()` | admin | P3 | done | 2026-09-14 |  |
-| E077 | element | `admin/config.php` — load/save for the 3 JSON files | admin | P7 | pending |  |  |
-| E078 | element | `admin/config.php` — `backup_path` / `backup_list` / `backup_before_write` | admin | P7 | pending |  |  |
-| E079 | element | `admin/config.php` — `audit_log()` | admin | P7 | pending |  | A-09 no auth events (2026-08-13, closed since — re-verify, do not re-report) |
+| E077 | element | `admin/config.php` — load/save for the 3 JSON files | admin | P7 | done | 2026-09-14 |  |
+| E078 | element | `admin/config.php` — `backup_path` / `backup_list` / `backup_before_write` | admin | P7 | done | 2026-09-14 |  |
+| E079 | element | `admin/config.php` — `audit_log()` | admin | P7 | done | 2026-09-14 | A-09 no auth events (2026-08-13, closed since — re-verify, do not re-report) |
 | E080 | element | `admin/config.php` — login throttle | admin | P3 | done | 2026-09-14 |  |
-| E081 | element | `admin/config.php` — `admin_password_write()` + reset-window helpers | admin | P7 | pending |  |  |
+| E081 | element | `admin/config.php` — `admin_password_write()` + reset-window helpers | admin | P7 | done | 2026-09-14 |  |
 | E082 | element | `admin/config.php` — upload validation helpers + `upload_error_message()` | admin | P3 | done | 2026-09-14 |  |
 | E083 | element | `admin/config.php` — `product_reference_resolves()` 3-tier SKU lookup | admin | P7 | pending |  |  |
-| E084 | element | `admin/confirm.js` | admin | P6 | pending |  |  |
+| E084 | element | `admin/confirm.js` | admin | P6 | done | 2026-09-14 |  |
 | E085 | element | `admin/content-editor.js` | admin | P7 | pending |  |  |
 | E086 | element | `admin/spectable-editor.js` | admin | P7 | pending |  |  |
 | E087 | element | `admin/product-preview.js` | admin | P5b | done | 2026-09-14 |  |
 | E088 | element | `admin/settings-preview.js` | admin | P5b | done | 2026-09-14 |  |
-| E089 | element | `admin/contrast-guard.js` | admin | P9 | pending |  |  |
+| E089 | element | `admin/contrast-guard.js` | admin | P9 | done | 2026-09-14 |  |
 | E090 | element | `admin/unsaved.js` | admin | P7 | pending |  |  |
 | E091 | element | `admin/search.js` | admin | P7 | pending |  |  |
 | E092 | element | `admin/help.js` | admin | P5b | done | 2026-09-14 |  |
@@ -101,7 +101,7 @@
 | E095 | data | `data/products-all.json` integrity | data | P4 | done | 2026-09-14 | A-17 placehold.co photoUrls (2026-08-13, closed since — re-verify, do not re-report) |
 | E096 | data | `data/site-info.json` integrity | data | P4 | done | 2026-09-14 |  |
 | E097 | data | `data/content.json` integrity | data | P4 | done | 2026-09-14 |  |
-| E098 | element | `src/components/`, `src/pages/`, `src/lib/` (unimported tree) | build | C | pending |  | directories deleted 2026-08-12 (GUARDRAILS §2) — row kept for history; C closes with `ls src/` |
+| E098 | element | `src/components/`, `src/pages/`, `src/lib/` (unimported tree) | build | C | done | 2026-09-14 | closed by C 2026-09-14: `ls src/` = App.jsx, index.css, main.jsx only; the three directories are gone (deleted 2026-08-12) |
 | E099 | element | `src/main.jsx` + router mount | public | P1 | done | 2026-09-14 |  |
 | E100 | element | `pdfs/` + `uploads/` asset referential integrity | data | P4 | done | 2026-09-14 |  |
 | E101 | element | `public/images/` referential integrity vs. catalog `photoUrl` | data | P4 | done | 2026-09-14 | A-17 placehold.co photoUrls (2026-08-13, closed since — re-verify, do not re-report) |
@@ -112,7 +112,7 @@
 | E106 | element | `_harness/sync.sh` staleness after a `public/` edit | harness | P11 | done | 2026-09-14 | B-03 — needs `npm run build` first, silently |
 | E107 | config | `.claude/launch.json` | build | P11 | done | 2026-09-14 | `.claude/launch.json` — verify exists |
 | E108 | config | `package-lock.json` | build | P1 | done | 2026-09-14 | lockfileVersion 3, 183 packages, ranges match `package.json` — clean |
-| E109 | data | `plans/audit10/**` (20 JSON files) | docs | C | pending |  | `plans/audit10/` deleted 2026-08-12 — row kept for history; C closes with `ls plans/` |
+| E109 | data | `plans/audit10/**` (20 JSON files) | docs | C | done | 2026-09-14 | closed by C 2026-09-14: `ls plans/` = GUARDRAILS, PLAN-10, PLAN-11, README; `plans/audit10/` is gone (deleted 2026-08-12) |
 | E110 | doc | `Email to Rick - Admin Dashboard Handoff.md` | docs | P5c | done | 2026-09-14 | every claim checked against the shipped admin; holds. Deliberately carries no password — correct |
 | E111 | element | `uploads/images/.gitkeep` | uploads | P1 | done | 2026-09-14 | placeholder for the runtime upload folder — clean |
 | E112 | element | `_harness` assertion suites never recorded as run | harness | P11 | done | 2026-09-14 | 5 found; 4 pass first time, 1 is D-02 |
@@ -122,15 +122,15 @@
 | ID | Type | Path / Locator | Area | Pass | Status | Audited at | Notes |
 |---|---|---|---|---|---|---|---|
 | E113 | doc | `GO-LIVE.md` — runbook STEP 0 / A / B / C / D / rollback | docs | P8 | done | 2026-09-14 |runbook dry-run; language only → P5c cites · P8 owns the facts; P5c audited its language only |
-| E114 | config | `.gitattributes` (`*.sh text eol=lf`, PR #47) | build | P7 | pending |  | Appendix C row C33 |
+| E114 | config | `.gitattributes` (`*.sh text eol=lf`, PR #47) | build | P7 | done | 2026-09-14 | Appendix C row C33 |
 | E115 | element | `_harness/sync.sh` — `uploads/images/` mkdir and `admin/logo.svg` copy steps (PR #47) | harness | P11 | done | 2026-09-14 | Phase 0 `ls` is the evidence |
 | E116 | element | `_harness/lint.php` — `inquiry-type drift` and `href guard drift` checks (13 lines total) | harness | P11 | done | 2026-09-14 | P11 step 3 mutation-test census |
 | E117 | element | `admin/csrf-back.js` (10th admin JS file; map says 9) | admin | P3 | done | 2026-09-14 | what it does on Back after a CSRF failure |
-| E118 | config | `public/images/og-card.jpg` | public | P6 | pending |  | P6 step 7: exists, 1200×630, < 300 kB |
+| E118 | config | `public/images/og-card.jpg` | public | P6 | done | 2026-09-14 | P6 step 7: exists, 1200×630, < 300 kB |
 | E119 | element | `public/images/_unmatched/` (1 file) | data | P4 | done | 2026-09-14 | referential: is it referenced; GUARDRAILS §2 forbids deleting site images |
 | E120 | config | `pdfs/.htaccess` | admin | P3 | done | 2026-09-14 | P3 steps 9, 11 (rule text only; `[UNVERIFIED — Apache]`) |
 | E121 | config | `uploads/.htaccess` | admin | P3 | done | 2026-09-14 | P3 steps 9, 11; audit7 §3 deny-by-default deliberately not taken |
-| E122 | page | the 42 product pages `/products?productId=<sku>` as a class | public | P6 | pending |  | all by script, 5 by hand (P6); crawl JSON |
+| E122 | page | the 42 product pages `/products?productId=<sku>` as a class | public | P6 | done | 2026-09-14 | all by script, 5 by hand (P6); crawl JSON |
 | E123 | data | `data/content.json` `copy.hero` | verbiage | P5a | done | 2026-09-14 | COPY_DEFAULTS group 1/12 |
 | E124 | data | `data/content.json` `copy.homeFeatures` | verbiage | P5a | done | 2026-09-14 | group 2/12 |
 | E125 | data | `data/content.json` `copy.homeMarkets` | verbiage | P5a | done | 2026-09-14 | group 3/12 |
@@ -174,27 +174,27 @@
 | E163 | element | `_harness/audit9-crawl.js` (I-crawl instrument) | harness | P11 | done | 2026-09-14 | exists, runs, deterministic — P11 step 8 |
 | E164 | element | `_harness/audit9-adminflows.js` (I-admin instrument) | harness | P11 | done | 2026-09-14 | P11 step 8 |
 | E165 | element | `_harness/audit9-strings.js` (I-strings instrument) | harness | P11 | done | 2026-09-14 | P11 step 8 |
-| E166 | element | PHP runtime compatibility of `admin/*.php`, `public/contact.php`, `public/sitemap.php` (7.4 floor + 8.x cleanliness) | admin | P2 | pending |  | P2 steps 2–3 |
-| E167 | element | production PHP version (`admin/help.php` prints `PHP_VERSION`; launch instruction says `[UNSOURCED]`) | server | P2 | pending |  | P2 step 1 |
-| E168 | element | PHP extensions the code needs (`finfo`, `gd`, `json`, `session`, `openssl`, `mbstring`?) vs the health banner | admin | P2 | pending |  | P2 step 4 |
-| E169 | element | `mail()` `From:` mailbox + the `mail()===false` phone-number path | api | P2 | pending |  | P2 step 6 |
-| E170 | element | the live host — STEP 0 (`_harness/out/audit9/step0.md`) | server | C | pending |  | done 2026-09-14: NOT LIVE; TLS expired/mismatched; `/` 302s to `/site/` |
+| E166 | element | PHP runtime compatibility of `admin/*.php`, `public/contact.php`, `public/sitemap.php` (7.4 floor + 8.x cleanliness) | admin | P2 | done | 2026-09-14 | P2 steps 2–3 |
+| E167 | element | production PHP version (`admin/help.php` prints `PHP_VERSION`; launch instruction says `[UNSOURCED]`) | server | P2 | done | 2026-09-14 | P2 step 1 |
+| E168 | element | PHP extensions the code needs (`finfo`, `gd`, `json`, `session`, `openssl`, `mbstring`?) vs the health banner | admin | P2 | done | 2026-09-14 | P2 step 4 |
+| E169 | element | `mail()` `From:` mailbox + the `mail()===false` phone-number path | api | P2 | done | 2026-09-14 | P2 step 6 |
+| E170 | element | the live host — STEP 0 (`_harness/out/audit9/step0.md`) | server | C | done | 2026-09-14 | closed by C 2026-09-14 — `_harness/out/audit9/step0.md` |
 | E171 | element | `public/images/site/` — the five photo-slot default files | data | P4 | done | 2026-09-14 | exist, referenced by `COPY_DEFAULTS`; GUARDRAILS §2 forbids deletions |
 | E172 | element | dependency advisories (`npm audit`) vs audit7 A-7.10 reachability arguments | build | P1 | done | 2026-09-14 | P1 step 6 |
 | E173 | element | second build reproducibility (`dist/` vs `_harness/out/audit9/P1/dist2/`) | build | P1 | done | 2026-09-14 | P1 step 2 |
-| E174 | element | time boundaries — copyright range at the year boundary, `effectiveDate` | public | P7 | pending |  | Appendix C row C31 |
-| E175 | element | encoding round-trip through each admin form and the contact form | admin | P7 | pending |  | Appendix C rows C13, C32 |
-| E176 | element | `@media print` count (A-7.7, open, deferred) | public | P6 | pending |  | P6 step 9: record, do not fix |
+| E174 | element | time boundaries — copyright range at the year boundary, `effectiveDate` | public | P7 | done | 2026-09-14 | Appendix C row C31 |
+| E175 | element | encoding round-trip through each admin form and the contact form | admin | P7 | done | 2026-09-14 | Appendix C rows C13, C32 |
+| E176 | element | `@media print` count (A-7.7, open, deferred) | public | P6 | done | 2026-09-14 | P6 step 9: record, do not fix |
 | E177 | element | the four `.htaccess` deny rules vs every filename the admin can create | admin | P3 | done | 2026-09-14 | P3 step 11 |
 | E178 | element | secrets / runtime files tracked? (`git grep` bcrypt, `git check-ignore`) | build | P3 | done | 2026-09-14 | P3 step 10 |
 | E179 | element | `IPCADMIN` session cookie flags from `auth.php`; `ping.php` mints no session | admin | P3 | done | 2026-09-14 | P3 step 6 |
-| E180 | element | the `:8140` E_ALL error log (A: P3 + P7 flows, then `plan10-admincrawl`-shaped crawl) | admin | P2 | pending |  | P2 step 3 |
-| E181 | element | the two contact-form success panels and every empty/error state (dead-end inventory) | public | P6 | pending |  | P6 step 5 |
-| E182 | element | navigation graph: every `KNOWN_ROUTES` route ≤ 2 clicks from `/`; sitemap `<loc>` set | public | P6 | pending |  | P6 step 4 |
-| E183 | element | keyboard / reflow 200 % @1440, 400 % @1280 / root 24px / axe | public | P9 | pending |  | P9 steps 2–6 |
-| E184 | element | console-clean crawl: 0 errors / 0 failed requests / 0 ≥ 400 over 10 routes + 42 products | public | P10 | pending |  | from I-crawl (single owner) |
-| E185 | element | transfer bytes of `/` at 390 and 1440; hero not requested at 390; cache rule text | public | P10 | pending |  | P10 steps 3–4 |
-| E186 | element | catalog at 500 products — changed since `1826a6d`? | public | P10 | pending |  | P10 step 5 |
+| E180 | element | the `:8140` E_ALL error log (A: P3 + P7 flows, then `plan10-admincrawl`-shaped crawl) | admin | P2 | done | 2026-09-14 | P2 step 3 |
+| E181 | element | the two contact-form success panels and every empty/error state (dead-end inventory) | public | P6 | done | 2026-09-14 | P6 step 5 |
+| E182 | element | navigation graph: every `KNOWN_ROUTES` route ≤ 2 clicks from `/`; sitemap `<loc>` set | public | P6 | done | 2026-09-14 | P6 step 4 |
+| E183 | element | keyboard / reflow 200 % @1440, 400 % @1280 / root 24px / axe | public | P9 | done | 2026-09-14 | P9 steps 2–6 |
+| E184 | element | console-clean crawl: 0 errors / 0 failed requests / 0 ≥ 400 over 10 routes + 42 products | public | P10 | done | 2026-09-14 | from I-crawl (single owner) |
+| E185 | element | transfer bytes of `/` at 390 and 1440; hero not requested at 390; cache rule text | public | P10 | done | 2026-09-14 | P10 steps 3–4 |
+| E186 | element | catalog at 500 products — changed since `1826a6d`? | public | P10 | done | 2026-09-14 | P10 step 5 |
 
 ## Suite census (PLAN-11 §4.3 / §5 step 5) — the sweep union, one row each, `Pass = P11`, `pending` until a result is recorded this round
 
