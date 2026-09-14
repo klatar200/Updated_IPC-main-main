@@ -1,0 +1,19 @@
+# Shell scripts must check out with LF on every platform.
+#
+# This repo had no .gitattributes, so line endings were left to whatever
+# core.autocrlf each machine happened to have. Git for Windows defaults it to
+# `true`, which rewrites LF to CRLF on checkout — and a trailing \r is a syntax
+# error to bash, not whitespace. Measured on a Windows checkout 2026-08-13:
+#
+#   bash _harness/sync.sh
+#   : invalid option: line 9: set: -            <- `set -e\r`
+#   line 10: cd: $'_harness/..\r': No such file or directory
+#   line 69: syntax error near unexpected token `$'do\r''
+#
+# The mirror was never built and the harness could not run at all. The blobs
+# are stored LF and always were; only the working copy was mangled, which is
+# why it reproduced on one machine and not another.
+#
+# Both scripts carry a shebang and are executed by a POSIX shell — sync.sh
+# directly, fakemail.sh through PHP's sendmail_path — so both need LF.
+*.sh text eol=lf
