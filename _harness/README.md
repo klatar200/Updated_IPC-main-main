@@ -103,7 +103,7 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `lint.php` | `php -l` (18 files), `node --check` (9 admin JS), JSON parse, and the copy-key drift check |
 | `invariants.js` | 17 checks over invariants **1–12** in `CLAUDE.md`. It does **not** cover 13–16, added 2026-08-13; those are behavioural rather than textual and are held by suites of their own — 13/14 (`.ipc-container`, and custom CSS losing to hoisted Tailwind utilities) by the rendered widths in `adminwidth.js` and the 4-column check, 15 (`admin_head()` ordering, narrow pages opting out) by `adminwidth.js`, 16 (a no-op save returns true) by `nodupbackups.js`. If you extend `invariants.js` to 13–16, extend `invariants-selftest.js` with it |
 | `invariants-selftest.js` | mutates each invariant and proves `invariants.js` **fails** — a check that cannot fail is not a check |
-| `copydrift.js` / `-selftest.js` | `content.php`'s `$COPY_GROUPS` vs `App.jsx`'s `COPY_DEFAULTS` (96 fields). Wired into `lint.php` |
+| `copydrift.js` / `-selftest.js` | `content.php`'s `$COPY_GROUPS` vs `App.jsx`'s `COPY_DEFAULTS` (110 fields on 2026-09-14 — the figure read 96 from the day the check was written until Audit 9 measured it; re-read it from the suite's own output rather than from this line, which is the number that drifts). Wired into `lint.php` |
 | `contactflow.js` / `-selftest.js` | the contact form's **happy path**, end to end through the rendered page — the one journey the site exists for, and the one no other suite covered. `plan3-contact.js` drives the UI but only submits invalid forms; `plan3-autoreply.js` submits valid ones but POSTs with `fetch`, so the React form is never rendered; `plan10-rfqscroll.js` stops at where an invalid field lands. **A renamed `name=` attribute passed all three** — the browser suites never read the mail and the mail suite never rendered the browser. 85 checks over 12 scenarios: both forms submitted by typing into the real controls, every typed value matched **field by field** into the sales email and into `inquiries.jsonl`, the Reply-To/From block, the auto-reply's business details traced back to `site-info.json`, `?part=`/`?industry=` prefill reaching the email, the honeypot's invisibility *and* keyboard-unreachability, the 429 surfacing as a readable panel with the phone number in it, double-submit, Submit Another, Back, the posted-field-vs-`$_POST`-key drift check, truncation, the label associations on **both** tabs, and the lead arriving legibly in `admin/inquiries.php`. Run with `--only=<tag>` for one scenario. **It passed 71/71 the first time it was run**, which is the shape of a suite that asserts nothing — hence the selftest, which breaks one guarantee at a time in the mirror (6 in `contact.php`, 2 in the built bundle, both halves deliberately) and requires the named assertion to flip to FAIL. A mutation that stays green is reported as **MUTATION SURVIVED**. One did, on the first run: it replaced the honeypot log's *note string* and left the call standing |
 | `copyroundtrip.js` | a copy field survives admin edit → JSON → rendered site |
 | `contrastparity.js` / `.php` | the PHP and JS contrast implementations agree on 23 colors |
@@ -202,6 +202,26 @@ files that both assert and set a failing exit status.
 | `plan8-polish.js` | PLAN-8 — copy and layout polish. **Expected red at 16/17 on Linux**: `fc-match system-ui` resolves to DejaVu Sans, which is wider than Arial (GUARDRAILS §7.1) |
 | `plan10-admincrawl.js` | PLAN-10 — crawls every admin page for PHP notices and console errors |
 | `copydrift-selftest.js` | Proves `copydrift.js` can fail — a check that has never failed proves nothing |
+
+## Suites named nowhere until 2026-09-14 (Audit 9, A-9.D7)
+
+Seven more. The section above was written in 2026-08-18 to close exactly this
+gap — "an executor judged against this list would have skipped them" — and it
+reopened nine suites later, because nothing mechanical keeps the tables and the
+tree in step. All seven are assertive, all seven are in the sweep, and all seven
+were green in audit 9's before-sweep. The census that finds them is the Appendix
+A classifier in `plans/PLAN-11-audit9-go-live.md` crossed against these tables;
+run it after adding a suite.
+
+| File | Item |
+|---|---|
+| `backdrop-selftest.js` | PLAN-7 item 1c — proves `backdrop.js`'s raster blind spot is closed, by mutating it and requiring the failure. The selftest for the shared contrast core every brand-colour suite depends on |
+| `plan7-approvals.js` | PLAN-7 item 2 — approvals became a real field instead of free text: the field, its counts, and the filter |
+| `plan7-datasheets.js` | PLAN-7 item 3 — the datasheet library: all 42 products carry a published PDF and the page that lists them |
+| `plan7-imagery.js` | PLAN-7 item 2 — the marketing photographs actually reach the page (the app once held four `<img>` elements, three of them the logo) |
+| `plan8-faq.js` | PLAN-8 C41 — the FAQ opens fully collapsed, with no bulk control and no category chip that jumps past a closed row |
+| `plan8-formpolish.js` | PLAN-8 C39 — contact-form polish: the privacy note near Submit, the legend, and the required-field marking |
+| `plan8-landing.js` | PLAN-8 C29 — `/products` renders a catalog landing state instead of auto-selecting one product's detail page |
 
 ## Investigative tools (one-shot, kept as evidence)
 

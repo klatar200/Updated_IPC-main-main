@@ -349,6 +349,109 @@ async function armP72() {
   }
 }
 
+// ---------------------------------------------------------------- the docs
+// Every arm below compares a SENTENCE against the thing it describes, read
+// from the code rather than from another document. A doc check that quotes a
+// second doc proves only that two files agree.
+function armDocs() {
+  const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
+  const help = read('admin/help.php');
+  const nav = read('admin/nav.php');
+  const index = read('admin/index.php');
+  const config = read('admin/config.php');
+  const hReadme = read('_harness/README.md');
+  const aReadme = read('admin/README.md');
+  const guide = read('Editing-Your-Site-Content.md');
+  const patch = read('PATCH_NOTES.md');
+  const guard = read('plans/GUARDRAILS.md');
+
+  section('A-9.B2-01  the Help page describes the header bar that exists');
+  const navLabels = [...nav.matchAll(/>([^<>{}]{2,30})<\/(?:a|button)>/g)].map((m) => m[1].trim())
+    .filter((s) => s && !/^\s*$/.test(s));
+  const missingFromHelp = ['Business Details', 'Page Content', 'Backups', 'Password']
+    .filter((l) => !new RegExp(l.replace(/ /g, '\\s+')).test(help.slice(help.indexOf('Header bar'), help.indexOf('Header bar') + 900)));
+  ok('b2-01  the header-bar paragraph names the tabs the bar really carries',
+    missingFromHelp.length === 0, `not named: ${missingFromHelp.join(', ')}`);
+  const svgLine = (/(<text[^>]*>IPC Admin[^<]*<\/text>)/.exec(help) || [, ''])[1];
+  ok('b2-01  the dashboard diagram\'s header strip matches the real bar',
+    /Business Details/.test(svgLine) || /…|\.\.\./.test(svgLine),
+    `diagram says ${JSON.stringify(svgLine.replace(/<[^>]*>/g, '').slice(0, 90))}`);
+  console.log(`  note  nav.php renders: ${navLabels.join(' · ')}`);
+
+  section('A-9.B2-02  the audit-log dropdown claim matches the badge table');
+  const actions = (/const IPC_AUDIT_ACTIONS = \[([\s\S]*?)\];/.exec(config) || [, ''])[1]
+    .split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean);
+  const explained = actions.filter((a) => new RegExp(`>${a}</span>`).test(help));
+  ok('b2-02  every action the dropdown offers is explained in the table below it',
+    explained.length === actions.length,
+    `explained ${explained.length} of ${actions.length}; missing: ${actions.filter((a) => !explained.includes(a)).join(', ')}`);
+
+  section('A-9.B2-03  the server-warning section counts what the dashboard can raise');
+  const branches = (index.match(/healthProblems\[\] = /g) || []).length;
+  const claimed = (/can go wrong on the server/.exec(help) ? help.slice(help.indexOf('can go wrong on the server') - 120, help.indexOf('can go wrong on the server')) : '');
+  ok('b2-03  the section does not claim a number smaller than the dashboard raises',
+    !/\bThree\b/i.test(claimed), `the sentence still says ${JSON.stringify(claimed.trim().slice(-40))}, dashboard raises ${branches}`);
+  const healthRows = ['admin</code> folder', 'data</code> folder', 'uploads/images', 'pdfs</code> folder',
+    'temporary folder', 'gd</code>', 'cannot be recorded', 'password-reset window'];
+  const missingRows = healthRows.filter((r) => !help.includes(r.replace('</code>', '</code>')));
+  ok('b2-03  the table covers every warning the owner can actually see',
+    missingRows.length === 0, `not in the table: ${missingRows.join(', ')}`);
+
+  section('A-9.D3 / A-9.D7  the harness README describes today\'s harness');
+  ok('d3  the copydrift row states the field count copydrift.js measures (110)',
+    /110 fields|\(110\b/.test(hReadme) && !/\(96 fields\)/.test(hReadme),
+    hReadme.includes('(96 fields)') ? 'still says 96 fields' : 'no 110 figure found');
+  const undocumented = ['backdrop-selftest', 'plan7-approvals', 'plan7-datasheets', 'plan7-imagery',
+    'plan8-faq', 'plan8-formpolish', 'plan8-landing'].filter((s) => !new RegExp('`' + s).test(hReadme));
+  ok('d7  every assertive suite has a row in the README',
+    undocumented.length === 0, `no row: ${undocumented.join(', ')}`);
+
+  section('A-9.D4  GUARDRAILS cites the line range that holds the photo slots');
+  const slotLine = (/admin\/content\.php:(\d+)-(\d+)/.exec(guard) || [])[0] || '(no citation)';
+  const contentPhp = read('admin/content.php').split('\n');
+  const cited = /admin\/content\.php:(\d+)-(\d+)/.exec(guard);
+  const citedText = cited ? contentPhp.slice(Number(cited[1]) - 1, Number(cited[2])).join('\n') : '';
+  ok('d4  the cited lines really hold the five photo-slot fields',
+    /Photo/.test(citedText) && (citedText.match(/Photo/g) || []).length >= 3,
+    `${slotLine} holds ${JSON.stringify(citedText.slice(0, 70))}`);
+
+  section('A-9.B2-12 / B2-13  the owner README matches the site\'s state and the dashboard');
+  // The section may QUOTE the old claim while recording that it was corrected;
+  // what it must not do is open by asserting it. Judge the first line only.
+  const deploySec = aReadme.slice(aReadme.indexOf('## First-time deploy'));
+  const firstQuoted = (deploySec.match(/^> (.+)$/m) || [, ''])[1];
+  ok('b2-12  the deploy section opens by asking which deploy this is, not by asserting the site is live',
+    !/^\*\*This site is already live/.test(firstQuoted) && /which deploy/i.test(firstQuoted),
+    `it opens ${JSON.stringify(firstQuoted.slice(0, 70))}`);
+  ok('b2-12  the subsequent-deploys rule carries the .htaccess exception',
+    /\.htaccess/.test(aReadme.slice(aReadme.indexOf('### Subsequent deploys'), aReadme.indexOf('### Subsequent deploys') + 1200)),
+    'the "do not re-upload" rule still has no exception, which drops data/.htaccess');
+  ok('b2-13  the spec-table section teaches the visual builder, not raw JSON',
+    /visual|builder|Advanced/i.test(aReadme.slice(aReadme.indexOf('Specification'), aReadme.indexOf('Specification') + 2500)),
+    'the spec-table section still describes only the JSON workflow');
+  // The tree diagram lists the admin JS by bare name on one line.
+  const jsNames = fs.readdirSync(path.join(ROOT, 'admin')).filter((f) => f.endsWith('.js'))
+    .map((f) => f.replace(/\.js$/, ''));
+  const jsMissing = jsNames.filter((n) => !aReadme.includes(n));
+  ok('b2-14  the tree diagram names every file in admin/*.js',
+    jsMissing.length === 0, `not named: ${jsMissing.join(', ')} (of ${jsNames.length})`);
+
+  section('A-9.B2-15  the content guide\'s inventories are complete');
+  const socialFields = [...new Set([...fs.readFileSync(path.join(ROOT, 'admin', 'settings.php'), 'utf8')
+    .matchAll(/'(twitter|facebook|linkedin|youtube|pinterest|instagram|tiktok)'/g)].map((m) => m[1]))];
+  ok('b2-15  the guide names every social field Business Details offers',
+    socialFields.every((f) => new RegExp(f, 'i').test(guide)) && !/The five \*\*social links\*\*/.test(guide),
+    `form offers ${socialFields.length}: ${socialFields.filter((f) => !new RegExp(f, 'i').test(guide)).join(', ') || 'all named'}` +
+    (/The five \*\*social links\*\*/.test(guide) ? '; guide still says "The five social links"' : ''));
+
+  section('A-9.B2-16  one spelling convention across the owner-facing documents');
+  const brit = (patch.match(/\bcolour|behaviour|neighbour|normalis|canonicalis|labelled|catalogue\b/gi) || []).length;
+  ok('b2-16  PATCH_NOTES uses the same spelling convention as the rest of the site',
+    brit === 0, `${brit} British-spelling hits remain`);
+  ok('b2-16  the owner README does not call the owner "the customer"',
+    !/Customer Guide|Customer workflows/.test(aReadme), 'still headed "Customer Guide"');
+}
+
 /* ===================================================================== run */
 (async () => {
   const arms = {
@@ -357,6 +460,7 @@ async function armP72() {
     'p2-2': { fn: armP22 },
     'p3-2': { fn: armP32, async: true, mutates: true },
     'p7-2': { fn: armP72, async: true, mutates: true },
+    'docs': { fn: armDocs },
   };
   const chosen = only ? { [only]: arms[only] } : arms;
   if (only && !arms[only]) { console.error(`unknown arm ${only}`); process.exit(2); }

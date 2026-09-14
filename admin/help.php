@@ -319,7 +319,7 @@ $navActive = 'help';
         <h2>📊 Reading the dashboard</h2>
         <p>The <strong>Product Catalog</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
         <ul class="plain">
-          <li><strong>Header bar</strong> — your logo on the left; on the right, quick links to Products, Add Product, Audit Log, and Help, plus a link to open the live public website in a new tab and Sign Out. This same navigation bar appears at the top of every admin page, so you're never more than one click from anywhere else in the dashboard.</li>
+          <li><strong>Header bar</strong> — your logo on the left; on the right, a link to every page of the dashboard: <strong>Products</strong>, <strong>+ Add Product</strong>, <strong>Business Details</strong>, <strong>Page Content</strong>, <strong>Backups</strong>, <strong>Audit Log</strong>, <strong>Password</strong> and <strong>Help</strong>, plus <strong>View Live Site ↗</strong> to open the public website in a new tab and <strong>Sign Out</strong>. This same navigation bar appears at the top of every admin page, so you're never more than one click from anywhere else in the dashboard.</li>
           <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>
           <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
           <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
@@ -330,11 +330,11 @@ $navActive = 'help';
           <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the dashboard layout: header, search bar, summary cards, and product table">
             <rect x="1" y="1" width="638" height="338" rx="10" fill="#ffffff" stroke="#e5e9ee"/>
             <rect x="10" y="10" width="620" height="30" rx="6" fill="#0d2d52"/>
-            <text x="22" y="29" font-family="system-ui,sans-serif" font-size="11" fill="#ffffff">IPC Admin · Products · + Add Product · Audit Log · Help · Sign Out</text>
+            <text x="22" y="29" font-family="system-ui,sans-serif" font-size="9" fill="#ffffff">IPC Admin · Products · + Add Product · Business Details · Page Content · Backups · Audit Log · Password · Help · Sign Out</text>
             <text x="10" y="56" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">HEADER — same on every page</text>
 
             <rect x="10" y="66" width="430" height="24" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
-            <text x="20" y="82" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">Search by SKU or product name…</text>
+            <text x="20" y="82" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af">Search by SKU / part number or product name…</text>
             <text x="450" y="82" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">← SEARCH BAR</text>
 
             <g font-family="system-ui,sans-serif">
@@ -699,7 +699,7 @@ $navActive = 'help';
           <tr><td>Phone, fax, email</td><td>Header, footer, Contact page, About page. The phone number is also what the "call us" links dial, so type it the way you'd say it — the dialling version is a separate field beside it.</td></tr>
           <tr><td>Address, hours</td><td>Footer, Contact page, and the map listing search engines build from your site.</td></tr>
           <tr><td>Founded year</td><td>Drives the "© 1974–<?= date('Y') ?>" line automatically. You never update the second year.</td></tr>
-          <tr><td>Certifications</td><td>ISO registration plus any others, shown in the footer and on the Quality page.</td></tr>
+          <tr><td>Certifications</td><td>ISO registration plus any others, shown in the footer, on the homepage trust bar and in the Certifications &amp; Standards block on the About page. <em>(There is no separate Quality page — this row said there was until 2026-09-14.)</em></td></tr>
           <tr><td>Brand colours &amp; logo</td><td>Live preview on the right of the page as you change them.</td></tr>
           <tr><td>Social links</td><td>Not shown as icons on the site; they tell search engines which accounts are yours.</td></tr>
           <tr><td>Catalog PDF URL</td><td>Optional. Point it at a full-catalog PDF (e.g. <code>/pdfs/catalog.pdf</code>) and a "Full product catalog (PDF)" link appears in the site footer. Leave blank for no link.</td></tr>
@@ -815,6 +815,15 @@ $navActive = 'help';
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#f3e8ff;color:#6b21a8;">password</span></td><td>The admin password was changed. The password itself is never recorded.</td></tr>
+          <!-- A-9.B2-02 — the three sign-in actions. The dropdown has always
+               offered them and this table has never explained them, while the
+               sentence above it says the dropdown lists every action in the
+               table below. sign-in-failed is the one that matters most: a run
+               of them from an address you do not recognise is the only warning
+               of someone guessing the password. -->
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dcfce7;color:#166534;">sign-in</span></td><td>Someone signed in successfully, from the address shown.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e5e7eb;color:#374151;">sign-out</span></td><td>Someone signed out.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">sign-in-failed</span></td><td>A wrong password was entered. One or two is usually a typo. <strong>A run of them from an address you don't recognise is worth telling your developer about</strong> — it is what someone guessing the password looks like.</td></tr>
         </table>
         <div class="callout callout-tip">
           <b>Page Content saves say what you actually edited</b>
@@ -830,12 +839,23 @@ $navActive = 'help';
       <section class="help-section" id="health">
         <div class="eyebrow eyebrow-advanced">Advanced</div>
         <h2>🩺 If the dashboard warns you about the server</h2>
-        <p>Three things can go wrong on the server itself in a way that is completely silent — the dashboard keeps saying "saved", and nothing actually is. So the <strong>Products</strong> page checks for them every time you open it, and shows a red box at the top headed <strong>"Server setup problem — please send this to your developer"</strong> if it finds one.</p>
+        <p>Several things can go wrong on the server itself in a way that is completely silent — the dashboard keeps saying "saved", and nothing actually is. So the <strong>Products</strong> page checks for all of them every time you open it, and shows a red box at the top headed <strong>"Server setup problem — please send this to your developer"</strong> if it finds one. The box names every problem it found; the table below explains each one.</p>
         <p><strong>If you never see that box, there is nothing to do here.</strong> If you do, it is a permissions problem on the hosting account, not something you did wrong, and the box tells you exactly which folder to fix over FTP.</p>
         <table class="field-ref">
           <tr><td>The <code>admin</code> folder is not writable</td><td>The most serious one. <strong>Sales leads from the contact form are being discarded</strong>, the change history cannot record anything, and the Password page cannot save. Set <code>admin/</code> to 755 (or 775) over FTP.</td></tr>
           <tr><td>The <code>data</code> folder is not writable</td><td>Nothing you edit on any page can be saved at all. Set <code>data/</code> to 755 (or 775) over FTP.</td></tr>
           <tr><td>The <code>uploads/images</code> folder is missing or not writable</td><td>Product photo uploads will fail. Create <code>public_html/uploads/images/</code> over FTP and set it to 755.</td></tr>
+          <!-- A-9.B2-03 — the four rows the dashboard could raise and this
+               table never listed. The section said "three things" over four
+               rows while the Products page checks nine. The missing four are
+               exactly the ones an owner is most likely to meet and least able
+               to guess: a data-sheet upload that fails, a rate limit that has
+               quietly stopped counting, leads that are arriving and not being
+               written down, and photos that are never resized. -->
+          <tr><td>The <code>pdfs</code> folder is missing or not writable</td><td>Data-sheet uploads will fail. Set <code>public_html/pdfs/</code> to 755 (or 775) over FTP.</td></tr>
+          <tr><td>The server's temporary folder is not writable</td><td>The contact form still works and still records every lead, but its spam rate limit is not counting, and confirmation emails to senders are held back as a precaution. Ask the host to fix permissions on it.</td></tr>
+          <tr><td><strong>Quote requests are arriving but cannot be recorded</strong></td><td>The most urgent one after <code>admin</code>. The notification emails are still being sent, so nothing is lost yet — but <strong>Inquiries</strong> is not recording anything, so a lead that is missed in email is gone. Same fix as the <code>admin</code> row.</td></tr>
+          <tr><td>This server cannot resize images (<code>gd</code> is missing)</td><td>Photo uploads still work, but a large photo is saved at its original size, and that product page will be slow on a phone. Ask the host to enable the PHP <code>gd</code> extension, or resize photos to about 1600 pixels wide before uploading them.</td></tr>
           <tr><td>The password-reset window is OPEN</td><td>While a file called <code>ALLOW-PASSWORD-RESET</code> sits in your admin folder, <strong>anyone on the internet</strong> who opens your admin address is shown a "Set Admin Password" form and can lock you out. It closes by itself an hour after the file was uploaded, and the warning carries a <strong>Close it now</strong> button so you can shut it immediately. See <a href="#password">Your admin password</a>.</td></tr>
         </table>
         <div class="callout callout-warning">
