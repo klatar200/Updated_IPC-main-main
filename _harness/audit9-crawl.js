@@ -193,6 +193,7 @@ function extractInPage() {
     headingOutline, landmarks, meta, jsonLd, images, links, formControls,
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
+    hasAdminHeader: !!document.querySelector('.ipc-admin-header'),
   };
 }
 
@@ -265,6 +266,7 @@ async function crawlPage(page, url, opts) {
     horizontalOverflow: extracted.scrollWidth != null && extracted.clientWidth != null
       ? extracted.scrollWidth > extracted.clientWidth : null,
     evalError: extracted.evalError || null, screenshotError, screenshot: path.relative(OUT, shot),
+    hasAdminHeader: !!extracted.hasAdminHeader,
   };
 }
 
@@ -319,7 +321,7 @@ function summarize(rec) {
       const rec = await crawlPage(p, pageDef.url, { slug: pageDef.slug, viewportSlug: vp.slug, dir: pageDef.slug, catalog: !!pageDef.catalog });
       if (authNote) {
         rec.signIn = authNote;
-        rec.appearsAuthenticated = /ipc-admin-header/.test(JSON.stringify(rec.landmarks) + JSON.stringify(rec.headingOutline));
+        rec.appearsAuthenticated = rec.hasAdminHeader;
       }
       totals.consoleErrors += rec.console.filter((c) => c.type === 'error').length;
       totals.failedRequests += rec.failedRequests.length;
