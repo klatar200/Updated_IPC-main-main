@@ -269,8 +269,13 @@ async function main() {
         }
         check('C23', `${label} PDF — the rename is audit-logged`, log.includes(newSku), { logged: log.includes(newSku) }, 'admin-log.jsonl carries the new SKU');
         restoreAll();
-        // put the pdfs back
-        try { execFileSync('cp', ['-r', path.join('_harness/site/pdfs') + '/.', pdfDir]); } catch (e) { /* best effort */ }
+        // Put the pdfs back as a clean SYNC — a plain `cp -r` leaves the
+        // renamed file behind, and a leftover target makes the next arm's
+        // rename hit edit.php's no-clobber guard and look like a failure.
+        try {
+          for (const x of fs.readdirSync(pdfDir)) fs.unlinkSync(path.join(pdfDir, x));
+          execFileSync('cp', ['-r', path.join('_harness/site/pdfs') + '/.', pdfDir]);
+        } catch (e) { /* best effort */ }
       }
     }
 
