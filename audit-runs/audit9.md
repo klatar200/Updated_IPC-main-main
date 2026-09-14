@@ -76,7 +76,92 @@ Self-correction recorded (§6): the plan's §4.3 said "the union" of the classif
 
 ### 1.4 The sweep — before (score / denominator per suite)
 
-(filled from `_harness/out/audit9/sweep-before.txt` when the background run completes)
+Run 2026-09-14 15:00–15:23 UTC, serial, one `run.js` invocation over the 72 (`sweep-list.txt`) then the 8 GUARDRAILS-only extras (`sweep-extra.txt`), then the six Appendix-A direct runs. Raw: `_harness/out/audit9/sweep-before.txt`. **80 suites: 76 ok, 4 red** — three of the four §4.4 expected reds (`brandtext` 36/47 = 11 failing ≤ 13; `isoclaims` 2/4; `plan8-polish` 16/17), `plan8-contrast` at its documented passing 34/35 (exit 0), and one classifier artifact (`fgpatch`). Every denominator equals the GUARDRAILS §4.1 table where the table has the suite (the only differing line is `brandtext` 34/45 → 36/47, the documented ±wobble; audit 8 also recorded 36/47). No bail: `plan2-trunc` 13/13 and `plan5-throttle` 12/12 ran their checks. **Nothing inherited is red beyond the documented set.**
+
+Direct runs: invariants 17/17 · invariants-selftest 15/15 · copydrift-selftest 5/5 · contactflow-selftest 26/26 · backdrop-selftest 9/9 · plan2-formlast-selftest exit 0 (its target flips to FAIL on each mutation, then 8/8 restored).
+
+| Suite | Result | Score (denominator) | Note |
+|---|---|---|---|
+| `adminwidth` | ok | 39/39 |  |
+| `audit5-blockers` | ok | 18/18 |  |
+| `audit5-high` | ok | 30/30 |  |
+| `audit5-medium` | ok | 20/20 |  |
+| `audit6` | ok | 45/45 |  |
+| `audit7` | ok | 30/30 |  |
+| `audit7-lead` | ok | 23/23 |  |
+| `backdrop-selftest` | ok | 9/9 |  |
+| `contactflow` | ok | 85/85 |  |
+| `contactflow-selftest` | ok | 26/26 |  |
+| `contentlinks` | ok | 18/18 |  |
+| `contrastparity` | ok | 28/28 |  |
+| `copydrift` | ok | (no score line) |  |
+| `copydrift-selftest` | ok | 5/5 |  |
+| `copyroundtrip` | ok | 15/15 |  |
+| `deadlinks` | ok | 0 of 18 |  |
+| `imgcheck` | ok | (no score line) |  |
+| `invariants` | ok | 17/17 |  |
+| `invariants-selftest` | ok | 15/15 |  |
+| `nodupbackups` | ok | 10/10 |  |
+| `plan10-admincrawl` | ok | (no score line) |  |
+| `plan10-adminnav` | ok | 25/25 |  |
+| `plan10-adminrows` | ok | 15/15 |  |
+| `plan10-auditlog` | ok | 13/13 |  |
+| `plan10-dashboard` | ok | 25/25 |  |
+| `plan10-header` | ok | 8/8 |  |
+| `plan10-help` | ok | 29/29 |  |
+| `plan10-helpwidth` | ok | 21/21 |  |
+| `plan10-repalette` | ok | 33/33 |  |
+| `plan10-rfqscroll` | ok | 24/24 |  |
+| `plan2-contrast` | ok | 42/42 |  |
+| `plan2-delete` | ok | 18/18 |  |
+| `plan2-formlast` | ok | 8/8 |  |
+| `plan2-formlast-selftest` | ok | 8/8 |  |
+| `plan2-sku` | ok | 14/14 |  |
+| `plan2-trunc` | ok | 13/13 |  |
+| `plan3-autoreply` | ok | 22/22 |  |
+| `plan3-contact` | ok | 51/51 |  |
+| `plan4-admin` | ok | 19/19 |  |
+| `plan4-public` | ok | 27/27 |  |
+| `plan5-images` | ok | 12/12 |  |
+| `plan5-keys` | ok | 11/11 |  |
+| `plan5-listeners` | ok | 11/11 |  |
+| `plan5-social` | ok | 35/35 |  |
+| `plan5-spectable` | ok | 13/13 |  |
+| `plan5-throttle` | ok | 12/12 |  |
+| `plan5b-pwthrottle` | ok | 10/10 |  |
+| `plan5b-sidebar` | ok | 9/9 |  |
+| `plan5b-sitemap` | ok | 9/9 |  |
+| `plan5c-brandink` | ok | 6/6 |  |
+| `plan5c-eyebrow` | ok | 5/5 |  |
+| `plan5c-sitemap` | ok | 17/17 |  |
+| `plan6-families` | ok | 13/13 |  |
+| `plan7-approvals` | ok | 11/11 |  |
+| `plan7-datasheets` | ok | 8/8 |  |
+| `plan7-imagery` | ok | 11/11 |  |
+| `plan7-slots` | ok | 16/16 |  |
+| `plan8-catalog` | ok | 16/16 |  |
+| `plan8-certs` | ok | 5/5 |  |
+| `plan8-chrome` | ok | 16/16 |  |
+| `plan8-contrast` | ok | 34/35 | expected red 34/35 (EXEMPT_BRAND_SURFACE) |
+| `plan8-crumbs` | ok | 22/22 |  |
+| `plan8-faq` | ok | 19/19 |  |
+| `plan8-formpolish` | ok | 15/15 |  |
+| `plan8-keyboard` | ok | 8/8 |  |
+| `plan8-landing` | ok | 18/18 |  |
+| `plan8-lead` | ok | 16/16 |  |
+| `plan8-meta` | ok | 15/15 |  |
+| `plan8-mobile` | ok | 16/16 |  |
+| `plan8-motion` | ok | 8/8 |  |
+| `plan9-band` | ok | 4/4 |  |
+| `plan9-firstsave` | ok | 8/8 |  |
+| `plan9-meta` | ok | 18/18 |  |
+| `plan9-notfound` | ok | 8/8 |  |
+| `plan9-slots-slash` | ok | 9/9 |  |
+| `skuparity` | ok | 33/33 |  |
+| `brandtext` | **FAIL** | 36/47 | expected red, judge failing count ≤ 13 — 36/47 = 11 failing, same as audit 8 (36/47) |
+| `fgpatch` | **FAIL** | CRASHED — expected 10 accent-2 text sites, found 1 — the map | CRASHED: one-shot codemod (README "Investigative tools"), in the classifier set only because it calls ok() and exits — expects the 2026-08-06 App.jsx; not a site defect → P11 (retire from the sweep list or the classifier) |
+| `isoclaims` | **FAIL** | 2/4 | expected red 2/4 until the registrar answers (A-8.5) |
+| `plan8-polish` | **FAIL** | 16/17 | expected red 16/17 on Linux (C49 DejaVu) |
 
 ### 1.5 STEP 0 — is the site live? (§4.6)
 
