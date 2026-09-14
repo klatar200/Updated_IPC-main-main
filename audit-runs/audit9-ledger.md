@@ -31,10 +31,10 @@
 | E025 | element | `ErrorBoundary` keyed on page | public | P7 | pending |  |  |
 | E026 | element | `CatalogSkeleton` / `CatalogError` (App.jsx:12723/12931) | public | P7 | pending |  |  |
 | E027 | element | `Breadcrumb` + BreadcrumbList JSON-LD (App.jsx:5933) | public | P4 | done | 2026-09-14 |  |
-| E028 | element | `Hero` (App.jsx:1761) | public | P5a | pending |  |  |
-| E029 | element | `Features` / `FeatureCard` (App.jsx:2339 / 2045) | public | P5a | pending |  |  |
-| E030 | element | `StatsBar` (App.jsx:2518) | public | P5a | pending |  |  |
-| E031 | element | `SectionHeader` (App.jsx:2131) | public | P5a | pending |  |  |
+| E028 | element | `Hero` (App.jsx:1761) | public | P5a | done | 2026-09-14 |  |
+| E029 | element | `Features` / `FeatureCard` (App.jsx:2339 / 2045) | public | P5a | done | 2026-09-14 |  |
+| E030 | element | `StatsBar` (App.jsx:2518) | public | P5a | done | 2026-09-14 |  |
+| E031 | element | `SectionHeader` (App.jsx:2131) | public | P5a | done | 2026-09-14 |  |
 | E032 | element | `CatalogLanding` search + filters (App.jsx:9176) | public | P7 | pending |  |  |
 | E033 | element | `ApprovalFilter` / `ApprovalMarks` (App.jsx:2851 / 2824) | public | P7 | pending |  |  |
 | E034 | element | `ProductSidebar` (App.jsx:7819) | public | P6 | pending |  |  |
@@ -48,8 +48,8 @@
 | E042 | element | Contact inline error region + success panels | public | P6 | pending |  |  |
 | E043 | flow | Product → "Request Quote" → `/contact?part=SKU` prefill | public | P7 | pending |  |  |
 | E044 | element | `scrollToAnchor` + `#industry-*` hash targets (App.jsx:199) | public | P6 | pending |  |  |
-| E045 | element | `TeamCard` + cert icons (App.jsx:3403) | public | P5a | pending |  |  |
-| E046 | element | `Badge` (App.jsx:11537), `RelatedArrow` (8550), `PageEyebrow` (309) | public | P5a | pending |  |  |
+| E045 | element | `TeamCard` + cert icons (App.jsx:3403) | public | P5a | done | 2026-09-14 |  |
+| E046 | element | `Badge` (App.jsx:11537), `RelatedArrow` (8550), `PageEyebrow` (309) | public | P5a | done | 2026-09-14 |  |
 | E047 | api | `POST /contact.php` (public/contact.php) | api | P3 | done | 2026-09-14 | A-04 required-field parity gap (2026-08-13, closed since — re-verify, do not re-report) |
 | E048 | api | `GET /sitemap.xml` → `public/sitemap.php` | api | P6 | pending |  |  |
 | E049 | config | `public/.htaccess` rewrite + cache + dotfile rules | public | P3 | done | 2026-09-14 | A-02 no HTTPS redirect / no security headers (2026-08-13, closed since — re-verify, do not re-report) |
@@ -131,35 +131,35 @@
 | E120 | config | `pdfs/.htaccess` | admin | P3 | done | 2026-09-14 | P3 steps 9, 11 (rule text only; `[UNVERIFIED — Apache]`) |
 | E121 | config | `uploads/.htaccess` | admin | P3 | done | 2026-09-14 | P3 steps 9, 11; audit7 §3 deny-by-default deliberately not taken |
 | E122 | page | the 42 product pages `/products?productId=<sku>` as a class | public | P6 | pending |  | all by script, 5 by hand (P6); crawl JSON |
-| E123 | data | `data/content.json` `copy.hero` | verbiage | P5a | pending |  | COPY_DEFAULTS group 1/12 |
-| E124 | data | `data/content.json` `copy.homeFeatures` | verbiage | P5a | pending |  | group 2/12 |
-| E125 | data | `data/content.json` `copy.homeMarkets` | verbiage | P5a | pending |  | group 3/12 |
-| E126 | data | `data/content.json` `copy.servicesHeader` | verbiage | P5a | pending |  | group 4/12 |
-| E127 | data | `data/content.json` `copy.industriesHeader` | verbiage | P5a | pending |  | group 5/12 |
-| E128 | data | `data/content.json` `copy.aboutHeader` | verbiage | P5a | pending |  | group 6/12 |
-| E129 | data | `data/content.json` `copy.faqHeader` | verbiage | P5a | pending |  | group 7/12 |
-| E130 | data | `data/content.json` `copy.contactHeader` | verbiage | P5a | pending |  | group 8/12 |
-| E131 | data | `data/content.json` `copy.privacyHeader` | verbiage | P5a | pending |  | group 9/12 |
-| E132 | data | `data/content.json` `copy.nav` | verbiage | P5a | pending |  | group 10/12 |
-| E133 | data | `data/content.json` `copy.footer` | verbiage | P5a | pending |  | group 11/12 |
-| E134 | data | `data/content.json` `copy.contactForm` | verbiage | P5a | pending |  | group 12/12 |
-| E135 | data | `data/content.json` `features[6]` | verbiage | P5a | pending |  | section array 1/16 |
-| E136 | data | `data/content.json` `stats[4]` | verbiage | P5a | pending |  | 2/16 — P4 truth for the numbers |
-| E137 | data | `data/content.json` `markets[5]` | verbiage | P5a | pending |  | 3/16 |
-| E138 | data | `data/content.json` `industryDetail[5]` (incl. `products` SKU lines) | verbiage | P5a | pending |  | 4/16 — `deadlinks` cited |
-| E139 | data | `data/content.json` `services[6]` | verbiage | P5a | pending |  | 5/16 |
-| E140 | data | `data/content.json` `milestones[6]` | verbiage | P5a | pending |  | 6/16 — A-8.9 withdrawn half: "50 Years" is history, correct |
-| E141 | data | `data/content.json` `faq[19]` | verbiage | P5a | pending |  | 7/16 — rule 10 for shipping/returns/lead-time answers |
-| E142 | data | `data/content.json` `capabilities[4]` | verbiage | P5a | pending |  | 8/16 |
-| E143 | data | `data/content.json` `certs[6]` | verbiage | P5a | pending |  | 9/16 — certification claims are P4 step 3 / `decision` |
-| E144 | data | `data/content.json` `companyNav[4]` | verbiage | P5a | pending |  | 10/16 — `page` fields must resolve (P4 step 5) |
-| E145 | data | `data/content.json` `footerLinks[8]` | verbiage | P5a | pending |  | 11/16 — `page` fields must resolve (P4 step 5) |
-| E146 | data | `data/content.json` `heroProofPoints[4]` | verbiage | P5a | pending |  | 12/16 |
-| E147 | data | `data/content.json` `heroTrust[10]` | verbiage | P5a | pending |  | 13/16 — carries an ISO claim (A-8.5) |
-| E148 | data | `data/content.json` `privacySections[7]` | verbiage | P5a | pending |  | 14/16 — rule 10; A-8.7/A-8.8 text present (P4 step 5); wording changes escalated |
+| E123 | data | `data/content.json` `copy.hero` | verbiage | P5a | done | 2026-09-14 | COPY_DEFAULTS group 1/12 |
+| E124 | data | `data/content.json` `copy.homeFeatures` | verbiage | P5a | done | 2026-09-14 | group 2/12 |
+| E125 | data | `data/content.json` `copy.homeMarkets` | verbiage | P5a | done | 2026-09-14 | group 3/12 |
+| E126 | data | `data/content.json` `copy.servicesHeader` | verbiage | P5a | done | 2026-09-14 | group 4/12 |
+| E127 | data | `data/content.json` `copy.industriesHeader` | verbiage | P5a | done | 2026-09-14 | group 5/12 |
+| E128 | data | `data/content.json` `copy.aboutHeader` | verbiage | P5a | done | 2026-09-14 | group 6/12 |
+| E129 | data | `data/content.json` `copy.faqHeader` | verbiage | P5a | done | 2026-09-14 | group 7/12 |
+| E130 | data | `data/content.json` `copy.contactHeader` | verbiage | P5a | done | 2026-09-14 | group 8/12 |
+| E131 | data | `data/content.json` `copy.privacyHeader` | verbiage | P5a | done | 2026-09-14 | group 9/12 |
+| E132 | data | `data/content.json` `copy.nav` | verbiage | P5a | done | 2026-09-14 | group 10/12 |
+| E133 | data | `data/content.json` `copy.footer` | verbiage | P5a | done | 2026-09-14 | group 11/12 |
+| E134 | data | `data/content.json` `copy.contactForm` | verbiage | P5a | done | 2026-09-14 | group 12/12 |
+| E135 | data | `data/content.json` `features[6]` | verbiage | P5a | done | 2026-09-14 | section array 1/16 |
+| E136 | data | `data/content.json` `stats[4]` | verbiage | P5a | done | 2026-09-14 | 2/16 — P4 truth for the numbers |
+| E137 | data | `data/content.json` `markets[5]` | verbiage | P5a | done | 2026-09-14 | 3/16 |
+| E138 | data | `data/content.json` `industryDetail[5]` (incl. `products` SKU lines) | verbiage | P5a | done | 2026-09-14 | 4/16 — `deadlinks` cited |
+| E139 | data | `data/content.json` `services[6]` | verbiage | P5a | done | 2026-09-14 | 5/16 |
+| E140 | data | `data/content.json` `milestones[6]` | verbiage | P5a | done | 2026-09-14 | 6/16 — A-8.9 withdrawn half: "50 Years" is history, correct |
+| E141 | data | `data/content.json` `faq[19]` | verbiage | P5a | done | 2026-09-14 | 7/16 — rule 10 for shipping/returns/lead-time answers |
+| E142 | data | `data/content.json` `capabilities[4]` | verbiage | P5a | done | 2026-09-14 | 8/16 |
+| E143 | data | `data/content.json` `certs[6]` | verbiage | P5a | done | 2026-09-14 | 9/16 — certification claims are P4 step 3 / `decision` |
+| E144 | data | `data/content.json` `companyNav[4]` | verbiage | P5a | done | 2026-09-14 | 10/16 — `page` fields must resolve (P4 step 5) |
+| E145 | data | `data/content.json` `footerLinks[8]` | verbiage | P5a | done | 2026-09-14 | 11/16 — `page` fields must resolve (P4 step 5) |
+| E146 | data | `data/content.json` `heroProofPoints[4]` | verbiage | P5a | done | 2026-09-14 | 12/16 |
+| E147 | data | `data/content.json` `heroTrust[10]` | verbiage | P5a | done | 2026-09-14 | 13/16 — carries an ISO claim (A-8.5) |
+| E148 | data | `data/content.json` `privacySections[7]` | verbiage | P5a | done | 2026-09-14 | 14/16 — rule 10; A-8.7/A-8.8 text present (P4 step 5); wording changes escalated |
 | E149 | data | `data/content.json` `seo[9]` | meta | P4 | done | 2026-09-14 | 15/16 — exactly the 9 routes (P4 step 5); P6 step 7 cites |
-| E150 | data | `data/content.json` `contactTips[5]` | verbiage | P5a | pending |  | 16/16 |
-| E151 | data | `data/site-info.json` — all leaves as verbiage (company, contact, address, hours, certifications, stats, social, about, theme, catalogPdfUrl) | verbiage | P5a | pending |  | truth → P4 register |
+| E150 | data | `data/content.json` `contactTips[5]` | verbiage | P5a | done | 2026-09-14 | 16/16 |
+| E151 | data | `data/site-info.json` — all leaves as verbiage (company, contact, address, hours, certifications, stats, social, about, theme, catalogPdfUrl) | verbiage | P5a | done | 2026-09-14 | truth → P4 register |
 | E152 | element | every admin flash / error / notice / `data-confirm` string in `admin/*.php` | verbiage | P5b | pending |  | from `audit9-strings.json` surface `admin` |
 | E153 | element | `public/contact.php` — sales notification email (subject + body) | email | P5b | pending |  | rendered with sample data by I-strings |
 | E154 | element | `public/contact.php` — auto-reply email (subject + body) | email | P5b | pending |  | rendered with sample data by I-strings |
