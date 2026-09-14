@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <?php $navActive = 'add'; include 'nav.php'; ?>
 <main class="admin-wide">
-  <h1>Add New Product</h1>
+  <h1>Add Product</h1>
   <p class="sub">Fill in the product details. All required fields are marked with *.</p>
 
   <?php if (!empty($errors)): ?>
@@ -223,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="card">
       <div class="card-title">Description Paragraphs</div>
       <label for="description">One paragraph per line</label>
-      <textarea id="description" name="description" rows="6" placeholder="One paragraph per line..."><?= h(is_array($product['description'] ?? '') ? implode("\n", $product['description']) : ($product['description'] ?? '')) ?></textarea>
+      <textarea id="description" name="description" rows="6" placeholder="One paragraph per line…"><?= h(is_array($product['description'] ?? '') ? implode("\n", $product['description']) : ($product['description'] ?? '')) ?></textarea>
     </div>
 
     <div class="card">

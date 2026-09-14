@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updated['photoUrl']              = post_str('photoUrl');
 
     // Whitelisted against the vocabulary — a posted value that is not an
-    // approval never reaches the catalogue. array_intersect also deduplicates
+    // approval never reaches the catalog. array_intersect also deduplicates
     // and restores canonical order.
     $postedAp = $_POST['approvals'] ?? [];
     $updated['approvals'] = is_array($postedAp)
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updated['description'] = array_values(array_filter(array_map('trim', explode("\n", $descRaw))));
 
     // Primary PDF button label (e.g. "Molded Cap"). Empty → remove the key so
-    // the frontend falls back to its default "Download PDF" text.
+    // the frontend falls back to its default "Datasheet" text.
     $pdfLabel = post_str('pdfLabel');
     if ($pdfLabel !== '') {
         $updated['pdfLabel'] = $pdfLabel;
@@ -372,7 +372,7 @@ include 'nav.php';
         </div>
         <div class="form-group full">
           <label for="photoUrl">Photo URL</label>
-          <input type="text" id="photoUrl" name="photoUrl" value="<?= h($product['photoUrl'] ?? '') ?>" placeholder="https://... or /images/product.jpg" />
+          <input type="text" id="photoUrl" name="photoUrl" value="<?= h($product['photoUrl'] ?? '') ?>" placeholder="https://… or /images/product.jpg" />
           <div class="hint">Leave blank to use the IPC branded placeholder — or <a href="upload-image.php?sku=<?= urlencode($sku) ?>">upload a photo</a> and this field is filled in automatically.</div>
         </div>
         <div class="form-group full">
@@ -431,7 +431,7 @@ include 'nav.php';
       <div class="card-title">Description Paragraphs</div>
       <div class="form-group">
         <label for="description">One paragraph per line</label>
-        <textarea id="description" name="description" rows="8" placeholder="First paragraph about the product...&#10;Second paragraph..."><?= h($descStr) ?></textarea>
+        <textarea id="description" name="description" rows="8" placeholder="First paragraph about the product…&#10;Second paragraph…"><?= h($descStr) ?></textarea>
         <div class="hint">Each line becomes a separate paragraph on the product page.</div>
       </div>
     </div>
@@ -441,13 +441,13 @@ include 'nav.php';
       <div class="card-title">PDF Data Sheet Options</div>
       <div class="form-group">
         <label for="pdfLabel">Primary PDF Button Label</label>
-        <input type="text" id="pdfLabel" name="pdfLabel" value="<?= h($product['pdfLabel'] ?? '') ?>" placeholder="e.g. Molded Cap (leave blank for “Download PDF”)" />
-        <div class="hint">Text shown on the main data-sheet button. The PDF <em>file</em> itself is uploaded on the <a href="upload-pdf.php?sku=<?= urlencode($product['sku'] ?? '') ?>">Upload PDF</a> page.</div>
+        <input type="text" id="pdfLabel" name="pdfLabel" value="<?= h($product['pdfLabel'] ?? '') ?>" placeholder="e.g. Molded Cap (leave blank for &quot;Datasheet&quot;)" />
+        <div class="hint">Text shown on the main data sheet button. The PDF <em>file</em> itself is uploaded on the <a href="upload-pdf.php?sku=<?= urlencode($product['sku'] ?? '') ?>">Upload PDF</a> page.</div>
       </div>
       <div class="form-group">
         <label for="additionalPdfs">Additional PDF Links — one per line</label>
         <textarea id="additionalPdfs" name="additionalPdfs" rows="4" placeholder="/pdfs/IP52EC-plugged-cap.pdf | Plugged Cap"><?= h($addPdfStr) ?></textarea>
-        <div class="hint">Format: <code>/pdfs/filename.pdf | Button Label</code> (label optional). Each becomes an extra download button. Upload the referenced files to <code>/pdfs/</code> first — the admin doesn’t move them for you.</div>
+        <div class="hint">Format: <code>/pdfs/filename.pdf | Button Label</code> (label optional). Each becomes an extra download button. Upload the referenced files to <code>/pdfs/</code> first — the admin doesn't move them for you.</div>
       </div>
     </div>
 

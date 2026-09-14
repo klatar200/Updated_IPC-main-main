@@ -135,7 +135,7 @@
    * PLAN-6 item 1 — warn before a family rename orphans the products in it.
    *
    * Each product stores its OWN partType. Renaming "Tape" to "Tapes" in this
-   * list does not touch the catalogue, so every taped product keeps saying
+   * list does not touch the catalog, so every taped product keeps saying
    * "Tape" and drops out of the renamed family on the public site. That is the
    * correct behaviour — a content save must never bulk-rewrite
    * products-all.json behind the owner — but it is not what anyone expects, so
@@ -144,7 +144,7 @@
    * The server rendered the original name and the product count onto each row,
    * so this compares against what was on disk, not against another input.
    *
-   * Deliberately a warning and not a block: it is his catalogue, and the fix
+   * Deliberately a warning and not a block: it is his catalog, and the fix
    * (re-save those products under the new name) is one he may well be about to
    * do. Confirming proceeds; cancelling leaves the form exactly as typed.
    */

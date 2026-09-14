@@ -131,7 +131,7 @@
     var addBtn = document.createElement("button");
     addBtn.type = "button";
     addBtn.className = "ste-add";
-    addBtn.textContent = "+ Add specification";
+    addBtn.textContent = "+ Add Specification";
     var prevWrap = document.createElement("div");
     prevWrap.className = "ste-prevwrap";
     prevWrap.innerHTML =
@@ -340,7 +340,7 @@
     function renderPreview() {
       var o;
       try { o = JSON.parse(ta.value || "{}"); } catch (e) {
-        previewTable.innerHTML = '<tbody><tr><td class="ste-bad">The data isn’t valid yet.</td></tr></tbody>';
+        previewTable.innerHTML = `<tbody><tr><td class="ste-bad">The data isn't valid yet.</td></tr></tbody>`;
         return;
       }
       var cs = Array.isArray(o.columnSpans) ? o.columnSpans : [];
@@ -375,7 +375,7 @@
         var bar0 = document.createElement("div");
         bar0.className = "ste-bar";
         bar0.innerHTML =
-          '<button type="button" class="ste-add" data-a="col">+ Add column</button>' +
+          '<button type="button" class="ste-add" data-a="col">+ Add Column</button>' +
           '<button type="button" class="ste-adv" data-a="adv">Advanced</button>';
         bar0.querySelector('[data-a="col"]').addEventListener("click", function () {
           groups = [{ label: "Column 1", subs: [] }];
@@ -400,7 +400,7 @@
           '<div class="ste-gtools">' +
           (g.subs.length >= 2
             ? '<button type="button" class="ste-mini" data-act="addsub">+ sub-column</button>'
-            : '<button type="button" class="ste-mini" data-act="split">Split into sub-columns</button>') +
+            : '<button type="button" class="ste-mini" data-act="split">Split into Sub-columns</button>') +
           '<button type="button" class="ste-mini rm" data-act="delgrp">Remove</button>' +
           "</div>";
         var hd = cell.querySelector(".ste-head");
@@ -528,8 +528,8 @@
       var bar = document.createElement("div");
       bar.className = "ste-bar";
       bar.innerHTML =
-        '<button type="button" class="ste-add" data-a="row">+ Add row</button>' +
-        '<button type="button" class="ste-add" data-a="col">+ Add column</button>' +
+        '<button type="button" class="ste-add" data-a="row">+ Add Row</button>' +
+        '<button type="button" class="ste-add" data-a="col">+ Add Column</button>' +
         '<button type="button" class="ste-tool" data-a="paste">Paste from Excel</button>' +
         '<button type="button" class="ste-adv" data-a="adv">Advanced</button>';
       bar.querySelector('[data-a="row"]').addEventListener("click", function () {
@@ -562,7 +562,7 @@
         '<div class="ste-pastehint">Copy a block of cells from Excel or Google Sheets, then paste it below. (This replaces the grid with plain columns.)</div>' +
         '<textarea class="ste-pastebox" placeholder="Paste spreadsheet cells here…"></textarea>' +
         '<label class="ste-chk"><input type="checkbox" class="ste-firsthead" checked> First row is the column headings</label>' +
-        '<div><button type="button" class="ste-add" data-p="fill">Fill grid</button> ' +
+        '<div><button type="button" class="ste-add" data-p="fill">Fill Grid</button> ' +
         '<button type="button" class="ste-tool" data-p="cancel">Cancel</button></div>' +
         "</div>";
       holder.querySelector('[data-p="cancel"]').addEventListener("click", function () { holder.innerHTML = ""; });
@@ -633,18 +633,18 @@
           // Leave groups/rows alone but remember the text is unusable, so
           // submit blocks instead of quietly reverting to the old table.
           advInvalid = true;
-          note.textContent = "This isn’t valid JSON yet — fix it before saving. Saving is blocked until it parses.";
+          note.textContent = "This isn't valid JSON yet — fix it before saving. Saving is blocked until it parses.";
         }
         renderPreview();
       });
       host.appendChild(box);
       var bar = document.createElement("div");
       bar.className = "ste-bar";
-      bar.innerHTML = '<button type="button" class="ste-adv" data-a="back">← Back to the visual editor</button>';
+      bar.innerHTML = '<button type="button" class="ste-adv" data-a="back">← Back to the Visual Editor</button>';
       bar.querySelector('[data-a="back"]').addEventListener("click", function () {
         var o;
         try { o = JSON.parse(ta.value); } catch (err) {
-          note.textContent = "The data isn’t valid JSON yet — fix it before switching back.";
+          note.textContent = "The data isn't valid JSON yet — fix it before switching back.";
           return;
         }
         adoptFromJson(o);
@@ -666,7 +666,7 @@
           e.preventDefault();
           var b = host.querySelector(".ste-advbox");
           if (b) b.focus();
-          alert("The size chart data in Advanced mode is not valid JSON yet. Fix it (or click “Back to the visual editor”) before saving — nothing was saved.");
+          alert("The size chart data in Advanced mode is not valid JSON yet. Fix it (or click \"Back to the Visual Editor\") before saving — nothing was saved.");
           return;
         }
         serialize();

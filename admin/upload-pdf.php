@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             audit_log('remove-pdf', $sku, 'Removed PDF: ' . $oldName);
-            $success    = 'PDF removed. Visitors will now see “Request Data Sheet” for this product.';
+            $success    = 'PDF removed. Visitors will now see "Request Datasheet" for this product.';
             $currentPdf = '';
             $product    = $products[$idx];
         } else {
@@ -181,7 +181,7 @@ include 'nav.php';
         <span>📄 <?= h(basename($currentPdf)) ?></span>
         <div style="display:flex;gap:8px;align-items:center">
           <a href="<?= h($currentPdf) ?>" target="_blank" class="btn btn-secondary">View PDF</a>
-          <form method="POST" style="display:inline" data-confirm="Remove this PDF? The product will revert to showing &quot;Request Data Sheet&quot; on the website. The PDF file will be deleted from the server.">
+          <form method="POST" style="display:inline" data-confirm="Remove this PDF? The product will revert to showing &quot;Request Datasheet&quot; on the website. The PDF file will be deleted from the server.">
             <input type="hidden" name="action" value="remove">
             <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
             <button type="submit" class="btn btn-secondary" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca">Remove PDF</button>
@@ -190,7 +190,7 @@ include 'nav.php';
       </div>
       <div class="hint" style="margin-top:10px">Uploading a new file will replace this PDF <strong>in place</strong> — it overwrites <code><?= h(basename($currentPdf)) ?></code> in the <code>/pdfs/</code> folder, so the link keeps working for every part covered by this data sheet.</div>
     <?php else: ?>
-      <p style="color:#9ca3af;font-size:13px;margin:0">No PDF uploaded yet for this product — the website is showing a “Request Data Sheet” button.</p>
+      <p style="color:#9ca3af;font-size:13px;margin:0">No PDF uploaded yet for this product — the website is showing a "Request Datasheet" button.</p>
     <?php endif; ?>
   </div>
 

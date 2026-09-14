@@ -191,7 +191,7 @@ $navActive = 'backups';
         <form method="POST" data-confirm="Restore <?= h($t['label']) ?> to its state from <?= h($b['when']) ?><?= !empty($b['items']) ? ' (' . h($b['items']) . ')' : '' ?>? The current version is backed up first, so this can be undone.">
           <input type="hidden" name="backup" value="<?= h($b['file']) ?>">
           <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
-          <button type="submit" class="btn">Restore this version</button>
+          <button type="submit" class="btn">Restore This Version</button>
         </form>
         <?php else: ?>
         <span class="size" style="margin-left:auto;color:#dc2626">Not a backup this page wrote — cannot restore it from here.</span>

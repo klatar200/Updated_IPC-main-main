@@ -30,7 +30,7 @@
     if (label.length > 60) label = label.slice(0, 60) + '…';
     // No usable label (a brand-new, still-empty row) — stay generic rather than
     // printing empty quotes.
-    return msg.replace('{it}', label ? '“' + label + '”' : 'this item');
+    return msg.replace('{it}', label ? '"' + label + '"' : 'this item');
   }
 
   // Links and buttons: confirm on click, cancel the action if declined.

@@ -147,7 +147,7 @@ $navActive = 'inquiries';
     <?php endif; ?>
   </div>
   <?php if ($failed > 0): ?>
-    <p class="sub" style="margin:-8px 0 20px">“Email delivery failed” counts only genuine send failures. Submissions the website blocked as spam are listed separately and are not a mail problem.</p>
+    <p class="sub" style="margin:-8px 0 20px">"Email delivery failed" counts only genuine send failures. Submissions the website blocked as spam are listed separately and are not a mail problem.</p>
   <?php endif; ?>
 
   <?php if (empty($entries)): ?>

@@ -131,7 +131,7 @@ $navActive = 'products';
 <main class="admin-wide">
   <div class="page-header">
     <div>
-      <h1>Product Catalog</h1>
+      <h1>Products</h1>
       <p><?= count($products) ?> products across <?= count($grouped) ?> categories</p>
     </div>
     <a href="add.php" class="btn btn-primary">+ Add Product</a>
@@ -185,7 +185,7 @@ $navActive = 'products';
   }
   if (!is_dir(PDF_DIR) || !is_writable(PDF_DIR)) {
       $healthProblems[] = 'The <code>pdfs</code> folder is missing or not writable. '
-        . 'Data-sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.';
+        . 'Data sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.';
   }
   /* A-9.P2-2 — the image extension the photo resizer needs. Every other row
      here is a permission; this one is a missing PHP extension, and it fails
@@ -230,7 +230,7 @@ $navActive = 'products';
   $closeBtn = '<form method="POST" style="display:inline;margin-left:6px">'
     . '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '">'
     . '<input type="hidden" name="close_reset_window" value="1">'
-    . '<button type="submit" class="btn btn-sm btn-danger" style="vertical-align:baseline">Close it now</button>'
+    . '<button type="submit" class="btn btn-sm btn-danger" style="vertical-align:baseline">Close It Now</button>'
     . '</form>';
   if (password_reset_unlocked()) {
       $healthProblems[] = '<strong>The password-reset window is OPEN.</strong> '

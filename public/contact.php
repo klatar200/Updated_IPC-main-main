@@ -178,7 +178,7 @@ $bizFax    = trim($si['contact']['fax'] ?? '')   !== '' ? trim($si['contact']['f
 // (DEPLOY_READINESS_v2 4.16)
 $bizName   = trim(preg_replace('/[\r\n]+/', ' ', (string)($si['company']['name'] ?? '')));
 if ($bizName === '') $bizName = 'Insulation Products Corporation';
-$bizHours  = trim($si['hours']['text'] ?? '')    !== '' ? trim($si['hours']['text'])    : 'Mon-Fri, 8am-5pm CT';
+$bizHours  = trim($si['hours']['text'] ?? '')    !== '' ? trim($si['hours']['text'])    : 'Mon–Fri, 8am–5pm CT';
 $ad        = $si['address'] ?? [];
 $bizAddr   = trim(($ad['street'] ?? '250 Gibraltar Dr') . ', ' . ($ad['city'] ?? 'Bolingbrook') . ', '
            . ($ad['state'] ?? 'IL') . ' ' . ($ad['zip'] ?? '60440'));
