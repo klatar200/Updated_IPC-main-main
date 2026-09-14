@@ -7,6 +7,11 @@ plan may add constraints; it may never relax one from there.
 remediation of AUDIT-10's severity A and B tiers, shipped 2026-08-11 and
 independently verified by AUDIT-11 the same day.
 
+**The open plan is [PLAN-11](PLAN-11-audit9-go-live.md)** — Audit 9, the full
+go-live audit (bugs, logic gaps, verbiage, page structure), written 2026-09-14.
+Its output is `audit-runs/audit9.md` and a GO / GO-WITH-OWNER-ACTIONS / NO-GO
+verdict.
+
 ---
 
 ## Where the earlier plans went
