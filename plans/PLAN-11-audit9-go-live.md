@@ -1,6 +1,6 @@
 # PLAN-11 — Audit 9: the full go-live audit
 
-**Status:** OPEN — not started. **Revision 2** (2026-09-14; the revision log is at the end).
+**Status:** OPEN — not started. **Revision 3** (2026-09-14; the revision log is at the end).
 **Written:** 2026-09-14 against `main` @ `ad2267e` (PR #53 and PR #47 merged the same day).
 **Audience:** the agents executing the audit. Dense by design; agent-parse only.
 **Binding order:** [`plans/GUARDRAILS.md`](GUARDRAILS.md) → this file → the pass briefs in §6. A pass brief may add a constraint; nothing here relaxes one from GUARDRAILS.
@@ -16,7 +16,7 @@ Context economy is a rule, not a preference. Each row says who reads it and what
 | # | File | Who | Take |
 |---|---|---|---|
 | 1 | `plans/GUARDRAILS.md` | **all** | §0 premise, §1 scope, §2 hard prohibitions, §4.3 what `php -S` cannot test, §4.4 test-first, §5 working rules, §7–§7.3 do-not-re-report / environment artifacts / refuted / settled, §8 handback. C also reads §4.1–4.2. |
-| 2 | this file | **all** — but only: §2, §3, §10, §11, §13; **C** everything; **a pass agent** adds its own §6 brief and Appendix rows its brief names; **V** adds §3.3, §7.1, §13.1 | The rules and the brief. A pass agent does not read other passes' briefs. |
+| 2 | this file | **all** — but only: §2, §3, §10, §11, §13; **C** everything; **a pass agent** adds the §6 briefs of its group (§3.1) and the Appendix rows they name; **V** adds §3.3, §7.1, §13.1 | The rules and the briefs. A pass agent does not read another group's briefs. |
 | 3 | `CLAUDE.md` | C, P3, P7 | The 16 invariants and the security posture. Re-verify; do not re-derive. |
 | 4 | `_harness/README.md` | C, P11 | Bootstrap, servers + fleet, the suite → item map, expected reds, the bailing rule. Pass agents get the rows their brief names, quoted in their launch prompt (§13.4). |
 | 5 | `GO-LIVE.md` | C, P8, P4 (step 1 only) | STEP 0, A, B, C, the rollback. |
@@ -61,28 +61,37 @@ Unchanged from GUARDRAILS §0. The admin's audience is **Rick** — the owner, n
 
 | Role | Count | Does | Must not |
 |---|---|---|---|
-| **Coordinator (C)** | 1 | Phase 0, Phase 1, the three shared instruments (§3.3), dispatch, triage, dedupe, every fix, consolidation, records, PR. Also runs P10 and P11's mechanical steps itself. | Write a finding without a reproduction of its own. Skip a pass because another "probably covered it". Edit the ledger while passes are running except to add rows. |
-| **Pass agent (P1…P11)** | 1 per brief (P5 is three: P5a/b/c) | Executes exactly one §6 brief. Writes to its own working file `audit-runs/audit9/P<n>-<slug>.md` in the §13.3 shape, and to `_harness/out/audit9/P<n>/`. Writes instruments only where its brief names them. | Edit any other file. Fix anything. Touch another pass's surface. Read another pass's brief. Update the ledger. |
-| **Verifier (V)** | 1–3, never the agent that raised the finding | Re-runs each assigned reproduction from a fresh private mirror (§3.4) before a finding is accepted. Refutes with a measurement, or accepts. | Accept on the pass agent's word. Change a severity without writing the consequence next to it. |
+| **Coordinator (C)** | 1 | Phase 0, Phase 1, the three shared instruments (§3.3), dispatch, triage, dedupe, every fix, consolidation, records, PR. | Write a finding without a reproduction of its own. Skip a pass because another "probably covered it". Edit the ledger while passes are running except to add rows. |
+| **Pass agents (A, B1, B2, C′, D)** | 5 — the groups below | Executes the §6 briefs of its group, one after another, in the order given. Writes **one working file per pass** `audit-runs/audit9/P<n>-<slug>.md` in the §13.3 shape (finished as each pass ends, so a context reset mid-group loses nothing), and to `_harness/out/audit9/P<n>/`. Writes instruments only where a brief names them. | Edit any other file. Fix anything. Touch another group's surface. Read another group's briefs. Update the ledger. |
+| **Verifier (V)** | 1; a second only if the accepted findings exceed what one can reproduce; never the agent that raised the finding | Re-runs each assigned reproduction from a fresh private mirror (§3.4) before a finding is accepted. Refutes with a measurement, or accepts. | Accept on the pass agent's word. Change a severity without writing the consequence next to it. |
 
-A single agent may play every role sequentially if parallelism is unavailable. The role boundaries still apply: raising, verifying and fixing a finding are three separately recorded steps, and verification is a re-run from a clean mirror.
+**The five groups — by what they read, so each surface is loaded into one context once.**
 
-**Model tiering (recommendation, not a rule).** Mechanical passes (P1, P10, P11, P2 steps 1–2 and 4, P5 rules 1–5) can run on a smaller model. Judgement passes (P5 rules 7–10, P6 step 3, P7, P3) and every V run on the strongest available. The downside: a smaller model on a mechanical pass will still write prose around its outputs; the §13.3 header format is what keeps that cheap to triage.
+| Agent | Passes, in order | Shares | Model |
+|---|---|---|---|
+| **A** | P2 (steps 1–2, 4–6) → P3 → P7 → P2 step 3 | one reading of `admin/*.php`, `contact.php`, the merge/fetch functions; one E_ALL mirror; the admin-flow instrument | strongest |
+| **B1** | P4 → P5a | the public strings: truth first, then wording of the same strings; the claims register seeds from the inventory | strongest |
+| **B2** | P5b → P5c | `help.php`, the two emails and the owner docs, checked against the same admin UI | strongest |
+| **C′** | P6 → P9 → P10 | the crawl JSON: same pages, same viewports | mid |
+| **D** | P1 → P8 → P11 | mechanical, file-based: build, deploy-sim, doc truth, harness census | smaller |
+
+Why five and not twelve: fan-out buys wall-clock, not tokens or quality — every agent pays the same fixed reading before it does anything, and quality here comes from holding one surface in context and from independent verification. Five disjoint tracks keep the parallel wall-clock; the critical path is A either way. The cost: P3 and P7 lose fresh-eyes independence from each other; V stays independent of both, which is the independence that matters.
+
+A single agent may play every role sequentially if parallelism is unavailable. The role boundaries still apply: raising, verifying and fixing a finding are three separately recorded steps, and verification is a re-run from a clean mirror. The downside of the smaller model on D: it will still write prose around its outputs; the §13.3 header format is what keeps that cheap to triage.
 
 ### 3.2 Waves — what runs when, and what may run at once
 
 ```
 Wave 0  (C, serial)         §4.2 bootstrap → §4.3 suite reconciliation → §4.6 STEP 0 → start the sweep in the BACKGROUND
                             → Phase 1 ledger  ‖  three instrument agents I-crawl, I-admin, I-strings in PARALLEL (§3.3)
-Wave 1  (parallel)          P1 P2¹ P3 P4 P5a P5b P5c P6² P7 P8 P9² P11   — each on its own mirror copy + port (§3.4)
-                            ¹ P2 step 3 waits for P3 and P7 to finish (it reads their E_ALL log)
-                            ² P6, P9, P10, P5a wait for I-crawl / I-strings output; everything else starts immediately
-Wave 2  (C)                 P10 from the crawl JSON; consolidation + dedupe (§7.0); V assignment
+Wave 1  (parallel)          A  B1¹  B2¹  C′²  D   — five agents, each on its own mirror copy + port (§3.4)
+                            ¹ B1 and B2 wait for I-strings (B1 also for I-crawl); ² C′ waits for I-crawl; A and D start immediately
+Wave 2  (C)                 consolidation + dedupe (§7.0); V assignment
 Wave 3  (V, parallel)       reproductions, split by severity then by pass; each V on a fresh mirror copy
 Wave 4  (C, serial)         fixes (single fixer) → surface-selected regression batches → FULL sweep in the background → records → PR
 ```
 
-Concurrency cap: **four** browser-driving agents at once on one box (I-crawl, P3, P6, P7, P9 are browser-driving; P4 step 6, P8 steps 2–5 and V runs also open a browser). Grep/file-only passes (P1, P2 steps 1–2/4, P5b/c rules 1–5, P8 step 6, P11) are uncapped. If the box is smaller, drop the cap; do not drop the private-mirror rule.
+Concurrency cap: **four** browser-driving agents at once on one box (I-crawl, A, B2, C′ drive a browser; D's deploy-sim and V runs also open one). B1 is file-based. If the box is smaller, drop the cap; do not drop the private-mirror rule.
 
 **The sweep stays serial.** It is one `run.js` invocation; the suites hardcode `:8123` and 26 of the 58 assertive suites write to or restore the mirror's `data/` (census 2026-09-14, command in Appendix A), so parallel workers on one docroot contaminate each other and `php -S` serves one request at a time. The parallelism gain is that the sweep runs **unattended in the background** while Phase 1 and Wave 1 proceed — nobody waits on it. Honest downside: the sweep's wall-clock is the floor of Wave 0–1.
 
@@ -113,21 +122,21 @@ Single-owner table for measurements two passes would otherwise both take:
 `_harness/site/` (built by `sync.sh`, ~21 MB) is the **sweep's** mirror on `:8123`/`:8124`/`:8125` + the fleet. Nothing else touches it. Every pass agent and every V that mutates data or drives a browser makes its own copy and serves it:
 
 ```sh
-cp -r _harness/site _harness/out/audit9/site-P3 && php -S 127.0.0.1:8141 -t _harness/out/audit9/site-P3 -c _harness/php-mail.ini _harness/router.php &
+cp -r _harness/site _harness/out/audit9/site-A && php -S 127.0.0.1:8140 -t _harness/out/audit9/site-A -c _harness/out/audit9/php-eall.ini _harness/router.php &
 ```
 
 | Port | Owner | ini |
 |---|---|---|
 | 8123 / 8124 / 8125 / 8130–8139 | the sweep only | per `_harness/README.md` |
-| 8140 | P2 — `E_ALL`, `display_errors=On`, `log_errors=On`, `error_log` under `_harness/out/audit9/P2/` (a copy of `php-mail.ini` with those four lines; not committed) | — |
-| 8141 P3 · 8142 P4 · 8143 P6 · 8144 P7 · 8145 P8 deploy-sim · 8146 P9 · 8147 I-crawl · 8148 I-admin | one each | `php-mail.ini` |
-| 8150–8159 | V, one per verifier | `php-mail.ini` |
+| 8140 | **A** — `E_ALL`, `display_errors=On`, `log_errors=On`, `error_log` under `_harness/out/audit9/P2/` (`php-eall.ini`: a copy of `php-mail.ini` plus those four lines, kept under `_harness/out/`, not committed) | `php-eall.ini` |
+| 8142 B2 · 8143 C′ · 8145 D deploy-sim · 8147 I-crawl · 8148 I-admin | one each | `php-mail.ini` |
+| 8150–8151 | V, one per verifier | `php-mail.ini` |
 
-P3 and P7's manual flows run against **P2's `:8140`** as well (or P2 replays `audit9-adminflows.js` on `:8140` itself) so the deprecation log is a by-product of work already being done. Existing suites (hardcoded `:8123`) run **only** inside the sweep, never by a pass agent. A private mirror is restored by re-copying; the sweep mirror is restored from `_harness/pristine/` and proven with a byte diff.
+A runs P3's and P7's flows on its own `:8140`, so P2 step 3's deprecation log is a by-product of work already being done; B1 is file-based and serves nothing. Existing suites (hardcoded `:8123`) run **only** inside the sweep, never by a pass agent. A private mirror is restored by re-copying; the sweep mirror is restored from `_harness/pristine/` and proven with a byte diff.
 
 ### 3.5 Token discipline — the rules that keep twelve agents cheap
 
-1. **Read-scoping is §0.** A pass agent's launch prompt (§13.4) inlines its brief and the `_harness/README.md` rows it needs; the agent opens this file only for §2, §3, §10, §11, §13.
+1. **Read-scoping is §0.** A pass agent's launch prompt (§13.4) inlines its group's briefs and the `_harness/README.md` rows they need; the agent opens this file only for §2, §3, §10, §11, §13.
 2. **Outputs over 40 lines go to a file** under `_harness/out/audit9/<pass>/` and are cited by path. The working file holds scores, paths and records — never pasted logs, never screenshots described in prose.
 3. **Inventories and crawl JSON are queried, never read.** `node -e` / `jq` filters; the agent reads the hit list. Reading `audit9-strings.json` into context is a defect in the pass.
 4. **C triages from headers.** Every working file starts with the §13.3 header (counts, one line per finding, ledger rows, out-of-brief lines, artifact index). C reads records on demand, by ID.
@@ -269,7 +278,7 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 ### P2 — PHP runtime compatibility and the production host's assumptions
 
 **Objective.** The PHP the host actually runs executes every entry point with zero deprecations, warnings or notices, and nothing depends on a version or extension the host lacks.
-**Starts after.** Wave 0 for steps 1, 2, 4–6. **Step 3 after P3 and P7 finish** (it reads the `:8140` log they produced) — or P2 replays `audit9-adminflows.js` on `:8140` itself if they have not.
+**Starts after.** Wave 0 for steps 1, 2, 4–6 (agent A does these first — grep-only, quick). **Step 3 is A's last step**, after its P3 and P7 flows have filled the `:8140` log; if a flow was skipped, A replays `audit9-adminflows.js` on `:8140` before reading it.
 **Scope.** `admin/*.php`, `public/contact.php`, `public/sitemap.php`, `public/.user.ini`.
 
 **Method.**
@@ -288,7 +297,7 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 ### P3 — Security re-verification (re-verify, do not re-derive)
 
 **Objective.** The posture in `CLAUDE.md` holds mechanically on today's code, and nothing added since audit 8 opened a hole. Authorised testing of the project's own mirror; nothing touches the live host.
-**Starts after.** Wave 0 (I-admin's baseline output is convenient, not required). Own mirror on `:8141`; manual flows also replayed on P2's `:8140`.
+**Starts after.** Agent A, after P2 steps 1–2 and 4–6 (I-admin's baseline output is convenient, not required). A's mirror on `:8140`.
 **Scope.** `admin/**`, `public/contact.php`, `public/sitemap.php`, all four `.htaccess`, `.gitignore`, `.user.ini`.
 
 **Method — enumerate, then request.**
@@ -307,12 +316,12 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 **Finding criteria.** Output before `require_auth()`; a `$_POST` read with no `csrf_check()`; an unescaped echo; a containment payload that reads/writes; an upload that lands; a `ping.php` session; an uncovered creatable file; a tracked hash or runtime file.
 **Not a finding.** `audit5.md` "Refuted" rows unless today's code differs — quote the diff. A-5.10 (deferred by the owner).
 **Artifacts.** Auth-offset table; CSRF map; escaping dispositions; each request/response (status, 200 bytes, `data/` byte-diff); the coverage table.
-**Exit.** Eleven steps recorded; `:8141` mirror discarded; mirror credential rule §10.3.
+**Exit.** Eleven steps recorded; the `:8140` mirror is re-copied before P7 and discarded only after P2 step 3 has read its log; mirror credential rule §10.3.
 
 ### P4 — Data truth: is what the site says true, and is the data well-formed
 
 **Objective.** Every factual claim a buyer reads is true, sourced, and edited on a known screen; every record in the three JSON files is well-formed for every reader.
-**Starts after.** §4.6 STEP 0 (reads `step0.md`); step 7 after I-crawl. Own mirror `:8142` for nothing — this pass is file-based except step 7's crawl JSON.
+**Starts after.** §4.6 STEP 0 (reads `step0.md`) and I-strings; step 7 after I-crawl. Agent B1's first pass. File-based — no mirror.
 **Scope.** The three `data/*.json` (live copies if STEP 0 = LIVE), `COPY_DEFAULTS`/`SITE_DEFAULTS`, the JSON-LD emitters, `manifest.json`, `robots.txt`, `index.html` meta, `sitemap.php`.
 
 **Method.**
@@ -329,11 +338,11 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 **Artifacts.** Claims register; the live/repo diffs; the shape report; the JSON-LD table.
 **Exit.** Steps 1–5 and 7 recorded; every register row has a source or `[UNSOURCED]`.
 
-### P5 — Verbiage: every string a person reads (three parallel agents)
+### P5 — Verbiage: every string a person reads (P5a by agent B1; P5b and P5c by agent B2)
 
 **Objective.** Every user-visible string on the public site, in the admin, in the two emails, and in the owner-facing documents is spelled correctly, grammatical, consistent with one controlled vocabulary, true (P4 supplies truth), addressed to the right reader, and accurate about the UI it describes.
-**Starts after.** I-strings (all three); P5a also after I-crawl (alt/link/label fields come from it).
-**Split.** **P5a** public site + meta + `public-jsx` + `public-defaults` + `public-data`. **P5b** admin pages + `help.php` + the two emails. **P5c** the owner-facing docs (`admin/README.md`, `Editing-Your-Site-Content.md`, `Email to Rick…`) plus the *language only* of `GO-LIVE.md` and `PATCH_NOTES.md` (P8 owns their facts). Each agent applies the ten rules to its surfaces and nothing else.
+**Starts after.** I-strings; P5a also after I-crawl (alt/link/label fields come from it) and after B1's P4 (the claims register feeds rule 6).
+**Split.** **P5a** (B1) public site + meta + `public-jsx` + `public-defaults` + `public-data`. **P5b** (B2) admin pages + `help.php` + the two emails, on B2's `:8142`. **P5c** (B2) the owner-facing docs (`admin/README.md`, `Editing-Your-Site-Content.md`, `Email to Rick…`) plus the *language only* of `GO-LIVE.md` and `PATCH_NOTES.md` (P8 owns their facts). Each pass applies the ten rules to its surfaces and nothing else; one working file per pass.
 
 **The inventory** (`_harness/audit9-strings.js`, built in Wave 0) emits `{surface, locator, text, editable_on}` for: `public-jsx` (literal text nodes and `placeholder`/`aria-label`/`title`/`alt`/`label` props in `App.jsx` outside `COPY_DEFAULTS` — strings the owner cannot edit; each classified fine-as-hardcoded or should-be-editable, the latter one batched Low), `public-defaults` (`COPY_DEFAULTS`, `SITE_DEFAULTS` leaves), `public-data` (three JSON files' leaves — live copies if LIVE), `admin` (text nodes outside PHP blocks, flash/error/notice literals, every `data-confirm`, `help.php` in full), `email` (notification + auto-reply subject/body rendered with sample data), `meta` (`seo[]`, `index.html` title/description/`og:*`, `manifest.json`, `robots.txt` comments, 404, `CatalogError`, session-expired, too-large, `auth.php` no-password state), `docs` (P5c's files as sentences).
 
@@ -379,7 +388,7 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 ### P7 — Gaps in logic: the state and edge-case matrix
 
 **Objective.** Every conditional path and every input shape the world can send produces the outcome the site needs — not merely "does not crash". Appendix C is the matrix.
-**Starts after.** Wave 0 (I-admin's baseline is convenient). Own mirror `:8144`; flows also replayed on P2's `:8140`.
+**Starts after.** Agent A, after P3, on A's `:8140` mirror re-copied fresh (I-admin's baseline is convenient).
 **Scope.** The routing shim, `useProducts`, both providers and merges, `ErrorBoundary`, `ContactPage` both forms, catalog filters, `contact.php`, `sitemap.php`, `config.php` (`backup_*`, `save_*`, `require_auth`, throttle, `admin_password_write`), `edit/content/settings/backups/delete/upload-*/auth/password/index/ping.php`.
 
 **Method.**
@@ -388,7 +397,7 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 3. **Time.** Browser: Playwright `clock` at 2026-12-31T23:59:59 and 2027-01-01T00:00:01 for the copyright range and effective date. PHP: the reset window and backup ordering are **mtime-based** — test boundaries with `touch -d` on `ALLOW-PASSWORD-RESET` (3599 s / 3601 s) and on backup files, not by freezing PHP's clock.
 4. **Concurrency.** Two tabs on `edit.php` for one SKU, save both: the second gets the stale-signature message with typed values kept (B1). Same on `settings.php`, `content.php`. A save during a restore.
 5. **Encoding.** `–`, `°`, `″`, `µ`, emoji, an RTL mark through: contact form → email + JSONL → `inquiries.php`; `settings.php` → `site-info.json` → footer; `content.php` → `content.json` → page. Byte-faithful; `JSON_UNESCAPED_UNICODE` on disk or a documented reason.
-6. **One of three files failing** (row C5): each file, one at a time on `:8144`: 404 / HTML-200 (SPA fallback — `jsonOrThrow()` must reject) / truncated / wrong `Content-Type` / 12 s stall. Catalog routes → `CatalogError` with the phone number in the footer (invariant 8); other routes fully rendered; recovery on refocus/TTL without reload (4.25). Re-copy the mirror after each.
+6. **One of three files failing** (row C5): each file, one at a time on `:8140`: 404 / HTML-200 (SPA fallback — `jsonOrThrow()` must reject) / truncated / wrong `Content-Type` / 12 s stall. Catalog routes → `CatalogError` with the phone number in the footer (invariant 8); other routes fully rendered; recovery on refocus/TTL without reload (4.25). Re-copy the mirror after each.
 
 **Finding criteria.** Any row whose observed outcome differs from expected; any unreached branch after step 2 (the gap is Low; what the added row finds is scored on its own).
 **Not a finding.** Rows proven by a green sweep line; the catalog-size cliff (refuted); scalar-field coercion (not taken, audit 7 §3) unless a row shows a non-string reaching a render site through an admin path.
@@ -417,7 +426,7 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 ### P9 — Accessibility and responsive re-verification
 
 **Objective.** The AUDIT-10/11 and PLAN-8 state holds, and the go-live minimum (keyboard-complete, AA where the palette allows, reduced motion, 200 %/400 % zoom, no horizontal scroll at 390) is measured.
-**Starts after.** I-crawl. Own mirror `:8146` for keyboard and zoom runs.
+**Starts after.** Agent C′, after P6, on the same `:8143` mirror for keyboard and zoom runs.
 **Scope.** Public routes at 390/834/1440; admin at 390/1440; drawer, both forms, mega-menus, FAQ, dashboard table.
 
 **Method.**
@@ -426,7 +435,7 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 3. **Reflow**: 200 % at 1440, 400 % at 1280 — no cut content, no horizontal scroll except inside spec-table scrollers.
 4. **Large text**: root `font-size: 24px` — `px`-height clipping.
 5. **Semantics** from the crawl's accessibility snapshots: every control named; buttons not named by glyph; `role="alert"` for form errors; live region for async catalog states.
-6. Optional: `npx --yes @axe-core/cli` (free, temporary, never in `package.json`) on `:8146`. Every axe hit reproduced through steps 2–5 before it is written — six probe defects in AUDIT-11 §7.2 are why.
+6. Optional: `npx --yes @axe-core/cli` (free, temporary, never in `package.json`) on `:8143`. Every axe hit reproduced through steps 2–5 before it is written — six probe defects in AUDIT-11 §7.2 are why.
 7. **Colour**: measure under the glyphs on the real background (`backdrop.js`), never on the box. GUARDRAILS §7.3 / `WHATS_LEFT.md` §3 brand decisions are closed; a new finding only on a surface they do not name.
 
 **Finding criteria.** Unreachable / trapped / unnamed / ringless control; reflow failure; contrast failure on an unsettled surface; missing live region.
@@ -434,7 +443,7 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 **Artifacts.** Focus-order lists; zoom screenshots; axe log with per-item reproduction status.
 **Exit.** Seven steps recorded.
 
-### P10 — Performance and robustness (run by C from the crawl JSON; no separate agent)
+### P10 — Performance and robustness (agent C′, last, from the crawl JSON)
 
 1. From I-crawl: 0 console errors, 0 failed requests, 0 responses ≥ 400 across 10 routes + 42 product pages (audit 7 §4's measurement, repeated).
 2. Cite the sweep lines: `plan5-images`, `plan5-listeners`, `plan5-keys`.
@@ -444,7 +453,7 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 
 **Finding criteria.** Any console error or failed request; an image over budget; listener growth; a cache header contradicting the deploy strategy. **Not a finding.** Bundle within 10 % of 375.66 kB; the catalog-size hypothesis.
 
-### P11 — The harness and the process (audit the auditors; C runs the mechanical steps)
+### P11 — The harness and the process (agent D, last; D reports, C writes the `GUARDRAILS.md` §4.1 refresh and any deletions)
 
 1. Resolve the §4.3 rows: every name in `_harness/README.md`'s tables and not runnable, or runnable and in no table. The resolved union becomes the denominator in `audit9.md` §1 and a dated refresh of `GUARDRAILS.md` §4.1.
 2. Every `*-selftest.js` runs and **fails its target** as designed (`invariants-selftest` 15/15, `copydrift-selftest` 5/5, `contactflow-selftest`, `backdrop-selftest` 9/9, `plan2-formlast-selftest`). A selftest that passes without its target failing is High — everything downstream is unproven.
@@ -463,7 +472,7 @@ Each pass: **Objective · Starts after · Scope · Method · Finding criteria ·
 
 ### 7.0 Consolidation and dedupe (C, from §13.3 headers)
 
-Read the twelve headers only. Two records with the same `where:` and the same consequence are **one** finding — keep the earlier ID, cite both passes, and the record that reproduces more cheaply wins the `reproduce:` field. Then assign V by severity first (Blocker/High to the strongest V), then by pass.
+Read the pass headers only — eleven files (P1–P4, P5a/b/c, P6–P9) from the five agents, plus C′'s P10 and D's P11 blocks. Two records with the same `where:` and the same consequence are **one** finding — keep the earlier ID, cite both passes, and the record that reproduces more cheaply wins the `reproduce:` field. Then assign V by severity first (Blocker/High to the strongest V), then by pass.
 
 ### 7.1 Severity — one definition, used everywhere
 
@@ -662,15 +671,16 @@ self-corrections: <list or "none">
 ### 13.4 Launch prompt for a pass agent (C fills the brackets; nothing else is sent)
 
 ```
-You are pass agent P<n> for Audit 9 of klatar200/Updated_IPC-main-main, branch <branch>, commit <sha>.
+You are agent <A|B1|B2|C′|D> for Audit 9 of klatar200/Updated_IPC-main-main, branch <branch>, commit <sha>.
+Your passes, in this order: <P… → P… → P…>. Finish each pass's working file before starting the next.
 Read, in this order, and nothing else before starting: plans/GUARDRAILS.md (§0–§2, §4.3–§4.4, §5, §7–§7.3, §8);
-plans/PLAN-11-audit9-go-live.md §2, §3, §10, §11, §13; then your brief, pasted here in full:
-<§6 P<n> brief, verbatim> <Appendix rows your brief names, verbatim> <the _harness/README.md rows your brief names, verbatim>
+plans/PLAN-11-audit9-go-live.md §2, §3, §10, §11, §13; then your briefs, pasted here in full:
+<§6 briefs of your group, verbatim, in order> <Appendix rows they name, verbatim> <the _harness/README.md rows they name, verbatim>
 Inputs ready for you: _harness/out/audit9/step0.md; sweep-before.txt; <instrument outputs and paths>.
-Your mirror: cp -r _harness/site _harness/out/audit9/site-P<n> and serve it on :<port> with _harness/php-mail.ini. Never touch :8123–:8139.
-Write only: audit-runs/audit9/P<n>-<slug>.md (header §13.3 first, records §13.1 below) and _harness/out/audit9/P<n>/.
+Your mirror: cp -r _harness/site _harness/out/audit9/site-<agent> and serve it on :<port> with <ini>. Re-copy it between passes. Never touch :8123–:8139.
+Write only: audit-runs/audit9/P<n>-<slug>.md per pass (header §13.3 first, records §13.1 below) and _harness/out/audit9/P<n>/.
 You do not fix anything. You do not edit the ledger. Out-of-brief observations are one line each under "## Out of brief".
-Stop when your brief's Exit line is met or your blocked list is written. Hand back the header block only.
+Stop when every brief's Exit line is met or your blocked list is written. Hand back the header blocks only.
 ```
 
 ---
@@ -772,3 +782,5 @@ Record each line with score **and denominator**. `plan5-keys` builds its own dev
 16. No token-discipline rules at all → §3.5.
 17. Two citations in the rev-2 draft itself were wrong and were caught by re-measuring before commit: `sync.sh` "45–49" (the `mkdir` is at 47–48), and "plan5-throttle's port use is computed" (it is literal at `plan5-throttle.js:57`; the suite is simply outside the classifier's 58). Both corrected; the second became the worked example in Appendix A for why §4.3 takes the union.
 Honest downside of rev 2: more agents means more fixed overhead (each reads GUARDRAILS + its brief); the instruments and read-scoping are what pay for it, and the sweep's wall-clock is still the floor.
+
+**2026-09-14 — rev 3, on Keagan's decision after the rev-2 audit.** Twelve pass agents were fan-out for its own sake: it bought wall-clock, not tokens or quality, and each agent paid the same fixed reading. Regrouped into five agents by what they read (§3.1 table: A = P2+P3+P7, B1 = P4+P5a, B2 = P5b+P5c, C′ = P6+P9+P10, D = P1+P8+P11), one working file per pass kept so a context reset mid-group loses nothing, V reduced to one unless the finding count forces a second, the port table and launch prompt rewritten per group. Five disjoint tracks keep the parallel wall-clock; the critical path (A) is unchanged. Accepted cost: P3 and P7 share eyes; V's independence is the one that matters and is kept.
