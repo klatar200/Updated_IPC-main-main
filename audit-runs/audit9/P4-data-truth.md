@@ -11,7 +11,7 @@ findings:   Blocker 0 · High 1 · Medium 5 · Low 4
 | A-9.P4-7 | Low | code | `src/App.jsx:7184` | Organization JSON-LD hardcodes `logo: /favicon.svg` and ignores `site-info.json` `theme.logoUrl`, the field Business Details offers for exactly this. |
 | A-9.P4-8 | Medium | decision | `products-all.json` — `IP12GA-IP1274`, `IP13SP`, `IP25PU`, `IP30UV`, `IP47HV` | Five of 42 product pages (12 % of the catalog) show the "image coming soon" panel instead of a photograph; `WHATS_LEFT.md` records only "untouched", which is not a decision. |
 | A-9.P4-9 | Low | code + decision | `src/App.jsx` `StructuredData`, Product block | Product JSON-LD on all 42 product pages carries no `image` (37 have a local `photoUrl` sitting unused) and no `offers`, so none is eligible for a Product rich result. |
-| A-9.P4-10 | Low | data-live | `products-all.json` — 5 products, `specTable2` column 0 | Inside one spec-table column the same fractional-inch size is written both with and without the inch mark (`3/4` beside `1"`), so a size column reads as two different units. |
+| A-9.P4-10 | Low | data-live | `products-all.json` — 3 products (`IP37SH-IP36TH-IP39LH`, `IP38FE`, `IP42MW`), `specTable2` column 0 | Inside one spec-table column the same size is written both with and without the inch mark (`3/4` beside `1"`), so a size column reads as two different units. **Re-measured after V refuted 2 of the 5 SKUs first named; 12 marked / 21 bare over 33 cells.** |
 ledger:     done E022, E027, E036, E051, E052, E095, E096, E097, E100, E101, E102 (parity read-only — the `content.php` half is P5b/A's surface; the `content.json` half is clean), E119, E149, E171   blocked none
 suites cited: isoclaims 2/4 (FAIL — expected red, PLAN-11 §4.4) · imgcheck ok (no score line) · deadlinks "0 of 18 resolve to nothing" · plan5b-sitemap 9/9 · plan8-certs 5/5 · invariants 17/17 · copyroundtrip 15/15 — all from `_harness/out/audit9/sweep-before.txt`
 instruments: none new. Investigative one-shots run and captured: `_harness/checkskus.js`, `_harness/isoclaims.js`. Query scripts for the shape/leaf/JSON-LD reports were scratch, their **outputs** are the artifacts.
@@ -30,7 +30,7 @@ out of brief: `admin/content.php` Page Content has no SEO row for `/datasheets` 
 out of brief: `WHATS_LEFT.md:71` item 4.22 — the admin CSP allows `placehold.co` previews, so the admin **is** the one surface that makes a live third-party request for the five placeholder photos; the public site never does (measured, A-9.P4-8).
 out of brief: `data/content.json` has no returns / RMA / warranty answer anywhere in the 19 FAQ pairs or the seven privacy sections; nothing on the site states a returns position.
 [UNVERIFIED]/[UNSOURCED]: register rows 10, 11, 13–22 are `[UNSOURCED]` — asserted in copy with no backing field in `site-info.json`. Rows 13–18 (UL, CSA, MIL-SPEC, AMS, FDA, RoHS) are `[UNSOURCED]` **at site level**: `site-info.json` `certifications.other` is `[]` while five certification chips render on the homepage. No `[UNVERIFIED]` — this pass is entirely file-based and nothing needed the network or a server.
-self-corrections: 3, listed at the end of this file.
+self-corrections: 4, listed at the end of this file.
 ---
 
 ### A-9.P4-1 — MEDIUM — the homepage headline and the search snippet promise same-day shipment; the About page and the FAQ say "most in-stock orders, same day or next business day"
@@ -332,25 +332,47 @@ fix-proof:    n/a
 
 class:        data-live
 pass:         P4        ledger: E036, E095
-surface:      the right-hand spec table on `IP12GA-IP1274`, `IP17TW-IP18SW-IP19LW`, `IP37SH-IP36TH-IP39LH`, `IP38FE`, `IP42MW`
-where:        `data/products-all.json` `specTable2.rows[][0]` on those five SKUs, edited on Products → Edit.  (measured 2026-09-14)
-not in §11:   checked GUARDRAILS §7–§7.3, `audit7.md` A-7.8 (the spec-table **shape** gate — the shape is clean here, see below), `audit5.md` A-5.12, `WHATS_LEFT.md` 4.29, §2–3. New.
-reproduce:    ```
-              node -e "const p=require('./data/products-all.json');
-              for (const s of ['IP42MW','IP38FE','IP12GA-IP1274'])
-                console.log(s, JSON.stringify(p.find(x=>x.sku===s).specTable2.rows.map(r=>r[0])));"
+surface:      the right-hand spec table on **`IP37SH-IP36TH-IP39LH`, `IP38FE`, `IP42MW`** — three products, not the five this record first named (self-correction 4)
+where:        `data/products-all.json` `specTable2.rows[][0]` on those three SKUs, edited on Products → Edit.  (re-measured 2026-09-14 after V refuted the batch)
+not in §11:   checked GUARDRAILS §7–§7.3, `audit7.md` A-7.8 (the spec-table **shape** gate — the shape is clean here), `audit5.md` A-5.12, `WHATS_LEFT.md` 4.29, §2–3. New.
+reproduce:    Runs cold from the repo root, no server. Single-quoted for the shell and using
+              `String.fromCharCode(34)` for the inch mark so nothing depends on quote escaping:
+              ```sh
+              node -e '
+              const ps=require("./data/products-all.json");
+              const Q=String.fromCharCode(34);                 // the inch mark
+              const isGauge=v=>/^#?\d{1,2}$/.test(v);          // AWG: 24, #24, 0 — excluded
+              const isHdr  =v=>/[A-Za-z]{3,}/.test(v);         // section rows: "1.3 to 1 Shrink" — excluded
+              const isFrac =v=>/\d\s*\/\s*\d/.test(v);
+              const isDec  =v=>/^\.\d+$|^\d+\.\d+$/.test(v);
+              for (const p of ps) {
+                const t=p.specTable2; if(!t||!Array.isArray(t.rows)||!t.rows.length) continue;
+                const col0=t.rows.map(r=>String(Array.isArray(r)?(r[0]??""):"").trim()).filter(Boolean);
+                // a cell carrying the inch mark IS inch-denominated whatever its numeral shape — that is what 1" is
+                const cells=col0.filter(v=>!isHdr(v)&&(v.includes(Q)||(!isGauge(v)&&(isFrac(v)||isDec(v)))));
+                if(!cells.length) continue;
+                const mk=cells.filter(v=>v.includes(Q)), bare=cells.filter(v=>!v.includes(Q));
+                if(mk.length&&bare.length)
+                  console.log(p.sku.padEnd(24),"cells",cells.length,"| marked",mk.length,
+                              "| bare",bare.length,"| bare:",JSON.stringify(bare));
+              }'
               ```
+              Drop the final `if(mk.length&&bare.length)` guard to print all 42 and reproduce the
+              catalog-wide 454/21 split quoted below.
 observed:     ```
-              IP42MW        ["1/8","3/16","1/4","3/8","1/2","3/4","1\""]
-              IP38FE        ["1.3 to 1 Shrink","24",...,"3/8","7/16","1/2","5/8","3/4","7/8","1\"","1.67 to 1 Shrink","3/32","1/8","3/16","1/4","3/8","1/2","3/4","1\"","1-1/2"]
-              IP12GA-IP1274 ["24","22",...,"5 (3/16\")","4","3","1/4\"","2","1","0","5/16\"","3/8\"",...,"2\""]
+              IP37SH-IP36TH-IP39LH  cells 10 | marked  9 | bare  1 | bare: ["1/8"]
+              IP38FE                cells 16 | marked  2 | bare 14 | bare: ["3/8","7/16","1/2","5/8","3/4","7/8",
+                                                                            "3/32","1/8","3/16","1/4","3/8","1/2","3/4","1-1/2"]
+              IP42MW                cells  7 | marked  1 | bare  6 | bare: ["1/8","3/16","1/4","3/8","1/2","3/4"]
               ```
-              Counted across the five: 41 cells with an inch mark, 112 without, in the **same column** of the same table. Full list: `_harness/out/audit9/P4/spectable2-units.txt`. (A column that legitimately runs from AWG gauge numbers into fractional inches — `IP12GA-IP1274`, `IP17TW-IP18SW-IP19LW`, `IP37SH-IP36TH-IP39LH`, `IP38FE` — is not the finding; the finding is that within the *fractional-inch run* only some entries are marked.)
-expected:     One unit notation per column. `IP42MW` is the cleanest case: seven fractional inches, six bare and the seventh marked.
-consequence:  A buyer reading `3/4` above `1"` has to decide whether the column changed units. It never does. Low — cosmetic, but it is on the spec table, which is the one place on the site where notation carries meaning.
-evidence:     `_harness/out/audit9/P4/spectable2-units.txt`; `_harness/out/audit9/P4/spectable2.txt`
-verified-by:  pending V — sample 3 of 5 (`IP42MW`, `IP38FE`, `IP12GA-IP1274` are the three shown above)
-outcome:      owner action: Products → Edit → the five SKUs → spec table column 1. Batched with P5a's data-string batches.
+              **Three products of 42 mix the two forms; 12 marked against 21 bare over the 33 inch-denominated cells in those three columns.** Across the whole catalog the split is 454 marked against 21 bare over 475 inch-denominated column-0 cells — i.e. every bare inch value in the catalog is in one of these three tables. The other 39 products are internally consistent (35 all-marked, and 4 have no inch-denominated cell in column 0). Full per-product table: `_harness/out/audit9/P4/spectable2-col0-remeasure.txt`.
+
+              Two shapes, not one. `IP38FE` and `IP42MW` run a column of **bare** fractions and then mark only the `1"` at the end of each run — the minority is the marked cell. `IP37SH-IP36TH-IP39LH` is the mirror image: nine marked values and a single bare `1/8`.
+expected:     One unit notation per column. `IP42MW` is the cleanest case: seven inch-denominated cells, six bare fractions and a marked `1"`.
+consequence:  A buyer reading `3/4` above `1"` has to decide whether the column changed units. It never does. Low — cosmetic, but it is on the spec table, which is the one place on the site where notation carries meaning. Re-measurement did not change the consequence, only the size of the batch.
+evidence:     `_harness/out/audit9/P4/spectable2-col0-remeasure.txt` (the corrected per-product measurement, all 42); `_harness/out/audit9/V2/p4-10-percolumn.txt` (V's, which agrees cell-for-cell on all five SKUs it sampled); `_harness/out/audit9/P4/spectable2-units.txt` (the superseded first pass — kept, not deleted)
+verified-by:  V, 2026-09-14, "not reproduced" on 2 of 3 sampled — `IP17TW-IP18SW-IP19LW` 12 marked / 0 bare and `IP12GA-IP1274` 17 marked / 0 bare are **not** mixed, and their bare cells are AWG gauge numbers this record's own parenthetical excluded. Batch returned whole under PLAN-11 §3.6 and re-measured by B1; **B1's re-measurement agrees with V's exactly on all five SKUs** (`IP42MW` 1/6, `IP37SH-IP36TH-IP39LH` 9/1, `IP38FE` 2/14 mixed; `IP12GA-IP1274` and `IP17TW-IP18SW-IP19LW` consistent). Re-verification of the corrected 3-instance batch: pending V.
+outcome:      owner action: Products → Edit → `IP37SH-IP36TH-IP39LH`, `IP38FE`, `IP42MW` → spec table column 1. Batched with P5a's data-string batches. Cheapest correct fix is to mark the bare fractions rather than unmark the `1"` — 21 cells against 12, and the other 35 products are all-marked, so marking is what the catalog's own majority already does.
 fix-proof:    n/a
 
 ---
@@ -376,6 +398,7 @@ fix-proof:    n/a
 1. **`checkskus.js` reports "unmatched: 5" and that is the tool, not the data.** It compares industry references against `sku` only (`_harness/checkskus.js:17,27`); the five it flags match on `id`. Measured: 13 match `sku`, 5 match `id`, 0 match neither. `deadlinks.js`, which runs `App.jsx`'s own lookup chain, is the one to cite, and it says "0 of 18 resolve to nothing". Recorded because a reader of `P4/checkskus.txt` alone would raise a false finding.
 2. **My first spec-table check flagged 157 `specTable1` rows as malformed.** It required `label` to be a string. `label: null` is the deliberate continuation-row shape and `asText()` renders it correctly (`src/App.jsx:8369`). The check was rewritten to test what the component actually draws; the corrected count is 0 malformed. This is GUARDRAILS §4.4's point from the other side — a check that fails for the wrong reason.
 3. **My first JSON-LD check reported "19 FAQ answers not in the rendered accordion".** The accordion is collapsed on first paint, so the answer text is not in the accessibility snapshot. The real check — JSON-LD text against `content.json` — is 19/19 exact. GUARDRAILS §7.1: the probe is not the page.
+4. **A-9.P4-10 named five products and three of them mix the two forms; two do not.** V refuted the batch (PLAN-11 §3.6) and it came back whole. My first classifier called any cell matching `^[.\d][\d./ ]*$` "bare", which swept in the **AWG gauge numbers** (`24`, `22`, … `0`) that this record's own parenthetical said to exclude — so `IP12GA-IP1274` and `IP17TW-IP18SW-IP19LW`, whose inch values are uniformly marked, read as heavily mixed. Re-measuring with AWG and section-header rows excluded — and counting any cell carrying the inch mark as inch-denominated, which is what `1"` is and which my *second* attempt also got wrong until I checked it against V's per-cell figures — gives **3 mixed products, 12 marked / 21 bare over 33 cells**, agreeing with V exactly on all five SKUs it sampled. The record's instance list, counts, `reproduce:` command and `outcome:` are corrected in place; the superseded artifact is kept.
 
 ## Out of brief
 

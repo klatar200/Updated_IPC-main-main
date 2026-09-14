@@ -168,9 +168,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newSku      = $updated['sku'];
             $realPdfDir  = realpath(PDF_DIR);
             $renameNotes = [];
-            $renameOne = function ($url) use ($oldSku, $newSku, $realPdfDir, &$renameNotes) {
+            // A-9.P7-1 — a data sheet SHARED with another product must not be
+            // renamed. The file is one file: renaming it moves it out from
+            // under every other product whose pdfUrl points at it, and those
+            // products are not being edited, so nothing updates them. Measured
+            // on the shipped catalog, where IP12GA and IP12GA-IP1274 share
+            // IP12GA-IP1274.pdf: renaming either one left the OTHER product's
+            // Data Sheet link 404ing, under a "saved successfully" message,
+            // with nothing in the audit log to say it had happened.
+            // Scoped to OTHER products on purpose — this product's own
+            // references are exactly what the rename exists to realign.
+            $sharedNames = [];
+            foreach ($products as $i => $p) {
+                if ($i === $idx) continue;
+                if (!empty($p['pdfUrl'])) $sharedNames[basename($p['pdfUrl'])] = true;
+                if (!empty($p['additionalPdfs']) && is_array($p['additionalPdfs'])) {
+                    foreach ($p['additionalPdfs'] as $ap) {
+                        if (!empty($ap['url'])) $sharedNames[basename($ap['url'])] = true;
+                    }
+                }
+            }
+            $sharedKept = [];
+            $renameOne = function ($url) use ($oldSku, $newSku, $realPdfDir, &$renameNotes, $sharedNames, &$sharedKept) {
                 if (empty($url)) return $url;
                 $oldName = basename($url);
+                if (isset($sharedNames[$oldName])) {
+                    // Keep the file where it is and keep pointing at it.
+                    $sharedKept[$oldName] = true;
+                    return $url;
+                }
                 $newName = pdf_rename_for_sku_change($oldName, $oldSku, $newSku);
                 if ($newName === null || $newName === $oldName) return $url; // leave alone
                 $realOld = realpath(PDF_DIR . $oldName);
@@ -193,6 +219,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             if ($renameNotes) $renameNote = ' | PDF renamed ' . implode(', ', $renameNotes);
+            // Say it out loud: silence here is what made A-9.P7-1 invisible.
+            if ($sharedKept) {
+                $renameNote .= ' | data sheet ' . implode(', ', array_keys($sharedKept))
+                    . ' kept under its old name because another product uses the same file';
+            }
         }
         $products[$idx] = $updated;
         if (save_products($products)) {

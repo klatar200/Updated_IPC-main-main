@@ -113,8 +113,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($fmime !== $mimeType) $mimeType = '';
         }
 
+        // A-9.P3-2 — "extension and content must match" is not the same as "is
+        // a usable image". A 29-byte GIF header followed by a PHP block
+        // satisfies BOTH checks above. (The literal payload is not written out
+        // here on purpose: a close tag inside a one-line comment ends PHP mode,
+        // which is how the first version of this comment broke the file.)
+        // getimagesize() reads the six-byte GIF header and reports
+        // 16188×26736, and finfo agrees it is image/gif, because both only ever
+        // look at the header. The file then lands as uploads/images/<SKU>.gif
+        // and becomes the product's live photoUrl. Two independent guards, so
+        // neither a missing extension nor a novel container defeats it:
+        //   1. the bytes must not contain a PHP open tag — that is the payload
+        //      half of a polyglot, and no photograph the owner uploads has one;
+        //   2. where gd exists, the image must actually DECODE, which a header
+        //      with no image data cannot do. gd is not assumed (see A-9.P2-2).
+        $raw        = (string)@file_get_contents($file['tmp_name'], false, null, 0, 2 * 1024 * 1024);
+        $hasPhpTag  = (stripos($raw, '<?php') !== false || stripos($raw, '<?=') !== false);
+        $decodeFail = false;
+        if (!$hasPhpTag && function_exists('imagecreatefromstring')) {
+            $whole = (string)@file_get_contents($file['tmp_name']);
+            $im = @imagecreatefromstring($whole);
+            if ($im === false) {
+                $decodeFail = true;
+            } else {
+                if (function_exists('imagedestroy')) @imagedestroy($im);
+            }
+        }
+
         if (!isset($IMG_TYPES[$ext]) || $mimeType !== $IMG_TYPES[$ext]) {
             $errors[] = 'Only JPG, PNG, WEBP, or GIF images are accepted (extension and content must match).';
+        } elseif ($hasPhpTag) {
+            $errors[] = 'That file is not a usable image — it contains program code, not just picture data. '
+                      . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
+        } elseif ($decodeFail) {
+            $errors[] = 'That file looks like an image on the outside but cannot be opened as one — it is damaged or incomplete. '
+                      . 'Re-save it from an image editor and upload it again.';
         } elseif ($file['size'] > 8 * 1024 * 1024) {
             $errors[] = 'File is too large. Maximum size is 8MB.';
         } else {
@@ -167,6 +200,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                           . (int)(IMG_MAX_PIXELS / 1000000) . ' megapixels), so it has been saved at its'
                                           . ' original size and this product page may load slowly. Please resize it to about '
                                           . IMG_MAX_WIDTH . ' pixels wide and upload it again.'
+                                        : '')
+                                    // A-9.P2-2 — the FOURTH outcome, and the
+                                    // only one that was silent. When the host
+                                    // has no gd (or no imagescale),
+                                    // image_downscale_in_place() returns
+                                    // 'no-gd' and the photo is kept at full
+                                    // size — measured: a 4032×3024 upload
+                                    // stored at 4032×3024 under the plain
+                                    // "Photo uploaded and product updated."
+                                    // That file then becomes the product
+                                    // page's eagerly loaded LCP image, and
+                                    // nothing on the dashboard or the Help
+                                    // page named the missing extension. Same
+                                    // shape as A-7.6 above, different cause:
+                                    // there the server could resize and chose
+                                    // not to, here it cannot resize at all.
+                                    . ($resizeReason === 'no-gd'
+                                        ? ' ⚠ This server cannot resize images (its image tools are not installed), so the photo has been'
+                                          . ' saved at its original size and this product page may load slowly. Please resize it to about '
+                                          . IMG_MAX_WIDTH . ' pixels wide and upload it again, or ask the host to enable the PHP "gd" extension.'
                                         : '');
                     $currentPhoto = $destUrl;
                     $isManaged    = true;

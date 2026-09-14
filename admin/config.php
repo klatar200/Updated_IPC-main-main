@@ -1564,7 +1564,17 @@ function sku_problems(string $sku): array {
     if (preg_match('#[^A-Za-z0-9 \-_./&+,]#', $sku)) {
         $errors[] = 'The SKU may only contain letters, numbers, spaces and the characters - _ . / & + , — for example IP33PO or IP44A2 & IP45A3.';
     }
-    if (mb_strlen($sku) > 64) {
+    // A-9.P2-1 — mbstring is NOT guaranteed on the production host, and the
+    // production PHP version is [UNSOURCED]. An unguarded mb_strlen() here is a
+    // fatal on every Add Product and every Edit Product, with a 500 and a blank
+    // page: measured with `php -d disable_functions=mb_strlen`, POST add.php →
+    // 500, 0 bytes, nothing saved, nothing audit-logged. `public/contact.php`
+    // already guards the same extension and falls back; this call site did not.
+    // strlen() counts bytes rather than characters, so the fallback is
+    // marginally stricter for a multi-byte SKU — which is the safe direction
+    // for a value that becomes a filename.
+    $skuLength = function_exists('mb_strlen') ? mb_strlen($sku) : strlen($sku);
+    if ($skuLength > 64) {
         $errors[] = 'The SKU is too long (64 characters maximum).';
     }
     return $errors;

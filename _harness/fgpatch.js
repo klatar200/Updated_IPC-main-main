@@ -54,6 +54,32 @@ const ACCENT_ORDER = [
 const accentLines = [];
 lines.forEach((l, i) => { if (/color: "var\(--brand-accent-2\)"/.test(l)) accentLines.push(i); });
 
+/*
+ * A-9.D5 — this file is a ONE-SHOT CODEMOD, not a regression suite, and its
+ * job is done: it was applied on 2026-08-06 and `src/App.jsx` has carried the
+ * migrated variables ever since. The hardcoded 10-site mapping below was
+ * therefore invalidated by its own success, and because the file both calls a
+ * scoring helper and sets a failing exit status, PLAN-11's Appendix A
+ * classifier swept it up as an assertive suite — so `node _harness/run.js`
+ * reported it CRASHED, in a round whose expected-red list has exactly four
+ * entries and does not include it. A red line that means "this already ran a
+ * month ago" costs a reviewer the same attention as a real regression.
+ *
+ * "Already applied" is now told apart from "the mapping is stale" and exits 0.
+ * The stale case — sites present but not the number expected — still fails,
+ * because that is the case where someone MUST re-derive the mapping before
+ * re-running the codemod.
+ */
+const leftAloneCount = ACCENT_ORDER.filter((t) => t === null).length;
+if (accentLines.length === leftAloneCount) {
+  console.log(`fgpatch: one-shot codemod, already applied — the only ${leftAloneCount} remaining`);
+  console.log('         `color: "var(--brand-accent-2)"` site is the gradient it deliberately leaves alone');
+  console.log('         (brand-gradient-mixed-ends, settled 2026-08-06 and re-confirmed 2026-08-07).');
+  console.log('fgpatch: this is NOT a regression suite. It is kept as the executable record of the');
+  console.log('         brand-colour migration (WHATS_LEFT.md §4i). Nothing to do; exiting 0.');
+  process.exit(0);
+}
+
 const problems = [];
 if (accentLines.length !== ACCENT_ORDER.length) {
   problems.push(`expected ${ACCENT_ORDER.length} accent-2 text sites, found ${accentLines.length} — the mapping is stale, re-derive it with _harness/fgsurfaces.js`);

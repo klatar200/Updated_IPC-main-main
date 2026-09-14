@@ -4704,7 +4704,33 @@ function ContactPage() {
    * param, and the two success bodies differ only in phrasing.
    */
   const [sentParam, setSentParam] = useSearchParam("sent");
-  const submitted = sentParam === "1";
+  /*
+   * A-9.P7-2 — the paragraph above reasons about the person who just submitted
+   * and then reloads, and for them "thank you" is TRUE. It does not cover the
+   * cold load: a bookmark, a restored tab, or a link someone forwards. There
+   * the URL alone made the page announce "Quote Request Received — Thank you!
+   * Your quote request has been received" for a request that was never sent,
+   * and a buyer who believes a quote is in does not send it again. Measured on
+   * a cold browser context: the panel rendered, no mail was sent, and
+   * inquiries.jsonl did not move.
+   *
+   * The URL stays the single source of truth for Back — removing that would
+   * reintroduce the A1 defect the paragraph above warns about. This adds one
+   * AND: the confirmation also requires that THIS browsing session actually
+   * submitted. The flag is written at submit time and read once at mount, so a
+   * genuine reload still shows the confirmation, and a session that never
+   * posted never sees it. If sessionStorage is unavailable (private windows,
+   * blocked storage) the in-memory half still covers the live submit and a
+   * reload simply returns the form — the safe direction.
+   */
+  const [sentThisSession, setSentThisSession] = useState(() => {
+    try { return sessionStorage.getItem("ipc-contact-sent") === "1"; } catch (_) { return false; }
+  });
+  const markSent = () => {
+    setSentThisSession(true);
+    try { sessionStorage.setItem("ipc-contact-sent", "1"); } catch (_) { /* storage blocked */ }
+  };
+  const submitted = sentParam === "1" && sentThisSession;
   const [submittedTab, setSubmittedTab] = useState("rfq");
 
   // B16 — the success panel takes focus and is announced.
@@ -4833,6 +4859,7 @@ function ContactPage() {
         setSubmittedTab("message");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
         // from this param; see the note where sentParam is declared.
+        markSent();   // A-9.P7-2 — and from a submit that really happened
         setSentParam("1");
       } else {
         // The server's message is specific — which field, or which guard was
@@ -4881,6 +4908,7 @@ function ContactPage() {
         setSubmittedTab("rfq");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
         // from this param; see the note where sentParam is declared.
+        markSent();   // A-9.P7-2 — and from a submit that really happened
         setSentParam("1");
       } else {
         setFormError({ kind: "validation", message: json.error || localizeProse(cf.submitError, site) });
@@ -5034,6 +5062,10 @@ function ContactPage() {
                 // — this is the "strip the param" pattern T2.3 is about, and
                 // pushing would make Back re-enter the confirmation.
                 setSentParam(null, { replace: true });
+                // A-9.P7-2 — leaving the confirmation also clears the session
+                // flag, or a later reload of a stale ?sent=1 would resurrect it.
+                setSentThisSession(false);
+                try { sessionStorage.removeItem("ipc-contact-sent"); } catch (_) { /* storage blocked */ }
                 setRfqForm({
                   name: "",
                   email: "",
