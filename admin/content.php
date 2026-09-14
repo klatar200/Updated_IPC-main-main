@@ -338,11 +338,11 @@ $COPY_GROUPS = [
         // into images/site/ and each is its own field with its own label — so
         // four of the five slots the warning is about did not carry it.
         // (audit-runs/audit6.md A-6.8)
-        ['key' => 'heroPhoto',          'type' => 'text', 'label' => 'Homepage hero — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
-        ['key' => 'bandTeamPhoto',      'type' => 'text', 'label' => 'Homepage band — team photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',     'default' => 'images/site/staff.jpg'],
-        ['key' => 'bandBuildingPhoto',  'type' => 'text', 'label' => 'Homepage band — building photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/IPC-Building.jpg'],
-        ['key' => 'aboutPhoto',         'type' => 'text', 'label' => 'About page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',             'default' => 'images/site/IPC-Building.jpg'],
-        ['key' => 'servicesPhoto',      'type' => 'text', 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
+        ['key' => 'heroPhoto',          'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage hero — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
+        ['key' => 'bandTeamPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage band — team photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',     'default' => 'images/site/staff.jpg'],
+        ['key' => 'bandBuildingPhoto',  'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage band — building photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/IPC-Building.jpg'],
+        ['key' => 'aboutPhoto',         'type' => 'text', 'labelHtml' => true, 'label' => 'About page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',             'default' => 'images/site/IPC-Building.jpg'],
+        ['key' => 'servicesPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
     ]],
     'hero' => ['title' => 'Homepage — Hero', 'fields' => [
         ['key' => 'badge',             'type' => 'text',     'label' => 'Badge (small text above headline)'],
@@ -977,7 +977,17 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     // called "Title" in that list is the same defect as eighteen called "Icon".
     // Measured: "TITLE" appeared 8 times before this. (4.31)
     $ctx = $groupTitle !== '' ? '<span class="vh"> &#8212; ' . $groupTitle . '</span>' : '';
-    $out = '<div class="form-group full"><label for="' . h($id) . '">' . h($f['label']) . $ctx . '</label>';
+    /* A-9.B2-05 — most copy labels are plain text and stay escaped, which is
+       what this h() is for. Five of them are not: the Site Images fields carry
+       a <br> and a <small> block explaining which folder a path may live in,
+       and escaping those printed the markup to Rick as literal text — the one
+       place on Page Content where the guidance mattered most. render_field()
+       (the section-row renderer, :841) has always emitted its labels raw for
+       the same reason. Rather than drop the escape for every copy label, a
+       field opts in explicitly; the labels are developer-authored literals in
+       this file, never owner data. */
+    $labelHtml = !empty($f['labelHtml']) ? $f['label'] : h($f['label']);
+    $out = '<div class="form-group full"><label for="' . h($id) . '">' . $labelHtml . $ctx . '</label>';
     if ($f['type'] === 'page') {
         $out .= '<select class="ci" id="' . h($id) . '" name="' . h($name) . '">';
         foreach ($pageOptions as $pk => $pl) {

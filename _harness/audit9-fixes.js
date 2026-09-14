@@ -349,6 +349,58 @@ async function armP72() {
   }
 }
 
+// A-9.B2-05 / B2-04 / B2-11 / B2-07 — the admin screens themselves.
+async function armAdmin() {
+  section('A-9.B2-05  no admin label prints its own HTML as text');
+  const content = await req('GET', '/admin/content.php');
+  const labels = [...content.body.matchAll(/<label[^>]*>([\s\S]*?)<\/label>/g)].map((m) => m[1]);
+  const leaking = labels.filter((l) => /&lt;(br|small|code|strong|em)\b/i.test(l));
+  ok('b2-05  no label on Page Content shows markup as literal text',
+    leaking.length === 0,
+    `${leaking.length} labels leak; first: ${JSON.stringify((leaking[0] || '').replace(/\s+/g, ' ').slice(0, 90))}`);
+
+  section('A-9.B2-04  the upload screens state the limit this server really allows');
+  // The reference is the SAME server, read from the Help page, not this
+  // process's CLI ini — that mistake made this arm fail against a correct fix.
+  const sku = JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'products-all.json'), 'utf8'))[0].sku;
+  const helpPage = await req('GET', '/admin/help.php');
+  const serverMax = (/Largest single file the server accepts[\s\S]{0,120}?<code>\s*(\d+(?:\.\d+)?)\s*([KMG])?/i
+    .exec(helpPage.body) || []);
+  const toMb = (n, unit) => {
+    const v = Number(n || 0);
+    return (unit || 'M').toUpperCase() === 'K' ? v / 1024 : (unit || 'M').toUpperCase() === 'G' ? v * 1024 : v;
+  };
+  const serverMb = serverMax.length ? toMb(serverMax[1], serverMax[2]) : null;
+  for (const [page, field, ownCap] of [['upload-image.php', 'image_file', 8], ['upload-pdf.php', 'pdf_file', 20]]) {
+    const r = await req('GET', `/admin/${page}?sku=${encodeURIComponent(sku)}`);
+    const lbl = (new RegExp(`<label[^>]*for="${field}"[^>]*>([\\s\\S]*?)</label>`).exec(r.body) || [, ''])[1]
+      .replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const stated = /(\d+(?:\.\d+)?)\s*MB/i.exec(lbl);
+    const expect = serverMb === null ? ownCap : Math.min(ownCap, serverMb);
+    ok(`b2-04  ${page}'s size label equals min(its own cap, what this server accepts)`,
+      !!stated && Math.abs(Number(stated[1]) - expect) < 0.51,
+      `label says ${JSON.stringify(lbl.slice(0, 70))}; server accepts ${serverMb}M, own cap ${ownCap}M, so it should say ${expect}MB`);
+  }
+
+  section('A-9.B2-11  Inquiries renders no unnamed link to a bare mailto:');
+  const inq = await req('GET', '/admin/inquiries.php');
+  const bareMailto = [...inq.body.matchAll(/<a[^>]*href="mailto:"[^>]*>([\s\S]*?)<\/a>/g)];
+  ok('b2-11  no anchor points at an empty mailto:',
+    bareMailto.length === 0, `${bareMailto.length} such links`);
+
+  section('A-9.B2-07  admin messages do not name a file that does not exist');
+  const names = ['edit.php', 'upload-image.php', 'add.php', 'delete.php', 'upload-pdf.php', 'settings.php', 'content.php'];
+  const ghost = [];
+  for (const f of names) {
+    const src = fs.readFileSync(path.join(ROOT, 'admin', f), 'utf8');
+    for (const m of src.matchAll(/products\.json/g)) ghost.push(`${f}`);
+  }
+  const dataFilesOnDisk = fs.readdirSync(path.join(ROOT, 'data')).filter((f) => f.endsWith('.json'));
+  ok('b2-07  no message names `products.json`, which is not a file in data/',
+    ghost.length === 0,
+    `${[...new Set(ghost)].join(', ')} still name it; data/ holds ${dataFilesOnDisk.join(', ')}`);
+}
+
 // ---------------------------------------------------------------- the docs
 // Every arm below compares a SENTENCE against the thing it describes, read
 // from the code rather than from another document. A doc check that quotes a
@@ -461,6 +513,7 @@ function armDocs() {
     'p3-2': { fn: armP32, async: true, mutates: true },
     'p7-2': { fn: armP72, async: true, mutates: true },
     'docs': { fn: armDocs },
+    'admin': { fn: armAdmin, async: true },
   };
   const chosen = only ? { [only]: arms[only] } : arms;
   if (only && !arms[only]) { console.error(`unknown arm ${only}`); process.exit(2); }

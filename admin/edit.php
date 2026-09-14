@@ -241,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: index.php?msg=' . urlencode($msg) . '&type=success');
             exit;
         }
-        $errors[] = 'Failed to save products.json. Check file permissions.';
+        $errors[] = 'Failed to save products-all.json. Check file permissions.';
     }
 
     $product = $updated; // repopulate form with submitted values

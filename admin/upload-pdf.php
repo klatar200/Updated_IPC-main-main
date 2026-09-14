@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $currentPdf = $destUrl;
                     $product    = $products[$idx];
                 } else {
-                    $errors[] = 'PDF was saved but could not update products.json.';
+                    $errors[] = 'PDF was saved but could not update products-all.json.';
                 }
             } else {
                 $errors[] = 'Upload failed. Check write permissions on the /pdfs/ directory.';
@@ -198,7 +198,7 @@ include 'nav.php';
   <div class="card">
     <div class="card-title">Upload New PDF</div>
     <form method="POST" enctype="multipart/form-data">
-      <label for="pdf_file">Select PDF File (max 20MB)</label>
+      <label for="pdf_file">Select PDF File (max <?= h(min_upload_label(20)) ?>)</label>
       <input type="file" id="pdf_file" name="pdf_file" accept=".pdf,application/pdf" required />
       <?php
         // Mirror the upload logic: replace the current file in place if one

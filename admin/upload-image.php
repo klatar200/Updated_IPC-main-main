@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $isManaged    = true;
                     $product      = $products[$idx];
                 } else {
-                    $errors[] = 'Image was saved but could not update products.json.';
+                    $errors[] = 'Image was saved but could not update products-all.json.';
                 }
             } else {
                 $errors[] = 'Upload failed. Check write permissions on the /uploads/images/ directory.';
@@ -300,7 +300,7 @@ include 'nav.php';
   <div class="card">
     <div class="card-title">Upload New Photo</div>
     <form method="POST" enctype="multipart/form-data">
-      <label for="image_file">Select image — JPG, PNG, WEBP, or GIF (max 8MB)</label>
+      <label for="image_file">Select image — JPG, PNG, WEBP, or GIF (max <?= h(min_upload_label(8)) ?>)</label>
       <input type="file" id="image_file" name="image_file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" required />
       <div class="hint">
         The file is saved in <code>/uploads/images/</code> named after the SKU and the product's Photo URL is updated automatically.
