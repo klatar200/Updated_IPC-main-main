@@ -273,8 +273,8 @@ async function main() {
         // renamed file behind, and a leftover target makes the next arm's
         // rename hit edit.php's no-clobber guard and look like a failure.
         try {
-          for (const x of fs.readdirSync(pdfDir)) fs.unlinkSync(path.join(pdfDir, x));
-          execFileSync('cp', ['-r', path.join('_harness/site/pdfs') + '/.', pdfDir]);
+          execFileSync('rm', ['-rf', pdfDir]);
+          execFileSync('cp', ['-r', '_harness/site/pdfs', pdfDir]);
         } catch (e) { /* best effort */ }
       }
     }

@@ -37,6 +37,27 @@ function writeData(f, body) {
   fs.writeFileSync(dataPath(f), body);
 }
 
+// ── Negative control ───────────────────────────────────────────────────────
+// NEGCTL=1 replaces the DERIVED copyright year in the MIRROR'S built bundle
+// with a hardcoded one; the 2027 arm of C31 must then fail. The mirror is a
+// disposable copy — `src/App.jsx` and `dist/` are never touched.
+const BUNDLE = (() => {
+  const dir = path.join(SITE, 'assets');
+  const f = fs.existsSync(dir) ? fs.readdirSync(dir).find((x) => /^index-.*\.js$/.test(x)) : null;
+  return f ? path.join(dir, f) : null;
+})();
+const YEAR_REAL = 'new Date().getFullYear()';
+const YEAR_NEUT = '"2026"';
+let _bundleOrig = null;
+function patchBundle() {
+  _bundleOrig = fs.readFileSync(BUNDLE, 'utf8');
+  const n = _bundleOrig.split(YEAR_REAL).length - 1;
+  if (n < 1) throw new Error('negative control: derived-year expression not found in the bundle');
+  fs.writeFileSync(BUNDLE, _bundleOrig.split(YEAR_REAL).join(YEAR_NEUT));
+  return n;
+}
+function restoreBundle() { if (_bundleOrig !== null) { fs.writeFileSync(BUNDLE, _bundleOrig); _bundleOrig = null; } }
+
 const results = [];
 let pass = 0, fail = 0;
 function check(row, name, ok, observed, expected) {
@@ -71,6 +92,7 @@ const title = (page) => page.title();
 
 async function main() {
   const browser = await launch();
+  if (NEGCTL) { const n = patchBundle(); console.log(`--- negative control: derived copyright year replaced at ${n} sites in the mirror bundle ---`); }
   try {
     // ── C1 — routing shim: path shapes ────────────────────────────────────
     if (want('C1')) {
@@ -117,16 +139,32 @@ async function main() {
 
     // ── C3 — unknown ?family= / ?approval= ────────────────────────────────
     if (want('C3')) {
-      for (const q of ['family=not-a-family', 'approval=not-an-approval', 'family=not-a-family&approval=nope']) {
+      // `?family=` IS a route parameter. `?approval=` is NOT: ApprovalFilter
+      // (App.jsx:2851) is driven by useState inside DashboardPage
+      // (App.jsx:10025) and is never read from the URL, so an unknown
+      // `?approval=` is an inert query string and the correct outcome is the
+      // full catalog, not an empty state. Both are asserted for what they are.
+      for (const q of ['family=not-a-family', 'family=not-a-family&approval=nope']) {
         const { ctx, page } = await newPage(browser);
         await goto(page, `${BASE}/products?${q}`);
         const t = await bodyText(page);
-        const empty = /No products|no matches|0 products|nothing matched|Clear filters|Clear all|View all/i.test(t);
-        const wayOut = await page.evaluate(() =>
-          !!document.querySelector('a[href*="/products"], button')
-        );
-        check('C3', `${q} — renders an empty state`, empty, { head: t.slice(0, 160) }, 'empty state, not a blank grid');
-        check('C3', `${q} — has a way out`, wayOut, { wayOut }, 'a link or button back to the full catalog');
+        const empty = /No products found/i.test(t);
+        const named = /Nothing in not-a-family/i.test(t);
+        const wayOut = /Clear filters/i.test(t);
+        const phone = /630\.771\.0700/.test(t);
+        check('C3', `${q} — renders the empty state`, empty, { head: t.slice(150, 330) }, '"No products found"');
+        check('C3', `${q} — the empty state names the filter`, named, { named }, '"Nothing in <family>"');
+        check('C3', `${q} — has a way out`, wayOut, { wayOut }, 'a Clear filters control');
+        check('C3', `${q} — and a phone number as the human way out`, phone, { phone }, '630.771.0700 in the empty state');
+        await ctx.close();
+      }
+      {
+        const { ctx, page } = await newPage(browser);
+        await goto(page, `${BASE}/products?approval=not-an-approval`);
+        const t = await bodyText(page);
+        check('C3', '?approval= is not a route parameter — it is inert, and the catalog renders in full',
+          /42 products/.test(t) && !/No products found/i.test(t),
+          { head: t.slice(150, 300) }, 'all 42 products; no empty state for a parameter the app does not read');
         await ctx.close();
       }
     }
@@ -161,24 +199,8 @@ async function main() {
       await c2.close();
     }
 
-    // ── C9 — ErrorBoundary keyed on page (invariant 7) ────────────────────
-    if (want('C9')) {
-      const { ctx, page } = await newPage(browser);
-      // Force a render throw on ONE page by feeding the catalog a product whose
-      // shape the detail page cannot draw is A-7.8's territory and is already
-      // tolerated; instead throw from inside <main> directly.
-      await goto(page, `${BASE}/products`);
-      const threw = await page.evaluate(() => {
-        // Find a React fiber and force an error inside the boundary by
-        // dispatching an error from a child render: simplest reliable route is
-        // to make a link's onClick throw, which React surfaces to the boundary.
-        return false;
-      });
-      // Deterministic route: A-7.8 shapes are tolerated, so drive the boundary
-      // through the one input that still reaches it — a product row whose
-      // `description` is an object (not handled by asText()).
-      await ctx.close();
-    }
+    // C9 is in _harness/audit9-logic-data.js — it needs the data-file mutation
+    // machinery, and that is where the restore contract lives.
 
     // ── C31 — year boundary, derived copyright + static effectiveDate ──────
     if (want('C31')) {
@@ -199,7 +221,12 @@ async function main() {
       }
     }
   } finally {
+    restoreBundle();
     await browser.close();
+    if (NEGCTL) {
+      const hit = results.find((x) => x.name === 'clock 2027-01-01T00:00:01 — © 1974–2027 derived');
+      console.log(`NEGCTL: "© 1974–2027 derived" -> ${hit ? (hit.ok ? 'STILL PASSING (control did not work)' : 'FAILED as required') : 'not run'}`);
+    }
   }
   fs.mkdirSync(OUT, { recursive: true });
   fs.writeFileSync(path.join(OUT, 'logic-public.json'), JSON.stringify({ pass, fail, results }, null, 2));
