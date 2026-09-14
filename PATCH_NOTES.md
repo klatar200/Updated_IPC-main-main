@@ -1149,4 +1149,89 @@ pixel-for-pixel.
   real product actually has ("Recovered" into "Diameter" and "Wall").
   (AUDIT-10 A10-029.)
 
+---
+
+# Audit 9 — the go-live audit (2026-09-14)
+
+54 findings, 41 fixed here. Full record: `audit-runs/audit9.md`. What follows
+is only what you would notice.
+
+## The one that could have cost a customer a document
+
+- **Renaming a product's SKU deleted a different product's data sheet.** Two
+  products share one PDF in your catalog. Renaming either one left the other
+  product's **Datasheet** button pointing at a file that no longer existed — a
+  404 for the customer, with no warning to you and no way back, because PDFs
+  are not covered by the automatic backup. Renaming now leaves a shared file
+  alone and tells you it did: *"data sheet IP12GA-IP1274.pdf kept under its old
+  name because another product uses the same file."*
+
+## Things the admin was telling you that were not true
+
+- **The two upload screens stated a size limit your server may not allow.**
+  They printed the dashboard's own cap — 20MB for PDFs, 8MB for photos — even
+  where the server would reject anything over, say, 2MB. Both now state the
+  lower of the two, so the number on the screen is the number that works.
+- **Three "could not save" messages named `products.json`**, which is not a
+  file in your `data/` folder. They name the real file now.
+- **The Page Content screen printed its own formatting codes** in the five Site
+  Images labels — you were reading `&lt;br&gt;&lt;small style=…` where a line
+  break should have been.
+- **The Inquiries page showed a link on inquiries that carry no email address.**
+  Clicking it opened a blank message to nobody. Four of your recorded inquiries
+  are like that; they now show a plain dash.
+- **The Help page described a header bar with four tabs.** It has ten. It also
+  said the audit log explains every action it can record (three were missing),
+  and that "three things can go wrong" with the server when the dashboard can
+  warn you about nine.
+
+## The website itself
+
+- **Search results were cut off before the part number.** Google shows roughly
+  60 characters of a page title; 40 of your 42 product pages ran past that, the
+  worst at 149, so a buyer who searched a part number saw a title that never
+  reached it. Titles are now built to fit **with the part number kept**, and the
+  descriptions are trimmed at a word rather than mid-sentence.
+- **One name per thing.** A product page offered five differently-named links to
+  two destinations — "Download PDF" and "Data Sheet" for the same file,
+  "Request Quote" and "Request a Quote" for the same form. The PDF control is
+  **Datasheet** everywhere now, which is what the Datasheets page and the menu
+  already call it. ⚠ **FAQ answer 14 still says "Data Sheet" and is yours to
+  edit** — it is your text, on Page Content.
+- **Your product photographs are now part of the structured data** search
+  engines read, on the 37 products that have one. The five on the placeholder
+  correctly claim no photograph rather than claiming the placeholder.
+- **Your logo, not the favicon,** is what the site now tells search engines is
+  the company mark — it follows the logo field on Business Details.
+- **The About page said "250 Gibraltar Drive"** where the footer, the Contact
+  page and the privacy policy all say "250 Gibraltar Dr". All of them now read
+  the address you typed on Business Details, so there is one spelling of it.
+- **A confirmation that had not been earned.** Opening `/contact?sent=1` —
+  pasted, bookmarked, or reached with the Back button — told the visitor
+  "Quote Request Received" when nothing had been sent. It now shows the form.
+
+## Consistency, across both halves
+
+The dashboard called itself "Admin Panel" before you signed in and "Product
+Manager" afterwards, in the same place on the screen. Its sign-in page was
+titled "Login" while its own button said "Sign In". It spelled colour and color,
+catalog and catalogue, data sheet and data-sheet and spec sheet. It mixed curly
+and straight quotation marks, and "…" with "...". Its buttons were Title Case in
+thirty-eight places and sentence case in sixteen — five of them in the same
+`+ Add …` row on one screen. Four pages were headed something other than the tab
+you clicked to reach them: Products, Add Product, Password, Help. All of that is
+one way now. Nothing moved and nothing changed what it does.
+
+## Safety, on hosts we cannot see
+
+- **A file that is not really an image can no longer be uploaded as one.** A
+  29-byte file with an image header and PHP inside it passed the old check. The
+  uploader now refuses anything it cannot actually decode as a picture.
+- **The dashboard no longer dies on a server without `mbstring`.** Add Product
+  and Edit Product returned a blank error page and saved nothing. We do not know
+  which PHP your host runs, which is exactly why this matters.
+- **A server without image support now says so.** Your photo was being stored at
+  full size — a 4000-pixel phone picture as-is — and the success message said
+  nothing about it. The dashboard's health panel warns about it too.
+
 **Not yet deployed.** Nothing above is on the live server.

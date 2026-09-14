@@ -223,6 +223,35 @@ run it after adding a suite.
 | `plan8-formpolish.js` | PLAN-8 C39 — contact-form polish: the privacy note near Submit, the legend, and the required-field marking |
 | `plan8-landing.js` | PLAN-8 C29 — `/products` renders a catalog landing state instead of auto-selecting one product's detail page |
 
+## `audit9-*.js` — audit 9's instruments and acceptance suites (2026-09-14)
+
+Two kinds, and the difference matters when you are deciding what to keep. The
+**instruments** measured a surface once, for several passes to cite, so that a
+measurement has one owner; they are evidence and are not in the sweep. The
+**acceptance suites** were each written before the fix they cover, watched
+failing against the unfixed tree, and are regression checks from now on — they
+are in the sweep and they should stay green.
+
+| File | Kind | Item |
+|---|---|---|
+| `audit9-crawl.js` | instrument | 67-page crawl at three viewports — the DOM, links, JSON-LD, meta and aria snapshot every P4/P5a/P6/P9/P10 record is measured against |
+| `audit9-adminflows.js` | instrument | the signed-in admin flows: every page fetched and parsed as the owner sees it |
+| `audit9-strings.js` | instrument | the 1,498-record string inventory behind all three verbiage passes |
+| `audit9-logic-admin.js` · `audit9-logic-public.js` · `audit9-logic-contact.js` · `audit9-logic-data.js` | instrument | P7's edge-case probes over the admin, the routing shim, the contact path and the catalog loader |
+| `audit9-p6-navgraph.js` | instrument | P6 — opens both mega-menus and the mobile drawer (a cold DOM has neither), then cold-navigates every internal link and every anchor in a fresh page |
+| `audit9-p9-keyboard.js` · `audit9-p9-reflow.js` · `audit9-p9-largetext.js` | instrument | P9's three accessibility probes |
+| `audit9-fixes.js` | acceptance | A-9.P7-1 (the High), P2-1, P2-2, P3-2, P7-2, the four admin-screen findings and the fourteen documentation ones. Restores the mirror **before** as well as after a run — see the note below |
+| `audit9-router-docroot.js` | acceptance | A-9.P3-1 — eight arms proving a `:814x` mirror answers from its own docroot and not from the sweep mirror. 5/8 before the fix |
+| `audit9-public-fixes.js` | acceptance | A-9.P4-6/7/9, P5a-6/7/9/10/11, P6-1/2/3. Reads a **comment-blanked** copy of `App.jsx` for its source arms, so a fix note that talks about a glyph is not counted as an instance of it |
+| `audit9-admin-text.js` | acceptance | A-9.B2-08/09/10 and A-9.P6-4 — the admin's vocabulary, typography, button case, and each page's `<h1>` against the nav label you clicked. Source-level and needs no server |
+| `audit9-totals.js` | generator | reads `audit-runs/audit9.md` §2 and writes its own totals table and §9 verdict. `--write` rewrites the block in place; counts are generated, never typed |
+
+**`audit9-fixes.js` restores the mirror at both ends, and that is load-bearing.**
+Its A-9.P7-1 negative control passed against unfixed code twice, because the
+mirror started dirty with a leftover `AUDIT9TMP.pdf` and `edit.php`'s *correct*
+no-clobber guard skipped the rename — the right behaviour for the wrong reason.
+A green control is not evidence until you know why it is green.
+
 ## Investigative tools (one-shot, kept as evidence)
 
 `inkaudit`, `whitesurfaces`, `fgsurfaces`, `findwhite`, `findtranslucent`,

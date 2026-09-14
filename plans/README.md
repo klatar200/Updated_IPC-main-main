@@ -3,14 +3,20 @@
 **Read [GUARDRAILS.md](GUARDRAILS.md) first.** It is binding on every plan. A
 plan may add constraints; it may never relax one from there.
 
-**The last completed plan is [PLAN-10](PLAN-10-audit10-remediation.md)** —
-remediation of AUDIT-10's severity A and B tiers, shipped 2026-08-11 and
-independently verified by AUDIT-11 the same day.
+**The last completed plan is [PLAN-11](PLAN-11-audit9-go-live.md)** — Audit 9,
+the full go-live audit (bugs, logic gaps, verbiage, page structure), executed
+2026-09-14. Its output is [`audit-runs/audit9.md`](../audit-runs/audit9.md):
+54 findings — 0 Blocker, 3 High, 21 Medium, 30 Low — of which 41 were fixed,
+7 are owner actions and 6 are escalated decisions. Verdict
+**GO-WITH-OWNER-ACTIONS**, gated on the expired TLS certificate (A-9.P5a-1),
+which is the host's to fix and is a pre-deploy gate in `GO-LIVE.md` §A.
 
-**The open plan is [PLAN-11](PLAN-11-audit9-go-live.md)** — Audit 9, the full
-go-live audit (bugs, logic gaps, verbiage, page structure), written 2026-09-14.
-Its output is `audit-runs/audit9.md` and a GO / GO-WITH-OWNER-ACTIONS / NO-GO
-verdict.
+The plan is kept rather than deleted because its §3 (the wave/agent shape), §4.3
+(how a sweep denominator is derived) and §13 (the record templates) are the
+reusable parts, and its appended execution note says where it did not survive
+contact. What is still open lives in `WHATS_LEFT.md` §2o, not here.
+
+**There is no open plan.**
 
 ---
 

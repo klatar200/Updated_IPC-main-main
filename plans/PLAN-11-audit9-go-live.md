@@ -1,6 +1,6 @@
 # PLAN-11 — Audit 9: the full go-live audit
 
-**Status:** OPEN — not started. **Revision 3** (2026-09-14; the revision log is at the end).
+**Status:** DONE — executed 2026-09-14, output `audit-runs/audit9.md` (54 findings, 41 fixed, verdict GO-WITH-OWNER-ACTIONS). **Revision 3** (2026-09-14; the revision log is at the end).
 **Written:** 2026-09-14 against `main` @ `ad2267e` (PR #53 and PR #47 merged the same day).
 **Audience:** the agents executing the audit. Dense by design; agent-parse only.
 **Binding order:** [`plans/GUARDRAILS.md`](GUARDRAILS.md) → this file → the pass briefs in §6. A pass brief may add a constraint; nothing here relaxes one from GUARDRAILS.
@@ -784,3 +784,38 @@ Record each line with score **and denominator**. `plan5-keys` builds its own dev
 Honest downside of rev 2: more agents means more fixed overhead (each reads GUARDRAILS + its brief); the instruments and read-scoping are what pay for it, and the sweep's wall-clock is still the floor.
 
 **2026-09-14 — rev 3, on Keagan's decision after the rev-2 audit.** Twelve pass agents were fan-out for its own sake: it bought wall-clock, not tokens or quality, and each agent paid the same fixed reading. Regrouped into five agents by what they read (§3.1 table: A = P2+P3+P7, B1 = P4+P5a, B2 = P5b+P5c, C′ = P6+P9+P10, D = P1+P8+P11), one working file per pass kept so a context reset mid-group loses nothing, V reduced to one unless the finding count forces a second, the port table and launch prompt rewritten per group. Five disjoint tracks keep the parallel wall-clock; the critical path (A) is unchanged. Accepted cost: P3 and P7 share eyes; V's independence is the one that matters and is kept.
+
+**2026-09-14 — executed.** Output: `audit-runs/audit9.md`, branch
+`claude/audit9-go-live`. 54 findings — 0 Blocker, 3 High, 21 Medium, 30 Low;
+41 fixed, 7 owner actions, 6 escalated, 0 open. Verdict
+**GO-WITH-OWNER-ACTIONS**, gated on A-9.P5a-1 (the expired certificate).
+
+Where the plan did not survive contact, recorded so the next one can be written
+better rather than to argue with it:
+
+1. **§4.3's denominator was underspecified.** "The union of the classifier and
+   the README" omits eight suites that GUARDRAILS §4.1 names — including
+   `plan8-contrast`, which §4.4 itself expects red. A third source was added
+   before any suite ran (`audit9.md` §1.3). A plan that names a denominator
+   should name every source of it.
+2. **§3.6's verifier did not finish.** V1 and V2 reached 30 of the 54 records
+   before the five-hour usage limit ended both sessions. The plan has no
+   provision for a verifier that runs out of budget, and "verify every accepted
+   finding" is not schedulable without knowing the finding count in advance.
+   The shortfall is stated in `audit9.md` §5.4 and in `WHATS_LEFT.md` §2o
+   rather than smoothed over. A future plan should either budget V per finding
+   or make V the *first* thing that runs after consolidation.
+3. **Two records' recommended fixes contradicted each other.** A-9.P5a-6 asked
+   for the label `Data Sheet`; A-9.P5a-7 measured the one-word form as the
+   site's majority and the route settles it. Both cannot hold. C took the
+   measurement over the recommendation and recorded the deviation. Passes that
+   share a surface should reconcile their recommendations at consolidation,
+   which §7.0 dedupes findings but not fixes.
+4. **The fix rounds broke three checks.** All three were baselines or anchors
+   that quoted the strings the fixes deliberately changed (`copydrift`'s
+   brace matcher, `copydrift-selftest`'s mutation anchors, `plan10-header`'s
+   geometry baseline). The plan's §7.3 says fixes are delta-only; it does not
+   say that a deliberate copy change invalidates every check that quotes the
+   old copy, and that re-taking such a baseline is legitimate only when the
+   delta is itself measured and explained. It was, in all three cases.
+
