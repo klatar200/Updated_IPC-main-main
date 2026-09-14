@@ -24,7 +24,8 @@ const path = require('path');
 const FILE = process.env.AUDIT9_FILE || path.join(__dirname, '..', 'audit-runs', 'audit9.md');
 const md = fs.readFileSync(FILE, 'utf8');
 const sec2 = md.split(/^## 2\. Findings/m)[1]?.split(/^## 3\. /m)[0] || '';
-const re = /^### (A-9\.\d+[a-z]?) — (Blocker|High|Medium|Low) — (.*)$/gm;
+// Ids are pass-scoped (A-9.P5a-10, A-9.B2-08, A-9.D7), not a flat counter.
+const re = /^### (A-9\.[A-Za-z0-9-]+) — (Blocker|High|Medium|Low) — (.*)$/gm;
 const recs = [];
 let m;
 while ((m = re.exec(sec2))) {
@@ -36,15 +37,21 @@ while ((m = re.exec(sec2))) {
 }
 const SEV = ['Blocker', 'High', 'Medium', 'Low'];
 const count = (fn) => recs.filter(fn).length;
-const isFixed = (r) => /^fixed/i.test(r.outcome);
-const isOwner = (r) => /^owner action/i.test(r.outcome);
-const isClosed = (r) => /^(fixed|owner action|escalated|deferred|withdrawn|refuted)/i.test(r.outcome);
+// Outcomes are written in the document's voice, so the leading marker may be
+// bolded (`**fixed.**`) or qualified (`**code half fixed**`). Strip markup
+// before classifying, and treat a half-fix as fixed for the count only when
+// the record says so in its first clause.
+const lead = (r) => String(r.outcome).replace(/[*_`]/g, "").trim().toLowerCase();
+const isFixed = (r) => /^([a-z ]*\bfixed\b)/.test(lead(r)) && !/^not fixed/.test(lead(r));
+const isOwner = (r) => /^owner action/.test(lead(r));
+const isClosed = (r) => isFixed(r) || /^(owner action|escalated|deferred|withdrawn|refuted)/.test(lead(r));
+const isEsc = (r) => /^(escalated|deferred)/.test(lead(r));
 let table = '| Severity | Count | Fixed | Owner action | Escalated / deferred | Open |\n|---|---|---|---|---|---|\n';
 for (const s of SEV) {
   const rs = recs.filter((r) => r.sev === s);
-  table += `| ${s} | ${rs.length} | ${rs.filter(isFixed).length} | ${rs.filter(isOwner).length} | ${rs.filter((r) => /^(escalated|deferred)/i.test(r.outcome)).length} | ${rs.filter((r) => !isClosed(r)).length} |\n`;
+  table += `| ${s} | ${rs.length} | ${rs.filter(isFixed).length} | ${rs.filter(isOwner).length} | ${rs.filter(isEsc).length} | ${rs.filter((r) => !isClosed(r)).length} |\n`;
 }
-table += `| **Total** | **${recs.length}** | **${count(isFixed)}** | **${count(isOwner)}** | **${count((r) => /^(escalated|deferred)/i.test(r.outcome))}** | **${count((r) => !isClosed(r))}** |\n`;
+table += `| **Total** | **${recs.length}** | **${count(isFixed)}** | **${count(isOwner)}** | **${count(isEsc)}** | **${count((r) => !isClosed(r))}** |\n`;
 const byClass = {};
 for (const r of recs) byClass[r.cls] = (byClass[r.cls] || 0) + 1;
 const byPass = {};
@@ -63,9 +70,15 @@ if (openBlocker.length || openHighCode.length) {
   why = 'no open Blocker/High; every Medium fixed or deferred; owner-action list ' + (ownerActions.length ? 'cosmetic (Low only): ' + ownerActions.map((r) => r.id).join(', ') : 'empty');
 } else {
   verdict = 'GO-WITH-OWNER-ACTIONS';
-  why = `no open Blocker; open High ${openHigh.length}; owner actions ${ownerActions.length}: ` + ownerActions.map((r) => `${r.id} (${r.sev}) — ${r.outcome.replace(/^owner action:\s*/i, '')}`).join('; ');
+  // The header line has to stay a line: name the owner actions, do not
+  // reproduce them. Their full text is in the §2 records and in §5.
+  const brief = (r) => String(r.outcome).replace(/[*_`]/g, '').split(/[.(]/)[0].trim();
+  why = `no open Blocker, no open High; ${ownerActions.length} owner actions (` + ownerActions.map((r) => `${r.id} ${r.sev}`).join(', ') + `), ${recs.filter(isEsc).length} escalated (` + recs.filter(isEsc).map((r) => r.id).join(', ') + `). The gating one is ${ownerActions.filter((r)=>r.sev==='High').map((r)=>`${r.id}: ${brief(r)}`).join('; ') || 'none'}`;
 }
-const unverified = recs.filter((r) => !/reproduced|sampled/i.test(r.verified));
+// Verified by the SEPARATE verifier agents only. C reproducing its own
+// finding through a test-first acceptance arm is evidence, but it is not
+// §3.6 verification and must not be counted as it.
+const unverified = recs.filter((r) => !/^V[12] — /.test(String(r.verified).trim()));
 const out = `${table}\nBy class: ${Object.entries(byClass).map(([k, v]) => `${k} ${v}`).join(' · ')}\nBy pass: ${Object.entries(byPass).map(([k, v]) => `${k} ${v}`).join(' · ')}\nVerified by V: ${recs.length - unverified.length}/${recs.length}${unverified.length ? ' — NOT verified: ' + unverified.map((r) => r.id).join(', ') : ''}\n\n**Verdict: ${verdict}** — ${why}\n`;
 process.stdout.write(out);
 if (process.argv.includes('--write')) {

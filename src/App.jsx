@@ -6970,10 +6970,12 @@ const COPY_DEFAULTS = {
     // anywhere near the submit control, on a form that collects a name, an
     // email, a phone number and a company.
     requiredLegend: "Fields marked * are required.",
-    // A-9.P5a-11 — "enquiry" against the site's own "inquiry" majority (the
-    // admin screen is called Inquiries and the log is inquiries.jsonl). The
-    // content.json copy and the privacy policy's three are the owner's and
-    // move together with it; these hardcoded defaults are not.
+    // A-9.P5a-11 — this said "enquiry" against an "inquiry" majority: the
+    // admin screen is called Inquiries and the log is inquiries.jsonl. The
+    // content.json copy and the three inside the privacy policy belong to the
+    // owner and move together with it; these hardcoded defaults do not.
+    // (No apostrophes here — see the NOTE above phonePlaceholder. This comment
+    // broke copydrift once while it was being written.)
     privacyNote: "We use your details only to answer this inquiry. See our",
     companyLabel: "Company",
     companyPlaceholder: "Your organization",

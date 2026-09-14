@@ -1,8 +1,435 @@
 {
- "_note": "Per-product header geometry at the two viewports AUDIT-10 measured as CORRECT, captured from the UNMODIFIED tree before PLAN-10 item 1's fix, with the document forced to Liberation Sans (the C49 control). plan10-header.js asserts the fix leaves every one of these within 2px. A global band is the wrong assertion here: the title column's width depends on how many action buttons the product has (btnCol is 244px without a PDF and 350.7px with one), so 'unchanged' has to be per product. NB these are LIBERATION-face numbers; the audit record's 431.4 / 557.4 were measured in the shipped DejaVu face on the same box.",
- "captured": "2026-08-10",
+ "_note": "Per-product header geometry at the two viewports AUDIT-10 measured as CORRECT, captured from the UNMODIFIED tree before PLAN-10 item 1's fix, with the document forced to Liberation Sans (the C49 control). plan10-header.js asserts the fix leaves every one of these within 2px. A global band is the wrong assertion here: the title column's width depends on how many action buttons the product has (btnCol is 244px without a PDF and 350.7px with one), so 'unchanged' has to be per product. NB these are LIBERATION-face numbers; the audit record's 431.4 / 557.4 were measured in the shipped DejaVu face on the same box.  RE-CAPTURED 2026-09-14 (Audit 9, A-9.P5a-6): the product header carried two names for one destination — the PDF control said \"Download PDF\" where the sticky bar said \"Data Sheet\", and the quote control said \"Request Quote\" where the sticky bar said \"Request a Quote\". Unifying them changes the button column width, so the pre-fix numbers cannot be kept as the reference. Every one of the 42 products moved by exactly one of TWO deltas at BOTH viewports — title +17.3 / btn -17.3 for a product with a PDF, title -10.0 / btn +10.0 for one without — which is the label change and nothing else; no product moved for any other reason and no overlap appeared. The PLAN-10 numbers this replaces are kept below under viewportsPrePlan10 so the original comparison is still readable.",
+ "captured": "2026-09-14 Liberation Sans (forced)",
+ "capturedPrevious": "2026-08-10",
  "font": "Liberation Sans (forced)",
  "viewports": {
+  "tablet-834": {
+   "CC": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "CC90": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "CCS": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "CT": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP10EX": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP1274": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP12GA": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP12GA - IP1274": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP13SP": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP15PV": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP17TW-18SW-19LW": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP25PU": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP29CG": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP30HS": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP30UV": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP32IP": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP33PO": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP33TW": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP34SR": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP35KY": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP37SH-IP36TH-IP39LH": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP38FE": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP3L": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP41NE / IP43VT": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP42MW": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP44A2 & IP45A3": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP46MD": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP47HV": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP48MH": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP49VP": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP52EC": {
+    "titleCol": 343.3,
+    "btnCol": 360.7,
+    "overlaps": 0
+   },
+   "IP53MP": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP55FL": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP56DR": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP61ES & IP62EF": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP63ES": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP64FS-IP65VC-IP66AC-IP67SC": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP69HT": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP71NS - IP72PS - IP73PP": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP75AD": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "VALUE-ADDED": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "VT-1100": {
+    "titleCol": 477.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   }
+  },
+  "desktop-1440": {
+   "CC": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "CC90": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "CCS": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "CT": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP10EX": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP1274": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP12GA": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP12GA - IP1274": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP13SP": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP15PV": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP17TW-18SW-19LW": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP25PU": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP29CG": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP30HS": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP30UV": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP32IP": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP33PO": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP33TW": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP34SR": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP35KY": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP37SH-IP36TH-IP39LH": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP38FE": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP3L": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP41NE / IP43VT": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP42MW": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP44A2 & IP45A3": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP46MD": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP47HV": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP48MH": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP49VP": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP52EC": {
+    "titleCol": 469.3,
+    "btnCol": 360.7,
+    "overlaps": 0
+   },
+   "IP53MP": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP55FL": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP56DR": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP61ES & IP62EF": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP63ES": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP64FS-IP65VC-IP66AC-IP67SC": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP69HT": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP71NS - IP72PS - IP73PP": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "IP75AD": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "VALUE-ADDED": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   },
+   "VT-1100": {
+    "titleCol": 603.3,
+    "btnCol": 226.7,
+    "overlaps": 0
+   }
+  }
+ },
+ "viewportsPrePlan10": {
   "tablet-834": {
    "CC": {
     "titleCol": 460,
