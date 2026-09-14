@@ -7183,7 +7183,14 @@ function StructuredData() {
       url: SITE_ORIGIN,
       logo: `${SITE_ORIGIN}/favicon.svg`,
       description: site.company.description,
-      foundingDate: site.company.foundedYear ? `${site.company.foundedYear}-01-01` : undefined,
+      // A-8.9 — year only, not `-01-01`. schema.org/foundingDate is an ISO 8601
+      // Date and a bare year is valid, so appending January 1st bought no
+      // precision and asserted a month and a day that are wrong: the About page
+      // on this same site says "incorporated on July 1, 1974". site-info.json
+      // carries a YEAR (`foundedYear`), so the year is the only thing actually
+      // known here — emit that and let the structured data say exactly as much
+      // as the data behind it does.
+      foundingDate: site.company.foundedYear ? String(site.company.foundedYear) : undefined,
       telephone: site.contact.phoneDial || site.contact.phone,
       faxNumber: site.contact.fax || undefined,
       email: site.contact.email,
@@ -12092,7 +12099,7 @@ const PRIVACY_SECTIONS = [
     {
       title: "Information We Collect",
       content:
-        "When you use the contact or quote request form on this website, we collect the information you provide: your name, company name, email address, phone number (optional), and message content. We do not collect payment information through this website.",
+        "When you use the contact or quote request form on this website, we collect the information you provide: your name, company name, email address, phone number (optional), and the details of your enquiry — including any part numbers, quantities, materials, required dates and special requirements you enter on a quote request. We also automatically record the IP address the submission was sent from, together with the date and time. That address is not something you type: it is recorded for every submission, including any our spam and rate-limiting checks reject, and we use it only to protect the form from abuse. We do not collect payment information through this website.",
     },
     {
       title: "How We Use Your Information",
@@ -12102,7 +12109,7 @@ const PRIVACY_SECTIONS = [
     {
       title: "Data Retention",
       content:
-        "Inquiry data is retained for the duration necessary to fulfill your request and for a reasonable period thereafter for business record-keeping purposes, not to exceed three (3) years unless required by applicable law.",
+        "Inquiry records — the details you submit, together with the IP address and timestamp described above — are kept for as long as they are needed to answer your enquiry and for our ongoing business record-keeping. They are not deleted automatically. If you would like the record of a particular enquiry removed, contact us using the details below and we will remove it.",
     },
     {
       title: "Cookies & Tracking",

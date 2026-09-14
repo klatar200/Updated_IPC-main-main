@@ -61,6 +61,37 @@ the last minute.
       the apex is served without redirecting, every page declares a canonical
       it is not being served at, and `sitemap.php` advertises 52 URLs on the
       wrong host.
+- [ ] **Apply the two corrected privacy-policy sections.** ⚠ **On a re-deploy
+      this is an ADMIN EDIT, not a file upload.** The policy renders from
+      `data/content.json`, which is live customer state and is *never*
+      re-uploaded — and `mergeContent()` prefers live data over the built-in
+      defaults, so the corrected text in the bundle will not appear on a site
+      that already has its own `content.json`. Paste it in at
+      **Admin → Page Content**, the block headed **"Privacy Policy —
+      Sections"**. Find the row whose *Section heading* matches, and replace
+      the whole of its *Section text*. Both fields are textareas with no length
+      cap, so paste the full paragraph. (On a *first* deploy the repo's `data/`
+      is uploaded and this is already done — nothing to do.)
+
+      Why they changed (`audit-runs/audit8.md` A-8.7, A-8.8): the old text
+      enumerated only what the visitor types, while every submission also
+      stores the IP address — including submissions the spam and rate-limit
+      checks reject — and it promised deletion "not to exceed three (3) years"
+      when nothing is ever deleted. Both were untrue on a policy that names
+      GDPR and CCPA by name.
+
+      **Row headed "Information We Collect"** — replace its Section text with:
+
+      > When you use the contact or quote request form on this website, we collect the information you provide: your name, company name, email address, phone number (optional), and the details of your enquiry — including any part numbers, quantities, materials, required dates and special requirements you enter on a quote request. We also automatically record the IP address the submission was sent from, together with the date and time. That address is not something you type: it is recorded for every submission, including any our spam and rate-limiting checks reject, and we use it only to protect the form from abuse. We do not collect payment information through this website.
+
+      **Row headed "Data Retention"** — replace its Section text with:
+
+      > Inquiry records — the details you submit, together with the IP address and timestamp described above — are kept for as long as they are needed to answer your enquiry and for our ongoing business record-keeping. They are not deleted automatically. If you would like the record of a particular enquiry removed, contact us using the details below and we will remove it.
+
+      These are factual corrections, not legal advice. If the business wants a
+      retention *ceiling* back, that is the other way to close A-8.8: keep the
+      three-year sentence and add an annual prune of the rotated
+      `admin/inquiries-*.jsonl` files. Nothing in the code does that today.
 - [ ] **Set up an uptime monitor** on `https://www.insulationproducts.com/`
       (any free tier). The site is one FTP mistake away from a blank page and
       nothing else will tell you.

@@ -5651,23 +5651,38 @@ ones with commercial rather than technical weight).
   material, quantity, reqDate, special, notes, ip, sent`. The other undisclosed
   keys are RFQ fields the visitor does provide; the IP is the one that is not,
   and it is personal data under both GDPR (*Breyer*, C-582/14) and CCPA — both
-  of which the policy explicitly invokes. **STILL OPEN** — the text is in
-  `data/content.json`, live customer state, and it is legal wording. One
-  sentence in Admin → Page Content → Privacy.
+  of which the policy explicitly invokes. **SHIPPED 2026-08-28 at the owner's
+  instruction — see §1x.** The disclosure was checked field by field against a
+  real stored record. Note the operational half: on an already-live site this is
+  an **admin edit, not a deploy** — `data/` is never re-uploaded and
+  `mergeContent()` prefers live data over the defaults, so `GO-LIVE.md` §A
+  carries the paragraph ready to paste.
 - [ ] **A-8.8 — the stated three-year retention ceiling is not implemented.**
   The policy promises "not to exceed three (3) years". Nothing expires:
   `contact.php`'s own comment says *"Rotated files are never deleted"*, and
   there is no `unlink` of any inquiry file anywhere in `admin/` — zero
-  occurrences. **STILL OPEN**: either the sentence changes or a deletion policy
-  gets built. The cheap version is an annual prune of rotated
-  `inquiries-*.jsonl`.
-- [ ] **A-8.9 — two small copy/data inconsistencies.** The JSON-LD emits
-  `foundingDate: "1974-01-01"` while the About copy says "incorporated on **July
-  1**, 1974" — `site-info.json` carries only a year, so Jan 1 is a defensible
-  convention and fixing it properly means a new owner-editable field. And
-  "Celebrating 50 years" is **52** as of 2026; the footer copyright is derived,
-  this number is typed by hand and will keep aging. Both owner-editable, both
-  decisions rather than defects.
+  occurrences. **SHIPPED 2026-08-28 at the owner's instruction — see §1x.** The
+  sentence now describes what actually happens and points at the
+  deletion-on-request the "Your Rights" section already offers. The other route
+  — keep the ceiling and *build* an annual prune — was not taken days before a
+  launch: it is a new destructive mechanism over the lead log, the one file the
+  business cannot lose. It is recorded in `GO-LIVE.md` as the alternative.
+- [x] **A-8.9 — the `foundingDate` half. SHIPPED 2026-08-28.** The JSON-LD
+  emitted `foundingDate: "1974-01-01"` while the About copy on the same site
+  says "incorporated on **July 1**, 1974". `schema.org/foundingDate` is an ISO
+  8601 Date and a bare year is valid, so appending January 1st bought no
+  precision and asserted a month and a day that are wrong. It now emits the
+  year, which is the only thing `site-info.json` actually knows.
+- **A-8.9 — the "50 years" half. WITHDRAWN 2026-08-28: the finding was wrong.**
+  Left visible rather than deleted, per this file's append-only rule. It was
+  raised from a `grep` without opening the surrounding structure. `milestones`
+  is a **historical timeline** and the row is `year: "2024", label: "50 Years"`
+  — the year they actually reached fifty, correct as history; changing it would
+  have introduced an error. The About prose was checked at the same time and
+  says "for **over** fifty years", also correct. Recorded because "a number that
+  looks stale" is exactly the shape of finding that needs its context read
+  before it is believed — the same lesson as the tier-2 SKU matching, where an
+  exact-match check would have flagged five working links as broken.
 
 ### Re-verified clean, recorded so it is not re-derived
 
@@ -5788,3 +5803,94 @@ ErrorBoundary, an `<h1>` on every page, the phone number present, zero
 horizontal overflow, zero console or page errors.
 
 `data/` was confirmed byte-identical to `_harness/pristine/` before and after.
+
+
+---
+
+## 1x. Shipped 2026-08-28 — the two privacy corrections, and the `foundingDate` half of A-8.9
+
+Fixed at the owner's instruction. A-8.7 and A-8.8 were **published statements
+that were untrue**, on a policy that names GDPR and CCPA by name.
+
+| ID | File | What changed |
+|---|---|---|
+| **A-8.7** | `src/App.jsx` (`PRIVACY_SECTIONS`), `data/content.json` | *Information We Collect* now discloses the IP address and timestamp, says plainly the address is not something you type, and says it is recorded for rejected submissions too. |
+| **A-8.8** | same two files | *Data Retention* now describes what actually happens instead of promising a three-year ceiling nothing implements. |
+| **A-8.9** (half) | `src/App.jsx` | `foundingDate` emits the year rather than `-01-01`. |
+| **(runbook)** | `GO-LIVE.md` | Both replacement paragraphs, ready to paste, with the reason they are an **admin edit** on a live site. |
+
+### The disclosure was checked field by field, not written from memory
+
+```
+stored:    ts, type, name, company, email, phone, part, material,
+           quantity, reqDate, special, notes, ip, sent
+disclosed: name, company, email, phone, enquiry details (part numbers,
+           quantities, materials, required dates, special requirements),
+           IP address, date and time
+```
+
+`type` and `sent` are internal flags, not personal data. Everything else is
+covered. Verified in the rendered page, not just the source: `/privacy` now
+contains "IP address" and no longer contains "three (3) years".
+
+### On a live site this is an ADMIN EDIT, not a deploy — and that is the whole point
+
+The text was changed in **both** copies. On an already-live site **neither
+reaches the page**:
+
+- `data/` is live customer state and is never re-uploaded (GO-LIVE Step 0/§B2.7);
+- `mergeContent()` does `out[k] = Array.isArray(v) ? v : dv`, so a live
+  `content.json` beats the bundled defaults outright.
+
+This is the **A-6.2 shape again** — a fix travelling on a tree that does not get
+deployed — which is exactly why it is a numbered step in `GO-LIVE.md` §A with
+the paragraphs inline, rather than a line in a commit message. On a *first*
+deploy the repo's `data/` goes up and it is already done.
+
+### Why the retention sentence changed rather than the behaviour
+
+Keeping the three-year ceiling would have meant **building** an annual prune of
+the rotated `admin/inquiries-*.jsonl`. That is a new destructive mechanism over
+the lead log — the one file this business cannot afford to lose — and adding it
+days before a launch is the wrong order to do things in. The sentence now
+matches reality and points at the deletion-on-request that the *Your Rights*
+section already offers, so the two are consistent. The prune remains the
+alternative and is recorded in the runbook.
+
+These are factual corrections, not legal advice, and the runbook says so.
+
+### The owner's Saturday operation was rehearsed, not assumed
+
+Asking someone to paste a 674-character paragraph into a 852-field form and
+trusting it works is not verification. It was driven end to end against the
+mirror — sign in, edit the *Information We Collect* row, click **Save Content**,
+then read both the saved JSON and the rendered `/privacy` page — **9/9**, with
+the marker carrying an accent, an em dash and a smart quote to catch any
+encoding loss. Nothing truncated; the admin returned *"✅ Content saved"*; the
+mirror was restored from `pristine/` and the restore asserted.
+
+Worth recording how the first run of that probe went, because it is the trap:
+it reported the save as **failing**. It was the probe that was wrong — it did
+`waitForLoadState()` after clicking, which can resolve against the *old* page
+before the server has finished writing, so it read the file too early. The
+give-away was that the same run then found the marker on `/privacy`, which is
+impossible if the write never happened. **A measurement that contradicts itself
+is the measurement's fault first**, and re-running with
+`waitForNavigation()` showed a clean save all along.
+
+### `_harness/pristine/` was deliberately re-seeded
+
+`data/content.json` legitimately changed, so pristine was rebuilt
+(`rm -rf _harness/pristine && sh _harness/sync.sh`). `sync.sh` never refreshes
+it on its own, by design — *"refreshing it from data/ each time would silently
+launder exactly the corruption it exists to detect"* — so an intentional data
+change is the one case where re-seeding is correct. Recorded here rather than
+done silently.
+
+### One finding withdrawn, and left visible
+
+A-8.9's "50 years" half was **wrong** and is marked as such above rather than
+deleted. `milestones` is a historical timeline; the row is `year: "2024"`, which
+is the year the company actually reached fifty. The About prose says "over fifty
+years". Both correct; the finding came from a `grep` without reading the
+structure around it.
