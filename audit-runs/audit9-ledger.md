@@ -71,10 +71,10 @@
 | E065 | page | `/admin/settings.php` | admin | P7 | pending |  | A-01 social URL validation gap (2026-08-13, closed since — re-verify, do not re-report) |
 | E066 | page | `/admin/content.php` | admin | P7 | pending |  | A-16 no-op save rewrites file (2026-08-13, closed since — re-verify, do not re-report) |
 | E067 | page | `/admin/backups.php` | admin | P7 | pending |  |  |
-| E068 | page | `/admin/audit-log.php` (`?sku=`, `?action=`) | admin | P5b | pending |  | A-12 unlabelled filters; A-15 vocabulary drift (2026-08-13, closed since — re-verify, do not re-report) |
+| E068 | page | `/admin/audit-log.php` (`?sku=`, `?action=`) | admin | P5b | done | 2026-09-14 | A-12 unlabelled filters; A-15 vocabulary drift (2026-08-13, closed since — re-verify, do not re-report) |
 | E069 | page | `/admin/inquiries.php` | admin | P3 | done | 2026-09-14 |  |
 | E070 | page | `/admin/password.php` | admin | P7 | pending |  |  |
-| E071 | page | `/admin/help.php` | admin | P5b | pending |  |  |
+| E071 | page | `/admin/help.php` | admin | P5b | done | 2026-09-14 |  |
 | E072 | element | `/admin/nav.php` partial | admin | P6 | pending |  |  |
 | E073 | api | `/admin/ping.php` keepalive | admin | P3 | done | 2026-09-14 |  |
 | E074 | element | `admin/config.php` — session + cookie hardening | admin | P3 | done | 2026-09-14 |  |
@@ -90,12 +90,12 @@
 | E084 | element | `admin/confirm.js` | admin | P6 | pending |  |  |
 | E085 | element | `admin/content-editor.js` | admin | P7 | pending |  |  |
 | E086 | element | `admin/spectable-editor.js` | admin | P7 | pending |  |  |
-| E087 | element | `admin/product-preview.js` | admin | P5b | pending |  |  |
-| E088 | element | `admin/settings-preview.js` | admin | P5b | pending |  |  |
+| E087 | element | `admin/product-preview.js` | admin | P5b | done | 2026-09-14 |  |
+| E088 | element | `admin/settings-preview.js` | admin | P5b | done | 2026-09-14 |  |
 | E089 | element | `admin/contrast-guard.js` | admin | P9 | pending |  |  |
 | E090 | element | `admin/unsaved.js` | admin | P7 | pending |  |  |
 | E091 | element | `admin/search.js` | admin | P7 | pending |  |  |
-| E092 | element | `admin/help.js` | admin | P5b | pending |  |  |
+| E092 | element | `admin/help.js` | admin | P5b | done | 2026-09-14 |  |
 | E093 | config | `admin/.htaccess` | admin | P3 | done | 2026-09-14 |  |
 | E094 | config | `data/.htaccess` | admin | P3 | done | 2026-09-14 |  |
 | E095 | data | `data/products-all.json` integrity | data | P4 | done | 2026-09-14 | A-17 placehold.co photoUrls (2026-08-13, closed since — re-verify, do not re-report) |
@@ -113,7 +113,7 @@
 | E107 | config | `.claude/launch.json` | build | P11 | done | 2026-09-14 | `.claude/launch.json` — verify exists |
 | E108 | config | `package-lock.json` | build | P1 | done | 2026-09-14 | lockfileVersion 3, 183 packages, ranges match `package.json` — clean |
 | E109 | data | `plans/audit10/**` (20 JSON files) | docs | C | pending |  | `plans/audit10/` deleted 2026-08-12 — row kept for history; C closes with `ls plans/` |
-| E110 | doc | `Email to Rick - Admin Dashboard Handoff.md` | docs | P5c | pending |  | every claim checked against the shipped admin; holds. Deliberately carries no password — correct |
+| E110 | doc | `Email to Rick - Admin Dashboard Handoff.md` | docs | P5c | done | 2026-09-14 | every claim checked against the shipped admin; holds. Deliberately carries no password — correct |
 | E111 | element | `uploads/images/.gitkeep` | uploads | P1 | done | 2026-09-14 | placeholder for the runtime upload folder — clean |
 | E112 | element | `_harness` assertion suites never recorded as run | harness | P11 | done | 2026-09-14 | 5 found; 4 pass first time, 1 is D-02 |
 
@@ -121,7 +121,7 @@
 
 | ID | Type | Path / Locator | Area | Pass | Status | Audited at | Notes |
 |---|---|---|---|---|---|---|---|
-| E113 | doc | `GO-LIVE.md` — runbook STEP 0 / A / B / C / D / rollback | docs | P8 | done | 2026-09-14 | runbook dry-run; language only → P5c cites |
+| E113 | doc | `GO-LIVE.md` — runbook STEP 0 / A / B / C / D / rollback | docs | P8 | done | 2026-09-14 |runbook dry-run; language only → P5c cites · P8 owns the facts; P5c audited its language only |
 | E114 | config | `.gitattributes` (`*.sh text eol=lf`, PR #47) | build | P7 | pending |  | Appendix C row C33 |
 | E115 | element | `_harness/sync.sh` — `uploads/images/` mkdir and `admin/logo.svg` copy steps (PR #47) | harness | P11 | done | 2026-09-14 | Phase 0 `ls` is the evidence |
 | E116 | element | `_harness/lint.php` — `inquiry-type drift` and `href guard drift` checks (13 lines total) | harness | P11 | done | 2026-09-14 | P11 step 3 mutation-test census |
@@ -160,13 +160,13 @@
 | E149 | data | `data/content.json` `seo[9]` | meta | P4 | done | 2026-09-14 | 15/16 — exactly the 9 routes (P4 step 5); P6 step 7 cites |
 | E150 | data | `data/content.json` `contactTips[5]` | verbiage | P5a | done | 2026-09-14 | 16/16 |
 | E151 | data | `data/site-info.json` — all leaves as verbiage (company, contact, address, hours, certifications, stats, social, about, theme, catalogPdfUrl) | verbiage | P5a | done | 2026-09-14 | truth → P4 register |
-| E152 | element | every admin flash / error / notice / `data-confirm` string in `admin/*.php` | verbiage | P5b | pending |  | from `audit9-strings.json` surface `admin` |
-| E153 | element | `public/contact.php` — sales notification email (subject + body) | email | P5b | pending |  | rendered with sample data by I-strings |
-| E154 | element | `public/contact.php` — auto-reply email (subject + body) | email | P5b | pending |  | rendered with sample data by I-strings |
+| E152 | element | every admin flash / error / notice / `data-confirm` string in `admin/*.php` | verbiage | P5b | done | 2026-09-14 | from `audit9-strings.json` surface `admin` |
+| E153 | element | `public/contact.php` — sales notification email (subject + body) | email | P5b | done | 2026-09-14 | rendered with sample data by I-strings |
+| E154 | element | `public/contact.php` — auto-reply email (subject + body) | email | P5b | done | 2026-09-14 | rendered with sample data by I-strings |
 | E155 | doc | `README.md` (deploy tables, refetch paragraph A-8.1) | docs | P8 | done | 2026-09-14 | numeric/factual truth |
-| E156 | doc | `admin/README.md` | docs | P5c | pending |  | instructional accuracy (P8 numbers only) |
-| E157 | doc | `Editing-Your-Site-Content.md` | docs | P5c | pending |  | instructional accuracy; nine menu items vs `nav.php` |
-| E158 | doc | `PATCH_NOTES.md` | docs | P8 | done | 2026-09-14 | facts (P5c language) |
+| E156 | doc | `admin/README.md` | docs | P5c | done | 2026-09-14 | instructional accuracy (P8 numbers only) |
+| E157 | doc | `Editing-Your-Site-Content.md` | docs | P5c | done | 2026-09-14 | instructional accuracy; nine menu items vs `nav.php` |
+| E158 | doc | `PATCH_NOTES.md` | docs | P8 | done | 2026-09-14 |facts (P5c language) · P8 owns the facts; P5c audited its language only |
 | E159 | doc | `DEPLOY_READINESS_v2.md` §7 (frozen; stale by the `sitemap.xml` row) | docs | P8 | done | 2026-09-14 | read-only; never edited |
 | E160 | doc | `CLAUDE.md` (invariants, numbers, `file:line` census) | docs | P8 | done | 2026-09-14 | P8 step 6 |
 | E161 | doc | `_harness/README.md` (suite tables, "96 fields", expected reds) | docs | P8 | done | 2026-09-14 | P8 step 6 + P11 step 6 |
