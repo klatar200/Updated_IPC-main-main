@@ -1950,11 +1950,17 @@ own self-corrections). §4 reproduces the four explicit "checked, no finding"
 sections verbatim and §6.2 reproduces every pass's self-corrections verbatim.
 
 Per PLAN-11 §8.3 the working files are **deleted from the tree** at the end of
-this round. They are not lost: they are committed at `90c2969` ("Audit 9:
-ledger complete … plus the pass working files") and remain readable at that
-commit. The per-pass method records — the step-by-step evidence behind the
-"checked, no finding" claims that §4 summarises rather than reproduces — are
-there.
+this round. They are not lost. They first landed at `90c2969` ("Audit 9: ledger
+complete … plus the pass working files"); the last commit that carries them is
+**`f6130ce`**, which is the parent of the deletion and the one to read — one
+record (A-9.P6-1's severity) changed after `90c2969`. Any of them:
+
+```sh
+git show f6130ce:audit-runs/audit9/P4-data-truth.md
+```
+
+The per-pass method records — the step-by-step evidence behind the "checked, no
+finding" claims that §4 summarises rather than reproduces — are there.
 
 Verifier output is kept outside `audit-runs/`, under
 `_harness/out/audit9/V1/V1-verification.md` and
