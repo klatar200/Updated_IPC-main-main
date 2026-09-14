@@ -1,42 +1,28 @@
 #!/usr/bin/env node
 /**
  * audit9-strings.js — AUDIT-9 shared instrument I-strings (PLAN-11 §3.3, §6 P5).
+ * Builds `{surface, locator, text, editable_on}` for P5a/b/c and P4's claims
+ * register. File-based, no server/browser, plain CommonJS, Node built-ins only.
  *
- * Builds the string inventory `{surface, locator, text, editable_on}` consumed
- * by P5a/P5b/P5c (verbiage) and P4 (claims-register seed). File-based, no
- * server, no browser, plain CommonJS, Node built-ins only.
+ * Usage: node _harness/audit9-strings.js [OUT]  (default OUT: see below)
+ * Writes OUT/audit9-strings.json + OUT/summary.md. Exits 0.
  *
- * Usage: node _harness/audit9-strings.js [OUT]
- *   OUT defaults to _harness/out/audit9/I-strings. Writes OUT/audit9-strings.json
- *   (array of records) and OUT/summary.md (counts per surface). Exits 0.
+ * App.jsx heuristics (never read whole into this process's own prose — only
+ * scanned line-by-line below): (1) the four default objects are located by
+ * their `const NAME = {`/`[` line, extent found by counting `{}[]` on a
+ * string/comment-masked copy of each line until depth returns to 0; every
+ * quoted leaf inside is `public-defaults`, path-keyed by the nearest `key:`
+ * seen while re-walking. (2) Outside those ranges (and outside NotFoundPage/
+ * CatalogError, carved to `meta`), a text-node scanner treats a run of
+ * non-code-shaped lines bounded above by a line ending `>` and below by one
+ * starting `<` as one JSX text node (Prettier puts each child on its own
+ * line, so this misses same-line text, e.g. `<h1>Short</h1>`); a separate
+ * regex catches `placeholder|aria-label|title|alt|label="…"` props (the `=`
+ * excludes an object-literal `key: "…"`). (3) `{expr}` is stripped to `{…}`.
  *
- * ── Heuristics for src/App.jsx (never read whole into this process's own
- *    prose — only parsed line-by-line by the scanner below) ──────────────
- * 1. The four default objects (COPY_DEFAULTS, SITE_DEFAULTS, PRIVACY_SECTIONS,
- *    SEO_DEFAULT) are located by their `const NAME = {`/`[` declaration line,
- *    then their extent is found by counting `{}[]` on a string-and-comment-
- *    masked copy of each line until depth returns to 0. Every quoted leaf
- *    inside that range, keyed by the nearest enclosing `key:`/array-index path
- *    seen while re-walking the range depth-first, is `public-defaults`.
- * 2. Outside those ranges (and outside NotFoundPage/CatalogError, carved out
- *    to `meta` — see below), two independent regexes run on comment-and-
- *    JSX-comment-stripped lines: (a) `(placeholder|aria-label|title|alt|label)=
- *    "…" ` / `={"…"}` for props (the `=` distinguishes a JSX attribute from an
- *    object-literal `key: "…"`, which this deliberately does not match); (b) a
- *    text-node scanner that treats a run of consecutive non-code-shaped lines
- *    bounded above by a line ending in a bare `>` and below by a line starting
- *    with `<` as one JSX text node (this file's Prettier formatting puts each
- *    JSX child on its own line, so this catches the common case and MISSES a
- *    text node that shares a line with its tags, e.g. `<h1>Short</h1>`).
- * 3. `{expr}` inside a text run is stripped to a literal `…` placeholder and
- *    the surrounding text kept, exactly as instructed; it is not evaluated.
- *
- * Known gaps (see also the handback): the text-node scanner is line-shaped
- * heuristic, not a JSX parser — it can miss same-line text and can mis-split
- * a text node that itself contains a literal `<` or `>` (e.g. "< 2 inch").
- * Hardcoded string arrays elsewhere in App.jsx that use an object key (not a
- * JSX attribute) such as `label: "…"` are not walked — only the five named
- * surfaces' rules are implemented, per the launch brief.
+ * Known gaps: the JSX scanner can mis-split a text node containing a literal
+ * `<`/`>`; a hardcoded array using an object key (not a JSX prop) such as
+ * `label: "…"` elsewhere in App.jsx is not walked — only the named surfaces.
  */
 'use strict';
 const fs = require('fs');
@@ -146,15 +132,8 @@ function findBlock(name) {
   for (; i < appMasked.length; i++) {
     depth += structDelta(appMasked[i]);
     if (depth === 0 && i > startIdx) break;
-    if (i === startIdx) { /* first line already counted above */ }
   }
   return { start: startIdx, end: i }; // 0-based, inclusive
-}
-if (process.env.DEBUG_BLOCKS) {
-  console.error('COPY_DEFAULTS', findBlock('COPY_DEFAULTS'));
-  console.error('SITE_DEFAULTS', findBlock('SITE_DEFAULTS'));
-  console.error('PRIVACY_SECTIONS', findBlock('PRIVACY_SECTIONS'));
-  console.error('SEO_DEFAULT', findBlock('SEO_DEFAULT'));
 }
 const DEFAULT_BLOCKS = {
   COPY_DEFAULTS: { ...findBlock('COPY_DEFAULTS'), editable_on: 'Page Content' },
@@ -176,54 +155,88 @@ function findFunctionRange(name) {
 }
 function inRange(i, r) { return r && i >= r.start && i <= r.end; }
 function inAnyDefaultBlock(i) { return Object.values(DEFAULT_BLOCKS).some((r) => inRange(i, r)); }
-function whichDefaultBlock(i) {
-  for (const [name, r] of Object.entries(DEFAULT_BLOCKS)) if (inRange(i, r)) return { name, r };
-  return null;
-}
 function inAnyMetaFunc(i) { return META_FUNCS.some((r) => inRange(i, r)); }
 
 /* ---------- 1. public-defaults: walk each block, tracking key path ----------
- * Per line: every `key: "value"` pair (any number of them — several of these
- * objects, e.g. SITE_DEFAULTS.contact/address/hours, are one-liners) is
- * attributed to its own local key via KEYVAL_RE; a bare string with no local
- * key (an array element, e.g. days: [...] or about.paragraphs[...]) falls
- * back to the last local key seen on the line + "[]", else the running
- * object-key stack, else the block name. This loses the exact index inside a
- * same-line array of bare strings (they all get the same "<key>[]" locator,
- * disambiguated only by :App.jsx:<line> — all one line anyway here). */
+ * A running object-key `stack` covers MULTI-line nesting (COPY_DEFAULTS.hero
+ * spans many lines). Several leaves nest a level SINGLE-line instead (e.g.
+ * SITE_DEFAULTS `contact: { phone: "…", fax: "…" }` all on one line) — for
+ * those, `lineExtra` (the line's own leading `key: {`/`[`) supplies the extra
+ * path segment the stack won't have pushed (it only pushes when the brace
+ * trails the line, i.e. actually spans lines). KEY_RE locates every `key:`
+ * on the line (whatever its value shape) so a bare array element (`days:
+ * ["Monday", …]`) can look up the nearest key before its own position. */
+const KEY_RE = /(?:^\s*|[,{[]\s*)(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\s*:/g;
 const KEYVAL_RE = /(?:^\s*|[,{[]\s*)(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\s*:\s*"((?:[^"\\]|\\.)*)"/g;
 for (const [blockName, block] of Object.entries(DEFAULT_BLOCKS)) {
   if (!block.start && block.start !== 0) continue;
   const stack = []; // running object-key path, popped on net negative bracket delta
+  let pendingKey = null; // set by a line ending in a bare `key:` — its value is the next literal
   for (let i = block.start; i <= block.end; i++) {
     const line = appMasked[i];
     const pathPrefix = stack.filter(Boolean).join('.');
-    const keyedSpans = []; // [start, end] of each matched "value" to exclude from the bare pass
-    let lastLocalKey = null;
+    const leadingOpen = line.match(/^\s*(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\s*:\s*[\{\[]/);
+    const lineExtra = leadingOpen ? (leadingOpen[1] || leadingOpen[2] || leadingOpen[3]) : null;
+    const effPrefix = [pathPrefix, lineExtra].filter(Boolean).join('.');
+
+    const keyPositions = [];
     let km;
+    KEY_RE.lastIndex = 0;
+    while ((km = KEY_RE.exec(line))) keyPositions.push({ pos: km.index, key: km[1] || km[2] || km[3] });
+    const localKeyBefore = (pos) => {
+      let found = null;
+      for (const kp of keyPositions) { if (kp.pos < pos) found = kp.key; else break; }
+      return found;
+    };
+
+    const keyedSpans = []; // [start, end] of each `key: "value"` match, to exclude from the bare pass
     KEYVAL_RE.lastIndex = 0;
     while ((km = KEYVAL_RE.exec(line))) {
       const key = km[1] || km[2] || km[3];
       const val = km[4].replace(/\\"/g, '"').replace(/\\n/g, ' ');
-      lastLocalKey = key;
       keyedSpans.push([km.index, km.index + km[0].length]);
-      const leafPath = pathPrefix ? `${pathPrefix}.${key}` : key;
+      const leafPath = effPrefix ? `${effPrefix}.${key}` : key;
       rec('public-defaults', `${blockName}.${leafPath}:App.jsx:${i + 1}`, val, block.editable_on);
     }
-    // bare string literals not already consumed as a `key: "value"` pair —
-    // array elements (days: [...], about.paragraphs: [...]).
-    const bareRe = /"((?:[^"\\]|\\.)*)"/g;
-    let bm;
-    while ((bm = bareRe.exec(line))) {
-      const overlaps = keyedSpans.some(([s, e]) => bm.index >= s && bm.index < e);
-      if (overlaps) continue;
-      const val = bm[1].replace(/\\"/g, '"').replace(/\\n/g, ' ');
-      const leafKey = lastLocalKey ? `${lastLocalKey}[]` : (stack[stack.length - 1] || blockName);
-      const leafPath = pathPrefix ? `${pathPrefix}.${leafKey}` : leafKey;
+    // A handful of values are single-quoted instead (their text contains a
+    // double quote, e.g. privacyHeader.intro's `("IPC", "we", …)`) — matched
+    // only when the ENTIRE trimmed line is one such literal, so a stray
+    // apostrophe in ordinary prose is never mistaken for a delimiter.
+    const wholeLineSingle = line.match(/^\s*'((?:[^'\\]|\\.)*)'\s*,?\s*$/);
+    if (wholeLineSingle) {
+      const val = wholeLineSingle[1].replace(/\\'/g, "'").replace(/\\n/g, ' ');
+      const leafPath = pendingKey ? (effPrefix ? `${effPrefix}.${pendingKey}` : pendingKey) : (effPrefix || blockName);
       rec('public-defaults', `${blockName}.${leafPath}:App.jsx:${i + 1}`, val, block.editable_on);
+      pendingKey = null;
+    } else {
+      // bare string literals not already consumed as a `key: "value"` pair —
+      // array elements (days: [...], about.paragraphs: [...]).
+      const bareRe = /"((?:[^"\\]|\\.)*)"/g;
+      let bm, first = true;
+      while ((bm = bareRe.exec(line))) {
+        if (keyedSpans.some(([s, e]) => bm.index >= s && bm.index < e)) continue;
+        const val = bm[1].replace(/\\"/g, '"').replace(/\\n/g, ' ');
+        // A `key:` dangling at the end of the PREVIOUS line (no value there) —
+        // this line's first literal is that key's value, not an array element.
+        if (first && pendingKey) {
+          const leafPath = effPrefix ? `${effPrefix}.${pendingKey}` : pendingKey;
+          rec('public-defaults', `${blockName}.${leafPath}:App.jsx:${i + 1}`, val, block.editable_on);
+          pendingKey = null;
+        } else {
+          const localKey = localKeyBefore(bm.index);
+          const leafPath = localKey ? `${effPrefix ? effPrefix + '.' : ''}${localKey}[]` : `${effPrefix || blockName}[]`;
+          rec('public-defaults', `${blockName}.${leafPath}:App.jsx:${i + 1}`, val, block.editable_on);
+        }
+        first = false;
+      }
     }
-    // running key-path stack: a trailing `key: {` / `key: [` opens a level;
-    // net negative bracket delta on the line closes that many levels.
+    // a bare `key:` with nothing else on the line — its value is the next
+    // literal, wherever that lands (e.g. company.description, PRIVACY_
+    // SECTIONS' `content:`).
+    const danglingKey = line.match(/^\s*(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\s*:\s*$/);
+    if (danglingKey) pendingKey = danglingKey[1] || danglingKey[2] || danglingKey[3];
+    // running key-path stack: a trailing `key: {` / `key: [` opens a level
+    // that actually spans lines; net negative bracket delta closes it back.
     const openMatch = line.match(/(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\s*:\s*[\{\[]\s*$/);
     if (openMatch) stack.push(openMatch[1] || openMatch[2] || openMatch[3]);
     const delta = structDelta(line);
@@ -235,22 +248,18 @@ for (const [blockName, block] of Object.entries(DEFAULT_BLOCKS)) {
 const PROP_RE = /\b(placeholder|aria-label|title|alt|label)\s*=\s*(?:"([^"]*)"|\{"([^"]*)"\})/g;
 function isCodeShaped(t) {
   if (t === '') return true;
-  if (/^[<>{}]/.test(t)) return true;
+  if (/^[<>{})\]]/.test(t)) return true;
   if (/[;{(]$/.test(t)) return true;
   if (/=>\s*$/.test(t)) return true;
   if (/^(const|let|var|function|return|import|export|if|else|for|while|switch|case)\b/.test(t)) return true;
-  if (/^[)\]}].*[,;]?$/.test(t) && t.length < 6) return true;
   return false;
 }
 let textRunStart = -1, textRunParts = [];
-function flushTextRun(surfaceFor) {
+function flushTextRun() {
   if (textRunStart === -1) return;
   const text = textRunParts.join(' ').replace(/\{[^{}]*\}/g, '{…}').trim();
-  const cleaned = text.replace(/\{…\}/g, ' ').trim();
-  if (cleaned.length >= 2) {
-    const surface = inAnyMetaFunc(textRunStart) ? 'meta' : 'public-jsx';
-    const editable = surface === 'meta' ? 'hardcoded' : 'hardcoded';
-    rec(surface, `App.jsx:${textRunStart + 1}`, text, editable);
+  if (text.replace(/\{…\}/g, ' ').trim().length >= 2) {
+    rec(inAnyMetaFunc(textRunStart) ? 'meta' : 'public-jsx', `App.jsx:${textRunStart + 1}`, text, 'hardcoded');
   }
   textRunStart = -1; textRunParts = [];
 }
@@ -354,13 +363,11 @@ function metaAdminLineNumbers() {
 }
 const metaAdminSkip = metaAdminLineNumbers();
 
-function phpStringLiterals(line) {
-  return stringLiterals(line);
-}
 function scanPhpFile(full) {
   const rel = relPath(full);
   const rawLines = read(full).split('\n');
   let inPhp = false;
+  let inStyle = false; // <style>…</style> is CSS, not user-facing text — skipped whole
   for (let i = 0; i < rawLines.length; i++) {
     let line = rawLines[i];
     const locator = `${rel}:${i + 1}`;
@@ -373,18 +380,22 @@ function scanPhpFile(full) {
       if (seg === '<?php' || seg === '<?=') { seg_inPhp = true; continue; }
       if (seg === '?>') { seg_inPhp = false; continue; }
       if (!seg_inPhp) htmlParts.push(seg);
-      else {
-        // PHP segment: look for $errors[]/$warnings[]/$success literals and data-confirm
-        if (!metaAdminSkip.has(locator)) {
-          if (/\$(errors|warnings)\[\]\s*=/.test(seg) || /^\s*\$success\s*=\s*'/.test(seg)) {
-            for (const s of phpStringLiterals(maskLineComments(seg))) rec('admin', locator, s, 'code');
-          }
-        }
+      else if (!metaAdminSkip.has(locator)) {
+        // PHP segment: $errors[]/$warnings[]/$success literals — only the
+        // assignment's RHS, so an unrelated string earlier on the same
+        // statement (a post_str('name') argument, say) is not swept in too.
+        const masked = maskLineComments(seg);
+        const am = masked.match(/\$(?:errors|warnings)\[\]\s*=\s*(.+?)(?:;|$)/)
+          || masked.match(/^\s*\$success\s*=\s*(.+?)(?:;|$)/);
+        if (am) for (const s of stringLiterals(am[1])) rec('admin', locator, s, 'code');
       }
     }
     inPhp = seg_inPhp;
 
-    const html = htmlParts.join(' ');
+    let html = htmlParts.join(' ');
+    if (/<style[\s>]/.test(html)) inStyle = true;
+    if (inStyle) html = '';
+    if (/<\/style>/.test(htmlParts.join(' '))) inStyle = false;
     if (!html.trim()) continue;
     if (metaAdminSkip.has(locator)) continue;
 
@@ -409,7 +420,6 @@ idxLines.forEach((l, i) => {
   const loc = `index.html:${i + 1}`;
   const t = l.match(/<title>([^<]*)<\/title>/);
   if (t) rec('meta', loc, t[1], 'hardcoded');
-  const md = l.match(/name="description"\s*\n?\s*content="([^"]*)"/) || l.match(/content="([^"]*)"\s*\/>\s*$/);
   if (/name="description"/.test(idxLines.slice(Math.max(0, i - 1), i + 2).join(' '))) {
     const c = l.match(/content="([^"]*)"/);
     if (c) rec('meta', loc, c[1], 'hardcoded');
@@ -432,17 +442,25 @@ for (const { file, pattern } of META_ADMIN_HITS) {
   const ls = read(full).split('\n');
   ls.forEach((l, idx) => {
     if (!pattern.test(l)) return;
-    for (const s of phpStringLiterals(maskLineComments(l))) rec('meta', `${file}:${idx + 1}`, s, 'code');
+    for (const s of stringLiterals(maskLineComments(l))) rec('meta', `${file}:${idx + 1}`, s, 'code');
   });
 }
-// The two paragraph strings ($lead) sit one/two lines below their $title line
-// in admin/config.php's csrf_fail_page(); pulled by fixed offset, read ±3.
+// The two $lead paragraphs (session-expired / this-form-could-not-be-verified
+// / too-large) in admin/config.php's csrf_fail_page() are each a `$lead = …`
+// statement that may run several lines (string concatenation or a ternary);
+// collect every line from the `$lead =`/`$lead  =` start through the line
+// whose net structDelta-style paren/statement finally closes with `;`.
 {
-  const cfg = read(path.join(ROOT, 'admin/config.php')).split('\n');
+  const cfg = read(path.join(ROOT, 'admin/config.php')).split('\n').map(maskLineComments);
+  let inLead = false;
   cfg.forEach((l, idx) => {
-    if (/^\s*\$lead\s*=/.test(l) || /^\s*\.\s*'/.test(l) && cfg[idx - 1] && /\$lead/.test(cfg[idx - 1])) {
-      for (const s of phpStringLiterals(maskLineComments(l))) rec('meta', `admin/config.php:${idx + 1}`, s, 'code');
+    if (!inLead && /^\s*\$lead\s*=/.test(l)) inLead = true;
+    if (!inLead) return;
+    for (const s of stringLiterals(l)) {
+      const clean = s.replace(/<\/?(strong|code|em)>/g, '').trim();
+      if (clean) rec('meta', `admin/config.php:${idx + 1}`, clean, 'code');
     }
+    if (/;\s*$/.test(l)) inLead = false;
   });
 }
 

@@ -90,11 +90,14 @@ function extractCsrf(html) {
   const m = /name="csrf_token"\s+value="([^"]*)"/.exec(html);
   return m ? decodeEntities(m[1]) : '';
 }
-function firstForm(html) {
-  const start = html.indexOf('<form');
-  if (start === -1) return '';
-  const end = html.indexOf('</form>', start);
-  return end === -1 ? html.slice(start) : html.slice(start, end + 7);
+// nav.php's own sign-out <form> is included at the top of EVERY admin page,
+// ahead of the page's real form — so "the first <form>" is nav's, not the
+// content form. Every page this instrument scrapes (edit/settings/content)
+// carries an optimistic-concurrency `orig_sig` hidden field, which nav's
+// logout form does not, so that is what identifies the real one.
+function mainForm(html) {
+  const forms = html.match(/<form\b[\s\S]*?<\/form>/gi) || [];
+  return forms.find((f) => f.includes('name="orig_sig"')) || forms[forms.length - 1] || '';
 }
 function parseAttrs(s) {
   const attrs = {};
@@ -280,7 +283,7 @@ async function main() {
   ]);
 
   g = await get('mutate', 'edit.php (form)', '/admin/edit.php?sku=' + SKU);
-  await post('mutate', 'edit.php (save ' + SKU + ')', '/admin/edit.php?sku=' + SKU, scrapeForm(firstForm(g._body.toString('utf8'))));
+  await post('mutate', 'edit.php (save ' + SKU + ')', '/admin/edit.php?sku=' + SKU, scrapeForm(mainForm(g._body.toString('utf8'))));
 
   g = await get('mutate', 'upload-pdf.php (form)', '/admin/upload-pdf.php?sku=' + SKU);
   await stepUpload('mutate', 'upload-pdf.php (upload)', '/admin/upload-pdf.php?sku=' + SKU,
@@ -295,11 +298,11 @@ async function main() {
 
   // settings.php — unchanged (expect inv.16 no-op path).
   g = await get('mutate', 'settings.php (form)', '/admin/settings.php');
-  await post('mutate', 'settings.php (save, unchanged)', '/admin/settings.php', scrapeForm(firstForm(g._body.toString('utf8'))));
+  await post('mutate', 'settings.php (save, unchanged)', '/admin/settings.php', scrapeForm(mainForm(g._body.toString('utf8'))));
 
   // settings.php — one field changed, then restored.
   g = await get('mutate', 'settings.php (form, fresh sig)', '/admin/settings.php');
-  let settingsFields = scrapeForm(firstForm(g._body.toString('utf8')));
+  let settingsFields = scrapeForm(mainForm(g._body.toString('utf8')));
   const sloganIdx = settingsFields.findIndex(([k]) => k === 'company_slogan');
   const originalSlogan = sloganIdx !== -1 ? settingsFields[sloganIdx][1] : '';
   await post('mutate', 'settings.php (save, one field changed)', '/admin/settings.php',
@@ -307,11 +310,11 @@ async function main() {
 
   g = await get('mutate', 'settings.php (form, post-change)', '/admin/settings.php');
   await post('mutate', 'settings.php (save, restored)', '/admin/settings.php',
-    scrapeForm(firstForm(g._body.toString('utf8'))).map((f) => (f[0] === 'company_slogan' ? [f[0], originalSlogan] : f)));
+    scrapeForm(mainForm(g._body.toString('utf8'))).map((f) => (f[0] === 'company_slogan' ? [f[0], originalSlogan] : f)));
 
   // content.php — unchanged, every field incl. form_complete LAST (as scraped).
   g = await get('mutate', 'content.php (form)', '/admin/content.php');
-  await post('mutate', 'content.php (save, unchanged)', '/admin/content.php', scrapeForm(firstForm(g._body.toString('utf8'))));
+  await post('mutate', 'content.php (save, unchanged)', '/admin/content.php', scrapeForm(mainForm(g._body.toString('utf8'))));
 
   // backups.php — restore the newest content.json backup, if one exists.
   const contentBackups = listBackups('content'); // oldest..newest
