@@ -3043,7 +3043,9 @@ function DatasheetsPage({ products }) {
               No datasheets found
             </div>
             <p className="mt-2 text-sm" style={{ color: "#4b5563" }}>
-              Nothing matches “{q}”. This filter covers part numbers, product
+              {/* A-9.P5a-9(a) — the one curly-quoted string on the public
+                  surface; the other eleven quoted strings are straight. */}
+              Nothing matches "{q}". This filter covers part numbers, product
               names and families — sizes are listed inside each datasheet, so
               try the part number or call 630.771.0700 and we will point you at
               the right one.
@@ -4233,7 +4235,10 @@ const FAQ_CATEGORIES = [
           // programme here would be a business claim the site cannot support.
           question: "I'm a supplier or manufacturer's rep — who do I contact?",
           answer:
-            "Supplier, distribution and partnership enquiries go to the same team: email sales@insulationproducts.com with \"Supplier enquiry\" in the subject line, or call 630.771.0700 (Mon–Fri, 8am–5pm CT). You can also use the \"Send a Message\" tab on our Contact page — that form is for general enquiries, so there is no need to fill in a part number or quantity.",
+            // A-9.P5a-11 — three "enquiry" spellings in one default answer.
+            // content.json's faq[18] overrides this, so the change reaches a
+            // fresh install rather than this site; the live copy is Rick's.
+            "Supplier, distribution and partnership inquiries go to the same team: email sales@insulationproducts.com with \"Supplier inquiry\" in the subject line, or call 630.771.0700 (Mon–Fri, 8am–5pm CT). You can also use the \"Send a Message\" tab on our Contact page — that form is for general inquiries, so there is no need to fill in a part number or quantity.",
         },
       ],
     },
@@ -6965,7 +6970,11 @@ const COPY_DEFAULTS = {
     // anywhere near the submit control, on a form that collects a name, an
     // email, a phone number and a company.
     requiredLegend: "Fields marked * are required.",
-    privacyNote: "We use your details only to answer this enquiry. See our",
+    // A-9.P5a-11 — "enquiry" against the site's own "inquiry" majority (the
+    // admin screen is called Inquiries and the log is inquiries.jsonl). The
+    // content.json copy and the privacy policy's three are the owner's and
+    // move together with it; these hardcoded defaults are not.
+    privacyNote: "We use your details only to answer this inquiry. See our",
     companyLabel: "Company",
     companyPlaceholder: "Your organization",
     tipsTitle: "For fastest response, include:",
@@ -9418,7 +9427,7 @@ function CatalogLanding({
           </div>
           <p className="mt-2 text-sm" style={{ color: "#4b5563" }}>
             {query
-              ? `No results for “${query}”${activeFamily ? ` in ${activeFamily}` : ""}. Try a different term, or clear the filters.`
+              ? `No results for "${query}"${activeFamily ? ` in ${activeFamily}` : ""}. Try a different term, or clear the filters.`
               : `Nothing in ${activeFamily}.`}{" "}
             Sizes are listed on each product page — if you know the size but not
             the part number, call 630.771.0700 and we will point you at it.
@@ -9819,7 +9828,7 @@ function ProductPage({ products }) {
               lineHeight: 1.6,
             }}
           >
-            <strong>We couldn't find part “{selectedId}”.</strong> It may have been
+            <strong>We couldn't find part "{selectedId}".</strong> It may have been
             renamed or discontinued. Showing the catalog instead — pick a part from
             the list, or{" "}
             <PageLink

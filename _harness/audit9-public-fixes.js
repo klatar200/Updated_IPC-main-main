@@ -253,6 +253,60 @@ const READ_HEAD = () => {
     'p5a-10: the accessible names are as distinct as the destinations',
     JSON.stringify({ labels: labels.size, hrefs: new Set(vp.map((l) => l.href)).size }));
 
+  // ── p5a-9 (a) — one quote glyph in the hardcoded public copy ────────────
+  // Only the code half. The four `data-live` halves (two products' spec
+  // tables, privacyHeader.intro, faq[18]) are the owner's on Products → Edit
+  // and Page Content, and the privacySections half is a rule-10 decision.
+  // Comments are blanked line by line (keeping the line count) so a note that
+  // TALKS about a glyph or a spelling is not read as an instance of it — the
+  // fixes below carry exactly such notes.
+  const NOCOMMENT = (() => {
+    const out = SRC.split('\n');
+    let inBlock = false;
+    for (let i = 0; i < out.length; i++) {
+      let l = out[i];
+      if (inBlock) {
+        const end = l.indexOf('*/');
+        if (end === -1) { out[i] = ''; continue; }
+        l = l.slice(end + 2); inBlock = false;
+      }
+      let open = l.indexOf('/*');
+      while (open !== -1) {
+        const close = l.indexOf('*/', open + 2);
+        if (close === -1) { l = l.slice(0, open); inBlock = true; break; }
+        l = l.slice(0, open) + ' ' + l.slice(close + 2);
+        open = l.indexOf('/*');
+      }
+      out[i] = l.replace(/(^|[^:])\/\/.*$/, '$1');
+    }
+    return out;
+  })();
+  const jsxCurly = NOCOMMENT
+    .map((l, i) => ({ l, i }))
+    .filter(({ l }) => /[“”]/.test(l));
+  note(jsxCurly.length === 0,
+    'p5a-9: no curly double quote left in the hardcoded public copy',
+    jsxCurly.slice(0, 3).map((x) => `${x.i + 1}: ${x.l.trim().slice(0, 60)}`).join(' | '));
+
+  // ── p5a-11 — "inquiry", except where the owner's copy owns the word ─────
+  // PRIVACY_SECTIONS is deliberately excluded: its three occurrences mirror
+  // content.json's privacySections byte for byte and the two have to move
+  // together, which makes the pair a decision about legal text, not a fix.
+  const joined = NOCOMMENT.join('\n');
+  // The DECLARATION, not the earlier reference to it in contentDefaults().
+  const privStart = joined.indexOf('const PRIVACY_SECTIONS = [');
+  const privEnd = privStart >= 0 ? joined.indexOf('\n];', privStart) : -1;
+  let at = 0;
+  const enquiry = [];
+  NOCOMMENT.forEach((l, i) => {
+    const inPrivacy = privStart >= 0 && at > privStart && at < privEnd;
+    if (/enquir/i.test(l) && !inPrivacy) enquiry.push({ l, i });
+    at += l.length + 1;
+  });
+  note(enquiry.length === 0,
+    'p5a-11: the hardcoded public copy says "inquiry", the site\'s own majority',
+    enquiry.slice(0, 3).map((x) => `${x.i + 1}: ${x.l.trim().slice(0, 60)}`).join(' | '));
+
   await ctx.close();
   await browser.close();
 
