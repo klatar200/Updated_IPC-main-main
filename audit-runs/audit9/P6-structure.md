@@ -2,7 +2,7 @@
 findings:   Blocker 0 · High 0 · Medium 1 · Low 3
 | ID | sev | class | where | one line |
 |---|---|---|---|---|
-| A-9.P6-1 | Medium | code | App.jsx:7389 (title), 42 product pages | script-generated `<title>` has no length cap — 39/42 product titles exceed the adopted 60-char limit, up to 149 chars, truncating before the SKU in search results |
+| A-9.P6-1 | Low | code | App.jsx:7389 (title), 42 product pages | script-generated `<title>` has no length cap — 39/42 product titles exceed the adopted 60-char limit, up to 149 chars, truncating before the SKU in search results |
 | A-9.P6-2 | Low | code | App.jsx:7397 (`.slice(0,300)`), 38 product pages + home/industries/about | meta description outside the adopted 50–160 range on 41/53 indexable pages (300-char cap, not 160; three hand-authored SEO_DEFAULT rows also run 4–21 chars over) |
 | A-9.P6-3 | Low | code | App.jsx:10147-10152 | `/dashboard` page-header eyebrow literally repeats its own `<h1>` text ("Product Index" / "Product Index"), the only inner page whose eyebrow is not a distinct category label |
 | A-9.P6-4 | Low | code | admin/nav.php:67-81 vs each page's own `<h1>` | admin `<h1>` wording diverges from the nav-tab label on 4/9 top-level tabs (Products→"Product Catalog", +Add Product→"Add New Product", Password→"Change Password", Help→"Help & Documentation") |
@@ -15,7 +15,7 @@ out of brief: admin/nav.php:67 current-tab `class="current"` carries no `aria-cu
 self-corrections: navgraph.js's first anchor-test pass used a single reused page for sequential #-only navigations, which Chromium treats as same-document (page.goto returns a null Response, no new HTTP request) — read as 4 failures before the fix; re-run with a fresh page per link resolved to 5/5 passing. Recorded so the artifact's history is legible; final navgraph.json already reflects the corrected run.
 ---
 
-### A-9.P6-1 — Medium — code — the search-result title for most parts gets cut off before the part number
+### A-9.P6-1 — Low — code — the search-result title for most parts gets cut off before the part number
 
 class:        code
 pass:         P6     ledger: E122

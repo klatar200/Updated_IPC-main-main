@@ -7,10 +7,10 @@
 |---|---|---|---|---|---|
 | Blocker | 0 | 0 | 0 | 0 | 0 |
 | High | 3 | 1 | 1 | 1 | 0 |
-| Medium | 22 | 15 | 2 | 5 | 0 |
-| Low | 29 | 25 | 4 | 0 | 0 |
+| Medium | 21 | 14 | 2 | 5 | 0 |
+| Low | 30 | 26 | 4 | 0 | 0 |
 | **Total** | **54** | **41** | **7** | **6** | **0** |
-By class: decision 4 · server 1 · code 19 · doc 13 · harness 3 · code + data-live 5 · data-live 4 · data-live + code 2 · code  (may be re-classified `decision` — see "expected") 1 · code (the `image` half) + decision (the `offers` half) 1 · data-live + code + doc 1 · by pass: P4 11 · P5a 12 · P7 4 · P5b 13 · P5c 5 · P8 3 · P11 5 · P2 2 · P3 3 · P6 4 · P1 1 · verified by V: 30/54
+By class: decision 4 · server 1 · code 19 · doc 13 · harness 3 · code + data-live 5 · data-live 4 · data-live + code 2 · code  (may be re-classified `decision` — see "expected") 1 · code (the `image` half) + decision (the `offers` half) 1 · data-live + code + doc 1 · by pass: P4 11 · P5a 12 · P7 4 · P5b 13 · P5c 5 · P8 3 · P11 5 · P2 2 · P3 3 · P1 1 · P6 4 · verified by V: 30/54
 <!-- TOTALS:END -->
 
 **Verdict:** **GO-WITH-OWNER-ACTIONS** — no open Blocker, no open High; 7 owner actions (A-9.P5a-1 High, A-9.P4-4 Medium, A-9.P5a-2 Medium, A-9.P4-10 Low, A-9.P5a-4 Low, A-9.P5a-5 Low, A-9.P5a-8 Low), 6 escalated (A-9.P4-2, A-9.P4-1, A-9.P4-3, A-9.P4-5, A-9.P4-8, A-9.P5a-3). The gating one is A-9.P5a-1: owner action (computed by `_harness/audit9-totals.js`)
@@ -775,22 +775,6 @@ verified-by:  [UNVERIFIED — no second agent] — one of the 24 records V1/V2 d
 outcome:      escalated, not fixed. `decision-needed: what date the current privacy policy takes effect | recommended: the go-live date, set on Page Content → Privacy → Effective Date at the same time as the first deploy | why: the text was materially rewritten on 2026-08-28 and no version has ever been in effect on the printed date | trade-off: a future date is wrong too, so it has to be set at deploy — a runbook step, not a code change | blocked: legal text, which PLAN-11 §7.3 and P5 rule 10 both put on the owner's side`
 fix-proof:    n/a — escalated
 
-### A-9.P6-1 — Medium — code — the search-result title for most parts gets cut off before the part number
-
-class:        code
-pass:         P6     ledger: E122
-surface:      the 42 product pages `/products?productId=<sku>`
-where:        src/App.jsx:7384-7390 (title assembly, no length cap), measured on 2121597, 2026-09-14
-not in §11:   checked GUARDRAILS §7, §7.1-§7.3 and PLAN-11 §11 — none of those settle a title-length rule; plan8-meta/plan9-meta (15/15, 18/18) assert distinctness and canonical correctness only, never a length cap, so this is genuinely new for this audit's adopted rules
-reproduce:    node -e 'const fs=require("fs");const idx=JSON.parse(fs.readFileSync("_harness/out/audit9/I-crawl/index.json"));const rows=idx.pages.filter(p=>p.viewport==="1440x900"&&!p.slug.startsWith("admin-"));for(const p of rows){const r=JSON.parse(fs.readFileSync("_harness/out/audit9/I-crawl/"+p.json));if((r.meta.title||"").length>60)console.log(p.slug,r.meta.title.length)}'
-observed:     41/53 indexable pages exceed 60 chars; 39 of the 42 product pages (only IP75AD at 52 and VT-1100 at 50 are within cap); worst case `product-IP64FS-IP65VC-IP66AC-IP67SC` at 149 chars: "Fiberglass Sleeving (Heat Treated / Vinyl Coating / Acrylic Coated / Silicone Coated) — IP64FS-IP65VC-IP66AC-IP67SC — Insulation Products Corporation" — Google's ~575-600px SERP truncation cuts this before the SKU ever appears. Full list: _harness/out/audit9/P6/meta-length-violations.json
-expected:     title ≤ 60 chars (this audit's adopted rule, P6 step 7); the SKU a buyer searched for should survive truncation
-consequence:  a buyer who searched by part number sees a truncated title in Google that never reaches their SKU, so they cannot visually confirm the result before clicking — friction on the exact discovery path the 42 product pages exist to serve. Home's 74-char title is hand-authored (SEO_DEFAULT) and not part of this scaling defect
-evidence:     _harness/out/audit9/P6/meta-length-violations.json; _harness/out/audit9/I-crawl/product-*/1440x900.json meta.title
-verified-by:  V1 — reproduced, count corrected (40 of 42 product pages over cap, not 39), worst case 149 confirmed live. **V1 also recommended Medium → Low**; C has kept it at Medium — see §6.
-outcome:      **fixed.** `fitProductTitle()` caps the generated product title at 60 characters with the SKU surviving the cut: the company name goes first, then its short form, then the product name trimmed to a word. Owner-authored titles from Page Content → SEO are deliberately NOT capped — home's 74-character title is his copy, not this generator's output, and is recorded in §5 instead.
-fix-proof:    `_harness/audit9-public-fixes.js` arm `p6-1` over all 42 routes: 40 over 60 before (worst 149), 0 after, max 60; and a second arm asserting every title still contains its SKU, which passed before and after and is the control that the cap did not buy length by dropping the part number.
-
 ### A-9.P7-2 — Medium — `/contact?sent=1` tells a visitor their quote request was received when nothing was sent
 
 class:        code  (may be re-classified `decision` — see "expected")
@@ -1515,6 +1499,22 @@ verified-by:  not reached by V1/V2. Independently reproduced by C's test-first r
 outcome:      **code half fixed, except deliberately for the privacy defaults.** `COPY_DEFAULTS.privacyNote` and the FAQ default's three spellings are "inquiry", the site's own majority — the admin screen is called Inquiries and the log is `inquiries.jsonl`. `PRIVACY_SECTIONS`' three are NOT touched: they mirror `content.json`'s `privacySections` byte for byte and have to move with it, which makes the pair a decision about legal text rather than a fix. The `content.json` occurrences are `data-live`.
 fix-proof:    `_harness/audit9-public-fixes.js` arm `p5a-11`, over a comment-blanked copy of `App.jsx` with the `PRIVACY_SECTIONS` declaration excluded by name. The exclusion window first matched the earlier reference to the constant in `contentDefaults()` rather than its declaration, and was corrected.
 
+### A-9.P6-1 — Low — code — the search-result title for most parts gets cut off before the part number
+
+class:        code
+pass:         P6     ledger: E122
+surface:      the 42 product pages `/products?productId=<sku>`
+where:        src/App.jsx:7384-7390 (title assembly, no length cap), measured on 2121597, 2026-09-14
+not in §11:   checked GUARDRAILS §7, §7.1-§7.3 and PLAN-11 §11 — none of those settle a title-length rule; plan8-meta/plan9-meta (15/15, 18/18) assert distinctness and canonical correctness only, never a length cap, so this is genuinely new for this audit's adopted rules
+reproduce:    node -e 'const fs=require("fs");const idx=JSON.parse(fs.readFileSync("_harness/out/audit9/I-crawl/index.json"));const rows=idx.pages.filter(p=>p.viewport==="1440x900"&&!p.slug.startsWith("admin-"));for(const p of rows){const r=JSON.parse(fs.readFileSync("_harness/out/audit9/I-crawl/"+p.json));if((r.meta.title||"").length>60)console.log(p.slug,r.meta.title.length)}'
+observed:     41/53 indexable pages exceed 60 chars; 39 of the 42 product pages (only IP75AD at 52 and VT-1100 at 50 are within cap); worst case `product-IP64FS-IP65VC-IP66AC-IP67SC` at 149 chars: "Fiberglass Sleeving (Heat Treated / Vinyl Coating / Acrylic Coated / Silicone Coated) — IP64FS-IP65VC-IP66AC-IP67SC — Insulation Products Corporation" — Google's ~575-600px SERP truncation cuts this before the SKU ever appears. Full list: _harness/out/audit9/P6/meta-length-violations.json
+expected:     title ≤ 60 chars (this audit's adopted rule, P6 step 7); the SKU a buyer searched for should survive truncation
+consequence:  a buyer who searched by part number sees a truncated title in Google that never reaches their SKU, so they cannot visually confirm the result before clicking — friction on the exact discovery path the 42 product pages exist to serve. Home's 74-char title is hand-authored (SEO_DEFAULT) and not part of this scaling defect
+evidence:     _harness/out/audit9/P6/meta-length-violations.json; _harness/out/audit9/I-crawl/product-*/1440x900.json meta.title
+verified-by:  V1 — reproduced, count corrected (40 of 42 product pages over cap, not 39), worst case 149 confirmed live. **V1 also recommended Medium → Low, and C has accepted it**: V1 measured the mitigation — the SKU survives in the description snippet, in the canonical URL and in the h1 — and C had no counter-measurement showing a lost click. Severity here is consequence, and an unmeasured one is not a Medium. Logged in §6.
+outcome:      **fixed.** `fitProductTitle()` caps the generated product title at 60 characters with the SKU surviving the cut: the company name goes first, then its short form, then the product name trimmed to a word. Owner-authored titles from Page Content → SEO are deliberately NOT capped — home's 74-character title is his copy, not this generator's output, and is recorded in §5 instead.
+fix-proof:    `_harness/audit9-public-fixes.js` arm `p6-1` over all 42 routes: 40 over 60 before (worst 149), 0 after, max 60; and a second arm asserting every title still contains its SKU, which passed before and after and is the control that the cap did not buy length by dropping the part number.
+
 ### A-9.P6-2 — Low — code — meta descriptions run far past what Google will show, on the same 41 pages
 
 class:        code
@@ -1567,21 +1567,396 @@ fix-proof:    `_harness/audit9-admin-text.js` arm `p6-4`, parsing `nav.php`'s ni
 
 ## 3. Shipped
 
+41 of the 54 records were fixed in this round, all by C, all delta-only and all
+test-first: a check that fails against the unfixed tree, then the change, then
+the same check passing. The before-runs are on disk — `public-fixes-BEFORE.txt`,
+`admin-text-BEFORE.txt`, `router-docroot-check-BEFORE.txt` and
+`before/{fixes,admin,docs}-BEFORE.txt`, all under `_harness/out/audit9/C/`.
+
+| Commit | Records | What changed |
+|---|---|---|
+| `98ac321` | P7-1 (High), P2-1, P2-2, P3-2, P7-2, P3-1, D5, D6 | `admin/edit.php` shared-PDF guard · `admin/config.php` `mb_strlen` fallback · `admin/upload-image.php` no-gd message and polyglot refusal · `admin/index.php` ninth health branch · `src/App.jsx` session-gated `?sent=1` · `_harness/router.php` docroot · `_harness/fgpatch.js` early exit · `_harness/plan5-keys.js` restore assertions |
+| `635d9ba` | B2-01, B2-02, B2-03, B2-06, B2-12…B2-16, D3, D4, D7 | `admin/help.php` header-bar prose, diagram strip, three audit-log rows, four health rows · `admin/README.md` deploy section, spec-table section, file tree, cool-off, permissions · `Editing-Your-Site-Content.md` inventories · `PATCH_NOTES.md` spelling · `_harness/README.md` copydrift count and the seven undocumented suites · `plans/GUARDRAILS.md` line range |
+| `0052fde` | B2-04, B2-05, B2-07, B2-11 | `admin/upload-image.php` + `admin/upload-pdf.php` server-derived size labels · `admin/content.php` `labelHtml` · `admin/inquiries.php` conditional mailto · the three save-failure messages |
+| `bcae7a6` | P4-6, P4-7, P4-9 (image half), P5a-6, P5a-7 (code half), P5a-10, P6-1, P6-2, P6-3 | `src/App.jsx`: address from `site-info`, Organization `logo` from `theme.logoUrl`, Product `image` via the new `productImageAbs()`, one name per destination, one-word datasheet, `aria-label` on 84 links, `fitProductTitle()` and `trimToWord()`, dashboard eyebrow |
+| `1b481c4` | B2-08, B2-09, B2-10, P6-4 | 16 admin files: one product name, one spelling of color/catalog/data sheet, one quote glyph, one ellipsis glyph, Title Case buttons, four `<h1>`s matching their nav tab · `public/contact.php` hours fallback |
+| `428dd23` | D1 | `package-lock.json` only — `npm audit fix`, 7 advisories to 4, bundle byte-identical |
+| `b6c533d` | P5a-9 (code half), P5a-11 (code half) | `src/App.jsx`: one quote glyph in the public copy, "inquiry" in the hardcoded defaults |
+| `3581f83` | — | three checks the fix rounds broke, repaired with the reason inline: `copydrift`, `copydrift-selftest`, `plan10-header`'s geometry baseline |
+
+Three suites were added and are now part of the harness: `audit9-fixes.js`,
+`audit9-router-docroot.js`, `audit9-public-fixes.js`, `audit9-admin-text.js`
+(four), plus `audit9-totals.js`, which generates this document's own totals
+table and verdict rather than letting them be typed. Rows for each are in
+`_harness/README.md`.
+
+**Nothing under `data/`, `pdfs/` or `uploads/` was touched.** `git status` for
+those three trees is clean, and the mirror's `data/` is byte-equal to
+`_harness/pristine/` at the end of every mutating run.
+
 ---
 
 ## 4. Checked, no finding · Raised, not reproduced · Refuted with measurement
+
+Reproduced verbatim from the four passes that wrote an explicit section. The
+other nine passes recorded the same material inside their method records; those
+are preserved at commit `90c2969` (see §7.4). Nothing here is a finding — it is
+the list of things that were measured and found correct, which is the half of an
+audit that is normally lost.
+
+### P4 — Checked, no finding — with the measurement
+
+
+**Step 1 — live/repo.** STEP 0 = **NOT LIVE** (`_harness/out/audit9/step0.md`). There is no live/repo diff to classify and no `data-live` split; the repo `data/*.json` are the audit's truth. Confirmed the three repo files are byte-identical to `_harness/pristine/` (`diff -q` × 3, all IDENTICAL), so the two investigative tools that read `pristine/` are reading the same bytes. The known owner-action candidates the brief named: the **A-8.7/A-8.8 privacy sections are present in the repo** (step 5 below) and the **four `photoUrl` case corrections are present** (`imgcheck` ok, 79 paths byte-exact, sweep line 19) — both as PR #53 / the 2026-08-06 precedent recorded. Both still need applying **live** through the admin after first deploy, which is the runbook's job (P8), not a P4 finding.
+
+**Step 2 — register.** 25 rows, `_harness/out/audit9/P4/claims-register.md`. Every row carries a source or `[UNSOURCED]`. Rows with **no disagreement**: phone, fax, email, hours, founded date, "over 50 years", "25 million feet", "$50 minimum", JIT, "privately held", slogan, social profiles. `hours.text` / `opens` / `closes` / `days` agree with each other and with the Organization JSON-LD (all four checked programmatically, `jsonld-report.txt`, 0 problems). The phone appears in exactly one prose form, `630.771.0700`, everywhere it is not dialled — Appendix B's rule, satisfied.
+
+**Step 3 — certifications.** `isoclaims 2/4`, the documented expected red (sweep line 22; full output `P4/isoclaims.txt`): three `ISO 9001:2008` in `content.json` and three `ISO9001:2000` on `VALUE-ADDED`. **This is A-8.5, still open and registrar-gated — cited, not re-reported, and `:2015` is not written anywhere by this pass.** `site-info.json certifications.iso` still holds the bare unversioned `"ISO 9001"` (the fourth assertion, green). `plan8-certs 5/5` (sweep line 61) confirms the certification claims that *do* come from site-info render from it. What is **new** and recorded above: `certifications.other` is `[]` while five certification chips render (A-9.P4-2 for the origin claim, A-9.P4-3 for the category names).
+
+**Step 4 — products.** 42 records. `sku` non-empty 42/42, unique 42/42, sorted by SKU (the order `save_products()` writes). `id === sku` on **36 of 42**; the six that differ are the compound parts whose `id` carries the vendor's spacing (`"IP12GA - IP1274"` vs sku `"IP12GA-IP1274"`). Not a finding: `sitemap.php` emits the `id` form and `plan5b-sitemap 9/9` asserts all 42 `<loc>`s equal the canonical each page declares for itself, and `WHATS_LEFT.md:2530` records the encoding check that covers the spaces and ampersands. **Spec tables: 0 malformed in the A-7.8 sense** — 0 rows that would be silently dropped from either table, 0 `columnSpans`/row-width mismatches over the 39 tables that have rows, 0 products with no drawable rows. The 157 `specTable1` rows carrying `label: null` are the **intentional continuation-row shape**: `asText(null) === ""` and `src/App.jsx:8369` skips the label span, so they render as an unlabelled value line, which is what they are for. Nine rows render a blank *value* (`{"label":"Polyethylene","value":""}` and eight like it) — these are sub-headings written as label-only rows and they render as a bold line with nothing after it, which is the intent. `partType` ∈ the 11 `FAMILY_ORDER` families: **10 of the 11 used, 0 unknown** ("Elastomeric Heat Shrink" is unused; `ProductSidebar` builds its groups from the products, `src/App.jsx:7821-7838`, so an unused family renders nothing). `badges`: 3 or 4 per product, 42/42 arrays, **112 distinct strings — and `badges` is not the approvals field.** No record carries an `approvals` key at all, so `productApprovals()` (`src/App.jsx:2776`) derives all 42 from text against the 12-name whitelist, and `plan7-approvals` in the sweep is what holds PHP and JS to the same derivation. The brief's "`badges` ⊆ the 12 approvals" does not describe this data; the free-text badge strings are P5a's surface and are batched there. `pdfLabel`/`additionalPdfs`: on **exactly one** product (`IP52EC`, `pdfLabel:"Molded Cap"`, one extra `"Plugged Cap"`), both rendering (`src/App.jsx:8739`/`:8746` and `:9849`/`:9856`); the other 41 have neither key, `productExtraPdfs()` returns `[]`, and **no empty slot renders**. `pdfUrl` empty on 0 of 42; all 43 pdf references (42 + the one extra) resolve byte-exact on disk, 0 orphans beyond `.htaccess` and `marketing/` (the `pdfs-marketing` sandbox artifact GUARDRAILS §7 already settles). `public/images/products/`: 37 files, 37 referenced, **0 orphans, 0 missing**. `public/images/_unmatched/adhesiveLined.webp` (ledger E119) is referenced by nothing in `src/`, `data/` or `admin/` — which matches `WHATS_LEFT.md:176`'s measurement and its 2026-08-07 decision to keep it; not a finding, and GUARDRAILS §2 forbids deleting it. E171: the five photo-slot defaults resolve — `slotSrc()` (`src/App.jsx`) prefixes the leading `/`, and `Marker-Sample-2.jpg`, `staff.jpg` and `IPC-Building.jpg` are all present in `public/images/site/`.
+
+**Step 5 — content and site-info.** `data/content.json`: **0 empty or null leaves** anywhere in the 17 top-level keys, so `COPY_CLEARABLE` is not exercised by the shipped data at all. `data/site-info.json`: two empty leaves, `certifications.other` (`[]`) and `catalogPdfUrl` (`""`), **neither in `SITE_CLEARABLE` and neither a defect** — both `SITE_DEFAULTS` values are identically empty (`src/App.jsx:6413`, `:6442`), so invariant 4's blank-drop is inert for them (it "only bites when the default is non-empty", the comment at `src/App.jsx:6477-6481` says so for the same reason). **All 26 `page`-type fields resolve to a known route** — `home`, `products`, `dashboard`, `industries`, `services`, `about`, `faq`, `contact`, `privacy`, every one in `KNOWN_ROUTES` (`src/App.jsx:6958`, derived from `SEO_DEFAULT`) and every one with a `case` in the renderer (`src/App.jsx:13061-13082`). `deadlinks`: **"0 of 18 resolve to nothing"** (sweep line 17) — and measured directly, all 18 industry references resolve on the *first* branch of the lookup chain (13 by `sku`, 5 by `id`), so none is relying on the `normalizeSku`/`skuSegmentMatch` fallbacks. `seo[]` is **exactly 9 rows**, every `page` a known route, no duplicates, no empty title or desc. `privacySections` carries **all seven** sections and both A-8.7 and A-8.8 texts: §1 *Information We Collect* discloses the automatically-recorded IP address including on rejected submissions, and §3 *Data Retention* says records "are not deleted automatically" rather than promising a three-year ceiling. Both are **byte-identical to `PRIVACY_SECTIONS` in `src/App.jsx`** (7/7 titles and 7/7 contents compared programmatically) — i.e. present in both copies, as `audit8.md` §3a records. Per §7.3 and P5a rule 10 the wording is not touched.
+
+**Step 6.** Deleted in rev 2 — type tolerance of `content.json` / `site-info.json` is **P7 rows C7–C8**; cited, not measured here (PLAN-11 §3.3 single-owner table).
+
+**Step 7 — structured data.** 67 routes × 5 viewports = 293 pages, `couldNotCrawl: 0`. **Every JSON-LD block on every route parses as valid JSON, and the blocks are byte-identical across all five viewports on all 67 routes.** Organization+LocalBusiness on all 67: `name`, `url`, `telephone` present; all five address fields present and equal to `site-info.json`; `openingHoursSpecification` `opens`/`closes`/`dayOfWeek` equal to `site-info.json` `hours`. `foundingDate` is the **bare year** — A-8.9's correction is in place (`src/App.jsx:7186-7193`), re-verified, not re-reported. Product on all 42 product routes: `name`, `sku` and `description` present, and `description` is a **string** on 42/42 (`WHATS_LEFT.md` 4.2, re-verified). `manufacturer.url` = `SITE_ORIGIN` on 42/42; `brand` carries `@type:"Brand"` and `name` and no `url` — **not a finding**, `brand.name` is the property Google's Product guidance asks for and the name matches the Organization's. BreadcrumbList: every `item` absolute on every route that emits one, and the trailing item equals the page's own canonical on all of them (C33's contract, re-verified — GUARDRAILS §7.2 already refutes the general form). FAQPage on `/faq`: **19 Question entries, and all 19 `name` and all 19 `acceptedAnswer.text` are byte-equal to `content.json` `faq[].question`/`.answer`; all 19 questions are present in the rendered accordion.** `manifest.json` carries its icon (the A-13 item the ledger flags as closed — re-verified, not re-reported), and `robots.txt`'s `/data/` note is intact (`audit5.md` A-5.2's reasoning); `sitemap.php` is covered by `plan5b-sitemap 9/9`.
+
+### P5a — Checked, no finding — with the measurement
+
+
+**Surface coverage.** 4,411 records: `public-jsx` 100, `public-defaults` 180, `public-data` 4,059, `meta` 72 (`_harness/out/audit9/P5a/export.tsv`). Plus 53 **public** routes × 5 viewports from `I-crawl` for rules 7 and 9 (the 14 `admin-*` routes in the crawl were filtered out — they are P5b's surface and its findings are not taken here; the rule-7 and rule-9 hits on them, including `alt="IPC"` on `admin/logo.svg` × 14 and one `mailto:` link with no accessible name on `/admin-inquiries`, are recorded here only so P5b knows they exist).
+
+**The inventory's two known gaps, as the TIMING NOTE instructs.** (1) The `public-jsx` scanner is line-shaped and misses same-line JSX children. I ran `grep -nE '>[A-Z][a-z][^<>{}]{2,}</' src/App.jsx` for completeness: **12 strings**, all checked — `Something went wrong` (`:342`), `Filter datasheets` (`:3004`), `Request Sent` (`:4943`), `Phone ` (`:5013`), `Fax ` (`:5016`), `Email ` (`:5019`), `Website` (`:5292`, `:5590`), `Error 404` (`:7250`), `Click **View Product** for full data sheets…` (`:10158`), `Loading the product catalog…` (`:12726`), `Skip to main content` (`:13104`). Two feed findings already recorded (`:10158`'s "data sheets" → A-9.P5a-7; `View Product` → A-9.P5a-10); one is out of brief (`:5292`/`:5590`); the other nine are clean. (2) The scanner does not walk hardcoded data arrays outside the four named default objects. `CONTACT_TIPS` (`src/App.jsx:6977-6983`) is the one such array on the public surface; its five strings were read and are clean, and they are byte-identical to `content.json contactTips[]`, which the inventory does carry.
+
+**Rule 1 — spelling.** `which hunspell aspell` → neither installed; the brief's fallback ran (`npx --yes cspell@latest`, temporary, **not** added to `package.json`, offline against local dictionaries — PLAN-11 §10.3 rule 7). 72 unknown words over 4,411 strings; 6 typos (A-9.P5a-4), 66 dispositioned as industry vocabulary or proper nouns in `_harness/out/audit9/P5a/spell.md`. **Zero misspellings in `public-jsx`, `public-defaults` or `meta`** — every typo is in the owner's catalog data.
+
+**Rule 2 — vocabulary, the pairs that are clean.** `company`: 44 × "Insulation Products Corporation", 58 × "IPC", and no "Insulation Products Corp." anywhere; the first-mention rule holds where it matters — `privacySections[6]` and `copy.privacyHeader.intro` both open with the full legal name, and `about.paragraphs[0]` and `milestones[0]` do too. `contact channel`: 19 × "email", **0** × "e-mail" or "E-mail" — one form. `catalog`: 16 × "catalog", 0 × "catalogue". `certification` marks `CSA`, `PPAP`, `IMDS`, `PVC`, `VW-1`: one form each, 38/13/11/32/26. `lead time`: "one week or less" 9 × and "≤ 1 week" 8 × are the prose and the data-cell forms of one fact and agree with P4's register; the only wobble is `stats[3].value` `"≤1 week"` without the space against `services[0..5].leadTime` `"≤ 1 week"` with it — one character, folded into A-9.P5a-9's typography batch rather than raised separately. `enquiry`/`inquiry`: **10 each, and it is not a register split** — I first recorded it as one and it is not (self-correction 5). Raised as A-9.P5a-11.
+
+**Rule 3 — the conventions that are clean.** No space before `°`, `%` or `"` anywhere (0/0/0). Apostrophes: 53 straight, 0 curly. Em dash 86, en dash 14, and every en dash except VT-1100's is an unspaced range. Trailing periods: **not clean** — see A-9.P5a-9(f); I first reported this as 0 and it is not (self-correction 4). `&` vs "and": **clean in `content.json`** — `&` in every short label (`Adhesives & Accessories`, `Cookies & Tracking`, `Marking & Kitting`, `PPAP & IMDS Support`, `Aerospace & Defense`, `Spooling & Coiling`, `Kitting & Bagging`, `Slit & Perforation`, `FAQ & Resources`) and "and" in prose, 38 and 42 hits with no overlap; **not clean in `products-all.json` `badges`**, where 3 use `&` and 6 use "and" — see A-9.P5a-8, which I extended after measuring this (self-correction 6).
+
+**Rule 4 — the terms that are clean.** `CSA` 38/38, `PPAP` 13/13, `IMDS` 11/11, `PVC` 32/32, `VW-1` 26/26, one form each. `ISO 9001` is A-8.5's, cited and not re-reported.
+
+**Rule 5 — mechanical grammar. Clean on every count except sentence length:** 0 doubled words, 0 double spaces, 0 `" ."`/`" ,"`, 0 missing spaces at a `.`/`,` boundary, 0 `{a}{b}` concatenation gaps in JSX (F17's precedent — checked and not reproduced). **13 sentences run over 35 words** (`_harness/out/audit9/P5a/rules2-5.txt` § RULE 5): the longest are `privacySections[0]` and `faq[0]` at **51 words** each, then `faq[5]` 38, `about.paragraphs[0]` 37, `IP30UV.description[1]` 40. Recorded as a measurement rather than a finding: two of the five longest are legal text (rule 10 — escalated, never edited), and the rest are spec prose where the length is a list of materials. Named here so C can see the set; if it becomes a batch it is `data-live`.
+
+**Rule 6 — truth.** Cross-referenced against P4's 25-row register (`_harness/out/audit9/P4/claims-register.md`). Every string the register marks false, unsourced or two-ways is **P4's finding and is not duplicated here**: the unqualified same-day shipment copy (A-9.P4-1), "Made in USA" (A-9.P4-2), the certification category names (A-9.P4-3), "42 Products Stocked" (A-9.P4-4), "250 Gibraltar Drive" (A-9.P4-6). A-9.P5a-5 touches the same catalog strings as A-9.P4-3 and deliberately reports only their **spelling**; the record says so and names the ordering dependency.
+
+**Rule 7 — audience. Clean on the P5a surface.** Scanned every rendered string on all 53 public routes for `JSON|cache|caching|deploy|FTP|prod|localhost|API|endpoint|server-side|backend|null|undefined|console|HTTP`. **Zero hits on any public route.** The only hits in the whole crawl are `/admin-help` and `/admin-password` (P5b's surface: "the site briefly caches data for speed", "set data/ to 755 (or 775) over FTP", "it mentions invalid data/JSON", and an FTP glossary row — all of which read as deliberate and are P5b's to judge). `/unknown-route` renders the eyebrow "Error 404", which is not developer vocabulary — it is the term the public knows the page by — and is not raised.
+
+**Rule 8 — instructional accuracy.** P5b owns `help.php` and P5c the docs. The one **public** imperative that names a control is `faq[14]`, and it is wrong: A-9.P5a-2. The others were checked and are right: `App.jsx:10157` says *Click **View Product** for full data sheets* and a control named exactly "View Product →" exists on that page (84 of them, A-9.P5a-10); `faq[10]` says *use the Contact form on this website* and it exists; `faq[18]` says *use the "Send a Message" tab on our Contact page* and the crawl shows `button "✉️ Send a Message General inquiries & questions"` on `/contact`; `COPY_DEFAULTS.contactForm.requiredLegend` says *Fields marked * are required* and exactly the three `*`-marked fields (`Full Name *`, `Email *`, `Quantity Required *`) are the three the crawl reports as `required`.
+
+**Rule 9 — alt, link and label text, the parts that are clean.** **Alt text on the public surface is right.** 42 distinct alt values over 53 public routes: **0 images with no `alt` attribute**, 0 filename-shaped, 0 bare-SKU, 0 generic ("image"/"photo"/"logo"). Every product photo carries the product's descriptive name (`"Polyvinylidene Fluoride Heat Shrink Tubing (Kynar)"`, `"Nonmetallic Liquid-tight Conduit Coupling"`, `"90° Conduit Connectors"`), and the two site photographs describe their subject (`"The Insulation Products Corporation team outside the Bolingbrook facility"`). The only `alt=""` on the public surface is `logo.svg`, which is GUARDRAILS §7.3's settled C43 decision (`alt=""` + `aria-label` on the link) — re-verified, not re-reported. `Marker-Sample-2.jpg` carries two different descriptions on two pages ("Custom hot-stamp printed…" and "Custom-printed…"); both describe the subject correctly for their context and this is not raised. **Labels name the data**: all 10 `/contact` fields have real `<label>` elements and correct accessible names (`Full Name *`, `Email *`, `Phone`, `Company`, `Part Number / SKU`, `Material / Type`, `Quantity Required *`, `Required Delivery Date`, `Special Requirements`, `Additional Notes`), and the RFQ/Message tab buttons carry their own descriptions. **Error messages name the fix**: `networkError` and `submitError` both give the phone number, and `networkError` gives the email as well — neither names a field, which is correct for a submission-level failure. `Part Number / SKU` hedging two vocabularies in one label is noted under A-9.P5a-7 and is arguably the right call for a buyer who knows only one of the two words.
+
+**Rule 10 — legal text, the parts that hold.** The seven `privacySections` are internally consistent with each other and with the code, checked by A-8.7's method: §1's disclosure of the automatically-recorded IP address matches `public/contact.php`'s `REMOTE_ADDR` write on both accepted and rejected submissions; §3's "They are not deleted automatically" matches the absence of any `unlink` of an inquiry file anywhere in `admin/`; §4's cookie text is accurate and conservative — `audit8.md` §4 measured that the public site sets no cookies at all, cited and not re-measured; §5's rights-and-contact route matches `site-info.json` `contact.email`/`contact.phone`; §7's address, phone and email are byte-equal to `site-info.json` (P4 register rows 1, 3, 4). The **FAQ's shipping, lead-time and minimum-order answers agree with each other and with P4's register**: `faq[7]` "One week or less", `faq[8]` "$50", `faq[9]` "over 25 million feet … same day or next business day" — the F13 check, and the only disagreement is the unqualified marketing copy elsewhere, which is A-9.P4-1. §6 *Data Security* is A-9.P5a-1. **There is no disclaimer, warranty, terms-of-use or returns statement anywhere on the public site** — 0 hits across all 4,411 strings; recorded as an out-of-brief observation, since an absent document is a business decision, not a verbiage defect.
+
+**The owner's own voice.** Per the brief, prose in `data/*.json` that is simply how Rick writes is **not a finding** and carries no severity. Listed for Keagan to forward or drop, none of them misspelled or false: `IP53MP.description[0]` "sets the standard for high-performance, safety and reliability"; `site-info.about.paragraphs[3]` "The customer is always number one — that commitment has defined IPC since day one"; `IP75AD.caption` "Domestic production means you get fresher and therefore faster performance"; `copy.aboutHeader.intro` "quick, accurate, and courteous service, always"; `IP17TW-IP18SW-IP19LW.description[2]` "PTFE tubing is the material to specify when the reliability and dependability of an application…".
+
+### P5b — Checked, no finding
+
+
+- **Rule 1, spelling.** `which hunspell aspell` → neither present; no `/usr/share/hunspell`; `_harness/audit9-words.txt` does not exist in the checkout. Fell back to `npx --yes cspell@latest --no-progress --locale en-US` over the exported admin+email text (temporary, never added to `package.json`); clean stderr. 18 unknown words, all dispositioned: proper nouns / real terms — Bolingbrook, Datasheets, PVDF, Polyolefin, WEBP, webp, pdfs; HTML entity names appearing only in raw source and rendering correctly — ldquo, rdquo, rsquo, mdash, nbsp; code identifiers inside an HTML comment (`admin/edit.php:457-458`, out of scope per the brief) — beforeunload, keepalive; deliberate abbreviation in a column header — "Special reqs" (`admin/inquiries.php:191`), which matches the form's own field name; British spellings — colour/colours, recorded as A-9.B2-08(b). **No typo found.** Word list for a future run: `_harness/out/audit9/P5b/cspell-raw.txt`.
+- **`help.php:803` "Click Clear to reset the filters."** Correct. No Clear control exists on an unfiltered `/admin/audit-log.php`, but it is step 4 of a list whose step 3 applies a filter; `admin/audit-log.php:159-160` renders `<a href="audit-log.php" class="reset">Clear</a>` exactly then. Measured: `GET /admin/audit-log.php?action=edit` → filter controls `["Filter","Clear"]`.
+- **`help.php:595` "Click Upload PDF →".** Correct. The label is `$willOverwrite ? 'Replace PDF →' : 'Upload PDF →'` (`upload-pdf.php:235`); every product in the shipped catalog has a PDF (dashboard reads 42 With PDF / 0 Missing PDF), so the mirror always shows "Replace PDF →" — but the step is headed "Uploading a PDF for the first time", which is the branch that renders "Upload PDF →".
+- **`help.php:428` the twelve approvals.** Byte-identical to `IPC_APPROVALS` (`admin/config.php:909-912`) in content and order.
+- **`help.php:281` the login cool-off.** "After 5 incorrect attempts… starts at a few seconds… up to a maximum of 5 minutes… forgets the failed attempts entirely after 15 quiet minutes" matches `LOGIN_FREE_ATTEMPTS 5`, `LOGIN_COOLOFF_BASE 15`, `LOGIN_COOLOFF_MAX 300`, `LOGIN_THROTTLE_WINDOW 900` (`admin/config.php:1210,1239-1241`). (The FAQ restatement at `:879` does not — A-9.B2-06 #5.)
+- **`help.php:711` the clearable Business Details fields.** "fax number, the social links, short name and slogan" matches `SITE_CLEARABLE` (`src/App.jsx:6471-6485`) exactly.
+- **`help.php:721` the Page Content row controls** (`↑ ↓`, `✕`, `+ Add`), **`help.php:538-551`** (`+ Add column`, `Split into sub-columns`, `+ sub-column`, `+ Add row`, `×`), **`help.php:554-557`** (`Paste from Excel`, `First row is the column headings`, `Fill grid`), **`help.php:782`** (`Restore this version`), **`help.php:313,839`** (`Close it now`), **`help.php:277`** (`Sign In →`), **`help.php:406,437,454,466,570,593,616`** (`+ Add Product`, `Add Product`, `Edit`, `Save Changes`, `Photo`, `Manage PDF`, `View ↗`, `Delete`) — every one exists with that exact label. `+ sub-column` and `Fill grid` are conditional and were driven to appear (`rule8-sizechart-after-split.png`, `rule8-paste-excel-modal.png`).
+- **`help.php:409-415` the Add-form field table.** Matches `/admin/add.php`'s labels exactly. Note for C, not raised as a finding: `/admin/edit.php` labels two of the same fields differently — "Part Type / Category *" and "Specifications Summary (shown in Product Index table)" — under a Help sentence that says "Every field from Adding a new product is here".
+- **`help.php:324-325` the dashboard summary cards and product tables.** Four cards measured as Total Products / Categories / With PDF / Missing PDF; table headers measured as SKU / Product Name / Temp Rating / Data Sheet / Actions. Both as described.
+- **`help.php:965-980` "What your server allows".** Every row reads live. "the Page Content form currently posts about 450" measured at 448 named fields on `/admin/content.php`. `BACKUP_KEEP` is 90 and all six `help.php` references render it, not a typed number.
+- **`help.php:257-262` the Quick-reference destinations** — "Product Families / Categories", "Search Engine Text (SEO)", "Site Images" all exist as card titles on `/admin/content.php`.
+- **Both emails, rendered live** (POSTed to `:8142`, captured through `fakemail.sh`). Notification and auto-reply, RFQ and message: en dashes in the hours line, `630.771.0700` in the `site-info.json` form, full company name and full address in both auto-replies, `Reply-To` set to the visitor on the notification and to sales on the auto-reply. "within one business day" is the same string in `public/contact.php`, `data/content.json` and `src/App.jsx` (6/2/4 occurrences, no variant). Rule 7's "full company name and phone number" is satisfied by the auto-replies; the two *notification* emails carry only "IPC" (subject, body heading, `From: IPC Website`) — recorded here rather than as a finding because their only recipient is the owner's own sales address.
+- **Admin `img alt` and link names.** 13 pages: the nav logo is `alt="IPC"` on every page (the `alt=""` + `aria-label` pattern is settled for the *public* logo, GUARDRAILS §7.3, and is not re-opened here); `/admin/upload-image.php` uses `alt="IP33PO product photo"`; `/admin/edit.php`'s preview thumbnail is `alt=""` beside a visible SKU. Back-to-top on `help.php` carries `aria-label="Back to top"`. Audit-log filter inputs carry `aria-label="Filter by SKU"` / `"Filter by action"`. Only the `mailto:` link (A-9.B2-11) has no name.
+- **Rule 5, mechanical.** 7 checks over all 1,498 records: 0 doubled words, 0 double spaces, 0 missing spaces at a concatenation boundary, 0 `" ."`/`" ,"` in prose. The 6 raw hits in `mech-hits.txt` are all intentional — two CSS class attributes, the SKU character list at `admin/config.php:1565` ("the characters - _ . / & + ,"), "ending in .pdf", and a JSON example. Sentences over 35 words are a public-surface check (P5a).
+- **Rule 6, truth — cross-referenced against P4's register at 17:50, after it landed.** `_harness/out/audit9/P4/claims-register.md` row 10 covers the same-day *shipment* claim and names `copy.hero.headlineAccent`, `seo[0].desc`, `seo[5].desc`, `index.html:10,41` as the unqualified instances (A-9.P4-1). The auto-reply's sentence is not in that row and is a *response*-time claim, not a shipment one: "Our sales team will review your request and respond within one business day — often the same day for in-stock items" (`public/contact.php`, captured live). It carries the qualification P4 says the true form has ("for in-stock items"), and "within one business day" is byte-identical across `public/contact.php`, `data/content.json` and `src/App.jsx`. **No finding, and nothing duplicated from P4.** The register's other rows touch no admin or email string. Admin/email claims checkable against code were checked independently and are listed above (approvals, throttle, clearable fields, backup count, form-field count).
+- **P4's out-of-brief note** that Page Content has no SEO row for `/datasheets` is a missing *control*, not wording, and belongs to `content.php`'s page row (E066, P7). Confirmed present-and-absent while reading `content.php`'s 31 sections for A-9.B2-15; not raised here.
+- **Rule 10, legal text.** P5a's; no legal text on the P5b surfaces.
+
+### P5c — Checked, no finding
+
+
+- **The three-way nav check the brief asks for first.** `Editing-Your-Site-Content.md:9` lists nine menu items — Products, Add Product, Business Details, Page Content, Inquiries, Backups, Audit Log, Password, Help — and names View Live Site and Sign Out in the line below. `admin/nav.php:68-86` renders exactly those eleven. `admin/help.php:322` and `:333` name four. **The document is right; the Help page and `admin/README.md:216-218` are the two that are wrong** (A-9.B2-01, A-9.B2-14 #1). The only discrepancy in the document is the missing "+" on "+ Add Product" (A-9.B2-15 c).
+- **`Email to Rick - Admin Dashboard Handoff.md` — every instruction checked against the mirror and holds.** "click **Help** in the top navigation" ✓ · "click **Password** in the top navigation" ✓ · "click **Sign In**" ✓ (the button reads "Sign In →") · "You'll land on the **Product Catalog** page" ✓ (that is the `h1`) · "click **Backups** in the top navigation and restore the version from just before" ✓ · "Quote requests … land under **Inquiries**" ✓ · "a red banner about server setup" ✓ · "hold Ctrl and press Shift+R" ✓ · the eight bullets describing what Help covers all map to real `help.php` sections, including "a troubleshooting section, a glossary, and a live readout of your server's limits" (`#faq`, `#glossary`, `#server-limits`). It carries no password, which is correct. Ledger note on E110 confirmed: still holds.
+  One line is now less true than when it was written — "It's always there, it's **always current**, and it **matches exactly what's on your screen**" — because of A-9.B2-01/02/03/06. Recorded here rather than as a finding: the sentence is about `help.php`, and fixing `help.php` fixes it.
+- **`Editing-Your-Site-Content.md` — the rest.** "Icons come from a menu … (services, certifications, industries, stats) have an **Icon dropdown** … Team cards use an emoji you can type in the 'Icon' field" ✓ (`admin/content.php` has six `'type' => 'icon'` fields on exactly those sections; About — Team & Capabilities uses the free-text label "Icon / emoji"). "the bullet-points box takes one item per line" ✓ ("One item per line" placeholder, 21 instances). "Wherever a button or link has a 'Links to' dropdown — the hero buttons, header-menu items, and footer links" ✓ ("Primary/Secondary button links to" on Homepage — Hero; "Links to" on Navigation — Company Menu and Navigation — Footer Quick Links; all `'type' => 'page'`, so the value is picked, not typed). "**+ Add** / **✕** / **↑ ↓**" ✓. "click **Save Content**" ✓. "Backups are kept for the 90 most recent saves of each file" ✓ (`BACKUP_KEEP` 90). "If you get signed out mid-edit … a button back to your unsaved work. Click it, sign in again in a new tab, come back, and click Save" ✓ — matches the three numbered steps and the "← Back to my unsaved page" button at `admin/config.php:430-437` (`:432` and `:436`) exactly. "a red **\"Server setup problem\"** banner" ✓ (`admin/index.php:245`). The four-exceptions rule matches `SITE_CLEARABLE` and `help.php:711`.
+- **`admin/README.md` — the parts that hold.** The Full I/O surface table matches `CLAUDE.md` § "Full I/O surface of the admin" row for row. "Catalog Unavailable" ✓ verbatim (`src/App.jsx:12939`). "Another product already uses SKU X" ✓ (`admin/edit.php:155`). "PDF upload errors with 'Upload failed' — `pdfs/` is not writable — chmod 755 (or 775)" ✓ (`admin/upload-pdf.php:131`). "click **+ Add Product** (top right)" ✓. "click **Edit** on the row" / "click **Delete** on the row" / "click **View ↗**" / "**Save Changes**" / "**Remove PDF**" ✓. "Sign in and click **Password** in the top navigation" ✓. The `sub`-must-be-an-array warning and the `ALLOW-PASSWORD-RESET` recovery steps are accurate against `admin/auth.php` and `admin/config.php`.
+- **`GO-LIVE.md` — language only.** Headings sentence case throughout; spelling US; no mechanical hits. Its admin references use the real labels: "Help → **What your server allows**" ✓ (`help.php:965` `h2`), "**Admin → Inquiries**" ✓, the red "**Server setup problem**" banner ✓. Facts, the STEP 0 branch and the C-section numbers are P8's (§3.3) and were not audited.
+- **`PATCH_NOTES.md` — language only.** Headings sentence case; rules 3 and 5 clean; the only language finding is the British/US split in A-9.B2-16. Facts are P8's and were not audited.
+- **Rule 6 (truth) and rule 10 (legal).** Rule 6: `_harness/out/audit9/P4/claims-register.md` was cross-referenced at 17:50. No register row touches any of the five documents — the register covers `content.json`, `products-all.json`, `site-info.json` and `index.html`. Nothing here duplicates a P4 record, and the doc claims checkable against code were checked and are listed above. Rule 10 is P5a's; the P5c documents carry no legal text.
+- **Rule 9 (alt / link / label).** The five documents contain no images and no bare link text; every markdown link is a document-relative path with a meaningful name. The one link worth noting is in the Email (see Out of brief).
 
 ---
 
 ## 5. What is left
 
+### 5.1 Owner actions — seven, each with its `GO-LIVE.md` line
+
+| Record | Sev | Where the owner does it | `GO-LIVE.md` |
+|---|---|---|---|
+| **A-9.P5a-1** | High | The **host**: issue a certificate for `insulationproducts.com` and `www.insulationproducts.com`, and turn the plain-HTTP `302 → /site/` into a `301 → https://www.…` | §A — "Decide apex vs `www`…" now carries the privacy-policy dependency and is marked a **gate**, not a checklist item |
+| **A-9.P4-4** | Medium | Page Content → the "42 Products Stocked" stat, whenever the catalog count changes | §A — new line |
+| **A-9.P5a-2** | Medium | Page Content → FAQ → answer 14: name the **`Datasheet`** button (its new label), and drop the promise of a catalog PDF until `catalogPdfUrl` is filled in on Business Details | §A — new line |
+| **A-9.P4-10** | Low | Products → Edit → `IP37SH-IP36TH-IP39LH`, `IP38FE`, `IP42MW`: 12 of 21 inch-denominated cells carry the mark, 9 do not | §A — new line, batched |
+| **A-9.P5a-4** | Low | Products → Edit → the five misspelled records | §A — same batched line |
+| **A-9.P5a-5** | Low | Products → Edit → normalise the certification marks. **Must follow A-9.P4-3**, which changes which mark each string names | §A — same batched line, with the ordering stated |
+| **A-9.P5a-8** | Low | Products → Edit → the six badge concepts written two ways | §A — same batched line |
+
+All four Low ones are the same screen and the same records, so they are one
+sitting, and A-9.P4-3 has to be settled first or part of it is done twice.
+
+### 5.2 Escalations — six, in the five-field form
+
+Each is reproduced in full in its §2 record's `outcome:` field. In brief:
+
+| Record | Decision needed | Recommended |
+|---|---|---|
+| **A-9.P4-2** (High) | Whether "Made in USA" stays, and as what | Move it out of the certification chip row into prose; no mark, no file number, no issuing body |
+| **A-9.P4-1** (Medium) | Qualify the four unqualified "same day" renderings | "Ships same day on in-stock items", which is what the site's own About and FAQ text already says |
+| **A-9.P4-3** (Medium) | What the three non-existent certification categories should say | Replace each with the mark actually held, or delete the chip |
+| **A-9.P4-5** (Medium) | Parse the temperature ceiling for sorting, or drop Temp from the sortable columns | Parse — a max-in-°C key is derivable for 35 of 42 and the 7 empties sort last either way |
+| **A-9.P4-8** (Medium) | What the five photo-less products should show | Photograph them; until then the branded placeholder, which is what the code already does |
+| **A-9.P5a-3** (Medium) | What date the privacy policy takes effect | The go-live date, set on Page Content → Privacy at the same time as the first deploy |
+
+A-9.P4-9's `offers` half is the seventh decision but is carried inside a record
+whose other half is fixed, so it is not counted separately in the table above:
+**does IPC publish availability without a price?** Recommended: not until Rick
+says so — an `offers` block with no price is itself a Search Console warning,
+and publishing availability is a commercial commitment.
+
+### 5.3 Measured and deliberately not fixed
+
+- **Owner-authored SEO lengths.** Home's `<title>` is 74 characters and the
+  `home`, `industries` and `about` descriptions run 181/164/165 — 4 to 21 over
+  the adopted 160. They are the owner's copy on Page Content → SEO, not this
+  generator's output. A-9.P6-1/P6-2 cap what the code generates and leave what
+  he wrote alone. Rewriting his marketing copy to hit a character count is a
+  branding decision, not a fix.
+- **`help.php`'s 17 uses of "dashboard".** A-9.B2-08(a) counts them as a fourth
+  name for the product. They are common-noun references to the screen ("open
+  the dashboard address in a browser"), the guide reads naturally with them, and
+  rewriting 17 sentences buys nothing. The two places the product actually
+  *introduces itself* — the signed-out and signed-in logo sub-lines — are fixed.
+- **`admin/delete.php`'s `<h1>`, "Delete this product?".** A-9.B2-10 flags it as
+  the one sentence-case heading among thirteen. It is also the only question and
+  the only destructive-action confirmation; Title-casing it reads worse, not more
+  consistent.
+- **"Part Number / SKU" versus "Part ID".** The second half of A-9.P5a-7. Both
+  are labels on owner-editable screens (`/contact`'s field label is
+  `COPY_DEFAULTS.contactForm.partLabel`, the Product Index column header is
+  `DASHBOARD_COLS`), and the `/contact` label hedges with a slash precisely
+  because there was no single answer. Settling it is a naming decision, and it
+  should be settled once for both screens rather than by C picking one.
+- **`PRIVACY_SECTIONS`' three "enquiry" spellings.** A-9.P5a-11's code half is
+  fixed everywhere else. These three mirror `content.json`'s `privacySections`
+  byte for byte and have to move with it; changing one side alone leaves the
+  document mixed in a new way, and changing both sides is a wording change to
+  legal text, which P5 rule 10 puts on the owner's side.
+- **The four §4.4-permitted reds** (`brandtext` 36/47, `isoclaims` 2/4,
+  `plan8-polish` 16/17, `plan8-contrast` 34/35 exit 0) are unchanged before and
+  after. `isoclaims` is red because of the open ISO revision question, which is
+  `GO-LIVE.md` §A's first line and is not this audit's to answer.
+
+### 5.4 The verification gap — 24 of 54 records
+
+**V1 and V2 between them reached 30 of the 54 records before the five-hour usage
+limit ended both sessions.** The remaining 24 have no second-agent
+reproduction. This is a shortfall against PLAN-11 §3.6, which asks the Verifier
+to reproduce *every* accepted finding, and it is stated here rather than papered
+over.
+
+What each of the 24 does have is written in its own `verified-by:` field:
+
+- **18 of them** were reproduced by C's own test-first fix runs — a check that
+  failed against the unfixed tree with the finding's own symptom, and passes
+  after. That is evidence the defect existed, and it is on disk. It is **not**
+  §3.6 verification, because the same agent wrote the check and the fix.
+- **6 of them** — A-9.P4-2, A-9.P4-4, A-9.P4-8, A-9.P5a-2, A-9.P5a-3,
+  A-9.P5a-4 — have neither. They are the escalations and owner actions C does
+  not fix, so no fix run touched them. They are marked
+  `[UNVERIFIED — no second agent]` in §2 and should be re-measured before
+  anyone acts on them. All six are data or decision records whose `reproduce:`
+  block is a query over `data/*.json`, so re-measuring is cheap.
+- **One is marked `[WEAK]`**: A-9.B2-15's first acceptance arm *passed* against
+  the unfixed file, because it searched for wording the guide does not use. The
+  arm was rewritten and the shortfall then reproduced, but the before-state is
+  attested only by the rewritten arm.
+
+### 5.5 `[UNVERIFIED]` / `[UNSOURCED]`, per pass, verbatim
+
+- **P1** — none
+- **P10** — cache header VALUES are [UNVERIFIED — Apache] — `php -S` ignores `.htaccess` entirely (GUARDRAILS §4.3); only the rule TEXT is confirmed present and correct, not a live response header
+- **P11** — full restore-and-byte-diff verification of the ~20 suites the Appendix A heuristic flags that turned out, on inspection, to only *read* `pristine/*.json` as a comparison baseline rather than write to the mirror (see step 4) — each was checked for a write call and none was found, but this pass did not read every one of these files in full
+- **P2** — none
+- **P3** — none
+- **P4** — register rows 10, 11, 13–22 are `[UNSOURCED]` — asserted in copy with no backing field in `site-info.json`. Rows 13–18 (UL, CSA, MIL-SPEC, AMS, FDA, RoHS) are `[UNSOURCED]` **at site level**: `site-info.json` `certifications.other` is `[]` while five certification chips render on the homepage. No `[UNVERIFIED]` — this pass is entirely file-based and nothing needed the network or a server.
+- **P5a** — A-9.P5a-1's premise is C's STEP 0 measurement, which is itself `[UNVERIFIED — TLS]` for everything behind `https://` — the certificate expiry is verified (`Verify return code: 10`), what is behind it is not. No other `[UNVERIFIED]` — every other measurement here is offline over files this pass read directly.
+- **P5b** — A-9.B2-04's consequence depends on the production host's `upload_max_filesize`, which is [UNSOURCED] — STEP 0 records the site as NOT LIVE, so no live value exists. The divergence itself is measured. · Rule 6 (truth): P4's register did not exist while these surfaces were read (`audit-runs/audit9/P4-data-truth.md` landed 15:46, `_harness/out/audit9/P4/claims-register.md` 15:40). It was cross-referenced afterwards at 17:50 — result under "Checked, no finding". Nothing here duplicates a P4 record; anything P4 marks false stays P4's.
+- **P5c** — none new. A-9.B2-12 rests on `_harness/out/audit9/step0.md`, whose https:// lines are `[UNVERIFIED — TLS]`; the NOT-LIVE verdict itself is measured over plain HTTP (three 404s on `/data/*.json`) and is not TLS-dependent.
+- **P6** — none
+- **P7** — none
+- **P8** — C1's five `.htaccess`-dependent checks (local — GUARDRAILS §4.3, `php -S` ignores `.htaccess`/`.user.ini` entirely); all `https://` lines in C1's live table (`[UNVERIFIED — TLS]`, expired cert, same as `step0.md`); B3 permissions (brief says `[UNVERIFIED]` — not FTP/PHP-user testable here); the "omit `.htaccess`" induced-symptom row (see Method step 5 — genuinely unreproducible locally, in EITHER router configuration, for a reason not previously written down); the `.user.ini`-specific half of C3's "2M/8M/1000" check (this pass's server was launched with an explicit `-c` ini, so it never exercises `.user.ini` at all — a different, stronger form of the same GUARDRAILS §4.3 limitation)
+- **P9** — axe (step 6) NOT RUN — optional per brief, and every hit it could produce still needs reproduction through steps 2-5 before it counts (GUARDRAILS "six probe defects" precedent); steps 2-5 already cover keyboard/reflow/large-text/semantics directly, and 0 findings surfaced there, so the marginal value of a temporary `npx @axe-core/cli` pass against the same DOM was judged not worth the added reproduction cost inside this pass's time budget. Recorded as NOT-MEASURED rather than silently skipped.
+
 ---
 
 ## 6. Self-corrections this round
 
-1. **Sweep denominator** — see §1.3.
+### 6.1 C (coordinator)
+
+1. **Sweep denominator** — see §1.3. The plan's §4.3 said "the union" of the
+   classifier and the README; taken literally that omits a suite the same plan
+   expects red. A third source was added *before* the extras ran, so the
+   denominator was still fixed once.
+2. **A negative control passed against unfixed code, twice.** The A-9.P7-1 arm
+   reported green before the fix existed. Cause: the mirror started dirty with
+   a leftover `AUDIT9TMP.pdf`, so `edit.php`'s *correct* no-clobber guard
+   skipped the rename — the arm was measuring the right behaviour for the wrong
+   reason. `restoreMirror()` now reconciles `pdfs/` **before** as well as after
+   a run, and the control was re-taken. A green control is not evidence until
+   you know why it is green.
+3. **The A-9.P7-2 probe clicked the wrong control.**
+   `getByRole('button', {name:/request|submit|send/i}).first()` matched the tab
+   switcher "📋 Request a Quote", and the field id was `#rfq-partNumber`, not
+   `#rfq-part`. This is the documented GUARDRAILS §7.2 selector class, and it
+   was written straight into it. Corrected to
+   `button:has-text("Submit Quote Request")`.
+4. **`?>` inside a one-line PHP comment ended PHP mode**, producing a parse
+   error in `admin/upload-image.php` while writing the A-9.P3-2 guard. The
+   comment now describes the payload without writing it.
+5. **`check(...)` does not exist in `plan5-keys.js`.** The helper is
+   `note(ok, what, detail)`, with a different argument order. Caught before the
+   file was run, but it was written from memory rather than from the file.
+6. **The `fgpatch` early-exit condition was wrong on the first attempt** —
+   `=== 0`, where one accent site legitimately remains (the gradient that is
+   deliberately left alone). `=== leftAloneCount` is correct, and a
+   deliberately corrupted mapping still exits 1.
+7. **The A-9.B2-04 check compared against the CLI's limit, not the serving
+   instance's.** Rewritten to parse "Largest single file the server accepts"
+   from `help.php` on the same server, then proved against a deliberately
+   2M-limited instance.
+8. **The A-9.B2-12 check matched my own quotation of the old sentence.**
+   Refined to judge only the first blockquote line.
+9. **The A-9.B2-14 and A-9.B2-15 checks measured the wrong format** — backticked
+   `.js` names, and the literal "five social links" — neither of which is how
+   the files are written. Both corrected against the real contents *before* the
+   fix, and A-9.B2-15's before-state is marked `[WEAK]` in §2 because its first
+   arm passed vacuously.
+10. **The record extractor missed 43 of 54 records**, because the pass agents
+    wrote severities in upper case (`MEDIUM`, `HIGH`) and the regex did not.
+    Caught because the count disagreed with the pass headers.
+11. **Seven suites crashed simultaneously** during a surface batch. The PHP
+    server fleet had died — one process left of thirteen. Restarted and re-run:
+    7/7 clean. Recorded as a **bail, not a finding**, per the denominator rule:
+    a suite whose total changes is bailing.
+12. **I killed the server fleet myself, later, with an over-broad `pkill -9 -f
+    "_harness/"`** while stopping the sweep — the `php -S` command lines name
+    `_harness/router.php`. All thirteen were restarted and verified answering
+    before anything else ran.
+13. **A-9.P5a-9(a) named one curly-quote site; the source has three.** The
+    record was measured over rendered strings, and the no-results message and
+    the unknown-part banner are conditional states the crawl did not reach. All
+    three are fixed; the undercount is the record's, and it is corrected here
+    rather than in the record, which is kept as it was measured.
+14. **The A-9.P5a-6 acceptance arm was too broad on the first run.** Grouping
+    *every* link by destination flagged the navbar brand and the "Home" link
+    (both `/`, by design) and the product self-link (truncated to two widths by
+    CSS). Scoped to the two destinations the record names.
+15. **The A-9.P5a-11 arm excluded the wrong `PRIVACY_SECTIONS`.**
+    `indexOf('PRIVACY_SECTIONS')` found the reference inside `contentDefaults()`
+    rather than the declaration 5,000 lines later, so the window excluded
+    nothing. Anchored to `const PRIVACY_SECTIONS = [`.
+16. **The totals script counted 47 of 54 records.** Its id pattern assumed a
+    flat counter (`A-9.12`) and the ids are pass-scoped, so the seven `A-9.D*`
+    records fell out. Caught because the generated total disagreed with the
+    record count — which is the reason the table is generated and not typed.
+17. **My own fix comment broke `copydrift`.** A possessive apostrophe inside
+    `COPY_DEFAULTS` opened a phantom string in copydrift's brace matcher and
+    swallowed the closing brace — the exact trap the `NOTE` above
+    `phonePlaceholder` documents, written straight into. Reworded, with a line
+    saying so.
+18. **A-9.P6-1: V1 recommended Medium → Low and C accepted it.** V1 measured
+    the mitigation — the SKU survives in the description snippet, the canonical
+    URL and the h1 — and C had no counter-measurement showing a lost click.
+    Severity is consequence; an unmeasured consequence is not a Medium. The
+    verdict does not depend on it (the record is fixed either way), which is
+    exactly why accepting the verifier's measurement cost nothing and refusing
+    it would have been preference, not evidence.
+
+### 6.2 The pass agents, verbatim
+
+- **P11** — the Appendix A/§4.3 "26 of 58" mutating-suite count does not reproduce cleanly even after excluding this round's 4 new instrument files (28 remain, not 26) — recorded as a finding in its own right below (§ Method step 4), not silently adjusted
+
+- **P4** — 4, listed at the end of this file.
+
+- **P5a** — 6, listed at the end of this file.
+
+- **P5b** — The started/finished stamps in this header were first written from my own estimate and were wrong by ~1h40; they are now taken from the container clock and the artifacts' mtimes, and the rate-limit pause is stated. The rule-6 line was also first written as "P4's register does not exist"; P4 landed at 15:46 during the pause and has now been cross-referenced — both lines are corrected above rather than left standing. Two candidates withdrawn after measurement, both recorded in §"Checked, no finding" below — (a) `help.php:803` "Click Clear to reset the filters" looked wrong because no Clear control exists on an unfiltered `/admin/audit-log.php`; it is step 4 of a sequence whose step 3 applies a filter, and `audit-log.php:159-160` renders Clear exactly then — measured. (b) `help.php:595` "Click Upload PDF →" looked wrong because the button reads "Replace PDF →" on every product in the shipped catalog (42 With PDF, 0 Missing PDF); `upload-pdf.php:235` picks the label from `$willOverwrite`, and the step is headed "Uploading a PDF for the first time" — correct as written.
+
+- **P5c** — Two candidates withdrawn after checking — (a) `PATCH_NOTES.md:229` `/prodcuts` and `:924` `DESCRTIEMPON` were flagged by the spell run and are both deliberate: the first is a worked example of a mistyped URL, the second is a verbatim transcript of two overprinted table headers. Neither is a typo. (b) `Editing-Your-Site-Content.md:58-64`'s "four exceptions" reads like a miscount against its four bullets but is correct — it counts the four clearable *groups*, and matches `SITE_CLEARABLE` (`src/App.jsx:6471-6485`) and `help.php:711`.
+
+- **P6** — navgraph.js's first anchor-test pass used a single reused page for sequential #-only navigations, which Chromium treats as same-document (page.goto returns a null Response, no new HTTP request) — read as 4 failures before the fix; re-run with a fresh page per link resolved to 5/5 passing. Recorded so the artifact's history is legible; final navgraph.json already reflects the corrected run.
+
+- **P9** — audit9-p9-keyboard.js's dashboard-sort check first looked for `aria-sort` on `document.activeElement` itself and found nothing in 40 tabs (0/1 "failing") — the attribute correctly lives on the ancestor `<th>` per the WAI-ARIA sortable-table pattern (App.jsx:10618), not the nested `<button>` that receives focus (App.jsx:10642); the probe was wrong, not the page. Fixed to read `el.closest('th')` and to detect the button via `data-sort-key` (present regardless of sort state) rather than presence of `aria-sort` (only set on the currently-sorted column). audit9-p9-reflow.js and audit9-p9-largetext.js both initially flagged `.sr-only` elements, and largetext additionally flagged the contact form's `aria-hidden` honeypot (App.jsx:5290-5294) and the `/products` sidebar's intentionally-scrollable `.ipc-scroll-cue` panel (App.jsx:8057, styled scrollbar at App.jsx:6231-6237) — all three are deliberate, correctly-hidden-or-scrollable constructions, not clipped content; excluded after inspection, per GUARDRAILS §7.1 ("the probe is not the page").
 
 ---
 
 ## 7. Method
 
+### 7.1 Coverage ledger
+
+`audit-runs/audit9-ledger.md`, C-owned, one owner per row. **186 surface rows
+(E001–E186) and 83 suite rows (S001–S083), all `done`, none `blocked`**, each
+with a date and its evidence. E001–E112 were inherited from
+`audit-runs/endpoint-checklist.md` with every status reset and every
+`App.jsx:<line>` re-measured on `2121597`; E113–E186 were added this round for
+surfaces no earlier checklist named. Nothing in this document rests on a
+surface that has no row: the rule is that a row is added first, or the surface
+is not in the audit.
+
+### 7.2 Pass → agent map
+
+| Pass | Lens | Agent |
+|---|---|---|
+| P1 build, dependencies, shipped tree · P8 runbook dry-run and doc truth · P11 the harness auditing itself | (a)(d) | D |
+| P2 PHP runtime compatibility · P3 security re-verification · P7 logic and edge cases | (a)(b) | A |
+| P4 data truth · P5a public verbiage | (c) | B1 |
+| P5b admin verbiage · P5c documentation verbiage | (c) | B2 |
+| P6 structure / IA · P9 accessibility · P10 performance | (d) | C′ |
+| Shared instruments, single-owner measurement | — | I-crawl, I-admin, I-strings |
+| Verification, independent of every raiser | — | V1, V2 |
+| Consolidation, dedupe, every fix, every record | — | C |
+
+Every fix in §3 is C's. No pass agent edited a shipped file; the instrument
+agents edited nothing but their own instrument. The three shared instruments
+exist so that a measurement has one owner: `I-crawl` (67-page crawl at three
+viewports), `I-admin` (signed-in admin flows), `I-strings` (the 1,498-record
+string inventory) are cited by several passes and re-run by none of them.
+
+### 7.3 The denominator
+
+Derived in §1.3 and fixed once, before any suite ran: a **three-way union of
+80 runnable suites**, from the Appendix A classifier (58), `_harness/README.md`'s
+five tables (67) and `plans/GUARDRAILS.md` §4.1's binding baseline (64, of which
+8 appear in neither of the other two). The list is on disk at
+`_harness/out/audit9/sweep-list-final.txt` and both sweeps ran it in the same
+order, so §1.4 and §1.6 compare line for line.
+
+### 7.4 Where the working files went
+
+Each pass wrote its records to `audit-runs/audit9/<pass>.md`. Those files are
+the source §2 was assembled from — verbatim except for `verified-by:`,
+`outcome:` and `fix-proof:` — and they carry, in addition, each pass's full
+method record (its per-step evidence, its "checked, no finding" section and its
+own self-corrections). §4 reproduces the four explicit "checked, no finding"
+sections verbatim and §6.2 reproduces every pass's self-corrections verbatim.
+
+Per PLAN-11 §8.3 the working files are **deleted from the tree** at the end of
+this round. They are not lost: they are committed at `90c2969` ("Audit 9:
+ledger complete … plus the pass working files") and remain readable at that
+commit. The per-pass method records — the step-by-step evidence behind the
+"checked, no finding" claims that §4 summarises rather than reproduces — are
+there.
+
+Verifier output is kept outside `audit-runs/`, under
+`_harness/out/audit9/V1/V1-verification.md` and
+`_harness/out/audit9/V2/V2-log.md`, together with the scripts and page captures
+each verifier used.
