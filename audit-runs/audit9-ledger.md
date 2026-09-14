@@ -35,18 +35,18 @@
 | E029 | element | `Features` / `FeatureCard` (App.jsx:2339 / 2045) | public | P5a | done | 2026-09-14 |  |
 | E030 | element | `StatsBar` (App.jsx:2518) | public | P5a | done | 2026-09-14 |  |
 | E031 | element | `SectionHeader` (App.jsx:2131) | public | P5a | done | 2026-09-14 |  |
-| E032 | element | `CatalogLanding` search + filters (App.jsx:9176) | public | P7 | pending |  |  |
-| E033 | element | `ApprovalFilter` / `ApprovalMarks` (App.jsx:2851 / 2824) | public | P7 | pending |  |  |
+| E032 | element | `CatalogLanding` search + filters (App.jsx:9176) | public | P7 | done | 2026-09-14 | P7 C3 9/9 empty state (name, Clear control, phone) + `plan8-catalog` 16/16 drives the search box to empty |
+| E033 | element | `ApprovalFilter` / `ApprovalMarks` (App.jsx:2851 / 2824) | public | P7 | done | 2026-09-14 | `plan7-approvals` 11/11; P7 C3 established `?approval=` is not a route param (useState in DashboardPage) so an unknown value is inert |
 | E034 | element | `ProductSidebar` (App.jsx:7819) | public | P6 | done | 2026-09-14 |  |
 | E035 | element | `ProductDetail` (App.jsx:8588) | public | P6 | done | 2026-09-14 |  |
 | E036 | element | `SpecTable1` / `SpecTable2` (App.jsx:undefined / undefined) | public | P4 | done | 2026-09-14 |  |
 | E037 | element | Dashboard sortable headers + `aria-sort` (App.jsx:10023+) | public | P9 | done | 2026-09-14 |  |
-| E038 | element | `DashboardPage` search + family select (App.jsx:10023+; re-measure in pass) | public | P7 | pending |  |  |
+| E038 | element | `DashboardPage` search + family select (App.jsx:10023+; re-measure in pass) | public | P7 | done | 2026-09-14 | family select via `plan10-dashboard` 25/25; search measured by P7 (42→1→empty→42) — `_harness/out/audit9/P7/e038-e091-close.js` |
 | E039 | element | `FaqItem` accordion + `#faq-ld` (App.jsx:3974) | public | P9 | done | 2026-09-14 |  |
 | E040 | flow | Contact RFQ form (App.jsx:5258, honeypot 5293) | public | P7 | done | 2026-09-14 | A-04 quantity not enforced server-side (2026-08-13, closed since — re-verify, do not re-report) |
 | E041 | flow | Contact Message form (App.jsx:5557, honeypot 5591) | public | P7 | done | 2026-09-14 | A-04 subject not enforced server-side (2026-08-13, closed since — re-verify, do not re-report) |
 | E042 | element | Contact inline error region + success panels | public | P6 | done | 2026-09-14 |  |
-| E043 | flow | Product → "Request Quote" → `/contact?part=SKU` prefill | public | P7 | pending |  |  |
+| E043 | flow | Product → "Request Quote" → `/contact?part=SKU` prefill | public | P7 | done | 2026-09-14 | `contactflow` 85/85 asserts `?part=`/`?industry=` prefill reaches the field and the sales email; `plan10-rfqscroll` 24/24, `plan8-lead` 16/16 |
 | E044 | element | `scrollToAnchor` + `#industry-*` hash targets (App.jsx:199) | public | P6 | done | 2026-09-14 |  |
 | E045 | element | `TeamCard` + cert icons (App.jsx:3403) | public | P5a | done | 2026-09-14 |  |
 | E046 | element | `Badge` (App.jsx:11537), `RelatedArrow` (8550), `PageEyebrow` (309) | public | P5a | done | 2026-09-14 |  |
@@ -86,15 +86,15 @@
 | E080 | element | `admin/config.php` — login throttle | admin | P3 | done | 2026-09-14 |  |
 | E081 | element | `admin/config.php` — `admin_password_write()` + reset-window helpers | admin | P7 | done | 2026-09-14 |  |
 | E082 | element | `admin/config.php` — upload validation helpers + `upload_error_message()` | admin | P3 | done | 2026-09-14 |  |
-| E083 | element | `admin/config.php` — `product_reference_resolves()` 3-tier SKU lookup | admin | P7 | pending |  |  |
+| E083 | element | `admin/config.php` — `product_reference_resolves()` 3-tier SKU lookup | admin | P7 | done | 2026-09-14 | `skuparity` 33/33 holds PHP vs JS lookup on 32 needles; `plan2-sku` 14/14; `contentlinks` 18/18; `deadlinks` 0 of 18 dead |
 | E084 | element | `admin/confirm.js` | admin | P6 | done | 2026-09-14 |  |
-| E085 | element | `admin/content-editor.js` | admin | P7 | pending |  |  |
-| E086 | element | `admin/spectable-editor.js` | admin | P7 | pending |  |  |
+| E085 | element | `admin/content-editor.js` | admin | P7 | done | 2026-09-14 | `audit5-medium` 20/20 (`ipc:structural-change` contract); P7 C19 9/9 + C32 8/8 drove the real form through concurrency and an encoding round-trip |
+| E086 | element | `admin/spectable-editor.js` | admin | P7 | done | 2026-09-14 | `audit5-medium` 20/20 (its half of `ipc:structural-change`); `plan5-spectable` 13/13 over all 42 product pages |
 | E087 | element | `admin/product-preview.js` | admin | P5b | done | 2026-09-14 |  |
 | E088 | element | `admin/settings-preview.js` | admin | P5b | done | 2026-09-14 |  |
 | E089 | element | `admin/contrast-guard.js` | admin | P9 | done | 2026-09-14 |  |
-| E090 | element | `admin/unsaved.js` | admin | P7 | pending |  |  |
-| E091 | element | `admin/search.js` | admin | P7 | pending |  |  |
+| E090 | element | `admin/unsaved.js` | admin | P7 | done | 2026-09-14 | `audit5-medium` 20/20 (A-5.20/21/22, guard loaded and honouring the event); P3 step 6: 5 unauthenticated ping.php GETs mint 0 session files |
+| E091 | element | `admin/search.js` | admin | P7 | done | 2026-09-14 | no suite referenced it — measured by P7: 42→1 with "1 of 42 match", sections 10→1, no-match empty state, restore on clear, 0 page errors |
 | E092 | element | `admin/help.js` | admin | P5b | done | 2026-09-14 |  |
 | E093 | config | `admin/.htaccess` | admin | P3 | done | 2026-09-14 |  |
 | E094 | config | `data/.htaccess` | admin | P3 | done | 2026-09-14 |  |
