@@ -3190,7 +3190,12 @@ function HomePage() {
             The same team, the same building, since 1974
           </h2>
           <p className="mt-2 text-sm max-w-2xl" style={{ color: "#4b5563" }}>
-            IPC has stocked, cut and shipped from 250 Gibraltar Drive for over
+            {/* A-9.P4-6 — this sentence and the two facility `alt`s spelled the
+                street "Drive" in full, while every other rendering of the same
+                address (footer, /contact, privacy §7, Organization JSON-LD)
+                read site-info.json's `address.street`, which abbreviates it.
+                Read the field, so there is one spelling and it is the owner's. */}
+            IPC has stocked, cut and shipped from {site.address.street} for over
             fifty years — privately held, independent, and ISO 9001 registered.{" "}
             <PageLink
               page="about"
@@ -3229,7 +3234,7 @@ function HomePage() {
           <figure className="m-0 rounded-2xl overflow-hidden md:self-start" style={{ border: "1px solid #e5e9ee" }}>
             <img
               src={slotSrc(img.bandBuildingPhoto)}
-              alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
+              alt={`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`}
               loading="lazy"
               decoding="async"
               width={BAND_BUILDING.w}
@@ -3670,7 +3675,7 @@ function AboutPage() {
             {img.aboutPhoto ? (
             <img
               src={slotSrc(img.aboutPhoto)}
-              alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
+              alt={`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`}
               loading="lazy"
               decoding="async"
               width={BAND_BUILDING.w}
@@ -5911,6 +5916,24 @@ const PRODUCTS_JSON_URL = "/data/products-all.json";
 const SITE_ORIGIN = "https://www.insulationproducts.com";
 
 /**
+ * A product's photograph as an absolute URL, or `undefined` — ONE definition.
+ *
+ * Two consumers need exactly this value and used to compute it separately:
+ * PageMeta's og:image and (since A-9.P4-9) the Product JSON-LD `image`. The
+ * placehold.co guard is the load-bearing half — five records sit on the branded
+ * "PRODUCT IMAGE COMING SOON" panel, and asserting that as the product's
+ * photograph is worse than asserting nothing: a link preview of it is worse
+ * than the company card, and a structured-data consumer would take it for the
+ * part. `undefined` rather than "" so the JSON-LD key drops out entirely (NB4).
+ */
+function productImageAbs(p) {
+  const src = p && p.photoUrl ? String(p.photoUrl) : "";
+  if (!src || src.includes("placehold.co")) return undefined;
+  if (/^https?:\/\//.test(src)) return src;
+  return SITE_ORIGIN + (src.startsWith("/") ? "" : "/") + src;
+}
+
+/**
  * The canonical absolute URL for a route — ONE definition.
  *
  * C33 needs this because its acceptance is that the BreadcrumbList's trailing
@@ -6965,8 +6988,8 @@ const SEO_DEFAULT = [
     title: "Insulation Products Corporation — Heat Shrink Tubing, Sleeving & Adhesives",
     desc: "IPC is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. Ships same day. ISO 9001 registered.",
   },
-  { page: "products", title: "Product Catalog — Insulation Products Corporation", desc: "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and data sheets, and request a quote." },
-  { page: "dashboard", title: "Product Index — Insulation Products Corporation", desc: "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and data sheets for every SKU." },
+  { page: "products", title: "Product Catalog — Insulation Products Corporation", desc: "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and datasheets, and request a quote." },
+  { page: "dashboard", title: "Product Index — Insulation Products Corporation", desc: "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and datasheets for every SKU." },
   { page: "datasheets", title: "Datasheets — Insulation Products Corporation", desc: "Download the published datasheet for every IPC product. Heat shrink tubing, sleeving, adhesives and accessories — grouped by family, no form required." },
   { page: "industries", title: "Industries Served — Insulation Products Corporation", desc: "IPC supplies specification-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry." },
   { page: "services", title: "Value-Added Services — Insulation Products Corporation", desc: "Custom cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, and JIT delivery programs. Typical lead time one week or less." },
@@ -7007,6 +7030,71 @@ function useIsUnknownRoute() {
 /** A4 — the share card, and the intrinsic size of the product photography. */
 const OG_CARD = { src: "/images/og-card.jpg", w: 1200, h: 630 };
 const OG_PHOTO = { w: 400, h: 300 };
+
+/**
+ * A-9.P6-1 / A-9.P6-2 — length caps for the GENERATED product head only.
+ *
+ * These two apply to the 42 titles and descriptions PageMeta assembles from the
+ * catalog. They deliberately do NOT touch `entry.title`/`entry.desc`: those are
+ * the owner's own copy from Page Content → SEO, and silently rewriting what he
+ * typed is not this code's job. Three of his rows run 4-21 characters over and
+ * are recorded as an owner action, not clipped here.
+ *
+ * 60 / 160 are the audit's adopted rules; Google truncates a title around
+ * 575-600px and a snippet around 160 characters.
+ */
+const META_TITLE_MAX = 60;
+const META_DESC_MAX = 160;
+
+/**
+ * Trim to a word boundary and mark the cut.
+ *
+ * The shipped generator ended `.slice(0, 300)`, which cut mid-clause: one
+ * description ended "…+275°F, 3000psi, " — a separator with nothing after it.
+ * The boundary search is floored at 60% of the budget so a string with no
+ * space in its tail degrades to a hard cut rather than to almost nothing.
+ */
+function trimToWord(text, max) {
+  const s = String(text || "");
+  if (s.length <= max) return s;
+  let cut = s.slice(0, max - 1);
+  const sp = cut.lastIndexOf(" ");
+  if (sp > max * 0.6) cut = cut.slice(0, sp);
+  // A cut inside a parenthetical leaves the bracket hanging — the longest
+  // product name broke as "Fiberglass Sleeving (Heat…", which reads as a
+  // truncation fault rather than a summary. Drop the opened clause instead.
+  while ((cut.match(/\(/g) || []).length > (cut.match(/\)/g) || []).length) {
+    cut = cut.slice(0, cut.lastIndexOf("("));
+  }
+  return cut.replace(/[\s,;:.—–/·-]+$/, "") + "…";
+}
+
+/**
+ * A-9.P6-1 — the product <title>, capped with the part number surviving.
+ *
+ * 39 of 42 titles ran past 60 characters and the worst reached 149, because the
+ * name, the SKU and the company name were concatenated unconditionally. Google
+ * cut them before the SKU appeared — on the 42 pages whose whole purpose is to
+ * be found by part number. Order of sacrifice: the company name first (it is
+ * the same 31 characters on every page and tells a searcher nothing), then the
+ * product name, trimmed to a word. The SKU is never dropped: it is what was
+ * searched for, and it is also what keeps all 42 titles distinct.
+ */
+function fitProductTitle(label, sku, company, shortName) {
+  const full = `${label} — ${company}`;
+  if (full.length <= META_TITLE_MAX) return full;
+  // Before dropping the brand entirely, try the short form the owner already
+  // maintains on Business Details ("IPC"). A title with no company at all is
+  // the last resort, not the first.
+  const short = shortName && shortName !== company ? `${label} — ${shortName}` : "";
+  if (short && short.length <= META_TITLE_MAX) return short;
+  if (label.length <= META_TITLE_MAX) return label;
+  const tail = sku && label.endsWith(sku) ? ` — ${sku}` : "";
+  const budget = META_TITLE_MAX - tail.length;
+  if (budget < 12) return sku || label.slice(0, META_TITLE_MAX);
+  const head = tail ? label.slice(0, label.length - tail.length) : label;
+  return trimToWord(head, budget) + tail;
+}
 
 // Contact-page sidebar "for fastest response" tips.
 const CONTACT_TIPS = [
@@ -7213,7 +7301,16 @@ function StructuredData() {
       alternateName: site.company.shortName || undefined,
       slogan: site.company.slogan || undefined,
       url: SITE_ORIGIN,
-      logo: `${SITE_ORIGIN}/favicon.svg`,
+      // A-9.P4-7 — this was hardcoded to /favicon.svg, so the logo field
+      // Business Details offers (`theme.logoUrl`, written by settings.php and
+      // rendered in the navbar, the 404 page and the footer) was the one place
+      // it did not reach: an owner who uploaded a logo still published the
+      // favicon as the organisation's mark. Absolute, because a relative logo
+      // in JSON-LD is not resolvable by a consumer that only has the feed.
+      logo: (() => {
+        const l = (site.theme && site.theme.logoUrl) || "/logo.svg";
+        return /^https?:\/\//.test(l) ? l : SITE_ORIGIN + (l.startsWith("/") ? "" : "/") + l;
+      })(),
       description: site.company.description,
       // A-8.9 — year only, not `-01-01`. schema.org/foundingDate is an ISO 8601
       // Date and a bare year is valid, so appending January 1st bought no
@@ -7418,16 +7515,24 @@ function PageMeta({ products }) {
       const name = (matched.name || "").trim();
       const label = sku && !name.toUpperCase().includes(sku.toUpperCase())
         ? `${name} — ${sku}` : name;
-      title = `${label} — ${site.company.name}`;
+      // A-9.P6-1 — was `${label} — ${site.company.name}` unconditionally.
+      title = fitProductTitle(label, sku, site.company.name, site.company.shortName);
       const summary = String(matched.specificationsSummary || "").trim();
       const kind = String(matched.partType || "").trim();
-      desc = localizeProse(
-        [
-          sku ? `${name} (${sku})` : name,
-          kind ? `— ${kind}.` : "—",
-          summary || "Specifications, data sheet and quote request.",
-        ].join(" ").replace(/\s+/g, " ").slice(0, 300),
-        site
+      // A-9.P6-2 — the cap was 300 and the cut was a bare `.slice()`. Clamped
+      // AFTER localizeProse, not before: localizeProse substitutes the live
+      // address and phone for the defaults and can make the string LONGER, so
+      // trimming first would let the final rendered value run past the cap.
+      desc = trimToWord(
+        localizeProse(
+          [
+            sku ? `${name} (${sku})` : name,
+            kind ? `— ${kind}.` : "—",
+            summary || "Specifications, datasheet and quote request.",
+          ].join(" ").replace(/\s+/g, " "),
+          site
+        ),
+        META_DESC_MAX
       );
     }
 
@@ -7535,13 +7640,11 @@ function PageMeta({ products }) {
     // A product with a real photograph shares that photo; a product on the
     // branded placeholder falls back to the card, because a link preview of a
     // "PRODUCT IMAGE COMING SOON" panel is worse than the company card.
-    const photo =
-      matched && matched.photoUrl && !String(matched.photoUrl).includes("placehold.co")
-        ? String(matched.photoUrl)
-        : "";
-    const ogImage = photo
-      ? (/^https?:\/\//.test(photo) ? photo : SITE_ORIGIN + (photo.startsWith("/") ? "" : "/") + photo)
-      : SITE_ORIGIN + OG_CARD.src;
+    // A-9.P4-9 — `productImageAbs` is now the one definition of this value;
+    // the Product JSON-LD needs the identical guard and the identical
+    // absolutisation, and two constructions is how they stop agreeing.
+    const photo = matched ? productImageAbs(matched) : undefined;
+    const ogImage = photo || SITE_ORIGIN + OG_CARD.src;
     setMeta("property", "og:image", ogImage);
     // Declared so the first share renders without the crawler fetching the file
     // to measure it. The per-product photos are all 400x300 source art.
@@ -8625,7 +8728,7 @@ function ProductDetail({ product, allProducts }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   useEffect(() => { setPhotoFailed(false); }, [product && product.sku]);
   // product.pdfUrl is set by the PHP admin (upload-pdf.php → "/pdfs/<sku>.pdf").
-  // When it's missing we render a "Request Data Sheet" button that routes to
+  // When it's missing we render a "Request Datasheet" button that routes to
   // the contact form instead — there is no external printable-page fallback.
   const hasPdfFile = Boolean(product.pdfUrl);
   // C32 — Features carries what the approvals block does not already say.
@@ -8660,10 +8763,19 @@ function ProductDetail({ product, allProducts }) {
         : product.description || product.name,
       "brand": { "@type": "Brand", "name": "Insulation Products Corporation" },
       "manufacturer": { "@type": "Organization", "name": "Insulation Products Corporation", "url": "https://www.insulationproducts.com" },
+      // A-9.P4-9 (the `image` half) — the photo is already validated and
+      // already painted on this page, so omitting it from the Product block
+      // was free warning volume in Search Console on all 42 routes. Same
+      // placehold.co guard PageMeta applies to og:image: a record on the
+      // branded placeholder asserts no image rather than asserting a
+      // placeholder as the product's photograph. `undefined` drops the key —
+      // an empty string would be a claim that the value is blank (NB4).
+      // The `offers` half is a commercial decision and is NOT emitted here.
+      "image": productImageAbs(product),
     });
     document.head.appendChild(el);
     return () => { document.getElementById("product-ld")?.remove(); };
-  }, [product.id, product.name, product.partNumber, product.description]);
+  }, [product.id, product.name, product.partNumber, product.description, product.photoUrl]);
 
   return (
     <div
@@ -8740,7 +8852,14 @@ function ProductDetail({ product, allProducts }) {
           <div className="flex flex-wrap items-center gap-2 mt-1">
             {hasPdfFile ? (
               <>
-                {/* Primary PDF — uses pdfLabel if set (e.g. "Molded Cap" for IP52EC), else "Download PDF" */}
+                {/* Primary PDF — uses pdfLabel if set (e.g. "Molded Cap" for
+                    IP52EC, the one product with two PDFs and a real need for
+                    two names), else the generic label.
+                    A-9.P5a-6/A-9.P5a-7 — this said "Download PDF" while the
+                    sticky bar's control for the SAME file said "Data Sheet",
+                    so one destination had two names on one page. One form now,
+                    and it is the one word the route, the nav item and the page
+                    heading already use (/datasheets, "Datasheets"). */}
                 <a
                   href={safeHref(product.pdfUrl)}
                   target="_blank"
@@ -8768,7 +8887,7 @@ function ProductDetail({ product, allProducts }) {
                     <line x1="12" y1="18" x2="12" y2="12" />
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
-                  {asText(product.pdfLabel) || "Download PDF"}
+                  {asText(product.pdfLabel) || "Datasheet"}
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants (e.g. IP52EC plugged-cap) — same styling */}
@@ -8804,7 +8923,7 @@ function ProductDetail({ product, allProducts }) {
                         <line x1="12" y1="18" x2="12" y2="12" />
                         <polyline points="9 15 12 18 15 15" />
                       </svg>
-                      {asText(extra.label) || "Download PDF"}
+                      {asText(extra.label) || "Datasheet"}
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
@@ -8835,7 +8954,9 @@ function ProductDetail({ product, allProducts }) {
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                   <polyline points="22,6 12,13 2,6" />
                 </svg>
-                Request Data Sheet
+                {/* A-9.P5a-7 — "Data Sheet" here made a third spelling of the
+                    same noun on one page. One word, like the route. */}
+                Request Datasheet
               </PageLink>
             )}
             <PageLink
@@ -8852,7 +8973,9 @@ function ProductDetail({ product, allProducts }) {
                 cursor: "pointer",
               }}
             >
-              Request Quote
+              {/* A-9.P5a-6 — "Request Quote" here and "Request a Quote →" in
+                  the sticky bar are one destination under two names. */}
+              Request a Quote
             </PageLink>
           </div>
         </div>
@@ -9836,7 +9959,9 @@ function ProductPage({ products }) {
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 min-w-0 ml-auto">
             {product.pdfUrl ? (
               <>
-                {/* Primary PDF — uses pdfLabel if set, else generic "Data Sheet" */}
+                {/* Primary PDF — uses pdfLabel if set, else the same generic label the
+                    product header uses. A-9.P5a-6 — these two were "Data Sheet"
+                    here and "Download PDF" there, for one file. */}
                 <a
                   href={safeHref(product.pdfUrl)}
                   target="_blank"
@@ -9878,7 +10003,7 @@ function ProductPage({ products }) {
                     <line x1="12" y1="18" x2="12" y2="12" />
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
-                  {asText(product.pdfLabel) || "Data Sheet"}
+                  {asText(product.pdfLabel) || "Datasheet"}
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants — same styling */}
@@ -9928,7 +10053,7 @@ function ProductPage({ products }) {
                         <line x1="12" y1="18" x2="12" y2="12" />
                         <polyline points="9 15 12 18 15 15" />
                       </svg>
-                      {asText(extra.label) || "Data Sheet"}
+                      {asText(extra.label) || "Datasheet"}
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
@@ -10176,8 +10301,13 @@ function DashboardPage({ products }) {
       />
       <div className="ipc-page-header">
         <div className="ipc-container px-6 py-12">
+          {/* A-9.P6-3 — this eyebrow was the literal string of its own <h1>,
+              the only inner page where the two are the same. Every other page
+              uses the eyebrow as a category label above the title ("Company",
+              "Legal", "Resources", "Technical library"); a screen reader here
+              announced the same four words twice in a row. */}
           <PageEyebrow>
-            Product Index
+            Catalog
           </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             Product Index
@@ -10188,7 +10318,7 @@ function DashboardPage({ products }) {
           >
             Browse all {tableRows.length} products with key specifications.
             Click <strong className="ipc-ink-header">View Product</strong> for full
-            data sheets and quote requests.
+            datasheets and quote requests.
           </p>
         </div>
       </div>
@@ -10589,6 +10719,12 @@ function DashboardPage({ products }) {
                 <PageLink
                   page="products"
                   params={{ productId: row.productId }}
+                  // A-9.P5a-10 — the page renders a table row and a mobile card
+                  // per product, so 42 products produce 84 links all named
+                  // "View Product". The row supplies the context visually, but
+                  // a link list reads as the same four words 84 times. The
+                  // name is already in scope at both call sites.
+                  aria-label={`View ${row.name || row.partId}`}
                   style={{
                     display: 'block',
                     // <a> is left-aligned where <button> centres. Full-width
@@ -10956,6 +11092,9 @@ function DashboardPage({ products }) {
                         <PageLink
                           page="products"
                           params={{ productId: row.productId }}
+                          // A-9.P5a-10 — the desktop twin of the mobile card's
+                          // link; see the note there.
+                          aria-label={`View ${row.name || row.partId}`}
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
