@@ -331,7 +331,7 @@ observed:     ```
 expected:     P4 step 3: *"A claim not in `site-info.json` `certifications` and not on the owner action list is class `decision`, escalated, never edited."* `certifications.other` is `[]`. Three further facts make this the one certification-row claim that cannot be left to drift: (a) the company describes itself everywhere else as a **stocking distributor** and "a major **supplier**" — `site-info.json company.description`, `copy.hero.subhead`, `seo[0]`, `seo[5]`, `manifest.json` — not a manufacturer; (b) exactly one of 42 catalog records (`IP75AD`) says its production is domestic, and it says so as a *differentiator*, which reads as a statement that the other 41 are not; (c) an unqualified "Made in USA" is a regulated origin claim (FTC Made in USA Labeling Rule, 16 CFR 323), and the qualified form the site actually supports — the *facility* is in Bolingbrook — is already written in the `sub` line.
 consequence:  A purchasing or quality person qualifying IPC as a supplier reads "Made in USA" in the certification row and takes it as an origin attestation covering the product line. It is the one claim on the page that the business's own data contradicts, and it is the class of claim a customer's compliance team checks. Severity is High under §7.1 — "a claim the business cannot stand behind" — not Blocker, because the site is not live (STEP 0) and nothing is published yet.
 evidence:     `_harness/out/audit9/P4/claims-register.md` row 22; `_harness/out/audit9/P4/claims-raw.txt` § `founded`/`over50`; `_harness/out/audit9/P4/leaves-report.txt`
-verified-by:  [UNVERIFIED — no second agent]. V1 and V2 both stopped at the five-hour usage limit with 30 of 54 records covered; this is one of the 24 they did not reach. The record's own `reproduce:` block is a pure data query over `data/*.json` and re-runs identically, but that is the measuring pass re-measuring itself, not an independent reproduction. See §5.
+verified-by:  **Re-measured by C, 2026-09-15** — reproduced, five claims of five. C is independent of the raiser (B1 measured it; C did not), which is the independence §3.6 asks for, but C is not a separate agent and wrote this record’s `outcome:` at consolidation — so this is weaker than V1/V2 and is labelled as such. Enumerated rather than spot-checked: the certification row is six chips, `"Made in USA"` is chip 2, and `site-info.json certifications.other` is `[]`, so no chip in that row is backed by a stored certification. Exactly one of the 42 records claims domestic production (`IP75AD`, badge `"Domestically Made"`). All three of the company’s own self-descriptions read supplier/distributor; none reads manufacturer. The claim renders in three places, unqualified. Run: `_harness/audit9-verify6.js`; output `_harness/out/audit9/C/verify6.txt`.
 outcome:      escalated, not fixed. `decision-needed: whether "Made in USA" stays on the site, and if so as what | recommended: move it out of the certification chip row and into prose as a plain statement of where IPC manufactures, with no mark, no file number and no issuing body | why: as a chip beside UL and CSA it reads as a third-party certification, and the FTC standard behind an unqualified claim is "all or virtually all", which nobody at IPC has asserted in writing | trade-off: the chip is a selling point and prose is weaker; the alternative is to substantiate it, which is a supply-chain exercise, not a code change | blocked: Rick — this is a commercial and legal claim about his own manufacturing, and PLAN-11 §7.3 puts public commercial copy on the owner's side of the fix fence`
 fix-proof:    n/a — escalated
 
@@ -760,7 +760,7 @@ observed:     ```
 expected:     Two separate things. (1) The number is a count of a file the owner edits on another screen and there is nothing tying them together — `admin/add.php` and `admin/delete.php` do not touch `content.json`. A count that must be maintained by hand in a second place is the shape of a claim that goes stale; the site already derives the 42 PDFs correctly on `/datasheets`, so the number is derivable. (2) "Products Stocked" over-counts by one today, because one record is a service, and "Datasheet published for every one" is true only because the services record also has a PDF.
 consequence:  Rick's first act after go-live is likely to be adding a product — the admin's whole purpose. The homepage then says 42 while the catalog holds 43, and nothing tells him. A buyer comparing the stat against the catalog finds the discrepancy on the second page they visit. Medium, not Low: it is a number on the homepage that a purchasing person quotes, and the mechanism guarantees it drifts.
 evidence:     `_harness/out/audit9/P4/shape-report.txt`; `_harness/out/audit9/P4/leaves-report.txt`; `_harness/out/audit9/P4/claims-register.md` row 23
-verified-by:  [UNVERIFIED — no second agent] — one of the 24 records V1/V2 did not reach. See §5.
+verified-by:  **Re-measured by C, 2026-09-15** — reproduced, five claims of five (see A-9.P4-2’s note on what this independence is worth). The mechanism claim was checked by looking for a WRITE rather than a mention: neither `admin/add.php` nor `admin/delete.php` calls `save_content()`; `add.php` only READS the family list out of `content.json`. C’s first version of that check matched the comment and read as a refutation — C’s defect, not the record’s, logged in §6.1. The over-count half holds: `VALUE-ADDED` has no operating temperature and four fabrication-service badges, and 42/42 records carry a `pdfUrl`, which is the only reason the sub-line is true. Run: `_harness/audit9-verify6.js`.
 outcome:      owner action (data-live). "42 Products Stocked" is typed on Page Content and the catalog is edited on Products; the two have no link. Not C's to fix — `data/*.json` is outside the fix fence (PLAN-11 §7.3, GUARDRAILS §2).
 fix-proof:    n/a — owner action
 
@@ -828,7 +828,7 @@ observed:     ```
 expected:     Either a photograph, or a recorded decision that the "image coming soon" panel is acceptable for these five. What exists is neither: four audits recorded "unchanged".
 consequence:  12 % of the catalog shows a grey panel where a spec-grade buyer expects to see the part, on the page the sitemap advertises and the RFQ button sits on. `og:image` falls back to the generic share card for those five, so they also share badly. No runtime cost and no third-party dependency on the public site — see the self-correction below.
 evidence:     `_harness/out/audit9/P4/shape-report.txt` § photoUrl; `_harness/out/audit9/I-crawl/product-IP13SP/1440x900.json`
-verified-by:  [UNVERIFIED — no second agent] — one of the 24 records V1/V2 did not reach. See §5.
+verified-by:  **Re-measured by C, 2026-09-15** — reproduced, three claims of three (see A-9.P4-2’s note). Enumerated the catalog rather than checking the five named: exactly five records sit on `placehold.co` and they are the five. The render guards were counted as executable lines rather than as occurrences of the string — three at `2121597` (`:7507`, `:8844`, `:9323`, exactly as cited) and three at HEAD, where `:5936` is A-9.P4-9’s `productImageAbs()` centralising the og:image guard rather than adding one. C’s first version counted comments too and read 6 and 8 — C’s defect, logged in §6.1. Run: `_harness/audit9-verify6.js`.
 outcome:      escalated, not fixed. `decision-needed: what the five photo-less products should show | recommended: commission or take five photographs; until then keep the branded placeholder and leave og:image on the company card, which is what the code already does | why: five of 42 product pages carry no photograph and nobody has decided whether that is temporary | trade-off: a stock photograph that is not the part is worse than a placeholder | blocked: Rick — it is a spend and a content decision`
 fix-proof:    n/a — escalated
 
@@ -867,7 +867,7 @@ observed:     ```
 expected:     Three separate things, all in one 46-word answer. (1) The control named in the header is labelled `Download PDF`, not `Data Sheet`. (2) There is no catalog-PDF link on the Products page header at all — the only "Product Catalog" link on `/products` points back at `/products`. (3) The footer link exists in code but is gated on a field that ships empty. An instruction that names a control has to name the control that is there (P5 rule 8, applied to a public FAQ answer rather than to `help.php`).
 consequence:  This is the FAQ entry a buyer opens precisely because they could not find the datasheet. It tells them to look for a label that is not in the place it says, and then sends them twice to a PDF that does not exist. The datasheet button *is* findable (it is the obvious yellow control in the header), so there is a workaround — Medium, not High. The catalog-PDF half has no workaround: there is nothing to find.
 evidence:     `_harness/out/audit9/I-crawl/product-IP35KY/1440x900.json`; `_harness/out/audit9/I-crawl/products/1440x900.json`; `_harness/out/audit9/P5a/rules2-5.txt` § data sheet
-verified-by:  [UNVERIFIED — no second agent] — one of the 24 records V1/V2 did not reach. See §5.
+verified-by:  **Re-measured by C, 2026-09-15** — reproduced, five claims of five (see A-9.P4-2’s note), and the historical and current states separated. At `2121597` the FAQ quoted `‘Data Sheet’` while the product header rendered `Download PDF` — the record reproduces. At HEAD it quotes `‘Data Sheet’` while both PDF controls render `Datasheet`, so the sentence is **still** wrong and is still Rick’s to edit, now against the new label. `catalogPdfUrl` is `""` and the footer link is gated on `isSafeLinkUrl(site.catalogPdfUrl)`, so the promised catalog PDF renders nowhere. Run: `_harness/audit9-verify6.js`.
 outcome:      owner action (data-live), and NOT resolved by the code half as the record predicted. `faq[14]` tells the buyer to click a "Data Sheet" button; A-9.P5a-6 unified the two product-page PDF controls under **`Datasheet`**, one word, because A-9.P5a-7 measures the one-word form as the site's majority and the route (`/datasheets`), the nav item and the page heading all settle it that way. So the FAQ sentence still needs Rick's edit, and it should now name `Datasheet`. Points (2) and (3) — the promised catalog PDF — still need either the file or the sentence.
 fix-proof:    n/a — owner action
 
@@ -894,7 +894,7 @@ observed:     ```
 expected:     An effective date is the date the current text took effect. This one predates the current text by 20 months, and it predates the site's own first deploy — the site is not live yet (STEP 0), so no version of this policy has ever been in effect on January 1, 2025. Under GDPR Art. 12 and CCPA §1798.130, a policy's date is how a data subject knows which version they were shown; a stale one is the part of the document a regulator or a customer's compliance team checks first because it is the only machine-checkable claim in it.
 consequence:  A purchasing or compliance person diffing IPC's policy against the one they have on file sees a date that says nothing changed since January 2025, while the substance of the collection and retention sections did change. The information in the policy is correct (P4 step 5 verified both A-8.7 and A-8.8 texts are present); the metadata about it is not.
 evidence:     `data/content.json` `copy.privacyHeader.effectiveDate`; `audit-runs/audit8.md` §3a; `_harness/out/audit9/P4/leaves-report.txt`
-verified-by:  [UNVERIFIED — no second agent] — one of the 24 records V1/V2 did not reach. See §5.
+verified-by:  **Re-measured by C, 2026-09-15** — reproduced, three claims of three (see A-9.P4-2’s note), with the 20-month gap taken from git rather than from `audit8.md`’s prose: `git log -S ‘They are not deleted automatically’ -- data/content.json` dates that sentence’s arrival at **2026-08-28**, 20 months after the printed effective date of January 1, 2025. The policy is owner-editable data (7 sections in `content.json`), so the date is an admin edit. Run: `_harness/audit9-verify6.js`.
 outcome:      escalated, not fixed. `decision-needed: what date the current privacy policy takes effect | recommended: the go-live date, set on Page Content → Privacy → Effective Date at the same time as the first deploy | why: the text was materially rewritten on 2026-08-28 and no version has ever been in effect on the printed date | trade-off: a future date is wrong too, so it has to be set at deploy — a runbook step, not a code change | blocked: legal text, which PLAN-11 §7.3 and P5 rule 10 both put on the owner's side`
 fix-proof:    n/a — escalated
 
@@ -1353,7 +1353,7 @@ observed:     `which hunspell aspell` → **neither is installed**, so the brief
 expected:     Five of the six are on the spec surface (a caption, a description, two spec-table values and a chip). `Semrigid` is the one that is not merely a typo: it is a **badge**, so it renders as a chip next to `IP34SR`'s and `IP3L`'s correctly-spelled `Semi-Rigid`.
 consequence:  Low. A buyer qualifying a spec-grade supplier reads "transparant" in a spec-table value and "Semrigid" on a product chip. It does not mislead; it erodes the thing the whole catalog is trying to establish.
 evidence:     `_harness/out/audit9/P5a/spell.md`; `_harness/out/audit9/P5a/export.tsv`
-verified-by:  [UNVERIFIED — no second agent] — one of the 24 records V1/V2 did not reach. See §5.
+verified-by:  **Re-measured by C, 2026-09-15** — all six misspellings reproduce, and one parenthetical is **adjusted** (see A-9.P4-2’s note). Each was enumerated across the whole catalog rather than checked on the named record, which confirms `transparant` is on exactly the two SKUs named and no others. The adjustment: the record says to normalise `Semrigid` to `“Semi-Rigid (the form the other two products use)”`, but there are **three** forms across four products — `IP34SR` and `IP3L` spell it `Semi-Rigid`, `IP42MW` spells it `Semi-rigid`, `IP35KY` spells it `Semrigid`. The owner edit is a three-way normalisation, not a one-word typo fix. That strengthens A-9.P5a-8 rather than contradicting this record. Run: `_harness/audit9-verify6.js`.
 outcome:      owner action (data-live). Products → Edit, the five SKUs. `data/*.json` is outside what C may fix (PLAN-11 §7.3, GUARDRAILS §2). Batched with A-9.P5a-5, A-9.P5a-8 and A-9.P4-10.
 fix-proof:    n/a — owner action
 
@@ -1878,30 +1878,76 @@ and publishing availability is a commercial commitment.
   after. `isoclaims` is red because of the open ISO revision question, which is
   `GO-LIVE.md` §A's first line and is not this audit's to answer.
 
-### 5.4 The verification gap — 24 of 54 records
+### 5.4 The verification gap — 24 of 54 records, six of them since closed
 
 **V1 and V2 between them reached 30 of the 54 records before the five-hour usage
 limit ended both sessions.** The remaining 24 have no second-agent
 reproduction. This is a shortfall against PLAN-11 §3.6, which asks the Verifier
 to reproduce *every* accepted finding, and it is stated here rather than papered
-over.
+over. The header table's "verified by V: 30/54" deliberately counts only V1 and
+V2, and stays at 30 for that reason.
 
-What each of the 24 does have is written in its own `verified-by:` field:
+What each of the 24 has is written in its own `verified-by:` field:
 
 - **18 of them** were reproduced by C's own test-first fix runs — a check that
   failed against the unfixed tree with the finding's own symptom, and passes
   after. That is evidence the defect existed, and it is on disk. It is **not**
   §3.6 verification, because the same agent wrote the check and the fix.
 - **6 of them** — A-9.P4-2, A-9.P4-4, A-9.P4-8, A-9.P5a-2, A-9.P5a-3,
-  A-9.P5a-4 — have neither. They are the escalations and owner actions C does
-  not fix, so no fix run touched them. They are marked
-  `[UNVERIFIED — no second agent]` in §2 and should be re-measured before
-  anyone acts on them. All six are data or decision records whose `reproduce:`
-  block is a query over `data/*.json`, so re-measuring is cheap.
+  A-9.P5a-4 — had neither, because they are the escalations and owner actions C
+  does not fix, so no fix run touched them. **These six were re-measured by C on
+  2026-09-15** at Keagan's instruction; see below.
 - **One is marked `[WEAK]`**: A-9.B2-15's first acceptance arm *passed* against
   the unfixed file, because it searched for wording the guide does not use. The
   arm was rewritten and the shortfall then reproduced, but the before-state is
   attested only by the rewritten arm.
+
+#### The re-measurement of the six — `_harness/audit9-verify6.js`
+
+**29 load-bearing claims across the six records: 28 reproduced, 1 adjusted, 0
+refuted.** Output: `_harness/out/audit9/C/verify6.txt` and `verify6.json`.
+
+What this is worth, stated plainly: C is independent of the **raiser** — B1
+measured all six and C did not — which is the independence §3.6 actually asks
+for. C is **not** a separate agent, and C wrote these records' `outcome:` fields
+at consolidation. So it is stronger than the fix-run evidence above and weaker
+than V1/V2, and the header table does not count it as V.
+
+The method was deliberately not "re-run the record's own `reproduce:` block",
+which would only prove the block still runs. Where a record counted, this
+counted differently; where it named instances, this enumerated the whole set and
+checked the named ones fell out of it. Three things that came from doing it that
+way:
+
+- **A-9.P4-8's guards were counted as executable lines, not as occurrences of
+  the string.** Half the occurrences are comments *about* the guard. Three
+  guards at `2121597` — `:7507`, `:8844`, `:9323`, exactly as cited — and three
+  at HEAD, where `:5936` is A-9.P4-9's `productImageAbs()` centralising the
+  og:image guard rather than adding a fourth.
+- **A-9.P4-4's mechanism was checked by looking for a write.** Neither
+  `add.php` nor `delete.php` calls `save_content()`; `add.php` only *reads* the
+  family list out of `content.json`, in a line the record never claimed
+  otherwise.
+- **A-9.P5a-3's 20-month gap was taken from git, not from `audit8.md`'s prose.**
+  `git log -S 'They are not deleted automatically' -- data/content.json` dates
+  that sentence's arrival at 2026-08-28, 20 months after the printed effective
+  date.
+
+**The one adjustment, A-9.P5a-4.** The record says to normalise `Semrigid` to
+"Semi-Rigid (the form the other two products use)". Enumerating the badge across
+the whole catalog gives **three** forms over four products — `IP34SR` and `IP3L`
+spell it `Semi-Rigid`, `IP42MW` spells it `Semi-rigid`, `IP35KY` spells it
+`Semrigid`. The parenthetical undercounts, so the owner edit is a three-way
+normalisation rather than a one-word typo fix. That strengthens A-9.P5a-8 (badge
+concepts written two ways) rather than contradicting A-9.P5a-4; the six
+misspellings themselves all reproduce exactly as recorded.
+
+**A-9.P5a-2 is the one whose current state differs from its recorded state**,
+and the re-measurement separates the two. At `2121597` the FAQ quoted
+`'Data Sheet'` while the product header rendered `Download PDF`. At HEAD it
+quotes `'Data Sheet'` while both PDF controls render `Datasheet`. The sentence
+was wrong then and is wrong now, for a different reason — so it stays an owner
+action, and it should name the new label.
 
 ### 5.5 `[UNVERIFIED]` / `[UNSOURCED]`, per pass, verbatim
 
@@ -2003,6 +2049,23 @@ What each of the 24 does have is written in its own `verified-by:` field:
     verdict does not depend on it (the record is fixed either way), which is
     exactly why accepting the verifier's measurement cost nothing and refusing
     it would have been preference, not evidence.
+
+19. **Two defects in C's own re-measurement of the six unverified records**
+    (2026-09-15), both found because the result disagreed with a record rather
+    than because anything looked wrong. (a) The A-9.P4-4 check looked for
+    `content.json` *mentioned* in `add.php`/`delete.php` and matched a comment,
+    reporting the record refuted; it should have looked for a `save_content()`
+    **write**, and with that it reproduces. (b) The A-9.P4-8 check counted
+    occurrences of the string `placehold.co` rather than executable guard lines,
+    reading 6 at the base and 8 at HEAD against a record that correctly says 3 —
+    half the occurrences are comments about the guard. Both were C's, not the
+    records'. A check that contradicts a careful measurement is the check's
+    fault first.
+20. **The re-measurement is labelled for what it is.** C is independent of the
+    raiser for those six — B1 measured them, C did not — but C is not a separate
+    agent and wrote their `outcome:` fields. `_harness/audit9-totals.js` counts
+    only `V1 —` and `V2 —` as verification, so the header table still reads
+    30/54 and does not quietly absorb C's own work into the verifier's number.
 
 ### 6.2 The pass agents, verbatim
 

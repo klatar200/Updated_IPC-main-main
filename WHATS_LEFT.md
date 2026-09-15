@@ -6021,18 +6021,36 @@ Each is written in the five-field form in `audit-runs/audit9.md` §2 and
 summarised in §5.2. A-9.P4-9's `offers` half is a seventh: whether IPC publishes
 availability without a price.
 
-### The verification shortfall — 24 of 54
+### The verification shortfall — 24 of 54, six of them since closed
 
 **V1 and V2 reached 30 of the 54 records before the five-hour usage limit ended
 both sessions.** 18 of the remaining 24 were reproduced by C's own test-first
 fix runs — evidence the defect existed, but not §3.6 verification, because the
-same agent wrote the check and the fix. **Six have neither** — A-9.P4-2,
-A-9.P4-4, A-9.P4-8, A-9.P5a-2, A-9.P5a-3, A-9.P5a-4 — and are marked
-`[UNVERIFIED — no second agent]`. All six are data or decision records whose
-`reproduce:` block is a query over `data/*.json`, so re-measuring is cheap and
-should happen before anyone acts on them. One more, A-9.B2-15, is marked
-`[WEAK]`: its first acceptance arm passed against the unfixed file because it
-searched for wording the guide does not use.
+same agent wrote the check and the fix. One more, A-9.B2-15, is marked `[WEAK]`:
+its first acceptance arm passed against the unfixed file because it searched for
+wording the guide does not use.
+
+**The six that had neither — A-9.P4-2, A-9.P4-4, A-9.P4-8, A-9.P5a-2,
+A-9.P5a-3, A-9.P5a-4 — were re-measured on 2026-09-15** (`SUPERSEDES` the
+`[UNVERIFIED — no second agent]` line above for those six only).
+`_harness/audit9-verify6.js`: **29 load-bearing claims, 28 reproduced, 1
+adjusted, 0 refuted.** It measures from the primary data rather than re-running
+each record's own `reproduce:` block — counting differently where a record
+counted, and enumerating the whole set where a record named instances.
+
+C is independent of the **raiser** (B1 measured all six; C did not), which is
+the independence PLAN-11 §3.6 asks for, but C is not a separate agent and wrote
+those records' `outcome:` fields. So `audit-runs/audit9.md`'s header still reads
+"verified by V: 30/54" — the totals script counts only V1 and V2 — and the six
+are labelled "re-measured by C", not verified.
+
+The one adjustment is A-9.P5a-4's parenthetical: `Semrigid` should be normalised
+to `Semi-Rigid`, but there are **three** spellings across four products, not two
+— `IP34SR` and `IP3L` say `Semi-Rigid`, `IP42MW` says `Semi-rigid`, `IP35KY`
+says `Semrigid`. The owner edit on Products → Edit is a three-way normalisation,
+not a one-word typo fix, which strengthens A-9.P5a-8. Two defects in C's own
+re-measurement checks were found and corrected in the process; both were the
+check's, not the record's, and both are logged in `audit9.md` §6.1 items 19-20.
 
 ### Measured and deliberately not fixed
 

@@ -244,6 +244,7 @@ are in the sweep and they should stay green.
 | `audit9-router-docroot.js` | acceptance | A-9.P3-1 — eight arms proving a `:814x` mirror answers from its own docroot and not from the sweep mirror. 5/8 before the fix |
 | `audit9-public-fixes.js` | acceptance | A-9.P4-6/7/9, P5a-6/7/9/10/11, P6-1/2/3. Reads a **comment-blanked** copy of `App.jsx` for its source arms, so a fix note that talks about a glyph is not counted as an instance of it |
 | `audit9-admin-text.js` | acceptance | A-9.B2-08/09/10 and A-9.P6-4 — the admin's vocabulary, typography, button case, and each page's `<h1>` against the nav label you clicked. Source-level and needs no server |
+| `audit9-verify6.js` | verification | the six records V1/V2 never reached (A-9.P4-2/4/8, P5a-2/3/4), re-measured from the primary data on 2026-09-15 rather than by re-running each record's own `reproduce:` block. Reads `data/*.json`, `src/App.jsx` at HEAD **and** at the audit base commit, and the git history of one privacy sentence. No server, no browser |
 | `audit9-totals.js` | generator | reads `audit-runs/audit9.md` §2 and writes its own totals table and §9 verdict. `--write` rewrites the block in place; counts are generated, never typed |
 
 **`audit9-fixes.js` restores the mirror at both ends, and that is load-bearing.**
