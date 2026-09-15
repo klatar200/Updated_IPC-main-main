@@ -177,6 +177,57 @@ is RoHS compliant."*
 | META-description, META-og:description, META-og:title | "$50 minimum order. Ships same day. ISO 9001 registered." / "Spec-grade stocking distributor since 1974. … 25M+ feet in stock." | every clause is a row above; `&amp;` is the only difference from the live site's text |
 | — | **the static JSON-LD block is gone from this repo's `index.html`** and is rendered from `site-info` at runtime instead (`App.jsx:7305`) | **an improvement, recorded so nobody "restores" it**: the live predecessor's shell carries a second, hand-typed copy of the company facts, which is how two sources of truth start. A-8.9 already governs its `foundingDate` format. |
 
+### 2.9 Which of these can Rick change himself once the site is live?
+
+Asked because it decides what is a decision and what is a deploy. **Almost all of
+it.** Every row in §2.1–§2.7 is admin-editable, with no rebuild and no FTP:
+
+| Claim group | Stored in | Admin screen |
+|---|---|---|
+| STAT-1..4 — the stats strip, incl. "42 Products Stocked" | `content.json stats[]` | Page Content → **Trust Bar Stats** |
+| HERO-1..4 | `heroProofPoints[]` | Page Content → **Homepage — Hero Proof Points** |
+| TRUST-1..10, incl. "Made in USA Since 1974", "Full RoHS Compliant Product Line" | `heroTrust[]` | Page Content → **Homepage — Hero Trust Ticker** |
+| CERT-1..6 — the six certification chips, incl. "ISO 9001:2008" | `certs[]` | Page Content → **About — Certifications & Standards** |
+| IND-1.1..5.2 — the 17 industry certification chips | `industryDetail[].certs` | Page Content → **Industries Page — Detail Sections** |
+| FAQ-1..19 | `faq[]` | Page Content → **FAQ / Resources** |
+| MILE-1..6, SVC-1..6 (incl. every `leadTime`), features, markets | `content.json` | Page Content |
+| hero badge/headline/subhead, every page banner, the privacy **effective date**, the contact-form copy and the **auto-reply promise** | `content.json copy.*` | Page Content → the fixed-copy groups |
+| per-page SEO title and meta description | `seo[]` | Page Content → **Search Engine Text (SEO)** |
+| CO-1..4, ABOUT-1..4 — founded year, phone, fax, email, address, hours, "25 million", "$50", `certifications.iso`, the four About paragraphs | `site-info.json` | **Business Details** |
+| product badges, spec summary, operating temp, description, approvals, datasheet button label | `products-all.json` | **Products → Edit** |
+| the photograph and the datasheet **file** | `uploads/images/`, `pdfs/` | Products → Upload photo / Upload PDF |
+
+**Four things Rick cannot change**, all of which need `npm run build` and an FTP
+upload:
+
+1. **`index.html`'s `description`, `og:title`, `og:description` and `og:image`.**
+   `PageMeta` rewrites `description`, `og:title` and `og:description` at runtime
+   from the admin-editable `seo[]` — so Google, which renders JavaScript, reads
+   Rick's version. **LinkedIn, Slack, Teams and Facebook do not execute
+   JavaScript when they unfurl a link** (`index.html`'s own comment at :20 says
+   so), and they read the static shell. That shell is the one claim surface on
+   the site the owner cannot correct.
+2. **`src/App.jsx`'s hardcoded defaults.** They only surface where a data key is
+   missing or blank, which is what invariants 3 and 4 govern — but when they do
+   surface, they are unreachable from the admin.
+3. **`public/contact.php`'s fallback strings** — used only when the matching
+   `copy` key is empty. The auto-reply promise itself *is* editable
+   (`autoReplyRfqPromise`).
+4. **The datasheet PDFs' contents.** Rick can replace a file; he cannot edit what
+   it says. So every `n/42` count in this register moves only by re-issuing a
+   datasheet — which is the supply-chain half of CLAIM-1, not an admin task.
+
+Two operational notes that belong with this, both already invariants: every save
+is backed up first (`backup_before_write()`), and Page Content carries a
+`max_input_vars` truncation guard (invariant 6) because the form is large enough
+to be truncated silently by PHP.
+
+And the one that makes all of the above matter: **after the first deploy,
+`data/` is never uploaded again.** Everything in the table above becomes Rick's
+live state, and an FTP overwrite of `data/products-all.json` would destroy it
+with no backup. That is `CLAUDE.md` § *Trees that ship to the server* and
+`GO-LIVE.md` branch A.
+
 ---
 
 ## 3. What is owed
@@ -215,14 +266,21 @@ category a buyer's quality department checks.
 
 **decision-needed:** what substantiates "Full RoHS Compliant Product Line" ·
 **recommended:** ask Rick for the blanket RoHS declaration or the supplier
-declarations behind it, store the reference in `site-info.certifications.other`
-so the chip renders from a sourced field like every other certification should,
-and leave the copy exactly as it is · **why:** the claim is IPC's, it is years
-old, and it is probably true — what it lacks is a document anyone can produce on
-request · **trade-off:** if no declaration exists, the fix is a supply-chain
-exercise and the honest interim is to qualify the wording to the products that
-carry it, which weakens the page · **blocked:** Rick — a conformity claim about
-his own line, which PLAN-11 §7.3 puts on the owner's side.
+declarations behind it, and leave the copy exactly as it is · **why:** the claim
+is IPC's, it is years old, and it is probably true — what it lacks is a document
+anyone can produce on request · **trade-off:** if no declaration exists, the fix
+is a supply-chain exercise and the honest interim is to qualify the wording to
+the products that carry it, which weakens the page · **blocked:** Rick — a
+conformity claim about his own line, which PLAN-11 §7.3 puts on the owner's
+side.
+
+**Correction to the first version of this recommendation.** It said to "store
+the reference in `site-info.certifications.other` so the chip renders from a
+sourced field". **`certifications.other` renders nowhere** — see CLAIM-4. Doing
+that would file the document somewhere Rick can see and change nothing on the
+page. Once the declaration exists, the place to put its reference **today**, with
+no code change, is the certification chip's own sub-line (`content.json
+certs[1].sub`, "Entire product line"), which Page Content edits.
 
 ### CLAIM-2 — Medium — POST-9.1, with a better fix than the one I recommended
 
@@ -276,6 +334,30 @@ redone.
 
 ---
 
+### CLAIM-4 — Low — `certifications.other` is editable in the admin and rendered nowhere
+
+`admin/settings.php` exposes it as **Business Details → `cert_other`**, so Rick
+can type a list of certifications into it, save, and see the save succeed.
+`site.certifications` is read in exactly **one** place in `App.jsx` — line 3699,
+`` `${site.certifications.iso} Registered` `` in the About quality row — and
+`.other` is read in **none**. The six certification chips a visitor actually
+reads are typed into `content.json certs[]`.
+
+A-9.P4-2 records that mechanism as the reason an unsourced chip can sit beside a
+sourced one. This is the other half of it, and it is separately checkable: a
+field the admin offers, that accepts input, that has no effect. Rick has no way
+to discover that except by filling it in and looking.
+
+**Two honest fixes, and the cheap one is not the obvious one.** Rendering
+`.other` as extra chips is a code change and a design question (where do they
+go, what do they look like beside the six typed ones). Removing the field from
+Business Details is a five-line change that ends the trap. **Recommended:
+render it** — the field is the right idea and it is the thing CLAIM-1 and
+A-8.5 both want to exist — but not before those two are settled, because what
+they settle is what would go in it.
+
+---
+
 ## 4. Self-corrections
 
 1. **POST-9.1's "52 orderable part numbers" is 53.** Mine, logged 2026-09-15,
@@ -296,7 +378,13 @@ redone.
    an unbounded `UL` matches inside *Liquid*, *Modulus* and *Insulating*. The
    counts in §2.6 are word-bounded, and the rows whose only token is a common
    word are marked [NOT-MEASURED] rather than counted.
-6. **The first draft of §2.6 said "UL & CUL Listed" was carried by all four
+6. **CLAIM-1's first recommendation pointed at a dead field.** It said to store
+   the RoHS declaration's reference in `site-info.certifications.other` "so the
+   chip renders from a sourced field". `.other` is read nowhere in `App.jsx` —
+   that is now CLAIM-4. The recommendation was written from the field's name
+   and the fact that the admin exposes it, without checking that anything
+   consumes it.
+7. **The first draft of §2.6 said "UL & CUL Listed" was carried by all four
    conduit accessories.** Measured: `CUL` is in **one** record (`CC`). `CC90`
    and `CCS` badge "UL Listed"; `CT` carries a UL file number and no CUL. And
    it said AMS-3632C **and** AMS-3653B were in no datasheet; `AMS 3653B` is in

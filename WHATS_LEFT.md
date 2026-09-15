@@ -6381,19 +6381,41 @@ and the same 2 of 42 catalog records (`IP29CG`, `IP53MP`); `REACH` in none. RoHS
 is a self-declaration, so this is not "false" — it is a whole-line assertion
 whose only published backing is two documents.
 `decision-needed: what substantiates it | recommended: get the blanket RoHS
-declaration from Rick and store its reference in site-info.certifications.other
-so the chip renders from a sourced field, leaving the copy as it is | why: the
-claim is IPC's, it is years old and probably true; what it lacks is a document
-anyone can produce on request | trade-off: if no declaration exists the fix is a
-supply-chain exercise, and the honest interim is to qualify the wording to the
-products that carry it, which weakens the page | blocked: Rick`
+declaration from Rick and leave the copy as it is | why: the claim is IPC's, it
+is years old and probably true; what it lacks is a document anyone can produce
+on request | trade-off: if no declaration exists the fix is a supply-chain
+exercise, and the honest interim is to qualify the wording to the products that
+carry it, which weakens the page | blocked: Rick`
+
+*(Corrected 2026-09-15: the first version of this recommendation said to store
+the reference in `site-info.certifications.other` "so the chip renders from a
+sourced field". That field renders nowhere — CLAIM-4. Once the declaration
+exists, the place to put its reference today, with no code change, is the
+certification chip's own sub-line, `content.json certs[1].sub`.)*
 
 **CLAIM-2 — Medium — POST-9.1, with new facts and a better fix.** See below.
 
-**CLAIM-3 — Low — "AMS-3632C / AMS-3653B" (`content.json:158`) appears in no
-datasheet.** One catalog record (`IP55FL`) names it; 0 of 42 datasheets do,
-though AMS generally is in 6. Ordered after A-9.P4-3, which decides how marks
-are named.
+**CLAIM-3 — Low — half of "AMS-3632C / AMS-3653B" (`content.json:158`) is in no
+datasheet.** `AMS 3653B` is in one catalog record and its datasheet; `AMS-3632C`
+is in one record (`IP55FL`) and **zero** datasheets, though AMS generally is in
+6 of 42. Ordered after A-9.P4-3, which decides how marks are named.
+
+**CLAIM-4 — Low — `site-info.certifications.other` is editable in the admin and
+rendered nowhere.** `admin/settings.php` exposes it as Business Details →
+`cert_other`; `site.certifications` is read in exactly one place in `App.jsx`
+(`:3699`, the About quality row) and `.other` in none. Rick can fill it, save
+successfully, and change nothing on the page. *Recommended: render it* — it is
+the sourced field CLAIM-1 and A-8.5 both want to exist — but not until those two
+are settled, because what they settle is what would go in it. The alternative,
+removing the field, is smaller and ends the trap today.
+
+**Everything in the claims register except the datasheets is editable from the
+admin once the site is live** — §2.9 of the register maps every claim group to
+its screen. The four exceptions that need a rebuild and an FTP upload are
+`index.html`'s `description`/`og:*` (which LinkedIn, Slack, Teams and Facebook
+read, because they do not execute JavaScript), `App.jsx`'s hardcoded defaults,
+`contact.php`'s fallback strings, and the contents of the datasheet PDFs
+themselves.
 
 ### POST-9.1 — SUPERSEDED-BY CLAIM-2 (2026-09-15)
 
