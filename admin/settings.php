@@ -419,6 +419,18 @@ $navActive = 'settings';
           <div class="form-group">
             <label for="cert_iso">ISO Certification</label>
             <input type="text" id="cert_iso" name="cert_iso" value="<?= h($ce['iso'] ?? '') ?>" placeholder="ISO 9001" />
+            <div class="hint">
+              <strong>This is the only place the ISO certification is set.</strong>
+              What you type here appears everywhere it is claimed on the website
+              &mdash; the homepage badges, the trust ticker, the About
+              certification list and the search-engine descriptions.
+              <br>
+              Add the revision year only when your registrar has confirmed it
+              (<code>ISO 9001:2015</code>), and it will appear in all of those
+              places at once. Leave it as plain <code>ISO 9001</code> and no
+              revision is claimed anywhere &mdash; which is the safe answer if
+              you are not certain which one your certificate names.
+            </div>
           </div>
           <div class="form-group">
             <label for="stats_min">Minimum Order</label>

@@ -1678,14 +1678,23 @@ function Navbar({ products = [], catalogFailed = false }) {
 
 /**
  * IPC Hero — Story & Proof treatment.
- * Headline: stocking identity + lead time + customization.
- * Proof cards: verified dossier data ($50 MOQ, 25M+ ft, same-day, ISO).
+ * Headline: stocking identity + materials grade + customization.
+ * Proof cards: $50 MOQ, 25M+ ft, independent since 1974, ISO. "Verified
+ * dossier data" is what this comment used to call them; the claims register
+ * (`audit-runs/claims-register-2026-09-15.md`) found no dossier — they are
+ * IPC's own long-standing marketing, carried forward, and three of the four
+ * are still unsourced. Do not restore the wording.
  * Trust rail: infinite horizontal marquee carousel of certification badges.
  */
 const HERO_PROOF = [
     { stat: "$50", label: "Minimum Order", sub: "No large MOQ required" },
-    { stat: "25M+", label: "Feet in Stock", sub: "Ready to ship today" },
-    { stat: "Same Day", label: "Shipment Available", sub: "On in-stock items" },
+    { stat: "25M+", label: "Feet in Stock", sub: "At our Bolingbrook, IL facility" },
+    // Keagan, 2026-09-15: the same-day/next-day SHIPPING claim comes off the
+    // site — it is a performance promise nothing here substantiates. The
+    // response-time promise in the contact auto-reply stays; he confirmed that
+    // one is accurate. This slot carries an inherited, internally consistent
+    // fact instead, and it is editable in Page Content -> Hero Proof Points.
+    { stat: "1974", label: "Independent Since", sub: "Privately held, Bolingbrook IL" },
     {
       stat: "ISO 9001",
       label: "Registered Quality",
@@ -1711,7 +1720,6 @@ const HERO_TRUST = [
     "Made in USA Since 1974",
     "$50 Minimum Order",
     "25M+ Feet in Stock",
-    "Same-Day Shipment Available",
 ];
 
 /**
@@ -3197,8 +3205,13 @@ function HomePage() {
                 address (footer, /contact, privacy §7, Organization JSON-LD)
                 read site-info.json's `address.street`, which abbreviates it.
                 Read the field, so there is one spelling and it is the owner's. */}
+            {/* The certification reads from Business Details for the same
+                reason the street does. It was the one ISO string in this file
+                typed as prose, so it could not follow an admin edit at all —
+                `withIsoLabel` only reaches stored copy, not JSX. */}
             IPC has stocked, cut and shipped from {site.address.street} for over
-            fifty years — privately held, independent, and ISO 9001 registered.{" "}
+            fifty years — privately held, independent, and{" "}
+            {site.certifications.iso} registered.{" "}
             <PageLink
               page="about"
               style={{
@@ -3354,7 +3367,11 @@ function HomePage() {
         <div className="ipc-container px-6 py-14 flex flex-col md:flex-row items-center justify-between gap-8">
           <div>
             <h2 className="text-2xl font-extrabold ipc-ink-header mb-2">
-              {site.stats.minimumOrder} minimum order. {site.stats.feetInStock} feet in stock. Ships today.
+              {/* "Ships today." came off 2026-09-15 with the rest of the
+                  same-day shipping claim. It was the strongest form of it on
+                  the site and the only one hardcoded here, where no admin
+                  edit could reach it. */}
+              {site.stats.minimumOrder} minimum order. {site.stats.feetInStock} feet in stock.
             </h2>
             <p style={{ color: "rgba(var(--brand-header-ink-rgb), 0.75)" }} className="text-sm">
               Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-header-ink)", fontWeight: 600 }}>{site.contact.phone}</a>,
@@ -4172,7 +4189,7 @@ const FAQ_CATEGORIES = [
         {
           question: "How much inventory do you carry?",
           answer:
-            "IPC maintains over 25 million feet of tubing and sleeving in stock at our Bolingbrook, IL facility. Most in-stock items ship the same day or next business day.",
+            "IPC maintains over 25 million feet of tubing and sleeving in stock at our Bolingbrook, IL facility.",
         },
         {
           question: "How do I request a quote?",
@@ -6489,7 +6506,7 @@ const SITE_DEFAULTS = {
   about: {
     paragraphs: [
       "Insulation Products Corporation was incorporated on July 1, 1974, and has operated from Bolingbrook, Illinois ever since. As a privately held, independent distributor, IPC is a major stocking source for heat-shrinkable and extruded tubing, electrical sleeving, and industrial adhesives — serving engineers, purchasing teams, and OEMs across dozens of industries for over 50 years.",
-      "With more than 25 million feet in stock and a $50 minimum order, IPC is built to serve both prototype quantities and full production runs. Most in-stock orders ship the same day or next business day. Our ISO 9001 registered quality system ensures every order is processed accurately — from receiving and inspection through picking, packing, and final shipment.",
+      "With more than 25 million feet in stock and a $50 minimum order, IPC is built to serve both prototype quantities and full production runs. Our ISO 9001 registered quality system ensures every order is processed accurately — from receiving and inspection through picking, packing, and final shipment.",
       "Beyond standard stocking, IPC's in-house fabrication shop provides cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, slitting, and perforation — all with a typical lead time of one week or less. JIT delivery programs and PPAP / IMDS documentation support are available for automotive and OEM customers.",
       "Our product line includes UL-recognized, CSA-listed, MIL-SPEC, AMS, FDA-compliant, and RoHS-certified materials. The customer is always number one — that commitment has defined IPC since day one and remains our core operating principle today.",
     ],
@@ -6577,6 +6594,15 @@ function mergeSiteInfo(data) {
       out[k] = v != null && !(typeof v === "string" && v.trim() === "") ? v : d;
     }
   }
+  // The ISO revision waterfalls into this file's own prose too: `about`
+  // paragraph 2 says "Our ISO 9001 registered quality system…" and
+  // `company.description` is the other prose field the admin edits. Applied
+  // AFTER the merge so it reads the value the owner just saved, and only to the
+  // two prose branches — `certifications` is the source and rewriting it from
+  // itself would be circular. See `withIsoLabel`.
+  const isoSource = out.certifications && out.certifications.iso;
+  out.about = withIsoLabel(out.about, isoSource);
+  out.company = withIsoLabel(out.company, isoSource);
   return out;
 }
 
@@ -6604,6 +6630,77 @@ function localizeProse(text, site) {
     if (to || clearable) out = out.split(from).join(to);
   }
   return out;
+}
+
+/**
+ * The ISO certification claim has ONE editable source, and it reaches every
+ * place the claim renders.
+ *
+ * The defect this closes: `site-info.json` `certifications.iso` is the field
+ * Business Details offers, and it was read in exactly ONE place in this file —
+ * the About quality row. Every other ISO string was typed separately, three of
+ * them as `ISO 9001:2008` — a revision ISO withdrew in September 2018
+ * (`audit8.md` A-8.5). Correcting the certification in the admin moved one row
+ * of ten, and the withdrawn revision was unreachable from the admin entirely.
+ *
+ * Same idea as `localizeProse` above — substitute the live business detail into
+ * stored copy rather than templating every sentence — applied once to a whole
+ * tree instead of per call site, because the strings needing it are spread over
+ * `certs`, `heroTrust`, `heroProofPoints`, `features`, `milestones`,
+ * `capabilities`, `seo` and `about.paragraphs`.
+ *
+ * WHAT IT REWRITES, AND WHY NOT MORE. It rewrites the REVISION only: any
+ * `ISO 9001:<year>` becomes the source's revision, or loses the suffix entirely
+ * when the source carries none. A bare `ISO 9001` is left alone.
+ *
+ * That restraint is the whole design. `milestones[2]` reads "1990s — Achieved
+ * ISO 9001 registration"; a rewrite that stamped the CURRENT revision onto
+ * every mention would turn a true historical sentence into a false one, and
+ * "ISO 9001 in-process & final inspection" and "ISO 9001 Quality" are
+ * revision-neutral for the same reason. A revision is a fact about the
+ * certificate IPC holds today and must be consistent everywhere; the standard's
+ * name is not.
+ *
+ * The one exception is a source that is not an ISO 9001 string at all — if the
+ * owner types a different certification into the field, the whole token is
+ * replaced, because then the standard itself has changed.
+ *
+ * `ISO 10993-5` (medical, /industries) must survive untouched: the pattern is
+ * anchored on `9001`, and `_harness/isowaterfall.js` asserts it as a control.
+ */
+const ISO_9001_TOKEN = /\bISO\s*9001(\s*:\s*\d{4})?/gi;
+const ISO_9001_SOURCE = /^\s*ISO\s*9001(?:\s*:\s*(\d{4}))?\s*$/i;
+
+function isoRewriter(iso) {
+  const src = typeof iso === "string" ? iso.trim() : "";
+  if (!src) return null;                       // nothing to say — leave copy alone
+  const m = src.match(ISO_9001_SOURCE);
+  if (!m) {
+    // A different certification entirely: replace the whole token.
+    return (text) => text.replace(ISO_9001_TOKEN, src);
+  }
+  const revision = m[1] ? `ISO 9001:${m[1]}` : "ISO 9001";
+  // Only a token that CARRIES a revision is touched. `$1` is the revision group;
+  // when it is undefined the match is a bare `ISO 9001` and is returned as-is.
+  return (text) => text.replace(ISO_9001_TOKEN, (whole, rev) => (rev ? revision : whole));
+}
+
+/** Deep-map every string in a plain JSON tree. Arrays and objects are rebuilt;
+ *  anything else is returned untouched. */
+function mapStrings(node, fn) {
+  if (typeof node === "string") return fn(node);
+  if (Array.isArray(node)) return node.map((v) => mapStrings(v, fn));
+  if (node && typeof node === "object") {
+    const out = {};
+    for (const k of Object.keys(node)) out[k] = mapStrings(node[k], fn);
+    return out;
+  }
+  return node;
+}
+
+function withIsoLabel(tree, iso) {
+  const rewrite = isoRewriter(iso);
+  return rewrite ? mapStrings(tree, rewrite) : tree;
 }
 
 /**
@@ -6819,7 +6916,7 @@ const COPY_DEFAULTS = {
   hero: {
     badge: "Bolingbrook, IL — Made in USA Since 1974",
     headlineLine1: "25 Million Feet in Stock.",
-    headlineAccent: "Same-Day Shipment.",
+    headlineAccent: "Spec-Grade Materials.",
     headlineLine3: "Custom Marking & Fabrication.",
     subhead:
       "Insulation Products Corporation is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. UL, CSA, MIL-SPEC, and RoHS compliant product line. Quick, accurate, courteous service since 1974 — the customer is always number one.",
@@ -6997,14 +7094,14 @@ const SEO_DEFAULT = [
   {
     page: "home",
     title: "Insulation Products Corporation — Heat Shrink Tubing, Sleeving & Adhesives",
-    desc: "IPC is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. Ships same day. ISO 9001 registered.",
+    desc: "IPC is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. ISO 9001 registered.",
   },
   { page: "products", title: "Product Catalog — Insulation Products Corporation", desc: "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and datasheets, and request a quote." },
   { page: "dashboard", title: "Product Index — Insulation Products Corporation", desc: "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and datasheets for every SKU." },
   { page: "datasheets", title: "Datasheets — Insulation Products Corporation", desc: "Download the published datasheet for every IPC product. Heat shrink tubing, sleeving, adhesives and accessories — grouped by family, no form required." },
   { page: "industries", title: "Industries Served — Insulation Products Corporation", desc: "IPC supplies specification-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry." },
   { page: "services", title: "Value-Added Services — Insulation Products Corporation", desc: "Custom cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, and JIT delivery programs. Typical lead time one week or less." },
-  { page: "about", title: "About — Insulation Products Corporation", desc: "Insulation Products Corporation — a spec-grade stocking distributor in Bolingbrook, IL since July 1, 1974. ISO 9001 registered. $50 minimum order, same-day shipment." },
+  { page: "about", title: "About — Insulation Products Corporation", desc: "Insulation Products Corporation — a spec-grade stocking distributor in Bolingbrook, IL since July 1, 1974. ISO 9001 registered. $50 minimum order." },
   { page: "faq", title: "FAQ & Resources — Insulation Products Corporation", desc: "Answers to common questions about IPC products, certifications, ordering minimums, custom fabrication, and documentation support." },
   { page: "contact", title: "Contact / Request a Quote — Insulation Products Corporation", desc: "Request a quote, submit a PO, or ask a question. Call 630.771.0700, fax 630.771.0701, email sales@insulationproducts.com, or use our online form." },
   { page: "privacy", title: "Privacy Policy — Insulation Products Corporation", desc: "Privacy policy for Insulation Products Corporation — how we collect and use information submitted through our website contact forms." },
@@ -7293,7 +7390,17 @@ function ContentProvider({ children }) {
   const [content, setContent] = useState(contentDefaults);
   const apply = useCallback((data) => setContent(mergeContent(data)), []);
   useRefetchOnReturn(CONTENT_URL, "page content", apply);
-  return <ContentContext.Provider value={content}>{children}</ContentContext.Provider>;
+  // The single chokepoint for the ISO revision. `ContentProvider` is nested
+  // inside `SiteInfoProvider` (see the tree at the bottom of this file), so the
+  // business details are already available here — and EVERY consumer of page
+  // copy reads it through this context, which is what makes one rewrite here
+  // reach `certs`, `heroTrust`, `heroProofPoints`, `features`, `milestones`,
+  // `capabilities` and `seo` at once. Memoised on the two inputs: without it,
+  // a fresh object every render would re-render every consumer of the context.
+  const site = useSiteInfo();
+  const iso = site && site.certifications ? site.certifications.iso : "";
+  const value = useMemo(() => withIsoLabel(content, iso), [content, iso]);
+  return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>;
 }
 
 // Schema.org JSON-LD rendered from the live business details (replaces the old

@@ -28,7 +28,7 @@
         {
             "iconKey": "quality",
             "title": "ISO 9001 Quality",
-            "description": "ISO 9001:2008 registered facility. Computerized equipment, documented processes, quality maintained from receiving through shipping."
+            "description": "ISO 9001 registered facility. Computerized equipment, documented processes, quality maintained from receiving through shipping."
         }
     ],
     "stats": [
@@ -418,7 +418,7 @@
         {
             "category": "Ordering & Minimums",
             "question": "How much inventory do you carry?",
-            "answer": "IPC maintains over 25 million feet of tubing and sleeving in stock at our Bolingbrook, IL facility. Most in-stock items ship the same day or next business day."
+            "answer": "IPC maintains over 25 million feet of tubing and sleeving in stock at our Bolingbrook, IL facility."
         },
         {
             "category": "Ordering & Minimums",
@@ -491,7 +491,7 @@
     "certs": [
         {
             "iconKey": "check",
-            "title": "ISO 9001:2008",
+            "title": "ISO 9001",
             "sub": "Registered Quality Management System"
         },
         {
@@ -585,12 +585,12 @@
         {
             "stat": "25M+",
             "label": "Feet in Stock",
-            "sub": "Ready to ship today"
+            "sub": "At our Bolingbrook, IL facility"
         },
         {
-            "stat": "Same Day",
-            "label": "Shipment Available",
-            "sub": "On in-stock items"
+            "stat": "1974",
+            "label": "Independent Since",
+            "sub": "Privately held, Bolingbrook IL"
         },
         {
             "stat": "ISO 9001",
@@ -600,7 +600,7 @@
     ],
     "heroTrust": [
         {
-            "text": "ISO 9001:2008 Registered"
+            "text": "ISO 9001 Registered"
         },
         {
             "text": "Full RoHS Compliant Product Line"
@@ -625,9 +625,6 @@
         },
         {
             "text": "25M+ Feet in Stock"
-        },
-        {
-            "text": "Same-Day Shipment Available"
         }
     ],
     "privacySections": [
@@ -664,7 +661,7 @@
         {
             "page": "home",
             "title": "Insulation Products Corporation — Heat Shrink Tubing, Sleeving & Adhesives",
-            "desc": "IPC is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. Ships same day. ISO 9001 registered."
+            "desc": "IPC is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. ISO 9001 registered."
         },
         {
             "page": "products",
@@ -689,7 +686,7 @@
         {
             "page": "about",
             "title": "About — Insulation Products Corporation",
-            "desc": "Insulation Products Corporation — a spec-grade stocking distributor in Bolingbrook, IL since July 1, 1974. ISO 9001 registered. $50 minimum order, same-day shipment."
+            "desc": "Insulation Products Corporation — a spec-grade stocking distributor in Bolingbrook, IL since July 1, 1974. ISO 9001 registered. $50 minimum order."
         },
         {
             "page": "faq",
@@ -728,7 +725,7 @@
         "hero": {
             "badge": "Bolingbrook, IL — Made in USA Since 1974",
             "headlineLine1": "25 Million Feet in Stock.",
-            "headlineAccent": "Same-Day Shipment.",
+            "headlineAccent": "Spec-Grade Materials.",
             "headlineLine3": "Custom Marking & Fabrication.",
             "subhead": "Insulation Products Corporation is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. UL, CSA, MIL-SPEC, and RoHS compliant product line. Quick, accurate, courteous service since 1974 — the customer is always number one.",
             "ctaPrimaryLabel": "Browse Products →",

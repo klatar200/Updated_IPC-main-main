@@ -6441,3 +6441,97 @@ second. If Rick wants an inventory number there instead, the other honest option
 is to restore what the old site had — "25M+ Feet in Stock" — which costs nothing
 to substantiate because the homepage already claims it twice, at the price of a
 third.
+
+---
+
+## 1aa. Shipped 2026-09-15 — the shipping claim removed, and the ISO claim given one home
+
+Keagan's ruling on the five claims that were neither admin-editable nor
+provable (`claims-register-2026-09-15.md` §2.9): remove the same-day/next-day
+**shipping** claim; make the **ISO** claim editable from one place and have it
+reach every location; the contact auto-reply's **response**-time promise is
+accurate and stays.
+
+### Same-day / next-day shipping — removed site-wide
+
+Not just from the three non-editable places. Leaving it in the admin-editable
+copy would have meant removing it from `index.html`'s meta description while
+`seo[0].desc` — which `PageMeta` writes over the top of it at runtime — still
+said it, i.e. removing it from nowhere a crawler looks.
+
+| Where | Was | Now |
+|---|---|---|
+| `index.html:10` meta description | "…$50 minimum order. **Ships same day.** ISO 9001 registered." | clause dropped |
+| `index.html:41` og:description | "…25M+ feet in stock. **Ships same day.** ISO…" | clause dropped |
+| `App.jsx` band heading (hardcoded) | "$50 minimum order. 25M feet in stock. **Ships today.**" | clause dropped |
+| `heroProofPoints[1].sub` | "Ready to ship today" | "At our Bolingbrook, IL facility" |
+| `heroProofPoints[2]` | "Same Day / Shipment Available / On in-stock items" | "1974 / Independent Since / Privately held, Bolingbrook IL" |
+| `heroTrust` | 10 items, incl. "Same-Day Shipment Available" | 9 items |
+| `copy.hero.headlineAccent` | "Same-Day Shipment." | "Spec-Grade Materials." |
+| `faq` "How much inventory do you carry?" | "…facility. **Most in-stock items ship the same day or next business day.**" | sentence dropped |
+| `site-info about.paragraphs[1]` | "…production runs. **Most in-stock orders ship the same day or next business day.** Our ISO…" | sentence dropped |
+| `seo[0].desc`, `seo[5].desc` | "Ships same day." / "$50 minimum order, same-day shipment." | clauses dropped |
+| every matching `App.jsx` default | as above | as above |
+
+**Kept, on Keagan's word that it is accurate:** the contact auto-reply's
+"respond within one business day — often the same day for in-stock items"
+(`content.json copy.contactForm`, `contact.php:900`) and the contact page's
+"Typical reply: same day". Those are response times, not shipping.
+
+**Two slots needed new copy, not just a deletion** — the hero's accent headline
+line and proof point 3 would have left a hole. Both are **admin-editable**
+(Page Content → Homepage — Hero / Hero Proof Points), so both are 30 seconds to
+change and neither needs a deploy. The replacements claim nothing new:
+"Spec-Grade Materials" is already in the hero subhead and four SEO
+descriptions, and "Independent since 1974" is `certs[5]` verbatim.
+
+### The ISO certification — one field, every location
+
+**`Business Details → ISO Certification` is now the only place a revision is
+set**, and what it says reaches everywhere the site claims it. Before this it
+was read in exactly ONE place in `App.jsx` (the About quality row) while ten
+other ISO strings were typed separately.
+
+- `withIsoLabel()` (`src/App.jsx`) rewrites the **revision** in any stored copy
+  to match `site-info certifications.iso`. Applied at two chokepoints:
+  `ContentProvider` (which every consumer of page copy reads through, so it
+  reaches `certs`, `heroTrust`, `heroProofPoints`, `features`, `milestones`,
+  `capabilities` and `seo` at once) and `mergeSiteInfo` (for `about` and
+  `company` prose). Same idea as the existing `localizeProse`.
+- **It rewrites the revision, never the bare standard name.** `milestones[2]`
+  reads "1990s — Achieved ISO 9001 registration"; stamping today's revision on
+  it would turn a true historical sentence into a false one. A revision is a
+  fact about the certificate IPC holds today; the standard's name is not.
+- The one hardcoded ISO string in `App.jsx` prose (the About story line) now
+  reads `site.certifications.iso` directly.
+- **`A-8.5`'s live symptom is closed as a side effect.** With the field at a
+  bare "ISO 9001", no revision renders anywhere. `isoclaims` went **2/4 → 4/4**:
+  the three `ISO 9001:2008` strings in `content.json` and the three
+  `ISO9001:2000` strings in `products-all.json` (SKU `VALUE-ADDED`, withdrawn
+  in 2008 and never reported before) now carry no revision. **The decision
+  itself is still open and still Rick's** — what changed is that answering it
+  is now one field, not a hunt through three files.
+- `_harness/isowaterfall.js` is new and proves it end to end: it writes a
+  sentinel revision (`ISO 9001:2031`) into the mirror's `site-info.json`, reads
+  all six routes, and asserts the sentinel is the only revision shown, that the
+  count of ISO claims is unchanged (a page that passes by no longer mentioning
+  ISO is a failure), that an unversioned source leaves no revision anywhere,
+  and two negative controls — `ISO 10993-5` untouched, and the 1990s milestone
+  never gaining a revision. **19/19.**
+- `settings.php` and the Help page now say the field waterfalls, so Rick does
+  not go looking for the wording in Page Content.
+
+**Verification.** `npm run build` clean; `invariants 17/17`, `copydrift` clean,
+`copydrift-selftest 5/5`, `plan8-certs 5/5`, `isoclaims 4/4`,
+`isowaterfall 19/19`, `plan5-keys 15/15`, `audit9-fixes 40/40`,
+`plan10-header 8/8`, `plan8-mobile 16/16`, `audit9-catalog-text 22/22`,
+`audit9-tempsort 6/6`, `adminwidth 39/39`, `plan10-helpwidth 21/21`.
+`brandtext 38/49` is the settled pre-existing state (audit 7 §3, "brandtext's
+11"), unchanged by this work. `_harness/pristine/` re-seeded — the recorded
+procedure for an intentional data change.
+
+**The data-file edits are legitimate for the same reason audit 9's were, and
+for the last time:** STEP 0 records this project as never deployed
+(`live-triage-2026-09-15.md` §5), so `data/` is not live customer state yet.
+After the first deploy every one of these is Page Content or Business Details
+work and never a file change.
