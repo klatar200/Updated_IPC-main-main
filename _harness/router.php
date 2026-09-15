@@ -25,7 +25,25 @@
  * Anything depending on those is [UNVERIFIED] locally.
  */
 
-$root = __DIR__ . '/site';
+// A-9.P3-1 — answer for the docroot this server was actually given.
+//
+// This was `__DIR__ . '/site'`, a constant, while PLAN-11 §3.4 hands the same
+// router to a private mirror per agent with `php -S -t <docroot>`. Every one of
+// those servers then tested file existence — and `require`d /sitemap.xml —
+// against `_harness/site` instead of its own tree. Measured both directions on
+// a live private mirror: a file present ONLY in the served docroot came back as
+// the SPA shell with a 200 (so a real uploaded photo read as missing, which
+// cost one pass a false MIME finding), and /sitemap.xml rendered the SWEEP
+// mirror's catalog, so a pass that mutated its own catalog measured the other
+// tree. Two passes hit it independently; one lost an hour to it.
+//
+// `php -S -t <dir>` sets DOCUMENT_ROOT to <dir>, so that is the authority.
+// The fallback keeps every existing invocation working unchanged — the sweep
+// serves `-t _harness/site`, which is exactly what the old constant resolved
+// to, and `_harness/audit9-router-docroot.js` arm E asserts that.
+$root = isset($_SERVER['DOCUMENT_ROOT']) && $_SERVER['DOCUMENT_ROOT'] !== ''
+    ? rtrim($_SERVER['DOCUMENT_ROOT'], '/')
+    : __DIR__ . '/site';
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path = rawurldecode($path);
 

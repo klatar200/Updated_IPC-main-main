@@ -147,7 +147,7 @@ $navActive = 'inquiries';
     <?php endif; ?>
   </div>
   <?php if ($failed > 0): ?>
-    <p class="sub" style="margin:-8px 0 20px">“Email delivery failed” counts only genuine send failures. Submissions the website blocked as spam are listed separately and are not a mail problem.</p>
+    <p class="sub" style="margin:-8px 0 20px">"Email delivery failed" counts only genuine send failures. Submissions the website blocked as spam are listed separately and are not a mail problem.</p>
   <?php endif; ?>
 
   <?php if (empty($entries)): ?>
@@ -181,7 +181,11 @@ $navActive = 'inquiries';
         <p class="note-box"><?= h($e['note']) ?></p>
       <?php endif; ?>
       <table>
-        <tr><th>Email</th><td><a href="mailto:<?= h($e['email'] ?? '') ?>"><?= h($e['email'] ?? '—') ?></a></td></tr>
+        <?php /* A-9.B2-11 — a rejected submission is logged with an empty
+                 email, and this printed <a href="mailto:"> around an em dash:
+                 a link with no accessible name that goes nowhere. Show the
+                 dash as plain text when there is no address to write to. */ ?>
+        <tr><th>Email</th><td><?php if (!empty($e['email'])): ?><a href="mailto:<?= h($e['email']) ?>"><?= h($e['email']) ?></a><?php else: ?>—<?php endif; ?></td></tr>
         <?php if (!empty($e['phone'])): ?><tr><th>Phone</th><td><?= h($e['phone']) ?></td></tr><?php endif; ?>
         <?php if ($isRfq): ?>
           <?php if (!empty($e['part'])): ?><tr><th>Part number</th><td><?= h($e['part']) ?></td></tr><?php endif; ?>

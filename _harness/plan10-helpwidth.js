@@ -66,7 +66,9 @@ const INSTANCES = [
   'Certifications',          // Business Details field table
   'Quote / Message',         // Inquiries status-badge legend
   'admin folder writable',   // "What your server allows"
-  'Split into sub-columns',  // size-chart editor reference
+  // Title Case since A-9.B2-10 — this row quotes the size-chart editor's own
+  // button, and the button was one of the sentence-case minority.
+  'Split into Sub-columns',  // size-chart editor reference
 ];
 
 const MEASURE = `(() => {

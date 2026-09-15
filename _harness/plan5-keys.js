@@ -310,6 +310,30 @@ async function signIn(ctx) {
       fs.rmSync(DEVDIST, { recursive: true, force: true });
     }
     await browser.close();
+
+    // A-9.D6 — and PROVE it. This suite rewrote the mirror's content.json and
+    // swapped the shipped bundle for a development one, then restored both and
+    // said nothing about whether the restore worked. It was the one mutator in
+    // audit 9's census with no restore assertion, and a restore nobody checks
+    // is how a later suite ends up measuring this one's leftovers. Every
+    // sibling that mutates (plan5c-sitemap, plan5-social, plan6-families,
+    // plan2-trunc, plan10-auditlog) already asserts this; this one now does too.
+    for (const f of ['content.json', 'site-info.json', 'products-all.json']) {
+      const now = fs.readFileSync(path.join(MIRROR_DATA, f));
+      const ref = fs.readFileSync(path.join(PRISTINE, f));
+      note(now.equals(ref),
+        `restore: ${f} is byte-equal to _harness/pristine after the run`,
+        `${now.length} bytes vs ${ref.length}`);
+    }
+    const shipped = fs.existsSync(path.join(SITE, 'assets'))
+      ? fs.readdirSync(path.join(SITE, 'assets')).filter((f) => f.endsWith('.js')).sort()
+      : [];
+    const built = fs.existsSync(path.join(ROOT, 'dist', 'assets'))
+      ? fs.readdirSync(path.join(ROOT, 'dist', 'assets')).filter((f) => f.endsWith('.js')).sort()
+      : [];
+    note(shipped.length > 0 && built.length > 0 && shipped.join(',') === built.join(','),
+      'restore: the mirror carries the production bundle again, not the dev build',
+      `mirror ${shipped.join(',') || '(none)'} vs dist ${built.join(',') || '(none)'}`);
   }
 
   const bad = results.filter((r) => !r.ok).length;

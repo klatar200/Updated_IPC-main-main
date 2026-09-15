@@ -75,7 +75,7 @@ $PAGE_OPTIONS = [
 $SECTIONS = [
     'features' => [
         'title'    => 'Products &amp; Services Cards',
-        'sub'      => 'The card grid under “A Complete Insulation Supply Source” on the homepage. Any number of cards works.',
+        'sub'      => 'The card grid under "A Complete Insulation Supply Source" on the homepage. Any number of cards works.',
         'page'     => '/',
         'anchor'   => 'ipc-sec-features',
         'addLabel' => 'Card',
@@ -102,7 +102,7 @@ $SECTIONS = [
     ],
     'markets' => [
         'title'    => 'Industries Grid',
-        'sub'      => 'The “Trusted Across Demanding Markets” cards on the homepage. Each links to the Industries page.',
+        'sub'      => 'The "Trusted Across Demanding Markets" cards on the homepage. Each links to the Industries page.',
         'page'     => '/',
         'anchor'   => 'ipc-sec-markets',
         'addLabel' => 'Industry',
@@ -115,10 +115,10 @@ $SECTIONS = [
     ],
     'industryDetail' => [
         'title'    => 'Industries Page — Detail Sections',
-        'sub'      => 'The big per-industry blocks on the Industries page: applications, linked IPC products, and certification chips. In the “IPC products” box use one product per line as <code>SKU | Display name</code> — the SKU must match a real product so the link works.',
+        'sub'      => 'The big per-industry blocks on the Industries page: applications, linked IPC products, and certification chips. In the "IPC products" box use one product per line as <code>SKU | Display name</code> — the SKU must match a real product so the link works.',
         'page'     => '/industries',
         'example'  => 'Each row becomes one of the big blocks down the Industries page, in this order.',
-        'addLabel' => 'Industry section',
+        'addLabel' => 'Industry Section',
         'icons'    => $INDUSTRY_ICONS,
         'fields'   => [
             ['key' => 'iconKey',  'type' => 'icon',     'label' => 'Icon'],
@@ -131,7 +131,7 @@ $SECTIONS = [
     ],
     'services' => [
         'title'    => 'Value-Added Services',
-        'sub'      => 'The fabrication service cards on the Services page. The “bullet points” box takes one item per line; the brochure link is optional.',
+        'sub'      => 'The fabrication service cards on the Services page. The "bullet points" box takes one item per line; the brochure link is optional.',
         'page'     => '/services',
         'anchor'   => 'ipc-sec-services',
         'addLabel' => 'Service',
@@ -174,7 +174,7 @@ $SECTIONS = [
     ],
     'capabilities' => [
         'title'    => 'About — Team &amp; Capabilities',
-        'sub'      => 'The “Our Team & Capabilities” cards on the About page. The icon is an emoji.',
+        'sub'      => 'The "Our Team & Capabilities" cards on the About page. The icon is an emoji.',
         'page'     => '/about',
         'anchor'   => 'ipc-sec-capabilities',
         'addLabel' => 'Capability',
@@ -200,10 +200,10 @@ $SECTIONS = [
     ],
     'companyNav' => [
         'title'    => 'Navigation — Company Menu',
-        'sub'      => 'The “Company” dropdown in the site header. Destination is limited to real pages.',
+        'sub'      => 'The "Company" dropdown in the site header. Destination is limited to real pages.',
         'page'     => '/',
         'example'  => 'These are the items inside the <strong>Company &#9662;</strong> menu in the header — open the site and hover it. There is no place on the page to scroll to, which is why this link just opens the homepage.',
-        'addLabel' => 'Menu item',
+        'addLabel' => 'Menu Item',
         'icons'    => [],
         'fields'   => [
             ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
@@ -213,10 +213,10 @@ $SECTIONS = [
     ],
     'footerLinks' => [
         'title'    => 'Navigation — Footer Quick Links',
-        'sub'      => 'The “Quick Links” column in the site footer. Destination is limited to real pages.',
+        'sub'      => 'The "Quick Links" column in the site footer. Destination is limited to real pages.',
         'page'     => '/',
         'anchor'   => 'ipc-sec-footerLinks',
-        'addLabel' => 'Footer link',
+        'addLabel' => 'Footer Link',
         'icons'    => [],
         'fields'   => [
             ['key' => 'label', 'type' => 'text', 'label' => 'Label'],
@@ -228,7 +228,7 @@ $SECTIONS = [
         'sub'      => 'The four small stat cards on the right side of the hero.',
         'page'     => '/',
         'anchor'   => 'ipc-sec-heroProofPoints',
-        'addLabel' => 'Proof point',
+        'addLabel' => 'Proof Point',
         'icons'    => [],
         'fields'   => [
             ['key' => 'stat',  'type' => 'text', 'label' => 'Value (e.g. $50)'],
@@ -242,7 +242,7 @@ $SECTIONS = [
         'page'     => '/',
         'anchor'   => 'ipc-sec-heroTrust',
         'example'  => 'It scrolls continuously, so which item you see first depends on when the page loaded — the link takes you to the strip, not to one item. Click into it and the scrolling pauses.',
-        'addLabel' => 'Ticker item',
+        'addLabel' => 'Ticker Item',
         'icons'    => [],
         'fields'   => [
             ['key' => 'text', 'type' => 'text', 'label' => 'Text', 'full' => true],
@@ -274,7 +274,7 @@ $SECTIONS = [
     ],
     'contactTips' => [
         'title'    => 'Contact Page — Sidebar Tips',
-        'sub'      => 'The “for fastest response, include:” checklist in the contact sidebar.',
+        'sub'      => 'The "for fastest response, include:" checklist in the contact sidebar.',
         'page'     => '/contact',
         'anchor'   => 'ipc-sec-contactTips',
         'addLabel' => 'Tip',
@@ -290,7 +290,7 @@ $SECTIONS = [
     // are gone.
     'productFamilies' => [
         'title'    => 'Product Families / Categories',
-        'sub'      => 'The categories products are grouped under, in the order they appear in the catalogue sidebar and the Products menu. <strong>Renaming one does not rename the products in it</strong> — each product stores its own category, so a renamed family leaves its products under the old name until you re-save each of them. The count beside each row is how many products would be affected.',
+        'sub'      => 'The categories products are grouped under, in the order they appear in the catalog sidebar and the Products menu. <strong>Renaming one does not rename the products in it</strong> — each product stores its own category, so a renamed family leaves its products under the old name until you re-save each of them. The count beside each row is how many products would be affected.',
         'page'     => '/products',
         'anchor'   => 'ipc-sec-productFamilies',
         'addLabel' => 'Family',
@@ -338,11 +338,11 @@ $COPY_GROUPS = [
         // into images/site/ and each is its own field with its own label — so
         // four of the five slots the warning is about did not carry it.
         // (audit-runs/audit6.md A-6.8)
-        ['key' => 'heroPhoto',          'type' => 'text', 'label' => 'Homepage hero — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
-        ['key' => 'bandTeamPhoto',      'type' => 'text', 'label' => 'Homepage band — team photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',     'default' => 'images/site/staff.jpg'],
-        ['key' => 'bandBuildingPhoto',  'type' => 'text', 'label' => 'Homepage band — building photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/IPC-Building.jpg'],
-        ['key' => 'aboutPhoto',         'type' => 'text', 'label' => 'About page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',             'default' => 'images/site/IPC-Building.jpg'],
-        ['key' => 'servicesPhoto',      'type' => 'text', 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
+        ['key' => 'heroPhoto',          'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage hero — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
+        ['key' => 'bandTeamPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage band — team photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',     'default' => 'images/site/staff.jpg'],
+        ['key' => 'bandBuildingPhoto',  'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage band — building photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/IPC-Building.jpg'],
+        ['key' => 'aboutPhoto',         'type' => 'text', 'labelHtml' => true, 'label' => 'About page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',             'default' => 'images/site/IPC-Building.jpg'],
+        ['key' => 'servicesPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
     ]],
     'hero' => ['title' => 'Homepage — Hero', 'fields' => [
         ['key' => 'badge',             'type' => 'text',     'label' => 'Badge (small text above headline)'],
@@ -355,13 +355,13 @@ $COPY_GROUPS = [
         ['key' => 'ctaSecondaryLabel', 'type' => 'text',     'label' => 'Secondary button text'],
         ['key' => 'ctaSecondaryPage',  'type' => 'page',     'label' => 'Secondary button links to', 'options' => $PAGE_OPTIONS],
     ]],
-    'homeFeatures' => ['title' => 'Homepage — “Products & Services” heading', 'fields' => [
+    'homeFeatures' => ['title' => 'Homepage — "Products & Services" heading', 'fields' => [
         ['key' => 'eyebrow',   'type' => 'text', 'label' => 'Eyebrow (small heading)'],
         ['key' => 'title',     'type' => 'text', 'label' => 'Title'],
         ['key' => 'ctaText',   'type' => 'text', 'label' => 'Ribbon text'],
         ['key' => 'ctaButton', 'type' => 'text', 'label' => 'Ribbon button'],
     ]],
-    'homeMarkets' => ['title' => 'Homepage — “Industries” heading', 'fields' => [
+    'homeMarkets' => ['title' => 'Homepage — "Industries" heading', 'fields' => [
         ['key' => 'eyebrow',  'type' => 'text',     'label' => 'Eyebrow'],
         ['key' => 'title',    'type' => 'text',     'label' => 'Title'],
         ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
@@ -380,7 +380,7 @@ $COPY_GROUPS = [
         ['key' => 'eyebrow',    'type' => 'text',     'label' => 'Eyebrow'],
         ['key' => 'title',      'type' => 'text',     'label' => 'Title'],
         ['key' => 'intro',      'type' => 'textarea', 'label' => 'Intro paragraph'],
-        ['key' => 'storyTitle', 'type' => 'text',     'label' => '“Our Story” heading'],
+        ['key' => 'storyTitle', 'type' => 'text',     'label' => '"Our Story" heading'],
         ['key' => 'certsTitle', 'type' => 'text',     'label' => 'Certifications heading'],
         ['key' => 'teamTitle',  'type' => 'text',     'label' => 'Team heading'],
         ['key' => 'ctaTitle',   'type' => 'text',     'label' => 'Bottom CTA heading'],
@@ -399,7 +399,7 @@ $COPY_GROUPS = [
         ['key' => 'eyebrow',     'type' => 'text',     'label' => 'Eyebrow'],
         ['key' => 'title',       'type' => 'text',     'label' => 'Title'],
         ['key' => 'intro',       'type' => 'textarea', 'label' => 'Intro paragraph'],
-        ['key' => 'directTitle', 'type' => 'text',     'label' => '“Direct Contact” heading'],
+        ['key' => 'directTitle', 'type' => 'text',     'label' => '"Direct Contact" heading'],
     ]],
     'privacyHeader' => ['title' => 'Privacy page — banner', 'fields' => [
         ['key' => 'eyebrow',       'type' => 'text',     'label' => 'Eyebrow'],
@@ -408,19 +408,19 @@ $COPY_GROUPS = [
         ['key' => 'intro',         'type' => 'textarea', 'label' => 'Lead paragraph'],
     ]],
     'nav' => ['title' => 'Navigation — Header Labels', 'fields' => [
-        ['key' => 'home',             'type' => 'text', 'label' => '“Home” label'],
-        ['key' => 'products',         'type' => 'text', 'label' => '“Products” menu label'],
-        ['key' => 'company',          'type' => 'text', 'label' => '“Company” menu label'],
+        ['key' => 'home',             'type' => 'text', 'label' => '"Home" label'],
+        ['key' => 'products',         'type' => 'text', 'label' => '"Products" menu label'],
+        ['key' => 'company',          'type' => 'text', 'label' => '"Company" menu label'],
         ['key' => 'quoteButton',      'type' => 'text', 'label' => 'Quote button text'],
         ['key' => 'allProducts',      'type' => 'text', 'label' => 'Products menu — column heading'],
-        ['key' => 'browseAll',        'type' => 'text', 'label' => 'Products menu — “Browse All” link'],
-        ['key' => 'productIndex',     'type' => 'text', 'label' => 'Products menu — “Index” link'],
-        ['key' => 'datasheets',       'type' => 'text', 'label' => 'Products menu — “Datasheets” link'],
+        ['key' => 'browseAll',        'type' => 'text', 'label' => 'Products menu — "Browse All" link'],
+        ['key' => 'productIndex',     'type' => 'text', 'label' => 'Products menu — "Index" link'],
+        ['key' => 'datasheets',       'type' => 'text', 'label' => 'Products menu — "Datasheets" link'],
         ['key' => 'browseByCategory', 'type' => 'text', 'label' => 'Products menu — category heading'],
     ]],
     'footer' => ['title' => 'Footer — Labels', 'fields' => [
-        ['key' => 'contactTitle',    'type' => 'text', 'label' => '“Contact” heading'],
-        ['key' => 'quickLinksTitle', 'type' => 'text', 'label' => '“Quick Links” heading'],
+        ['key' => 'contactTitle',    'type' => 'text', 'label' => '"Contact" heading'],
+        ['key' => 'quickLinksTitle', 'type' => 'text', 'label' => '"Quick Links" heading'],
         ['key' => 'domain',          'type' => 'text', 'label' => 'Domain shown in footer'],
     ]],
     'contactForm' => ['title' => 'Contact Page — Form', 'fields' => [
@@ -430,7 +430,7 @@ $COPY_GROUPS = [
         ['key' => 'msgTabSub',           'type' => 'text',     'label' => 'Message tab — sub-text'],
         ['key' => 'rfqHeading',          'type' => 'text',     'label' => 'Quote form — heading'],
         ['key' => 'rfqIntro',            'type' => 'textarea', 'label' => 'Quote form — intro'],
-        ['key' => 'productDetailsTitle', 'type' => 'text',     'label' => 'Quote form — “Product Details” heading'],
+        ['key' => 'productDetailsTitle', 'type' => 'text',     'label' => 'Quote form — "Product Details" heading'],
         ['key' => 'partLabel',           'type' => 'text',     'label' => 'Field: Part number — label'],
         ['key' => 'partPlaceholder',     'type' => 'text',     'label' => 'Field: Part number — placeholder'],
         ['key' => 'materialLabel',       'type' => 'text',     'label' => 'Field: Material — label'],
@@ -454,10 +454,10 @@ $COPY_GROUPS = [
         ['key' => 'sendingLabel',        'type' => 'text',     'label' => 'Submitting button text'],
         ['key' => 'rfqSuccessTitle',     'type' => 'text',     'label' => 'Success — quote banner title'],
         ['key' => 'msgSuccessTitle',     'type' => 'text',     'label' => 'Success — message banner title'],
-        ['key' => 'successThanks',       'type' => 'text',     'label' => 'Success — “Thank you” heading'],
+        ['key' => 'successThanks',       'type' => 'text',     'label' => 'Success — "Thank you" heading'],
         ['key' => 'rfqSuccessBody',      'type' => 'textarea', 'label' => 'Success — quote body'],
         ['key' => 'msgSuccessBody',      'type' => 'textarea', 'label' => 'Success — message body'],
-        ['key' => 'urgentPrefix',        'type' => 'text',     'label' => 'Success — “urgent inquiries” prefix'],
+        ['key' => 'urgentPrefix',        'type' => 'text',     'label' => 'Success — "urgent inquiries" prefix'],
         ['key' => 'networkError',        'type' => 'textarea', 'label' => 'Error — network failure alert'],
         ['key' => 'submitError',         'type' => 'text',     'label' => 'Error — submission failed alert'],
         ['key' => 'nameLabel',           'type' => 'text',     'label' => 'Field: Name — label'],
@@ -479,7 +479,7 @@ $COPY_GROUPS = [
         // opens a phantom string that swallows every following bracket, and
         // the whole copy-drift check dies with "unbalanced". Cost 10 minutes
         // the first time; write "the App.jsx side" rather than the possessive.
-        ['key' => 'requiredLegend',      'type' => 'text',     'label' => 'Form — “* required” legend'],
+        ['key' => 'requiredLegend',      'type' => 'text',     'label' => 'Form — "* required" legend'],
         ['key' => 'privacyNote',         'type' => 'text',     'label' => 'Form — privacy note above submit (the Privacy Policy link is added automatically)'],
         ['key' => 'companyLabel',        'type' => 'text',     'label' => 'Field: Company — label'],
         ['key' => 'companyPlaceholder',  'type' => 'text',     'label' => 'Field: Company — placeholder'],
@@ -621,7 +621,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($row['brochure']['url'])) continue;
         $card = trim((string)($row['title'] ?? ''));
         if ($card === '') $card = 'a service card';
-        $p = link_url_problem((string)$row['brochure']['url'], 'The brochure link on “' . $card . '”');
+        $p = link_url_problem((string)$row['brochure']['url'], 'The brochure link on "' . $card . '"');
         if ($p !== '') $errors[] = $p;
     }
 
@@ -648,8 +648,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach (($row['products'] ?? []) as $prod) {
                 $sku = trim((string)($prod['sku'] ?? ''));
                 if ($sku === '' || product_reference_resolves($catalogProducts, $sku)) continue;
-                $warnings[] = 'The product code “' . $sku . '” in “' . $industry . '” does not match any '
-                    . 'product in your catalog, so that link will send visitors to a “product not found” page. '
+                $warnings[] = 'The product code "' . $sku . '" in "' . $industry . '" does not match any '
+                    . 'product in your catalog, so that link will send visitors to a "product not found" page. '
                     . 'Check the spelling against the Products page, or add the product. '
                     . 'If you are adding this card before the product itself, you can ignore this.';
             }
@@ -932,7 +932,7 @@ function render_row(string $section, int $i, array $cfg, array $row): string {
           // .row-move / .rbtn.danger below.
           . '<button type="button" class="rbtn danger" data-action="remove" title="Remove"'
           . ' aria-label="Remove row ' . ($i + 1) . ' of ' . h($title) . '"'
-          . ' data-confirm="Remove {it} from this page?&#10;&#10;The row disappears now and is deleted for good when you click “Save Content”. If you save by mistake, you can put it back from Backups."'
+          . ' data-confirm="Remove {it} from this page?&#10;&#10;The row disappears now and is deleted for good when you click &quot;Save Content&quot;. If you save by mistake, you can put it back from Backups."'
           . ' data-confirm-scope=".content-row"'
           . ' data-confirm-from="input.ci[type=text], textarea.ci">✕</button>'
           . '</span></div>';
@@ -943,7 +943,7 @@ function render_row(string $section, int $i, array $cfg, array $row): string {
 }
 
 /**
- * How many catalogue products use this family name, counted from the LIVE
+ * How many catalog products use this family name, counted from the LIVE
  * products file.
  *
  * Memoised because render_row() asks once per family row and load_products()
@@ -977,7 +977,17 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     // called "Title" in that list is the same defect as eighteen called "Icon".
     // Measured: "TITLE" appeared 8 times before this. (4.31)
     $ctx = $groupTitle !== '' ? '<span class="vh"> &#8212; ' . $groupTitle . '</span>' : '';
-    $out = '<div class="form-group full"><label for="' . h($id) . '">' . h($f['label']) . $ctx . '</label>';
+    /* A-9.B2-05 — most copy labels are plain text and stay escaped, which is
+       what this h() is for. Five of them are not: the Site Images fields carry
+       a <br> and a <small> block explaining which folder a path may live in,
+       and escaping those printed the markup to Rick as literal text — the one
+       place on Page Content where the guidance mattered most. render_field()
+       (the section-row renderer, :841) has always emitted its labels raw for
+       the same reason. Rather than drop the escape for every copy label, a
+       field opts in explicitly; the labels are developer-authored literals in
+       this file, never owner data. */
+    $labelHtml = !empty($f['labelHtml']) ? $f['label'] : h($f['label']);
+    $out = '<div class="form-group full"><label for="' . h($id) . '">' . $labelHtml . $ctx . '</label>';
     if ($f['type'] === 'page') {
         $out .= '<select class="ci" id="' . h($id) . '" name="' . h($name) . '">';
         foreach ($pageOptions as $pk => $pl) {

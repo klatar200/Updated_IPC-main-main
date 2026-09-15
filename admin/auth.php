@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
 // close it: upload ALLOW-PASSWORD-RESET while a session is live and you are
 // bounced straight to the dashboard, where nothing mentioned it either. The
 // dashboard now carries a health-banner entry for the flag with a one-click
-// "Close it now" control (index.php), so landing there IS the answer — but the
+// "Close It Now" control (index.php), so landing there IS the answer — but the
 // banner is what makes this redirect safe, not the redirect itself.
 // (AUDIT_v3_FINDINGS B2)
 if (is_authenticated()) {
@@ -171,7 +171,7 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>IPC Admin — Login</title>
+  <title>IPC Admin — Sign In</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; background: #f0f4f8; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
@@ -196,7 +196,7 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
     <img src="logo.svg" alt="IPC" style="width:44px;height:44px;border-radius:8px;display:block;flex-shrink:0;">
     <div>
       <div class="logo-text">Insulation Products<br>Corporation</div>
-      <div class="logo-sub">Admin Panel</div>
+      <div class="logo-sub">Product Manager</div>
     </div>
   </div>
   <?php if ($resetUnlocked): ?>

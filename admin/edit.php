@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updated['photoUrl']              = post_str('photoUrl');
 
     // Whitelisted against the vocabulary — a posted value that is not an
-    // approval never reaches the catalogue. array_intersect also deduplicates
+    // approval never reaches the catalog. array_intersect also deduplicates
     // and restores canonical order.
     $postedAp = $_POST['approvals'] ?? [];
     $updated['approvals'] = is_array($postedAp)
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updated['description'] = array_values(array_filter(array_map('trim', explode("\n", $descRaw))));
 
     // Primary PDF button label (e.g. "Molded Cap"). Empty → remove the key so
-    // the frontend falls back to its default "Download PDF" text.
+    // the frontend falls back to its default "Datasheet" text.
     $pdfLabel = post_str('pdfLabel');
     if ($pdfLabel !== '') {
         $updated['pdfLabel'] = $pdfLabel;
@@ -168,9 +168,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newSku      = $updated['sku'];
             $realPdfDir  = realpath(PDF_DIR);
             $renameNotes = [];
-            $renameOne = function ($url) use ($oldSku, $newSku, $realPdfDir, &$renameNotes) {
+            // A-9.P7-1 — a data sheet SHARED with another product must not be
+            // renamed. The file is one file: renaming it moves it out from
+            // under every other product whose pdfUrl points at it, and those
+            // products are not being edited, so nothing updates them. Measured
+            // on the shipped catalog, where IP12GA and IP12GA-IP1274 share
+            // IP12GA-IP1274.pdf: renaming either one left the OTHER product's
+            // Data Sheet link 404ing, under a "saved successfully" message,
+            // with nothing in the audit log to say it had happened.
+            // Scoped to OTHER products on purpose — this product's own
+            // references are exactly what the rename exists to realign.
+            $sharedNames = [];
+            foreach ($products as $i => $p) {
+                if ($i === $idx) continue;
+                if (!empty($p['pdfUrl'])) $sharedNames[basename($p['pdfUrl'])] = true;
+                if (!empty($p['additionalPdfs']) && is_array($p['additionalPdfs'])) {
+                    foreach ($p['additionalPdfs'] as $ap) {
+                        if (!empty($ap['url'])) $sharedNames[basename($ap['url'])] = true;
+                    }
+                }
+            }
+            $sharedKept = [];
+            $renameOne = function ($url) use ($oldSku, $newSku, $realPdfDir, &$renameNotes, $sharedNames, &$sharedKept) {
                 if (empty($url)) return $url;
                 $oldName = basename($url);
+                if (isset($sharedNames[$oldName])) {
+                    // Keep the file where it is and keep pointing at it.
+                    $sharedKept[$oldName] = true;
+                    return $url;
+                }
                 $newName = pdf_rename_for_sku_change($oldName, $oldSku, $newSku);
                 if ($newName === null || $newName === $oldName) return $url; // leave alone
                 $realOld = realpath(PDF_DIR . $oldName);
@@ -193,6 +219,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             if ($renameNotes) $renameNote = ' | PDF renamed ' . implode(', ', $renameNotes);
+            // Say it out loud: silence here is what made A-9.P7-1 invisible.
+            if ($sharedKept) {
+                $renameNote .= ' | data sheet ' . implode(', ', array_keys($sharedKept))
+                    . ' kept under its old name because another product uses the same file';
+            }
         }
         $products[$idx] = $updated;
         if (save_products($products)) {
@@ -210,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: index.php?msg=' . urlencode($msg) . '&type=success');
             exit;
         }
-        $errors[] = 'Failed to save products.json. Check file permissions.';
+        $errors[] = 'Failed to save products-all.json. Check file permissions.';
     }
 
     $product = $updated; // repopulate form with submitted values
@@ -341,7 +372,7 @@ include 'nav.php';
         </div>
         <div class="form-group full">
           <label for="photoUrl">Photo URL</label>
-          <input type="text" id="photoUrl" name="photoUrl" value="<?= h($product['photoUrl'] ?? '') ?>" placeholder="https://... or /images/product.jpg" />
+          <input type="text" id="photoUrl" name="photoUrl" value="<?= h($product['photoUrl'] ?? '') ?>" placeholder="https://… or /images/product.jpg" />
           <div class="hint">Leave blank to use the IPC branded placeholder — or <a href="upload-image.php?sku=<?= urlencode($sku) ?>">upload a photo</a> and this field is filled in automatically.</div>
         </div>
         <div class="form-group full">
@@ -400,7 +431,7 @@ include 'nav.php';
       <div class="card-title">Description Paragraphs</div>
       <div class="form-group">
         <label for="description">One paragraph per line</label>
-        <textarea id="description" name="description" rows="8" placeholder="First paragraph about the product...&#10;Second paragraph..."><?= h($descStr) ?></textarea>
+        <textarea id="description" name="description" rows="8" placeholder="First paragraph about the product…&#10;Second paragraph…"><?= h($descStr) ?></textarea>
         <div class="hint">Each line becomes a separate paragraph on the product page.</div>
       </div>
     </div>
@@ -410,13 +441,13 @@ include 'nav.php';
       <div class="card-title">PDF Data Sheet Options</div>
       <div class="form-group">
         <label for="pdfLabel">Primary PDF Button Label</label>
-        <input type="text" id="pdfLabel" name="pdfLabel" value="<?= h($product['pdfLabel'] ?? '') ?>" placeholder="e.g. Molded Cap (leave blank for “Download PDF”)" />
-        <div class="hint">Text shown on the main data-sheet button. The PDF <em>file</em> itself is uploaded on the <a href="upload-pdf.php?sku=<?= urlencode($product['sku'] ?? '') ?>">Upload PDF</a> page.</div>
+        <input type="text" id="pdfLabel" name="pdfLabel" value="<?= h($product['pdfLabel'] ?? '') ?>" placeholder="e.g. Molded Cap (leave blank for &quot;Datasheet&quot;)" />
+        <div class="hint">Text shown on the main data sheet button. The PDF <em>file</em> itself is uploaded on the <a href="upload-pdf.php?sku=<?= urlencode($product['sku'] ?? '') ?>">Upload PDF</a> page.</div>
       </div>
       <div class="form-group">
         <label for="additionalPdfs">Additional PDF Links — one per line</label>
         <textarea id="additionalPdfs" name="additionalPdfs" rows="4" placeholder="/pdfs/IP52EC-plugged-cap.pdf | Plugged Cap"><?= h($addPdfStr) ?></textarea>
-        <div class="hint">Format: <code>/pdfs/filename.pdf | Button Label</code> (label optional). Each becomes an extra download button. Upload the referenced files to <code>/pdfs/</code> first — the admin doesn’t move them for you.</div>
+        <div class="hint">Format: <code>/pdfs/filename.pdf | Button Label</code> (label optional). Each becomes an extra download button. Upload the referenced files to <code>/pdfs/</code> first — the admin doesn't move them for you.</div>
       </div>
     </div>
 

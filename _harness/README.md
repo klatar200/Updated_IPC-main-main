@@ -103,7 +103,7 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `lint.php` | `php -l` (18 files), `node --check` (9 admin JS), JSON parse, and the copy-key drift check |
 | `invariants.js` | 17 checks over invariants **1–12** in `CLAUDE.md`. It does **not** cover 13–16, added 2026-08-13; those are behavioural rather than textual and are held by suites of their own — 13/14 (`.ipc-container`, and custom CSS losing to hoisted Tailwind utilities) by the rendered widths in `adminwidth.js` and the 4-column check, 15 (`admin_head()` ordering, narrow pages opting out) by `adminwidth.js`, 16 (a no-op save returns true) by `nodupbackups.js`. If you extend `invariants.js` to 13–16, extend `invariants-selftest.js` with it |
 | `invariants-selftest.js` | mutates each invariant and proves `invariants.js` **fails** — a check that cannot fail is not a check |
-| `copydrift.js` / `-selftest.js` | `content.php`'s `$COPY_GROUPS` vs `App.jsx`'s `COPY_DEFAULTS` (96 fields). Wired into `lint.php` |
+| `copydrift.js` / `-selftest.js` | `content.php`'s `$COPY_GROUPS` vs `App.jsx`'s `COPY_DEFAULTS` (110 fields on 2026-09-14 — the figure read 96 from the day the check was written until Audit 9 measured it; re-read it from the suite's own output rather than from this line, which is the number that drifts). Wired into `lint.php` |
 | `contactflow.js` / `-selftest.js` | the contact form's **happy path**, end to end through the rendered page — the one journey the site exists for, and the one no other suite covered. `plan3-contact.js` drives the UI but only submits invalid forms; `plan3-autoreply.js` submits valid ones but POSTs with `fetch`, so the React form is never rendered; `plan10-rfqscroll.js` stops at where an invalid field lands. **A renamed `name=` attribute passed all three** — the browser suites never read the mail and the mail suite never rendered the browser. 85 checks over 12 scenarios: both forms submitted by typing into the real controls, every typed value matched **field by field** into the sales email and into `inquiries.jsonl`, the Reply-To/From block, the auto-reply's business details traced back to `site-info.json`, `?part=`/`?industry=` prefill reaching the email, the honeypot's invisibility *and* keyboard-unreachability, the 429 surfacing as a readable panel with the phone number in it, double-submit, Submit Another, Back, the posted-field-vs-`$_POST`-key drift check, truncation, the label associations on **both** tabs, and the lead arriving legibly in `admin/inquiries.php`. Run with `--only=<tag>` for one scenario. **It passed 71/71 the first time it was run**, which is the shape of a suite that asserts nothing — hence the selftest, which breaks one guarantee at a time in the mirror (6 in `contact.php`, 2 in the built bundle, both halves deliberately) and requires the named assertion to flip to FAIL. A mutation that stays green is reported as **MUTATION SURVIVED**. One did, on the first run: it replaced the honeypot log's *note string* and left the call standing |
 | `copyroundtrip.js` | a copy field survives admin edit → JSON → rendered site |
 | `contrastparity.js` / `.php` | the PHP and JS contrast implementations agree on 23 colors |
@@ -202,6 +202,58 @@ files that both assert and set a failing exit status.
 | `plan8-polish.js` | PLAN-8 — copy and layout polish. **Expected red at 16/17 on Linux**: `fc-match system-ui` resolves to DejaVu Sans, which is wider than Arial (GUARDRAILS §7.1) |
 | `plan10-admincrawl.js` | PLAN-10 — crawls every admin page for PHP notices and console errors |
 | `copydrift-selftest.js` | Proves `copydrift.js` can fail — a check that has never failed proves nothing |
+
+## Suites named nowhere until 2026-09-14 (Audit 9, A-9.D7)
+
+Seven more. The section above was written in 2026-08-18 to close exactly this
+gap — "an executor judged against this list would have skipped them" — and it
+reopened nine suites later, because nothing mechanical keeps the tables and the
+tree in step. All seven are assertive, all seven are in the sweep, and all seven
+were green in audit 9's before-sweep. The census that finds them is the Appendix
+A classifier in `plans/PLAN-11-audit9-go-live.md` crossed against these tables;
+run it after adding a suite.
+
+| File | Item |
+|---|---|
+| `backdrop-selftest.js` | PLAN-7 item 1c — proves `backdrop.js`'s raster blind spot is closed, by mutating it and requiring the failure. The selftest for the shared contrast core every brand-colour suite depends on |
+| `plan7-approvals.js` | PLAN-7 item 2 — approvals became a real field instead of free text: the field, its counts, and the filter |
+| `plan7-datasheets.js` | PLAN-7 item 3 — the datasheet library: all 42 products carry a published PDF and the page that lists them |
+| `plan7-imagery.js` | PLAN-7 item 2 — the marketing photographs actually reach the page (the app once held four `<img>` elements, three of them the logo) |
+| `plan8-faq.js` | PLAN-8 C41 — the FAQ opens fully collapsed, with no bulk control and no category chip that jumps past a closed row |
+| `plan8-formpolish.js` | PLAN-8 C39 — contact-form polish: the privacy note near Submit, the legend, and the required-field marking |
+| `plan8-landing.js` | PLAN-8 C29 — `/products` renders a catalog landing state instead of auto-selecting one product's detail page |
+
+## `audit9-*.js` — audit 9's instruments and acceptance suites (2026-09-14)
+
+Two kinds, and the difference matters when you are deciding what to keep. The
+**instruments** measured a surface once, for several passes to cite, so that a
+measurement has one owner; they are evidence and are not in the sweep. The
+**acceptance suites** were each written before the fix they cover, watched
+failing against the unfixed tree, and are regression checks from now on — they
+are in the sweep and they should stay green.
+
+| File | Kind | Item |
+|---|---|---|
+| `audit9-crawl.js` | instrument | 67-page crawl at three viewports — the DOM, links, JSON-LD, meta and aria snapshot every P4/P5a/P6/P9/P10 record is measured against |
+| `audit9-adminflows.js` | instrument | the signed-in admin flows: every page fetched and parsed as the owner sees it |
+| `audit9-strings.js` | instrument | the 1,498-record string inventory behind all three verbiage passes |
+| `audit9-logic-admin.js` · `audit9-logic-public.js` · `audit9-logic-contact.js` · `audit9-logic-data.js` | instrument | P7's edge-case probes over the admin, the routing shim, the contact path and the catalog loader |
+| `audit9-p6-navgraph.js` | instrument | P6 — opens both mega-menus and the mobile drawer (a cold DOM has neither), then cold-navigates every internal link and every anchor in a fresh page |
+| `audit9-p9-keyboard.js` · `audit9-p9-reflow.js` · `audit9-p9-largetext.js` | instrument | P9's three accessibility probes |
+| `audit9-fixes.js` | acceptance | A-9.P7-1 (the High), P2-1, P2-2, P3-2, P7-2, the four admin-screen findings and the fourteen documentation ones. Restores the mirror **before** as well as after a run — see the note below |
+| `audit9-router-docroot.js` | acceptance | A-9.P3-1 — eight arms proving a `:814x` mirror answers from its own docroot and not from the sweep mirror. 5/8 before the fix |
+| `audit9-public-fixes.js` | acceptance | A-9.P4-6/7/9, P5a-6/7/9/10/11, P6-1/2/3. Reads a **comment-blanked** copy of `App.jsx` for its source arms, so a fix note that talks about a glyph is not counted as an instance of it |
+| `audit9-admin-text.js` | acceptance | A-9.B2-08/09/10 and A-9.P6-4 — the admin's vocabulary, typography, button case, and each page's `<h1>` against the nav label you clicked. Source-level and needs no server |
+| `audit9-tempsort.js` | acceptance | A-9.P4-5 — drives the Product Index, clicks the Temp header and reads the column back. Derives the expected °C key independently of the implementation, so the check and the fix disagreeing is itself a failure |
+| `audit9-catalog-text.js` | acceptance | A-9.P5a-4, A-9.P4-10 and the majority-settled half of A-9.P5a-8, over `data/products-all.json`. Asserts what was deliberately **not** changed as well, so a later pass cannot quietly finish the job on the badge pairs that need a decision |
+| `audit9-verify6.js` | verification | the six records V1/V2 never reached (A-9.P4-2/4/8, P5a-2/3/4), re-measured from the primary data on 2026-09-15 rather than by re-running each record's own `reproduce:` block. Reads `data/*.json`, `src/App.jsx` at HEAD **and** at the audit base commit, and the git history of one privacy sentence. No server, no browser |
+| `audit9-totals.js` | generator | reads `audit-runs/audit9.md` §2 and writes its own totals table and §9 verdict. `--write` rewrites the block in place; counts are generated, never typed |
+
+**`audit9-fixes.js` restores the mirror at both ends, and that is load-bearing.**
+Its A-9.P7-1 negative control passed against unfixed code twice, because the
+mirror started dirty with a leftover `AUDIT9TMP.pdf` and `edit.php`'s *correct*
+no-clobber guard skipped the rename — the right behaviour for the wrong reason.
+A green control is not evidence until you know why it is green.
 
 ## Investigative tools (one-shot, kept as evidence)
 

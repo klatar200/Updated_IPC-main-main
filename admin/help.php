@@ -176,7 +176,7 @@ $navActive = 'help';
   <div class="page-header">
     <div class="page-header-icon">📘</div>
     <div>
-      <h1>Help &amp; Documentation</h1>
+      <h1>Help</h1>
       <p>A plain-language guide to running your product catalog — no technical background needed. This page only appears after you sign in, so it's safe to keep it open in a tab while you work.</p>
     </div>
   </div>
@@ -228,7 +228,7 @@ $navActive = 'help';
         <p>What lives behind it:</p>
         <ul class="plain">
           <li><strong>Your product catalog</strong> — every product's details, in one file that both this dashboard and the public website read from.</li>
-          <li><strong>Your business details</strong> — phone, address, hours, certifications, colours and logo. See <a href="#business">Business Details</a>.</li>
+          <li><strong>Your business details</strong> — phone, address, hours, certifications, colors and logo. See <a href="#business">Business Details</a>.</li>
           <li><strong>Your page content</strong> — headlines, FAQ, services, industries, footer links, policy text. See <a href="#pagecontent">Page Content</a>.</li>
           <li><strong>Your PDF data sheets and product photos</strong> — the actual files, in two folders on the server.</li>
           <li><strong>Your inquiry log and change history</strong> — every contact-form lead and every change made here. See <a href="#inquiries">Inquiries</a> and <a href="#auditlog">Audit log</a>.</li>
@@ -251,12 +251,12 @@ $navActive = 'help';
           <tr><td>Add a brand-new part to the catalog</td><td>See the full sequence at <a href="#walkthrough">Launching a new product, start to finish</a>, or jump straight to <a href="#adding">Adding a new product</a>.</td></tr>
           <tr><td>Fix a typo, price, or spec on an existing part</td><td><a href="#editing">Editing an existing product</a></td></tr>
           <tr><td>Add a photo to a product</td><td><a href="#photos">Product photos</a> — one click, straight from your computer</td></tr>
-          <tr><td>Add or replace a downloadable spec sheet</td><td><a href="#pdfs">Managing PDF data sheets</a></td></tr>
+          <tr><td>Add or replace a downloadable data sheet</td><td><a href="#pdfs">Managing PDF data sheets</a></td></tr>
           <tr><td>Change the measurements/size table on a product page</td><td><a href="#sizechart">Building the size / dimension chart</a></td></tr>
           <tr><td>Remove a part that's discontinued</td><td><a href="#deleting">Deleting a product</a></td></tr>
           <tr><td><strong>Undo a mistake / get something back</strong></td><td><a href="#backups">Backups &amp; undo</a> — you can do this yourself</td></tr>
           <tr><td><strong>Change your password</strong></td><td><a href="#password">Your admin password</a> — you can do this yourself</td></tr>
-          <tr><td>Change the phone number, address, hours, logo or colours</td><td><a href="#business">Business Details</a></td></tr>
+          <tr><td>Change the phone number, address, hours, logo or colors</td><td><a href="#business">Business Details</a></td></tr>
           <tr><td>Change wording on the site, the FAQ, services or footer links</td><td><a href="#pagecontent">Page Content</a></td></tr>
           <tr><td>Add or rename a product category</td><td><a href="#pagecontent">Page Content</a> → Product Families / Categories — you can do this yourself</td></tr>
           <tr><td>Change the title or description Google shows for a page</td><td><a href="#pagecontent">Page Content</a> → Search Engine Text (SEO)</td></tr>
@@ -310,7 +310,7 @@ $navActive = 'help';
           <b>If you've forgotten it</b>
           That one does need your FTP or file-manager login. Upload an empty file named <code>ALLOW-PASSWORD-RESET</code> (no file extension) into the <code>admin</code> folder, then open the dashboard address in a browser: instead of the password box you'll get a "Set Admin Password" screen. Set a new password and the file deletes itself.
           <br><br>
-          <strong>That window is open for one hour</strong> from the moment you upload the file, and while it's open <em>anyone</em> who visits your admin address gets that same screen. Finish the reset straight away, and if you change your mind, delete the file again over FTP. If you're signed in when the file goes up, the dashboard shows a red banner with a <strong>Close it now</strong> button.
+          <strong>That window is open for one hour</strong> from the moment you upload the file, and while it's open <em>anyone</em> who visits your admin address gets that same screen. Finish the reset straight away, and if you change your mind, delete the file again over FTP. If you're signed in when the file goes up, the dashboard shows a red banner with a <strong>Close It Now</strong> button.
         </div>
       </section>
 
@@ -319,7 +319,7 @@ $navActive = 'help';
         <h2>📊 Reading the dashboard</h2>
         <p>The <strong>Product Catalog</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
         <ul class="plain">
-          <li><strong>Header bar</strong> — your logo on the left; on the right, quick links to Products, Add Product, Audit Log, and Help, plus a link to open the live public website in a new tab and Sign Out. This same navigation bar appears at the top of every admin page, so you're never more than one click from anywhere else in the dashboard.</li>
+          <li><strong>Header bar</strong> — your logo on the left; on the right, a link to every page of the dashboard: <strong>Products</strong>, <strong>+ Add Product</strong>, <strong>Business Details</strong>, <strong>Page Content</strong>, <strong>Backups</strong>, <strong>Audit Log</strong>, <strong>Password</strong> and <strong>Help</strong>, plus <strong>View Live Site ↗</strong> to open the public website in a new tab and <strong>Sign Out</strong>. This same navigation bar appears at the top of every admin page, so you're never more than one click from anywhere else in the dashboard.</li>
           <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>
           <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
           <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
@@ -330,11 +330,11 @@ $navActive = 'help';
           <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the dashboard layout: header, search bar, summary cards, and product table">
             <rect x="1" y="1" width="638" height="338" rx="10" fill="#ffffff" stroke="#e5e9ee"/>
             <rect x="10" y="10" width="620" height="30" rx="6" fill="#0d2d52"/>
-            <text x="22" y="29" font-family="system-ui,sans-serif" font-size="11" fill="#ffffff">IPC Admin · Products · + Add Product · Audit Log · Help · Sign Out</text>
+            <text x="22" y="29" font-family="system-ui,sans-serif" font-size="9" fill="#ffffff">IPC Admin · Products · + Add Product · Business Details · Page Content · Backups · Audit Log · Password · Help · Sign Out</text>
             <text x="10" y="56" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">HEADER — same on every page</text>
 
             <rect x="10" y="66" width="430" height="24" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
-            <text x="20" y="82" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">Search by SKU or product name…</text>
+            <text x="20" y="82" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af">Search by SKU / part number or product name…</text>
             <text x="450" y="82" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">← SEARCH BAR</text>
 
             <g font-family="system-ui,sans-serif">
@@ -408,7 +408,7 @@ $navActive = 'help';
             <strong>Fill in Basic Information.</strong> Three fields are required (marked with *):
             <table class="field-ref">
               <tr><td>SKU / Part Number *</td><td>A short, unique code for this part (e.g. <code>IP33PO</code>). This becomes part of the product's web address <em>and</em> the filename of its PDF, so keep it to letters, numbers, and dashes — no spaces. It must be different from every other SKU already in your catalog.</td></tr>
-              <tr><td>Part Type *</td><td>Pick the category from the dropdown. This decides which section of the catalog (and which page grouping) the product appears under. <strong>You control this list yourself</strong> — it comes from <strong>Page Content → Product Families / Categories</strong>, where you can add a category, rename one, or reorder them with the ↑ ↓ buttons — that order is the order the catalogue sidebar and the Products menu use. See <a href="#pagecontent">Page Content</a>.</td></tr>
+              <tr><td>Part Type *</td><td>Pick the category from the dropdown. This decides which section of the catalog (and which page grouping) the product appears under. <strong>You control this list yourself</strong> — it comes from <strong>Page Content → Product Families / Categories</strong>, where you can add a category, rename one, or reorder them with the ↑ ↓ buttons — that order is the order the catalog sidebar and the Products menu use. See <a href="#pagecontent">Page Content</a>.</td></tr>
               <tr><td>Product Name *</td><td>The full name shown to customers, e.g. "3:1 Polyolefin Heat Shrink Tubing."</td></tr>
               <tr><td>Operating Temperature</td><td>Optional. Free text, e.g. <code>-55°C to 135°C</code>.</td></tr>
               <tr><td>Image Caption</td><td>Optional short line shown underneath the product photo.</td></tr>
@@ -455,7 +455,7 @@ $navActive = 'help';
           <li>Change any field you need to. Every field from <a href="#adding">Adding a new product</a> is here, plus a few extra:
             <table class="field-ref">
               <tr><td>Photo URL</td><td><strong>You normally never type in this box.</strong> Use the <span class="btn btn-sm btn-edit btn-mock">Photo</span> button on the product's dashboard row to upload a picture from your computer, and this field fills itself in — see <a href="#photos">Product photos</a>. It's here for the rare case where a picture already lives somewhere else on your own site and you want to point at it (<code>/images/product.jpg</code>). Leave it blank to keep the branded placeholder.</td></tr>
-              <tr><td>Primary PDF Button Label</td><td>Customizes the text on the main download button, e.g. "Molded Cap" instead of the default "Download PDF." This only changes the button's <em>label</em> — upload the actual file from the <a href="#pdfs">PDF data sheets</a> page.</td></tr>
+              <tr><td>Primary PDF Button Label</td><td>Customizes the text on the main download button, e.g. "Molded Cap" instead of the default "Datasheet." This only changes the button's <em>label</em> — upload the actual file from the <a href="#pdfs">PDF data sheets</a> page.</td></tr>
               <tr><td>Additional PDF Links</td><td>One per line, formatted as <code>/pdfs/filename.pdf | Button Label</code> (the label is optional). Each line adds an extra download button, for products that ship with more than one document.</td></tr>
             </table>
             <div class="callout callout-warning">
@@ -488,7 +488,7 @@ $navActive = 'help';
         <h2>📋 Building the specifications list</h2>
         <p>This is the label/value list shown on the left side of a product's detail page (Material, Color, Shrink Ratio, and so on). Both the Add and Edit forms use the same easy, visual builder — no code required.</p>
         <ol class="steps">
-          <li>Click <span class="btn btn-primary btn-mock" style="background:#fff;color:#005da3;border:1px solid #d1d9e0;">+ Add specification</span> to add a new row.</li>
+          <li>Click <span class="btn btn-primary btn-mock" style="background:#fff;color:#005da3;border:1px solid #d1d9e0;">+ Add Specification</span> to add a new row.</li>
           <li>Type a <strong>Label</strong> (e.g. "Material") and its <strong>Value</strong> (e.g. "Polyolefin") into the two boxes.</li>
           <li>Leave the Label box empty to create a wide note row instead — useful for a standalone line like "RoHS Compliant · UL 224" that doesn't need its own label.</li>
           <li>Click the <strong>×</strong> button on the right of any row to remove it.</li>
@@ -535,16 +535,16 @@ $navActive = 'help';
 
         <h3>Building it by hand</h3>
         <table class="field-ref">
-          <tr><td>+ Add column</td><td>Adds a new column header. Click into the heading box and type its name, e.g. "Order Size."</td></tr>
+          <tr><td>+ Add Column</td><td>Adds a new column header. Click into the heading box and type its name, e.g. "Order Size."</td></tr>
           <!-- A10-029 — this taught the same Min/Max shape the example chart
                above it got wrong, and no product in the catalog uses one. The
                replacement is real: IP30HS and IP30UV both split "Recovered"
                into "Diameter" and "Wall". The feature itself stays — 16 column
                spans across the catalog use it, including CC/CC90/CCS ("Part
                Dimensions (inches)" over A | B | C). -->
-          <tr><td>Split into sub-columns</td><td>Turns one column heading into a group covering two or more narrower columns underneath it — e.g. a heading "Recovered" split into "Diameter" and "Wall."</td></tr>
+          <tr><td>Split into Sub-columns</td><td>Turns one column heading into a group covering two or more narrower columns underneath it — e.g. a heading "Recovered" split into "Diameter" and "Wall."</td></tr>
           <tr><td>+ sub-column</td><td>Adds another narrow column under a heading that's already split.</td></tr>
-          <tr><td>+ Add row</td><td>Adds a blank data row at the bottom. Click into each cell and type the value.</td></tr>
+          <tr><td>+ Add Row</td><td>Adds a blank data row at the bottom. Click into each cell and type the value.</td></tr>
           <tr><td>× (on a row or column)</td><td>Removes that row or column, and shifts the rest to fill the gap.</td></tr>
         </table>
         <h3>Pasting straight from a spreadsheet</h3>
@@ -554,7 +554,7 @@ $navActive = 'help';
           <li>In the size chart editor, click <span class="btn btn-primary btn-mock" style="background:#fff;color:#141414;border:1px solid #d1d9e0;">Paste from Excel</span>.</li>
           <li>Click into the box that appears and paste (Ctrl+V or Cmd+V).</li>
           <li>Leave <strong>"First row is the column headings"</strong> checked if you copied a header row, or uncheck it if you only copied data.</li>
-          <li>Click <span class="btn btn-primary btn-mock" style="background:#fff;color:#005da3;border:1px solid #d1d9e0;">Fill grid</span> — the whole table is built for you instantly.</li>
+          <li>Click <span class="btn btn-primary btn-mock" style="background:#fff;color:#005da3;border:1px solid #d1d9e0;">Fill Grid</span> — the whole table is built for you instantly.</li>
         </ol>
         <div class="callout callout-tip">
           <b>Advanced mode</b>
@@ -587,13 +587,13 @@ $navActive = 'help';
       <section class="help-section" id="pdfs">
         <div class="eyebrow eyebrow-manage">Managing Products</div>
         <h2>📄 Managing PDF data sheets</h2>
-        <p>Every product can have a downloadable spec-sheet PDF. When a product has one, its page shows a <strong>"Download PDF"</strong> button; when it doesn't, customers instead see a <strong>"Request Data Sheet"</strong> button (so they can contact you directly).</p>
+        <p>Every product can have a downloadable data sheet PDF. When a product has one, its page shows a <strong>"Datasheet"</strong> button; when it doesn't, customers instead see a <strong>"Request Datasheet"</strong> button (so they can contact you directly).</p>
         <h3>Uploading a PDF for the first time</h3>
         <ol class="steps">
           <li>From the dashboard, click <span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span> on the product's row (or the "Upload PDF" link at the top of its Edit page).</li>
           <li>Click <strong>Select PDF File</strong> and choose the file from your computer. It must be a genuine PDF, <strong><?= h(min_upload_label(20)) ?> or smaller</strong> — that is the lower of the dashboard's own 20MB limit and what your server accepts (see <a href="#server-limits">What your server allows</a>).</li>
           <li>Click <span class="btn btn-primary btn-mock">Upload PDF →</span>.</li>
-          <li>You'll see a green confirmation, and the button on the product's live page switches to "Download PDF" automatically (allow up to 60 seconds, or hard-refresh to see it right away).</li>
+          <li>You'll see a green confirmation, and the button on the product's live page switches to "Datasheet" automatically (allow up to 60 seconds, or hard-refresh to see it right away).</li>
         </ol>
         <h3>Replacing a PDF</h3>
         <p>Open the same "Manage PDF" page and upload a new file the same way. The new file <strong>overwrites the old one in place</strong> — the download link customers already have keeps working, and no leftover old file is left behind.</p>
@@ -601,7 +601,7 @@ $navActive = 'help';
         <ol class="steps">
           <li>Open the product's "Manage PDF" page.</li>
           <li>Click the red <span class="btn btn-sm btn-mock" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">Remove PDF</span> button next to the current file.</li>
-          <li>Confirm the removal. The product reverts to showing "Request Data Sheet," and the file is deleted from the server.</li>
+          <li>Confirm the removal. The product reverts to showing "Request Datasheet," and the file is deleted from the server.</li>
         </ol>
         <div class="callout callout-warning">
           <b>Shared data sheets</b>
@@ -692,15 +692,15 @@ $navActive = 'help';
       <section class="help-section" id="business">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>🏢 Business Details</h2>
-        <p>Click <strong>Business Details</strong> in the header. This one page controls the facts about your company that appear all over the public site — the phone number in the header, the address in the footer, the copyright year, your hours, your certifications, and the colours and logo.</p>
+        <p>Click <strong>Business Details</strong> in the header. This one page controls the facts about your company that appear all over the public site — the phone number in the header, the address in the footer, the copyright year, your hours, your certifications, and the colors and logo.</p>
         <p>Change something here and it changes <em>everywhere it appears</em>. You never have to hunt for the same phone number on six pages.</p>
         <table class="field-ref">
           <tr><td>Company name, short name, slogan</td><td>Header, footer, page titles, and the information search engines read about you.</td></tr>
           <tr><td>Phone, fax, email</td><td>Header, footer, Contact page, About page. The phone number is also what the "call us" links dial, so type it the way you'd say it — the dialling version is a separate field beside it.</td></tr>
           <tr><td>Address, hours</td><td>Footer, Contact page, and the map listing search engines build from your site.</td></tr>
           <tr><td>Founded year</td><td>Drives the "© 1974–<?= date('Y') ?>" line automatically. You never update the second year.</td></tr>
-          <tr><td>Certifications</td><td>ISO registration plus any others, shown in the footer and on the Quality page.</td></tr>
-          <tr><td>Brand colours &amp; logo</td><td>Live preview on the right of the page as you change them.</td></tr>
+          <tr><td>Certifications</td><td>ISO registration plus any others, shown in the footer, on the homepage trust bar and in the Certifications &amp; Standards block on the About page. <em>(There is no separate Quality page — this row said there was until 2026-09-14.)</em></td></tr>
+          <tr><td>Brand colors &amp; logo</td><td>Live preview on the right of the page as you change them.</td></tr>
           <tr><td>Social links</td><td>Not shown as icons on the site; they tell search engines which accounts are yours.</td></tr>
           <tr><td>Catalog PDF URL</td><td>Optional. Point it at a full-catalog PDF (e.g. <code>/pdfs/catalog.pdf</code>) and a "Full product catalog (PDF)" link appears in the site footer. Leave blank for no link.</td></tr>
         </table>
@@ -779,7 +779,7 @@ $navActive = 'help';
         <p>Every time you save a <em>change</em> to products, business details or page content, a dated copy of the previous version is written first. The <?= (int)BACKUP_KEEP ?> most recent are kept for each of the three. If you press Save without having changed anything, nothing is written and no backup slot is used — so the list never fills up with identical copies of the same version, and the <?= (int)BACKUP_KEEP ?> slots hold <?= (int)BACKUP_KEEP ?> genuinely different versions. Each entry shows what's inside it ("41 products", "17 content rows", your company name and phone) so you're not choosing between identical timestamps.</p>
         <ol class="steps">
           <li>Find the entry from just before the change you want to undo.</li>
-          <li>Click <strong>Restore this version</strong> and confirm.</li>
+          <li>Click <strong>Restore This Version</strong> and confirm.</li>
           <li>Done. The site reflects it within about a minute.</li>
         </ol>
         <div class="callout callout-tip">
@@ -815,6 +815,15 @@ $navActive = 'help';
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#f3e8ff;color:#6b21a8;">password</span></td><td>The admin password was changed. The password itself is never recorded.</td></tr>
+          <!-- A-9.B2-02 — the three sign-in actions. The dropdown has always
+               offered them and this table has never explained them, while the
+               sentence above it says the dropdown lists every action in the
+               table below. sign-in-failed is the one that matters most: a run
+               of them from an address you do not recognise is the only warning
+               of someone guessing the password. -->
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dcfce7;color:#166534;">sign-in</span></td><td>Someone signed in successfully, from the address shown.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e5e7eb;color:#374151;">sign-out</span></td><td>Someone signed out.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">sign-in-failed</span></td><td>A wrong password was entered. One or two is usually a typo. <strong>A run of them from an address you don't recognise is worth telling your developer about</strong> — it is what someone guessing the password looks like.</td></tr>
         </table>
         <div class="callout callout-tip">
           <b>Page Content saves say what you actually edited</b>
@@ -830,13 +839,24 @@ $navActive = 'help';
       <section class="help-section" id="health">
         <div class="eyebrow eyebrow-advanced">Advanced</div>
         <h2>🩺 If the dashboard warns you about the server</h2>
-        <p>Three things can go wrong on the server itself in a way that is completely silent — the dashboard keeps saying "saved", and nothing actually is. So the <strong>Products</strong> page checks for them every time you open it, and shows a red box at the top headed <strong>"Server setup problem — please send this to your developer"</strong> if it finds one.</p>
+        <p>Several things can go wrong on the server itself in a way that is completely silent — the dashboard keeps saying "saved", and nothing actually is. So the <strong>Products</strong> page checks for all of them every time you open it, and shows a red box at the top headed <strong>"Server setup problem — please send this to your developer"</strong> if it finds one. The box names every problem it found; the table below explains each one.</p>
         <p><strong>If you never see that box, there is nothing to do here.</strong> If you do, it is a permissions problem on the hosting account, not something you did wrong, and the box tells you exactly which folder to fix over FTP.</p>
         <table class="field-ref">
           <tr><td>The <code>admin</code> folder is not writable</td><td>The most serious one. <strong>Sales leads from the contact form are being discarded</strong>, the change history cannot record anything, and the Password page cannot save. Set <code>admin/</code> to 755 (or 775) over FTP.</td></tr>
           <tr><td>The <code>data</code> folder is not writable</td><td>Nothing you edit on any page can be saved at all. Set <code>data/</code> to 755 (or 775) over FTP.</td></tr>
           <tr><td>The <code>uploads/images</code> folder is missing or not writable</td><td>Product photo uploads will fail. Create <code>public_html/uploads/images/</code> over FTP and set it to 755.</td></tr>
-          <tr><td>The password-reset window is OPEN</td><td>While a file called <code>ALLOW-PASSWORD-RESET</code> sits in your admin folder, <strong>anyone on the internet</strong> who opens your admin address is shown a "Set Admin Password" form and can lock you out. It closes by itself an hour after the file was uploaded, and the warning carries a <strong>Close it now</strong> button so you can shut it immediately. See <a href="#password">Your admin password</a>.</td></tr>
+          <!-- A-9.B2-03 — the four rows the dashboard could raise and this
+               table never listed. The section said "three things" over four
+               rows while the Products page checks nine. The missing four are
+               exactly the ones an owner is most likely to meet and least able
+               to guess: a data sheet upload that fails, a rate limit that has
+               quietly stopped counting, leads that are arriving and not being
+               written down, and photos that are never resized. -->
+          <tr><td>The <code>pdfs</code> folder is missing or not writable</td><td>Data sheet uploads will fail. Set <code>public_html/pdfs/</code> to 755 (or 775) over FTP.</td></tr>
+          <tr><td>The server's temporary folder is not writable</td><td>The contact form still works and still records every lead, but its spam rate limit is not counting, and confirmation emails to senders are held back as a precaution. Ask the host to fix permissions on it.</td></tr>
+          <tr><td><strong>Quote requests are arriving but cannot be recorded</strong></td><td>The most urgent one after <code>admin</code>. The notification emails are still being sent, so nothing is lost yet — but <strong>Inquiries</strong> is not recording anything, so a lead that is missed in email is gone. Same fix as the <code>admin</code> row.</td></tr>
+          <tr><td>This server cannot resize images (<code>gd</code> is missing)</td><td>Photo uploads still work, but a large photo is saved at its original size, and that product page will be slow on a phone. Ask the host to enable the PHP <code>gd</code> extension, or resize photos to about 1600 pixels wide before uploading them.</td></tr>
+          <tr><td>The password-reset window is OPEN</td><td>While a file called <code>ALLOW-PASSWORD-RESET</code> sits in your admin folder, <strong>anyone on the internet</strong> who opens your admin address is shown a "Set Admin Password" form and can lock you out. It closes by itself an hour after the file was uploaded, and the warning carries a <strong>Close It Now</strong> button so you can shut it immediately. See <a href="#password">Your admin password</a>.</td></tr>
         </table>
         <div class="callout callout-warning">
           <b>Why this page exists at all</b>
@@ -875,7 +895,7 @@ $navActive = 'help';
         </details>
 
         <details class="faq">
-          <summary>I can't log in — it says my password is incorrect.</summary>
+          <summary>I can't sign in — it says my password is incorrect.</summary>
           <p>Double-check Caps Lock and any extra spaces. After 5 incorrect attempts in a row, the page will briefly pause before allowing another try — this is a normal anti-guessing safeguard, not a lockout. Wait a few seconds and try again.</p>
         </details>
 
@@ -901,7 +921,7 @@ $navActive = 'help';
 
         <details class="faq">
           <summary>I deleted the wrong product — can I get it back?</summary>
-          <p><strong>Yes, and you can do it yourself.</strong> A backup of the whole catalog is written immediately before every deletion. Go to <strong>Backups</strong>, find the most recent <em>Product Catalog</em> entry — the one whose product count is one higher than now — and click <strong>Restore this version</strong>. See <a href="#backups">Backups &amp; undo</a>. Do it before making other changes, since only the <?= (int)BACKUP_KEEP ?> most recent backups are kept.</p>
+          <p><strong>Yes, and you can do it yourself.</strong> A backup of the whole catalog is written immediately before every deletion. Go to <strong>Backups</strong>, find the most recent <em>Product Catalog</em> entry — the one whose product count is one higher than now — and click <strong>Restore This Version</strong>. See <a href="#backups">Backups &amp; undo</a>. Do it before making other changes, since only the <?= (int)BACKUP_KEEP ?> most recent backups are kept.</p>
         </details>
 
         <details class="faq">
@@ -929,7 +949,7 @@ $navActive = 'help';
           <tr><td>Badge</td><td>A small colored pill shown on a product page highlighting a certification or feature, e.g. "RoHS Compliant."</td></tr>
           <tr><td>Specifications list</td><td>The label/value list on a product page (Material, Color, Shrink Ratio, etc.) — see <a href="#specs">Building the specifications list</a>.</td></tr>
           <tr><td>Size / dimension chart</td><td>The grid table of measurements on a product page (order sizes, expanded/recovered diameters, etc.) — see <a href="#sizechart">Building the size / dimension chart</a>.</td></tr>
-          <tr><td>PDF data sheet</td><td>The downloadable spec-sheet document customers can get for a product — see <a href="#pdfs">Managing PDF data sheets</a>.</td></tr>
+          <tr><td>PDF data sheet</td><td>The downloadable data sheet document customers can get for a product — see <a href="#pdfs">Managing PDF data sheets</a>.</td></tr>
           <tr><td>Audit log</td><td>The running history of every change made through this dashboard — see <a href="#auditlog">Audit log / change history</a>.</td></tr>
           <tr><td>IP address</td><td>A number identifying the device/network a change came from, shown in the audit log. Since this dashboard uses one shared password, it tells you roughly where a change came from, not which employee made it.</td></tr>
           <tr><td>Backup</td><td>A dated copy of your catalog, business details or page content, saved automatically just before each change. Restore one yourself from <a href="#backups">Backups</a>.</td></tr>

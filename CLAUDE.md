@@ -60,11 +60,12 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
 
 ### React side ([src/App.jsx](src/App.jsx))
 
-- **One ~12,900-line file is the entire app.** Routing shims, data fetch, every
+- **One ~13,300-line file is the entire app.** Routing shims, data fetch, every
   page, every component, every icon set. Search by name; there is no per-page
-  split in use. (Said 8,500 until 2026-08-11 and 12,270 until 2026-08-13; it
-  grows every release without the figure being revisited. Re-measure with
-  `wc -l src/App.jsx` rather than trusting this number — it will drift again.)
+  split in use. (Said 8,500 until 2026-08-11, 12,270 until 2026-08-13 and 12,900
+  until 2026-09-14; it grows every release without the figure being revisited.
+  Re-measure with `wc -l src/App.jsx` rather than trusting this number — it will
+  drift again.)
 - **There is no per-page split. Do not go looking for one, and do not start
   one.** `src/components/`, `src/pages/` and `src/lib/` used to exist, fully
   populated and imported by nothing — an abandoned extraction that survived
@@ -197,6 +198,23 @@ incident.
     matches. Returning `false` there would surface "could not save" for a file
     that is already correct and would strand the optimistic-concurrency pages.
     Pages that need to word it differently call `last_save_was_noop()`.
+17. **A SKU rename in `edit.php` must not rename a PDF another product points
+    at.** Two products share one data sheet in the shipped catalog (`IP12GA` and
+    `IP12GA - IP1274`), so the unconditional
+    `rename(/pdfs/<old>.pdf, /pdfs/<new>.pdf)` 404'd the *other* product's Data
+    Sheet button — silently, with no error, and with no way back: `pdfs/` is not
+    covered by `backup_before_write()`. The rename now builds the set of PDF
+    basenames every other product references first, skips any name in it, and
+    says so in the flash message. Enforced by `_harness/audit9-fixes.js` arm
+    `p7-1`. (audit 9, A-9.P7-1)
+18. **`/contact?sent=1` is not evidence that anything was sent.** The
+    confirmation panel is gated on `sentThisSession` — a `sessionStorage` flag
+    written at submit time and cleared by Submit Another — **and** the URL
+    parameter. On the parameter alone, anyone who pasted, bookmarked or
+    back-buttoned the URL was told their quote request had been received when
+    no request existed. Do not simplify `sentParam === "1" && sentThisSession`
+    back to the parameter. Enforced by `_harness/audit9-fixes.js` arm `p7-2`.
+    (audit 9, A-9.P7-2)
 
 ## Security posture (verified, keep it this way)
 

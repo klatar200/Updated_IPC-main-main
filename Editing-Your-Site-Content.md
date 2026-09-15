@@ -36,13 +36,21 @@ Open the **Page Content** tab. It has two kinds of sections, one after the other
 
 **Lists (the sections below).** These are the repeatable cards and rows:
 
-- **Products & Services Cards**, **Trust Bar Stats**, **Hero Proof Points**, and **Hero Trust Ticker** — the homepage.
+- **Products & Services Cards**, **Trust Bar Stats**, **Homepage — Hero Proof Points**, and **Homepage — Hero Trust Ticker** — the homepage.
 - **Industries Grid** — the "industries we serve" cards.
+- **Industries Page — Detail Sections** — the long write-up for each industry, including the product codes each one links to.
 - **Value-Added Services** — the Services page cards.
-- **About — Timeline, Team & Capabilities, Certifications** — the About page.
+- **About — Company Timeline**, **About — Team & Capabilities**, **About — Certifications & Standards** — the About page.
 - **FAQ / Resources** — your questions and answers.
-- **Privacy Policy Sections** — the titled blocks of your privacy policy.
-- **Navigation — Company Menu & Footer Links** — the labels in your header menu and footer.
+- **Privacy Policy — Sections** — the titled blocks of your privacy policy.
+- **Navigation — Company Menu**, **Navigation — Footer Quick Links**, **Navigation — Header Labels** and **Footer — Labels** — the wording in your header menu and footer.
+- **Product Families / Categories** — the categories the catalog groups products by, and their order.
+- **Contact Page — Form** and **Contact Page — Sidebar Tips** — the labels and help text on the contact form, and the tips beside it.
+- **Datasheets page — banner** — the heading on the data-sheet library page.
+- **Site Images** — the five photographs the homepage, About and Services pages use.
+- **Search Engine Text (SEO)** — the title and description each page shows in Google results.
+
+*(That is all 31 sections the tab renders. This list named 22 of them until 2026-09-14 — A-9.B2-15. If you see a card here that is not in this list, the list is the thing that is out of date, not the dashboard.)*
 
 In a **Page Text** card, just click a field and type. In a **list** section you can also:
 
@@ -59,7 +67,7 @@ Then click **Save Content** at the bottom. That's it — your changes go live wi
 **The same rule applies on Business Details — with four exceptions.** Clear the phone number, company name, address or founded year and the previous value comes back when you save, for the same reason: an empty phone number becomes a dead "call us" link, and an empty year prints "© –2026" to every visitor. The fields you genuinely **can** empty, because "we don't have one" is a real answer, are:
 
 - **Fax number**
-- The five **social links** (Twitter/X, Facebook, LinkedIn, YouTube, Pinterest)
+- The seven **social links** (Twitter/X, Facebook, LinkedIn, YouTube, Instagram, TikTok, Pinterest)
 - **Short name**
 - **Slogan**
 

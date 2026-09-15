@@ -45,13 +45,17 @@ function runDrift(treeRoot) {
   return { status: res.status, out: res.stdout || '' };
 }
 
+// The two $COPY_GROUPS anchors below quote a label from admin/content.php.
+// Since A-9.B2-09 the admin uses straight quotes throughout, so the anchors
+// do too; the suite reports a non-matching anchor rather than passing
+// vacuously, which is how this was caught.
 const CASES = [
   {
     name: 'bogus key added to $COPY_GROUPS (PHP-only drift)',
     file: 'admin/content.php',
     apply: (s) => s.replace(
-      "    'homeFeatures' => ['title' => 'Homepage — “Products & Services” heading', 'fields' => [\n",
-      "    'homeFeatures' => ['title' => 'Homepage — “Products & Services” heading', 'fields' => [\n"
+      "    'homeFeatures' => ['title' => 'Homepage — \"Products & Services\" heading', 'fields' => [\n",
+      "    'homeFeatures' => ['title' => 'Homepage — \"Products & Services\" heading', 'fields' => [\n"
       + "        ['key' => 'bogusDriftKey', 'type' => 'text', 'label' => 'Bogus drift probe'],\n"),
     expectFail: true,
     expectIn: 'homeFeatures.bogusDriftKey',

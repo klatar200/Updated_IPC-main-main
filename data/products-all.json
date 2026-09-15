@@ -3773,7 +3773,7 @@
         "sku": "IP35KY",
         "name": "Polyvinylidene Fluoride Heat Shrink Tubing (Kynar)",
         "badges": [
-            "Semrigid",
+            "Semi-Rigid",
             "High Dielectric",
             "U/L CSA",
             "Flame Retardant"
@@ -3813,7 +3813,7 @@
                 },
                 {
                     "label": "Colors:",
-                    "value": "Clear (transparant) and Black"
+                    "value": "Clear (transparent) and Black"
                 },
                 {
                     "label": "Markers and Cut Pieces:",
@@ -4089,7 +4089,7 @@
                     ".008\""
                 ],
                 [
-                    "1/8",
+                    "1/8\"",
                     ".215/.130\"",
                     ".020\"",
                     ".015\"",
@@ -4399,37 +4399,37 @@
                     ".012"
                 ],
                 [
-                    "3/8",
+                    "3/8\"",
                     ".500",
                     ".383",
                     ".015"
                 ],
                 [
-                    "7/16",
+                    "7/16\"",
                     ".580",
                     ".448",
                     ".020"
                 ],
                 [
-                    "1/2",
+                    "1/2\"",
                     ".666",
                     ".510",
                     ".020"
                 ],
                 [
-                    "5/8",
+                    "5/8\"",
                     ".830",
                     ".637",
                     ".025"
                 ],
                 [
-                    "3/4",
+                    "3/4\"",
                     "1.000",
                     ".764",
                     ".030"
                 ],
                 [
-                    "7/8",
+                    "7/8\"",
                     "1.170",
                     ".891",
                     ".035"
@@ -4447,43 +4447,43 @@
                     ""
                 ],
                 [
-                    "3/32",
+                    "3/32\"",
                     ".093",
                     ".056",
                     ".008"
                 ],
                 [
-                    "1/8",
+                    "1/8\"",
                     ".125",
                     ".075",
                     ".010"
                 ],
                 [
-                    "3/16",
+                    "3/16\"",
                     ".188",
                     ".115",
                     ".010"
                 ],
                 [
-                    "1/4",
+                    "1/4\"",
                     ".250",
                     ".150",
                     ".010"
                 ],
                 [
-                    "3/8",
+                    "3/8\"",
                     ".375",
                     ".225",
                     ".012"
                 ],
                 [
-                    "1/2",
+                    "1/2\"",
                     ".500",
                     ".300",
                     ".015"
                 ],
                 [
-                    "3/4",
+                    "3/4\"",
                     ".750",
                     ".450",
                     ".020"
@@ -4495,7 +4495,7 @@
                     ".025"
                 ],
                 [
-                    "1-1/2",
+                    "1-1/2\"",
                     "1.500",
                     ".900",
                     ".030"
@@ -4540,7 +4540,7 @@
         "badges": [
             "Ultra Thin Wall",
             "Semi-Rigid",
-            "Low Shrink Temp",
+            "Low Shrink Temperature",
             "U/L VW-1"
         ],
         "caption": "Ultra thin wall for battery and pharmaceutical applications",
@@ -4820,7 +4820,7 @@
         "sku": "IP42MW",
         "name": "Melt Wall Polyolefin Tubing",
         "badges": [
-            "Semi-rigid",
+            "Semi-Rigid",
             "Encapsulating",
             "High Shrink Ratio",
             "U/L Approved"
@@ -4868,37 +4868,37 @@
         "specTable2": {
             "rows": [
                 [
-                    "1/8",
+                    "1/8\"",
                     ".125",
                     ".023",
                     ".038"
                 ],
                 [
-                    "3/16",
+                    "3/16\"",
                     ".187",
                     ".060",
                     ".043"
                 ],
                 [
-                    "1/4",
+                    "1/4\"",
                     ".250",
                     ".080",
                     ".047"
                 ],
                 [
-                    "3/8",
+                    "3/8\"",
                     ".375",
                     ".135",
                     ".050"
                 ],
                 [
-                    "1/2",
+                    "1/2\"",
                     ".500",
                     ".195",
                     ".055"
                 ],
                 [
-                    "3/4",
+                    "3/4\"",
                     ".750",
                     ".313",
                     ".065"
@@ -5102,7 +5102,7 @@
             "Adhesive Lined Heat Shrink Tubing is a flexible polyolefin lined with a thin layer of special thermoplastic adhesive for excellent moisture protection and strain relief.",
             "This tubing offers convenient protection of electrical components, wire splices or bundling of wires. Automotive, truck and marine wiring splices and connections are quickly and easily protected from harsh environments.",
             "With the application of heat Adhesive Lined Heat Shrink Tubing shrinks to a tight fit, forcing the adhesive lining to flow and cover the substrate. When cooled the adhesive forms a permanent, flexible and waterproof barrier.",
-            "The tubing is availble in a standard 2 to 1 shrink (product #IP44A2), and also as a 3 to 1 shrink (product #IP45A3) for hard to fit applications. For larger diameters see product #IP47HV Heavy Wall Polyolefin Tubing."
+            "The tubing is available in a standard 2 to 1 shrink (product #IP44A2), and also as a 3 to 1 shrink (product #IP45A3) for hard to fit applications. For larger diameters see product #IP47HV Heavy Wall Polyolefin Tubing."
         ],
         "operatingTemp": "",
         "specificationsSummary": "Shrink Temp: 121°C · 500 Volts/Mil · M23053/4 Class 2 (IP44A2) · M23053/4 Class 3 (IP45A3) · U/L Approved · Standard Lengths 4'",
@@ -5263,7 +5263,7 @@
         "name": "Heavy Wall Adhesive Heat Shrink Tubing",
         "badges": [
             "3:1 Shrink Polyolefin",
-            "Environmental protection",
+            "Environmental Protection",
             "Tough heavy wall",
             "U/L Approved"
         ],
@@ -6189,7 +6189,7 @@
                 },
                 {
                     "label": "Colors:",
-                    "value": "Clear (transparant) and Black"
+                    "value": "Clear (transparent) and Black"
                 },
                 {
                     "label": "Markers and Cut Pieces:",
@@ -6647,7 +6647,7 @@
             ]
         },
         "description": [
-            "Roundit is a tough, light-weight, self-wrapping sleeving designed to allow for quick and easy application and removal. Made from a woven blend of polyester monofilaments and multifilaments in a flat weave construction gives Roundit a rugged yet smooth apperance.",
+            "Roundit is a tough, light-weight, self-wrapping sleeving designed to allow for quick and easy application and removal. Made from a woven blend of polyester monofilaments and multifilaments in a flat weave construction gives Roundit a rugged yet smooth appearance.",
             "This sleeving is perfect for applications where a product needs to be supplied that does not disturb the connector or fittings.",
             "Roundit 2000 sleeving is available as a standard U/L recognized product rated for 125°C. It can also be supplied with the added feature of flame retardance, EMI woven or Nomex.",
             "Roundit 2000 has many applications in the aeronautical, marine, electronic, furniture accessory and general manufacturing industries."
@@ -6827,7 +6827,7 @@
             "Moisture Resistant",
             "Corrosion Protection"
         ],
-        "caption": "Tough, abrasion-resistant polyethylene with thick agressive adhesive for areas where tubing can not be applied.",
+        "caption": "Tough, abrasion-resistant polyethylene with thick aggressive adhesive for areas where tubing can not be applied.",
         "partType": "Tape",
         "photoUrl": "/images/products/IP69HT.png",
         "specTable1": {

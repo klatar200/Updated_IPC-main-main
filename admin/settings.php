@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // never appearing. (audit-runs/audit4.md D-01)
     $catalogProblem = link_url_problem($updated['catalogPdfUrl'], 'The catalog PDF URL');
     if ($catalogProblem !== '') $errors[] = $catalogProblem;
-    // A-5.27 — the four brand colours were the one owner-writable value on this
+    // A-5.27 — the four brand colors were the one owner-writable value on this
     // page with no validation at all, while every social URL, the email address
     // and catalogPdfUrl above are all checked. They are injected verbatim into
     // CSS custom properties on every public page (ThemeInjector), so a stored
@@ -135,14 +135,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // used for the readability note on these same values a few lines below.
     // (audit-runs/audit5.md A-5.27)
     foreach ([
-        'primaryColor' => 'Primary colour',
-        'darkColor'    => 'Dark colour',
-        'accentColor'  => 'Accent colour',
-        'accent2Color' => 'Second accent colour',
+        'primaryColor' => 'Primary color',
+        'darkColor'    => 'Dark color',
+        'accentColor'  => 'Accent color',
+        'accent2Color' => 'Second accent color',
     ] as $k => $label) {
         $v = $updated['theme'][$k];
         if ($v !== '' && ipc_parse_hex_color($v) === null) {
-            $errors[] = $label . ' must be a hex colour such as #0d2d52. Leave it empty to use the built-in colour.';
+            $errors[] = $label . ' must be a hex color such as #0d2d52. Leave it empty to use the built-in color.';
         }
     }
     if ($updated['contact']['email'] !== '' && !filter_var($updated['contact']['email'], FILTER_VALIDATE_EMAIL)) {
@@ -440,7 +440,7 @@ $navActive = 'settings';
         <div class="form-group full">
           <label for="about_paragraphs">About story — one paragraph per line</label>
           <textarea id="about_paragraphs" name="about_paragraphs" rows="10"><?= h($aboutStr) ?></textarea>
-          <div class="hint">Each line becomes a paragraph in the “Our Story” section of the About page. Leave a full sentence/paragraph on each line.</div>
+          <div class="hint">Each line becomes a paragraph in the "Our Story" section of the About page. Leave a full sentence/paragraph on each line.</div>
         </div>
       </div>
 

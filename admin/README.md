@@ -1,4 +1,4 @@
-# IPC Admin Panel — Customer Guide
+# IPC Admin Panel — Owner Guide
 
 A PHP admin panel for managing the IPC product catalog and PDF data sheets
 directly on your Network Solutions hosting account. Every edit you make here
@@ -84,7 +84,9 @@ public_html/
     ├── ping.php            ← Session keepalive probe for unsaved.js
     ├── help.php            ← In-app help & documentation
     ├── audit-log.php       ← View every change made through the admin
-    ├── *.js                ← confirm / search / spectable / content / unsaved / help
+    ├── *.js                ← confirm / search / spectable-editor / content-editor /
+    │                         unsaved / help / product-preview / settings-preview /
+    │                         contrast-guard / csrf-back  (ten files; `ls admin/*.js`)
     ├── admin-log.jsonl     ← Audit log (auto-created on first save)
     ├── inquiries.jsonl     ← Contact-form leads (written by contact.php)
     └── .login-throttle.json ← Per-IP failed-login counters
@@ -95,12 +97,22 @@ public_html/
 
 ## First-time deploy (one-time setup)
 
-> **This site is already live.** The steps below are the historical
-> first-time setup, kept for reference. For the release you are actually
-> shipping, use the manifest in the root [README.md](../README.md) — and note
-> that **`data/` and `pdfs/` are now live customer state and must NOT be
-> uploaded from the repo.** An FTP overwrite creates no backup and destroys
-> every edit the owner has made. (Settled 2026-08-04; AUDIT_v3 D7/D9.)
+> **Which deploy is this? Answer before following anything below.** Open
+> `https://www.insulationproducts.com/data/products-all.json`. A catalog of
+> products means the site is live and this section is history — use the
+> manifest in the root [README.md](../README.md), and **never upload `data/`
+> or `pdfs/` from the repo**, because they are live customer state, an FTP
+> overwrite creates no backup, and it destroys every edit the owner has made.
+> A 404 means this is the **first** deploy, the steps below are the ones to
+> follow, and `data/`, `pdfs/` and `uploads/` go up exactly once, now.
+> [`GO-LIVE.md`](../GO-LIVE.md) STEP 0 is the same question with the full
+> branch either way.
+>
+> This paragraph opened "**This site is already live.**" until 2026-09-14,
+> when audit 9 measured the host answering **404** for all three data files:
+> the guidance was the exact opposite of what the operator needed, on the one
+> deploy where skipping `data/` means shipping a site with no catalog.
+> (A-9.B2-12. Settled 2026-08-04 for the re-deploy branch; AUDIT_v3 D7/D9.)
 
 1. Run `npm run build` in the repo. This produces `/dist`.
 2. FTP four trees into `public_html/`:
@@ -135,11 +147,22 @@ npm run build
 ```
 
 FTP only the **contents** of `/dist` (`index.html` + `assets/`) into
-`public_html/`, overwriting the old `index.html` and `assets/` folder.
+`public_html/`, overwriting the old `index.html` and `assets/` folder — and
+upload `assets/` **before** `index.html`, or every visitor between the two
+uploads gets a shell pointing at a bundle that is not there yet.
 **Do NOT re-upload `data/`, `pdfs/`, or `admin/`** — those are live on the
 server and your local copies are stale.
 
-## Customer workflows
+**With one exception:** `data/.htaccess`, `pdfs/.htaccess` and
+`uploads/.htaccess` are repo code that happens to live inside those folders.
+Vite never copies them into `dist/`, so nothing downstream carries them.
+Upload the **file**, never the folder, whenever one of them has changed.
+`data/.htaccess` alone holds the `AddType application/json` the site's loader
+requires and the `X-Robots-Tag: noindex` half of the catalog-indexing fix.
+(A-6.2 closed this in the root README; the same unqualified rule was still
+here — A-9.B2-12.)
+
+## Owner workflows
 
 ### Adding a new product
 
@@ -152,9 +175,18 @@ server and your local copies are stale.
    - **Product Name** — full name as shown on the site.
 4. Fill in optional fields (Operating Temp, Image Caption, Specifications
    Summary, Photo URL, badges, description paragraphs).
-5. Spec tables (Specifications + Size/Dimension) take **JSON** — see the
-   examples below. Leave them at the defaults if you don't have spec data
-   yet; you can fill them in later via Edit.
+5. Spec tables (Specifications + Size/Dimension) are filled in with a
+   **visual builder** — a grid of rows and columns with *+ Add row* and
+   *+ Add column* buttons, and a *Split into sub-columns* control for a
+   Min/Max style pair. No JSON is required. The raw JSON is still there
+   behind **Advanced**, for pasting a table someone sends you; the reference
+   below documents that shape. Leave the tables empty if you don't have spec
+   data yet; you can fill them in later via Edit.
+
+   *(This step read "take **JSON** — see the examples below" until 2026-09-14.
+   The dashboard replaced that workflow with the builder and the Help page was
+   updated; this file was not, so it taught the owner to hand-write JSON for a
+   screen that has not needed it in months. A-9.B2-13.)*
 6. Click **Add Product**.
 7. On the dashboard, click **View ↗** next to the new product to see how it
    renders on the public site. Allow ~60 seconds for the change to propagate.
@@ -164,8 +196,9 @@ server and your local copies are stale.
 1. From the dashboard, click **Edit** on the row.
 2. Change any field. SKU can be renamed — but if the new SKU matches another
    existing product the admin will block the save with an error.
-3. **If a spec-table JSON is invalid**, the save will fail with a parse
-   error message — fix the syntax and resubmit.
+3. **If you edited a spec table under Advanced and the JSON is invalid**,
+   the save will fail with a parse error message — fix the syntax and
+   resubmit. The visual builder cannot produce invalid JSON.
 4. Click **Save Changes**. Click **View ↗** afterwards to verify.
 
 ### Deleting a product
@@ -321,8 +354,8 @@ admin's own Password page calls `opcache_invalidate()` so it applies at once.
 
 | Symptom | Cause / fix |
 |---|---|
-| Login loops back to the login page | Cookies blocked, or password wrong (5 failures triggers a 1-8 second delay) |
-| "Failed to save" on Add or Edit | `data/products-all.json` is not writable — chmod 666 |
+| Login loops back to the login page | Cookies blocked, or password wrong. After 5 failures in a row the page pauses before the next try: 15 seconds, doubling each time, up to a 5-minute ceiling (`LOGIN_COOLOFF_BASE` / `LOGIN_COOLOFF_MAX`). This row said "1-8 second delay" until 2026-09-14 — A-9.B2-14. |
+| "Failed to save" on Add or Edit | `data/products-all.json` is not writable. Set `data/` to 755 (or 775) and the file to 644 — try 666 only if 644 still will not write, which is what the permissions table above says. |
 | PDF upload errors with "Upload failed" | `pdfs/` is not writable — chmod 755 (or 775) |
 | Public site doesn't show my edit | Wait 60 seconds, then hard-refresh (Ctrl+Shift+R) |
 | Public site says "Catalog Unavailable" | `data/products-all.json` is missing on the server, or the JSON is malformed (open it directly to check) |
@@ -338,7 +371,7 @@ admin's own Password page calls `opcache_invalidate()` so it applies at once.
 - After 5 failed logins the address is put in a cool-off that doubles from 15s
   to a 300s ceiling. The count and the decision happen inside ONE `flock`, so
   parallel connections queue and each takes its own number — an attacker cannot
-  amortise the wait across concurrent requests, and an attempt refused during a
+  amortize the wait across concurrent requests, and an attempt refused during a
   cool-off is neither counted nor logged. (This paragraph described the
   pre-4.14 implementation until 2026-08-18: a bare `sleep()` and an unlocked
   read-modify-write. Both were replaced on 2026-08-06; the text was not.)
@@ -347,7 +380,7 @@ admin's own Password page calls `opcache_invalidate()` so it applies at once.
   wait, and `audit_log()` no-ops in the same failure — so guessing is neither
   slowed nor recorded. Failing open is deliberate (it must not lock the owner
   out) and the dashboard health banner says so explicitly.
-- Treat a long, random password as the actual defence. (Earlier revisions of
+- Treat a long, random password as the actual defense. (Earlier revisions of
   this file claimed "online brute-force is impractical"; that was not supported
   by the implementation then and is not the claim being made now.)
 - For an extra layer, add cPanel Basic Auth in front of `/admin/`

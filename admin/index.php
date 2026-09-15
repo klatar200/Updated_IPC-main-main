@@ -131,7 +131,7 @@ $navActive = 'products';
 <main class="admin-wide">
   <div class="page-header">
     <div>
-      <h1>Product Catalog</h1>
+      <h1>Products</h1>
       <p><?= count($products) ?> products across <?= count($grouped) ?> categories</p>
     </div>
     <a href="add.php" class="btn btn-primary">+ Add Product</a>
@@ -185,7 +185,21 @@ $navActive = 'products';
   }
   if (!is_dir(PDF_DIR) || !is_writable(PDF_DIR)) {
       $healthProblems[] = 'The <code>pdfs</code> folder is missing or not writable. '
-        . 'Data-sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.';
+        . 'Data sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.';
+  }
+  /* A-9.P2-2 — the image extension the photo resizer needs. Every other row
+     here is a permission; this one is a missing PHP extension, and it fails
+     SOFTLY: the upload still succeeds, the photo is just never scaled down, so
+     the product page silently carries a multi-megabyte LCP image. Measured
+     with `php -d disable_functions=imagescale`: a 4032×3024 photo stored at
+     4032×3024. The upload screen now says so too, but only to whoever happens
+     to be uploading — this is the row that tells the owner the server is the
+     reason, before the next photo goes up. */
+  if (!extension_loaded('gd') || !function_exists('imagescale')) {
+      $healthProblems[] = 'This server cannot resize images — the PHP <code>gd</code> extension is missing. '
+        . 'Photo uploads still work, but large photos are saved at their original size and those product pages '
+        . 'will load slowly on a phone. Ask the host to enable <code>gd</code>, or resize photos to about '
+        . IMG_MAX_WIDTH . ' pixels wide before uploading them.';
   }
   /* A-7.4 — contact.php could not write the inquiry log.
      This is the one mail/log outcome that is otherwise SILENT: the mail went,
@@ -216,7 +230,7 @@ $navActive = 'products';
   $closeBtn = '<form method="POST" style="display:inline;margin-left:6px">'
     . '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '">'
     . '<input type="hidden" name="close_reset_window" value="1">'
-    . '<button type="submit" class="btn btn-sm btn-danger" style="vertical-align:baseline">Close it now</button>'
+    . '<button type="submit" class="btn btn-sm btn-danger" style="vertical-align:baseline">Close It Now</button>'
     . '</form>';
   if (password_reset_unlocked()) {
       $healthProblems[] = '<strong>The password-reset window is OPEN.</strong> '

@@ -102,7 +102,7 @@ $navActive = 'password';
 <body>
 <?php include 'nav.php'; ?>
 <main>
-  <h1>Change Password</h1>
+  <h1>Password</h1>
   <p class="sub">Updates the admin sign-in password. Takes effect on your next sign-in; your current session stays active.</p>
 
   <?php if (!empty($errors)): ?>
@@ -130,7 +130,7 @@ $navActive = 'password';
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
       <button type="submit" class="btn-primary">Change Password →</button>
     </form>
-    <div class="note">⚠ Store the new password in a password manager. There is no “forgot password” email, and there is no built-in default password to fall back to. If it is lost: over FTP, upload an empty file named <code>ALLOW-PASSWORD-RESET</code> into the <code>admin</code> folder, then open <code>/admin/</code> in a browser — a one-time “Set admin password” screen appears. Deleting <code>config.local.php</code> alone does <strong>not</strong> reset anything; it locks the admin completely.</div>
+    <div class="note">⚠ Store the new password in a password manager. There is no "forgot password" email, and there is no built-in default password to fall back to. If it is lost: over FTP, upload an empty file named <code>ALLOW-PASSWORD-RESET</code> into the <code>admin</code> folder, then open <code>/admin/</code> in a browser — a one-time "Set admin password" screen appears. Deleting <code>config.local.php</code> alone does <strong>not</strong> reset anything; it locks the admin completely.</div>
   </div>
 </main>
 <script src="unsaved.js" defer></script>

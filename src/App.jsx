@@ -3043,7 +3043,9 @@ function DatasheetsPage({ products }) {
               No datasheets found
             </div>
             <p className="mt-2 text-sm" style={{ color: "#4b5563" }}>
-              Nothing matches “{q}”. This filter covers part numbers, product
+              {/* A-9.P5a-9(a) — the one curly-quoted string on the public
+                  surface; the other eleven quoted strings are straight. */}
+              Nothing matches "{q}". This filter covers part numbers, product
               names and families — sizes are listed inside each datasheet, so
               try the part number or call 630.771.0700 and we will point you at
               the right one.
@@ -3190,7 +3192,12 @@ function HomePage() {
             The same team, the same building, since 1974
           </h2>
           <p className="mt-2 text-sm max-w-2xl" style={{ color: "#4b5563" }}>
-            IPC has stocked, cut and shipped from 250 Gibraltar Drive for over
+            {/* A-9.P4-6 — this sentence and the two facility `alt`s spelled the
+                street "Drive" in full, while every other rendering of the same
+                address (footer, /contact, privacy §7, Organization JSON-LD)
+                read site-info.json's `address.street`, which abbreviates it.
+                Read the field, so there is one spelling and it is the owner's. */}
+            IPC has stocked, cut and shipped from {site.address.street} for over
             fifty years — privately held, independent, and ISO 9001 registered.{" "}
             <PageLink
               page="about"
@@ -3229,7 +3236,7 @@ function HomePage() {
           <figure className="m-0 rounded-2xl overflow-hidden md:self-start" style={{ border: "1px solid #e5e9ee" }}>
             <img
               src={slotSrc(img.bandBuildingPhoto)}
-              alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
+              alt={`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`}
               loading="lazy"
               decoding="async"
               width={BAND_BUILDING.w}
@@ -3670,7 +3677,7 @@ function AboutPage() {
             {img.aboutPhoto ? (
             <img
               src={slotSrc(img.aboutPhoto)}
-              alt="The IPC facility at 250 Gibraltar Drive, Bolingbrook, Illinois"
+              alt={`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`}
               loading="lazy"
               decoding="async"
               width={BAND_BUILDING.w}
@@ -4228,7 +4235,10 @@ const FAQ_CATEGORIES = [
           // programme here would be a business claim the site cannot support.
           question: "I'm a supplier or manufacturer's rep — who do I contact?",
           answer:
-            "Supplier, distribution and partnership enquiries go to the same team: email sales@insulationproducts.com with \"Supplier enquiry\" in the subject line, or call 630.771.0700 (Mon–Fri, 8am–5pm CT). You can also use the \"Send a Message\" tab on our Contact page — that form is for general enquiries, so there is no need to fill in a part number or quantity.",
+            // A-9.P5a-11 — three "enquiry" spellings in one default answer.
+            // content.json's faq[18] overrides this, so the change reaches a
+            // fresh install rather than this site; the live copy is Rick's.
+            "Supplier, distribution and partnership inquiries go to the same team: email sales@insulationproducts.com with \"Supplier inquiry\" in the subject line, or call 630.771.0700 (Mon–Fri, 8am–5pm CT). You can also use the \"Send a Message\" tab on our Contact page — that form is for general inquiries, so there is no need to fill in a part number or quantity.",
         },
       ],
     },
@@ -4704,7 +4714,33 @@ function ContactPage() {
    * param, and the two success bodies differ only in phrasing.
    */
   const [sentParam, setSentParam] = useSearchParam("sent");
-  const submitted = sentParam === "1";
+  /*
+   * A-9.P7-2 — the paragraph above reasons about the person who just submitted
+   * and then reloads, and for them "thank you" is TRUE. It does not cover the
+   * cold load: a bookmark, a restored tab, or a link someone forwards. There
+   * the URL alone made the page announce "Quote Request Received — Thank you!
+   * Your quote request has been received" for a request that was never sent,
+   * and a buyer who believes a quote is in does not send it again. Measured on
+   * a cold browser context: the panel rendered, no mail was sent, and
+   * inquiries.jsonl did not move.
+   *
+   * The URL stays the single source of truth for Back — removing that would
+   * reintroduce the A1 defect the paragraph above warns about. This adds one
+   * AND: the confirmation also requires that THIS browsing session actually
+   * submitted. The flag is written at submit time and read once at mount, so a
+   * genuine reload still shows the confirmation, and a session that never
+   * posted never sees it. If sessionStorage is unavailable (private windows,
+   * blocked storage) the in-memory half still covers the live submit and a
+   * reload simply returns the form — the safe direction.
+   */
+  const [sentThisSession, setSentThisSession] = useState(() => {
+    try { return sessionStorage.getItem("ipc-contact-sent") === "1"; } catch (_) { return false; }
+  });
+  const markSent = () => {
+    setSentThisSession(true);
+    try { sessionStorage.setItem("ipc-contact-sent", "1"); } catch (_) { /* storage blocked */ }
+  };
+  const submitted = sentParam === "1" && sentThisSession;
   const [submittedTab, setSubmittedTab] = useState("rfq");
 
   // B16 — the success panel takes focus and is announced.
@@ -4833,6 +4869,7 @@ function ContactPage() {
         setSubmittedTab("message");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
         // from this param; see the note where sentParam is declared.
+        markSent();   // A-9.P7-2 — and from a submit that really happened
         setSentParam("1");
       } else {
         // The server's message is specific — which field, or which guard was
@@ -4881,6 +4918,7 @@ function ContactPage() {
         setSubmittedTab("rfq");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
         // from this param; see the note where sentParam is declared.
+        markSent();   // A-9.P7-2 — and from a submit that really happened
         setSentParam("1");
       } else {
         setFormError({ kind: "validation", message: json.error || localizeProse(cf.submitError, site) });
@@ -5034,6 +5072,10 @@ function ContactPage() {
                 // — this is the "strip the param" pattern T2.3 is about, and
                 // pushing would make Back re-enter the confirmation.
                 setSentParam(null, { replace: true });
+                // A-9.P7-2 — leaving the confirmation also clears the session
+                // flag, or a later reload of a stale ?sent=1 would resurrect it.
+                setSentThisSession(false);
+                try { sessionStorage.removeItem("ipc-contact-sent"); } catch (_) { /* storage blocked */ }
                 setRfqForm({
                   name: "",
                   email: "",
@@ -5877,6 +5919,24 @@ const PRODUCTS_JSON_URL = "/data/products-all.json";
  * instead, this constant and those three files must change together.
  */
 const SITE_ORIGIN = "https://www.insulationproducts.com";
+
+/**
+ * A product's photograph as an absolute URL, or `undefined` — ONE definition.
+ *
+ * Two consumers need exactly this value and used to compute it separately:
+ * PageMeta's og:image and (since A-9.P4-9) the Product JSON-LD `image`. The
+ * placehold.co guard is the load-bearing half — five records sit on the branded
+ * "PRODUCT IMAGE COMING SOON" panel, and asserting that as the product's
+ * photograph is worse than asserting nothing: a link preview of it is worse
+ * than the company card, and a structured-data consumer would take it for the
+ * part. `undefined` rather than "" so the JSON-LD key drops out entirely (NB4).
+ */
+function productImageAbs(p) {
+  const src = p && p.photoUrl ? String(p.photoUrl) : "";
+  if (!src || src.includes("placehold.co")) return undefined;
+  if (/^https?:\/\//.test(src)) return src;
+  return SITE_ORIGIN + (src.startsWith("/") ? "" : "/") + src;
+}
 
 /**
  * The canonical absolute URL for a route — ONE definition.
@@ -6910,7 +6970,13 @@ const COPY_DEFAULTS = {
     // anywhere near the submit control, on a form that collects a name, an
     // email, a phone number and a company.
     requiredLegend: "Fields marked * are required.",
-    privacyNote: "We use your details only to answer this enquiry. See our",
+    // A-9.P5a-11 — this said "enquiry" against an "inquiry" majority: the
+    // admin screen is called Inquiries and the log is inquiries.jsonl. The
+    // content.json copy and the three inside the privacy policy belong to the
+    // owner and move together with it; these hardcoded defaults do not.
+    // (No apostrophes here — see the NOTE above phonePlaceholder. This comment
+    // broke copydrift once while it was being written.)
+    privacyNote: "We use your details only to answer this inquiry. See our",
     companyLabel: "Company",
     companyPlaceholder: "Your organization",
     tipsTitle: "For fastest response, include:",
@@ -6933,8 +6999,8 @@ const SEO_DEFAULT = [
     title: "Insulation Products Corporation — Heat Shrink Tubing, Sleeving & Adhesives",
     desc: "IPC is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. Ships same day. ISO 9001 registered.",
   },
-  { page: "products", title: "Product Catalog — Insulation Products Corporation", desc: "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and data sheets, and request a quote." },
-  { page: "dashboard", title: "Product Index — Insulation Products Corporation", desc: "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and data sheets for every SKU." },
+  { page: "products", title: "Product Catalog — Insulation Products Corporation", desc: "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and datasheets, and request a quote." },
+  { page: "dashboard", title: "Product Index — Insulation Products Corporation", desc: "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and datasheets for every SKU." },
   { page: "datasheets", title: "Datasheets — Insulation Products Corporation", desc: "Download the published datasheet for every IPC product. Heat shrink tubing, sleeving, adhesives and accessories — grouped by family, no form required." },
   { page: "industries", title: "Industries Served — Insulation Products Corporation", desc: "IPC supplies specification-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry." },
   { page: "services", title: "Value-Added Services — Insulation Products Corporation", desc: "Custom cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, and JIT delivery programs. Typical lead time one week or less." },
@@ -6975,6 +7041,71 @@ function useIsUnknownRoute() {
 /** A4 — the share card, and the intrinsic size of the product photography. */
 const OG_CARD = { src: "/images/og-card.jpg", w: 1200, h: 630 };
 const OG_PHOTO = { w: 400, h: 300 };
+
+/**
+ * A-9.P6-1 / A-9.P6-2 — length caps for the GENERATED product head only.
+ *
+ * These two apply to the 42 titles and descriptions PageMeta assembles from the
+ * catalog. They deliberately do NOT touch `entry.title`/`entry.desc`: those are
+ * the owner's own copy from Page Content → SEO, and silently rewriting what he
+ * typed is not this code's job. Three of his rows run 4-21 characters over and
+ * are recorded as an owner action, not clipped here.
+ *
+ * 60 / 160 are the audit's adopted rules; Google truncates a title around
+ * 575-600px and a snippet around 160 characters.
+ */
+const META_TITLE_MAX = 60;
+const META_DESC_MAX = 160;
+
+/**
+ * Trim to a word boundary and mark the cut.
+ *
+ * The shipped generator ended `.slice(0, 300)`, which cut mid-clause: one
+ * description ended "…+275°F, 3000psi, " — a separator with nothing after it.
+ * The boundary search is floored at 60% of the budget so a string with no
+ * space in its tail degrades to a hard cut rather than to almost nothing.
+ */
+function trimToWord(text, max) {
+  const s = String(text || "");
+  if (s.length <= max) return s;
+  let cut = s.slice(0, max - 1);
+  const sp = cut.lastIndexOf(" ");
+  if (sp > max * 0.6) cut = cut.slice(0, sp);
+  // A cut inside a parenthetical leaves the bracket hanging — the longest
+  // product name broke as "Fiberglass Sleeving (Heat…", which reads as a
+  // truncation fault rather than a summary. Drop the opened clause instead.
+  while ((cut.match(/\(/g) || []).length > (cut.match(/\)/g) || []).length) {
+    cut = cut.slice(0, cut.lastIndexOf("("));
+  }
+  return cut.replace(/[\s,;:.—–/·-]+$/, "") + "…";
+}
+
+/**
+ * A-9.P6-1 — the product <title>, capped with the part number surviving.
+ *
+ * 39 of 42 titles ran past 60 characters and the worst reached 149, because the
+ * name, the SKU and the company name were concatenated unconditionally. Google
+ * cut them before the SKU appeared — on the 42 pages whose whole purpose is to
+ * be found by part number. Order of sacrifice: the company name first (it is
+ * the same 31 characters on every page and tells a searcher nothing), then the
+ * product name, trimmed to a word. The SKU is never dropped: it is what was
+ * searched for, and it is also what keeps all 42 titles distinct.
+ */
+function fitProductTitle(label, sku, company, shortName) {
+  const full = `${label} — ${company}`;
+  if (full.length <= META_TITLE_MAX) return full;
+  // Before dropping the brand entirely, try the short form the owner already
+  // maintains on Business Details ("IPC"). A title with no company at all is
+  // the last resort, not the first.
+  const short = shortName && shortName !== company ? `${label} — ${shortName}` : "";
+  if (short && short.length <= META_TITLE_MAX) return short;
+  if (label.length <= META_TITLE_MAX) return label;
+  const tail = sku && label.endsWith(sku) ? ` — ${sku}` : "";
+  const budget = META_TITLE_MAX - tail.length;
+  if (budget < 12) return sku || label.slice(0, META_TITLE_MAX);
+  const head = tail ? label.slice(0, label.length - tail.length) : label;
+  return trimToWord(head, budget) + tail;
+}
 
 // Contact-page sidebar "for fastest response" tips.
 const CONTACT_TIPS = [
@@ -7181,7 +7312,16 @@ function StructuredData() {
       alternateName: site.company.shortName || undefined,
       slogan: site.company.slogan || undefined,
       url: SITE_ORIGIN,
-      logo: `${SITE_ORIGIN}/favicon.svg`,
+      // A-9.P4-7 — this was hardcoded to /favicon.svg, so the logo field
+      // Business Details offers (`theme.logoUrl`, written by settings.php and
+      // rendered in the navbar, the 404 page and the footer) was the one place
+      // it did not reach: an owner who uploaded a logo still published the
+      // favicon as the organisation's mark. Absolute, because a relative logo
+      // in JSON-LD is not resolvable by a consumer that only has the feed.
+      logo: (() => {
+        const l = (site.theme && site.theme.logoUrl) || "/logo.svg";
+        return /^https?:\/\//.test(l) ? l : SITE_ORIGIN + (l.startsWith("/") ? "" : "/") + l;
+      })(),
       description: site.company.description,
       // A-8.9 — year only, not `-01-01`. schema.org/foundingDate is an ISO 8601
       // Date and a bare year is valid, so appending January 1st bought no
@@ -7386,16 +7526,24 @@ function PageMeta({ products }) {
       const name = (matched.name || "").trim();
       const label = sku && !name.toUpperCase().includes(sku.toUpperCase())
         ? `${name} — ${sku}` : name;
-      title = `${label} — ${site.company.name}`;
+      // A-9.P6-1 — was `${label} — ${site.company.name}` unconditionally.
+      title = fitProductTitle(label, sku, site.company.name, site.company.shortName);
       const summary = String(matched.specificationsSummary || "").trim();
       const kind = String(matched.partType || "").trim();
-      desc = localizeProse(
-        [
-          sku ? `${name} (${sku})` : name,
-          kind ? `— ${kind}.` : "—",
-          summary || "Specifications, data sheet and quote request.",
-        ].join(" ").replace(/\s+/g, " ").slice(0, 300),
-        site
+      // A-9.P6-2 — the cap was 300 and the cut was a bare `.slice()`. Clamped
+      // AFTER localizeProse, not before: localizeProse substitutes the live
+      // address and phone for the defaults and can make the string LONGER, so
+      // trimming first would let the final rendered value run past the cap.
+      desc = trimToWord(
+        localizeProse(
+          [
+            sku ? `${name} (${sku})` : name,
+            kind ? `— ${kind}.` : "—",
+            summary || "Specifications, datasheet and quote request.",
+          ].join(" ").replace(/\s+/g, " "),
+          site
+        ),
+        META_DESC_MAX
       );
     }
 
@@ -7503,13 +7651,11 @@ function PageMeta({ products }) {
     // A product with a real photograph shares that photo; a product on the
     // branded placeholder falls back to the card, because a link preview of a
     // "PRODUCT IMAGE COMING SOON" panel is worse than the company card.
-    const photo =
-      matched && matched.photoUrl && !String(matched.photoUrl).includes("placehold.co")
-        ? String(matched.photoUrl)
-        : "";
-    const ogImage = photo
-      ? (/^https?:\/\//.test(photo) ? photo : SITE_ORIGIN + (photo.startsWith("/") ? "" : "/") + photo)
-      : SITE_ORIGIN + OG_CARD.src;
+    // A-9.P4-9 — `productImageAbs` is now the one definition of this value;
+    // the Product JSON-LD needs the identical guard and the identical
+    // absolutisation, and two constructions is how they stop agreeing.
+    const photo = matched ? productImageAbs(matched) : undefined;
+    const ogImage = photo || SITE_ORIGIN + OG_CARD.src;
     setMeta("property", "og:image", ogImage);
     // Declared so the first share renders without the crawler fetching the file
     // to measure it. The per-product photos are all 400x300 source art.
@@ -8593,7 +8739,7 @@ function ProductDetail({ product, allProducts }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   useEffect(() => { setPhotoFailed(false); }, [product && product.sku]);
   // product.pdfUrl is set by the PHP admin (upload-pdf.php → "/pdfs/<sku>.pdf").
-  // When it's missing we render a "Request Data Sheet" button that routes to
+  // When it's missing we render a "Request Datasheet" button that routes to
   // the contact form instead — there is no external printable-page fallback.
   const hasPdfFile = Boolean(product.pdfUrl);
   // C32 — Features carries what the approvals block does not already say.
@@ -8628,10 +8774,19 @@ function ProductDetail({ product, allProducts }) {
         : product.description || product.name,
       "brand": { "@type": "Brand", "name": "Insulation Products Corporation" },
       "manufacturer": { "@type": "Organization", "name": "Insulation Products Corporation", "url": "https://www.insulationproducts.com" },
+      // A-9.P4-9 (the `image` half) — the photo is already validated and
+      // already painted on this page, so omitting it from the Product block
+      // was free warning volume in Search Console on all 42 routes. Same
+      // placehold.co guard PageMeta applies to og:image: a record on the
+      // branded placeholder asserts no image rather than asserting a
+      // placeholder as the product's photograph. `undefined` drops the key —
+      // an empty string would be a claim that the value is blank (NB4).
+      // The `offers` half is a commercial decision and is NOT emitted here.
+      "image": productImageAbs(product),
     });
     document.head.appendChild(el);
     return () => { document.getElementById("product-ld")?.remove(); };
-  }, [product.id, product.name, product.partNumber, product.description]);
+  }, [product.id, product.name, product.partNumber, product.description, product.photoUrl]);
 
   return (
     <div
@@ -8708,7 +8863,14 @@ function ProductDetail({ product, allProducts }) {
           <div className="flex flex-wrap items-center gap-2 mt-1">
             {hasPdfFile ? (
               <>
-                {/* Primary PDF — uses pdfLabel if set (e.g. "Molded Cap" for IP52EC), else "Download PDF" */}
+                {/* Primary PDF — uses pdfLabel if set (e.g. "Molded Cap" for
+                    IP52EC, the one product with two PDFs and a real need for
+                    two names), else the generic label.
+                    A-9.P5a-6/A-9.P5a-7 — this said "Download PDF" while the
+                    sticky bar's control for the SAME file said "Data Sheet",
+                    so one destination had two names on one page. One form now,
+                    and it is the one word the route, the nav item and the page
+                    heading already use (/datasheets, "Datasheets"). */}
                 <a
                   href={safeHref(product.pdfUrl)}
                   target="_blank"
@@ -8736,7 +8898,7 @@ function ProductDetail({ product, allProducts }) {
                     <line x1="12" y1="18" x2="12" y2="12" />
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
-                  {asText(product.pdfLabel) || "Download PDF"}
+                  {asText(product.pdfLabel) || "Datasheet"}
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants (e.g. IP52EC plugged-cap) — same styling */}
@@ -8772,7 +8934,7 @@ function ProductDetail({ product, allProducts }) {
                         <line x1="12" y1="18" x2="12" y2="12" />
                         <polyline points="9 15 12 18 15 15" />
                       </svg>
-                      {asText(extra.label) || "Download PDF"}
+                      {asText(extra.label) || "Datasheet"}
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
@@ -8803,7 +8965,9 @@ function ProductDetail({ product, allProducts }) {
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                   <polyline points="22,6 12,13 2,6" />
                 </svg>
-                Request Data Sheet
+                {/* A-9.P5a-7 — "Data Sheet" here made a third spelling of the
+                    same noun on one page. One word, like the route. */}
+                Request Datasheet
               </PageLink>
             )}
             <PageLink
@@ -8820,7 +8984,9 @@ function ProductDetail({ product, allProducts }) {
                 cursor: "pointer",
               }}
             >
-              Request Quote
+              {/* A-9.P5a-6 — "Request Quote" here and "Request a Quote →" in
+                  the sticky bar are one destination under two names. */}
+              Request a Quote
             </PageLink>
           </div>
         </div>
@@ -9263,7 +9429,7 @@ function CatalogLanding({
           </div>
           <p className="mt-2 text-sm" style={{ color: "#4b5563" }}>
             {query
-              ? `No results for “${query}”${activeFamily ? ` in ${activeFamily}` : ""}. Try a different term, or clear the filters.`
+              ? `No results for "${query}"${activeFamily ? ` in ${activeFamily}` : ""}. Try a different term, or clear the filters.`
               : `Nothing in ${activeFamily}.`}{" "}
             Sizes are listed on each product page — if you know the size but not
             the part number, call 630.771.0700 and we will point you at it.
@@ -9664,7 +9830,7 @@ function ProductPage({ products }) {
               lineHeight: 1.6,
             }}
           >
-            <strong>We couldn't find part “{selectedId}”.</strong> It may have been
+            <strong>We couldn't find part "{selectedId}".</strong> It may have been
             renamed or discontinued. Showing the catalog instead — pick a part from
             the list, or{" "}
             <PageLink
@@ -9804,7 +9970,9 @@ function ProductPage({ products }) {
           <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 min-w-0 ml-auto">
             {product.pdfUrl ? (
               <>
-                {/* Primary PDF — uses pdfLabel if set, else generic "Data Sheet" */}
+                {/* Primary PDF — uses pdfLabel if set, else the same generic label the
+                    product header uses. A-9.P5a-6 — these two were "Data Sheet"
+                    here and "Download PDF" there, for one file. */}
                 <a
                   href={safeHref(product.pdfUrl)}
                   target="_blank"
@@ -9846,7 +10014,7 @@ function ProductPage({ products }) {
                     <line x1="12" y1="18" x2="12" y2="12" />
                     <polyline points="9 15 12 18 15 15" />
                   </svg>
-                  {asText(product.pdfLabel) || "Data Sheet"}
+                  {asText(product.pdfLabel) || "Datasheet"}
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
                 {/* Additional PDF variants — same styling */}
@@ -9896,7 +10064,7 @@ function ProductPage({ products }) {
                         <line x1="12" y1="18" x2="12" y2="12" />
                         <polyline points="9 15 12 18 15 15" />
                       </svg>
-                      {asText(extra.label) || "Data Sheet"}
+                      {asText(extra.label) || "Datasheet"}
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
@@ -10008,6 +10176,40 @@ const DASHBOARD_COLS = [
 ];
 
 /**
+ * A-9.P4-5 — the sort key for the Temp column: the HIGHEST temperature the
+ * value names, in °C, or `null` when it names none.
+ *
+ * Every column used to sort with `localeCompare` on the raw string, and the
+ * raw strings are 30 distinct formats over 42 records — `-20°C to 105°C`,
+ * `Up to 125°C`, `Rated to 125°C`, `Temperature index 125°C`, °F-only, dual
+ * (`-275°F to 500°F (-70°C to 260°C)`), and per-material lists. Sorted as text
+ * that put `-100°F to 500°F` first and `Up to 90°C` last: ascending began with
+ * one of the hottest parts and ended with one of the coolest, on a column a
+ * buyer sorts precisely to find the part that survives their temperature.
+ *
+ * The ceiling, not the floor, because that is what the column is used to
+ * answer ("what can take 150°C?"). Taking the maximum over EVERY unit-carrying
+ * number in the string is what makes the per-material lists and the dual
+ * °F/°C forms work without parsing their grammar: `-275°F to 500°F (-70°C to
+ * 260°C)` yields 260 either way, and `Up to 1200°F (Heat Treated); 130°C …`
+ * correctly yields 649, which is the hottest thing in the catalog.
+ *
+ * A value naming no temperature returns `null` and sorts LAST in both
+ * directions (see the comparator) — an empty cell is not a rating of zero, and
+ * the seven unrated products are not the coolest parts IPC sells.
+ */
+function tempCeilingC(raw) {
+  const s = String(raw || "");
+  let max = null;
+  for (const m of s.matchAll(/([+-]?\d+(?:\.\d+)?)\s*°?\s*([CF])\b/gi)) {
+    const n = parseFloat(m[1]);
+    const c = m[2].toUpperCase() === "F" ? ((n - 32) * 5) / 9 : n;
+    if (max === null || c > max) max = c;
+  }
+  return max;
+}
+
+/**
  * B20 — the empty-state cell must span every column, including Action, which
  * is rendered outside the DASHBOARD_COLS loop. It was hardcoded to 6 against a
  * 7-column table, so the no-results panel stopped 130px short of the table's
@@ -10105,6 +10307,20 @@ function DashboardPage({ products }) {
           : sortCol === "specifications"
             ? "specs"
             : sortCol;
+      // A-9.P4-5 — Temp is a temperature, not a string. Sort it on the ceiling
+      // its value names (tempCeilingC, above), and put the values that name no
+      // temperature at the bottom in BOTH directions: a blank cell is not a
+      // rating of zero, so it must not lead the ascending sort.
+      if (key === "operatingTemp") {
+        const ac = tempCeilingC(a[key]), bc = tempCeilingC(b[key]);
+        if (ac === null || bc === null) {
+          if (ac === bc) return 0;
+          return ac === null ? 1 : -1;   // unrated last, whichever way we sort
+        }
+        if (ac !== bc) return sortDir === "asc" ? ac - bc : bc - ac;
+        // Equal ceilings: fall through to the text comparison so the order of
+        // the eight products rated to 135°C is at least stable and readable.
+      }
       // Strip parenthetical suffixes from name before comparing so compound products sort naturally
       const normalize = (v) =>
         key === "name" ? v.replace(/\s*\(.*$/, "").trim() : v;
@@ -10144,8 +10360,13 @@ function DashboardPage({ products }) {
       />
       <div className="ipc-page-header">
         <div className="ipc-container px-6 py-12">
+          {/* A-9.P6-3 — this eyebrow was the literal string of its own <h1>,
+              the only inner page where the two are the same. Every other page
+              uses the eyebrow as a category label above the title ("Company",
+              "Legal", "Resources", "Technical library"); a screen reader here
+              announced the same four words twice in a row. */}
           <PageEyebrow>
-            Product Index
+            Catalog
           </PageEyebrow>
           <h1 className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
             Product Index
@@ -10156,7 +10377,7 @@ function DashboardPage({ products }) {
           >
             Browse all {tableRows.length} products with key specifications.
             Click <strong className="ipc-ink-header">View Product</strong> for full
-            data sheets and quote requests.
+            datasheets and quote requests.
           </p>
         </div>
       </div>
@@ -10557,6 +10778,12 @@ function DashboardPage({ products }) {
                 <PageLink
                   page="products"
                   params={{ productId: row.productId }}
+                  // A-9.P5a-10 — the page renders a table row and a mobile card
+                  // per product, so 42 products produce 84 links all named
+                  // "View Product". The row supplies the context visually, but
+                  // a link list reads as the same four words 84 times. The
+                  // name is already in scope at both call sites.
+                  aria-label={`View ${row.name || row.partId}`}
                   style={{
                     display: 'block',
                     // <a> is left-aligned where <button> centres. Full-width
@@ -10924,6 +11151,9 @@ function DashboardPage({ products }) {
                         <PageLink
                           page="products"
                           params={{ productId: row.productId }}
+                          // A-9.P5a-10 — the desktop twin of the mobile card's
+                          // link; see the note there.
+                          aria-label={`View ${row.name || row.partId}`}
                           style={{
                             display: "inline-flex",
                             alignItems: "center",

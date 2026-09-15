@@ -5894,3 +5894,314 @@ deleted. `milestones` is a historical timeline; the row is `year: "2024"`, which
 is the year the company actually reached fifty. The About prose says "over fifty
 years". Both correct; the finding came from a `grep` without reading the
 structure around it.
+
+---
+
+## 1y. Shipped 2026-09-14 — forty-one of the fifty-four audit-9 findings
+
+Audit 9 is the full go-live audit: `plans/PLAN-11-audit9-go-live.md`, executed
+as written. The record is `audit-runs/audit9.md` — 54 findings, 0 Blocker,
+3 High, 21 Medium, 30 Low; 41 fixed here, 7 owner actions, 6 escalated, 0 left
+open. Verdict **GO-WITH-OWNER-ACTIONS**, gated on the certificate.
+
+Every fix was written test-first: a check that fails against the unfixed tree,
+then the change, then the same check passing. The before-runs are on disk under
+`_harness/out/audit9/C/`.
+
+### The one High that was code
+
+**A-9.P7-1 — renaming a product's SKU deleted a different product's data sheet.**
+`admin/edit.php` renamed `/pdfs/<old>.pdf` to `/pdfs/<new>.pdf` without asking
+whether any other product pointed at the same file. Two products share one data
+sheet in the shipped catalog (`IP12GA` and `IP12GA - IP1274`), so renaming
+either one 404'd the other's Data Sheet button, silently, with no error and no
+backup — `pdfs/` is not covered by `backup_before_write()`. The fix builds the
+set of PDF basenames every *other* product references before renaming anything,
+skips a name in that set, and says so in the flash message.
+
+### Runtime and security
+
+| Record | What changed |
+|---|---|
+| A-9.P2-1 | `admin/config.php` called `mb_strlen` unconditionally. On a host without `mbstring` — the production PHP version is `[UNSOURCED]` — Add Product and Edit Product returned a blank 500 and saved nothing. Guarded, with a `strlen` fallback. |
+| A-9.P2-2 | Without `gd`, a phone-sized photo was stored at full size and the success message said nothing about it. The message now says so, and the dashboard grew a ninth health branch for a missing `gd`/`imagescale`. |
+| A-9.P3-2 | A 29-byte `GIF89a` + PHP polyglot passed the extension-and-sniffed-MIME check. `admin/upload-image.php` now refuses anything `imagecreatefromstring()` cannot decode, and anything containing a PHP open tag. |
+| A-9.P7-2 | `/contact?sent=1` rendered "Quote Request Received" for anyone who pasted, bookmarked or back-buttoned the URL — a confirmation for a request that was never sent. Gated on a `sessionStorage` flag set at submit time. |
+
+### The public site
+
+`src/App.jsx`: the street address now reads from `site-info.json` in the three
+places that spelled it out (A-9.P4-6); Organization JSON-LD's `logo` follows
+`theme.logoUrl` instead of being hardcoded to the favicon (A-9.P4-7); Product
+JSON-LD carries an absolute `image` on the 37 records with a real photograph,
+behind the same `placehold.co` guard `og:image` uses, now extracted to one
+`productImageAbs()` so the two cannot drift (A-9.P4-9, image half); a product
+page offers one visible name per destination instead of five names for two
+(A-9.P5a-6); the hardcoded "data sheets" strings are the one word the route,
+the nav item and the page heading already use (A-9.P5a-7); the 84 "View
+Product" links carry a per-product `aria-label` (A-9.P5a-10); the generated
+product `<title>` is capped at 60 characters **with the SKU surviving the cut**
+and the description at 160, trimmed on a word boundary and after
+`localizeProse` rather than before (A-9.P6-1, A-9.P6-2); `/dashboard`'s eyebrow
+is a category label rather than a copy of its own `<h1>` (A-9.P6-3); one quote
+glyph in the public copy (A-9.P5a-9) and "inquiry" in the hardcoded defaults
+(A-9.P5a-11).
+
+### The admin
+
+The two upload screens state the limit the **server** will honour, not the
+admin's own cap (A-9.B2-04, proved against a deliberately 2M-limited instance:
+before, they claimed 8MB and 20MB; after, both read 2MB). The five Site Images
+labels no longer print their own markup to the owner (A-9.B2-05). Three
+save-failure messages named `products.json`, which is not a file in `data/`
+(A-9.B2-07). The Inquiries page no longer wraps a dash in a bare `mailto:` link
+(A-9.B2-11). One name for the product, one verb for signing in, one spelling of
+color / catalog / data sheet, one quote glyph, one ellipsis glyph, Title Case
+buttons, and four `<h1>`s that now match the nav tab you clicked to reach them
+(A-9.B2-08, B2-09, B2-10, P6-4). `public/contact.php`'s business-hours fallback
+is byte-identical to the default it stands in for — it had hyphens where every
+other rendering has en dashes, so clearing Hours would have switched the emails
+and not the site.
+
+### Documentation and the harness
+
+Fourteen documentation findings (A-9.B2-01/02/03/06, B2-12…B2-16, D3, D4, D7)
+and four harness ones. `_harness/fgpatch.js` no longer crashes every sweep as a
+false red (A-9.D5); `_harness/plan5-keys.js` proves its own restores instead of
+performing them silently, 11/11 → 15/15 (A-9.D6); `_harness/router.php` resolves
+its docroot from `DOCUMENT_ROOT`, so a private mirror is actually private
+(A-9.P3-1); `npm audit fix` took the free lockfile-only cleanup, 7 advisories to
+4, `package.json` untouched and the bundle byte-identical (A-9.D1).
+
+### Three checks the fix rounds broke, and why that is in this list
+
+`copydrift` (a possessive apostrophe in a comment inside `COPY_DEFAULTS` —
+the trap that file's own `NOTE` documents), `copydrift-selftest` (mutation
+anchors quoting curly quotes that A-9.B2-09 converted), and `plan10-header`
+(a per-product geometry baseline that predates A-9.P5a-6's relabelling). All
+three are repaired with the reason written inline. The `plan10-header`
+re-capture is itself evidence: all 42 products at both viewports moved by
+exactly one of **two** deltas, which is the label change and nothing else.
+
+---
+
+## 2o. Open after audit 9 (2026-09-14)
+
+Nothing from audit 9 is *open* in the sense of unowned: every one of the 54
+records has an outcome. What is listed here is what is owed by someone other
+than the code, and the one measurement shortfall.
+
+### Owner actions — the gate first
+
+1. **[GATE] The certificate (A-9.P5a-1, High).** `insulationproducts.com` and
+   `www.insulationproducts.com` present an **expired** `CN=*.hostingplatform.com`
+   certificate, and plain HTTP answers `302 → /site/` rather than
+   `301 → https://www.…`. The privacy policy promises HTTPS, so going live
+   before the host fixes this publishes a false statement in a legal document.
+   This is a **pre-deploy gate**, not a post-deploy checklist item. Evidence:
+   `_harness/out/audit9/step0.md`.
+2. **The "42 Products Stocked" stat (A-9.P4-4, Medium).** Typed on Page Content,
+   with no link to the catalog it counts.
+3. **FAQ answer 14 (A-9.P5a-2, Medium).** It tells the buyer to click a "Data
+   Sheet" button. The button is now called **`Datasheet`**. It also promises a
+   catalog PDF that does not exist until `catalogPdfUrl` is filled in.
+4. **One sitting on Products → Edit (A-9.P4-10, A-9.P5a-4, A-9.P5a-5,
+   A-9.P5a-8, all Low).** Inch marks on three SKUs, five misspellings, the
+   certification-mark spellings, and six badge concepts written two ways.
+   **A-9.P5a-5 must follow A-9.P4-3**, which changes which mark each string
+   names — doing the spelling pass first means doing it twice.
+
+### Escalations — six decisions, none of them C's
+
+`A-9.P4-2` "Made in USA" as a certification chip (High) · `A-9.P4-1` the
+unqualified "same day" claim · `A-9.P4-3` three certification categories that do
+not exist · `A-9.P4-5` the Temp column sorting as text · `A-9.P4-8` the five
+products with no photograph · `A-9.P5a-3` the privacy policy's effective date.
+Each is written in the five-field form in `audit-runs/audit9.md` §2 and
+summarised in §5.2. A-9.P4-9's `offers` half is a seventh: whether IPC publishes
+availability without a price.
+
+### The verification shortfall — 24 of 54, six of them since closed
+
+**V1 and V2 reached 30 of the 54 records before the five-hour usage limit ended
+both sessions.** 18 of the remaining 24 were reproduced by C's own test-first
+fix runs — evidence the defect existed, but not §3.6 verification, because the
+same agent wrote the check and the fix. One more, A-9.B2-15, is marked `[WEAK]`:
+its first acceptance arm passed against the unfixed file because it searched for
+wording the guide does not use.
+
+**The six that had neither — A-9.P4-2, A-9.P4-4, A-9.P4-8, A-9.P5a-2,
+A-9.P5a-3, A-9.P5a-4 — were re-measured on 2026-09-15** (`SUPERSEDES` the
+`[UNVERIFIED — no second agent]` line above for those six only).
+`_harness/audit9-verify6.js`: **29 load-bearing claims, 28 reproduced, 1
+adjusted, 0 refuted.** It measures from the primary data rather than re-running
+each record's own `reproduce:` block — counting differently where a record
+counted, and enumerating the whole set where a record named instances.
+
+C is independent of the **raiser** (B1 measured all six; C did not), which is
+the independence PLAN-11 §3.6 asks for, but C is not a separate agent and wrote
+those records' `outcome:` fields. So `audit-runs/audit9.md`'s header still reads
+"verified by V: 30/54" — the totals script counts only V1 and V2 — and the six
+are labelled "re-measured by C", not verified.
+
+The one adjustment is A-9.P5a-4's parenthetical: `Semrigid` should be normalised
+to `Semi-Rigid`, but there are **three** spellings across four products, not two
+— `IP34SR` and `IP3L` say `Semi-Rigid`, `IP42MW` says `Semi-rigid`, `IP35KY`
+says `Semrigid`. The owner edit on Products → Edit is a three-way normalisation,
+not a one-word typo fix, which strengthens A-9.P5a-8. Two defects in C's own
+re-measurement checks were found and corrected in the process; both were the
+check's, not the record's, and both are logged in `audit9.md` §6.1 items 19-20.
+
+### Measured and deliberately not fixed
+
+Home's 74-character `<title>` and the three meta descriptions 4–21 characters
+over 160 are the **owner's** copy on Page Content → SEO; A-9.P6-1/P6-2 cap what
+the code generates and leave what he wrote alone. `help.php`'s 17 uses of
+"dashboard" are common-noun references to the screen, not a fourth product name.
+`admin/delete.php`'s `<h1>` "Delete this product?" stays sentence case — it is
+the only question and the only destructive confirmation among the thirteen.
+"Part Number / SKU" versus "Part ID" is a naming decision that should be settled
+once for both screens. `PRIVACY_SECTIONS`' three "enquiry" spellings move with
+`content.json`'s privacy text or not at all.
+
+The four §4.4-permitted reds are unchanged before and after: `brandtext` 36/47,
+`isoclaims` 2/4, `plan8-polish` 16/17, `plan8-contrast` 34/35 exit 0.
+`isoclaims` is red because of the open ISO revision question, which is
+`GO-LIVE.md` §A's first line and is not audit 9's to answer.
+
+---
+
+## 4v. Verification evidence for audit 9 (2026-09-14)
+
+The full evidence is `audit-runs/audit9.md` — §2 carries all 54 records with
+`reproduce:`, `observed:`, `expected:`, `evidence:`, `verified-by:` and
+`fix-proof:` fields, §3 maps each fix to its commit, §4 reproduces the four
+"checked, no finding" sections verbatim, and §6 lists eighteen of C's own
+self-corrections plus every pass agent's. What follows is only what a reader
+needs in order to re-run any of it.
+
+**The four acceptance suites, all written before their fixes:**
+
+| Suite | Before | After | Covers |
+|---|---|---|---|
+| `_harness/audit9-fixes.js` | 0/5, 1/14, and a separate 5-arm run | all green | P7-1, P2-1, P2-2, P3-2, P7-2, the admin screens, the documents |
+| `_harness/audit9-router-docroot.js` | 5/8 | 8/8 | P3-1 |
+| `_harness/audit9-public-fixes.js` | 2/17 | 17/17 | P4-6, P4-7, P4-9, P5a-6, P5a-7, P5a-9, P5a-10, P5a-11, P6-1, P6-2, P6-3 |
+| `_harness/audit9-admin-text.js` | 3/15 | 15/15 | B2-08, B2-09, B2-10, P6-4 |
+
+`_harness/audit9-totals.js` generates `audit9.md`'s totals table and verdict
+from the §2 records, so the counts cannot be typed wrong — which they were, on
+the first run: the script read 47 of 54 because its id pattern assumed a flat
+counter and the seven `A-9.D*` records fell out.
+
+**The sweep.** The denominator is a three-way union of **80 runnable suites**,
+derived in `audit9.md` §1.3 from the Appendix A classifier (58),
+`_harness/README.md`'s five tables (67) and `plans/GUARDRAILS.md` §4.1 (64, of
+which 8 appear in neither of the others). The list is
+`_harness/out/audit9/sweep-list-final.txt`; both sweeps ran it in the same
+order. Before: `sweep-before.txt`. After: `sweep-after.txt`.
+
+**Two measurements worth keeping, because both were nearly missed:**
+
+*The negative control that passed against unfixed code.* The A-9.P7-1 arm
+reported green before the fix existed, because the mirror started dirty with a
+leftover `AUDIT9TMP.pdf` and `edit.php`'s correct no-clobber guard skipped the
+rename — the right behaviour for the wrong reason. A green control is not
+evidence until you know why it is green. `restoreMirror()` now reconciles
+`pdfs/` before as well as after a run.
+
+*The size-label fix, proved on a server that could not honour the label.*
+A-9.B2-04's first check compared the rendered label against the **CLI's**
+`upload_max_filesize`, not the serving instance's. Rewritten to parse the limit
+from `help.php` on the same server, then demonstrated on a deliberately
+2M-limited instance: before the fix the screens claimed 8MB and 20MB; after,
+both read 2MB.
+
+---
+
+## 1z. Shipped 2026-09-15 — a second fix round over four escalated/owner records
+
+Audit 9 handed back four of these as *not C's to fix*: three were owner actions
+on `data/`, one was an escalated decision. Keagan lifted PLAN-11 §7.3 for them
+explicitly and asked for them to be done. All four are test-first, same as the
+first round. `audit-runs/audit9.md` §2 carries the full records; its totals are
+now 54 findings — **40 fixed outright, 5 partly, 4 owner actions, 5 escalated,
+0 open**.
+
+### The Product Index sorts temperatures as temperatures (A-9.P4-5)
+
+Every column sorted with `localeCompare` on the raw string, and the raw strings
+are 30 distinct formats over 42 records. Sorting Temp ascending began with
+`-100°F to 500°F` and ended with `Up to 90°C` — one of the hottest parts first,
+one of the coolest last, on the column a buyer sorts precisely to find the part
+that survives their temperature. The seven unrated products sorted to the top.
+
+`tempCeilingC()` takes the highest temperature the value names, in °C, as the
+maximum over every unit-carrying number in the string. That is what makes the
+per-material lists and the dual forms work without parsing their grammar:
+`-275°F to 500°F (-70°C to 260°C)` gives 260 either way, and `Up to 1200°F (Heat
+Treated); 130°C …` gives 649 — the hottest thing in the catalog. A value naming
+no temperature returns `null` and sorts **last in both directions**: a blank cell
+is not a rating of zero. Equal ceilings fall through to the old text comparison,
+so the eight products rated to 135°C keep a stable order.
+
+Proof: `_harness/audit9-tempsort.js`, 2/6 before and 6/6 after, driven through
+the real table rather than by calling the comparator, with the expected key
+derived independently of the implementation.
+
+**A record correction**: A-9.P4-5 annotates `-100°F to 500°F` as "the HIGHEST
+ceiling in the catalog". It is 260°C; the real ceiling is `IP64FS…`'s 1200°F
+(649°C). It was merely first in the *text* sort.
+
+### The catalog text (A-9.P5a-4, A-9.P4-10, A-9.P5a-8 in part)
+
+30 string values in `data/products-all.json`, 0 structural changes, verified by
+a semantic diff of the whole catalog:
+
+- **Six misspellings** — `agressive`, `apperance`, `availble`, `transparant`
+  (twice), `Semrigid`. The check asserts both halves: the misspelling is gone
+  **and** the right word is present, so a deletion cannot pass as a correction.
+- **21 bare inch cells** on `IP37SH - IP36TH - IP39LH`, `IP38FE` and `IP42MW`
+  now carry the mark. AWG gauge numbers and section-header rows are excluded by
+  the same predicates the record's own `reproduce:` block uses.
+- **Three badge families** normalised where the catalog itself names a majority:
+  `Semi-rigid` → `Semi-Rigid` (2 of 3), `Environmental protection` →
+  `Environmental Protection`, `Low Shrink Temp` → `Low Shrink Temperature`
+  (4 of 5). Badge count unchanged at 158 — renames only.
+
+**Why a file edit was legitimate here and will not be again.** STEP 0 recorded
+the site as NOT LIVE, so the runbook is on branch B — first deploy, where `data/`
+is uploaded from the repo. These corrections therefore ship with it. After the
+first deploy `data/` is live customer state and the same corrections would have
+to be made in the dashboard; `GO-LIVE.md` §A now says so on the line itself.
+`_harness/pristine/` was re-seeded, which is the procedure §1x already records
+for an intentional data change.
+
+### What was deliberately left, and asserted as left
+
+`_harness/audit9-catalog-text.js` asserts the **un**changed things too, so a
+later pass cannot quietly finish the job on what needs a decision:
+
+- `Low Temperature Flexibility` vs `Low-Temperature Flexibility`, and
+  `125°C Rated` vs `Rated 125°C` — one product each. No majority, so choosing
+  is a wording decision, not a normalisation.
+- `U/L CSA MIL-Spec.` vs `U/L CSA MIL-Spec` — blocked. A-9.P5a-5 must follow
+  A-9.P4-3, which decides which mark the string names and is undecided.
+
+### The totals table gained a column
+
+Five records ship one half and owe the other (A-9.P4-9, P5a-7, P5a-8, P5a-9,
+P5a-11). `_harness/audit9-totals.js` was counting them as fixed, which
+overstated the round by five; it now has a **Partly fixed** column and a record
+counts as fixed only when nothing is still owed on it.
+
+### Regression
+
+45 of the 84 suites re-run, chosen by what the diff touches — the whole catalog
+and dashboard set, the crawl- and contrast-based public suites, and all seven
+`audit9-*` suites. **43 green; the two reds are the documented expected ones**
+(`isoclaims` 2/4, `plan8-polish` 16/17). The remaining ~39 are admin-only,
+contact-only or harness selftests that cannot see a product string or the
+Product Index sort. The full 84-suite sweep from 2026-09-14 is unchanged and
+still in `_harness/out/audit9/sweep-after.txt`; this round did not re-run it.
+

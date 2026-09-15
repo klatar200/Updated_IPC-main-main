@@ -61,6 +61,16 @@ the last minute.
       the apex is served without redirecting, every page declares a canonical
       it is not being served at, and `sitemap.php` advertises 52 URLs on the
       wrong host.
+
+      ⚠ **2026-09-14 — this is now a GATE, not a checklist item.** Audit 9
+      measured the live host (`_harness/out/audit9/step0.md`): both the apex and
+      `www` present an **expired** `CN=*.hostingplatform.com` certificate, which
+      is not issued for this hostname at all, and plain HTTP answers
+      `302 → /site/` rather than `301 → https://www.…`. The privacy policy tells
+      visitors their data is transmitted over HTTPS. **Deploying before the host
+      fixes this publishes a false statement in a legal document** — see
+      `audit-runs/audit9.md` A-9.P5a-1. Nothing in the repo can fix it; it is
+      the host's to do, and it has to be done before deploy day, not after.
 - [ ] **Apply the two corrected privacy-policy sections.** ⚠ **On a re-deploy
       this is an ADMIN EDIT, not a file upload.** The policy renders from
       `data/content.json`, which is live customer state and is *never*
@@ -95,6 +105,47 @@ the last minute.
 - [ ] **Set up an uptime monitor** on `https://www.insulationproducts.com/`
       (any free tier). The site is one FTP mistake away from a blank page and
       nothing else will tell you.
+
+### Added 2026-09-14 by audit 9 — admin edits, not file uploads
+
+All four render from `data/content.json` or `data/products-all.json`, which are
+live customer state. Do them in the dashboard; do not re-upload `data/`.
+Full records in `audit-runs/audit9.md` §2, summarised in §5.1.
+
+- [ ] **Correct the "42 Products Stocked" figure** whenever the catalog count
+      changes (**A-9.P4-4**). It is typed by hand at **Admin → Page Content**,
+      on a different screen from the catalog it counts, with no link between
+      them. It is right today; nothing keeps it right.
+- [ ] **Rewrite FAQ answer 14** (**A-9.P5a-2**), at **Admin → Page Content →
+      FAQ**. Two things in it are wrong. It tells the buyer to click a
+      **"Data Sheet"** button; audit 9 gave that control one name across the
+      product page and the name is **`Datasheet`**. It also promises "the full
+      IPC product catalog PDF" on the Products page header and in the footer —
+      there is no such file until `catalogPdfUrl` is filled in on **Business
+      Details**, so either fill it in or drop the sentence.
+- [ ] **Settle the certification marks first, then spell them consistently**
+      (**A-9.P4-3** then **A-9.P5a-5**), at **Admin → Products → Edit**. The
+      catalog cites three certification categories that no issuing body
+      publishes, and the marks that *are* real are spelled several ways
+      (`U/L` and `UL`, `Mil-Spec` / `MIL-Spec` / `MIL-SPEC`, `ROHS` and `RoHS`,
+      `AMS-1234` and `AMS 1234`, `USFDA` and `FDA`). **Order matters**: A-9.P4-3
+      changes which mark each string names, so a spelling pass done first has to
+      be done twice.
+- [x] ~~**One sitting on Products → Edit for the rest**~~ — **done in the repo
+      2026-09-15**, before first deploy, so it ships with `data/`: the six
+      misspellings (**A-9.P5a-4**), the inch mark on 21 cells across three SKUs
+      (**A-9.P4-10**), and the three badge families whose majority form the
+      catalog itself names (**A-9.P5a-8**, part). Nothing to do here on a first
+      deploy. ⚠ On a **re-deploy** this does not apply: `data/` is live customer
+      state and is never re-uploaded, so the same corrections would have to be
+      made in the dashboard instead.
+- [ ] **Two badge pairs and the certification marks still need you**
+      (**A-9.P5a-8** remainder, **A-9.P5a-5**), at **Admin → Products → Edit**.
+      `Low Temperature Flexibility` vs `Low-Temperature Flexibility` and
+      `125°C Rated` vs `Rated 125°C` are one product each — there is no majority
+      to normalise to, so pick the one you want. The certification marks are
+      blocked behind **A-9.P4-3** above and must not be spelled until it is
+      settled.
 
 ---
 

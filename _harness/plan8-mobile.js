@@ -234,8 +234,14 @@ const measure = () => {
     `all ${conv.length} tel:/mailto: links are at least ${TARGET}x${TARGET}`,
     convSmall.map((e) => `${e.route} ${e.w}x${e.h} ${JSON.stringify(e.text)}`).join('\n         '));
 
+  // The labels changed in A-9.P5a-6/A-9.P5a-7: the PDF control was "Download
+  // PDF" and is now "Datasheet" (the one word the route and the nav item
+  // already use), its no-file counterpart was "Request Data Sheet", and the
+  // quote control was "Request Quote". The `productCtas.length > 0` guard
+  // below is what caught the rename rather than letting this arm pass on an
+  // empty set — keep it.
   const productCtas = (rec['/products?productId=IP33PO'] || []).filter((e) =>
-    /Download PDF|Request Quote|Request Data Sheet/i.test(e.text));
+    /Datasheet|Request a Quote|Request Datasheet/i.test(e.text));
   const ctaSmall = productCtas.filter((e) => e.h < TARGET);
   note(productCtas.length > 0 && ctaSmall.length === 0,
     `the product page's primary actions are at least ${TARGET}px tall ` +

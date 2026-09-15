@@ -24,7 +24,7 @@ Changes since the site went live, **2026-07-08 → 2026-08-07** (`8902180` → `
 - **A missing `Referer` was rejected**, which privacy extensions and corporate proxies routinely cause — this cost real leads. Now accepted; only `http`/`https` referrers are host-compared, so Gmail for Android is no longer 403'd as an attack.
 - Rate limiter moved above the referer and honeypot checks — honeypot POSTs had been completely unlimited.
 - Rejected leads (403/429) are logged instead of vanishing, capped at 10 per IP per window.
-- Auto-reply cap normalises Gmail plus- and dot-addressing; seven spellings of one mailbox had produced 15 auto-replies.
+- Auto-reply cap normalizes Gmail plus- and dot-addressing; seven spellings of one mailbox had produced 15 auto-replies.
 - Inline per-field errors with focus management, replacing one generic message.
 - Fields capped (5,000 / 200 chars) with truncation announced; inquiry log rotates at 16 MB and is read from the tail.
 - `company_name` CRLF-stripped before the `From:` header; non-string `form_type`/`email` no longer 500s.
@@ -64,11 +64,11 @@ Changes since the site went live, **2026-07-08 → 2026-08-07** (`8902180` → `
 - Fax is no longer a `tel:` link; the About page reads its phone number from site info.
 - The privacy page no longer claims it was updated today, every day.
 
-## Brand colours and contrast
+## Brand colors and contrast
 
-- **Pick a pale brand colour and the site shipped white-on-white**, with nothing warning the owner. Readable ink is now computed per surface and recomputed whenever a colour changes, with a plain-language readability note and live ratio under each picker. The save is never blocked — it is his brand.
+- **Pick a pale brand color and the site shipped white-on-white**, with nothing warning the owner. Readable ink is now computed per surface and recomputed whenever a color changes, with a plain-language readability note and live ratio under each picker. The save is never blocked — it is his brand.
 - 77 translucent-white foregrounds and 12 `text-white` classes follow that ink instead of hardcoding white.
-- Brand colours used as *text* darkened for legibility: **274 → 12** failures.
+- Brand colors used as *text* darkened for legibility: **274 → 12** failures.
 - Page-header eyebrow, all eight pages: **1.04 → 5.14:1** worst case.
 - 165 accent glyphs and product-type chips on light backgrounds moved to the text-safe teal: **2.18 → 5.26:1**.
 
@@ -79,7 +79,7 @@ Changes since the site went live, **2026-07-08 → 2026-08-07** (`8902180` → `
 - Sitemap is generated from the live catalog on each request: **9 → 51 URLs**, tracking products added or deleted in the admin with no redeploy.
 - FAQ structured data reads live content; product JSON-LD description fixed.
 - Sortable table headers announce sort state; the FAQ accordion is exposed correctly to screen readers; the mega-menu is keyboard-operable.
-- Every form control labelled; admin focus order and accessible names fixed.
+- Every form control labeled; admin focus order and accessible names fixed.
 - Back button no longer trapped by the category-filter cleanup.
 
 ## Performance
@@ -97,7 +97,7 @@ folders, and every save takes a backup first.
 description; phone, dial string, fax, email; full street address; opening hours
 and days; ISO line plus any number of other certifications; feet-in-stock and
 minimum-order figures; seven social links; any number of About paragraphs; the
-four brand colours and the logo; full-catalogue PDF link. These feed the navbar,
+four brand colors and the logo; full-catalog PDF link. These feed the navbar,
 footer, contact page, About page, search-engine structured data, and every
 `tel:` / `mailto:` link on the site. **The contact form's recipient address is
 this record's email field** — changing it redirects every future lead.
@@ -112,12 +112,12 @@ lists:
 - 45 fields covering every label, placeholder, hint and error message on the
   contact form, plus the auto-reply's two response promises and an optional
   temporary notice
-- Product families: the categories the catalogue groups by, in order, with the
+- Product families: the categories the catalog groups by, in order, with the
   product count beside each
 - Products & Services cards, trust-bar stats, industries grid — each with an icon
   picker
 - Industries detail blocks: applications, linked products (`SKU | Name`,
-  validated against the real catalogue so a typo cannot ship a dead link),
+  validated against the real catalog so a typo cannot ship a dead link),
   certification chips
 - Value-added services: description, lead time, bullet points, optional brochure
 - About timeline, team & capabilities, certifications
@@ -139,8 +139,8 @@ another product's sheet.
 **Read-only tabs** → Inquiries, Audit Log, Backups (restore any of the last 30),
 Change Password, Help.
 
-Two behaviours worth knowing. Changing a brand colour re-skins the whole site and
-the readable text colour is recomputed automatically — the picker shows a live
+Two behaviors worth knowing. Changing a brand color re-skins the whole site and
+the readable text color is recomputed automatically — the picker shows a live
 contrast ratio and a plain-language warning, but never blocks the save. And
 clearing a field now genuinely removes it from the site rather than falling back
 to a hardcoded default, which was broken until this release.
@@ -226,7 +226,7 @@ the deferred items are still live defects.
   page announced the same top-level heading. 1 to 42 distinct, with no URL moved
   and every canonical still byte-identical to the sitemap's `<loc>`. (A3)
 - **Every mistyped URL returned the homepage at 200 with its own canonical.**
-  `/quality`, `/prodcuts` and `/contact-us` each became a self-canonicalising
+  `/quality`, `/prodcuts` and `/contact-us` each became a self-canonicalizing
   duplicate of the homepage, and a visitor who mistyped got no signal at all.
   There is a real not-found page now, carrying `noindex` and **no** canonical —
   a canonical on a soft 404 is the half-fix that looks done. The server still
@@ -342,7 +342,7 @@ Not fixed. A reader of this file should not conclude otherwise.
   121 instances (B10). `prefers-reduced-motion` is not honoured (B14). There is
   no skip link anywhere on the site — WCAG 2.4.1, Level A (B15). The two primary
   actions on the product page are 28 px tall on mobile (B24). `/services` skips
-  a heading level (B28). The trust marquee is an unlabelled tab stop (C50).
+  a heading level (B28). The trust marquee is an unlabeled tab stop (C50).
 - **Chrome, assets and copy (Phase F) was not started.** The mobile menu has no
   scrim, does not lock the page and ignores Escape (B13). The Services lead-time
   banner reads "≤ 1 week · ≤ 1 week (JIT by agreement)" (B21). The product photo
@@ -388,13 +388,13 @@ as **not started**. It is done now. Running total for PLAN-8:
 - **Secondary grey text sat at 2.37–2.54:1 across 358 measured instances** —
   the homepage stat sub-lines, every certification line on `/datasheets`,
   "Showing 42 of 42 products", the catalog sidebar's family headings. One of
-  them was written as a utility class rather than a colour value and survived
+  them was written as a utility class rather than a color value and survived
   the first pass; the measurement caught it, a search of the source would not
   have. (B9)
 - **Footer text failed at 4.25:1 across 234 instances and 2.64:1 across 52** —
   Quick Links, the company description, the copyright and the domain line. Now
-  solid colours on the navy at 10.5:1 and 6.1:1, rather than white at 45% and
-  30% opacity. Opacity over a fixed navy is just a colour with extra steps, and
+  solid colors on the navy at 10.5:1 and 6.1:1, rather than white at 45% and
+  30% opacity. Opacity over a fixed navy is just a color with extra steps, and
   it is what let these fail without anyone noticing. (B10)
 
   *The tool nearly missed this one.* Its first version scored white-at-45% as
@@ -407,8 +407,8 @@ as **not started**. It is done now. Running total for PLAN-8:
 - **One contrast failure is measured and deliberately left**: the spec-table
   sub-header at 3.11:1. Both its ink and its background are computed from the
   owner's brand palette, so the fix belongs to that derivation across all four
-  palettes — a different item. Hardcoding a colour would look like a fix and
-  would be discarded the moment the owner picked a new brand colour. It is
+  palettes — a different item. Hardcoding a color would look like a fix and
+  would be discarded the moment the owner picked a new brand color. It is
   held with a counter so a second such failure cannot hide behind it.
 
 ## Motion, keyboard, and touch
@@ -486,7 +486,7 @@ closed except B26.
   same thing; the summary de-duplicated exact strings and joined whatever
   survived. It now leads with the common lead time and mentions the exception
   beside the pointer to the cards. The owner's wording is not rewritten — he is
-  entitled to add "(JIT by agreement)", and normalising it away would delete
+  entitled to add "(JIT by agreement)", and normalizing it away would delete
   the thing he took the trouble to say. (B21)
 - **The product photograph reserved no space, so the page moved under the
   reader as it loaded.** It is the largest image on every product page. Both it
@@ -497,7 +497,7 @@ closed except B26.
 - **Five products still point at a third-party placeholder image service.** The
   site already ignores those addresses and draws IPC's own panel instead, so no
   request ever leaves for them — now confirmed by watching every request across
-  all 42 product pages rather than by reading the catalogue. Clearing the five
+  all 42 product pages rather than by reading the catalog. Clearing the five
   values remains an owner action. (A7)
 
 ## The mobile menu
@@ -558,7 +558,7 @@ number and email address now sits above the form on small screens only. (B26)
 Nothing in severity A or B. What remains is the 22 severity-C suggestions —
 minus the four already carried — plus three smaller things found while
 measuring: three of 42 rows on the Product Index still exceed the target
-height, one spec-table header colour is decided by the brand palette rather
+height, one spec-table header color is decided by the brand palette rather
 than by this work, and a small residual page movement on product pages that
 comes from the footer.
 
@@ -846,7 +846,7 @@ failed first.
   under a green "Content saved". The five fields now prefill with the shipped
   defaults whenever the key is missing from the file, so the first save
   writes the real paths instead — and Rick can finally see and edit the live
-  values. Clearing a field still removes its photo; that behaviour is the
+  values. Clearing a field still removes its photo; that behavior is the
   point and was not touched. Measured: photos 3 → 0 → 3.
 - **A mistyped or stale product link showed somebody else's part.** The page
   said "Showing the catalog instead" and then showed the full detail page for
@@ -933,7 +933,7 @@ section grows one entry per landed item.
   the way the card was built to do, instead of crushing one column to make the
   rest fit. Separately, the Part ID and Part Type cells were forbidden from
   wrapping, so a compound part number like `IP64FS-IP65VC-IP66AC-IP67SC` ran
-  **108 px** past its own column and printed over its neighbour; both may now
+  **108 px** past its own column and printed over its neighbor; both may now
   wrap.
 
   | | desktop-1440 | tablet-1024 | tablet-834 |
@@ -983,48 +983,48 @@ section grows one entry per landed item.
   Nothing about the validation itself changed: it is still the browser's own,
   with the browser's own wording. (AUDIT-10 A10-012.)
 
-## Phase C — the two colours that ignored the Branding editor
+## Phase C — the two colors that ignored the Branding editor
 
 Business Details → Branding is the control that re-skins the whole site from
-four colours. Two whole classes of colour were not listening to it. **Nothing
+four colors. Two whole classes of color were not listening to it. **Nothing
 below changes how the site looks today** — that was the bar, and it is measured
 rather than asserted: across eight page states, all **1,120** brand-painting
 elements and all **28** gradients render byte-for-byte as they did before, and
 the four surfaces in the second item were captured as images and compared
 pixel-for-pixel.
 
-- **Change the brand colour and the site kept a cyan line under the header on
+- **Change the brand color and the site kept a cyan line under the header on
   every page.** Along with cyan outlines on the "Bolingbrook, IL" badge and on
   every industry card, and a cyan tint behind all 42 rows of the product index.
-  Fourteen shades of the accent colour were written into the code as fixed
+  Fourteen shades of the accent color were written into the code as fixed
   values rather than read from the palette, so they stayed put no matter what
-  was chosen. The main brand colour already had the machinery to avoid this —
-  53 places use it correctly — and the two accent colours had simply never been
+  was chosen. The main brand color already had the machinery to avoid this —
+  53 places use it correctly — and the two accent colors had simply never been
   given the same treatment. They have now.
 
   | after picking a new brand palette | before | after |
   |---|---|---|
   | places still painting the old cyan | **120** | **0** |
-  | the line under the header | cyan on every page | follows the new colour |
+  | the line under the header | cyan on every page | follows the new color |
   | the "Bolingbrook, IL" badge outline | cyan | follows |
   | the 42 product-index type chips | cyan | follow |
 
   (AUDIT-10 A10-045.)
 
-- **Every product page's header faded from the old navy into the new colour.**
+- **Every product page's header faded from the old navy into the new color.**
   The dark blue that begins the banner across the top of a product page was a
-  fixed value, while the colour it fades into was the owner's. Change the
+  fixed value, while the color it fades into was the owner's. Change the
   brand and the result is not an unthemed banner but a clashing one — old navy
-  on the left, new colour on the right — on **all 42 product pages**, which is
+  on the left, new color on the right — on **all 42 product pages**, which is
   where a buyer lands. The five industry card headers did the same, and the
   drop-down menu panel and the phone menu drawer stayed navy entirely.
 
   All four now follow the palette. Each keeps its own exact shade rather than
-  being rounded off to the nearest colour already in the palette: that was
+  being rounded off to the nearest color already in the palette: that was
   tried first, and side by side against the current site the industry cards
   visibly lost the depth of their gradient while the menu panel and the phone
   drawer both read lighter. Instead each shade is now re-mixed from whatever
-  colour is chosen, in the same proportion it has always had to the current
+  color is chosen, in the same proportion it has always had to the current
   one — which reproduces today's site exactly and still tracks a new palette.
 
   | after picking a new brand palette | before | after |
@@ -1148,5 +1148,116 @@ pixel-for-pixel.
   as their worked example of the sub-column feature; that now uses a split a
   real product actually has ("Recovered" into "Diameter" and "Wall").
   (AUDIT-10 A10-029.)
+
+---
+
+# Audit 9 — the go-live audit (2026-09-14)
+
+54 findings, 41 fixed here. Full record: `audit-runs/audit9.md`. What follows
+is only what you would notice.
+
+## The one that could have cost a customer a document
+
+- **Renaming a product's SKU deleted a different product's data sheet.** Two
+  products share one PDF in your catalog. Renaming either one left the other
+  product's **Datasheet** button pointing at a file that no longer existed — a
+  404 for the customer, with no warning to you and no way back, because PDFs
+  are not covered by the automatic backup. Renaming now leaves a shared file
+  alone and tells you it did: *"data sheet IP12GA-IP1274.pdf kept under its old
+  name because another product uses the same file."*
+
+## Things the admin was telling you that were not true
+
+- **The two upload screens stated a size limit your server may not allow.**
+  They printed the dashboard's own cap — 20MB for PDFs, 8MB for photos — even
+  where the server would reject anything over, say, 2MB. Both now state the
+  lower of the two, so the number on the screen is the number that works.
+- **Three "could not save" messages named `products.json`**, which is not a
+  file in your `data/` folder. They name the real file now.
+- **The Page Content screen printed its own formatting codes** in the five Site
+  Images labels — you were reading `&lt;br&gt;&lt;small style=…` where a line
+  break should have been.
+- **The Inquiries page showed a link on inquiries that carry no email address.**
+  Clicking it opened a blank message to nobody. Four of your recorded inquiries
+  are like that; they now show a plain dash.
+- **The Help page described a header bar with four tabs.** It has ten. It also
+  said the audit log explains every action it can record (three were missing),
+  and that "three things can go wrong" with the server when the dashboard can
+  warn you about nine.
+
+## The website itself
+
+- **Search results were cut off before the part number.** Google shows roughly
+  60 characters of a page title; 40 of your 42 product pages ran past that, the
+  worst at 149, so a buyer who searched a part number saw a title that never
+  reached it. Titles are now built to fit **with the part number kept**, and the
+  descriptions are trimmed at a word rather than mid-sentence.
+- **One name per thing.** A product page offered five differently-named links to
+  two destinations — "Download PDF" and "Data Sheet" for the same file,
+  "Request Quote" and "Request a Quote" for the same form. The PDF control is
+  **Datasheet** everywhere now, which is what the Datasheets page and the menu
+  already call it. ⚠ **FAQ answer 14 still says "Data Sheet" and is yours to
+  edit** — it is your text, on Page Content.
+- **Your product photographs are now part of the structured data** search
+  engines read, on the 37 products that have one. The five on the placeholder
+  correctly claim no photograph rather than claiming the placeholder.
+- **Your logo, not the favicon,** is what the site now tells search engines is
+  the company mark — it follows the logo field on Business Details.
+- **The About page said "250 Gibraltar Drive"** where the footer, the Contact
+  page and the privacy policy all say "250 Gibraltar Dr". All of them now read
+  the address you typed on Business Details, so there is one spelling of it.
+- **A confirmation that had not been earned.** Opening `/contact?sent=1` —
+  pasted, bookmarked, or reached with the Back button — told the visitor
+  "Quote Request Received" when nothing had been sent. It now shows the form.
+
+## Consistency, across both halves
+
+The dashboard called itself "Admin Panel" before you signed in and "Product
+Manager" afterwards, in the same place on the screen. Its sign-in page was
+titled "Login" while its own button said "Sign In". It spelled `colour` and
+`color`, `catalog` and `catalogue`, `data sheet` and `data-sheet` and
+`spec sheet`. It mixed curly
+and straight quotation marks, and "…" with "...". Its buttons were Title Case in
+thirty-eight places and sentence case in sixteen — five of them in the same
+`+ Add …` row on one screen. Four pages were headed something other than the tab
+you clicked to reach them: Products, Add Product, Password, Help. All of that is
+one way now. Nothing moved and nothing changed what it does.
+
+## Safety, on hosts we cannot see
+
+- **A file that is not really an image can no longer be uploaded as one.** A
+  29-byte file with an image header and PHP inside it passed the old check. The
+  uploader now refuses anything it cannot actually decode as a picture.
+- **The dashboard no longer dies on a server without `mbstring`.** Add Product
+  and Edit Product returned a blank error page and saved nothing. We do not know
+  which PHP your host runs, which is exactly why this matters.
+- **A server without image support now says so.** Your photo was being stored at
+  full size — a 4000-pixel phone picture as-is — and the success message said
+  nothing about it. The dashboard's health panel warns about it too.
+
+
+## A second round, 2026-09-15
+
+Four more, from the list audit 9 had handed to you rather than fixed.
+
+- **The Product Index sorted temperatures alphabetically.** Clicking **Temp** to
+  sort put one of the *hottest* parts at the top and one of the coolest at the
+  bottom, and the seven products with no rating came first. It sorts on the real
+  ceiling now, in °C, so ascending runs coolest to hottest whatever units the
+  value is written in — and the unrated ones sit at the bottom in both
+  directions, where a blank belongs.
+- **Six spelling mistakes in the catalog** are corrected: "agressive",
+  "apperance", "availble", "transparant" (on two products) and the badge
+  "Semrigid".
+- **Sizes in one spec-table column now all carry the inch mark.** On three
+  products the same column read `3/4` in one row and `1"` in the next, which
+  reads as two different units.
+- **Three badges that were written two ways are written one way**: Semi-Rigid,
+  Environmental Protection, Low Shrink Temperature.
+
+Two badge pairs are still yours to choose between, because there is no majority
+to follow: "Low Temperature Flexibility" vs "Low-Temperature Flexibility", and
+"125°C Rated" vs "Rated 125°C". The certification marks still wait on the
+certificates themselves.
 
 **Not yet deployed.** Nothing above is on the live server.

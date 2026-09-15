@@ -433,10 +433,10 @@ function csrf_fail_page(string $reason): void {
            . '<li>Open <a href="auth.php" target="_blank" rel="noopener">the sign-in page</a> in a <strong>new tab</strong> and sign in again.</li>'
            . '<li>Return to your page and click Save. It will go through.</li>'
            . '</ol>'
-           . '<p><button type="button" class="btn btn-primary" data-ipc-back>← Back to my unsaved page</button>'
+           . '<p><button type="button" class="btn btn-primary" data-ipc-back>← Back to My Unsaved Page</button>'
            . '<a class="btn" href="auth.php">Sign in again</a></p>';
     } else {
-        echo '<p><button type="button" class="btn btn-primary" data-ipc-back>← Go back</button>'
+        echo '<p><button type="button" class="btn btn-primary" data-ipc-back>← Go Back</button>'
            . '<a class="btn" href="index.php">Dashboard</a></p>';
     }
     // A-6.1 — the handler lives in an external file because this page is served
@@ -634,7 +634,7 @@ function load_products(): array {
 //      upload, add, delete and restore is a full-catalog save, so an ordinary
 //      afternoon rotated the pre-mistake state off the disk. Keep 30.
 // A-5.15 — one new product is THREE catalog saves (add, then the photo upload,
-// then the data-sheet upload), so adding ten parts in one sitting rotated a
+// then the data sheet upload), so adding ten parts in one sitting rotated a
 // 30-slot window completely and the owner's pre-mistake state was gone by the
 // next morning. The ordering and pruning mechanism was never the problem; the
 // size of the window was. 90 keeps roughly thirty products' worth of work, and
@@ -875,7 +875,7 @@ function load_content(): array {
 }
 
 /**
- * The built-in product families, in catalogue order.
+ * The built-in product families, in catalog order.
  *
  * THIS IS A SECOND COPY OF src/App.jsx's FAMILY_ORDER, and that is deliberate.
  * One copy across two languages is not achievable without a build step, and
@@ -895,7 +895,7 @@ function load_content(): array {
  * distinct badge strings across 42 products, ~20 of them carrying an approval
  * in 20 different spellings — "U/L CSA", "U/L CSA MIL-Spec.", "U/L CSA and
  * MIL-SPEC", "U/L, MIL-Spec.", "UL & CSA Approved". Nothing could count,
- * filter or list them, and the badge field UNDERSTATED the catalogue: read the
+ * filter or list them, and the badge field UNDERSTATED the catalog: read the
  * whole record and MIL-SPEC goes 5 -> 12 products, UL VW-1 goes 1 -> 11, and
  * products with at least one approval go 23 -> 30.
  *
@@ -964,7 +964,7 @@ function ipc_approval_haystack(array $p): string {
  */
 function ipc_product_approvals(array $p): array {
     if (array_key_exists('approvals', $p) && is_array($p['approvals'])) {
-        // Whitelist on read too: a hand-edited catalogue must not put an
+        // Whitelist on read too: a hand-edited catalog must not put an
         // unknown string into a filter chip.
         return array_values(array_intersect(IPC_APPROVALS, $p['approvals']));
     }
@@ -992,7 +992,7 @@ const IPC_DEFAULT_FAMILIES = [
  * an EMPTY list falls back rather than being honoured as a deletion. That is a
  * deliberate departure from the "empty array is a real deletion" rule the other
  * content sections follow (invariant 3). Measured reason: with no order the
- * catalogue sidebar initialises every family accordion CLOSED and its 41
+ * catalog sidebar initialises every family accordion CLOSED and its 41
  * reachable product links become 0. (It does NOT drop everything into "Other" —
  * that was the first guess and it is wrong; see familyOrder() in src/App.jsx.)
  *
@@ -1033,7 +1033,7 @@ function save_content(array $content): bool {
  * Every action name audit_log() is ever called with, in display order.
  *
  * ONE list, because there were three and nothing compared them: the `<option>`
- * filter in audit-log.php, the colour switch beside it, and the call sites
+ * filter in audit-log.php, the color switch beside it, and the call sites
  * themselves. That is precisely the shape of DEPLOY_READINESS_v2 4.34, where
  * the filter offered `import` — a feature that exists nowhere in the codebase —
  * so choosing it always returned "No entries match", and nothing could have
@@ -1530,7 +1530,7 @@ function product_reference_resolves(array $products, string $needle): bool {
  * What is wrong with this SKU? [] means nothing is.
  *
  * add.php and edit.php checked only "non-empty" and "not already taken", so the
- * catalogue would accept literally any string. Measured: `<script>x</script>`
+ * catalog would accept literally any string. Measured: `<script>x</script>`
  * and `...` were both stored as live SKUs. The second is the one that actually
  * breaks something — pdf_filename_for_sku() and image_filename_for_sku() strip
  * every non-alphanumeric, so a SKU with none at all derives the filenames
@@ -1542,7 +1542,7 @@ function product_reference_resolves(array $products, string $needle): bool {
  * needs is worse than the bug it prevents:
  *
  *   - AT LEAST ONE alphanumeric. This is the whole of the filename fix.
- *   - Only characters the catalogue already uses or the site's three-tier
+ *   - Only characters the catalog already uses or the site's three-tier
  *     lookup already understands: letters, digits, space and - _ . / & + ,
  *     (see ipc_sku_segment_match, which splits on -, / and ,). All 42 shipped
  *     SKUs use only letters, digits and "-"; the `id` field additionally
@@ -1564,7 +1564,17 @@ function sku_problems(string $sku): array {
     if (preg_match('#[^A-Za-z0-9 \-_./&+,]#', $sku)) {
         $errors[] = 'The SKU may only contain letters, numbers, spaces and the characters - _ . / & + , — for example IP33PO or IP44A2 & IP45A3.';
     }
-    if (mb_strlen($sku) > 64) {
+    // A-9.P2-1 — mbstring is NOT guaranteed on the production host, and the
+    // production PHP version is [UNSOURCED]. An unguarded mb_strlen() here is a
+    // fatal on every Add Product and every Edit Product, with a 500 and a blank
+    // page: measured with `php -d disable_functions=mb_strlen`, POST add.php →
+    // 500, 0 bytes, nothing saved, nothing audit-logged. `public/contact.php`
+    // already guards the same extension and falls back; this call site did not.
+    // strlen() counts bytes rather than characters, so the fallback is
+    // marginally stricter for a multi-byte SKU — which is the safe direction
+    // for a value that becomes a filename.
+    $skuLength = function_exists('mb_strlen') ? mb_strlen($sku) : strlen($sku);
+    if ($skuLength > 64) {
         $errors[] = 'The SKU is too long (64 characters maximum).';
     }
     return $errors;

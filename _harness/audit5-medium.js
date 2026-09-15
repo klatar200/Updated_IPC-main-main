@@ -98,7 +98,10 @@ const POST = (p, o, extra = {}) => req({ path: p, method: 'POST',
   ok(/useRefetchOnReturn/.test(js) && (js.match(/useRefetchOnReturn\(/g) || []).length >= 3,
      'A-5.14 site-info and content both revalidate on return');
 
-  // ── A-5.27 — a non-hex brand colour is refused
+  // ── A-5.27 — a non-hex brand color is refused
+  // Spelled "color" since A-9.B2-08(b): settings.php validated in British and
+  // labelled in American on the same screen, and the American form is the
+  // majority everywhere else on both surfaces.
   const login = await POST('/admin/auth.php', { password: 'audit-pass-123' });
   const cookie = (login.headers['set-cookie'] || []).map((c) => c.split(';')[0]).join('; ');
   const AUTH = { headers: { Cookie: cookie } };
@@ -108,7 +111,7 @@ const POST = (p, o, extra = {}) => req({ path: p, method: 'POST',
     csrf_token: tok, company_name: 'IPC', orig_sig: 'stale',
     theme_primary: 'url(https://attacker.example/ping)',
   }, AUTH);
-  ok(/must be a hex colour/.test(bad.body), 'A-5.27 a non-hex brand colour is refused with a reason');
+  ok(/must be a hex color/.test(bad.body), 'A-5.27 a non-hex brand color is refused with a reason');
 
   // ── browser: A-5.11, A-5.23, A-5.28
   const br = await launch();
