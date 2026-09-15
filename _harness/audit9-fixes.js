@@ -497,9 +497,16 @@ function armDocs() {
     (/The five \*\*social links\*\*/.test(guide) ? '; guide still says "The five social links"' : ''));
 
   section('A-9.B2-16  one spelling convention across the owner-facing documents');
-  const brit = (patch.match(/\bcolour|behaviour|neighbour|normalis|canonicalis|labelled|catalogue\b/gi) || []).length;
+  // Inline code spans are stripped first. The rule is about the document's own
+  // PROSE; a backticked token is a string being reported on, not authored copy.
+  // Without this the audit-9 entry cannot describe its own fix — the sentence
+  // that says the admin "spelled `colour` and color, catalog and `catalogue`"
+  // would be counted as two spelling defects. Anything outside backticks still
+  // counts, so the check has not been weakened for prose.
+  const patchProse = patch.replace(/`[^`\n]*`/g, '');
+  const brit = (patchProse.match(/\bcolour|behaviour|neighbour|normalis|canonicalis|labelled|catalogue\b/gi) || []).length;
   ok('b2-16  PATCH_NOTES uses the same spelling convention as the rest of the site',
-    brit === 0, `${brit} British-spelling hits remain`);
+    brit === 0, `${brit} British-spelling hits remain (inline code spans excluded)`);
   ok('b2-16  the owner README does not call the owner "the customer"',
     !/Customer Guide|Customer workflows/.test(aReadme), 'still headed "Customer Guide"');
 }

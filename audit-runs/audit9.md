@@ -172,6 +172,129 @@ Direct runs: invariants 17/17 · invariants-selftest 15/15 · copydrift-selftest
 
 **NOT LIVE.** Verbatim record: `_harness/out/audit9/step0.md`. All three `/data/*.json` answer **404** (host's stock 2007 error page) over plain HTTP; HTTPS on both apex and `www` presents `CN=*.hostingplatform.com` (Sectigo DV), **expired** and not issued for this hostname (`openssl s_client … Verify return code: 10 (certificate has expired)`) — so every `https://` line is `[UNVERIFIED — TLS]`, not "down"; `http://www.insulationproducts.com/` answers `302 → /site/` (server `openresty`), not the runbook's expected `301 → https`. Runbook branch: **B, first deploy.** No live/repo data diff exists; the repo copies are the audit's truth.
 
+### 1.6 The sweep — after
+
+Run 2026-09-14 19:57 – 2026-09-15 00:26 UTC over the same
+`sweep-list-final.txt`, in the same order as §1.4, so the two tables compare
+line for line. Raw: `_harness/out/audit9/sweep-after.txt`.
+
+**84 suites: 81 ok, 3 red**, and all three reds are documented expected reds —
+`brandtext` 36/47 (11 failing, ceiling 13, byte-identical to the before-sweep
+and to audit 8), `isoclaims` 2/4 (the registrar question, `GO-LIVE.md` §A) and
+`plan8-polish` 16/17 (the Linux DejaVu width artifact). `plan8-contrast` is
+34/35 and exits 0, which is its passing state.
+
+Against §1.4's **80 suites: 76 ok, 4 red**:
+
+- **`fgpatch` CRASHED → ok.** The fourth red in the before-sweep was not a site
+  defect at all: a one-shot codemod that the Appendix A classifier swept into
+  the suite set because it calls `ok()` and exits non-zero. Fixed as A-9.D5, so
+  a sweep executor no longer has to re-derive that an unexplained fifth red is a
+  classifier artifact.
+- **`plan5-keys` 11/11 → 15/15.** A-9.D6 — the suite restores the mirror and the
+  bundle and now proves both restores instead of performing them silently.
+- **Four suites are new** and are this round's acceptance suites:
+  `audit9-fixes` 40/40, `audit9-router-docroot` 8/8, `audit9-public-fixes`
+  17/17, `audit9-admin-text` 15/15. Each was written before its fix and watched
+  failing against the unfixed tree.
+- **Nothing else moved.** Every other denominator is identical to §1.4, which is
+  the check that matters: a changed denominator means a suite bailed rather than
+  ran.
+
+Three checks *did* go red during the fix rounds and are repaired, each with the
+reason inline — `copydrift`, `copydrift-selftest` and `plan10-header` in
+`3581f83`, then `plan8-mobile` and this round's own `audit9-fixes` in the
+re-runs appended to `sweep-after.txt`. All five were assertions anchored to
+strings or geometry that a fix deliberately changed, and all five are recorded
+in §6.1 rather than quietly re-baselined.
+
+| Suite | Result | Score (denominator) | Note |
+|---|---|---|---|
+| `adminwidth` | ok | 39/39 |  |
+| `audit5-blockers` | ok | 18/18 |  |
+| `audit5-high` | ok | 30/30 |  |
+| `audit5-medium` | ok | 20/20 |  |
+| `audit6` | ok | 45/45 |  |
+| `audit7` | ok | 30/30 |  |
+| `audit7-lead` | ok | 23/23 |  |
+| `audit9-admin-text` | ok | 15/15 |  |
+| `audit9-fixes` | ok | 40/40 |  |
+| `audit9-public-fixes` | ok | 17/17 |  |
+| `audit9-router-docroot` | ok | 8/8 |  |
+| `backdrop-selftest` | ok | 9/9 |  |
+| `brandtext` | **FAIL** | 36/47 | expected red, judge the failing count (ceiling 13) — 36/47 = 11 failing, identical to the before-sweep and to audit 8 |
+| `contactflow` | ok | 85/85 |  |
+| `contactflow-selftest` | ok | 26/26 |  |
+| `contentlinks` | ok | 18/18 |  |
+| `contrastparity` | ok | 28/28 |  |
+| `copydrift` | ok | (no score line) |  |
+| `copydrift-selftest` | ok | 5/5 |  |
+| `copyroundtrip` | ok | 15/15 |  |
+| `deadlinks` | ok | 0 of 18 resolve to nothing |  |
+| `fgpatch` | ok | (no score line) | was a CRASH in the before-sweep; **fixed this round (A-9.D5)** — it is a one-shot codemod and now exits 0 when every accent site it maps is one it deliberately leaves alone |
+| `imgcheck` | ok | (no score line) |  |
+| `invariants` | ok | 17/17 |  |
+| `invariants-selftest` | ok | 15/15 |  |
+| `isoclaims` | **FAIL** | 2/4 | expected red 2/4 until the registrar answers (A-8.5); `GO-LIVE.md` §A line 1 |
+| `nodupbackups` | ok | 10/10 |  |
+| `plan10-admincrawl` | ok | (no score line) |  |
+| `plan10-adminnav` | ok | 25/25 |  |
+| `plan10-adminrows` | ok | 15/15 |  |
+| `plan10-auditlog` | ok | 13/13 |  |
+| `plan10-dashboard` | ok | 25/25 |  |
+| `plan10-header` | ok | 8/8 |  |
+| `plan10-help` | ok | 29/29 |  |
+| `plan10-helpwidth` | ok | 21/21 |  |
+| `plan10-repalette` | ok | 33/33 |  |
+| `plan10-rfqscroll` | ok | 24/24 |  |
+| `plan2-contrast` | ok | 42/42 |  |
+| `plan2-delete` | ok | 18/18 |  |
+| `plan2-formlast` | ok | 8/8 |  |
+| `plan2-formlast-selftest` | ok | 8/8 |  |
+| `plan2-sku` | ok | 14/14 |  |
+| `plan2-trunc` | ok | 13/13 |  |
+| `plan3-autoreply` | ok | 22/22 |  |
+| `plan3-contact` | ok | 51/51 |  |
+| `plan4-admin` | ok | 19/19 |  |
+| `plan4-public` | ok | 27/27 |  |
+| `plan5-images` | ok | 12/12 |  |
+| `plan5-keys` | ok | 15/15 | was 11/11 |
+| `plan5-listeners` | ok | 11/11 |  |
+| `plan5-social` | ok | 35/35 |  |
+| `plan5-spectable` | ok | 13/13 |  |
+| `plan5-throttle` | ok | 12/12 |  |
+| `plan5b-pwthrottle` | ok | 10/10 |  |
+| `plan5b-sidebar` | ok | 9/9 |  |
+| `plan5b-sitemap` | ok | 9/9 |  |
+| `plan5c-brandink` | ok | 6/6 |  |
+| `plan5c-eyebrow` | ok | 5/5 |  |
+| `plan5c-sitemap` | ok | 17/17 |  |
+| `plan6-families` | ok | 13/13 |  |
+| `plan7-approvals` | ok | 11/11 |  |
+| `plan7-datasheets` | ok | 8/8 |  |
+| `plan7-imagery` | ok | 11/11 |  |
+| `plan7-slots` | ok | 16/16 |  |
+| `plan8-catalog` | ok | 16/16 |  |
+| `plan8-certs` | ok | 5/5 |  |
+| `plan8-chrome` | ok | 16/16 |  |
+| `plan8-contrast` | ok | 34/35 | expected 34/35 and exit 0 — one named exemption, `EXEMPT_BRAND_SURFACE` |
+| `plan8-crumbs` | ok | 22/22 |  |
+| `plan8-faq` | ok | 19/19 |  |
+| `plan8-formpolish` | ok | 15/15 |  |
+| `plan8-keyboard` | ok | 8/8 |  |
+| `plan8-landing` | ok | 18/18 |  |
+| `plan8-lead` | ok | 16/16 |  |
+| `plan8-meta` | ok | 15/15 |  |
+| `plan8-mobile` | ok | 16/16 |  |
+| `plan8-motion` | ok | 8/8 |  |
+| `plan8-polish` | **FAIL** | 16/17 | expected red 16/17 on Linux (C49 DejaVu width artifact) |
+| `plan9-band` | ok | 4/4 |  |
+| `plan9-firstsave` | ok | 8/8 |  |
+| `plan9-meta` | ok | 18/18 |  |
+| `plan9-notfound` | ok | 8/8 |  |
+| `plan9-slots-slash` | ok | 9/9 |  |
+| `skuparity` | ok | 33/33 |  |
+
 ---
 
 ## 2. Findings
@@ -1911,6 +2034,14 @@ with a date and its evidence. E001–E112 were inherited from
 surfaces no earlier checklist named. Nothing in this document rests on a
 surface that has no row: the rule is that a row is added first, or the surface
 is not in the audit.
+
+The 83 suite rows are the census **as it stood when the sweep denominator was
+fixed**, which is what they are for. The four acceptance suites this round added
+(`audit9-fixes`, `audit9-router-docroot`, `audit9-public-fixes`,
+`audit9-admin-text`) are deliberately not back-filled into it — a census that
+grows while it is being counted measures nothing. They are in
+`_harness/README.md` and in the refreshed `GUARDRAILS.md` §4.1 table, which is
+where the next audit's denominator comes from.
 
 ### 7.2 Pass → agent map
 

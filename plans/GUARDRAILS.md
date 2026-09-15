@@ -116,68 +116,100 @@ exists; the working directory is not.
 
 The live suite list is `_harness/README.md`.
 
-**Refreshed 2026-08-11 (AUDIT-11).** The previous table listed **30** suites
-against a harness that has **65**, so fifteen suites an executor would be judged
-on appeared in it nowhere — including every `plan9-*` and every `plan10-*`. A
-baseline that omits half the suite set cannot tell an executor what they
-inherited, which is the job this section exists to do, and it is why PLAN-10's
-fullest sweep was 39 rather than 65. The full table below replaces it. Measured
-on `main` @ `33dffb8`, 2026-08-11, with all three servers up **plus the
-ten-server fleet on :8130-8139 that `plan5-throttle` needs** — that requirement
-is why it had been skipped since PLAN-8.
+**Refreshed 2026-09-14 (audit 9, A-9.D2).** The 2026-08-11 table listed **64**
+suites against a tree that runs **80**, so sixteen an executor is judged on
+appeared in it nowhere — `adminwidth`, `audit5-blockers`, `audit5-high`,
+`audit5-medium`, `audit6`, `audit7`, `audit7-lead`, `contactflow`,
+`contactflow-selftest`, `contentlinks`, `fgpatch`, `imgcheck`, `isoclaims`,
+`nodupbackups`, `plan10-admincrawl`, `plan2-formlast-selftest`. That is the same
+defect AUDIT-11 fixed in 2026-08-11 and it reopened, for the same reason: nothing
+mechanical keeps this table and the tree in step.
+
+**The denominator is now derived, not counted by hand.** It is the **three-way
+union** of the Appendix A classifier (58), `_harness/README.md`'s five tables
+(67) and this table (64) — 80 runnable suites, plus the four acceptance suites
+audit 9 added. Two of the three sources miss eight suites that the third names,
+including `plan8-contrast`, which §4.4 below expects red. Derivation:
+`audit-runs/audit9.md` §1.3; list: `_harness/out/audit9/sweep-list-final.txt`.
+
+Measured on `claude/audit9-go-live`, 2026-09-14/15, with all three servers up
+**plus the ten-server fleet on :8130-8139 that `plan5-throttle` needs**. Raw:
+`_harness/out/audit9/sweep-after.txt`. **84 suites: 80 green, 4 listed red — and
+all four are expected reds with a written reason.** The figures below are copied
+from that file, not typed.
 
 ```
-php _harness/lint.php     php -l 19/0 · node --check 9/0 · JSON 17/10/42
+php _harness/lint.php     php -l 19/0 · node --check 10/0 · JSON 17/10/42
                           copy drift 110 matched, 0 JS-only · 11 families · 12 approvals
-                          · 5 photo-slot defaults · no family literals
-                          · doc drift 46 harness file refs, all resolve
-                          · section drift 46 WHATS_LEFT sections, no number reused
-npm run build             0 errors, 368.07 kB JS / 23.41 kB CSS
+                          · 5 photo-slot defaults · 14 audit actions · 5 rejection types
+                          · no family literals
+                          · doc drift 47 harness file refs, all resolve
+                          · section drift 64 WHATS_LEFT sections, no number reused
+                          · href guard drift 2 fields, guarded both sides
+npm run build             0 errors, 377.32 kB JS / 23.59 kB CSS
 
-invariants                17/17          invariants-selftest   15/15
-copydrift                     ok         copydrift-selftest     5/5
-copyroundtrip             15/15          contrastparity        28/28
-skuparity                 33/33          deadlinks       0 of 18 dead
-backdrop-selftest           9/9
-plan2-formlast              8/8 + selftest PASS
-plan2-sku                 14/14          plan2-delete          18/18
-plan2-contrast            42/42          plan2-trunc           13/13
-plan3-contact             51/51          plan3-autoreply       22/22
-plan4-public              27/27          plan4-admin           19/19
-plan5-keys                11/11          plan5-spectable       13/13
-plan5-images              12/12          plan5-social          35/35
-plan5-listeners           11/11          plan5-throttle        12/12
-plan5b-sidebar              9/9          plan5b-sitemap         9/9
-plan5b-pwthrottle         10/10          plan5c-eyebrow         5/5
-plan5c-brandink             6/6          plan5c-sitemap        17/17
-plan6-families            13/13          plan7-approvals       11/11
-plan7-datasheets            8/8          plan7-slots           16/16
-plan7-imagery             11/11
-plan8-certs                 5/5          plan8-meta            15/15
-plan8-catalog             16/16          plan8-lead            16/16
-plan8-motion                8/8          plan8-chrome          16/16
-plan8-keyboard              8/8          plan8-mobile          16/16
-plan8-landing             18/18          plan8-crumbs          22/22
-plan8-faq                 19/19          plan8-formpolish      15/15
-plan9-firstsave             8/8          plan9-band             4/4
-plan9-meta                18/18          plan9-notfound         8/8
-plan9-slots-slash           9/9
-plan10-header               8/8          plan10-dashboard      25/25
-plan10-rfqscroll          24/24          plan10-repalette      33/33
-plan10-adminrows          15/15          plan10-adminnav       25/25
-plan10-helpwidth          21/21          plan10-auditlog       13/13
-plan10-help               29/29
+adminwidth                    39/39      audit5-blockers               18/18
+audit5-high                   30/30      audit5-medium                 20/20
+audit6                        45/45      audit7                        30/30
+audit7-lead                   23/23      audit9-admin-text             15/15
+audit9-fixes                  40/40      audit9-public-fixes           17/17
+audit9-router-docroot           8/8      backdrop-selftest               9/9
+contactflow                   85/85      contactflow-selftest          26/26
+contentlinks                  18/18      contrastparity                28/28
+copydrift                 (no score line)      copydrift-selftest              5/5
+copyroundtrip                 15/15      deadlinks                 0 of 18 resolve to nothing
+fgpatch                   (no score line)      imgcheck                  (no score line)
+invariants                    17/17      invariants-selftest           15/15
+nodupbackups                  10/10      plan10-admincrawl         (no score line)
+plan10-adminnav               25/25      plan10-adminrows              15/15
+plan10-auditlog               13/13      plan10-dashboard              25/25
+plan10-header                   8/8      plan10-help                   29/29
+plan10-helpwidth              21/21      plan10-repalette              33/33
+plan10-rfqscroll              24/24      plan2-contrast                42/42
+plan2-delete                  18/18      plan2-formlast                  8/8
+plan2-formlast-selftest         8/8      plan2-sku                     14/14
+plan2-trunc                   13/13      plan3-autoreply               22/22
+plan3-contact                 51/51      plan4-admin                   19/19
+plan4-public                  27/27      plan5-images                  12/12
+plan5-keys                    15/15      plan5-listeners               11/11
+plan5-social                  35/35      plan5-spectable               13/13
+plan5-throttle                12/12      plan5b-pwthrottle             10/10
+plan5b-sidebar                  9/9      plan5b-sitemap                  9/9
+plan5c-brandink                 6/6      plan5c-eyebrow                  5/5
+plan5c-sitemap                17/17      plan6-families                13/13
+plan7-approvals               11/11      plan7-datasheets                8/8
+plan7-imagery                 11/11      plan7-slots                   16/16
+plan8-catalog                 16/16      plan8-certs                     5/5
+plan8-chrome                  16/16      plan8-crumbs                  22/22
+plan8-faq                     19/19      plan8-formpolish              15/15
+plan8-keyboard                  8/8      plan8-landing                 18/18
+plan8-lead                    16/16      plan8-meta                    15/15
+plan8-mobile                  16/16      plan8-motion                    8/8
+plan9-band                      4/4      plan9-firstsave                 8/8
+plan9-meta                    18/18      plan9-notfound                  8/8
+plan9-slots-slash               9/9      skuparity                     33/33
 
-plan8-contrast            34/35  ← EXPECTED RED (EXEMPT_BRAND_SURFACE)
-plan8-polish              16/17  ← EXPECTED RED (DejaVu width artifact, Linux)
-brandtext                 34/45  ← EXPECTED RED (11 failing; ceiling 13)
+brandtext                     36/47  <- EXPECTED RED (11 failing; ceiling 13)
+isoclaims                       2/4  <- EXPECTED RED (the open ISO revision question — GO-LIVE.md §A)
+plan8-contrast                34/35  <- EXPECTED RED (EXEMPT_BRAND_SURFACE) — 34/35 IS its passing state, exit 0
+plan8-polish                  16/17  <- EXPECTED RED (DejaVu width artifact, Linux)
 ```
 
-Two suites score **higher** than the 2026-08-08 table because they gained checks,
-not because anything improved: `plan5c-eyebrow` 4/4 → 5/5 and `plan5c-brandink`
-5/5 → 6/6. `plan3-autoreply` is `[UNVERIFIED]` on Windows and verifies **22/22**
-on Linux. `plan5-throttle` needs `:8130-8139`; without the fleet it does not
-report a low score, it bails — see the note on bailing below.
+`fgpatch` was a CRASH in audit 9's before-sweep and is green here: it is a
+one-shot codemod the classifier swept in because it calls `ok()` and exits
+non-zero, and A-9.D5 made it exit 0 when every accent site it maps is one it
+deliberately leaves alone. A stale mapping still exits 1.
+
+`plan5-keys` reads 15/15, not the 11/11 of the previous table. It gained four
+checks (A-9.D6): it restores the mirror and the bundle in its `finally` block
+and now proves both restores rather than performing them silently.
+
+The four `audit9-*` suites are this round's acceptance suites, each written
+before the fix it covers and watched failing against the unfixed tree. They are
+regression checks from here on. The `audit9-*` **instruments** — the crawl, the
+admin flows, the string inventory, the P6/P7/P9 probes — are evidence, not
+checks, and are deliberately NOT in this table; `_harness/README.md` separates
+the two.
 
 `plan8-contrast` is 34/**35**, not 35/35, and that is its passing state: one
 named exemption (`EXEMPT_BRAND_SURFACE`) for a computed brand ink on a computed

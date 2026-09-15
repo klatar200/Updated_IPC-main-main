@@ -1214,8 +1214,9 @@ is only what you would notice.
 
 The dashboard called itself "Admin Panel" before you signed in and "Product
 Manager" afterwards, in the same place on the screen. Its sign-in page was
-titled "Login" while its own button said "Sign In". It spelled colour and color,
-catalog and catalogue, data sheet and data-sheet and spec sheet. It mixed curly
+titled "Login" while its own button said "Sign In". It spelled `colour` and
+`color`, `catalog` and `catalogue`, `data sheet` and `data-sheet` and
+`spec sheet`. It mixed curly
 and straight quotation marks, and "…" with "...". Its buttons were Title Case in
 thirty-eight places and sentence case in sixteen — five of them in the same
 `+ Add …` row on one screen. Four pages were headed something other than the tab
