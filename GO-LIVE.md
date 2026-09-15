@@ -112,10 +112,17 @@ All four render from `data/content.json` or `data/products-all.json`, which are
 live customer state. Do them in the dashboard; do not re-upload `data/`.
 Full records in `audit-runs/audit9.md` §2, summarised in §5.1.
 
-- [ ] **Correct the "42 Products Stocked" figure** whenever the catalog count
-      changes (**A-9.P4-4**). It is typed by hand at **Admin → Page Content**,
-      on a different screen from the catalog it counts, with no link between
-      them. It is right today; nothing keeps it right.
+- [ ] **Decide what "42 Products Stocked" counts, then change it**
+      (**A-9.P4-4**, extended by **POST-9.1** — `WHATS_LEFT.md` §2p). It is
+      typed by hand at **Admin → Page Content**, on a different screen from the
+      catalog it counts, with no link between them — so it drifts the first time
+      you add a product. Worse, it is already ambiguous: **42 is the catalog's
+      page count, but those pages list 52 orderable part numbers** (eight records
+      cover 2-4 parts each), and one of the 42 is the Value-Added *services*
+      page, not a stocked product. Recommended: **52, relabelled "Part Numbers
+      Stocked", derived from the catalog** rather than typed. Nothing should
+      change on the homepage until you have chosen the number — every candidate
+      is defensible and only one is what IPC means.
 - [ ] **Rewrite FAQ answer 14** (**A-9.P5a-2**), at **Admin → Page Content →
       FAQ**. Two things in it are wrong. It tells the buyer to click a
       **"Data Sheet"** button; audit 9 gave that control one name across the

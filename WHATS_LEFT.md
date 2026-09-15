@@ -6205,3 +6205,105 @@ contact-only or harness selftests that cannot see a product string or the
 Product Index sort. The full 84-suite sweep from 2026-09-14 is unchanged and
 still in `_harness/out/audit9/sweep-after.txt`; this round did not re-run it.
 
+
+---
+
+## 2p. Open after audit 9 — found 2026-09-15, in conversation, not by a pass
+
+**POST-9.1 — Medium — "42 Products Stocked" counts catalog pages, not products,
+and nothing in the site can tell you which it means**
+
+**Not an audit-9 pass finding.** Audit 9 closed and merged (`3b3bc88`). This was
+raised by Keagan reading the handback, measured after the fact, and is logged
+here rather than added to `audit-runs/audit9.md` §2, because §2 is the record of
+what the audit measured and must not grow after the fact. It **extends**
+A-9.P4-4 rather than replacing it: that record said the figure is typed by hand
+and will drift, and over-counts by one. This says the figure is *already*
+ambiguous, and that the size of the discrepancy is much larger than one.
+
+### Measured
+
+`data/content.json` `stats[1]` = `{"value":"42","label":"Products Stocked",
+"sub":"Datasheet published for every one"}`, rendered in the homepage stats bar.
+
+| Reading of "product" | Count | Where it comes from |
+|---|---|---|
+| catalog **pages** | **42** | `products-all.json` record count — what the 42 matches |
+| stocked **products** (pages minus the services page) | **41** | `VALUE-ADDED` is a fabrication-services page: no operating temperature, and its four badges are Spooling / Coiling / Cutting / Custom Lengths |
+| stocked **part numbers** | **52** | the 42 records name 53 distinct part numbers, one of which is the services record |
+
+Eight records each cover more than one part number:
+
+```
+IP64FS-IP65VC-IP66AC-IP67SC   4 parts
+IP17TW-IP18SW-IP19LW          3        IP37SH-IP36TH-IP39LH   3
+IP71NS-IP72PS-IP73PP          3        IP12GA-IP1274          2
+IP41NE-IP43VT                 2        IP44A2-IP45A3          2
+IP61ES-IP62EF                 2
+```
+
+So the homepage says 42 while the catalog it points at lists **52 part numbers a
+buyer can order**. The claim is true under exactly one reading — catalog pages —
+and that is the reading a buyer is least likely to use.
+
+`IP12GA` and `IP1274` compound it: both exist as **standalone records and again
+inside the combined `IP12GA-IP1274` record**. Three pages for two parts, and
+`IP12GA` and `IP12GA-IP1274` share a data sheet — the same shared-PDF pair
+behind A-9.P7-1, the audit's one code High.
+
+### The claim has no backing field, and it is the only stat in the bar without one
+
+| Stats-bar claim | Backed by |
+|---|---|
+| `50+ Years in Business` | `site-info.json` `company.foundedYear` = `"1974"` |
+| **`42 Products Stocked`** | **nothing.** No field in `site-info.json`. The catalog is the only possible source and no code reads it for this |
+| `$50 Minimum Order` | `site-info.json` `stats.minimumOrder` = `"$50"` |
+| `≤1 week Custom Fabrication` | no field either, but it *is* backed by prose — `site-info.json` `about.paragraphs[2]`, "a typical lead time of one week or less". Weaker than a field, stronger than nothing |
+
+`site-info.json` already carries a `stats` object (`feetInStock`, `minimumOrder`)
+and the site renders both from it in four places. The product count is the one
+stat that skipped that mechanism.
+
+### Consequence
+
+A purchasing person who reads "42 Products Stocked" and then opens the catalog
+counts something else — 52 orderable part numbers, or 41 products if they notice
+the services page. It is a factual claim on the homepage, and it is the first
+number on the page. Medium: nothing is blocked and nothing is a regulated claim
+(unlike A-9.P4-2's origin claim), but it is a number a buyer quotes back.
+
+### Reproduce
+
+```sh
+node -e '
+const c=require("./data/content.json"), p=require("./data/products-all.json");
+console.log("claim  :", JSON.stringify(c.stats.find(s=>/Products Stocked/.test(s.label))));
+console.log("records:", p.length);
+const named=new Set();
+for(const x of p){ if(/^VALUE-ADDED$|^VT-1100$/.test(x.sku)){named.add(x.sku);continue;}
+  x.sku.split("-").map(t=>t.trim()).forEach(t=>named.add(t)); }
+console.log("distinct part numbers:", named.size);'
+```
+
+### Owed — a decision, then a change
+
+**What should "Products Stocked" count?** Nothing changes until that is settled,
+because every candidate number is defensible and only one is what IPC means.
+
+- **Recommended: 52, relabelled "Part Numbers Stocked"**, and derived from the
+  catalog rather than typed. It is the largest honest number, it is the thing a
+  buyer actually orders, and deriving it ends the drift A-9.P4-4 records. Cost:
+  the label changes, and `VALUE-ADDED` has to be excluded by a rule rather than
+  by hand.
+- 41, "Products Stocked", derived — closest to the current wording, smallest
+  number, still needs the services page excluded.
+- 42, left as is — only defensible if "product" means "catalog page", which is
+  not what the label says.
+
+**Honest downside of deriving it:** the number stops being something Rick can
+type, so a future decision to count differently becomes a code change rather
+than an edit. Given this finding exists *because* it was typed, that is the
+right trade — but it is a real loss of control and should be a deliberate one.
+
+The `≤1 week` stat is not part of this: its prose backing is adequate, and it is
+recorded here only so the next reader does not have to re-measure the bar.
