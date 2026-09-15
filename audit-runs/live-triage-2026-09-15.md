@@ -245,6 +245,10 @@ project and blind to the predecessor still serving customers.
 
 ### The decision Keagan owns, and it blocks the order below
 
+> **DECIDED 2026-09-15 (Keagan): the web root.** The recommendation below was
+> taken. `/site/` is closed. Step 2 of the order is therefore live, not
+> conditional, and no code change follows.
+
 **Should the site be at the web root, or stay under `/site/`?**
 
 - **Recommended: the web root.** Everything in this project says root —

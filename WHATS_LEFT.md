@@ -6352,3 +6352,70 @@ basename, and re-deriving every canonical, OG and sitemap URL, to ship a worse
 address. Honest downside of the recommendation: if that `302` lives somewhere
 Keagan cannot reach in the Network Solutions panel, it stalls on a support
 ticket, and `/site/` would have been shippable the same day.
+
+**DECIDED 2026-09-15 (Keagan): the site goes at the web root.** `/site/` is
+closed and does not reopen without new dated evidence. No code change follows —
+the repo is already built for root; what follows is the two owner actions
+already in `GO-LIVE.md` §A (retrieve the predecessor's inquiry log, then remove
+the `/` → `/site/` redirect before uploading) and the `public_html/site/`
+deletion in §B2 step 10.
+
+---
+
+## 2r. Open after the claims re-audit — 2026-09-15
+
+Full register, with every one of the 83 claims, its evidence and its verdict:
+[`audit-runs/claims-register-2026-09-15.md`](audit-runs/claims-register-2026-09-15.md).
+Three items are owed; everything else in it is either already open (A-8.5,
+A-9.P4-2, A-9.P5a-*) or a business fact only IPC can source.
+
+**Context that reframes the rest of this section: 81 of the 83 claims predate
+this project.** They are on the live predecessor site verbatim. Two were
+introduced here, both in the homepage stats strip, and one of those is POST-9.1.
+
+**CLAIM-1 — High — the whole-line RoHS attestation is carried by 2 of 42
+datasheets.** Published in eight places ("Full RoHS Compliant Product Line",
+"Yes — our entire product line is RoHS compliant", "All products are RoHS
+compliant", "RoHS-certified materials", …). `RoHS` appears in 2 of 42 datasheets
+and the same 2 of 42 catalog records (`IP29CG`, `IP53MP`); `REACH` in none. RoHS
+is a self-declaration, so this is not "false" — it is a whole-line assertion
+whose only published backing is two documents.
+`decision-needed: what substantiates it | recommended: get the blanket RoHS
+declaration from Rick and store its reference in site-info.certifications.other
+so the chip renders from a sourced field, leaving the copy as it is | why: the
+claim is IPC's, it is years old and probably true; what it lacks is a document
+anyone can produce on request | trade-off: if no declaration exists the fix is a
+supply-chain exercise, and the honest interim is to qualify the wording to the
+products that carry it, which weakens the page | blocked: Rick`
+
+**CLAIM-2 — Medium — POST-9.1, with new facts and a better fix.** See below.
+
+**CLAIM-3 — Low — "AMS-3632C / AMS-3653B" (`content.json:158`) appears in no
+datasheet.** One catalog record (`IP55FL`) names it; 0 of 42 datasheets do,
+though AMS generally is in 6. Ordered after A-9.P4-3, which decides how marks
+are named.
+
+### POST-9.1 — SUPERSEDED-BY CLAIM-2 (2026-09-15)
+
+Two corrections to the entry in §2p, both mine:
+
+1. **"52 orderable part numbers" is 53.** Re-running POST-9.1's own snippet
+   gives 53 — 34 single records plus 8 combined records covering 21 part
+   numbers, less `IP12GA` and `IP1274`, which are counted both ways. Every
+   number in §2p's "Owed" section should be read as 53.
+2. **Its recommendation is withdrawn.** §2p recommended *52, relabelled "Part
+   Numbers Stocked", derived*. The claims register found two facts §2p did not
+   have: "42 Products Stocked" is one of only two claims this project
+   introduced, and it **replaced** an inherited one — the live predecessor's
+   stats strip reads `50+ / 25M+ Feet in Stock / $50 / ≤1 Day Shipment
+   Available`.
+
+**New recommendation: relabel the slot to "42 — Datasheets Published", sub "One
+for every catalog page", derived from the catalog.** Exactly true (42/42 records
+carry a `pdfUrl`, measured), needs no business input, and stops the strip making
+an inventory claim the catalog cannot support. **Honest downside:** it is a
+weaker selling point than "Products Stocked", in the slot a visitor reads
+second. If Rick wants an inventory number there instead, the other honest option
+is to restore what the old site had — "25M+ Feet in Stock" — which costs nothing
+to substantiate because the homepage already claims it twice, at the price of a
+third.
