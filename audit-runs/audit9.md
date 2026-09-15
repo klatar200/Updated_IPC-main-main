@@ -172,6 +172,16 @@ Direct runs: invariants 17/17 · invariants-selftest 15/15 · copydrift-selftest
 
 **NOT LIVE.** Verbatim record: `_harness/out/audit9/step0.md`. All three `/data/*.json` answer **404** (host's stock 2007 error page) over plain HTTP; HTTPS on both apex and `www` presents `CN=*.hostingplatform.com` (Sectigo DV), **expired** and not issued for this hostname (`openssl s_client … Verify return code: 10 (certificate has expired)`) — so every `https://` line is `[UNVERIFIED — TLS]`, not "down"; `http://www.insulationproducts.com/` answers `302 → /site/` (server `openresty`), not the runbook's expected `301 → https`. Runbook branch: **B, first deploy.** No live/repo data diff exists; the repo copies are the audit's truth.
 
+> **Addendum 2026-09-15 — the `302 → /site/` was recorded and not followed.**
+> The verdict above is correct and unchanged: this project is not live, the
+> branch is B, and the repo `data/*.json` are the audit's truth. What this
+> record did not ask is what the redirect points *at*. It points at a live
+> predecessor of this site, deployed 2026-09-04, in which all 42 products show
+> a broken photograph and a broken datasheet and every URL but the homepage
+> 404s. Triage, evidence and remediation order:
+> **[`audit-runs/live-triage-2026-09-15.md`](live-triage-2026-09-15.md)**.
+> It also retracts three claims I made before measuring it.
+
 ### 1.6 The sweep — after
 
 Run 2026-09-14 19:57 – 2026-09-15 00:26 UTC over the same

@@ -6307,3 +6307,48 @@ right trade — but it is a real loss of control and should be a deliberate one.
 
 The `≤1 week` stat is not part of this: its prose backing is adequate, and it is
 recorded here only so the next reader does not have to re-measure the bar.
+
+---
+
+## 2q. Open after audit 9 — the live host, triaged 2026-09-15
+
+**POST-9.2 — Blocker — there is a live site at `insulationproducts.com`, it is
+not this project, and it is broken.**
+
+Full record, evidence and remediation order:
+[`audit-runs/live-triage-2026-09-15.md`](audit-runs/live-triage-2026-09-15.md).
+Summary only, so this section does not become a second copy:
+
+- `http://www.insulationproducts.com/` answers `302 → /site/`.
+  `public_html/site/` holds a **predecessor** of this site, uploaded
+  2026-09-04, whose bundle has no `SiteInfoProvider`, no `ErrorBoundary`, no
+  `.ipc-container`, and a hardcoded `/site/data/products-all.json` — a string
+  that appears nowhere in this repository's history.
+- In it: **37 of 37 product photographs 404**, **42 of 42 datasheets 404** (a
+  find-and-replace prepended `site` without the leading slash, twice on the
+  PDFs), and **every URL but the homepage 404s**, including seven of the eight
+  URLs its own `sitemap.xml` publishes.
+- **Audit 9's STEP 0 verdict is unaffected.** This project is not live, the
+  runbook is on branch **B**, and the `data/` file edits audit 9 made remain
+  legitimate. §7 of the triage retracts three claims I made before measuring
+  that.
+- **Nothing on the server is content this repo lacks** — the catalog differs
+  only by the corruption, and the five SKU-cased files are byte-identical to
+  the repo's (md5 in §6). One exception, `[NOT-MEASURED]`:
+  `/site/admin/inquiries.jsonl`, which was not opened because opening it means
+  signing into a live admin.
+
+**Owed — all owner actions, none of them a code change**, and they are now
+checkboxes in `GO-LIVE.md` (STEP 0b, §A, §B2 step 10): retrieve the
+predecessor's inquiry log; remove the `/` → `/site/` redirect *before*
+uploading; deploy branch B into `public_html/`; delete `public_html/site/`
+after §C passes.
+
+**Open decision — root or `/site/`?** Recommended: the **web root**. Every
+origin in this project says root, and so do the live predecessor's own
+`og:url`, JSON-LD and sitemap — the subfolder is an accident of how it was
+uploaded. Staying under `/site/` means changing `base`, adding a router
+basename, and re-deriving every canonical, OG and sitemap URL, to ship a worse
+address. Honest downside of the recommendation: if that `302` lives somewhere
+Keagan cannot reach in the Network Solutions panel, it stalls on a support
+ticket, and `/site/` would have been shippable the same day.

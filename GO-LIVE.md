@@ -28,6 +28,31 @@ If it loads but the products look wrong or old, stop and diff it against
 `data/products-all.json` in the repo before deciding. **Downloading the
 server's copy costs a minute; overwriting it is irreversible.**
 
+### STEP 0b — and then check where the front door goes
+
+A 404 above answers "is *this* project live". It does not answer "is anything
+live", and on 2026-09-15 those had different answers.
+
+```
+curl -sI http://www.insulationproducts.com/
+```
+
+**If it answers `301 → https://www.…`**, that is what the code expects; carry on.
+
+**If it answers anything else — a `302` or `301` into a subfolder — stop and
+read [`audit-runs/live-triage-2026-09-15.md`](audit-runs/live-triage-2026-09-15.md).**
+As measured on 2026-09-15 this line answers `302 → /site/`, and
+`public_html/site/` holds a live predecessor of this site, uploaded 2026-09-04,
+whose 42 products all show a broken photo and a broken datasheet and whose every
+URL but the homepage 404s.
+
+That matters here for one reason: **a first deploy into `public_html/` will be
+correct and invisible while the redirect stands** — every visitor is still sent
+to the old, broken copy. Removing the redirect is a host action, it has to
+happen in the same session as the deploy, and it has a prerequisite (retrieve
+`/site/admin/inquiries.jsonl` first, if the predecessor's form was collecting
+quote requests). The triage record carries the ordered list.
+
 ---
 
 ## A — Before deploy day (do these this week, not Saturday)
@@ -71,6 +96,20 @@ the last minute.
       fixes this publishes a false statement in a legal document** — see
       `audit-runs/audit9.md` A-9.P5a-1. Nothing in the repo can fix it; it is
       the host's to do, and it has to be done before deploy day, not after.
+- [ ] **Retrieve `/site/admin/inquiries.jsonl` from the server** — or establish
+      that the predecessor site's contact form was never wired to one. Every
+      other file under `public_html/site/` is byte-identical to something in
+      this repo (`audit-runs/live-triage-2026-09-15.md` §6), so that log is the
+      one thing on the host that cannot be reproduced from here. It was not
+      opened during the audit: reading it means signing into `/site/admin/`,
+      which is yours to do, not the auditor's.
+- [ ] **Remove the `/` → `/site/` redirect**, and confirm
+      `curl -sI http://www.insulationproducts.com/` no longer points into a
+      subfolder — **before** uploading anything. It is in the Network Solutions
+      panel or a root `.htaccess` above `public_html/`. Left in place, a
+      perfectly correct deploy is invisible: visitors keep landing on the old
+      broken copy. STEP 0b and
+      `audit-runs/live-triage-2026-09-15.md` §8.
 - [ ] **Apply the two corrected privacy-policy sections.** ⚠ **On a re-deploy
       this is an ADMIN EDIT, not a file upload.** The policy renders from
       `data/content.json`, which is live customer state and is *never*
@@ -201,6 +240,12 @@ pointing at a file that does not exist.
        `AddType application/json` that the site's `jsonOrThrow()` requires and
        the `X-Robots-Tag: noindex` half of the A-5.2 fix.
 9. [ ] **`index.html` → `public_html/` — LAST**
+10. [ ] **After C has passed — delete `public_html/site/`.** Not before: it is
+        the only copy of the predecessor site and the fallback if the deploy has
+        to be backed out. Once C is green it is a second, broken, indexable copy
+        of the catalog sitting one path segment away — 42 broken photos, 42
+        broken datasheets — and `/site/sitemap.xml` is still handing a crawler
+        eight URLs. `audit-runs/live-triage-2026-09-15.md`.
 
 ### B3. Permissions
 
