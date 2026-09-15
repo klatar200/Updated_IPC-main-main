@@ -131,12 +131,21 @@ Full records in `audit-runs/audit9.md` §2, summarised in §5.1.
       `AMS-1234` and `AMS 1234`, `USFDA` and `FDA`). **Order matters**: A-9.P4-3
       changes which mark each string names, so a spelling pass done first has to
       be done twice.
-- [ ] **One sitting on Products → Edit for the rest** (**A-9.P4-10**,
-      **A-9.P5a-4**, **A-9.P5a-8**) — the same screen and, largely, the same
-      records. Inch marks on three SKUs (`IP37SH-IP36TH-IP39LH`, `IP38FE`,
-      `IP42MW`: 12 of 21 inch-denominated cells carry the mark, 9 do not, in one
-      column); five misspellings; and six badge concepts each written two ways.
-      None of these is urgent and all of them are cheap together.
+- [x] ~~**One sitting on Products → Edit for the rest**~~ — **done in the repo
+      2026-09-15**, before first deploy, so it ships with `data/`: the six
+      misspellings (**A-9.P5a-4**), the inch mark on 21 cells across three SKUs
+      (**A-9.P4-10**), and the three badge families whose majority form the
+      catalog itself names (**A-9.P5a-8**, part). Nothing to do here on a first
+      deploy. ⚠ On a **re-deploy** this does not apply: `data/` is live customer
+      state and is never re-uploaded, so the same corrections would have to be
+      made in the dashboard instead.
+- [ ] **Two badge pairs and the certification marks still need you**
+      (**A-9.P5a-8** remainder, **A-9.P5a-5**), at **Admin → Products → Edit**.
+      `Low Temperature Flexibility` vs `Low-Temperature Flexibility` and
+      `125°C Rated` vs `Rated 125°C` are one product each — there is no majority
+      to normalise to, so pick the one you want. The certification marks are
+      blocked behind **A-9.P4-3** above and must not be spelled until it is
+      settled.
 
 ---
 

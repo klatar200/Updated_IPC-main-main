@@ -6116,3 +6116,92 @@ A-9.B2-04's first check compared the rendered label against the **CLI's**
 from `help.php` on the same server, then demonstrated on a deliberately
 2M-limited instance: before the fix the screens claimed 8MB and 20MB; after,
 both read 2MB.
+
+---
+
+## 1z. Shipped 2026-09-15 — a second fix round over four escalated/owner records
+
+Audit 9 handed back four of these as *not C's to fix*: three were owner actions
+on `data/`, one was an escalated decision. Keagan lifted PLAN-11 §7.3 for them
+explicitly and asked for them to be done. All four are test-first, same as the
+first round. `audit-runs/audit9.md` §2 carries the full records; its totals are
+now 54 findings — **40 fixed outright, 5 partly, 4 owner actions, 5 escalated,
+0 open**.
+
+### The Product Index sorts temperatures as temperatures (A-9.P4-5)
+
+Every column sorted with `localeCompare` on the raw string, and the raw strings
+are 30 distinct formats over 42 records. Sorting Temp ascending began with
+`-100°F to 500°F` and ended with `Up to 90°C` — one of the hottest parts first,
+one of the coolest last, on the column a buyer sorts precisely to find the part
+that survives their temperature. The seven unrated products sorted to the top.
+
+`tempCeilingC()` takes the highest temperature the value names, in °C, as the
+maximum over every unit-carrying number in the string. That is what makes the
+per-material lists and the dual forms work without parsing their grammar:
+`-275°F to 500°F (-70°C to 260°C)` gives 260 either way, and `Up to 1200°F (Heat
+Treated); 130°C …` gives 649 — the hottest thing in the catalog. A value naming
+no temperature returns `null` and sorts **last in both directions**: a blank cell
+is not a rating of zero. Equal ceilings fall through to the old text comparison,
+so the eight products rated to 135°C keep a stable order.
+
+Proof: `_harness/audit9-tempsort.js`, 2/6 before and 6/6 after, driven through
+the real table rather than by calling the comparator, with the expected key
+derived independently of the implementation.
+
+**A record correction**: A-9.P4-5 annotates `-100°F to 500°F` as "the HIGHEST
+ceiling in the catalog". It is 260°C; the real ceiling is `IP64FS…`'s 1200°F
+(649°C). It was merely first in the *text* sort.
+
+### The catalog text (A-9.P5a-4, A-9.P4-10, A-9.P5a-8 in part)
+
+30 string values in `data/products-all.json`, 0 structural changes, verified by
+a semantic diff of the whole catalog:
+
+- **Six misspellings** — `agressive`, `apperance`, `availble`, `transparant`
+  (twice), `Semrigid`. The check asserts both halves: the misspelling is gone
+  **and** the right word is present, so a deletion cannot pass as a correction.
+- **21 bare inch cells** on `IP37SH - IP36TH - IP39LH`, `IP38FE` and `IP42MW`
+  now carry the mark. AWG gauge numbers and section-header rows are excluded by
+  the same predicates the record's own `reproduce:` block uses.
+- **Three badge families** normalised where the catalog itself names a majority:
+  `Semi-rigid` → `Semi-Rigid` (2 of 3), `Environmental protection` →
+  `Environmental Protection`, `Low Shrink Temp` → `Low Shrink Temperature`
+  (4 of 5). Badge count unchanged at 158 — renames only.
+
+**Why a file edit was legitimate here and will not be again.** STEP 0 recorded
+the site as NOT LIVE, so the runbook is on branch B — first deploy, where `data/`
+is uploaded from the repo. These corrections therefore ship with it. After the
+first deploy `data/` is live customer state and the same corrections would have
+to be made in the dashboard; `GO-LIVE.md` §A now says so on the line itself.
+`_harness/pristine/` was re-seeded, which is the procedure §1x already records
+for an intentional data change.
+
+### What was deliberately left, and asserted as left
+
+`_harness/audit9-catalog-text.js` asserts the **un**changed things too, so a
+later pass cannot quietly finish the job on what needs a decision:
+
+- `Low Temperature Flexibility` vs `Low-Temperature Flexibility`, and
+  `125°C Rated` vs `Rated 125°C` — one product each. No majority, so choosing
+  is a wording decision, not a normalisation.
+- `U/L CSA MIL-Spec.` vs `U/L CSA MIL-Spec` — blocked. A-9.P5a-5 must follow
+  A-9.P4-3, which decides which mark the string names and is undecided.
+
+### The totals table gained a column
+
+Five records ship one half and owe the other (A-9.P4-9, P5a-7, P5a-8, P5a-9,
+P5a-11). `_harness/audit9-totals.js` was counting them as fixed, which
+overstated the round by five; it now has a **Partly fixed** column and a record
+counts as fixed only when nothing is still owed on it.
+
+### Regression
+
+45 of the 84 suites re-run, chosen by what the diff touches — the whole catalog
+and dashboard set, the crawl- and contrast-based public suites, and all seven
+`audit9-*` suites. **43 green; the two reds are the documented expected ones**
+(`isoclaims` 2/4, `plan8-polish` 16/17). The remaining ~39 are admin-only,
+contact-only or harness selftests that cannot see a product string or the
+Product Index sort. The full 84-suite sweep from 2026-09-14 is unchanged and
+still in `_harness/out/audit9/sweep-after.txt`; this round did not re-run it.
+

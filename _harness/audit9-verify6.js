@@ -232,6 +232,13 @@ sec('A-9.P5a-3  the privacy policy\'s effective date is older than the policy');
 // ── A-9.P5a-4 ──────────────────────────────────────────────────────────────
 sec('A-9.P5a-4  six misspellings in the catalog');
 {
+  // These six were FIXED on 2026-09-15, after this re-measurement ran. A
+  // verification record attests what was true when the finding was raised, so
+  // the arms below read the catalog at the audit base commit; the arm after
+  // them confirms the fix landed at HEAD. Reading HEAD here would turn a
+  // verified finding into a permanent false red in the sweep, which is the
+  // defect A-9.D5 was about.
+  const baseProducts = JSON.parse(atBase('data/products-all.json'));
   const claims = [
     ['IP69HT', 'caption', /agressive/i, 'aggressive'],
     ['IP63ES', 'description', /apperance/i, 'appearance'],
@@ -244,7 +251,7 @@ sec('A-9.P5a-4  six misspellings in the catalog');
   // record — that also catches an instance the record missed.
   const blob = (p) => JSON.stringify(p);
   for (const [sku, field, re, right] of claims) {
-    const hits = products.filter((p) => re.test(blob(p)));
+    const hits = baseProducts.filter((p) => re.test(blob(p)));
     const skus = hits.map((h) => h.sku);
     const named = skus.some((s) => s.replace(/\s/g, '') === sku.replace(/\s/g, ''));
     check(named && hits.length === claims.filter((c) => c[2].source === re.source).length ? 'yes' : (named ? 'adj' : 'no'),
@@ -253,9 +260,10 @@ sec('A-9.P5a-4  six misspellings in the catalog');
   }
   // Is "Semrigid" really the odd one out among badges? The record says to fix
   // it to "Semi-Rigid (the form the other two products use)". Enumerate the
-  // whole set rather than trusting that parenthetical.
+  // whole set rather than trusting that parenthetical — at the BASE, which is
+  // the state the record describes.
   const semi = [];
-  for (const p of products) for (const b of (p.badges || [])) if (/semi|semrigid/i.test(b)) semi.push([p.sku, b]);
+  for (const p of baseProducts) for (const b of (p.badges || [])) if (/semi|semrigid/i.test(b)) semi.push([p.sku, b]);
   const forms = [...new Set(semi.map(([, b]) => b))];
   check(forms.length > 1 ? 'yes' : 'adj',
     'the badge spelling is inconsistent across products, which is why that one is not merely a typo',
@@ -266,6 +274,19 @@ sec('A-9.P5a-4  six misspellings in the catalog');
     (forms.length > 2
       ? 'The parenthetical undercounts: IP42MW spells it "Semi-rigid", so the owner edit is a three-way normalisation, not a one-word typo fix. This strengthens A-9.P5a-8 (badge concepts written two ways) rather than contradicting A-9.P5a-4.'
       : ''));
+
+  // …and the state at HEAD, so this file records the outcome as well as the
+  // finding. All six spellings are corrected, and the badge family the
+  // adjustment above found is one form.
+  const stillWrong = claims.filter(([, , re]) => products.some((p) => re.test(blob(p))));
+  check(stillWrong.length === 0 ? 'yes' : 'no',
+    'AT HEAD: all six are corrected (fixed 2026-09-15, after this verification)',
+    stillWrong.length ? `still present: ${JSON.stringify(stillWrong.map((c) => c[2].source))}`
+      : 'agressive, apperance, availble, transparant x2, Semrigid — none remains');
+  const headForms = [...new Set(products.flatMap((p) => (p.badges || []).filter((b) => /semi|semrigid/i.test(b))))];
+  check(headForms.length === 1 ? 'yes' : 'no',
+    'AT HEAD: the three semi-rigid spellings are one, the 2-of-3 majority form',
+    JSON.stringify(headForms));
 }
 
 // ── summary ────────────────────────────────────────────────────────────────

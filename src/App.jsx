@@ -10176,6 +10176,40 @@ const DASHBOARD_COLS = [
 ];
 
 /**
+ * A-9.P4-5 — the sort key for the Temp column: the HIGHEST temperature the
+ * value names, in °C, or `null` when it names none.
+ *
+ * Every column used to sort with `localeCompare` on the raw string, and the
+ * raw strings are 30 distinct formats over 42 records — `-20°C to 105°C`,
+ * `Up to 125°C`, `Rated to 125°C`, `Temperature index 125°C`, °F-only, dual
+ * (`-275°F to 500°F (-70°C to 260°C)`), and per-material lists. Sorted as text
+ * that put `-100°F to 500°F` first and `Up to 90°C` last: ascending began with
+ * one of the hottest parts and ended with one of the coolest, on a column a
+ * buyer sorts precisely to find the part that survives their temperature.
+ *
+ * The ceiling, not the floor, because that is what the column is used to
+ * answer ("what can take 150°C?"). Taking the maximum over EVERY unit-carrying
+ * number in the string is what makes the per-material lists and the dual
+ * °F/°C forms work without parsing their grammar: `-275°F to 500°F (-70°C to
+ * 260°C)` yields 260 either way, and `Up to 1200°F (Heat Treated); 130°C …`
+ * correctly yields 649, which is the hottest thing in the catalog.
+ *
+ * A value naming no temperature returns `null` and sorts LAST in both
+ * directions (see the comparator) — an empty cell is not a rating of zero, and
+ * the seven unrated products are not the coolest parts IPC sells.
+ */
+function tempCeilingC(raw) {
+  const s = String(raw || "");
+  let max = null;
+  for (const m of s.matchAll(/([+-]?\d+(?:\.\d+)?)\s*°?\s*([CF])\b/gi)) {
+    const n = parseFloat(m[1]);
+    const c = m[2].toUpperCase() === "F" ? ((n - 32) * 5) / 9 : n;
+    if (max === null || c > max) max = c;
+  }
+  return max;
+}
+
+/**
  * B20 — the empty-state cell must span every column, including Action, which
  * is rendered outside the DASHBOARD_COLS loop. It was hardcoded to 6 against a
  * 7-column table, so the no-results panel stopped 130px short of the table's
@@ -10273,6 +10307,20 @@ function DashboardPage({ products }) {
           : sortCol === "specifications"
             ? "specs"
             : sortCol;
+      // A-9.P4-5 — Temp is a temperature, not a string. Sort it on the ceiling
+      // its value names (tempCeilingC, above), and put the values that name no
+      // temperature at the bottom in BOTH directions: a blank cell is not a
+      // rating of zero, so it must not lead the ascending sort.
+      if (key === "operatingTemp") {
+        const ac = tempCeilingC(a[key]), bc = tempCeilingC(b[key]);
+        if (ac === null || bc === null) {
+          if (ac === bc) return 0;
+          return ac === null ? 1 : -1;   // unrated last, whichever way we sort
+        }
+        if (ac !== bc) return sortDir === "asc" ? ac - bc : bc - ac;
+        // Equal ceilings: fall through to the text comparison so the order of
+        // the eight products rated to 135°C is at least stable and readable.
+      }
       // Strip parenthetical suffixes from name before comparing so compound products sort naturally
       const normalize = (v) =>
         key === "name" ? v.replace(/\s*\(.*$/, "").trim() : v;

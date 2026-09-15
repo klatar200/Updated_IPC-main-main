@@ -42,16 +42,23 @@ const count = (fn) => recs.filter(fn).length;
 // before classifying, and treat a half-fix as fixed for the count only when
 // the record says so in its first clause.
 const lead = (r) => String(r.outcome).replace(/[*_`]/g, "").trim().toLowerCase();
-const isFixed = (r) => /^([a-z ]*\bfixed\b)/.test(lead(r)) && !/^not fixed/.test(lead(r));
+// A record is FIXED only when nothing is still owed on it. Several records are
+// genuinely half-and-half — A-9.P4-9 shipped its `image` half and escalated its
+// `offers` half; A-9.P5a-8 normalised the three badge families the data settles
+// and left three that need a decision. Counting those as "fixed" overstates the
+// round by two, so they get their own column instead of being rounded up.
+const isPartly = (r) => /^(partly|part |half |[a-z ]*half (fixed|done)|.*\bhalf fixed\b)/.test(lead(r))
+  || /(^|[^a-z])(half|part) (fixed|of it)/.test(lead(r));
+const isFixed = (r) => !isPartly(r) && /^fixed\b/.test(lead(r)) && !/^not fixed/.test(lead(r));
 const isOwner = (r) => /^owner action/.test(lead(r));
-const isClosed = (r) => isFixed(r) || /^(owner action|escalated|deferred|withdrawn|refuted)/.test(lead(r));
+const isClosed = (r) => isFixed(r) || isPartly(r) || /^(owner action|escalated|deferred|withdrawn|refuted)/.test(lead(r));
 const isEsc = (r) => /^(escalated|deferred)/.test(lead(r));
-let table = '| Severity | Count | Fixed | Owner action | Escalated / deferred | Open |\n|---|---|---|---|---|---|\n';
+let table = '| Severity | Count | Fixed | Partly fixed | Owner action | Escalated / deferred | Open |\n|---|---|---|---|---|---|---|\n';
 for (const s of SEV) {
   const rs = recs.filter((r) => r.sev === s);
-  table += `| ${s} | ${rs.length} | ${rs.filter(isFixed).length} | ${rs.filter(isOwner).length} | ${rs.filter(isEsc).length} | ${rs.filter((r) => !isClosed(r)).length} |\n`;
+  table += `| ${s} | ${rs.length} | ${rs.filter(isFixed).length} | ${rs.filter(isPartly).length} | ${rs.filter(isOwner).length} | ${rs.filter(isEsc).length} | ${rs.filter((r) => !isClosed(r)).length} |\n`;
 }
-table += `| **Total** | **${recs.length}** | **${count(isFixed)}** | **${count(isOwner)}** | **${count(isEsc)}** | **${count((r) => !isClosed(r))}** |\n`;
+table += `| **Total** | **${recs.length}** | **${count(isFixed)}** | **${count(isPartly)}** | **${count(isOwner)}** | **${count(isEsc)}** | **${count((r) => !isClosed(r))}** |\n`;
 const byClass = {};
 for (const r of recs) byClass[r.cls] = (byClass[r.cls] || 0) + 1;
 const byPass = {};

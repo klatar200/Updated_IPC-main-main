@@ -1235,4 +1235,29 @@ one way now. Nothing moved and nothing changed what it does.
   full size — a 4000-pixel phone picture as-is — and the success message said
   nothing about it. The dashboard's health panel warns about it too.
 
+
+## A second round, 2026-09-15
+
+Four more, from the list audit 9 had handed to you rather than fixed.
+
+- **The Product Index sorted temperatures alphabetically.** Clicking **Temp** to
+  sort put one of the *hottest* parts at the top and one of the coolest at the
+  bottom, and the seven products with no rating came first. It sorts on the real
+  ceiling now, in °C, so ascending runs coolest to hottest whatever units the
+  value is written in — and the unrated ones sit at the bottom in both
+  directions, where a blank belongs.
+- **Six spelling mistakes in the catalog** are corrected: "agressive",
+  "apperance", "availble", "transparant" (on two products) and the badge
+  "Semrigid".
+- **Sizes in one spec-table column now all carry the inch mark.** On three
+  products the same column read `3/4` in one row and `1"` in the next, which
+  reads as two different units.
+- **Three badges that were written two ways are written one way**: Semi-Rigid,
+  Environmental Protection, Low Shrink Temperature.
+
+Two badge pairs are still yours to choose between, because there is no majority
+to follow: "Low Temperature Flexibility" vs "Low-Temperature Flexibility", and
+"125°C Rated" vs "Rated 125°C". The certification marks still wait on the
+certificates themselves.
+
 **Not yet deployed.** Nothing above is on the live server.
