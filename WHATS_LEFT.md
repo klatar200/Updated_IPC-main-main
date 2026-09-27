@@ -6535,3 +6535,20 @@ for the last time:** STEP 0 records this project as never deployed
 (`live-triage-2026-09-15.md` §5), so `data/` is not live customer state yet.
 After the first deploy every one of these is Page Content or Business Details
 work and never a file change.
+
+---
+
+## 2s. Open after the go-live readiness audit — 2026-09-27 (RAISED, NOT VERIFIED)
+
+Full register: [`audit-runs/audit-2026-09-27.md`](audit-runs/audit-2026-09-27.md).
+53 new records — **15 Medium, 38 Low, 0 Blocker** — each labelled REPRO / SRC /
+UNCONF by how its raiser established it. **None is verified yet**; the verify
+pass is owed before any fix. §3 of the register lists nine existing records it
+contradicts (CLAIM-4, §2p's `stats.minimumOrder`, A-9.B2-01/-14, A-6.1, A-6.5,
+audit5:392, scorecards-run4 1.13, CLAUDE.md's Deploy §) — those go first,
+because they change text already in this file.
+
+Verdict: **not ready to go live**, on the known host gates, not new code.
+Measured 2026-09-27: every `http://` and `https://` request to apex and `www`
+still answers `302 → http://…/site/` (POST-9.2 unchanged); the certificate is
+NOT-MEASURED from this container (the egress proxy re-signs TLS).
