@@ -6709,3 +6709,37 @@ has its own suite, listed in `_harness/README.md` under "Go-live audit
   - After the fix: 40/40 and 23/23.
 - **ON PURPOSE:** `setpw.php` leaves a hash that already verifies alone. Do
   not make it rewrite unconditionally again.
+
+## 1ae. Shipped 2026-09-28 — ADM-7, ADM-9b, DEP-2 (the audit's recommendations)
+
+**ADM-7:** Each of these facts now comes from its one Business Details field:
+hours, founded year, city, minimum order and feet in stock.
+- **The fix:** `factsRewriter`/`withBusinessFacts` in `src/App.jsx` swaps the
+  shipped value for the live one. It changes a value only when the owner has
+  changed it, and never changes the wording around it.
+- **Where it runs:** on the same chokepoint as `withIsoLabel`, i.e.
+  `ContentProvider` (every content section, SEO included). It also runs in
+  `mergeSiteInfo` (`about`, `company.description`) and on the six JSX
+  literals.
+- **Measured:** `_harness/adm7-facts.js` was 10/15 before and is 16/16 after.
+  With the rewriter disabled it scores 11/16.
+- **SUPERSEDES §2p's claim** that the stats strip's `$50` is backed by
+  `stats.minimumOrder`. It was `content.json stats[2]`; the rewriter now makes
+  it follow the field.
+- **Left as is ON PURPOSE:** "over fifty years" is not stored in any field.
+
+**ADM-9b:** The footer shows "Other Certifications" exactly as typed. The
+settings field and `help.php` now say it is published on every page. This
+supersedes CLAIM-4.
+- **Measured:** `_harness/adm9b-othercert.js`, 1/5 → 5/5.
+
+**DEP-2:** `contact.php` passes `-f` to both `mail()` calls through
+`IPC_ENVELOPE_FROM`.
+- **Ships OFF (`''`) ON PURPOSE.**
+- **Trigger for Keagan:** GO-LIVE §A, step "Then, and only then, turn on the
+  envelope sender", once SPF names Network Solutions' outbound servers.
+- **Measured:** `_harness/dep2-envelope.js`, 1/6 → 6/6.
+
+**Regression:** sweep7 on `0c5fc2b`, 95/97 suites. The two reds are the
+expected `brandtext` 38/49 and `plan8-polish` 16/17. `php -l` passes on 8.4
+and 7.4.
