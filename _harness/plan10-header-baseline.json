@@ -40,7 +40,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP12GA - IP1274": {
+   "IP12GA-IP1274": {
     "titleCol": 477.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -55,7 +55,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP17TW-18SW-19LW": {
+   "IP17TW-IP18SW-IP19LW": {
     "titleCol": 477.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -120,7 +120,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP41NE / IP43VT": {
+   "IP41NE-IP43VT": {
     "titleCol": 477.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -130,7 +130,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP44A2 & IP45A3": {
+   "IP44A2-IP45A3": {
     "titleCol": 477.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -175,7 +175,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP61ES & IP62EF": {
+   "IP61ES-IP62EF": {
     "titleCol": 477.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -195,7 +195,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP71NS - IP72PS - IP73PP": {
+   "IP71NS-IP72PS-IP73PP": {
     "titleCol": 477.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -252,7 +252,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP12GA - IP1274": {
+   "IP12GA-IP1274": {
     "titleCol": 603.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -267,7 +267,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP17TW-18SW-19LW": {
+   "IP17TW-IP18SW-IP19LW": {
     "titleCol": 603.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -332,7 +332,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP41NE / IP43VT": {
+   "IP41NE-IP43VT": {
     "titleCol": 603.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -342,7 +342,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP44A2 & IP45A3": {
+   "IP44A2-IP45A3": {
     "titleCol": 603.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -387,7 +387,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP61ES & IP62EF": {
+   "IP61ES-IP62EF": {
     "titleCol": 603.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -407,7 +407,7 @@
     "btnCol": 226.7,
     "overlaps": 0
    },
-   "IP71NS - IP72PS - IP73PP": {
+   "IP71NS-IP72PS-IP73PP": {
     "titleCol": 603.3,
     "btnCol": 226.7,
     "overlaps": 0
@@ -466,7 +466,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP12GA - IP1274": {
+   "IP12GA-IP1274": {
     "titleCol": 460,
     "btnCol": 244,
     "overlaps": 0
@@ -481,7 +481,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP17TW-18SW-19LW": {
+   "IP17TW-IP18SW-IP19LW": {
     "titleCol": 460,
     "btnCol": 244,
     "overlaps": 0
@@ -546,7 +546,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP41NE / IP43VT": {
+   "IP41NE-IP43VT": {
     "titleCol": 460,
     "btnCol": 244,
     "overlaps": 0
@@ -556,7 +556,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP44A2 & IP45A3": {
+   "IP44A2-IP45A3": {
     "titleCol": 460,
     "btnCol": 244,
     "overlaps": 0
@@ -601,7 +601,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP61ES & IP62EF": {
+   "IP61ES-IP62EF": {
     "titleCol": 460,
     "btnCol": 244,
     "overlaps": 0
@@ -621,7 +621,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP71NS - IP72PS - IP73PP": {
+   "IP71NS-IP72PS-IP73PP": {
     "titleCol": 460,
     "btnCol": 244,
     "overlaps": 0
@@ -678,7 +678,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP12GA - IP1274": {
+   "IP12GA-IP1274": {
     "titleCol": 586,
     "btnCol": 244,
     "overlaps": 0
@@ -693,7 +693,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP17TW-18SW-19LW": {
+   "IP17TW-IP18SW-IP19LW": {
     "titleCol": 586,
     "btnCol": 244,
     "overlaps": 0
@@ -758,7 +758,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP41NE / IP43VT": {
+   "IP41NE-IP43VT": {
     "titleCol": 586,
     "btnCol": 244,
     "overlaps": 0
@@ -768,7 +768,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP44A2 & IP45A3": {
+   "IP44A2-IP45A3": {
     "titleCol": 586,
     "btnCol": 244,
     "overlaps": 0
@@ -813,7 +813,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP61ES & IP62EF": {
+   "IP61ES-IP62EF": {
     "titleCol": 586,
     "btnCol": 244,
     "overlaps": 0
@@ -833,7 +833,7 @@
     "btnCol": 244,
     "overlaps": 0
    },
-   "IP71NS - IP72PS - IP73PP": {
+   "IP71NS-IP72PS-IP73PP": {
     "titleCol": 586,
     "btnCol": 244,
     "overlaps": 0

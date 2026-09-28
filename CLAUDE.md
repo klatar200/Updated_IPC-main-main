@@ -14,6 +14,11 @@ npm run build     # → /dist  (FTP contents to public_html/ on Network Solution
 npm run preview   # serve the built bundle locally
 ```
 
+**While a harness sweep runs, do not edit `src/`, `public/` or `admin/`** —
+three suites rebuild and re-sync the mirror themselves, so a mid-sweep edit
+is silently tested by half the sweep (`_harness/README.md`, "Things that have
+bitten before").
+
 No test runner, linter, or formatter is configured — `package.json` defines only
 `dev`, `build`, and `preview`. Verification is done by standing the site up:
 `php -S` over a `public_html` mirror plus Playwright. `php -S` ignores
@@ -148,6 +153,10 @@ incident.
    the check.
 7. **`ErrorBoundary` is keyed on `page`.** Without the key nothing resets
    `caught`, so one bad product bricked every page until a manual reload.
+   It also takes `resetKey={productParam}`, which clears it when the product
+   changes inside `/products` (Back, Forward, "Browse All" — all one route;
+   audit 2026-09-27 NEW-N1-1). Keep `key={page}` exactly as written:
+   `invariants.js` INV7 matches it textually.
 8. **`SiteInfoProvider`, `ContentProvider`, `Navbar` and `Footer` render above
    the catalog loading/error gate.** They used to sit behind it, so a JSON blip
    took the phone number off the Contact page.

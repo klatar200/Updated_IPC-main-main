@@ -44,7 +44,16 @@
         "facebook": "https://www.facebook.com/insulationproductscorporation",
         "linkedin": "https://www.linkedin.com/company/insulation-products-corporation",
         "youtube": "https://www.youtube.com/channel/UC0JRr_IxMwbRGOFZhbJGbNw",
-        "pinterest": "https://www.pinterest.com/insulprodcorp"
+        "pinterest": "https://www.pinterest.com/insulprodcorp",
+        "instagram": "",
+        "tiktok": ""
+    },
+    "theme": {
+        "primaryColor": "#005da3",
+        "darkColor": "#0d2d52",
+        "accentColor": "#00bef2",
+        "accent2Color": "#119ec8",
+        "logoUrl": "/logo.svg"
     },
     "about": {
         "paragraphs": [
@@ -53,13 +62,6 @@
             "Beyond standard stocking, IPC's in-house fabrication shop provides cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, slitting, and perforation — all with a typical lead time of one week or less. JIT delivery programs and PPAP / IMDS documentation support are available for automotive and OEM customers.",
             "Our product line includes UL-recognized, CSA-listed, MIL-SPEC, AMS, FDA-compliant, and RoHS-certified materials. The customer is always number one — that commitment has defined IPC since day one and remains our core operating principle today."
         ]
-    },
-    "theme": {
-        "primaryColor": "#005da3",
-        "darkColor": "#0d2d52",
-        "accentColor": "#00bef2",
-        "accent2Color": "#119ec8",
-        "logoUrl": "/logo.svg"
     },
     "catalogPdfUrl": ""
 }

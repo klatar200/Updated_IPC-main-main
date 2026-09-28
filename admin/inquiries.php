@@ -92,6 +92,9 @@ $REJECTED = [
     'rfq-incomplete'     => ['label' => 'Incomplete', 'blurb' => 'Required details were missing — often an email address the browser accepted and the server did not'],
     'message-incomplete' => ['label' => 'Incomplete', 'blurb' => 'Required details were missing — often an email address the browser accepted and the server did not'],
 ];
+// The keys above must match inquiry_rejected_types() in config.php, which the
+// nav badge counts with (NEW-N2-8). Fail loudly in the harness if they drift.
+assert(array_keys($REJECTED) == inquiry_rejected_types());
 $failed   = 0;
 $rejected = 0;
 foreach ($entries as $e) {

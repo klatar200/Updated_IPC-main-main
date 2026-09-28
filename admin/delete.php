@@ -16,7 +16,9 @@ $navActive = '';
 // POST = confirmed delete — verify CSRF token
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
+    $before = $products;
     array_splice($products, $idx, 1);
+    $brokenRefs = industry_refs_broken_by($before, $products); // ADM-14
     if (save_products($products)) {
         // Also remove the product's PDF so deleting a product doesn't leave an
         // orphaned data sheet on disk. Scoped strictly to PDF_DIR so a tampered
@@ -60,12 +62,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($kept)    $pdfDetail .= ' | PDFs kept (used by another product): ' . implode(', ', $kept);
         $pdfDetail .= $photoDetail;
         audit_log('delete', $sku, 'Product deleted: ' . ($product['name'] ?? '') . $pdfDetail); // #6
-        flash_redirect($sku . ' deleted successfully', 'success');
+        flash_redirect($sku . ' deleted successfully'
+            . ($brokenRefs ? '. Note: the Industries page still links to it from ' . implode(', ', $brokenRefs)
+                . ' — those links now show "product not found". Fix them in Page Content → Industries.' : ''), 'success');
     }
     flash_redirect('Delete failed — check file permissions', 'error');
 }
 
 // GET = confirmation page
+// ADM-14 — say BEFORE the click which Industries links this delete breaks.
+$without = $products;
+array_splice($without, $idx, 1);
+$brokenRefs = industry_refs_broken_by($products, $without);
 ?>
 <!doctype html>
 <html lang="en">
@@ -121,6 +129,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       the <?= (int)BACKUP_KEEP ?> most recent backups are kept, and every save
       counts.
     </p>
+    <?php if ($brokenRefs): ?>
+    <p style="font-size:13px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px">
+      <strong>The Industries page links to this product</strong> from <?= h(implode(', ', $brokenRefs)) ?>.
+      After deleting, those links show &ldquo;product not found&rdquo; until you change them in
+      <a href="content.php">Page Content</a> &rarr; Industries.
+    </p>
+    <?php endif; ?>
     <div class="actions">
       <a href="index.php" class="btn btn-cancel">Cancel</a>
       <form method="POST" style="display:inline">

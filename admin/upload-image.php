@@ -119,7 +119,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         //      half of a polyglot, and no photograph the owner uploads has one;
         //   2. where gd exists, the image must actually DECODE, which a header
         //      with no image data cannot do. gd is not assumed (see A-9.P2-2).
-        $raw        = (string)@file_get_contents($file['tmp_name'], false, null, 0, 2 * 1024 * 1024);
+        // NEW-V1-1 (audit 2026-09-27) — the WHOLE file, not its first 2 MB: a
+        // valid PNG with the tag at byte 3,005,931 was accepted, and the decode
+        // below reads every byte anyway. Anything over the 8 MB limit is
+        // refused further down, so reading one byte past it is enough.
+        $raw        = (string)@file_get_contents($file['tmp_name'], false, null, 0, 8 * 1024 * 1024 + 1);
         $hasPhpTag  = (stripos($raw, '<?php') !== false || stripos($raw, '<?=') !== false);
 
         // SEC-2 — every cheap check runs BEFORE the decode, and the pixel

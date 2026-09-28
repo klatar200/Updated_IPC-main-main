@@ -148,11 +148,29 @@ function ipc_log_inquiry(array $entry): bool {
             // json_encode() can still return false; "false . \n" is a bare
             // newline, which inquiries.php skips as empty — a lost lead that
             // also inflates the count. Treat it as the failure it is.
-            $bytes = $line === false
-                ? false
-                : @file_put_contents($path, $line . "\n", FILE_APPEND | LOCK_EX);
+            // NEW-N2-10 (audit 2026-09-27) — a SHORT earlier append (disk
+            // full) left no newline, so this line was glued onto it and both
+            // were dropped as invalid JSON — and this success then cleared the
+            // failure marker, hiding it. Start on a fresh line, under the same
+            // lock as the write, and keep the marker when that repair was needed.
+            $bytes = false;
+            $repaired = false;
+            if ($line !== false) {
+                $fh = @fopen($path, 'a+b');
+                if ($fh && flock($fh, LOCK_EX)) {
+                    $st = fstat($fh);
+                    if ($st && $st['size'] > 0 && fseek($fh, -1, SEEK_END) === 0 && fread($fh, 1) !== "\n") {
+                        $repaired = true;
+                    }
+                    $w = fwrite($fh, ($repaired ? "\n" : '') . $line . "\n");
+                    fflush($fh);
+                    flock($fh, LOCK_UN);
+                    $bytes = $w === false ? false : $w - ($repaired ? 1 : 0);
+                }
+                if ($fh) fclose($fh);
+            }
             $ok = ($bytes !== false && $bytes === strlen((string)$line) + 1);
-            if ($ok) {
+            if ($ok && !$repaired) {
                 @unlink($dir . '/' . IPC_LOG_FAIL_MARKER);
             } else {
                 @file_put_contents($dir . '/' . IPC_LOG_FAIL_MARKER, json_encode([
@@ -180,8 +198,15 @@ $bizName   = trim(preg_replace('/[\r\n]+/', ' ', (string)($si['company']['name']
 if ($bizName === '') $bizName = 'Insulation Products Corporation';
 $bizHours  = trim($si['hours']['text'] ?? '')    !== '' ? trim($si['hours']['text'])    : 'Mon–Fri, 8am–5pm CT';
 $ad        = $si['address'] ?? [];
-$bizAddr   = trim(($ad['street'] ?? '250 Gibraltar Dr') . ', ' . ($ad['city'] ?? 'Bolingbrook') . ', '
-           . ($ad['state'] ?? 'IL') . ' ' . ($ad['zip'] ?? '60440'));
+// PUB-8 (audit 2026-09-27) — `??` does not catch "", and settings.php writes a
+// cleared field as "" (invariant 4). A blank street signed every auto-reply
+// ", Bolingbrook, IL". Same rule as the site's mergeSiteInfo: blank = default.
+$adPart    = static function ($v, string $dflt): string {
+    $v = is_string($v) ? trim($v) : '';
+    return $v !== '' ? $v : $dflt;
+};
+$bizAddr   = $adPart($ad['street'] ?? '', '250 Gibraltar Dr') . ', ' . $adPart($ad['city'] ?? '', 'Bolingbrook') . ', '
+           . $adPart($ad['state'] ?? '', 'IL') . ' ' . $adPart($ad['zip'] ?? '', '60440');
 
 /**
  * A-7.2 — HTML escaping, for the one place in this file that renders HTML.
@@ -240,10 +265,21 @@ function respond(int $code, array $payload): void {
     }
 
     $ok    = !empty($payload['ok']);
-    $title = $ok ? 'Message sent' : 'We could not send that';
+    // PUB-9 (audit 2026-09-27) — the no-JS page said "Message sent" for a quote
+    // request and hardcoded "one business day", ignoring the confirmation the
+    // owner edits in Page Content (copy.contactForm.*SuccessBody), which the
+    // JS form shows. Same text now; the defaults match COPY_DEFAULTS in App.jsx.
+    $isRfq = (is_string($_POST['form_type'] ?? null) ? $_POST['form_type'] : '') === 'rfq';
+    $cfCopy = ipc_contact_copy();
+    $title = $ok ? ($isRfq ? 'Quote request sent' : 'Message sent') : 'We could not send that';
     $msg   = $ok
-        ? 'Thank you — your message has reached ' . $bizName . '. Our team will respond within one business day.'
+        ? ($isRfq
+            ? ipc_copy_line($cfCopy, 'rfqSuccessBody', 'Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.')
+            : ipc_copy_line($cfCopy, 'msgSuccessBody', 'Your message has been received. Our sales team will respond within one business day.'))
         : (string)($payload['error'] ?? 'Something went wrong. Please call us and we will help you directly.');
+    if ($ok && $msg === '') {
+        $msg = $isRfq ? 'Your quote request has been received.' : 'Your message has been received.';
+    }
 
     header('Content-Type: text/html; charset=utf-8');
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -356,6 +392,27 @@ function s($val, int $max = IPC_MAX_LINE): string {
 // From, Reply-To). CRLF here is header injection. (4.16)
 function hdr($val): string {
     return trim(preg_replace('/[\r\n]+/', ' ', s($val)) ?: '');
+}
+
+/**
+ * PUB-5 (audit 2026-09-27) — a header value as RFC 2047 encoded-words when it
+ * is not plain ASCII. The Subject carried raw 8-bit UTF-8 (the em dash on every
+ * message, and the visitor's name), which strict MTAs reject or mangle. Takes
+ * an ALREADY hdr()-cleaned value. Split on character boundaries into words of
+ * at most 45 bytes (60 once base64'd), joined by a space — no folding, so mail()
+ * sees one line. mbstring is not assumed (A-9.P2-1).
+ */
+function mime_header(string $v): string {
+    if (!preg_match('/[^\x20-\x7E]/', $v)) return $v;
+    preg_match_all('/./us', $v, $m);
+    $words = [];
+    $cur = '';
+    foreach ($m[0] as $ch) {
+        if (strlen($cur) + strlen($ch) > 45) { $words[] = $cur; $cur = ''; }
+        $cur .= $ch;
+    }
+    if ($cur !== '') $words[] = $cur;
+    return implode(' ', array_map(static function ($w) { return '=?UTF-8?B?' . base64_encode($w) . '?='; }, $words));
 }
 
 // Third destination: a BODY slot inside the auto-reply.
@@ -498,6 +555,13 @@ $window   = 600; // seconds
 $maxHits  = 5;
 $maxLogged = 10; // rejected submissions logged per IP per window
 
+// PUB-13 (audit 2026-09-27) — one lock per IP, held from this read until the
+// request ends (PHP releases it on exit). The read-modify-write held nothing
+// across the read, and on a multi-worker server a burst from one address got
+// 17 submissions through a cap of 5. Requests from the SAME address now queue;
+// nobody else waits.
+$rlLock = @fopen($rateFile . '.lock', 'c');
+if ($rlLock) @flock($rlLock, LOCK_EX);
 $state = ['hits' => [], 'blocked' => 0];
 if (file_exists($rateFile)) {
     $raw = json_decode((string)@file_get_contents($rateFile), true);
@@ -708,7 +772,7 @@ if ($formType === 'rfq') {
         respond(422, ['ok' => false, 'error' => ipc_missing_message($missing)]);
     }
 
-    $subject = hdr('IPC Quote Request — ' . ($partNumber !== '' ? $partNumber : 'General RFQ') . ' — ' . $name);
+    $subject = mime_header(hdr('IPC Quote Request — ' . ($partNumber !== '' ? $partNumber : 'General RFQ') . ' — ' . $name));
     $body    = "IPC QUOTE REQUEST\n"
              . "=================\n\n"
              . "Name:            {$name}\n"
@@ -789,7 +853,7 @@ if ($formType === 'rfq') {
         respond(422, ['ok' => false, 'error' => ipc_missing_message($missing)]);
     }
 
-    $subject = hdr('IPC Contact Form — ' . ($subj !== '' ? $subj : 'General Inquiry') . ' — ' . $name);
+    $subject = mime_header(hdr('IPC Contact Form — ' . ($subj !== '' ? $subj : 'General Inquiry') . ' — ' . $name));
     $body    = "IPC CONTACT FORM\n"
              . "================\n\n"
              . "Name:    {$name}\n"
@@ -826,6 +890,7 @@ $headers  = "From: IPC Website <noreply@insulationproducts.com>\r\n";
 $headers .= "Reply-To: " . hdr($replyTo) . "\r\n";
 $headers .= "MIME-Version: 1.0\r\n";
 $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+$headers .= "Content-Transfer-Encoding: 8bit\r\n"; // NEW-V3-2 — the body is 8-bit UTF-8; say so
 // X-Mailer removed. It served no delivery purpose and announced the exact
 // PHP patch level — to the SALES address on one path, and on the other to any
 // address a stranger types into the form, who only has to submit it once to
@@ -867,6 +932,10 @@ if ($replyTo !== '') {
     $arFile = sys_get_temp_dir() . '/ipc_ar_' . md5(ipc_ar_cap_key($replyTo)) . '.json';
     $arWindow = 86400;   // 24 hours
     $arMax    = 3;
+    // PUB-13 — the same for the per-recipient auto-reply cap (7 sent against a
+    // cap of 3, measured on prefork).
+    $arLock = @fopen($arFile . '.lock', 'c');
+    if ($arLock) @flock($arLock, LOCK_EX);
     $ar = [];
     if (file_exists($arFile)) {
         $ar = json_decode((string)@file_get_contents($arFile), true);
@@ -921,7 +990,7 @@ $rName = reply_slot($name, 60);
 if ($rName === '') $rName = 'there';
 
 if ($formType === 'rfq') {
-    $replySubject = hdr("We received your quote request — {$bizName}");
+    $replySubject = mime_header(hdr("We received your quote request — {$bizName}"));
     $replyBody    = "Hello {$rName},\n\n"
                   . "Thank you for submitting a quote request to {$bizName}.\n\n"
                   . "{$rfqPromise}\n\n"
@@ -939,7 +1008,7 @@ if ($formType === 'rfq') {
                   . "{$bizName}\n"
                   . "{$bizAddr}\n";
 } else {
-    $replySubject = hdr("We received your message — {$bizName}");
+    $replySubject = mime_header(hdr("We received your message — {$bizName}"));
     $replyBody    = "Hello {$rName},\n\n"
                   . "Thank you for contacting {$bizName}.\n\n"
                   . "{$msgPromise}\n\n"
@@ -959,11 +1028,16 @@ if ($formType === 'rfq') {
 // best-effort and @-suppressed, so every auto-reply would simply stop with
 // nothing reporting it. Quote it, and escape any quote or backslash inside.
 // (audit-runs/audit5.md, Low tier)
-$fromName      = '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], hdr($bizName)) . '"';
+// PUB-5 — a quoted-string display name must be ASCII; a non-ASCII company
+// name goes out as encoded-words instead (which may not sit inside quotes).
+$fromName      = preg_match('/[^\x20-\x7E]/', hdr($bizName))
+    ? mime_header(hdr($bizName))
+    : '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], hdr($bizName)) . '"';
 $replyHeaders  = "From: " . $fromName . " <noreply@insulationproducts.com>\r\n";
 $replyHeaders .= "Reply-To: " . hdr($to) . "\r\n";
 $replyHeaders .= "MIME-Version: 1.0\r\n";
 $replyHeaders .= "Content-Type: text/plain; charset=UTF-8\r\n";
+$replyHeaders .= "Content-Transfer-Encoding: 8bit\r\n"; // NEW-V3-2
 
 
 if ($autoReplyOk) {

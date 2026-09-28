@@ -98,7 +98,11 @@
         ],
         "operatingTemp": "",
         "specificationsSummary": "UL & CUL Listed · File No. E197675 · Outdoor Lighting · Long Conduit Runs · Wire Protection · Type B Conduit Locations",
-        "pdfUrl": "/pdfs/CC.pdf"
+        "pdfUrl": "/pdfs/CC.pdf",
+        "approvals": [
+            "UL Listed",
+            "cUL"
+        ]
     },
     {
         "id": "CC90",
@@ -228,7 +232,10 @@
         ],
         "operatingTemp": "Up to 125°C",
         "specificationsSummary": "Nylon 6 · Flammability 94V-2 · Temp Index 125°C · Colors: Black or Gray · Sizes: 3/8\" to 2\" · UL File No. E197675",
-        "pdfUrl": "/pdfs/CC90.pdf"
+        "pdfUrl": "/pdfs/CC90.pdf",
+        "approvals": [
+            "UL Listed"
+        ]
     },
     {
         "id": "CCS",
@@ -361,7 +368,10 @@
         ],
         "operatingTemp": "Temperature index 125°C",
         "specificationsSummary": "Nylon 6 Construction · Flammability 94V-2 · Temp Index 125°C · Colors: Black or Gray · O-ring & Steel Locknut Included · UL File No. E197675",
-        "pdfUrl": "/pdfs/CCS.pdf"
+        "pdfUrl": "/pdfs/CCS.pdf",
+        "approvals": [
+            "UL Listed"
+        ]
     },
     {
         "id": "CT",
@@ -471,7 +481,11 @@
         ],
         "operatingTemp": "",
         "specificationsSummary": "UL File No. E129972 · CSA File No. LL-84707 · 1/4\" thru 2\" trade size · PVC Construction · Sunlight Resistant · Sizes from 100' and 50' packages",
-        "pdfUrl": "/pdfs/CT.pdf"
+        "pdfUrl": "/pdfs/CT.pdf",
+        "approvals": [
+            "UL Recognized",
+            "CSA"
+        ]
     },
     {
         "id": "IP10EX",
@@ -758,7 +772,12 @@
         ],
         "operatingTemp": "-20°C to 105°C",
         "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · 1000 V/mil dielectric · MIL-I-631D Grade C · ASTM D 922 · AMS 3631 · QPL Approved",
-        "pdfUrl": "/pdfs/IP10EX.pdf"
+        "pdfUrl": "/pdfs/IP10EX.pdf",
+        "approvals": [
+            "CSA",
+            "MIL-SPEC",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP1274",
@@ -1023,7 +1042,8 @@
         ],
         "operatingTemp": "-68°C to 85°C",
         "specificationsSummary": "MIL-I-7444 Type I Class 1 & 2 · MIL-I-7444 Type III Class 1 · MIL-I-22076 · Colors: Black, White, Clear · Dielectric Strength: 300+ VPM · Tensile Strength: 1800 PSI",
-        "pdfUrl": "/pdfs/IP1274.pdf"
+        "pdfUrl": "/pdfs/IP1274.pdf",
+        "approvals": []
     },
     {
         "id": "IP12GA",
@@ -1288,10 +1308,11 @@
             "IP1274 has a high dielectric strength, excellent flexibility, fungus resistance and is non-corrosive."
         ],
         "operatingTemp": "-55°C to +90°C",
-        "specificationsSummary": "MIL-I-631 Grade A & B · ASTM D922 · Colors: Black, Clear · -55 to +90°C · Dielectric Strength: 1000 VPM · Tensile Strength: 3000 PSI"
+        "specificationsSummary": "MIL-I-631 Grade A & B · ASTM D922 · Colors: Black, Clear · -55 to +90°C · Dielectric Strength: 1000 VPM · Tensile Strength: 3000 PSI",
+        "approvals": []
     },
     {
-        "id": "IP12GA - IP1274",
+        "id": "IP12GA-IP1274",
         "sku": "IP12GA-IP1274",
         "name": "Extruded General Purpose Vinyl Tubing",
         "badges": [
@@ -1573,7 +1594,8 @@
         ],
         "operatingTemp": "-70°C to 90°C",
         "specificationsSummary": "MIL-I-631 Grade A & B · ASTM D922 · MIL-I-7444 Types I and III · MIL-I-22076 · IP12GA: -55°C to 90°C, 1000 VPM · IP1274: -70°C to 85°C, 545 VPM · Colors: Black, Clear",
-        "pdfUrl": "/pdfs/IP12GA-IP1274.pdf"
+        "pdfUrl": "/pdfs/IP12GA-IP1274.pdf",
+        "approvals": []
     },
     {
         "id": "IP13SP",
@@ -1696,7 +1718,11 @@
         ],
         "operatingTemp": "-268°C to 260°C (PTFE); -60°C to 88°C (Polyethylene); -40°C to 121°C (Nylon)",
         "specificationsSummary": "U/L 94V-0 & 94V-2 · Mil-Spec · High Temp up to 260°C · Available in Polyethylene, Nylon, PTFE · Standard and Reverse Cuts · Color Coding Available",
-        "pdfUrl": "/pdfs/IP13SP.pdf"
+        "pdfUrl": "/pdfs/IP13SP.pdf",
+        "approvals": [
+            "UL Recognized",
+            "MIL-SPEC"
+        ]
     },
     {
         "id": "IP15PV",
@@ -1914,10 +1940,13 @@
         ],
         "operatingTemp": "",
         "specificationsSummary": "FDA Approved · U.S. Pharmacopoeia Classes I-VI · Federal Specification L-T-790B · Clear · Food Grade Vinyl · Kink Resistant",
-        "pdfUrl": "/pdfs/IP15PV.pdf"
+        "pdfUrl": "/pdfs/IP15PV.pdf",
+        "approvals": [
+            "FDA"
+        ]
     },
     {
-        "id": "IP17TW-18SW-19LW",
+        "id": "IP17TW-IP18SW-IP19LW",
         "sku": "IP17TW-IP18SW-IP19LW",
         "name": "Extruded PTFE Spaghetti Tubing",
         "badges": [
@@ -2256,7 +2285,12 @@
         ],
         "operatingTemp": "-275°F to 500°F (-70°C to 260°C)",
         "specificationsSummary": "Standard Wall: AMS 3653B, MIL-I-22129, U/L 600V · Thin Wall: AMS 3655 · Light Wall: AMS 3654 · Melt Point: 620°F · Continuous Usage: -275°F to 500°F · FDA: GFR 21.121.2555",
-        "pdfUrl": "/pdfs/IP17TW-IP18SW-IP19LW.pdf"
+        "pdfUrl": "/pdfs/IP17TW-IP18SW-IP19LW.pdf",
+        "approvals": [
+            "UL Recognized",
+            "MIL-SPEC",
+            "FDA"
+        ]
     },
     {
         "id": "IP25PU",
@@ -2509,7 +2543,10 @@
         ],
         "operatingTemp": "",
         "specificationsSummary": "Ether Specific Gravity: 1.12 · Ether Tensile Strength: 5500 · Ester Specific Gravity: 1.20 · Ester Tensile Strength: 6500 · Elongation: 550% · FDA Compliant",
-        "pdfUrl": "/pdfs/IP25PU.pdf"
+        "pdfUrl": "/pdfs/IP25PU.pdf",
+        "approvals": [
+            "FDA"
+        ]
     },
     {
         "id": "IP29CG",
@@ -2703,7 +2740,10 @@
         ],
         "operatingTemp": "-55°C to 105°C",
         "specificationsSummary": "Longitudinal Shrinkage: <5% · -55°C to 105°C · 550 V/mil · RoHS Compliant · Colors: Black, White, Clear, Red, Blue, Green, Yellow · Low Temp Flexibility: No cracking @-55°C",
-        "pdfUrl": "/pdfs/IP29CG.pdf"
+        "pdfUrl": "/pdfs/IP29CG.pdf",
+        "approvals": [
+            "RoHS"
+        ]
     },
     {
         "id": "IP30HS",
@@ -2905,7 +2945,12 @@
         ],
         "operatingTemp": "-20°C to 105°C",
         "specificationsSummary": "U/L Subject 224 VW-1 · Rated 600V · CSA OFT · ASTM D 3150 · Mil-I-23053/2 class 2 · 1083 V/mil · Colors: Black, White, Clear, Red, Yellow",
-        "pdfUrl": "/pdfs/IP30HS.pdf"
+        "pdfUrl": "/pdfs/IP30HS.pdf",
+        "approvals": [
+            "CSA",
+            "MIL-SPEC",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP30UV",
@@ -3074,7 +3119,8 @@
         ],
         "operatingTemp": "-20°C to 105°C",
         "specificationsSummary": "Longitudinal Shrinkage: 20% · Store at 70°F or below, or use in 30 days · -20°C to 105°C · Colors: Black, White, Clear, Red, Yellow",
-        "pdfUrl": "/pdfs/IP30UV.pdf"
+        "pdfUrl": "/pdfs/IP30UV.pdf",
+        "approvals": []
     },
     {
         "id": "IP32IP",
@@ -3238,7 +3284,12 @@
         ],
         "operatingTemp": "-20°C to 105°C",
         "specificationsSummary": "U/L Subject 224 VW-1 · Rated for 600V · CSA OFT · ASTM D 3150 · Mil-I-23053/2 class 1 · 1083 V/mil · Colors: Black",
-        "pdfUrl": "/pdfs/IP32IP.pdf"
+        "pdfUrl": "/pdfs/IP32IP.pdf",
+        "approvals": [
+            "CSA",
+            "MIL-SPEC",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP33PO",
@@ -3424,7 +3475,12 @@
         ],
         "operatingTemp": "-55°C to 135°C",
         "specificationsSummary": "U/L Subject 224 VW-1 · Mil-I-23053/5 · 600 V/mil · -55°C to 135°C · Colors: Black, White, Clear, Red, Blue, Yellow",
-        "pdfUrl": "/pdfs/IP33PO.pdf"
+        "pdfUrl": "/pdfs/IP33PO.pdf",
+        "approvals": [
+            "MIL-SPEC",
+            "USP Class VI",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP33TW",
@@ -3598,7 +3654,12 @@
         ],
         "operatingTemp": "-55°C to 135°C",
         "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · AMS 3636 · ASTM 3637 · 1300 V/mil · Colors: Black, White, Clear, Red, Blue, Yellow",
-        "pdfUrl": "/pdfs/IP33TW.pdf"
+        "pdfUrl": "/pdfs/IP33TW.pdf",
+        "approvals": [
+            "CSA",
+            "MIL-SPEC",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP34SR",
@@ -3766,7 +3827,12 @@
         ],
         "operatingTemp": "-55°C to 135°C",
         "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · Mil-I-23053/6 · 800 V/mil · Longitudinal Shrinkage <5% · Colors: Black, Clear",
-        "pdfUrl": "/pdfs/IP34SR.pdf"
+        "pdfUrl": "/pdfs/IP34SR.pdf",
+        "approvals": [
+            "CSA",
+            "MIL-SPEC",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP35KY",
@@ -3920,7 +3986,11 @@
         ],
         "operatingTemp": "-55°C to 175°C",
         "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · M23053/8 · 800-1000 V/mil · Colors: Clear, Black · Heat Shock: 4 hrs @ 300°C no cracks",
-        "pdfUrl": "/pdfs/IP35KY.pdf"
+        "pdfUrl": "/pdfs/IP35KY.pdf",
+        "approvals": [
+            "CSA",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP37SH-IP36TH-IP39LH",
@@ -4251,7 +4321,12 @@
         ],
         "operatingTemp": "-100°F to 500°F",
         "specificationsSummary": "U/L Recognized · Mil-I-23053/12 · AMS 3585 · FDA Approved C.F.R. 21 121.255 · Shrink Ratio: 2:1 / 4:1 · Shrink Temp: 621°F",
-        "pdfUrl": "/pdfs/IP37SH-IP36TH-IP39LH.pdf"
+        "pdfUrl": "/pdfs/IP37SH-IP36TH-IP39LH.pdf",
+        "approvals": [
+            "UL Recognized",
+            "MIL-SPEC",
+            "FDA"
+        ]
     },
     {
         "id": "IP38FE",
@@ -4531,7 +4606,10 @@
         ],
         "operatingTemp": "-55°C to 200°C",
         "specificationsSummary": "Mil-I-23053-11 · FDA Title 21 #177.1550 · -55°C to 200°C · Shrink 290°C · Dielectric strength 2000 volts/mil · 1.3:1 and 1.67:1 Shrink Ratios",
-        "pdfUrl": "/pdfs/IP38FE.pdf"
+        "pdfUrl": "/pdfs/IP38FE.pdf",
+        "approvals": [
+            "FDA"
+        ]
     },
     {
         "id": "IP3L",
@@ -4643,10 +4721,13 @@
         ],
         "operatingTemp": "-20°C to +100°C",
         "specificationsSummary": "U/L VW-1 · U/L file #E129478 · Dielectric Strength: 2400 volts/mil (.004\") · Shrink Ratio: up to 50% · Operating Temp: -20°C to +100°C · Colors: Black, White, Clear",
-        "pdfUrl": "/pdfs/IP3L.pdf"
+        "pdfUrl": "/pdfs/IP3L.pdf",
+        "approvals": [
+            "UL VW-1"
+        ]
     },
     {
-        "id": "IP41NE / IP43VT",
+        "id": "IP41NE-IP43VT",
         "sku": "IP41NE-IP43VT",
         "name": "Neoprene / Viton Heat Shrink Tubing",
         "badges": [
@@ -4813,7 +4894,8 @@
         ],
         "operatingTemp": "-70°C to +121°C (Neoprene) / -55°C to 200°C (Viton)",
         "specificationsSummary": "M23053/1 Class 1 & 2 (Neoprene) · M23053/13 (Viton) · Temp: -70°C to +121°C / -55°C to 200°C · Shrink Temp: 135°C min (Neoprene) / 175°C (Viton) · Dielectric Strength: 500 V/Mil · Tensile Strength: 2400 psi",
-        "pdfUrl": "/pdfs/IP41NE-IP43VT.pdf"
+        "pdfUrl": "/pdfs/IP41NE-IP43VT.pdf",
+        "approvals": []
     },
     {
         "id": "IP42MW",
@@ -4940,10 +5022,14 @@
         ],
         "operatingTemp": "-55°C to 110°C",
         "specificationsSummary": "MIL-I-23053/4 Class 1 · AMS 3634 · U/L Approved · Shrink Ratio: 2.5:1 · Longitudinal Shrinkage: +1/-10% · Shrink Temp: 135°C · Colors: Black standard",
-        "pdfUrl": "/pdfs/IP42MW.pdf"
+        "pdfUrl": "/pdfs/IP42MW.pdf",
+        "approvals": [
+            "UL Approved",
+            "MIL-SPEC"
+        ]
     },
     {
-        "id": "IP44A2 & IP45A3",
+        "id": "IP44A2-IP45A3",
         "sku": "IP44A2-IP45A3",
         "name": "Adhesive Lined Polyolefin Heat Shrink Tubing",
         "badges": [
@@ -5106,7 +5192,10 @@
         ],
         "operatingTemp": "",
         "specificationsSummary": "Shrink Temp: 121°C · 500 Volts/Mil · M23053/4 Class 2 (IP44A2) · M23053/4 Class 3 (IP45A3) · U/L Approved · Standard Lengths 4'",
-        "pdfUrl": "/pdfs/IP44A2-IP45A3.pdf"
+        "pdfUrl": "/pdfs/IP44A2-IP45A3.pdf",
+        "approvals": [
+            "UL Approved"
+        ]
     },
     {
         "id": "IP46MD",
@@ -5255,7 +5344,8 @@
         ],
         "operatingTemp": "Up to 90°C",
         "specificationsSummary": "MIL-I-23053/15 Class 2 · Dielectric Strength: 250 volts/mil @ 150 mils · Tensile Strength: 2400 psi · Water Absorption: 0.2% · Solvent Resistance: Excellent · Standard Length: 48\"",
-        "pdfUrl": "/pdfs/IP46MD.pdf"
+        "pdfUrl": "/pdfs/IP46MD.pdf",
+        "approvals": []
     },
     {
         "id": "IP47HV",
@@ -5402,7 +5492,10 @@
         ],
         "operatingTemp": "Up to 90°C",
         "specificationsSummary": "U/L Approved · MIL-I-23053/15 Class 1 and 2 · Dielectric Strength: 250 volts/mil @ 150 mils · Tensile Strength: 2400 psi · Water Absorption: 0.05% · Standard Length: 48\"",
-        "pdfUrl": "/pdfs/IP47HV.pdf"
+        "pdfUrl": "/pdfs/IP47HV.pdf",
+        "approvals": [
+            "UL Approved"
+        ]
     },
     {
         "id": "IP48MH",
@@ -5548,7 +5641,8 @@
         ],
         "operatingTemp": "-60°C to +150°C",
         "specificationsSummary": "M23053/7 Class 2 · Dielectric Strength: 1,500 VPM min. · Tensile Strength: 20,000 PSI · Melting Point: 245°C+ · Dielectric Constant: 3.9-3.9 · Temperature Range: -60 to +150°C",
-        "pdfUrl": "/pdfs/IP48MH.pdf"
+        "pdfUrl": "/pdfs/IP48MH.pdf",
+        "approvals": []
     },
     {
         "id": "IP49VP",
@@ -5698,7 +5792,11 @@
         ],
         "operatingTemp": "-55°C to 135°C",
         "specificationsSummary": "U/L 224 · CSA · AMS-3587 · Shrink Ratio 2:1 · 800 V/mil · Color: Black",
-        "pdfUrl": "/pdfs/IP49VP.pdf"
+        "pdfUrl": "/pdfs/IP49VP.pdf",
+        "approvals": [
+            "CSA",
+            "MIL-SPEC"
+        ]
     },
     {
         "id": "IP52EC",
@@ -5880,7 +5978,8 @@
                 "url": "/pdfs/IP52EC-plugged-cap.pdf",
                 "label": "Plugged Cap"
             }
-        ]
+        ],
+        "approvals": []
     },
     {
         "id": "IP53MP",
@@ -6142,7 +6241,13 @@
         ],
         "operatingTemp": "-55°C to 175°C (-67°F to 347°F)",
         "specificationsSummary": "Shrink Ratio: 2:1 · Acrylated Polyolefin: -55°C to 121°C · PVDF: -55°C to 175°C · PVC: -20°C to 60°C · Colors: Black, White, Blue, Clear, Crystal Clear · USP Class VI, ISO 10993-5",
-        "pdfUrl": "/pdfs/IP53MP.pdf"
+        "pdfUrl": "/pdfs/IP53MP.pdf",
+        "approvals": [
+            "RoHS",
+            "FDA",
+            "USP Class VI",
+            "ISO 10993-5"
+        ]
     },
     {
         "id": "IP55FL",
@@ -6302,7 +6407,12 @@
         ],
         "operatingTemp": "-55°C to 150°C",
         "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · AMS-3632C · Mil-I-23053/18 Class 2 · 2500V Electrical · Colors: Clear, Black",
-        "pdfUrl": "/pdfs/IP55FL.pdf"
+        "pdfUrl": "/pdfs/IP55FL.pdf",
+        "approvals": [
+            "CSA",
+            "MIL-SPEC",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP56DR",
@@ -6433,10 +6543,11 @@
         ],
         "operatingTemp": "-75°C to +120°C",
         "specificationsSummary": "M23053/16 · MIL-R-46846 Type 1 Class 1 · -75°C to +120°C · Shrink Temp: 150°C min · Color: Black · Markers and Cut Pieces Available",
-        "pdfUrl": "/pdfs/IP56DR.pdf"
+        "pdfUrl": "/pdfs/IP56DR.pdf",
+        "approvals": []
     },
     {
-        "id": "IP61ES & IP62EF",
+        "id": "IP61ES-IP62EF",
         "sku": "IP61ES-IP62EF",
         "name": "Expandable Polyester Sleeving",
         "badges": [
@@ -6570,7 +6681,12 @@
         ],
         "operatingTemp": "Rated to 125°C",
         "specificationsSummary": "U/L Recognized · CSA Certified · 125°C Rating · Flame Retardant VW-1 · .010\" Filament Diameter · Nine Colors Available",
-        "pdfUrl": "/pdfs/IP61ES-IP62EF.pdf"
+        "pdfUrl": "/pdfs/IP61ES-IP62EF.pdf",
+        "approvals": [
+            "UL Recognized",
+            "CSA",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP63ES",
@@ -6654,7 +6770,10 @@
         ],
         "operatingTemp": "Up to 125°C",
         "specificationsSummary": "U/L Recognized · Rated for 125°C · Tough Fabric Texture · Melt Temp: 250°C · Available in different versions · Tie at intervals if continuous temp exceeds 110°C",
-        "pdfUrl": "/pdfs/IP63ES.pdf"
+        "pdfUrl": "/pdfs/IP63ES.pdf",
+        "approvals": [
+            "UL Recognized"
+        ]
     },
     {
         "id": "IP64FS-IP65VC-IP66AC-IP67SC",
@@ -6815,7 +6934,11 @@
         ],
         "operatingTemp": "Up to 1200°F (Heat Treated); 130°C (Vinyl Coated); 155°C (Acrylic Coated); -70°C to 200°C (Silicone Coated)",
         "specificationsSummary": "U/L Recognized · MIL-I-3190 · MIL-I-21557 · ASTM D-372 · NEMA VS-1 · 130°C / 155°C / 200°C",
-        "pdfUrl": "/pdfs/IP64FS-IP65VC-IP66AC-IP67SC.pdf"
+        "pdfUrl": "/pdfs/IP64FS-IP65VC-IP66AC-IP67SC.pdf",
+        "approvals": [
+            "UL Recognized",
+            "UL VW-1"
+        ]
     },
     {
         "id": "IP69HT",
@@ -6933,10 +7056,11 @@
         ],
         "operatingTemp": "-25°C to 60°C",
         "specificationsSummary": "-25°C to 60°C · Tensile Strength 2,600 P.S.I. · Adhesive Peel Strength 10 P.S.I. · Dielectric Breakdown 650 volts/mil · Volume Resistivity 10¹⁵ OHM-CM · Water Absorption 0.15% after 24 hrs at 23°C",
-        "pdfUrl": "/pdfs/IP69HT.pdf"
+        "pdfUrl": "/pdfs/IP69HT.pdf",
+        "approvals": []
     },
     {
-        "id": "IP71NS - IP72PS - IP73PP",
+        "id": "IP71NS-IP72PS-IP73PP",
         "sku": "IP71NS-IP72PS-IP73PP",
         "name": "Slit Guard Conduit Tubing",
         "badges": [
@@ -7089,7 +7213,10 @@
         ],
         "operatingTemp": "-40°F to +300°F (Nylon); -40°F to +200°F (Polyethylene); -40°F to +275°F (Polypropylene)",
         "specificationsSummary": "Colors: standard black (others available) · Put-up: Boxes or Gaylord · Available with or without slit · Polyethylene: -40°F to +200°F · Nylon: -40°F to +300°F, 5100psi, 225% elongation · Polypropylene: -40°F to +275°F, 3000psi, 700% elongation",
-        "pdfUrl": "/pdfs/IP71NS-IP72PS-IP73PP.pdf"
+        "pdfUrl": "/pdfs/IP71NS-IP72PS-IP73PP.pdf",
+        "approvals": [
+            "UL-94"
+        ]
     },
     {
         "id": "IP75AD",
@@ -7143,7 +7270,8 @@
         ],
         "operatingTemp": "",
         "specificationsSummary": "Instant Adhesives (Cyanoacrylates) · Threadlockers & Anaerobics · Structural Adhesives (Epoxies, UV Cure, Acrylics, Methacrylates) · Sealants · Application Systems · Domestically Made",
-        "pdfUrl": "/pdfs/IP75AD.pdf"
+        "pdfUrl": "/pdfs/IP75AD.pdf",
+        "approvals": []
     },
     {
         "id": "VALUE-ADDED",
@@ -7195,7 +7323,8 @@
         ],
         "operatingTemp": "",
         "specificationsSummary": "Spooling · Coiling · Cutting · Any type of tubing · Custom lengths · ISO 9001",
-        "pdfUrl": "/pdfs/Value-Added.pdf"
+        "pdfUrl": "/pdfs/Value-Added.pdf",
+        "approvals": []
     },
     {
         "id": "VT-1100",
@@ -7266,6 +7395,10 @@
         ],
         "operatingTemp": "250°F – 1100°F",
         "specificationsSummary": "UL & CSA Approved · 1200 Watts · 120 VAC/10 Amp · 1.6 lbs · Variable Temperature 250°F–1100°F · Two Speed Motor",
-        "pdfUrl": "/pdfs/VT-1100.pdf"
+        "pdfUrl": "/pdfs/VT-1100.pdf",
+        "approvals": [
+            "UL Approved",
+            "CSA"
+        ]
     }
 ]
