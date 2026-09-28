@@ -26,10 +26,13 @@ Options -Indexes
   Deny from all
 </FilesMatch>
 
-# Cache uploaded images for a day — replacements keep the same filename, so
-# a shorter TTL keeps replaced photos from lingering too long.
+# PUB-10 (audit 2026-09-27) — REVALIDATE, don't cache blind. A replacement
+# photo keeps the product's filename, and "public, max-age=86400" kept the old
+# one in every returning visitor's browser for a day, against the admin's
+# "changes appear within about a minute". no-cache still stores the file; it
+# only asks the server "still the same?" (a 304 with no body) before use.
 <IfModule mod_headers.c>
   <FilesMatch "\.(?i:jpe?g|png|webp|gif)$">
-    Header set Cache-Control "public, max-age=86400"
+    Header set Cache-Control "no-cache"
   </FilesMatch>
 </IfModule>

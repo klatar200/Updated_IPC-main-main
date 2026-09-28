@@ -6858,3 +6858,36 @@ NEW-N1-1 and V1-2 are fixed at one chokepoint, `normalizeProductRow()`.
   | `plan8-lead` | 16/16 |
 
 - The last four were re-run because they also touch the limiter files.
+
+## 1ag. Shipped 2026-09-28 — Lows batches D (admin JS) and E (.htaccess)
+
+**D, admin JS** (`_harness/lowsD-admin.js`, 1/7 → 7/7):
+
+| ID | Fix |
+|---|---|
+| NEW-N2-5 | A header's width is the larger of its colspan and its sub-label count, and rows wider than the header get columns. Neither loses cells on save. |
+| NEW-N2-6 | "Paste from Excel" parses quoted TSV cells |
+| NEW-N2-7 | Column actions arm the unsaved-changes guard |
+| NEW-N2-14 | The Products search lower-cases in JS, not with PHP's ASCII-only `strtolower` |
+
+**E, `.htaccess`** (`_harness/lowsE-apache.js` on real Apache + mod_ssl,
+3/12 → 12/12):
+
+| ID | Fix |
+|---|---|
+| PUB-1 + NEW-V3-1 | HSTS is gated on `env=HTTPS` (mod_ssl's, seen at response time) or on `X-Forwarded-Proto: https`. The `SetEnvIf HTTPS` line never matched, and it also trusted a client header. |
+| PUB-10 | `no-cache` for uploaded photos and data sheets |
+| PUB-11 | `/pdfs`, `/uploads`, `/images`, `/data` and the icons 404 instead of serving the site shell |
+| NEW-N3-6 | The `LimitExcept` comments now say they do not stop TRACE. GO-LIVE C1 checks HSTS, a missing-PDF 404 and TRACE. |
+
+- **Decided (engineering, ON PURPOSE):**
+  - **HSTS drops `includeSubDomains`.** No subdomain's TLS has been checked,
+    and a one-year pin can lock browsers out of them. Add it back once they
+    are verified.
+  - **No `expr=`.** It needs Apache 2.4.10+, the host's version is
+    unconfirmed, and an unknown directive in `.htaccess` is a 500 on every
+    page.
+- **Handoff to Keagan (host setting):**
+  - **Trigger:** GO-LIVE C1's TRACE line answers 200.
+  - **Action:** ask Network Solutions to set `TraceEnable Off`.
+  - **Why:** `.htaccess` cannot.

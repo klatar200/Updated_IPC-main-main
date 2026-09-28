@@ -49,9 +49,23 @@ RewriteBase /
   # rules assumed opposite topologies and, in the proxy case, the one header
   # meant to pin browsers to HTTPS was silently never sent. Set it when either
   # signal says the request arrived over TLS.
+  # PUB-1 (audit 2026-09-27) — `SetEnvIf HTTPS "^on$"` NEVER matched: SetEnvIf
+  # runs in the header-parser phase and mod_ssl sets HTTPS later, in fixups
+  # (mod_setenvif.c / ssl_engine_kernel.c; A/B-tested on Apache 2.4.58). So
+  # HSTS went out only when a proxy header arrived. It also matched a CLIENT-
+  # sent "HTTPS: on" request header (NEW-V3-1). mod_headers evaluates env= at
+  # response time, after fixups, so `env=HTTPS` sees mod_ssl's value — the
+  # gating that worked before A-6.5. Two lines, one per topology; "set"
+  # replaces, so at most one header is sent. Not `expr=`: it needs Apache
+  # 2.4.10+, the host's version is unconfirmed, and an unknown directive here
+  # is a 500 on every page.
+  #
+  # ON PURPOSE no includeSubDomains: a year-long pin over subdomains nobody has
+  # checked for TLS (mail, webmail, a host panel) can lock a browser out of
+  # them. Add it only once every subdomain is known to serve a valid certificate.
   SetEnvIf X-Forwarded-Proto "^https$" IPC_TLS=1
-  SetEnvIf HTTPS "^on$" IPC_TLS=1
-  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=IPC_TLS
+  Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
+  Header always set Strict-Transport-Security "max-age=31536000" env=IPC_TLS
 </IfModule>
 
 # Suppress version disclosure and directory listings, as the admin already does.
@@ -77,6 +91,13 @@ RewriteRule ^sitemap\.xml$ sitemap.php [L]
 # documents for base:'./'. Let it 404 honestly instead.
 # (audit-runs/audit5.md, Low tier)
 RewriteCond %{REQUEST_URI} !^/assets/
+# PUB-11 (audit 2026-09-27) — the same for every folder of FILES. A missing
+# data sheet, photo or data file answered 200 text/html (the site shell), so a
+# broken Data Sheet link was invisible to link checkers and Search Console,
+# and a browser saved the shell as "datasheet.pdf". Only real routes fall
+# through; these 404.
+RewriteCond %{REQUEST_URI} !^/(pdfs|uploads|images|data)/
+RewriteCond %{REQUEST_URI} !^/(favicon\.ico|apple-touch-icon[^/]*\.png|robots\.txt)$
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 

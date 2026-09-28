@@ -18,8 +18,24 @@ Options -Indexes
     Deny from all
 </FilesMatch>
 
-# Only allow GET requests (PDFs are read-only assets)
+# Only allow GET requests (PDFs are read-only assets; GET covers HEAD)
+# NOT A TRACE GUARD — do not read it as one. TRACE is answered by Apache core
+# before any .htaccess rule runs: LimitExcept, Rewrite [F] and <If> all miss
+# it, and `TraceEnable Off` (the only switch) is not allowed in .htaccess.
+# Measured (audit 2026-09-27 NEW-N3-6): TRACE → 200, echoing the request
+# headers, IPCADMIN cookie included. Browsers cannot send TRACE, so the risk
+# is small; the host must turn it off — GO-LIVE §C has the one-line check.
 <LimitExcept GET>
     Order Allow,Deny
     Deny from all
 </LimitExcept>
+
+# PUB-10 (audit 2026-09-27) — a replaced data sheet keeps its filename, and
+# with no Cache-Control at all browsers cached it heuristically (10% of its
+# age: weeks, for an old sheet). Revalidate before every use instead; an
+# unchanged sheet costs a 304.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(?i:pdf)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
