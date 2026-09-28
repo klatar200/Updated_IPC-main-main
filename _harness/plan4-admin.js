@@ -57,7 +57,13 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // 2026-08-09b: **446** after PLAN-7 item 3a added the five-field Site Images
 // group. Measured 441 -> 446, i.e. exactly the five fields and nothing else.
 // plan2-trunc.js re-run at 446 against the real max_input_vars=100 server.
-const POSTED_BEFORE = 446;
+// 2026-09-28: **445** — d922525 (2026-09-15) removed the same-day-shipping
+// row from `heroTrust` in data/content.json (10 -> 9 rows, one text field
+// each) and did not update this constant, so the suite read 18/19 on main
+// until the 2026-09-28 build test caught it. Proven data-only: against
+// d922525~1's content.json this suite is 19/19 unmodified. Count moves with
+// the shipped row count, not with the form's structure.
+const POSTED_BEFORE = 445;
 
 const results = [];
 const note = (ok, what, detail = '') => {
