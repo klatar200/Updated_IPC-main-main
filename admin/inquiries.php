@@ -54,7 +54,15 @@ $total   = 0;
 if (file_exists(INQUIRIES_FILE)) {
     $total = inq_count_lines(INQUIRIES_FILE);
     // A-5.6 — viewing the page is what clears the nav badge.
-    inquiries_mark_seen($total);
+    // SEC-10 (audit 2026-09-27) — but only a view that started HERE. The
+    // session cookie is SameSite=Lax, so a link on any other site opened this
+    // page signed in and silently cleared the "new" badge on unread leads.
+    // `Sec-Fetch-Site` is sent by every current browser; `none` is a typed URL
+    // or a bookmark. A browser that sends no header keeps the old behaviour.
+    $fetchSite = $_SERVER['HTTP_SEC_FETCH_SITE'] ?? '';
+    if ($fetchSite === '' || $fetchSite === 'same-origin' || $fetchSite === 'none') {
+        inquiries_mark_seen($total);
+    }
     foreach (inq_tail_lines(INQUIRIES_FILE, $MAX_SHOW) as $line) {
         $e = json_decode($line, true);
         if (is_array($e)) $entries[] = $e;
@@ -185,7 +193,7 @@ $navActive = 'inquiries';
                  email, and this printed <a href="mailto:"> around an em dash:
                  a link with no accessible name that goes nowhere. Show the
                  dash as plain text when there is no address to write to. */ ?>
-        <tr><th>Email</th><td><?php if (!empty($e['email'])): ?><a href="mailto:<?= h($e['email']) ?>"><?= h($e['email']) ?></a><?php else: ?>—<?php endif; ?></td></tr>
+        <tr><th>Email</th><td><?php if (!empty($e['email'])): ?><a href="mailto:<?= h(str_replace('%40', '@', rawurlencode((string)$e['email']))) ?>"><?= h($e['email']) ?></a><?php else: ?>—<?php endif; ?></td></tr>
         <?php if (!empty($e['phone'])): ?><tr><th>Phone</th><td><?= h($e['phone']) ?></td></tr><?php endif; ?>
         <?php if ($isRfq): ?>
           <?php if (!empty($e['part'])): ?><tr><th>Part number</th><td><?= h($e['part']) ?></td></tr><?php endif; ?>

@@ -8,8 +8,7 @@ $idx      = find_product($products, $sku);
 $errors   = [];
 
 if ($idx === -1) {
-    header('Location: index.php?msg=Product+not+found&type=error');
-    exit;
+    flash_redirect('Product not found', 'error');
 }
 
 $product = $products[$idx];
@@ -84,7 +83,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // caught with a clear message instead of a silently broken link.
             // (Entry is kept so it re-displays for the user to fix; the error
             // blocks the save.)
-            if (!preg_match('#^(/|https?://)\S+\.pdf$#i', $url)) {
+            // SEC-8 — `/` must not be followed by another `/` or a `\`:
+            // `//evil…` and `/\evil…` are protocol-relative (browsers read the
+            // backslash as a slash), so they passed as "a path", saved
+            // "successfully", and the site's isSafeLinkUrl() then dropped the
+            // link without a word.
+            if (!preg_match('#^(/(?![/\\\\])|https?://)\S+\.pdf$#i', $url)) {
                 $errors[] = 'Additional PDF link "' . $url . '" is not valid — use a path or URL ending in .pdf (e.g. /pdfs/file.pdf | Label).';
             }
             $addList[] = ['url' => $url, 'label' => $label];
@@ -230,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // F3 — a no-op save is still a success and still redirects, so the
             // concurrency signature is recomputed from (unchanged) disk on the
             // next load and matches. Only the flash message differs; edit.php
-            // carries its result on index.php's ?msg= rather than a banner of
+            // carries its result on index.php's flash message rather than a banner of
             // its own, so `type` stays `success` and the wording does the work.
             $noop = last_save_was_noop();
             $detail = ($updated['sku'] !== $sku ? ('Renamed from ' . $sku . '. ') : '') . 'Product details updated' . $renameNote;
@@ -238,8 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $msg = $noop
                 ? $updated['sku'] . ' — no changes to save'
                 : $updated['sku'] . ' saved successfully';
-            header('Location: index.php?msg=' . urlencode($msg) . '&type=success');
-            exit;
+            flash_redirect($msg, 'success');
         }
         $errors[] = 'Failed to save products-all.json. Check file permissions.';
     }

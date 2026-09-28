@@ -25,8 +25,7 @@ $IMG_TYPES = [
 ];
 
 if ($idx === -1) {
-    header('Location: index.php?msg=Product+not+found&type=error');
-    exit;
+    flash_redirect('Product not found', 'error');
 }
 
 $product      = $products[$idx];
@@ -62,6 +61,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     // Branch B — upload / replace.
+    // SEC-12 — `image_file[]` makes every key an array; say so instead of a TypeError.
+    elseif (!upload_field_is_single('image_file')) {
+        $errors[] = 'Please choose one image file at a time.';
+    }
     elseif (!isset($_FILES['image_file']) || $_FILES['image_file']['error'] !== UPLOAD_ERR_OK) {
         $errors[] = upload_error_message($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'image');
     } else {

@@ -93,8 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $products[] = $new;
         if (save_products($products)) {
             audit_log('add', $sku, 'New product added'); // #6
-            header('Location: index.php?msg=' . urlencode($sku . ' added successfully') . '&type=success');
-            exit;
+            flash_redirect($sku . ' added successfully', 'success');
         }
         $errors[] = 'Failed to save. Check file permissions on products-all.json.';
     }

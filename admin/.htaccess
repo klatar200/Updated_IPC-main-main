@@ -46,7 +46,9 @@ AddDefaultCharset UTF-8
   SetEnvIf HTTPS "^on$" IPC_TLS=1
   Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=IPC_TLS
   # Conservative CSP — the admin uses inline <style> blocks but no external JS.
-  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: https://placehold.co; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+  # form-action: SEC-16 (audit 2026-09-27) — it does NOT fall back to
+  # default-src, so without it an injected <form> could post anywhere.
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: https://placehold.co; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 </IfModule>
 
 # Block direct access to sensitive files in this directory.

@@ -102,7 +102,12 @@ function password_reset_unlocked(): bool {
     clearstatcache(true, PASSWORD_RESET_FLAG);   // mtime is cached per request
     $mtime = @filemtime(PASSWORD_RESET_FLAG);
     if ($mtime === false) return false;
-    return $mtime > (time() - PASSWORD_RESET_WINDOW);
+    // SEC-13 — an upper bound too. A flag dated in the future (a wrong clock
+    // on the uploading machine, or `touch -d`) kept the form open until that
+    // date plus an hour. Five minutes of skew is allowed; past that the flag
+    // counts as expired and the login screen says to upload it again.
+    $now = time();
+    return $mtime > ($now - PASSWORD_RESET_WINDOW) && $mtime <= $now + 300;
 }
 
 /** The flag file is on disk, whether or not it is still in date. */
@@ -227,8 +232,13 @@ function admin_password_problems(string $new, string $confirm, bool $compareToCu
     $errors = [];
     if (strlen($new) < 12) {
         $errors[] = 'The new password must be at least 12 characters. A short sentence or 4+ random words works well.';
-    } elseif (strlen($new) > 200) {
-        $errors[] = 'The new password is too long (200 characters max).';
+    } elseif (strlen($new) > 72) {
+        // SEC-14 — bcrypt reads only the first 72 BYTES. Past that, two
+        // passwords that differ only at the end are the same password, and
+        // "must differ from the current one" was blind to it. 200 was the
+        // old ceiling; a longer passphrase gave no more protection than its
+        // first 72 bytes.
+        $errors[] = 'The new password is too long (72 characters max; an accented letter counts as two).';
     } elseif ($new !== $confirm) {
         $errors[] = 'The two new-password fields do not match.';
     } elseif ($compareToCurrent && ADMIN_PASSWORD_CONFIGURED && password_verify($new, ADMIN_PASSWORD_HASH)) {
@@ -278,6 +288,25 @@ function raw_str($v, string $default = ''): string {
 // CSRF token helper — call csrf_token() to get/generate, csrf_check() to verify.
 // Session is already started by the block at the bottom of this file before any
 // page-level code runs, so no need to start it here.
+/**
+ * SEC-9 — a one-shot message for the next page, carried in the session instead
+ * of the URL. Redirects and exits.
+ */
+function flash_redirect(string $msg, string $type = 'success', string $to = 'index.php'): void {
+    $_SESSION['ipc_flash'] = ['msg' => $msg, 'type' => $type === 'error' ? 'error' : 'success'];
+    header('Location: ' . $to);
+    exit;
+}
+
+/** The pending flash message, removed as it is read. */
+function flash_take(): array {
+    $f = $_SESSION['ipc_flash'] ?? null;
+    unset($_SESSION['ipc_flash']);
+    return (is_array($f) && is_string($f['msg'] ?? null))
+        ? ['msg' => $f['msg'], 'type' => ($f['type'] ?? '') === 'error' ? 'error' : 'success']
+        : ['msg' => '', 'type' => 'success'];
+}
+
 function csrf_token(): string {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -1357,6 +1386,28 @@ function login_throttle_client_ip(): string {
     return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 }
 
+/**
+ * SEC-6 (audit 2026-09-27) — the throttle's KEY for an address.
+ *
+ * IPv4 is keyed as-is. IPv6 is keyed on its /64: a single customer is
+ * routinely handed a whole /64, so keying the full address gave one attacker
+ * 2^64 fresh allowances. Callers keep passing the real address (the audit log
+ * records it); only the throttle map sees the prefix.
+ */
+function login_throttle_key(string $ip): string {
+    if (strpos($ip, ':') === false || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) return $ip;
+    $bin = @inet_pton($ip);
+    if ($bin === false || strlen($bin) !== 16) return $ip;
+    return inet_ntop(substr($bin, 0, 8) . str_repeat("\0", 8)) . '/64';
+}
+
+// SEC-6 — the map is also CAPPED. The window alone bounded nothing: 90k
+// addresses inside 15 minutes made a 4.9 MB file read and rewritten under an
+// exclusive lock on every sign-in attempt (~100 ms each). Past the cap the
+// oldest records go first; an attacker who can fill 5,000 slots is distributed
+// already, which this per-IP throttle never claimed to stop.
+define('LOGIN_THROTTLE_MAX_ENTRIES', 5000);
+
 // Drop entries whose last failure is outside the window so the file can't grow
 // without bound.
 function login_throttle_prune(array $map): array {
@@ -1365,6 +1416,10 @@ function login_throttle_prune(array $map): array {
         if (!is_array($rec) || ($now - (int)($rec['t'] ?? 0)) > LOGIN_THROTTLE_WINDOW) {
             unset($map[$ip]);
         }
+    }
+    if (count($map) > LOGIN_THROTTLE_MAX_ENTRIES) {
+        uasort($map, static function ($a, $b) { return (int)($b['t'] ?? 0) <=> (int)($a['t'] ?? 0); });
+        $map = array_slice($map, 0, LOGIN_THROTTLE_MAX_ENTRIES, true);
     }
     return $map;
 }
@@ -1416,6 +1471,7 @@ function login_throttle_mutate(callable $mutator) {
 
 // How many recent failures this IP has accumulated (0 if none / expired).
 function login_failure_count(string $ip): int {
+    $ip = login_throttle_key($ip); // SEC-6
     $map = login_throttle_read();
     return (int)($map[$ip]['c'] ?? 0);
 }
@@ -1435,6 +1491,7 @@ function login_cooloff_until(int $failures): int {
 
 /** Seconds this IP must still wait before an attempt is even looked at. */
 function login_cooloff_remaining(string $ip): int {
+    $ip = login_throttle_key($ip); // SEC-6
     $map = login_throttle_read();
     $until = (int)($map[$ip]['r'] ?? 0);
     $now = time();
@@ -1459,6 +1516,7 @@ function login_cooloff_remaining(string $ip): int {
  * recovery path is FTP.
  */
 function login_attempt_gate(string $ip): int {
+    $ip = login_throttle_key($ip); // SEC-6
     $wait = 0;
     login_throttle_mutate(function (array &$map) use ($ip, &$wait) {
         $now   = time();
@@ -1487,6 +1545,7 @@ function login_attempt_gate(string $ip): int {
  * login_attempt_gate().
  */
 function login_register_failure(string $ip): int {
+    $ip = login_throttle_key($ip); // SEC-6
     $wait = 0;
     login_throttle_mutate(function (array &$map) use ($ip, &$wait) {
         $count = (int)($map[$ip]['c'] ?? 0) + 1;
@@ -1498,6 +1557,7 @@ function login_register_failure(string $ip): int {
 }
 
 function login_reset_failures(string $ip): void {
+    $ip = login_throttle_key($ip); // SEC-6
     login_throttle_mutate(function (array &$map) use ($ip) {
         unset($map[$ip]);
     });
@@ -2082,6 +2142,17 @@ function min_upload_label(int $ownCapMb): string {
     $iniMb = $bytes > 0 ? $bytes / 1048576 : $ownCapMb;
     $mb    = min($iniMb, $ownCapMb);
     return ($mb >= 1 ? (string)round($mb) : rtrim(rtrim(number_format($mb, 1), '0'), '.')) . 'MB';
+}
+
+/**
+ * SEC-12 (= ADM-15) — `pdf_file[]` / `image_file[]` turn every key of the
+ * $_FILES entry into an ARRAY, and the pages passed `['error']` straight into
+ * upload_error_message(int ...): an uncaught TypeError, a 500 with a path in it.
+ * The A-5.7 class, for file inputs. True when the field is absent or a single
+ * file.
+ */
+function upload_field_is_single(string $field): bool {
+    return !isset($_FILES[$field]) || !is_array($_FILES[$field]['error'] ?? null);
 }
 
 function upload_error_message(int $code, string $what = 'file'): string {

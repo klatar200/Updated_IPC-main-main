@@ -9,8 +9,7 @@ $errors   = [];
 $success  = '';
 
 if ($idx === -1) {
-    header('Location: index.php?msg=Product+not+found&type=error');
-    exit;
+    flash_redirect('Product not found', 'error');
 }
 
 $product     = $products[$idx];
@@ -48,6 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     // Branch B — upload / replace flow (the original behavior).
+    // SEC-12 — `pdf_file[]` makes every key an array; say so instead of a TypeError.
+    elseif (!upload_field_is_single('pdf_file')) {
+        $errors[] = 'Please choose one PDF at a time.';
+    }
     elseif (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
         // One message for four different causes told him none of them: a 2.6MB
         // file over upload_max_filesize reported "Please select a PDF file to

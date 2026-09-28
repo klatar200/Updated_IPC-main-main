@@ -7,8 +7,7 @@ $products = load_products();
 $idx      = find_product($products, $sku);
 
 if ($idx === -1) {
-    header('Location: index.php?msg=Product+not+found&type=error');
-    exit;
+    flash_redirect('Product not found', 'error');
 }
 
 $product = $products[$idx];
@@ -61,11 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($kept)    $pdfDetail .= ' | PDFs kept (used by another product): ' . implode(', ', $kept);
         $pdfDetail .= $photoDetail;
         audit_log('delete', $sku, 'Product deleted: ' . ($product['name'] ?? '') . $pdfDetail); // #6
-        header('Location: index.php?msg=' . urlencode($sku . ' deleted successfully') . '&type=success');
-        exit;
+        flash_redirect($sku . ' deleted successfully', 'success');
     }
-    header('Location: index.php?msg=' . urlencode('Delete failed — check file permissions') . '&type=error');
-    exit;
+    flash_redirect('Delete failed — check file permissions', 'error');
 }
 
 // GET = confirmation page

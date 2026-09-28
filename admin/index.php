@@ -16,13 +16,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['close_reset_window'])
     $msg = $removed
         ? 'The password-reset window is closed and the file is gone.'
         : 'Could not delete admin/ALLOW-PASSWORD-RESET — the admin folder is not writable by the web server. Please delete that file over FTP.';
-    header('Location: index.php?msg=' . rawurlencode($msg) . '&type=' . ($removed ? 'success' : 'error'));
-    exit;
+    flash_redirect($msg, $removed ? 'success' : 'error');
 }
 
 $products = load_products();
-$message  = $_GET['msg'] ?? '';
-$msgType  = in_array($_GET['type'] ?? '', ['success', 'error']) ? $_GET['type'] : 'success'; // whitelist
+// SEC-9 (audit 2026-09-27) — the message comes from the SESSION, set by
+// flash_redirect(), never from the URL. `?msg=…&type=error` used to render any
+// text a stranger put in a link as a red admin alert ("Session expired: call
+// …"). Escaped, so not XSS — but a phishing banner inside the real admin.
+$flash    = flash_take();
+$message  = $flash['msg'];
+$msgType  = $flash['type'];
 
 // Group by partType
 $grouped = [];
