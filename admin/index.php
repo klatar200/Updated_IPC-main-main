@@ -330,7 +330,7 @@ $navActive = 'products';
       </thead>
       <tbody>
         <?php foreach ($items as $p): ?>
-        <tr data-search="<?= h(strtolower(($p['sku'] ?? $p['id'] ?? '') . ' ' . ($p['name'] ?? ''))) ?>">
+        <tr data-search="<?= h(($p['sku'] ?? $p['id'] ?? '') . ' ' . ($p['name'] ?? '')) ?>"><?php /* NEW-N2-14: search.js lower-cases */ ?>
           <td><span class="sku"><?= h($p['sku'] ?? $p['id'] ?? '—') ?></span></td>
           <td><?= h($p['name'] ?? '—') ?></td>
           <td style="font-size:12px;color:#6b7280"><?= h($p['operatingTemp'] ?? '—') ?></td>

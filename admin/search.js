@@ -15,7 +15,11 @@
     var visibleCount = 0;
 
     rows.forEach(function (row) {
-      var match = q === '' || row.getAttribute('data-search').indexOf(q) !== -1;
+      // NEW-N2-14 (audit 2026-09-27) — lower-cased HERE, not in PHP. index.php
+      // used strtolower(), which is ASCII-only (and under a Latin-1 locale
+      // breaks UTF-8 so h() returns ""), while this side lower-cases Unicode:
+      // an "Ö" typed in the box never matched the "Ö" in a name.
+      var match = q === '' || (row.getAttribute('data-search') || '').toLowerCase().indexOf(q) !== -1;
       row.style.display = match ? '' : 'none';
       if (match) visibleCount++;
     });
