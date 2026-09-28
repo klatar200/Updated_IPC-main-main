@@ -6535,3 +6535,55 @@ for the last time:** STEP 0 records this project as never deployed
 (`live-triage-2026-09-15.md` §5), so `data/` is not live customer state yet.
 After the first deploy every one of these is Page Content or Business Details
 work and never a file change.
+
+---
+
+## 2s. Open after the go-live readiness audit — 2026-09-27 (RAISED, NOT VERIFIED)
+
+Full register: [`audit-runs/audit-2026-09-27.md`](audit-runs/audit-2026-09-27.md).
+53 new records — **15 Medium, 38 Low, 0 Blocker** — each labelled REPRO / SRC /
+UNCONF by how its raiser established it. **None is verified yet**; the verify
+pass is owed before any fix. §3 of the register lists nine existing records it
+contradicts (CLAIM-4, §2p's `stats.minimumOrder`, A-9.B2-01/-14, A-6.1, A-6.5,
+audit5:392, scorecards-run4 1.13, CLAUDE.md's Deploy §) — those go first,
+because they change text already in this file.
+
+Verdict: **not ready to go live**, on the known host gates, not new code.
+Measured 2026-09-27: every `http://` and `https://` request to apex and `www`
+still answers `302 → http://…/site/` (POST-9.2 unchanged); the certificate is
+NOT-MEASURED from this container (the egress proxy re-signs TLS).
+
+**UPDATE 2026-09-28 — verification pass and round 2** (`SUPERSEDES` the
+"RAISED, NOT VERIFIED" status line above; the register's §6–§8 hold the detail).
+Independent verifiers V1–V4 re-derived every round-1 repro: **52 confirmed
+(18 adjusted), 1 refuted and withdrawn (DEP-13 — raised on a shallow clone)**.
+Surviving severity: 11 Medium, 4 Low-Medium, 37 Low. DEP-3 is upgraded to
+Medium: on an `AddHandler` host `x.php.jpg` executes in `uploads/` and `x.phar`
+in `data/`, because the image allow-list re-allows what the deny rule matched.
+ADM-1, PUB-1, PUB-4 and ADM-6 are downgraded to Low. All nine §3
+contradictions of existing records are confirmed.
+Round 2 also raised **55 distinct new records (14 Medium, 41 Low)**, each
+REPRO by its raiser and **not yet independently verified**: N1 App.jsx logic,
+N2 admin logic, and N3 a simulated first deploy on real Apache + mod_php.
+The worst of them are the admin wiping content or the catalog after a corrupt
+or partial JSON read (NEW-N2-1/2), and mod_php hosts where the documented
+PHP-limit and permission fixes do nothing and `uploads/images/` can end up
+executing PHP (NEW-N3-1/2/3).
+PHP 7.4 minimum is now **proven by execution** (7.4.33 passes; 7.3.33 fails
+to parse three admin files).
+
+**UPDATE 2026-09-28 (b) — round 3 verified all 55 round-2 records**
+(`SUPERSEDES` the "not yet independently verified" and severity lines in the
+update above; the register's §9–§10 hold the detail). Eight fresh verifiers
+(M1–M4, L1–L4) found **0 fully refuted, 3 partly refuted, 1 merged**. Most
+Mediums fell: the shipped palette resolves every ink token to white, so the
+contrast records are latent until the owner re-palettes, and several data-loss
+triggers need an FTP hand-edit. Standing round-2 severity: **3 Medium —
+NEW-N2-1** (a release that adds a Page Content section → Rick's first save
+blanks it), **NEW-N2-2** (a hand-corrupted catalog → Add Product leaves one
+product), **NEW-N3-2** (PHP-user ≠ FTP-user → the documented 755/775 never
+works; no doc says 777) — plus 1 Medium-Low, 5 Low-Medium (incl. NEW-N1-15:
+changing the phone in Business Details leaves every click-to-call dialling the
+old number), and 45 Low/Info. Round 3 raised 13 more (§10), 10 of them
+distinct and not yet independently verified, the largest being NEW-R3-m4-1
+(GO-LIVE STEP 0's "Follow B" skips §A on a first deploy).
