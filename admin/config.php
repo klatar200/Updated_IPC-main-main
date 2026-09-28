@@ -606,8 +606,35 @@ function json_write_atomic(string $path, string $json): bool {
     return true;
 }
 
+// SEC-5 — one exclusive lock around every catalog read-modify-write.
+//
+// Every writer (add, edit, delete, both uploads) does load_products() ->
+// change one thing -> save_products(), and nothing spanned that cycle. A
+// request that loaded BEFORE another saved, and saved AFTER it, wrote its
+// stale copy over the other's change: an "added successfully" product
+// vanished when a slow photo upload finished (audit-runs/audit-2026-09-27.md
+// SEC-5). edit.php's orig_sig covers one record and cannot see it.
+//
+// The lock is taken by load_products() on a POST — a POST that reads the
+// catalog does so in order to write it — and by save_products() itself, which
+// covers a backup restore (a save with no load). It is held until the request
+// ends: the handle lives in a static and PHP releases the flock when the
+// process closes it, so nothing has to remember to unlock. Blocking, bounded
+// by max_execution_time; one owner, so the wait is one other save at most.
+// If the lock file cannot be opened (data/ unwritable) it proceeds unlocked,
+// and the save fails anyway with the banner that condition already raises.
+// The dot name keeps it web-blocked by data/.htaccess.
+function products_write_lock(): void {
+    static $fh = null;
+    if ($fh !== null) return;
+    $fh = @fopen(dirname(PRODUCTS_JSON) . '/.products-write.lock', 'c');
+    if ($fh === false) return;
+    @flock($fh, LOCK_EX);
+}
+
 // Helper: load products array from JSON
 function load_products(): array {
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') products_write_lock();
     $path = PRODUCTS_JSON;
     if (!file_exists($path)) return [];
     $json = file_get_contents($path);
@@ -818,6 +845,7 @@ function backup_list(string $dir, string $prefix): array {
 // redirecting and refreshing their signature. Pages that want to word it
 // differently read last_save_was_noop().
 function save_products(array $products): bool {
+    products_write_lock(); // SEC-5 — a no-op if load_products() already took it
     $path = PRODUCTS_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) {
