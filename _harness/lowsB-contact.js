@@ -128,7 +128,7 @@ async function rfq(port, extra = {}, headers = {}) {
     // once.
     const crypto = require('crypto');
     for (const [label, lockName, email] of [
-      ['rate limit', `ipc_rl_${crypto.createHash('md5').update('203.0.113.7').digest('hex')}.json.lock`, 'lockprobe1@example.com'],
+      ['rate limit', `ipc_lk_ipc_rl_${crypto.createHash('md5').update('203.0.113.7').digest('hex')}.json`, 'lockprobe1@example.com'],
     ]) {
       const shared = fs.mkdtempSync(path.join(TMP, 'lock-'));
       const lockPath = path.join(shared, lockName);

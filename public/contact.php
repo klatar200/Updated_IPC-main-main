@@ -560,7 +560,10 @@ $maxLogged = 10; // rejected submissions logged per IP per window
 // across the read, and on a multi-worker server a burst from one address got
 // 17 submissions through a cap of 5. Requests from the SAME address now queue;
 // nobody else waits.
-$rlLock = @fopen($rateFile . '.lock', 'c');
+// Lock files carry their own prefix (ipc_lk_), NOT ipc_rl_/ipc_ar_: those
+// prefixes mean "one limiter record" to anything counting them, and
+// plan3-autoreply counts cap files to prove its key normalisation.
+$rlLock = @fopen(dirname($rateFile) . '/ipc_lk_' . basename($rateFile), 'c');
 if ($rlLock) @flock($rlLock, LOCK_EX);
 $state = ['hits' => [], 'blocked' => 0];
 if (file_exists($rateFile)) {
@@ -614,7 +617,7 @@ function ipc_prune_limiter_files(int $now): void {
     $cutoff = 86400 * 2;          // both windows (10 min, 24 h) are well inside this
     $budget = 500;                 // never let a sweep run away on a huge temp dir
     while ($budget-- > 0 && ($f = readdir($h)) !== false) {
-        if (strncmp($f, 'ipc_rl_', 7) !== 0 && strncmp($f, 'ipc_ar_', 7) !== 0) continue;
+        if (strncmp($f, 'ipc_rl_', 7) !== 0 && strncmp($f, 'ipc_ar_', 7) !== 0 && strncmp($f, 'ipc_lk_', 7) !== 0) continue;
         $full = $dir . '/' . $f;
         $mt   = @filemtime($full);
         if ($mt !== false && ($now - $mt) > $cutoff) @unlink($full);
@@ -934,7 +937,7 @@ if ($replyTo !== '') {
     $arMax    = 3;
     // PUB-13 — the same for the per-recipient auto-reply cap (7 sent against a
     // cap of 3, measured on prefork).
-    $arLock = @fopen($arFile . '.lock', 'c');
+    $arLock = @fopen(dirname($arFile) . '/ipc_lk_' . basename($arFile), 'c');
     if ($arLock) @flock($arLock, LOCK_EX);
     $ar = [];
     if (file_exists($arFile)) {

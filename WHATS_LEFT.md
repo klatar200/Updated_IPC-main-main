@@ -6830,3 +6830,31 @@ NEW-N1-1 and V1-2 are fixed at one chokepoint, `normalizeProductRow()`.
 - **Sweep8 was contaminated:** three suites rebuild from source, and I was
   editing B and C source while it ran. It was stopped. The rule is now in
   `CLAUDE.md` and `_harness/README.md`. The clean sweep is below.
+
+**Regression for §1af:** sweep9 on `b83d1ad` (clean), 94/101 suites.
+- Two reds are the expected ones: `brandtext` 38/49 and `plan8-polish` 16/17.
+- Five reds were harness assumptions broken by these fixes, all fixed with
+  no assertion changed:
+  - `contactflow` and `plan3-autoreply` read the Subject header raw
+    (PUB-5 now RFC 2047-encodes it).
+  - `invariants-selftest`: its INV7 mutant targeted the old text.
+  - `plan9-firstsave` and `plan9-meta` assumed the pre-V2-1 data.
+- One red was mine: PUB-13's lock files shared the `ipc_ar_` prefix, so
+  `plan3-autoreply` counted them as cap keys. They are now `ipc_lk_*` and
+  are pruned like the rest.
+- **After the fixes:**
+
+  | Suite | Result |
+  |---|---|
+  | `contactflow` | 85/85 |
+  | `plan3-autoreply` | 22/22 |
+  | `invariants-selftest` | 15/15 |
+  | `plan9-firstsave` | 8/8 |
+  | `plan9-meta` | 18/18 |
+  | `lowsB-contact` | 9/9 |
+  | `audit5-high` | 30/30 |
+  | `audit7-lead` | 23/23 |
+  | `plan3-contact` | 51/51 |
+  | `plan8-lead` | 16/16 |
+
+- The last four were re-run because they also touch the limiter files.
