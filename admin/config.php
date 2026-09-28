@@ -1878,21 +1878,70 @@ function pdf_rename_for_sku_change(string $oldName, string $oldSku, string $newS
     return null;
 }
 
-// Helper: best-effort delete of the PDF at $url, but ONLY if no product in
-// $products still references it (primary or additional). Strictly scoped to
-// PDF_DIR so a tampered URL can't remove anything outside the upload folder.
+// ADM-3 — a deleted product's files are moved ASIDE, not erased, so "undo"
+// means undo. delete.php used to unlink the PDF and the uploaded photo while
+// its own confirmation screen and Help both promise "This can be undone …
+// restore the most recent Product Catalog entry". Backups cover the JSON only,
+// so the restore brought the product back pointing at files that were gone:
+// the Datasheet button downloaded the site shell (200 text/html).
+// (audit-runs/audit-2026-09-27.md ADM-3)
+//
+// The file is renamed in place to `.deleted.<name>`. Same directory, so the
+// rename is atomic and needs no extra permissions; the leading dot keeps it
+// off the web — public/.htaccess's `<FilesMatch "^\.">` applies to every
+// folder below it. restore_trashed_files() renames it back when a restored
+// catalog points at it again. Nothing prunes these: a deleted product's files
+// stay recoverable for as long as a backup could want them, at the cost of
+// the disk they already used.
+define('TRASH_PREFIX', '.deleted.');
+
+function file_to_trash(string $dir, string $name): bool {
+    if ($name === '' || $name[0] === '.' || $name !== basename($name)) return false;
+    $realDir  = realpath($dir);
+    $realFile = realpath($dir . $name);
+    if (!$realDir || !$realFile || strpos($realFile, $realDir) !== 0 || !is_file($realFile)) return false;
+    return @rename($realFile, $realDir . '/' . TRASH_PREFIX . $name);
+}
+
+// After a catalog restore: bring back every PDF / uploaded photo the restored
+// products point at that is missing but was moved aside by a delete. A live
+// file of the same name always wins — it is never overwritten. Returns the
+// names brought back, for the success message.
+function restore_trashed_files(array $products): array {
+    $back = [];
+    $try = function (string $dir, string $urlPrefix, string $url) use (&$back) {
+        if (strpos($url, $urlPrefix) !== 0) return;
+        $name = basename($url);
+        if ($name === '' || $name[0] === '.') return;
+        $realDir = realpath($dir);
+        if (!$realDir) return;
+        $live  = $realDir . '/' . $name;
+        $trash = $realDir . '/' . TRASH_PREFIX . $name;
+        if (!file_exists($live) && is_file($trash) && @rename($trash, $live)) $back[] = $name;
+    };
+    foreach ($products as $p) {
+        if (!is_array($p)) continue;
+        if (!empty($p['pdfUrl']) && is_string($p['pdfUrl'])) $try(PDF_DIR, PDF_URL, $p['pdfUrl']);
+        if (!empty($p['additionalPdfs']) && is_array($p['additionalPdfs'])) {
+            foreach ($p['additionalPdfs'] as $ap) {
+                if (is_array($ap) && !empty($ap['url']) && is_string($ap['url'])) $try(PDF_DIR, PDF_URL, $ap['url']);
+            }
+        }
+        if (!empty($p['photoUrl']) && is_string($p['photoUrl'])) $try(IMG_DIR, IMG_URL, $p['photoUrl']);
+    }
+    return array_values(array_unique($back));
+}
+
+// Helper: best-effort removal of the PDF at $url from the site, but ONLY if no
+// product in $products still references it (primary or additional). Strictly
+// scoped to PDF_DIR so a tampered URL can't touch anything outside it. The file
+// is moved aside with file_to_trash(), not erased (ADM-3).
 // Returns 'removed', 'kept' (still in use), or '' (nothing to do).
 function pdf_delete_if_unused(array $products, string $url): string {
     $name = basename($url);
     if ($name === '' || $name === '.' || $name === '..') return '';
     if (pdf_in_use($products, $name)) return 'kept';
-    $realPdfDir = realpath(PDF_DIR);
-    $realFile   = realpath(PDF_DIR . $name);
-    if ($realPdfDir && $realFile && strpos($realFile, $realPdfDir) === 0) {
-        @unlink($realFile);
-        return 'removed';
-    }
-    return '';
+    return file_to_trash(PDF_DIR, $name) ? 'removed' : '';
 }
 
 // The uploads/.htaccess that upload-image.php writes when uploads/ was created

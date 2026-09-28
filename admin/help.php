@@ -619,7 +619,7 @@ $navActive = 'help';
         </ol>
         <div class="callout callout-warning">
           <b>You can undo this yourself</b>
-          Deleting a product removes it from the catalog immediately. Its PDF data sheet is deleted too (unless another product still shares that same file), and so is its uploaded photo (same rule). There's no "undo" button on this screen — but a backup of the whole catalog is written <em>immediately before</em> the deletion, so go to <strong>Backups</strong> and restore the most recent Product Catalog entry. See <a href="#backups">Backups &amp; undo</a>. Do it before you make other changes, since only the <?= (int)BACKUP_KEEP ?> most recent backups are kept.
+          Deleting a product removes it from the catalog immediately. Its PDF data sheet comes off the website too (unless another product still shares that same file), and so does its uploaded photo (same rule) — both are kept out of sight on the server rather than erased. There's no "undo" button on this screen — but a backup of the whole catalog is written <em>immediately before</em> the deletion, so go to <strong>Backups</strong> and restore the most recent Product Catalog entry: the product, its data sheet and its photo all come back. See <a href="#backups">Backups &amp; undo</a>. Do it before you make other changes, since only the <?= (int)BACKUP_KEEP ?> most recent backups are kept.
         </div>
       </section>
 

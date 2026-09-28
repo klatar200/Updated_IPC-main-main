@@ -68,12 +68,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!is_array($data)) {
                 $errors[] = 'The backup file is not valid JSON — restore aborted, nothing was changed.';
             } elseif (($TARGETS[$key]['restore'])($data)) {
-                audit_log('restore', $key, 'Restored ' . $TARGETS[$key]['label'] . ' from ' . $file);
+                // ADM-3 — a catalog restore also brings back the data sheets
+                // and photos a delete moved aside (config.php file_to_trash()).
+                $filesBack = $key === 'products-all' ? restore_trashed_files(load_products()) : [];
+                audit_log('restore', $key, 'Restored ' . $TARGETS[$key]['label'] . ' from ' . $file
+                          . ($filesBack ? ' | Files brought back: ' . implode(', ', $filesBack) : ''));
                 // Name the exact file, not just the second — two backups written
                 // in the same second are otherwise indistinguishable in this
                 // message. (AUDIT_v3_FINDINGS NB17)
                 $success = $TARGETS[$key]['label'] . ' restored from ' . $m[2] . ' (' . $file . ')'
                          . '. The website will reflect it within ~60 seconds.'
+                         . ($filesBack ? ' Data sheets and photos brought back: ' . implode(', ', $filesBack) . '.' : '')
                          . ' (The state from just before this restore was backed up too, so you can undo.)';
             } else {
                 $errors[] = 'Restore failed — check file permissions on the data/ folder.';
