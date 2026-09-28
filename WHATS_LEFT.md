@@ -6571,3 +6571,19 @@ PHP-limit and permission fixes do nothing and `uploads/images/` can end up
 executing PHP (NEW-N3-1/2/3).
 PHP 7.4 minimum is now **proven by execution** (7.4.33 passes; 7.3.33 fails
 to parse three admin files).
+
+**UPDATE 2026-09-28 (b) — round 3 verified all 55 round-2 records**
+(`SUPERSEDES` the "not yet independently verified" and severity lines in the
+update above; the register's §9–§10 hold the detail). Eight fresh verifiers
+(M1–M4, L1–L4) found **0 fully refuted, 3 partly refuted, 1 merged**. Most
+Mediums fell: the shipped palette resolves every ink token to white, so the
+contrast records are latent until the owner re-palettes, and several data-loss
+triggers need an FTP hand-edit. Standing round-2 severity: **3 Medium —
+NEW-N2-1** (a release that adds a Page Content section → Rick's first save
+blanks it), **NEW-N2-2** (a hand-corrupted catalog → Add Product leaves one
+product), **NEW-N3-2** (PHP-user ≠ FTP-user → the documented 755/775 never
+works; no doc says 777) — plus 1 Medium-Low, 5 Low-Medium (incl. NEW-N1-15:
+changing the phone in Business Details leaves every click-to-call dialling the
+old number), and 45 Low/Info. Round 3 raised 13 more (§10), 10 of them
+distinct and not yet independently verified, the largest being NEW-R3-m4-1
+(GO-LIVE STEP 0's "Follow B" skips §A on a first deploy).
