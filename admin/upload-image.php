@@ -118,28 +118,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         //      with no image data cannot do. gd is not assumed (see A-9.P2-2).
         $raw        = (string)@file_get_contents($file['tmp_name'], false, null, 0, 2 * 1024 * 1024);
         $hasPhpTag  = (stripos($raw, '<?php') !== false || stripos($raw, '<?=') !== false);
-        $decodeFail = false;
-        if (!$hasPhpTag && function_exists('imagecreatefromstring')) {
-            $whole = (string)@file_get_contents($file['tmp_name']);
-            $im = @imagecreatefromstring($whole);
-            if ($im === false) {
-                $decodeFail = true;
-            } else {
-                if (function_exists('imagedestroy')) @imagedestroy($im);
-            }
-        }
+
+        // SEC-2 — every cheap check runs BEFORE the decode, and the pixel
+        // ceiling is enforced from the header's dimensions. The decode above
+        // (guard 2) used to run first, ahead of both the 8 MB limit and
+        // IMG_MAX_PIXELS, so a 420 KB PNG claiming 12000x12000 made one PHP
+        // worker allocate ~1 GB (23000x23000: 3.66 GB) before anything could
+        // refuse it — memory_limit does not bound GD (A-6.6). getimagesize()
+        // reads only the header, so the pixel count costs nothing.
+        //
+        // ON PURPOSE an over-ceiling image is now REFUSED, where A-7.6 used to
+        // save it at full size with a warning. It cannot be verified without
+        // the decode it is too big for, and a header-only polyglot claiming
+        // huge dimensions (A-9.P3-2's own example reports 16188x26736) would
+        // otherwise skip guard 2 entirely. (audit-runs/audit-2026-09-27.md SEC-2)
+        $pixelProblem = $sniffed !== false
+            ? image_pixel_problem((int)$sniffed[0], (int)$sniffed[1]) : '';
 
         if (!isset($IMG_TYPES[$ext]) || $mimeType !== $IMG_TYPES[$ext]) {
             $errors[] = 'Only JPG, PNG, WEBP, or GIF images are accepted (extension and content must match).';
         } elseif ($hasPhpTag) {
             $errors[] = 'That file is not a usable image — it contains program code, not just picture data. '
                       . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
-        } elseif ($decodeFail) {
-            $errors[] = 'That file looks like an image on the outside but cannot be opened as one — it is damaged or incomplete. '
-                      . 'Re-save it from an image editor and upload it again.';
         } elseif ($file['size'] > 8 * 1024 * 1024) {
             $errors[] = 'File is too large. Maximum size is 8MB.';
+        } elseif ($pixelProblem === 'too-many-pixels') {
+            $errors[] = 'That photo is ' . round(((int)$sniffed[0] * (int)$sniffed[1]) / 1000000, 1) . ' megapixels — more than the '
+                      . (int)(IMG_MAX_PIXELS / 1000000) . ' megapixels the server can safely process, so it was not saved. '
+                      . 'Resize it to about ' . IMG_MAX_WIDTH . ' pixels wide in any photo editor and upload it again.';
+        } elseif (function_exists('imagecreatefromstring')
+                  && ($im = @imagecreatefromstring((string)@file_get_contents($file['tmp_name']))) === false) {
+            $errors[] = 'That file looks like an image on the outside but cannot be opened as one — it is damaged or incomplete. '
+                      . 'Re-save it from an image editor and upload it again.';
         } else {
+            if (isset($im) && $im !== false && function_exists('imagedestroy')) @imagedestroy($im);
+            unset($im);
             // Filename strategy (mirrors the PDF manager): replace in place if
             // this product already has a managed photo with the same extension;
             // otherwise derive a fresh name from the SKU.
@@ -180,16 +193,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $success      = ($isReplacement ? 'Photo replaced' : 'Photo uploaded') . ' and product updated.'
                                     // A-5.16 — say so rather than quietly handing back a different file.
                                     . ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '')
-                                    // A-7.6 — the third outcome. Over IMG_MAX_PIXELS the resize is
-                                    // skipped on purpose (A-6.6), and saying nothing made that read
-                                    // exactly like "this photo was already a sensible size" — while
-                                    // the full-size file becomes the product page's LCP image.
-                                    . ($resizeReason === 'too-many-pixels'
-                                        ? ' ⚠ It is too large for the server to resize automatically (over '
-                                          . (int)(IMG_MAX_PIXELS / 1000000) . ' megapixels), so it has been saved at its'
-                                          . ' original size and this product page may load slowly. Please resize it to about '
-                                          . IMG_MAX_WIDTH . ' pixels wide and upload it again.'
-                                        : '')
+                                    // A-7.6's third outcome ("over IMG_MAX_PIXELS, saved at full
+                                    // size with a warning") no longer reaches here: SEC-2 refuses
+                                    // those uploads before the decode, above.
                                     // A-9.P2-2 — the FOURTH outcome, and the
                                     // only one that was silent. When the host
                                     // has no gd (or no imagescale),

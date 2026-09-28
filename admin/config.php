@@ -1679,6 +1679,14 @@ define('IMG_MAX_PIXELS', 40000000);
  * the single caller reads, and `$reason` is additive, so nothing that ignores
  * it changes behaviour.
  */
+// SEC-2 — the pixel ceiling as a check on header dimensions, so upload-image.php
+// can refuse an over-ceiling image BEFORE anything decodes it. Same test as
+// the one inside image_downscale_in_place(), which stays as defence in depth.
+// (audit-runs/audit-2026-09-27.md SEC-2)
+function image_pixel_problem(int $w, int $h): string {
+    return ($w > 0 && $h > 0 && $w * $h > IMG_MAX_PIXELS) ? 'too-many-pixels' : '';
+}
+
 function image_downscale_in_place(string $path, string $ext, ?string &$reason = null): bool {
     $reason = '';
     if (!extension_loaded('gd') || !function_exists('imagescale')) { $reason = 'no-gd'; return false; }
