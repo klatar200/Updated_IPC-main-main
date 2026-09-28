@@ -149,6 +149,27 @@ $navActive = 'products';
   $newLeads = inquiries_new_count();
 
   $healthProblems = [];
+  // NEW-N3-2 — 755/775 cannot help when PHP runs as a different user from the
+  // FTP account (measured on real Apache: only 777 cleared it), and this banner
+  // was the only instruction Rick gets. Say what to do when the first try fails.
+  $permFallback = ' If this warning is still here after that, the host runs PHP as a different user from your FTP account: '
+    . 'ask the host to run PHP as your account user. Setting the folder to 777 also works as a stop-gap, but lets other accounts on the server write there too.';
+  // NEW-N2-1 / NEW-N2-2 — a data file that exists but cannot be read. The
+  // loaders turn it into "nothing", so without this the dashboard simply read
+  // "0 products" and the next save wrote that emptiness over the real file.
+  // Saving is now refused (config.php data_file_damaged()); this says why.
+  foreach ([
+      [PRODUCTS_JSON, 'products-all.json', 'Product Catalog', 'Adding, editing and deleting products is blocked'],
+      [CONTENT_JSON,  'content.json',      'Page Content',    'Saving Page Content is blocked'],
+      [SITE_INFO_JSON,'site-info.json',    'Business Details','The website is showing its built-in business details'],
+  ] as [$dfPath, $dfName, $dfLabel, $dfEffect]) {
+      if (data_file_damaged($dfPath)) {
+          $healthProblems[] = '<strong>The file <code>data/' . h($dfName) . '</code> is damaged</strong> — it cannot be read, '
+            . 'usually because it was edited by hand or only partly uploaded. ' . h($dfEffect) . ' so that nothing is overwritten. '
+            . 'Go to <a href="backups.php">Backups</a> and restore the most recent <em>' . h($dfLabel) . '</em> entry, '
+            . 'or ask your developer to repair the file.';
+      }
+  }
   if (!admin_writable()) {
       // A-5.8 — this one condition takes down BOTH brute-force controls at once,
       // and the banner used to name neither. login_throttle_mutate() opens
@@ -162,15 +183,15 @@ $navActive = 'products';
         . 'Sales leads from the contact form are being DISCARDED, the activity log cannot record anything, '
         . 'the Password page cannot save, and — because both depend on files in this folder — '
         . '<strong>the login cool-off that limits password guessing is switched off and failed sign-ins are not being recorded</strong>. '
-        . 'Set admin/ to 755 (or 775) over FTP, then sign out and back in to confirm this warning is gone.';
+        . 'Set admin/ to 755 (or 775) over FTP, then sign out and back in to confirm this warning is gone.' . $permFallback;
   }
   if (!data_writable()) {
       $healthProblems[] = 'The <code>data</code> folder is not writable by the web server. '
-        . 'Nothing you edit on any page can be saved. Set data/ to 755 (or 775) over FTP.';
+        . 'Nothing you edit on any page can be saved. Set data/ to 755 (or 775) over FTP.' . $permFallback;
   }
   if (!is_dir(IMG_DIR) || !is_writable(IMG_DIR)) {
       $healthProblems[] = 'The <code>uploads/images</code> folder is missing or not writable. '
-        . 'Product photo uploads will fail. Create public_html/uploads/images/ over FTP and set it to 755.';
+        . 'Product photo uploads will fail. Create public_html/uploads/images/ over FTP and set it to 755.' . $permFallback;
   }
   // A-5.9 — the contact form's rate limit and its per-recipient auto-reply cap
   // both keep their state in the system temp dir. If that is not writable the
@@ -185,7 +206,7 @@ $navActive = 'products';
   }
   if (!is_dir(PDF_DIR) || !is_writable(PDF_DIR)) {
       $healthProblems[] = 'The <code>pdfs</code> folder is missing or not writable. '
-        . 'Data sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.';
+        . 'Data sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.' . $permFallback;
   }
   /* A-9.P2-2 — the image extension the photo resizer needs. Every other row
      here is a permission; this one is a missing PHP extension, and it fails

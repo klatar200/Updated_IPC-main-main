@@ -94,7 +94,7 @@ if ($resetUnlocked && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set
         } else {
             audit_log('password', 'admin', 'Admin password set via FTP-unlocked recovery');
             regenerate_session_id();
-            $_SESSION[ADMIN_SESSION_KEY] = true;
+            mark_session_authenticated($res['hash']); // SEC-4 — signed with the hash just written
             login_reset_failures($clientIp);
             header('Location: index.php');
             exit;
@@ -139,7 +139,7 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
         // Defeat session fixation: rotate the session id the moment auth
         // succeeds so any pre-set IPCADMIN cookie is invalidated.
         regenerate_session_id();
-        $_SESSION[ADMIN_SESSION_KEY] = true;
+        mark_session_authenticated(); // SEC-4 — a signature, not `true`
         // A9 — the audit log recorded all eleven content actions and no
         // authentication event at all, so on an admin whose only recovery path
         // is an FTP-placed flag file there was no record of who signed in,

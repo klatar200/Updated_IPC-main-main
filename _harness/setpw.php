@@ -24,6 +24,18 @@ if (!is_dir(dirname($path))) {
     exit(1);
 }
 
+// Idempotent ON PURPOSE. Since SEC-4 a session is signed with the stored hash,
+// so rewriting it — even for the same password, bcrypt salts differ — signs out
+// every browser. sync.sh calls this, and audit9-fixes syncs AFTER logging in:
+// an unconditional rewrite read as 4 failures that were the harness, not the
+// admin (measured 2026-09-28, sweep6).
+if (file_exists($path)
+    && preg_match("/define\\(\\s*'ADMIN_PASSWORD_HASH'\\s*,\\s*'([^']+)'\\s*\\)\\s*;/", (string)file_get_contents($path), $cur)
+    && password_verify(HARNESS_PW, $cur[1])) {
+    echo "setpw: mirror password already '" . HARNESS_PW . "' — left as is\n";
+    exit(0);
+}
+
 $hash = password_hash(HARNESS_PW, PASSWORD_BCRYPT, ['cost' => 12]);
 $defineLine = "define('ADMIN_PASSWORD_HASH', '" . $hash . "');";
 $re = "/define\\(\\s*'ADMIN_PASSWORD_HASH'\\s*,\\s*'[^']*'\\s*\\)\\s*;/";

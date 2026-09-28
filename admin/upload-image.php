@@ -164,6 +164,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $filename = image_filename_for_sku($sku, $ext);
             }
+            // SEC-1 — never write over a file ANOTHER product is using. Two
+            // real ways in: SKUs that sanitise to the same name ("AUD-1" and
+            // "AUD 1" are both AUD-1.png), and a new product reusing an old SKU
+            // whose renamed owner still points at OLD.png. Either overwrote the
+            // other product's live photo under "Photo replaced". upload-pdf.php
+            // refuses in this case (T3.6); a photo takes the next free name
+            // instead, because "rename the SKU first" is no fix for Rick.
+            // Compared by index, not SKU, so two rows with the same SKU still
+            // count as different products. (audit-runs/audit-2026-09-27.md SEC-1)
+            $others = $products;
+            unset($others[$idx]);
+            if (image_in_use($others, $filename)) {
+                $stem = pathinfo($filename, PATHINFO_FILENAME);
+                for ($n = 2; $n < 1000; $n++) {
+                    $filename = $stem . '-' . $n . '.' . $ext;
+                    if (!file_exists(IMG_DIR . $filename) && !image_in_use($others, $filename)) break;
+                }
+            }
             $destPath = IMG_DIR . $filename;
             $destUrl  = IMG_URL . $filename;
 

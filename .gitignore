@@ -80,3 +80,5 @@ _harness/pristine/
 _harness/out/
 # SEC-5 catalog write lock, created at runtime by admin/config.php
 data/.products-write.lock
+# SEC-4 private session store, created at runtime by admin/config.php
+admin/.sessions/

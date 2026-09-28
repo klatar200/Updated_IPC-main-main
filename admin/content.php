@@ -521,6 +521,10 @@ if ($saved && !empty($_SESSION['content_warnings'])) {
 // warning. (DEPLOY_READINESS_v2 T1.7)
 $storedContent = load_content();
 $storedSig     = sha1(json_encode($storedContent));
+// NEW-N2-1 — say so on arrival, not only after he has typed and pressed Save.
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && data_file_damaged(CONTENT_JSON)) {
+    $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read. The sections below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Page Content entry.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
@@ -536,6 +540,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (($_POST['form_complete'] ?? '') !== '1') {
         $truncated = true;
         $errors[] = 'This page did not submit completely — the server cut the request off partway through (PHP max_input_vars). NOTHING was saved. The entries that did arrive are still filled in below; anything the server never received has been restored from the saved version. Remove a few entries and save again, or ask your developer to raise max_input_vars in .user.ini.';
+    }
+
+    // NEW-N2-1 — a damaged content.json loads as [], every section below then
+    // reads empty, and saving would write [] (a deletion, invariant 3) over the
+    // whole site. Refuse; the dashboard banner says how to repair it.
+    if (data_file_damaged(CONTENT_JSON)) {
+        $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved — saving now would erase every section of the website. Go to Backups and restore the most recent Page Content entry, then make your change again.';
     }
 
     $submittedSig = $_POST['orig_sig'] ?? '';
@@ -603,6 +614,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($hasText) $clean[] = $r; // drop fully-blank rows
             }
         }
+        // NEW-N2-1 — a section the saved file does not have at all shows 0 rows
+        // here while the website shows its built-in text. Writing [] for it
+        // would turn "not saved yet" into "deleted" (invariant 3) the first
+        // time Rick pressed Save for any other reason — e.g. after a release
+        // that adds a section, since data/ is never re-uploaded. Leave it
+        // absent unless he actually added rows. Emptying a section that IS
+        // saved still deletes it, exactly as before.
+        if ($clean === [] && !array_key_exists($sec, $storedContent)) continue;
         $out[$sec] = $clean;
     }
 

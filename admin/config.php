@@ -216,7 +216,10 @@ function admin_password_write(string $newPlain): array {
               . 'ALLOW-PASSWORD-RESET recovery described in admin/README.md.'];
     }
     @unlink(PASSWORD_RESET_FLAG); // a successful write closes any open reset window
-    return ['ok' => true, 'error' => ''];
+    // 'hash' — SEC-4: password.php re-signs the CURRENT session with it, so
+    // changing the password signs out every other session but not this one.
+    current_password_hash($hash);
+    return ['ok' => true, 'error' => '', 'hash' => $hash];
 }
 
 /** Shared password-strength rules for both the change and recovery screens. */
@@ -528,8 +531,50 @@ if (session_status() === PHP_SESSION_NONE
         'httponly' => true,      // JS can't read the cookie
         'samesite' => 'Lax',     // mitigate CSRF on top-level navigations
     ]);
+    // SEC-4 — a private session store. The default session.save_path is often
+    // shared by every site on the host (/tmp, /var/lib/php/sessions), and
+    // anything that can write there could plant a file saying "signed in" and
+    // send its id as IPCADMIN: measured, a hand-written sess_<id> passed
+    // require_auth(), and use_strict_mode does not help because the id exists.
+    // admin/.sessions/ is ours, 0700, and web-blocked by its own .htaccess.
+    // A custom path gets no system cron cleanup (Debian's gc_probability is 0
+    // and relies on one), so PHP's own GC is switched on for it. Falls back to
+    // the default path if admin/ is not writable — the dashboard already warns
+    // about that. (audit-runs/audit-2026-09-27.md SEC-4)
+    $sessDir = __DIR__ . '/.sessions';
+    if ((is_dir($sessDir) || @mkdir($sessDir, 0700)) && is_writable($sessDir)) {
+        if (!file_exists($sessDir . '/.htaccess')) {
+            @file_put_contents($sessDir . '/.htaccess', "# Session files. Never web-readable. (SEC-4)\nOrder Allow,Deny\nDeny from all\n");
+        }
+        @ini_set('session.save_path', $sessDir);
+        @ini_set('session.gc_probability', '1');
+        @ini_set('session.gc_divisor', '100');
+    }
     session_name('IPCADMIN');    // hide the default PHPSESSID fingerprint
     session_start();
+}
+
+// SEC-4 — "signed in" is a keyed signature of THIS session's id, made with the
+// current password hash, not a bare `true`. A session file planted by anything
+// else on the host fails it unless the planter also knows the hash, and
+// changing the password invalidates every other session at once (the
+// revocation half of SEC-3). Recomputed after every session_regenerate_id(),
+// since the id is part of it.
+// The hash in force for THIS request. ADMIN_PASSWORD_HASH is a constant read
+// from config.local.php at startup, so after admin_password_write() succeeds
+// the rest of the same request would still check against the old hash — and a
+// page that just signed its own session with the new one would then call
+// itself signed out. admin_password_write() updates this on success.
+function current_password_hash(?string $set = null): string {
+    static $h = null;
+    if ($set !== null) $h = $set;
+    return $h ?? ADMIN_PASSWORD_HASH;
+}
+function session_auth_token(?string $passwordHash = null): string {
+    return hash_hmac('sha256', 'ipc-admin-session|' . session_id(), $passwordHash ?? current_password_hash());
+}
+function mark_session_authenticated(?string $passwordHash = null): void {
+    $_SESSION[ADMIN_SESSION_KEY] = session_auth_token($passwordHash);
 }
 
 // Call this immediately after a successful password check to prevent session
@@ -542,7 +587,9 @@ function regenerate_session_id(): void {
 
 // Helper: check if admin is logged in
 function is_authenticated(): bool {
-    return !empty($_SESSION[ADMIN_SESSION_KEY]);
+    $t = $_SESSION[ADMIN_SESSION_KEY] ?? '';
+    return ADMIN_PASSWORD_CONFIGURED && is_string($t) && $t !== ''
+        && hash_equals(session_auth_token(), $t);
 }
 
 // Helper: redirect to login if not authenticated.
@@ -632,6 +679,30 @@ function products_write_lock(): void {
     @flock($fh, LOCK_EX);
 }
 
+// NEW-N2-1 / NEW-N2-2 — a data file that EXISTS but does not parse. Every
+// loader maps it onto [] (the same value as "missing"), and the admin then
+// treated [] as the truth: a catalog with one stray comma read "0 products",
+// and Add Product saved a ONE-product catalog over it under "added
+// successfully"; a damaged content.json showed every section empty and the
+// next Save wrote [] everywhere (invariant 3: a deletion) under "✅ Content
+// saved". The only backup then written is of the broken file. Writes are
+// atomic (A-5.5), so the admin cannot produce one of these — an FTP hand edit
+// or an interrupted upload can. (audit-runs/audit-2026-09-27.md §7, §9)
+function data_file_damaged(string $path): bool {
+    if (!file_exists($path)) return false;
+    $raw = @file_get_contents($path);
+    return $raw === false || !is_array(json_decode($raw, true));
+}
+
+// Set by load_products() when the catalog file is damaged; save_products()
+// then refuses, so no page can save the [] it was handed over the real
+// catalog. A backup restore never loads first, so it can still repair the file.
+function products_load_damaged(?bool $set = null): bool {
+    static $damaged = false;
+    if ($set !== null) $damaged = $set;
+    return $damaged;
+}
+
 // Helper: load products array from JSON
 function load_products(): array {
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') products_write_lock();
@@ -639,7 +710,7 @@ function load_products(): array {
     if (!file_exists($path)) return [];
     $json = file_get_contents($path);
     $data = json_decode($json, true);
-    if (!is_array($data)) return [];
+    if (!is_array($data)) { products_load_damaged(true); return []; }
     // Handle both plain array and { products: [...] } formats.
     // A-5.29 — the WRAPPER was checked and the inner value was not, while the
     // declared return type is `array`. A hand-edited `{"products": "..."}` was
@@ -846,6 +917,9 @@ function backup_list(string $dir, string $prefix): array {
 // differently read last_save_was_noop().
 function save_products(array $products): bool {
     products_write_lock(); // SEC-5 — a no-op if load_products() already took it
+    // NEW-N2-2 — never save the [] a damaged catalog was read as over the
+    // catalog itself. The dashboard banner says what to do instead.
+    if (products_load_damaged()) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
     $path = PRODUCTS_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) {

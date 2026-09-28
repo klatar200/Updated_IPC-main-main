@@ -7584,7 +7584,19 @@ function PageMeta({ products }) {
     // An id that matches nothing renders the catalog landing under a
     // not-found banner (item 2) — a soft-404 on the product axis, treated
     // exactly as A5 treats an unknown path segment.
-    const unknownProduct = productAxis && !!productId && !matched;
+    //
+    // PUB-2 — but only once there IS a catalog to match against. useProducts()
+    // hands back [] both while loading and when the fetch fails or times out,
+    // so every product URL used to declare itself "Part not found" + noindex
+    // with no canonical for the whole outage: one 503 or a 12 s timeout during
+    // Googlebot's render could de-index the product pages. Until the catalog
+    // has loaded the product axis is PENDING — no noindex, no canonical, and
+    // the generic title — which claims nothing either way. A real catalog is
+    // never empty (useProducts' cache guard makes the same assumption).
+    // (audit-runs/audit-2026-09-27.md PUB-2)
+    const catalogLoaded = Array.isArray(products) && products.length > 0;
+    const pendingProduct = productAxis && !!productId && !catalogLoaded;
+    const unknownProduct = productAxis && !!productId && catalogLoaded && !matched;
 
     // Title fallback. Two things used to go wrong here:
     //
@@ -7735,6 +7747,13 @@ function PageMeta({ products }) {
     // survive here.
     if (unknownRoute || unknownProduct) {
       setMeta("name", "robots", "noindex");
+      if (link) link.remove();
+      document.querySelector('meta[property="og:url"]')?.remove();
+    } else if (pendingProduct) {
+      // PUB-2 — neither a verdict nor a canonical pointing at /products: a
+      // product URL canonical to the landing page during an outage is its own
+      // de-indexing signal. Clear both and let the loaded render decide.
+      document.querySelector('meta[name="robots"]')?.remove();
       if (link) link.remove();
       document.querySelector('meta[property="og:url"]')?.remove();
     } else {
