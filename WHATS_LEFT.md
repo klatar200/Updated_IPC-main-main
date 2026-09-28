@@ -6587,3 +6587,45 @@ changing the phone in Business Details leaves every click-to-call dialling the
 old number), and 45 Low/Info. Round 3 raised 13 more (§10), 10 of them
 distinct and not yet independently verified, the largest being NEW-R3-m4-1
 (GO-LIVE STEP 0's "Follow B" skips §A on a first deploy).
+
+---
+
+## 1ab. Shipped 2026-09-28 — DEP-3 fixed, and two stale suites re-based
+
+**DEP-3** (`audit-runs/audit-2026-09-27.md` §6, Medium, host-dependent).
+On a real Apache 2.4 + mod_php host that maps PHP with `AddHandler`,
+`x.php.jpg` executed in `uploads/`, under both the shipped `.htaccess` and the
+runtime copy `upload-image.php` writes. `x.phar` executed in `data/` even
+under Ubuntu's stock handler. There were three causes:
+- the deny regexes in `uploads/` and `data/` were `$`-anchored;
+- `data/`'s regex had no `phar`;
+- a later image allow-list `<FilesMatch>` in `uploads/` re-allowed what the
+  deny had matched.
+
+**The fix.** All three rules are now pdfs/'s `(\.|$)` rule, which is the one
+that held, and the allow-list is gone. An "ON PURPOSE" comment in both places
+says why. The runtime text moved into `uploads_runtime_htaccess()` in
+`admin/config.php`: a byte-identical move first, then the fix.
+
+**The new suite** is `_harness/dep3-scriptblock.js`, the harness's first
+real-Apache suite. It runs `AddHandler` and `SetHandler` models with 28
+checks, one arm for denied scripts and one for legitimate files that must
+still serve.
+- 16/28 against the unfixed rules, 28/28 after.
+- Three mutations were each caught: allow-list restored (22/28), anchored
+  uploads regex (22/28), old data regex (26/28).
+
+**Stale suites.** `plan4-admin` 18/19 → 19/19 (posted vars 446 → 445) and
+`plan10-repalette` 30/33 → 33/33 (baseline re-captured; the delta is recorded
+in its `_note`). Both had been red on `main` since d922525 removed one
+`heroTrust` row. Proven data-only: against d922525~1's data, both pass on the
+old expectations.
+
+**Regression after both changes** (sweep of 87 suites, plus the fleet re-run
+for `plan5-throttle`, 12/12): everything green except the two documented
+expected reds, `brandtext` 38/49 (ceiling 13) and `plan8-polish` 16/17.
+`lint.php` is clean. `php -l` is clean on PHP 8.4 and 7.4.
+
+**Not yet done:** CLAUDE.md gains no invariant for DEP-3. The "ON PURPOSE"
+comments and the suite hold it. Whether it should become invariant 19 is an
+open question to Keagan (2026-09-28).
