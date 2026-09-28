@@ -6932,3 +6932,37 @@ the code:
   `main`, so 11 checks passed there. Every pattern is now the verbatim
   false sentence.
 - The first N3-3 checks read the source. They now drive a real upload.
+
+## 1ai. Shipped 2026-09-28 — C2: text on owner palettes (NEW-N1-4, N1-5, N1-6)
+
+`_harness/lowsC2-palettes.js`: 0/5 → 5/5. Before the fix, 276–359 text
+elements per pale palette fell below 3:1 while clearing it at the shipped
+palette.
+
+- **The fix:** ThemeInjector now computes an ink for every DERIVED surface,
+  not just the three base colours:
+  - `--brand-panel-ink-rgb` (the mega-menu panel)
+  - `--brand-drawer-ink-rgb` (the mobile drawer)
+  - `--brand-deep-ink-rgb` (the industry cards' deep→primary gradient)
+  - `--brand-hero-ink-rgb` (the hero's dark overlay)
+  - `--brand-accent-on-deep`
+  - `--brand-panel-muted-40` and `-45` (the menu's description lines, raised
+    only to 3:1)
+- **Call sites** that painted another surface's ink or a hardcoded white now
+  use their own surface's ink:
+  - N1-4: the menu items used the primary ink on the panel; "2024", the FAQ
+    chips and the index pill count used the dark ink on the primary; the
+    hero cards and trust strip used the dark or primary ink on the overlay;
+    the services banner sub-line.
+  - N1-5: the drawer, the panel whites, the industry-card headings.
+  - N1-6: the nav "Home" link, the About CTA and the FAQ chips'
+    `onMouseLeave`/`onMouseEnter` writes.
+- **The shipped palette is unchanged.** Every new ink is white there and the
+  muted tokens equal the old composites. Measured: 8,212 of 8,222 element
+  readings identical; the other 10 are within 0.06 and are the hero's
+  animated ✓ rows, a known wobble (§4 "brandtext ink extent").
+- **Untouched ON PURPOSE:**
+  - `brandtext`'s shipped-palette combinations (the open brand decisions).
+  - The industry-card gradient ends at the shipped palette (the open
+    brand-gradient-mixed-ends item). Its heading is white there, exactly as
+    before.

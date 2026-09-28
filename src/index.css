@@ -69,6 +69,21 @@
   --brand-dark-ink-rgb: 255, 255, 255;
   --brand-header-ink-rgb: 255, 255, 255;
 
+  /* C2 (audit 2026-09-27 NEW-N1-4/5/6) — inks for the DERIVED surfaces: the
+     mega-menu panel, the mobile drawer, the industry-card gradient and the
+     homepage hero overlay. Each was painted with another surface's ink or a
+     hardcoded white, which only shows on a pale owner palette. White on the
+     shipped palette, like the three above. */
+  --brand-panel-ink-rgb: 255, 255, 255;
+  --brand-drawer-ink-rgb: 255, 255, 255;
+  --brand-deep-ink-rgb: 255, 255, 255;
+  --brand-hero-ink-rgb: 255, 255, 255;
+  --brand-accent-on-deep: #00bef2;
+  /* rgba(255,255,255,0.40 / 0.45) composited on the shipped --brand-dark-panel
+     #0e2847: what the two menu description lines rendered as before. */
+  --brand-panel-muted-40: #6e7e91;
+  --brand-panel-muted-45: #7a899a;
+
   /* The brand colors used as TEXT rather than as a background
      (brand-color-as-foreground). ThemeInjector darkens or lightens these only
      as far as legibility requires, and only when the owner's own color fails —
