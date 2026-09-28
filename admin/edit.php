@@ -8,8 +8,7 @@ $idx      = find_product($products, $sku);
 $errors   = [];
 
 if ($idx === -1) {
-    header('Location: index.php?msg=Product+not+found&type=error');
-    exit;
+    flash_redirect('Product not found', 'error');
 }
 
 $product = $products[$idx];
@@ -52,11 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Badges — one per line
     $badgesRaw = post_str('badges');
-    $updated['badges'] = array_values(array_filter(array_map('trim', explode("\n", $badgesRaw))));
+    $updated['badges'] = array_values(array_filter(array_map('trim', explode("\n", $badgesRaw)), 'strlen'));
 
     // Description paragraphs — one per line
     $descRaw = post_str('description');
-    $updated['description'] = array_values(array_filter(array_map('trim', explode("\n", $descRaw))));
+    $updated['description'] = array_values(array_filter(array_map('trim', explode("\n", $descRaw)), 'strlen'));
 
     // Primary PDF button label (e.g. "Molded Cap"). Empty → remove the key so
     // the frontend falls back to its default "Datasheet" text.
@@ -84,7 +83,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // caught with a clear message instead of a silently broken link.
             // (Entry is kept so it re-displays for the user to fix; the error
             // blocks the save.)
-            if (!preg_match('#^(/|https?://)\S+\.pdf$#i', $url)) {
+            // SEC-8 — `/` must not be followed by another `/` or a `\`:
+            // `//evil…` and `/\evil…` are protocol-relative (browsers read the
+            // backslash as a slash), so they passed as "a path", saved
+            // "successfully", and the site's isSafeLinkUrl() then dropped the
+            // link without a word.
+            if (!preg_match('#^(/(?![/\\\\])|https?://)\S+\.pdf$#i', $url)) {
                 $errors[] = 'Additional PDF link "' . $url . '" is not valid — use a path or URL ending in .pdf (e.g. /pdfs/file.pdf | Label).';
             }
             $addList[] = ['url' => $url, 'label' => $label];
@@ -134,11 +138,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Validate required fields
-    if (empty($updated['name']))    $errors[] = 'Product name is required.';
+    // NEW-N2-13 — empty("0") is true: a product named "0" was accepted by
+    // add.php and refused by every later edit. Same test as add.php now.
+    if (trim((string)($updated['name'] ?? '')) === '')    $errors[] = 'Product name is required.';
     // A6 — the same shared rule add.php uses. A rename could previously turn a
     // working SKU into one whose derived upload filenames are dotfiles.
     $errors = array_merge($errors, sku_problems($updated['sku']));
-    if (empty($updated['partType'])) $errors[] = 'Part type is required.';
+    if (trim((string)($updated['partType'] ?? '')) === '') $errors[] = 'Part type is required.';
 
     // Block renaming an SKU onto another existing product. Without this,
     // two rows end up sharing an SKU and find_product() returns only the
@@ -153,6 +159,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // AUDIT_v3 NB18, which fixed add.php and upload-pdf.php and missed
             // this one. (audit-runs/audit1.md A-11)
             $errors[] = 'Another product already uses SKU "' . $updated['sku'] . '". Pick a different one.';
+        } elseif (($twin = find_colliding_sku($products, $updated['sku'], $idx)) !== '') {
+            $errors[] = sku_collision_message($updated['sku'], $twin); // ADM-5
         }
     }
 
@@ -189,7 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             $sharedKept = [];
-            $renameOne = function ($url) use ($oldSku, $newSku, $realPdfDir, &$renameNotes, $sharedNames, &$sharedKept) {
+            $renamedPairs = [];
+            $renameOne = function ($url) use ($oldSku, $newSku, $realPdfDir, &$renameNotes, $sharedNames, &$sharedKept, &$renamedPairs) {
                 if (empty($url)) return $url;
                 $oldName = basename($url);
                 if (isset($sharedNames[$oldName])) {
@@ -204,6 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     && !file_exists(PDF_DIR . $newName)
                     && @rename($realOld, PDF_DIR . $newName)) {
                     $renameNotes[] = $oldName . ' → ' . $newName;
+                    $renamedPairs[] = [PDF_DIR . $newName, $realOld];
                     return PDF_URL . $newName;
                 }
                 return $url; // rename failed or target exists — keep old reference
@@ -225,12 +235,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     . ' kept under its old name because another product uses the same file';
             }
         }
+        $before = $products;
         $products[$idx] = $updated;
+        $brokenRefs = $updated['sku'] !== $sku ? industry_refs_broken_by($before, $products) : []; // ADM-14
         if (save_products($products)) {
             // F3 — a no-op save is still a success and still redirects, so the
             // concurrency signature is recomputed from (unchanged) disk on the
             // next load and matches. Only the flash message differs; edit.php
-            // carries its result on index.php's ?msg= rather than a banner of
+            // carries its result on index.php's flash message rather than a banner of
             // its own, so `type` stays `success` and the wording does the work.
             $noop = last_save_was_noop();
             $detail = ($updated['sku'] !== $sku ? ('Renamed from ' . $sku . '. ') : '') . 'Product details updated' . $renameNote;
@@ -238,8 +250,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $msg = $noop
                 ? $updated['sku'] . ' — no changes to save'
                 : $updated['sku'] . ' saved successfully';
-            header('Location: index.php?msg=' . urlencode($msg) . '&type=success');
-            exit;
+            if ($brokenRefs) {
+                $msg .= '. Note: the Industries page links to the old SKU from ' . implode(', ', $brokenRefs)
+                      . ' — those links now show "product not found". Update them in Page Content → Industries.';
+            }
+            flash_redirect($msg, 'success');
+        }
+        // NEW-N2-3 (audit 2026-09-27) — the data sheets were renamed on disk
+        // BEFORE this save. When the save then failed (a full quota is the
+        // realistic cause), the catalog still named the old files, the retry
+        // found nothing to rename, said "saved successfully", and the Data
+        // Sheet button stayed dead. Put the files back so a retry starts from
+        // where this one did.
+        foreach (array_reverse($renamedPairs ?? []) as [$nowAt, $wasAt]) {
+            if (file_exists($nowAt) && !file_exists($wasAt)) @rename($nowAt, $wasAt);
         }
         $errors[] = 'Failed to save products-all.json. Check file permissions.';
     }

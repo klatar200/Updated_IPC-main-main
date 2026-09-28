@@ -24,6 +24,15 @@ const OUT = path.join(__dirname, 'out', 'plan9');
 const products = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'pristine', 'products-all.json'), 'utf8')
 );
+// FIXTURE, 2026-09-28 (audit-2026-09-27 NEW-V2-1): the shipped catalog now has
+// id === sku everywhere, so the punctuated id this suite's alias case is about
+// ("IP12GA - IP1274", reached as ip12ga-ip1274) no longer ships. It is still
+// what a pre-V2-1 catalog or a restored backup holds: put it back in the
+// mirror for this run, restored from pristine/ at the end.
+products.find((p) => p.sku === 'IP12GA-IP1274').id = 'IP12GA - IP1274';
+const MIRROR_CATALOG = path.join(__dirname, 'site', 'data', 'products-all.json');
+fs.writeFileSync(MIRROR_CATALOG, JSON.stringify(products, null, 4));
+process.on('exit', () => fs.copyFileSync(path.join(__dirname, 'pristine', 'products-all.json'), MIRROR_CATALOG));
 const byId = (id) => products.find((p) => p.id === id);
 
 const results = [];

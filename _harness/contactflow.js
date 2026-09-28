@@ -78,6 +78,7 @@ const want = (tag) => !ONLY || tag === ONLY;
 // ── Captured mail ──────────────────────────────────────────────────────────
 // fakemail.sh appends the FULL message — headers included, because PHP invokes
 // sendmail with -t — after a ===MESSAGE=== marker.
+const decodeWords = (v) => v.replace(/=\?UTF-8\?B\?([^?]*)\?=\s*/gi, (_, b) => Buffer.from(b, 'base64').toString('utf8')).trim();
 function capturedMessages() {
   if (!fs.existsSync(MAIL_LOG)) return [];
   return fs.readFileSync(MAIL_LOG, 'utf8')
@@ -87,8 +88,10 @@ function capturedMessages() {
       return {
         raw: m,
         to: header('To'),
-        subject: header('Subject'),
-        from: header('From'),
+        // Decoded as a mail client shows them: since PUB-5 (audit 2026-09-27)
+        // contact.php sends non-ASCII headers as RFC 2047 encoded-words.
+        subject: decodeWords(header('Subject')),
+        from: decodeWords(header('From')),
         replyTo: header('Reply-To'),
         // The body is everything past the blank line that ends the header block.
         body: m.split(/\r?\n\r?\n/).slice(1).join('\n\n'),

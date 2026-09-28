@@ -102,7 +102,12 @@ function password_reset_unlocked(): bool {
     clearstatcache(true, PASSWORD_RESET_FLAG);   // mtime is cached per request
     $mtime = @filemtime(PASSWORD_RESET_FLAG);
     if ($mtime === false) return false;
-    return $mtime > (time() - PASSWORD_RESET_WINDOW);
+    // SEC-13 — an upper bound too. A flag dated in the future (a wrong clock
+    // on the uploading machine, or `touch -d`) kept the form open until that
+    // date plus an hour. Five minutes of skew is allowed; past that the flag
+    // counts as expired and the login screen says to upload it again.
+    $now = time();
+    return $mtime > ($now - PASSWORD_RESET_WINDOW) && $mtime <= $now + 300;
 }
 
 /** The flag file is on disk, whether or not it is still in date. */
@@ -227,8 +232,13 @@ function admin_password_problems(string $new, string $confirm, bool $compareToCu
     $errors = [];
     if (strlen($new) < 12) {
         $errors[] = 'The new password must be at least 12 characters. A short sentence or 4+ random words works well.';
-    } elseif (strlen($new) > 200) {
-        $errors[] = 'The new password is too long (200 characters max).';
+    } elseif (strlen($new) > 72) {
+        // SEC-14 — bcrypt reads only the first 72 BYTES. Past that, two
+        // passwords that differ only at the end are the same password, and
+        // "must differ from the current one" was blind to it. 200 was the
+        // old ceiling; a longer passphrase gave no more protection than its
+        // first 72 bytes.
+        $errors[] = 'The new password is too long (72 characters max; an accented letter counts as two).';
     } elseif ($new !== $confirm) {
         $errors[] = 'The two new-password fields do not match.';
     } elseif ($compareToCurrent && ADMIN_PASSWORD_CONFIGURED && password_verify($new, ADMIN_PASSWORD_HASH)) {
@@ -278,6 +288,25 @@ function raw_str($v, string $default = ''): string {
 // CSRF token helper — call csrf_token() to get/generate, csrf_check() to verify.
 // Session is already started by the block at the bottom of this file before any
 // page-level code runs, so no need to start it here.
+/**
+ * SEC-9 — a one-shot message for the next page, carried in the session instead
+ * of the URL. Redirects and exits.
+ */
+function flash_redirect(string $msg, string $type = 'success', string $to = 'index.php'): void {
+    $_SESSION['ipc_flash'] = ['msg' => $msg, 'type' => $type === 'error' ? 'error' : 'success'];
+    header('Location: ' . $to);
+    exit;
+}
+
+/** The pending flash message, removed as it is read. */
+function flash_take(): array {
+    $f = $_SESSION['ipc_flash'] ?? null;
+    unset($_SESSION['ipc_flash']);
+    return (is_array($f) && is_string($f['msg'] ?? null))
+        ? ['msg' => $f['msg'], 'type' => ($f['type'] ?? '') === 'error' ? 'error' : 'success']
+        : ['msg' => '', 'type' => 'success'];
+}
+
 function csrf_token(): string {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -748,6 +777,19 @@ define('BACKUP_KEEP', 90);
 // seq 1..30 holding a mix of old and new states instead of the newest 30.
 function backup_path(string $dir, string $prefix): string {
     $stamp = date('Ymd-His');
+    // NEW-N2-12 (audit 2026-09-27) — names are LOCAL time, and in the hour the
+    // clocks go back (or after any clock step) "now" can be earlier than the
+    // newest backup's name, so the newest backup sorted as older and was not
+    // the one "restore the most recent" picked. Never allocate below the
+    // newest existing name: reuse its stamp and take the next sequence. The
+    // label can read up to an hour early in that window; the ORDER, which
+    // invariant 5 is about, stays right.
+    $existing = backup_list($dir, $prefix);
+    if ($existing) {
+        $newest = backup_sort_key((string)end($existing))[0];   // YmdHis
+        $newestStamp = substr($newest, 0, 8) . '-' . substr($newest, 8, 6);
+        if (strcmp($newestStamp, $stamp) > 0) $stamp = $newestStamp;
+    }
     $base  = $dir . '/' . $prefix . '.backup.' . $stamp;
     $used  = -1;
     foreach (glob($base . '*.json') ?: [] as $f) {
@@ -1214,48 +1256,78 @@ function audit_log(string $action, string $sku, string $detail = ''): bool {
  */
 define('INQUIRIES_SEEN_FILE', __DIR__ . '/.inquiries-seen.json');
 
-function inquiries_total_count(): int {
-    $path = __DIR__ . '/inquiries.jsonl';
+/**
+ * NEW-N2-8 (audit 2026-09-27) — the submission types contact.php logs but
+ * that are NOT leads: spam trap, rate limit, cross-site, incomplete. They are
+ * shown on Inquiries as "Blocked as spam", and they must not light the nav's
+ * "new" badge either: 5 counted, 1 real, measured. inquiries.php reads this
+ * same list, so there is one copy.
+ */
+function inquiry_rejected_types(): array {
+    return ['honeypot', 'rate-limited', 'blocked-referer', 'rfq-incomplete', 'message-incomplete'];
+}
+
+/** Real leads (not rejected submissions) in bytes [$from, $to) of the log; $to < 0 = to the end. */
+function inquiries_count_leads(string $path, int $from = 0, int $to = -1): int {
     $fh = @fopen($path, 'rb');
     if (!$fh) return 0;
+    if ($from > 0) fseek($fh, $from);
+    $rejected = array_flip(inquiry_rejected_types());
     $n = 0;
-    while (($chunk = fread($fh, 1024 * 1024)) !== false && $chunk !== '') {
-        $n += substr_count($chunk, "\n");
+    $carry = '';
+    $remaining = $to < 0 ? PHP_INT_MAX : $to - $from;
+    while ($remaining > 0 && ($chunk = fread($fh, (int)min(1024 * 1024, $remaining))) !== false && $chunk !== '') {
+        $remaining -= strlen($chunk);
+        $lines = explode("\n", $carry . $chunk);
+        $carry = array_pop($lines);           // an unterminated tail waits for the next chunk
+        foreach ($lines as $line) {
+            if (trim($line) === '') continue;
+            $e = json_decode($line, true);
+            if (is_array($e) && isset($rejected[(string)($e['type'] ?? '')])) continue;
+            $n++;
+        }
     }
     fclose($fh);
     return $n;
 }
 
+function inquiries_total_count(): int {
+    return inquiries_count_leads(__DIR__ . '/inquiries.jsonl');
+}
+
+/**
+ * Hash of the first $len bytes of the log (at most 256) — tells "grew" from
+ * "rotated and grew again" (NEW-N2-9). The length is stored with the mark:
+ * hashing a fixed 256 bytes of a log SHORTER than that took in the lines
+ * appended afterwards and read an ordinary append as a rotation.
+ */
+function inquiries_head(string $path, int $len = 256): string {
+    $len = max(0, min(256, $len));
+    if ($len === 0) return '';
+    $fh = @fopen($path, 'rb');
+    if (!$fh) return '';
+    $head = (string)fread($fh, $len);
+    fclose($fh);
+    return strlen($head) === $len ? md5($head) : '';
+}
+
 function inquiries_seen_state(): array {
     $raw = @file_get_contents(INQUIRIES_SEEN_FILE);
-    if ($raw === false) return ['seen' => 0, 'size' => -1];
+    if ($raw === false) return ['seen' => 0, 'size' => -1, 'head' => ''];
     $d = json_decode((string)$raw, true);
-    if (!is_array($d)) return ['seen' => 0, 'size' => -1];
-    return ['seen' => max(0, (int)($d['seen'] ?? 0)), 'size' => (int)($d['size'] ?? -1)];
+    if (!is_array($d)) return ['seen' => 0, 'size' => -1, 'head' => ''];
+    return ['seen' => max(0, (int)($d['seen'] ?? 0)), 'size' => (int)($d['size'] ?? -1), 'head' => (string)($d['head'] ?? '')];
 }
 
 function inquiries_mark_seen(int $n): void {
     $size = @filesize(__DIR__ . '/inquiries.jsonl');
     @file_put_contents(
         INQUIRIES_SEEN_FILE,
-        json_encode(['seen' => $n, 'size' => $size === false ? 0 : $size, 'ts' => date('c')]),
+        json_encode(['seen' => $n, 'size' => $size === false ? 0 : $size,
+                     'head' => inquiries_head(__DIR__ . '/inquiries.jsonl', $size === false ? 0 : (int)$size),
+                     'ts' => date('c')]),
         LOCK_EX
     );
-}
-
-/** Newlines in [$from, $to) — the bytes appended since the mark. */
-function inquiries_count_range(string $path, int $from, int $to): int {
-    $fh = @fopen($path, 'rb');
-    if (!$fh) return 0;
-    if ($from > 0) fseek($fh, $from);
-    $n = 0;
-    $remaining = $to - $from;
-    while ($remaining > 0 && ($chunk = fread($fh, min(1024 * 1024, $remaining))) !== false && $chunk !== '') {
-        $n += substr_count($chunk, "\n");
-        $remaining -= strlen($chunk);
-    }
-    fclose($fh);
-    return $n;
 }
 
 /**
@@ -1276,10 +1348,16 @@ function inquiries_new_count(): int {
     // 16MB read on every page view. The file only ever appends, so the size at
     // the moment of the mark is enough: unchanged means nothing new, and larger
     // means only the appended bytes need counting.
-    if ($state['size'] >= 0 && $size === $state['size']) return 0;
-    if ($state['size'] >= 0 && $size > $state['size']) {
-        return inquiries_count_range($path, $state['size'], $size);
+    // NEW-N2-9 — "larger than the mark" is only "the same file, grown" when
+    // the file still STARTS the same. After a rotation the new log can grow
+    // past the old mark, and counting from that offset read 25 new leads as
+    // 15. A mark written before this check existed has no head: trust size.
+    $sameFile = $state['head'] === '' || $state['head'] === inquiries_head($path, $state['size']);
+    if ($sameFile && $state['size'] >= 0 && $size === $state['size']) return 0;
+    if ($sameFile && $state['size'] >= 0 && $size > $state['size']) {
+        return inquiries_count_leads($path, $state['size'], $size);
     }
+    if (!$sameFile) return inquiries_total_count();
 
     // Smaller than the mark (the log rotated at its ceiling and started again)
     // or no mark at all: count the file. Treat everything present as unread
@@ -1357,6 +1435,28 @@ function login_throttle_client_ip(): string {
     return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 }
 
+/**
+ * SEC-6 (audit 2026-09-27) — the throttle's KEY for an address.
+ *
+ * IPv4 is keyed as-is. IPv6 is keyed on its /64: a single customer is
+ * routinely handed a whole /64, so keying the full address gave one attacker
+ * 2^64 fresh allowances. Callers keep passing the real address (the audit log
+ * records it); only the throttle map sees the prefix.
+ */
+function login_throttle_key(string $ip): string {
+    if (strpos($ip, ':') === false || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) return $ip;
+    $bin = @inet_pton($ip);
+    if ($bin === false || strlen($bin) !== 16) return $ip;
+    return inet_ntop(substr($bin, 0, 8) . str_repeat("\0", 8)) . '/64';
+}
+
+// SEC-6 — the map is also CAPPED. The window alone bounded nothing: 90k
+// addresses inside 15 minutes made a 4.9 MB file read and rewritten under an
+// exclusive lock on every sign-in attempt (~100 ms each). Past the cap the
+// oldest records go first; an attacker who can fill 5,000 slots is distributed
+// already, which this per-IP throttle never claimed to stop.
+define('LOGIN_THROTTLE_MAX_ENTRIES', 5000);
+
 // Drop entries whose last failure is outside the window so the file can't grow
 // without bound.
 function login_throttle_prune(array $map): array {
@@ -1365,6 +1465,10 @@ function login_throttle_prune(array $map): array {
         if (!is_array($rec) || ($now - (int)($rec['t'] ?? 0)) > LOGIN_THROTTLE_WINDOW) {
             unset($map[$ip]);
         }
+    }
+    if (count($map) > LOGIN_THROTTLE_MAX_ENTRIES) {
+        uasort($map, static function ($a, $b) { return (int)($b['t'] ?? 0) <=> (int)($a['t'] ?? 0); });
+        $map = array_slice($map, 0, LOGIN_THROTTLE_MAX_ENTRIES, true);
     }
     return $map;
 }
@@ -1416,6 +1520,7 @@ function login_throttle_mutate(callable $mutator) {
 
 // How many recent failures this IP has accumulated (0 if none / expired).
 function login_failure_count(string $ip): int {
+    $ip = login_throttle_key($ip); // SEC-6
     $map = login_throttle_read();
     return (int)($map[$ip]['c'] ?? 0);
 }
@@ -1435,6 +1540,7 @@ function login_cooloff_until(int $failures): int {
 
 /** Seconds this IP must still wait before an attempt is even looked at. */
 function login_cooloff_remaining(string $ip): int {
+    $ip = login_throttle_key($ip); // SEC-6
     $map = login_throttle_read();
     $until = (int)($map[$ip]['r'] ?? 0);
     $now = time();
@@ -1459,6 +1565,7 @@ function login_cooloff_remaining(string $ip): int {
  * recovery path is FTP.
  */
 function login_attempt_gate(string $ip): int {
+    $ip = login_throttle_key($ip); // SEC-6
     $wait = 0;
     login_throttle_mutate(function (array &$map) use ($ip, &$wait) {
         $now   = time();
@@ -1487,6 +1594,7 @@ function login_attempt_gate(string $ip): int {
  * login_attempt_gate().
  */
 function login_register_failure(string $ip): int {
+    $ip = login_throttle_key($ip); // SEC-6
     $wait = 0;
     login_throttle_mutate(function (array &$map) use ($ip, &$wait) {
         $count = (int)($map[$ip]['c'] ?? 0) + 1;
@@ -1498,6 +1606,7 @@ function login_register_failure(string $ip): int {
 }
 
 function login_reset_failures(string $ip): void {
+    $ip = login_throttle_key($ip); // SEC-6
     login_throttle_mutate(function (array &$map) use ($ip) {
         unset($map[$ip]);
     });
@@ -1609,6 +1718,31 @@ function ipc_sku_segment_match(string $sku, string $needle): bool {
 }
 
 /** True if $needle would resolve to a product on the public site. */
+/**
+ * ADM-14 (audit 2026-09-27) — the Industries cards whose product links a
+ * catalog change would break: references that resolve in $before and not in
+ * $after. The check used to run only on the next Page Content save, so a
+ * delete or a SKU rename left "product not found" links with no word said.
+ * Reads content.json only; an Industries section still on its built-in
+ * defaults (no key in content.json) is not checked.
+ */
+function industry_refs_broken_by(array $before, array $after): array {
+    $content = load_content();
+    $out = [];
+    foreach ((is_array($content['industryDetail'] ?? null) ? $content['industryDetail'] : []) as $row) {
+        if (!is_array($row) || !is_array($row['products'] ?? null)) continue;
+        $name = trim((string)($row['name'] ?? '')) ?: 'an industry section';
+        foreach ($row['products'] as $prod) {
+            $ref = is_array($prod) ? trim((string)($prod['sku'] ?? '')) : '';
+            if ($ref === '') continue;
+            if (product_reference_resolves($before, $ref) && !product_reference_resolves($after, $ref)) {
+                $out[] = '"' . $name . '" (' . $ref . ')';
+            }
+        }
+    }
+    return array_values(array_unique($out));
+}
+
 function product_reference_resolves(array $products, string $needle): bool {
     if (trim($needle) === '') return false;
     // Tier 1 — exact id or sku.
@@ -1898,6 +2032,31 @@ function link_url_problem(string $url, string $what): string {
     return $what . ' is not a valid link — use a path on this site such as /pdfs/catalog.pdf, or a full address starting http:// or https://.';
 }
 
+/**
+ * ADM-5 (audit 2026-09-27) — two SKUs that differ only in capitals, spaces or
+ * punctuation are the SAME SKU everywhere that matters: the website looks a
+ * product up by letters and digits only (normalizeSku() in src/App.jsx), and
+ * the upload file names are built the same way. The exact-match duplicate
+ * check let `ZZ-TEST-1-2`, `zz test 1/2` and `ZZ TEST 1/2` all save; they then
+ * shared one photo file name (the root of SEC-1b) and one web address.
+ * Returns the SKU it collides with, or ''.
+ */
+function sku_collision_key(string $sku): string {
+    return strtoupper((string)preg_replace('/[^A-Za-z0-9]/', '', $sku));
+}
+function find_colliding_sku(array $products, string $sku, int $exceptIdx = -1): string {
+    $k = sku_collision_key($sku);
+    foreach ($products as $i => $p) {
+        if ($i === $exceptIdx) continue;
+        $other = (string)($p['sku'] ?? '');
+        if ($other !== '' && sku_collision_key($other) === $k) return $other;
+    }
+    return '';
+}
+function sku_collision_message(string $sku, string $twin): string {
+    return 'SKU "' . $sku . '" is too close to the existing SKU "' . $twin . '": the website and the uploaded file names ignore capitals, spaces and punctuation, so the two would collide. Pick a different SKU.';
+}
+
 // Helper: find a product by SKU
 function find_product(array $products, string $sku): int {
     foreach ($products as $i => $p) {
@@ -2082,6 +2241,17 @@ function min_upload_label(int $ownCapMb): string {
     $iniMb = $bytes > 0 ? $bytes / 1048576 : $ownCapMb;
     $mb    = min($iniMb, $ownCapMb);
     return ($mb >= 1 ? (string)round($mb) : rtrim(rtrim(number_format($mb, 1), '0'), '.')) . 'MB';
+}
+
+/**
+ * SEC-12 (= ADM-15) — `pdf_file[]` / `image_file[]` turn every key of the
+ * $_FILES entry into an ARRAY, and the pages passed `['error']` straight into
+ * upload_error_message(int ...): an uncaught TypeError, a 500 with a path in it.
+ * The A-5.7 class, for file inputs. True when the field is absent or a single
+ * file.
+ */
+function upload_field_is_single(string $field): bool {
+    return !isset($_FILES[$field]) || !is_array($_FILES[$field]['error'] ?? null);
 }
 
 function upload_error_message(int $code, string $what = 'file'): string {

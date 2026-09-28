@@ -270,6 +270,11 @@ A green control is not evidence until you know why it is green.
 | `adm7-facts.js` | **ADM-7** — a fact edited in Business Details leaves no old copy live. Own `php -S` on :8708, a real browser over 9 public pages, 16 checks: with the shipped `site-info.json` the hours, founded year, city, `$50` and `25M` are all visible (the control); with each edited, no page shows the old value in its text, image alt, `<title>` or meta description, each new value appears, and every page rendered (a crashed page would otherwise pass "nothing old left"). Proven: 10/15 unfixed; 11/16 with `factsRewriter` disabled; 16/16 fixed |
 | `adm9b-othercert.js` | **ADM-9b** — "Other Certifications" is shown as typed and the owner is told it is public. Own `php -S` on :8709, 5 checks: `other = ["RoHS"]` renders "RoHS" in the footer, not "ROHS", while "ESTABLISHED <year>" keeps its capitals; the `cert_other` field carries a hint that it is published on every page; `help.php` no longer says the box is not shown. Proven: 1/5 unfixed, 5/5 fixed |
 | `dep2-envelope.js` | **DEP-2** — `contact.php`'s envelope sender (`sendmail -f`) ships OFF behind `IPC_ENVELOPE_FROM` and works when turned on. Two own `php -S` servers on :8710/:8711 with a sendmail stand-in that records argv, 6 checks: as shipped neither the sales mail nor the auto-reply carries `-f`; with the constant set via `auto_prepend_file` both carry exactly `-fnoreply@insulationproducts.com`; the shipped constant is `''`. Restores the mirror's inquiry log. Proven: 1/6 unfixed, 6/6 fixed |
+| `adminhttp.js` | Not a suite: the cookie-jar HTTP client (`req`, `post`, `postRaw`, `formFields`, `csrfOf`, `login`) the Lows suites use to drive the real admin pages without a browser. `formFields` drops the one newline a browser drops after `<textarea>`, or an unchanged save is not unchanged. |
+| `lowsA1-sec.js` | **Lows A1** — SEC-6, 8, 9, 10, 11, 12 (= ADM-15), 13, 14, 16. Own `php -S` on :8712 plus PHP CLI into the mirror's `config.php`, 18 checks: IPv6 /64 shares one throttle record and the throttle file is capped; `//` and `/\` extra-PDF links refused; `?msg=` no longer renders (session flash instead); a cross-site GET does not mark leads seen; a lead's `?cc=` cannot reach the reply `mailto:`; `pdf_file[]`/`image_file[]` get a message, not a fatal; a future-dated reset flag stays shut; a 73-byte password is refused; the admin CSP has `form-action`. The SEC-13 check first passed on unfixed code because a signed-in cookie redirected before the reset decision — both requests are anonymous now. Proven: 5/18 unfixed, 18/18 fixed |
+| `lowsA2-admin.js` | **Lows A2** — ADM-5, ADM-13, ADM-14, NEW-N1-15, N1-16, N2-3, N2-4, N2-8, N2-9, N2-11, N2-12, N2-13, V1-1, V2-1. Own `php -S` on :8715, `adminhttp.js`, 28 checks. N2-3 forces the failed save with an invalid UTF-8 byte (json_encode refuses it) after the data sheet was renamed; N2-12 checks order through `backup_list()`, never a string compare (invariant 5). Proven: 4/28 on `main`'s admin and data, 28/28 fixed |
+| `lowsB-contact.js` | **Lows B** — `public/contact.php`: PUB-5, PUB-8, PUB-9, PUB-13, NEW-V3-2, NEW-N2-10. Own `php -S` on :8716 with a recording sendmail and a private `sys_temp_dir`, 9 checks: both Subjects are ASCII RFC 2047 words that decode to the em dash and an accented name; `Content-Transfer-Encoding: 8bit` on both; a blank street falls back in the auto-reply signature; the no-JS RFQ page says "Quote request sent" with the owner's `rfqSuccessBody`; a lead after an unterminated line is its own JSON line and the failure marker is kept; a request WAITS for the per-address limiter lock another process holds. **PUB-13's race did not reproduce here** (12 simultaneous `php` processes and `php -S` workers both stayed at 5 against unfixed code; it was measured on Apache prefork), so the mechanism is asserted instead; the auto-reply-cap lock is the same pattern and is not separately tested. Proven: 2/9 on `main`'s `contact.php`, 9/9 fixed |
+| `lowsC-public.js` | **Lows C** — `src/App.jsx`: PUB-4, PUB-6, PUB-7, PUB-12, NEW-N1-1, N1-2, N1-3, N1-8, N1-9, N1-10, N1-11, N1-12, N1-13, N1-14, N1-15, N1-16, V1-2. Own `php -S` on :8718, a real browser, 21 checks. Three first-draft checks passed against unfixed code and were fixed before counting: the Product Index empty state is a `<tr>` that echoes the query (so "found it" matched "No results for …"); V1-2 shared data with PUB-6's malformed rows, so the unfixed page had crashed and "no dead link" held on an empty page; PUB-4's example is in its own description. Proven: 1/21 on the #62 bundle, 21/21 fixed |
 
 ## Investigative tools (one-shot, kept as evidence)
 
@@ -330,10 +335,18 @@ were acted on (white eyebrow, teal arrows) and `eyebrow-D-darker-gradient.png`
 is still live evidence for the one decision this left open,
 `page-header-sublines-on-gradient`.
 
-## Two things that have bitten before
+## Things that have bitten before
 
 - **`sync.sh` after every build and every `admin/` edit.** Otherwise the suites
   test stale code and pass for the wrong reason.
+- **While a full sweep runs, touch NOTHING it can read: not the mirror, and not
+  `src/`, `public/` or `admin/` either.** `plan5-keys`, `plan5b-sidebar` and
+  `contactflow-selftest` run `npm run build` + `sync.sh` themselves, so a source
+  edit made mid-sweep is built into the mirror and every later suite tests a
+  tree the earlier ones never saw. Measured twice: 2026-09-28 SEC-2's sweep
+  (a manual sync) and sweep8 (source edits picked up by those suites' own
+  build). For side work during a sweep, copy `_harness/` to a private
+  directory, build with `npx vite build --outDir <elsewhere>`, and test there.
 - **Measure in the browser, not in the source.** A backward scan for a
   background both misses one declared after the `className` in the same element
   and attributes one from 12,000 characters away. Six real mis-classifications

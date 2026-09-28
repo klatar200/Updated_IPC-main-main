@@ -85,7 +85,9 @@ const MUTATIONS = [
   {
     id: 'INV7', why: 'the unkeyed ErrorBoundary — one bad product bricked every page',
     file: 'src/App.jsx',
-    apply: (s) => s.replace('<ErrorBoundary key={page}>', '<ErrorBoundary>'),
+    // Anchored on `key={page}`, not the closing `>`: NEW-N1-1 added a
+    // resetKey prop after it, and the old pattern then applied no mutation.
+    apply: (s) => s.replace('<ErrorBoundary key={page}', '<ErrorBoundary'),
   },
   {
     id: 'INV8', why: 'Footer moved above the catalog gate (chrome behind the gate)',

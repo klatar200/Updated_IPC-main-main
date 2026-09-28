@@ -156,6 +156,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // that 404s. If a channel is added to SOCIAL_CHANNELS in src/App.jsx and to
     // the $updated['social'] array above, it belongs in this list too.
     // (audit-runs/audit1.md A-01)
+    // ADM-13 (audit 2026-09-27) — the five fields that were saved with no
+    // check at all. Each reached the public site verbatim: "Since 1974" as a
+    // founded year printed "© Since 1974–2026", "call us" as the dial number
+    // became href="tel:call us", a `javascript:` logo URL became an <img src>,
+    // and free text in the hours made the search-engine data invalid.
+    $logo = $updated['theme']['logoUrl'];
+    if ($logo !== '') {
+        $logoProblem = link_url_problem($logo, 'The logo URL');
+        if ($logoProblem !== '') $errors[] = $logoProblem;
+    }
+    $year = $updated['company']['foundedYear'];
+    if ($year !== '' && (!preg_match('/^\d{4}$/', $year) || (int)$year < 1800 || (int)$year > (int)date('Y'))) {
+        $errors[] = 'Founded Year must be a four-digit year such as 1974.';
+    }
+    foreach (['opens' => 'Opens', 'closes' => 'Closes'] as $k => $label) {
+        $t = $updated['hours'][$k];
+        if ($t !== '' && !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t)) {
+            $errors[] = $label . ' must be a 24-hour time such as 08:00 or 17:00.';
+        }
+    }
+    $weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    $days = [];
+    foreach ($updated['hours']['days'] as $d) {
+        $match = null;
+        foreach ($weekdays as $w) { if (strcasecmp($d, $w) === 0) { $match = $w; break; } }
+        if ($match === null) {
+            $errors[] = 'Open Days must be full day names separated by commas, e.g. Monday, Tuesday — "' . $d . '" is not one.';
+        } else {
+            $days[] = $match;
+        }
+    }
+    $updated['hours']['days'] = $days;
+    // The dial number: digits with an optional leading +. Spaces, dots,
+    // dashes and brackets are accepted and removed.
+    $dial = preg_replace('/[\s.\-()]/', '', $updated['contact']['phoneDial']);
+    if ($dial !== '' && !preg_match('/^\+?\d{7,15}$/', $dial)) {
+        $errors[] = 'The click-to-call number must be digits, optionally starting with + and the country code, e.g. +16307710700.';
+    }
+    // NEW-N1-15 — a blank dial number fell back to the SHIPPED one on the site,
+    // so changing only the display phone left every tel: link dialling the old
+    // number. Derive it from the display phone when that is a plain North
+    // American number; otherwise ask for it.
+    if ($dial === '' && $updated['contact']['phone'] !== '') {
+        $digits = preg_replace('/\D/', '', $updated['contact']['phone']);
+        if (strlen($digits) === 10) $dial = '+1' . $digits;
+        elseif (strlen($digits) === 11 && $digits[0] === '1') $dial = '+' . $digits;
+        else $errors[] = 'Please fill in the click-to-call number (digits with country code) — it could not be worked out from the phone number.';
+    }
+    $updated['contact']['phoneDial'] = $dial;
+
     foreach (array_keys($updated['social']) as $s) {
         $u = $updated['social'][$s];
         if ($u !== '' && !preg_match('#^https?://#i', $u)) {
@@ -189,9 +239,16 @@ $hr = $info['hours'] ?? [];
 $ce = $info['certifications'] ?? [];
 $sx = $info['stats'] ?? [];
 $so = $info['social'] ?? [];
-$daysStr  = implode(', ', $hr['days'] ?? []);
-$otherStr = implode("\n", $ce['other'] ?? []);
-$aboutStr = implode("\n", ($info['about']['paragraphs'] ?? []));
+// NEW-N1-16 — a hand-edited or restored site-info.json can hold a STRING
+// where a list belongs, and implode() on a string is a fatal on PHP 8: the one
+// screen that could repair the file would not open.
+$asList = static function ($v): array {
+    if (is_array($v)) return array_values(array_filter($v, 'is_scalar'));
+    return (is_string($v) && trim($v) !== '') ? [$v] : [];
+};
+$daysStr  = implode(', ', $asList($hr['days'] ?? []));
+$otherStr = implode("\n", $asList($ce['other'] ?? []));
+$aboutStr = implode("\n", $asList($info['about']['paragraphs'] ?? []));
 $th = $info['theme'] ?? [];
 $navActive = 'settings';
 ?>
@@ -291,15 +348,24 @@ $navActive = 'settings';
               return '<div class="cnote ' . $cls . '" id="' . h($id) . '">' . $msg . '</div>';
           }
 
-          $cPrimary = $th['primaryColor'] ?? '#005da3';
-          $cDark    = $th['darkColor']    ?? '#0d2d52';
-          $cAccent2 = $th['accent2Color'] ?? '#119ec8';
+          // NEW-N2-4 (audit 2026-09-27) — <input type="color"> can only show
+          // #rrggbb. Anything else (#abc, "", a hand-edited name) displayed as
+          // black and the next innocent Save wrote #000000 over it. Expand a
+          // short hex; fall back to the built-in color for anything else.
+          $colorIn = static function ($v, string $dflt): string {
+              $rgb = is_string($v) ? ipc_parse_hex_color($v) : null;
+              return $rgb === null ? $dflt : sprintf('#%02x%02x%02x', $rgb[0], $rgb[1], $rgb[2]);
+          };
+          $cPrimary = $colorIn($th['primaryColor'] ?? '', '#005da3');
+          $cDark    = $colorIn($th['darkColor']    ?? '', '#0d2d52');
+          $cAccent  = $colorIn($th['accentColor']  ?? '', '#00bef2');
+          $cAccent2 = $colorIn($th['accent2Color'] ?? '', '#119ec8');
           ?>
           <div class="form-group"><label for="theme_primary">Primary color</label><input type="color" id="theme_primary" name="theme_primary" value="<?= h($cPrimary) ?>" style="height:44px;padding:4px;width:100%;">
             <?= contrast_note([$cPrimary], 'buttons and highlights', 'cnote_primary') ?></div>
           <div class="form-group"><label for="theme_dark">Dark (headers &amp; footer)</label><input type="color" id="theme_dark" name="theme_dark" value="<?= h($cDark) ?>" style="height:44px;padding:4px;width:100%;">
             <?= contrast_note([$cDark], 'the navigation bar', 'cnote_dark') ?></div>
-          <div class="form-group"><label for="theme_accent">Accent</label><input type="color" id="theme_accent" name="theme_accent" value="<?= h($th['accentColor'] ?? '#00bef2') ?>" style="height:44px;padding:4px;width:100%;"></div>
+          <div class="form-group"><label for="theme_accent">Accent</label><input type="color" id="theme_accent" name="theme_accent" value="<?= h($cAccent) ?>" style="height:44px;padding:4px;width:100%;"></div>
           <div class="form-group"><label for="theme_accent2">Secondary accent</label><input type="color" id="theme_accent2" name="theme_accent2" value="<?= h($cAccent2) ?>" style="height:44px;padding:4px;width:100%;">
             <?php /* The page banners are a gradient from Primary to Secondary
                      accent, so one ink has to work at BOTH ends — this note is

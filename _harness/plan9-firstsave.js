@@ -90,7 +90,15 @@ async function saveForm(page) {
   fs.mkdirSync(OUT, { recursive: true });
 
   // ── 1. the pre-3a shape: pristine content.json has NO copy.siteImages ───
-  fs.copyFileSync(PRISTINE, CONTENT);
+  // FIXTURE, 2026-09-28 (audit-2026-09-27 NEW-V2-1): data/content.json now
+  // SHIPS with copy.siteImages, as the admin writes it. The pre-3a file this
+  // suite protects is still what a site deployed before that holds, so build
+  // it — pristine minus the key — rather than copy pristine verbatim.
+  {
+    const pre3a = JSON.parse(fs.readFileSync(PRISTINE, 'utf8'));
+    if (pre3a.copy) delete pre3a.copy.siteImages;
+    fs.writeFileSync(CONTENT, JSON.stringify(pre3a, null, 2));
+  }
   const parsed = JSON.parse(fs.readFileSync(CONTENT, 'utf8'));
   note(!(parsed.copy && parsed.copy.siteImages),
     'pristine content.json (the first-deploy shape) has no copy.siteImages key',

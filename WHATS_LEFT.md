@@ -6743,3 +6743,118 @@ supersedes CLAIM-4.
 **Regression:** sweep7 on `0c5fc2b`, 95/97 suites. The two reds are the
 expected `brandtext` 38/49 and `plan8-polish` 16/17. `php -l` passes on 8.4
 and 7.4.
+
+## 1af. Shipped 2026-09-28 — Lows batches A–C (admin, contact form, public site)
+
+**A1, admin security** (`_harness/lowsA1-sec.js`, 5/18 → 18/18):
+
+| ID | Fix |
+|---|---|
+| SEC-6 | IPv6 throttled per /64; throttle file capped at 5,000 records |
+| SEC-8 | Extra-PDF links starting `//` or `/\` are refused |
+| SEC-9 | Result messages move from `?msg=` in the URL to a session flash |
+| SEC-10 | A cross-site GET no longer marks leads seen (`Sec-Fetch-Site`) |
+| SEC-11 | The reply `mailto:` address is percent-encoded |
+| SEC-12 / ADM-15 | `*_file[]` inputs get a message, not a fatal |
+| SEC-13 | A future-dated reset flag stays shut (5 minutes of skew allowed) |
+| SEC-14 | Passwords are capped at bcrypt's 72 bytes |
+| SEC-16 | The admin CSP gets `form-action 'self'` |
+
+**A2, admin logic** (`_harness/lowsA2-admin.js`, 4/28 → 28/28):
+
+| ID | Fix |
+|---|---|
+| ADM-5 | SKUs that differ only in case or punctuation are refused |
+| ADM-13 | Logo URL, founded year, opens/closes, open days and dial number are validated |
+| NEW-N1-15 | A blank dial number is derived from the phone, on save and on the site |
+| NEW-N1-16 | A list field holding a string no longer kills Business Details or the site |
+| ADM-14 | Deleting or renaming a product an Industries card links to warns |
+| NEW-N2-3 | The PDF rename is rolled back when the save fails |
+| NEW-N2-4 | Colour inputs never show or save black for a non-`#rrggbb` value |
+| NEW-N2-8 | The "new" badge ignores blocked submissions |
+| NEW-N2-9 | A log rotation is detected by the log's head |
+| NEW-N2-11 | Activity Log reads backwards across the archives, and its header tells the truth |
+| NEW-N2-12 | Backup names never go backwards in time |
+| NEW-N2-13 | "0" is a value |
+| NEW-V1-1 | The PHP-tag scan reads the whole image |
+| NEW-V2-1 | `data/` ships exactly as the admin writes it, so the first unchanged save is a no-op (was 48 backups for 42 product saves). This also moves ADM-1's 6 product URLs to their final ids before launch instead of on the owner's first save. |
+
+- **ADM-6** (a concurrent rename/delete) is covered by SEC-5's catalog lock
+  (load → save under one flock). It is not separately tested.
+
+**B, `contact.php`** (`_harness/lowsB-contact.js`, 2/9 → 9/9): PUB-5 RFC 2047
+subjects and From name; NEW-V3-2 CTE 8bit; PUB-8 blank address parts; PUB-9
+no-JS page uses the owner's success text; NEW-N2-10 a torn line no longer eats
+the next lead or clears its marker; PUB-13 per-address and per-recipient
+limiter locks.
+- The PUB-13 race itself did not reproduce outside Apache prefork, so the
+  lock is asserted, not the race.
+
+**C, public site** (`_harness/lowsC-public.js`, 1/21 → 21/21): PUB-4, PUB-6,
+PUB-7, PUB-12, NEW-N1-1, N1-2, N1-3, N1-8 to N1-14, V1-2 and V3-3. PUB-6,
+NEW-N1-1 and V1-2 are fixed at one chokepoint, `normalizeProductRow()`.
+
+**Harness changes, no assertion changed:**
+- `nodupbackups`:
+  - Its step 0 now builds the pre-V2-1 file it describes, because the shipped
+    file no longer lacks the two social keys.
+  - Its fax selector was `contact[fax]`, which never existed. It had fallen
+    back to the logo field, which ADM-13 now validates.
+- `plan10-dashboard` and `plan10-header` baselines: the 6 renamed product ids
+  were re-keyed. Keys only; every measured value is unchanged.
+
+**Not done, and why:**
+- **C2:** NEW-N1-4, N1-5 and N1-6 (ink on custom palettes). They need
+  per-element contrast measurement across palettes. The shipped palette is
+  unaffected.
+- **Batches D, E and F** (admin JS, `.htaccess`, docs) are next.
+- **Escalated, not engineering:**
+  - ADM-8: hardcoded public claims with no admin screen.
+  - NEW-V2-3: the Product JSON-LD `manufacturer`/`brand` is IPC on all 42
+    products.
+  - DEP-5: the ISO decision (already open).
+
+**Self-corrections this round:**
+- A regex edit put `'strlen'` inside `array_values()` at `edit.php:54` and
+  `:58`, which would throw on PHP 8. It was caught by re-reading the diff
+  before any test ran. **Rule: after a regex edit to PHP, read the changed
+  lines; lint does not catch argument-count errors.**
+- My first N2-9 head hash read 256 bytes of a shorter log, so an ordinary
+  append read as a rotation. The test caught it; the hash length is now
+  stored with the mark.
+- These test drafts passed on unfixed code and were fixed before counting:
+  - SEC-13: the signed-in cookie redirected before the reset decision.
+  - PUB-4 and N1-3: the empty-state row echoes the query.
+  - V1-2: it shared the crashing fixture.
+  - PUB-7: I read its example backwards; the SKU is the hyphenated form.
+- **Sweep8 was contaminated:** three suites rebuild from source, and I was
+  editing B and C source while it ran. It was stopped. The rule is now in
+  `CLAUDE.md` and `_harness/README.md`. The clean sweep is below.
+
+**Regression for §1af:** sweep9 on `b83d1ad` (clean), 94/101 suites.
+- Two reds are the expected ones: `brandtext` 38/49 and `plan8-polish` 16/17.
+- Five reds were harness assumptions broken by these fixes, all fixed with
+  no assertion changed:
+  - `contactflow` and `plan3-autoreply` read the Subject header raw
+    (PUB-5 now RFC 2047-encodes it).
+  - `invariants-selftest`: its INV7 mutant targeted the old text.
+  - `plan9-firstsave` and `plan9-meta` assumed the pre-V2-1 data.
+- One red was mine: PUB-13's lock files shared the `ipc_ar_` prefix, so
+  `plan3-autoreply` counted them as cap keys. They are now `ipc_lk_*` and
+  are pruned like the rest.
+- **After the fixes:**
+
+  | Suite | Result |
+  |---|---|
+  | `contactflow` | 85/85 |
+  | `plan3-autoreply` | 22/22 |
+  | `invariants-selftest` | 15/15 |
+  | `plan9-firstsave` | 8/8 |
+  | `plan9-meta` | 18/18 |
+  | `lowsB-contact` | 9/9 |
+  | `audit5-high` | 30/30 |
+  | `audit7-lead` | 23/23 |
+  | `plan3-contact` | 51/51 |
+  | `plan8-lead` | 16/16 |
+
+- The last four were re-run because they also touch the limiter files.

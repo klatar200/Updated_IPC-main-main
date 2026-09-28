@@ -8,7 +8,17 @@ import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 
 function pathnameToPage(pathname) {
   const seg = pathname.replace(/^\//, "").split("/")[0];
+  // PUB-12 (audit 2026-09-27) — /index.html is the homepage by another name
+  // (Apache serves the file directly, and old bookmarks and some crawlers ask
+  // for it). It rendered "Page not found" with noindex.
+  if (seg === "index.html") return null;
   return seg || null; // null → home
+}
+
+// PUB-12 — and show the canonical address in the bar, so a copied link and
+// the canonical tag agree. replaceState: no history entry, nothing to go Back to.
+if (typeof window !== "undefined" && window.location && window.location.pathname === "/index.html") {
+  window.history.replaceState(window.history.state, "", "/" + window.location.search + window.location.hash);
 }
 
 /**
@@ -333,6 +343,16 @@ class ErrorBoundary extends Component {
   static getDerivedStateFromError() {
     return { caught: true };
   }
+  // NEW-N1-1 (audit 2026-09-27) — `key={page}` (invariant 7) resets on a
+  // change of ROUTE only. One bad product left /products on "Something went
+  // wrong" through Back, Forward and "Browse All" — all the same route. A
+  // change of `resetKey` (the product id) clears it too, without remounting
+  // the page on every other search-param change.
+  componentDidUpdate(prevProps) {
+    if (this.state.caught && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ caught: false });
+    }
+  }
   render() {
     const site = this.context || SITE_DEFAULTS;
     if (this.state.caught) {
@@ -412,6 +432,20 @@ function Navbar({ products = [], catalogFailed = false }) {
   const [page] = useSearchParam("page");
   const [menuOpen, setMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  // NEW-N1-8 (audit 2026-09-27) — a mouse user's hover opens the menu and the
+  // click that follows a moment later is the SAME intent ("open it"), but the
+  // toggle read it as "close". A click within this window of the hover that
+  // opened this menu keeps it open; after it, a click toggles as before.
+  const hoverOpened = useRef({ key: null, at: 0 });
+  const hoverOpen = (key) => {
+    if (openDropdown !== key) hoverOpened.current = { key, at: Date.now() };
+    setOpenDropdown(key);
+  };
+  const clickToggle = (key, open) => {
+    const h = hoverOpened.current;
+    if (open && h.key === key && Date.now() - h.at < 600) return;
+    setOpenDropdown(open ? null : key);
+  };
   const [mobileOpen, setMobileOpen] = useState(null);
 
   const currentPage = page || "home";
@@ -743,8 +777,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                   type="button"
                   aria-haspopup="true"
                   aria-expanded={open}
-                  onMouseEnter={() => setOpenDropdown("products")}
-                  onClick={() => setOpenDropdown(open ? null : "products")}
+                  onMouseEnter={() => hoverOpen("products")}
+                  onClick={() => clickToggle("products", open)}
                   onKeyDown={(e) => {
                     // Mouse-only bindings locked keyboard users out of the
                     // ENTIRE category list and the Browse All / Product Index
@@ -1069,8 +1103,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                   type="button"
                   aria-haspopup="true"
                   aria-expanded={open}
-                  onMouseEnter={() => setOpenDropdown("company")}
-                  onClick={() => setOpenDropdown(open ? null : "company")}
+                  onMouseEnter={() => hoverOpen("company")}
+                  onClick={() => clickToggle("company", open)}
                   onKeyDown={(e) => {
                     // Mouse-only bindings locked keyboard users out of the
                     // ENTIRE category list and the Browse All / Product Index
@@ -2942,7 +2976,9 @@ function ApprovalFilter({ products, selected, onToggle, onClear }) {
 
 function DatasheetsPage({ products }) {
   const [q, setQ] = useState("");
-  const { copy } = useContent();
+  const content = useContent();
+  const { copy } = content;
+  const famOrder = familyOrder(content);
   const c = copy.datasheetsHeader;
 
   const groups = useMemo(() => {
@@ -2959,8 +2995,11 @@ function DatasheetsPage({ products }) {
     for (const k of Object.keys(g)) {
       g[k].sort((a, b) => String(a.sku || "").localeCompare(String(b.sku || "")));
     }
-    return Object.entries(g).sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
-  }, [products, q]);
+    // NEW-N1-9 (audit 2026-09-27) — groups in the owner's Product Families
+    // order (familyOrder), like the navbar and /products; they sorted by size.
+    const rank = (f) => { const i = famOrder.indexOf(f); return i < 0 ? famOrder.length : i; };
+    return Object.entries(g).sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]));
+  }, [products, q, famOrder]);
 
   const total = useMemo(() => products.filter((p) => p.pdfUrl).length, [products]);
 
@@ -3154,7 +3193,7 @@ function HomePage() {
     const idx = (industryDetail || []).findIndex(
       (ind) => String(ind.name || "").trim().toLowerCase() === want
     );
-    return idx === -1 ? undefined : industryAnchor(industryDetail[idx], idx);
+    return idx === -1 ? undefined : industryAnchor(industryDetail, idx);
   };
   return (
     <div>
@@ -5305,10 +5344,10 @@ function ContactPage() {
               proxy or server log along the way.
               contact.php reads $_POST directly and these field names already
               match it, so the lead is captured by the same code path the fetch
-              uses. It answers with JSON rather than a styled page — the
-              enquiry arriving matters more than what the fallback looks like,
-              and changing the response contract means touching a file that
-              deliberately does not HTML-escape (invariant 10).
+              uses. Since A-7.2 it answers a browser (Accept: text/html) with
+              a plain confirmation page escaped by its own hesc(), and the
+              fetch path with JSON; invariant 10's s() is untouched. (This said
+              "JSON only" until 2026-09-28 — NEW-V3-3.)
               This comment lives HERE, not after the `&&`: that position is a
               JS expression, where {\/* *\/} is not a comment and breaks the
               build. */}
@@ -6339,6 +6378,49 @@ const PRODUCTS_FETCH_TIMEOUT_MS = 12000;
 const PRODUCTS_CACHE_TTL_MS = 60000;
 let _productsCacheAt = 0;
 
+/**
+ * PUB-6 / NEW-N1-1 (audit 2026-09-27) — every field the site treats as text IS
+ * text, and every list IS a list, before any component sees a row.
+ *
+ * The admin always writes the right types, so the trigger is a hand edit or a
+ * restored older file — but the cost was out of proportion: a `name` or `sku`
+ * that was an object or a number threw in PageMeta and the navbar, which sit
+ * OUTSIDE the ErrorBoundary, so the whole site went blank (phone number
+ * included), and a `name` object crashed /products itself on Back, Forward
+ * and "Browse All". Numbers become strings; anything else that is not the
+ * right shape is dropped, and the row keeps rendering without it.
+ */
+const PRODUCT_TEXT_FIELDS = ["id", "sku", "name", "caption", "partType", "photoUrl", "pdfUrl", "pdfLabel",
+  "operatingTemp", "specificationsSummary"];
+const PRODUCT_LIST_FIELDS = ["description", "badges", "approvals"];
+function normalizeProductRow(p) {
+  const out = { ...p };
+  for (const k of PRODUCT_TEXT_FIELDS) {
+    const v = out[k];
+    if (v == null) continue;
+    if (typeof v === "number") out[k] = String(v);
+    else if (typeof v !== "string") delete out[k];
+  }
+  for (const k of PRODUCT_LIST_FIELDS) {
+    const v = out[k];
+    if (v == null) continue;
+    if (typeof v === "string") out[k] = v.trim() ? [v] : [];
+    else if (!Array.isArray(v)) delete out[k];
+    else if (k !== "approvals") out[k] = v.filter((x) => typeof x === "string" || typeof x === "number").map(String);
+  }
+  if (out.additionalPdfs != null && !Array.isArray(out.additionalPdfs)) delete out.additionalPdfs;
+  // NEW-V1-2 (audit 2026-09-27) — a data-sheet link the render guard refuses
+  // (isSafeLinkUrl: `//evil…`, `javascript:` …) used to leave a visible,
+  // button-styled "Datasheet" that did nothing and was out of the tab order.
+  // Drop it here instead, once, so every render site sees "no data sheet" and
+  // offers "Request Datasheet" — the same as a product that never had one.
+  if (out.pdfUrl && !isSafeLinkUrl(out.pdfUrl)) delete out.pdfUrl;
+  if (Array.isArray(out.additionalPdfs)) {
+    out.additionalPdfs = out.additionalPdfs.filter((x) => x && typeof x === "object" && !Array.isArray(x) && isSafeLinkUrl(x.url));
+  }
+  return out;
+}
+
 function fetchProductsCached() {
   if (_productsCache && Date.now() - _productsCacheAt < PRODUCTS_CACHE_TTL_MS) {
     return Promise.resolve(_productsCache);
@@ -6374,7 +6456,10 @@ function fetchProductsCached() {
       // the providers and chrome above the LOADING gate, which is a different
       // thing from being inside the boundary. Filtering here fixes it for every
       // consumer at once rather than guarding each one.
-      const arr = raw.filter((p) => p && typeof p === "object" && !Array.isArray(p));
+      const arr = raw
+        .filter((p) => p && typeof p === "object" && !Array.isArray(p))
+        .map(normalizeProductRow)
+        .filter((p) => p.sku || p.id);
       if (timer) clearTimeout(timer);
       _productsCache = arr;
       _productsCacheAt = Date.now();
@@ -6571,7 +6656,20 @@ function mergeSiteInfo(data) {
       const overrides = {};
       if (v && typeof v === "object" && !Array.isArray(v)) {
         for (const key of Object.keys(v)) {
-          const val = v[key];
+          let val = v[key];
+          // NEW-N1-16 (audit 2026-09-27) — a value of the WRONG TYPE is not an
+          // override. A string `certifications.other` rendered as "U · L" (its
+          // letters spread as a list) and a string `about.paragraphs` crashed
+          // /about. Numbers are accepted where text belongs (a year).
+          const dk = d[key];
+          if (Array.isArray(dk) && !Array.isArray(val)) continue;
+          // Every list in site-info is a list of TEXT (days, certifications,
+          // paragraphs); an object in one rendered as "[object Object]".
+          if (Array.isArray(dk)) val = val.filter((x) => typeof x === "string" || typeof x === "number").map(String);
+          if (typeof dk === "string" && typeof val !== "string") {
+            if (typeof val === "number") val = String(val);
+            else continue;
+          }
           // Keep an explicitly-emptied ARRAY (that is a real deletion), but
           // drop null/undefined/"" scalars so they fall back to the default —
           // unless this field is one the owner is allowed to clear.
@@ -6599,6 +6697,17 @@ function mergeSiteInfo(data) {
   // AFTER the merge so it reads the value the owner just saved, and only to the
   // two prose branches — `certifications` is the source and rewriting it from
   // itself would be circular. See `withIsoLabel`.
+  // NEW-N1-15 (audit 2026-09-27) — a blank dial number falls back to the
+  // SHIPPED one, so an owner who changed only the display phone had every
+  // tel: link and the JSON-LD still dialling the old number. When the display
+  // phone has moved and the dial number has not, derive it from the display
+  // phone (North American formats); settings.php now does the same on save.
+  const c0 = out.contact || {};
+  if (c0.phone && c0.phone !== SITE_DEFAULTS.contact.phone && c0.phoneDial === SITE_DEFAULTS.contact.phoneDial) {
+    const digits = String(c0.phone).replace(/\D/g, "");
+    const dial = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits[0] === "1" ? `+${digits}` : "";
+    if (dial) out.contact = { ...c0, phoneDial: dial };
+  }
   const isoSource = out.certifications && out.certifications.iso;
   out.about = withIsoLabel(out.about, isoSource);
   out.company = withIsoLabel(out.company, isoSource);
@@ -8969,7 +9078,9 @@ function ProductDetail({ product, allProducts }) {
       "@context": "https://schema.org",
       "@type": "Product",
       "name": product.name,
-      "sku": product.partNumber || product.id,
+      // PUB-7 (audit 2026-09-27) — `partNumber` is in 0 records, so this fell
+      // back to `id`, which differs from the displayed SKU on 6 products.
+      "sku": product.sku || product.id,
       // schema.org/description must be Text. All 42 products store description
       // as an ARRAY of paragraphs, so this emitted an array and Google dropped
       // the whole node. (DEPLOY_READINESS_v2 4.2)
@@ -10403,7 +10514,11 @@ const DASHBOARD_COLS = [
  * the seven unrated products are not the coolest parts IPC sells.
  */
 function tempCeilingC(raw) {
-  const s = String(raw || "");
+  // NEW-N1-14 (audit 2026-09-27) — "1,100°F" was read as 100°F (the comma cut
+  // the number) and a Unicode minus as no sign at all, so VT-1100 set to
+  // "250°F – 1,100°F" sorted 21st of 42 instead of 2nd. Thousands separators
+  // go, U+2212 becomes "-"; the en dash of a RANGE is left alone.
+  const s = String(raw || "").replace(/(\d),(?=\d{3}(?!\d))/g, "$1").replace(/\u2212/g, "-");
   let max = null;
   for (const m of s.matchAll(/([+-]?\d+(?:\.\d+)?)\s*°?\s*([CF])\b/gi)) {
     const n = parseFloat(m[1]);
@@ -10427,6 +10542,7 @@ const DASHBOARD_COL_COUNT = DASHBOARD_COLS.length + 1;
  * Accepts the live products array as a prop; derives table rows dynamically.
  */
 function DashboardPage({ products }) {
+  const site = useSiteInfo();
   const [search, setSearch] = useState("");
   const [approvals, setApprovals] = useState([]);
   const [sortCol, setSortCol] = useState("partId");
@@ -10439,7 +10555,16 @@ function DashboardPage({ products }) {
   // Re-run whenever familyParam changes so navbar category clicks work on subsequent navigations
   useEffect(() => {
     if (familyParam) {
-      setActiveFamily(familyParam);
+      // NEW-N1-11 — only a family that exists. An unknown ?family= filtered
+      // the table to nothing while the select, which has no such option,
+      // showed "All" (and choosing All then changed nothing). Matched without
+      // regard to case; anything else shows the whole index.
+      const known = products.map((p) => p.partType || "Other");
+      const hit = known.find((f) => f.toLowerCase() === String(familyParam).toLowerCase());
+      setActiveFamily(hit || "All");
+      // NEW-N1-12 — the same reset the page's own pills do: a family picked
+      // from the navbar kept the previous search and showed nothing.
+      setSearch("");
       // REPLACE, never push: this cleanup runs on every render where the param
       // is present, so pushing made every Back press re-enter it and push
       // again — the visitor could never leave the Product Index.
@@ -10476,27 +10601,38 @@ function DashboardPage({ products }) {
   ); // only recompute when the catalog changes
 
   // Build unique family list — now correctly reads tableRows (already defined above)
+  // NEW-N1-9 (audit 2026-09-27) — in the owner's Product Families order, the
+  // same one the navbar and /products use (familyOrder). These pills sorted by
+  // count, so reordering the families in Page Content moved every list but
+  // this one. A family the order does not name still gets a pill, after them.
+  const famOrder = familyOrder(useContent());
   const families = useMemo(() => {
     const counts = {};
     for (const row of tableRows) {
       const f = row.partType || "Other";
       counts[f] = (counts[f] || 0) + 1;
     }
+    const rank = (f) => { const i = famOrder.indexOf(f); return i < 0 ? famOrder.length : i; };
     return [
       { label: "All", count: tableRows.length },
       ...Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
+        .sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]))
         .map(([label, count]) => ({ label, count })),
     ];
-  }, [tableRows]); // tableRows is already memoized on products — no double-dependency
+  }, [tableRows, famOrder]);
 
   const filtered = tableRows
     .filter((row) => {
       if (activeFamily !== "All" && row.partType !== activeFamily) return false;
       // AND, not OR: selecting UL and MIL-SPEC means a product must hold both.
       if (approvals.length && !approvals.every((a) => row.approvals.includes(a))) return false;
-      const q = search.toLowerCase();
+      // NEW-N1-3 — trimmed, as /products does: a pasted "ip35ky " found nothing.
+      const q = search.trim().toLowerCase();
       return (
+        // PUB-4 (audit 2026-09-27) — the NAME is column 1 and was not
+        // searched: 28 of 42 products could not be found by their own name
+        // ("VT-1100 Heat Gun" found nothing).
+        row.name.toLowerCase().includes(q) ||
         row.partId.toLowerCase().includes(q) ||
         row.partType.toLowerCase().includes(q) ||
         row.descFull.toLowerCase().includes(q) ||
@@ -11186,13 +11322,19 @@ function DashboardPage({ products }) {
                               miss actually happens. */}
                           {tableRows.length === 0
                             ? "Add your first product from the Products page in the dashboard."
-                            : `No results${search ? ` for "${search}"` : ""}${activeFamily !== "All" ? ` in ${activeFamily}` : ""}. This searches part IDs, types and descriptions — sizes are listed on each product page. Try a different term, clear the category filter, or call 630.771.0700.`}
+                            : `No results${search ? ` for "${search}"` : ""}${activeFamily !== "All" ? ` in ${activeFamily}` : ""}${approvals.length ? ` with ${approvals.join(" + ")}` : ""}. This searches part IDs, types and descriptions — sizes are listed on each product page. Try a different term, clear the ${approvals.length ? "filters" : "category filter"}, or call ${site.contact.phone}.`}
                         </div>
-                        {(search || activeFamily !== "All") && (
+                        {/* NEW-N1-2 (audit 2026-09-27) — "Clear all filters" left
+                            the approval chips on, so a list emptied by the
+                            chips stayed empty after the one button that
+                            promised to clear everything; and the message never
+                            said the chips were part of the reason. */}
+                        {(search || activeFamily !== "All" || approvals.length > 0) && (
                           <button
                             onClick={() => {
                               setSearch("");
                               setActiveFamily("All");
+                              setApprovals([]);
                             }}
                             style={{
                               fontSize: 12,
@@ -11636,8 +11778,20 @@ const INDUSTRY_DETAIL = [
  * 4.27 records. `iconKey` is a short stable key chosen from a fixed set, so it
  * survives a rename.
  */
-const industryAnchor = (ind, i) =>
+//
+// NEW-N1-13 (audit 2026-09-27) — but the admin offers only five icon keys and
+// the shipped data uses all five, so a sixth industry DUPLICATED an id and the
+// homepage card landed on the first section with that icon. Unique now: the
+// first section with a key keeps `industry-<key>` (every existing link still
+// works), a later one with the same key gets `industry-<key>-2`, `-3`, …
+const industryAnchorBase = (ind, i) =>
   `industry-${String((ind && ind.iconKey) || i).replace(/[^a-z0-9-]/gi, "").toLowerCase()}`;
+const industryAnchor = (list, i) => {
+  const base = industryAnchorBase(list[i], i);
+  let seen = 0;
+  for (let j = 0; j < i; j++) if (industryAnchorBase(list[j], j) === base) seen++;
+  return seen ? `${base}-${seen + 1}` : base;
+};
 
 function IndustriesPage() {
   const c = useContent().copy.industriesHeader;
@@ -11678,7 +11832,7 @@ function IndustriesPage() {
             // C30 — the deep-link target. /industries had zero ids in its
             // content, so all six homepage market cards dropped the visitor at
             // the top of a 3,479px page with their industry somewhere below.
-            id={industryAnchor(ind, i)}
+            id={industryAnchor(industries, i)}
             className="bg-white rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
             style={{
               // scroll-margin, or the sticky navbar covers the heading the
@@ -12387,6 +12541,16 @@ function ServicesPage() {
                 >
                   {svc.desc}
                 </p>
+                {/* NEW-N1-10 (audit 2026-09-27) — when the services' lead
+                    times differ, the banner says "Each service lists its own
+                    lead time below", and the cards never did. They do now, in
+                    exactly that case: with one shared value the banner already
+                    says it and six repeats would be noise. */}
+                {leadTimeSummary.note && asText(svc.leadTime).trim() ? (
+                  <p className="text-xs mt-2 font-semibold" style={{ color: "#141414" }}>
+                    Lead time: {asText(svc.leadTime).trim()}
+                  </p>
+                ) : null}
               </div>
 
               {/* Details */}
@@ -13557,7 +13721,7 @@ function App() {
               just asked to skip. That is the failure mode that makes skip
               links look implemented and not work. */}
           <main className="flex-1" id="ipc-main" tabIndex={-1} style={{ outline: "none" }}>
-            <ErrorBoundary key={page}>
+            <ErrorBoundary key={page} resetKey={productParam || ""}>
               {needsCatalog && loading ? (
                 <CatalogSkeleton />
               ) : needsCatalog && error ? (

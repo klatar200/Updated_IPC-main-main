@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // error message. Escape at the render boundary only.
     // (AUDIT_v3_FINDINGS NB18)
     elseif (find_product($products, $sku) !== -1) { $errors[] = 'A product with SKU "' . $sku . '" already exists.'; }
+    elseif (($twin = find_colliding_sku($products, $sku)) !== '') { $errors[] = sku_collision_message($sku, $twin); } // ADM-5
 
     if (post_str('name') === '')     { $errors[] = 'Product name is required.'; }
     if (post_str('partType') === '') { $errors[] = 'Part type is required.'; }
@@ -85,16 +86,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'approvals' => is_array($_POST['approvals'] ?? null)
                 ? array_values(array_intersect(IPC_APPROVALS, $_POST['approvals']))
                 : [],
-            'badges'  => array_values(array_filter(array_map('trim', explode("\n", post_str('badges'))))),
-            'description' => array_values(array_filter(array_map('trim', explode("\n", post_str('description'))))),
+            'badges'  => array_values(array_filter(array_map('trim', explode("\n", post_str('badges'))), 'strlen')),
+            'description' => array_values(array_filter(array_map('trim', explode("\n", post_str('description'))), 'strlen')),
             'specTable1' => ['title' => post_str('specTable1_title', 'Specifications:'), 'rows' => $st1Rows],
             'specTable2' => $st2,
         ];
         $products[] = $new;
         if (save_products($products)) {
             audit_log('add', $sku, 'New product added'); // #6
-            header('Location: index.php?msg=' . urlencode($sku . ' added successfully') . '&type=success');
-            exit;
+            flash_redirect($sku . ' added successfully', 'success');
         }
         $errors[] = 'Failed to save. Check file permissions on products-all.json.';
     }

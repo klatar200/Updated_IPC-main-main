@@ -721,7 +721,49 @@
             "text": "Any special specs or certifications"
         }
     ],
+    "productFamilies": [
+        {
+            "name": "Polyolefin Heat Shrink"
+        },
+        {
+            "name": "PVDF Heat Shrink"
+        },
+        {
+            "name": "Dual-Wall Heat Shrink"
+        },
+        {
+            "name": "Medical Grade Heat Shrink"
+        },
+        {
+            "name": "Elastomeric Heat Shrink"
+        },
+        {
+            "name": "Fiberglass Sleeving"
+        },
+        {
+            "name": "Expandable Sleeving"
+        },
+        {
+            "name": "End Cap"
+        },
+        {
+            "name": "Tape"
+        },
+        {
+            "name": "Adhesive"
+        },
+        {
+            "name": "Accessory"
+        }
+    ],
     "copy": {
+        "siteImages": {
+            "heroPhoto": "images/site/Marker-Sample-2.jpg",
+            "bandTeamPhoto": "images/site/staff.jpg",
+            "bandBuildingPhoto": "images/site/IPC-Building.jpg",
+            "aboutPhoto": "images/site/IPC-Building.jpg",
+            "servicesPhoto": "images/site/Marker-Sample-2.jpg"
+        },
         "hero": {
             "badge": "Bolingbrook, IL — Made in USA Since 1974",
             "headlineLine1": "25 Million Feet in Stock.",
@@ -763,6 +805,11 @@
             "teamTitle": "Our Team & Capabilities",
             "ctaTitle": "Ready to place an order or request a quote?"
         },
+        "datasheetsHeader": {
+            "eyebrow": "",
+            "title": "",
+            "intro": ""
+        },
         "faqHeader": {
             "eyebrow": "Resources",
             "title": "Frequently Asked Questions",
@@ -788,6 +835,7 @@
             "allProducts": "All Products",
             "browseAll": "Browse All Products",
             "productIndex": "Product Index",
+            "datasheets": "",
             "browseByCategory": "Browse by Category"
         },
         "footer": {
@@ -838,9 +886,14 @@
             "emailPlaceholder": "you@company.com",
             "phoneLabel": "Phone",
             "phonePlaceholder": "Optional",
+            "requiredLegend": "",
+            "privacyNote": "",
             "companyLabel": "Company",
             "companyPlaceholder": "Your organization",
-            "tipsTitle": "For fastest response, include:"
+            "tipsTitle": "For fastest response, include:",
+            "autoReplyRfqPromise": "",
+            "autoReplyMsgPromise": "",
+            "autoReplyNotice": ""
         }
     }
 }

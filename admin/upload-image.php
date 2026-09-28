@@ -25,8 +25,7 @@ $IMG_TYPES = [
 ];
 
 if ($idx === -1) {
-    header('Location: index.php?msg=Product+not+found&type=error');
-    exit;
+    flash_redirect('Product not found', 'error');
 }
 
 $product      = $products[$idx];
@@ -62,6 +61,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     // Branch B — upload / replace.
+    // SEC-12 — `image_file[]` makes every key an array; say so instead of a TypeError.
+    elseif (!upload_field_is_single('image_file')) {
+        $errors[] = 'Please choose one image file at a time.';
+    }
     elseif (!isset($_FILES['image_file']) || $_FILES['image_file']['error'] !== UPLOAD_ERR_OK) {
         $errors[] = upload_error_message($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'image');
     } else {
@@ -116,7 +119,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         //      half of a polyglot, and no photograph the owner uploads has one;
         //   2. where gd exists, the image must actually DECODE, which a header
         //      with no image data cannot do. gd is not assumed (see A-9.P2-2).
-        $raw        = (string)@file_get_contents($file['tmp_name'], false, null, 0, 2 * 1024 * 1024);
+        // NEW-V1-1 (audit 2026-09-27) — the WHOLE file, not its first 2 MB: a
+        // valid PNG with the tag at byte 3,005,931 was accepted, and the decode
+        // below reads every byte anyway. Anything over the 8 MB limit is
+        // refused further down, so reading one byte past it is enough.
+        $raw        = (string)@file_get_contents($file['tmp_name'], false, null, 0, 8 * 1024 * 1024 + 1);
         $hasPhpTag  = (stripos($raw, '<?php') !== false || stripos($raw, '<?=') !== false);
 
         // SEC-2 — every cheap check runs BEFORE the decode, and the pixel

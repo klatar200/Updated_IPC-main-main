@@ -9,31 +9,41 @@ $entries = [];
 $truncated = false;
 $MAX_LINES = 500; // most recent N — bigger than this and we paginate later
 
-// Bounded tail read, mirroring inq_tail_lines() in inquiries.php. file() loads
-// every line at once, and this file now grows on every failed sign-in as well
-// as on every save, so the memory ceiling that took the Inquiries page down is
-// reachable here too. 4MB is far more than $MAX_LINES of ~260-byte entries and
-// leaves room for the filter below to search back through history.
-// (audit-runs/audit5.md A-5.4)
-define('AUDIT_TAIL_BYTES', 4 * 1024 * 1024);
-
-$lines = [];
-if (file_exists($logPath)) {
-    $fh = @fopen($logPath, 'rb');
-    if ($fh) {
-        $size  = (int)@filesize($logPath);
-        $start = max(0, $size - AUDIT_TAIL_BYTES);
-        if ($start > 0) fseek($fh, $start);
-        $buf = (string)stream_get_contents($fh);
-        fclose($fh);
-        if ($start > 0) {
-            $nl  = strpos($buf, "\n");        // drop the half-line we landed in
-            $buf = $nl === false ? '' : substr($buf, $nl + 1);
-            $truncated = true;
+// NEW-N2-11 (audit 2026-09-27) — read BACKWARDS, newest first, across the
+// live log and then its rotated archives, until $MAX_LINES entries match or a
+// hard byte budget runs out. The previous reader loaded only the last 4 MB
+// (A-5.4's memory bound), so a filter could not reach anything older, the
+// archives were never read, and the header said "Showing the most recent 500"
+// while showing none. Memory stays bounded: one 1 MB chunk at a time.
+define('AUDIT_SCAN_BUDGET', 64 * 1024 * 1024);
+$logFiles = [$logPath];
+$archives = glob(__DIR__ . '/admin-log-*.jsonl') ?: [];
+rsort($archives, SORT_STRING);                        // names carry the date: newest first
+$logFiles = array_merge($logFiles, $archives);
+$scanned = 0;
+$budgetHit = false;
+/** Yields lines of $path, last line first. */
+$linesBackward = static function (string $path) use (&$scanned, &$budgetHit) {
+    $fh = @fopen($path, 'rb');
+    if (!$fh) return;
+    $pos = (int)@filesize($path);
+    $carry = '';
+    while ($pos > 0) {
+        if ($scanned >= AUDIT_SCAN_BUDGET) { $budgetHit = true; break; }
+        $len = (int)min(1024 * 1024, $pos);
+        $pos -= $len;
+        fseek($fh, $pos);
+        $chunk = (string)fread($fh, $len);
+        $scanned += $len;
+        $parts = preg_split('/\r\n|\n|\r/', $chunk . $carry);
+        $carry = $pos > 0 ? array_shift($parts) : '';   // may be a partial line
+        for ($i = count($parts) - 1; $i >= 0; $i--) {
+            if ($parts[$i] !== '') yield $parts[$i];
         }
-        $lines = preg_split('/\r\n|\n|\r/', $buf, -1, PREG_SPLIT_NO_EMPTY) ?: [];
     }
-}
+    if ($carry !== '' && !$budgetHit) yield $carry;
+    fclose($fh);
+};
 
 // Optional filter by SKU or action via querystring.
 $filterSku    = as_str($_GET['sku'] ?? null);   // A-5.7 — trim(array) fatals on PHP 8
@@ -50,18 +60,18 @@ $filterAction = as_str($_GET['action'] ?? null);
 // "edit" from the filter, and is told "No entries match" — while his edits sit
 // in the file, just outside the slice. (audit-runs/audit5.md A-5.4)
 $filtering = ($filterSku !== '' || $filterAction !== '');
-foreach (array_reverse($lines) as $line) {          // newest first
-    $row = json_decode($line, true);
-    if (!is_array($row)) continue;
-    if ($filtering) {
-        if ($filterSku !== '' && stripos($row['sku'] ?? '', $filterSku) === false) continue;
-        if ($filterAction !== '' && ($row['action'] ?? '') !== $filterAction) continue;
+foreach ($logFiles as $file) {
+    foreach ($linesBackward($file) as $line) {          // newest first
+        $row = json_decode($line, true);
+        if (!is_array($row)) continue;
+        if ($filtering) {
+            if ($filterSku !== '' && stripos((string)($row['sku'] ?? ''), $filterSku) === false) continue;
+            if ($filterAction !== '' && ($row['action'] ?? '') !== $filterAction) continue;
+        }
+        $entries[] = $row;
+        if (count($entries) >= $MAX_LINES) { $truncated = true; break 2; }
     }
-    $entries[] = $row;
-    if (count($entries) >= $MAX_LINES) {
-        $truncated = true;
-        break;
-    }
+    if ($budgetHit) break;
 }
 
 // Action badge colors
@@ -124,7 +134,7 @@ function action_color(string $a): array {
   <div class="page-header">
     <div>
       <h1>Audit Log</h1>
-      <p class="sub">Every change made through the admin — newest first.<?= $truncated ? ' Showing the most recent ' . $MAX_LINES . ' entries.' : '' ?></p>
+      <p class="sub">Every change made through the admin — newest first.<?= $truncated ? ' Showing the most recent ' . $MAX_LINES . ($filtering ? ' matching' : '') . ' entries.' : '' ?><?= $budgetHit ? ' Older history was not searched (over ' . (int)(AUDIT_SCAN_BUDGET / 1048576) . ' MB); the archived admin-log-*.jsonl files in the admin folder hold it.' : '' ?></p>
     </div>
   </div>
 

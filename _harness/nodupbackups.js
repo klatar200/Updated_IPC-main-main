@@ -77,6 +77,16 @@ const ok = (c, m) => { c ? pass++ : fail++; console.log(`  ${c ? 'ok  ' : 'FAIL'
   //
   // Worth knowing for the live site too: the owner's first Save on Business
   // Details will still write one backup. Every one after it is free.
+  // FIXTURE, 2026-09-28 (audit-2026-09-27 NEW-V2-1): data/site-info.json now
+  // SHIPS with those two keys, so the shipped file is no longer the file this
+  // step describes. Build that file — the pre-V2-1 shape, which is also what a
+  // live site deployed before that fix holds — so the assertion below keeps
+  // testing exactly what it says. Restored from pristine/ at the end.
+  {
+    const si = JSON.parse(fs.readFileSync(path.join(DATA, 'site-info.json'), 'utf8'));
+    if (si.social) { delete si.social.instagram; delete si.social.tiktok; }
+    fs.writeFileSync(path.join(DATA, 'site-info.json'), JSON.stringify(si, null, 4));
+  }
   await p.goto(BASE + '/admin/settings.php', { waitUntil: 'domcontentloaded' });
   await save();
   ok(/[?&]saved=1/.test(p.url()),
@@ -111,7 +121,10 @@ const ok = (c, m) => { c ? pass++ : fail++; console.log(`  ${c ? 'ok  ' : 'FAIL'
     `still no backups after the second no-op (${backups().length})`);
 
   // ── 4: a real change still backs up ──────────────────────────────────────
-  const field = await p.$('input[name="contact[fax]"]') || await p.$('input[type=text]');
+  // `contact[fax]` never existed (the field is contact_fax), so this fell back
+  // to the FIRST text input — the logo URL, which ADM-13 now validates, so a
+  // phone-number marker there is refused. Aim at the field that was meant.
+  const field = await p.$('input[name="contact_fax"]') || await p.$('input[name="contact[fax]"]') || await p.$('input[type=text]');
   const original = await field.inputValue();
   const marker = '555-0100-' + String(before.length);
   await field.fill(marker);
@@ -122,12 +135,13 @@ const ok = (c, m) => { c ? pass++ : fail++; console.log(`  ${c ? 'ok  ' : 'FAIL'
   ok(/[?&]saved=1/.test(p.url()), 'a real change reports the normal Saved banner');
 
   // put it back (this is itself a real change, so it writes one more backup)
-  const field2 = await p.$('input[name="contact[fax]"]') || await p.$('input[type=text]');
+  const field2 = await p.$('input[name="contact_fax"]') || await p.$('input[name="contact[fax]"]') || await p.$('input[type=text]');
   await field2.fill(original);
   await save();
   ok(backups().length === before.length + 2,
     'restoring the original value wrote its own backup (it is a real change too)');
 
+  fs.copyFileSync(path.join(__dirname, 'pristine', 'site-info.json'), path.join(DATA, 'site-info.json'));
   fs.writeFileSync(path.join(OUT, 'nodupbackups.json'), JSON.stringify({ pass, fail }, null, 2));
   console.log(`\nnodupbackups ${pass}/${pass + fail}`);
   await b.close();
