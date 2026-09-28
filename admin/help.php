@@ -275,14 +275,20 @@ $navActive = 'help';
         <ol class="steps">
           <li>Go to your admin web address (the one your developer gave you — it ends in <code>/admin/</code>).</li>
           <li>Enter your admin password and click <span class="btn btn-primary btn-mock">Sign In →</span>.</li>
-          <li>You'll land on the <strong>Product Catalog</strong> page — that's your home base.</li>
+          <li>You'll land on the <strong>Products</strong> page — that's your home base.</li>
         </ol>
         <div class="callout callout-warning">
           <b>If your password is rejected repeatedly</b>
-          After 5 incorrect attempts in a row, the sign-in page will pause before letting you try again. The wait starts at a few seconds and grows if the wrong password keeps being entered, up to a maximum of <strong>5 minutes</strong> — it never locks you out permanently, and it forgets the failed attempts entirely after 15 quiet minutes. This is a normal security precaution against guessing attacks, not an error. Wait it out and re-enter your password carefully (check that Caps Lock isn't on).
+          <!-- NEW-N3-10 — this said "after 5". login_attempt_gate() counts an
+               attempt on the way in and only refuses once a stored cool-off is
+               in the future, and login_cooloff_until() starts one only when the
+               count passes LOGIN_FREE_ATTEMPTS: so attempts 1-6 are all checked
+               and the 7th is the first refused. Numbers come from the constants
+               so this cannot drift from config.php again. -->
+          After <?= (int)LOGIN_FREE_ATTEMPTS + 1 ?> wrong passwords in a row, the sign-in page asks you to wait <strong><?= (int)LOGIN_COOLOFF_BASE ?> seconds</strong> before it will check another one — even the right one. Each further wrong password doubles the wait, up to a maximum of <strong><?= (int)round(LOGIN_COOLOFF_MAX / 60) ?> minutes</strong>. It never locks you out permanently, and it forgets the failed attempts entirely after <?= (int)round(LOGIN_THROTTLE_WINDOW / 60) ?> quiet minutes. This is a normal security precaution against guessing attacks, not an error. Wait it out and re-enter your password carefully (check that Caps Lock isn't on).
         </div>
         <h3>Signing out</h3>
-        <p>Click <strong>Sign Out</strong> in the top-right corner of any page. Your sign-in stays active until you do this — simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed.</p>
+        <p>Click <strong>Sign Out</strong> in the top-right corner of any page. Your sign-in stays active until you do this (or until the dashboard has gone unused for a long stretch) — simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed. If you are ever signed out in the middle of an edit, see <em>"I was signed out in the middle of editing"</em> in <a href="#faq">Troubleshooting</a> before you press anything.</p>
         <div class="callout callout-tip">
           <b>One password for everyone</b>
           This dashboard uses a single shared admin password rather than individual employee logins. If more than one person updates the catalog, everyone signs in with the same password. Keep that in mind for two things: anyone who has the password can make changes, and the <a href="#auditlog">Audit log</a> can only identify a change by device/location and time, not by which person was typing — see the note in that section.
@@ -317,9 +323,9 @@ $navActive = 'help';
       <section class="help-section" id="dashboard">
         <div class="eyebrow eyebrow-start">Getting Started</div>
         <h2>📊 Reading the dashboard</h2>
-        <p>The <strong>Product Catalog</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
+        <p>The <strong>Products</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
         <ul class="plain">
-          <li><strong>Header bar</strong> — your logo on the left; on the right, a link to every page of the dashboard: <strong>Products</strong>, <strong>+ Add Product</strong>, <strong>Business Details</strong>, <strong>Page Content</strong>, <strong>Backups</strong>, <strong>Audit Log</strong>, <strong>Password</strong> and <strong>Help</strong>, plus <strong>View Live Site ↗</strong> to open the public website in a new tab and <strong>Sign Out</strong>. This same navigation bar appears at the top of every admin page, so you're never more than one click from anywhere else in the dashboard.</li>
+          <li><strong>Header bar</strong> — your logo on the left; on the right, a link to every page of the dashboard: <strong>Products</strong>, <strong>+ Add Product</strong>, <strong>Business Details</strong>, <strong>Page Content</strong>, <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups</strong>, <strong>Audit Log</strong>, <strong>Password</strong> and <strong>Help</strong>, plus <strong>View Live Site ↗</strong> to open the public website in a new tab and <strong>Sign Out</strong>. This same navigation bar appears at the top of every admin page, so you're never more than one click from anywhere else in the dashboard.</li>
           <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>
           <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
           <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
@@ -330,7 +336,11 @@ $navActive = 'help';
           <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the dashboard layout: header, search bar, summary cards, and product table">
             <rect x="1" y="1" width="638" height="338" rx="10" fill="#ffffff" stroke="#e5e9ee"/>
             <rect x="10" y="10" width="620" height="30" rx="6" fill="#0d2d52"/>
-            <text x="22" y="29" font-family="system-ui,sans-serif" font-size="9" fill="#ffffff">IPC Admin · Products · + Add Product · Business Details · Page Content · Backups · Audit Log · Password · Help · Sign Out</text>
+            <!-- ADM-9(d) — this omitted Inquiries and View Live Site; it now
+                 lists admin/nav.php's items in nav.php's order. Two more items
+                 would run past the bar at the old 9px, so the size drops to 8
+                 and textLength pins the line inside the 620px bar. -->
+            <text x="20" y="29" font-family="system-ui,sans-serif" font-size="8" fill="#ffffff" textLength="600" lengthAdjust="spacingAndGlyphs">IPC Admin · Products · + Add Product · Business Details · Page Content · Inquiries · Backups · Audit Log · Password · Help · View Live Site ↗ · Sign Out</text>
             <text x="10" y="56" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">HEADER — same on every page</text>
 
             <rect x="10" y="66" width="430" height="24" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
@@ -393,6 +403,7 @@ $navActive = 'help';
         <table class="field-ref">
           <tr><td><span class="btn btn-sm btn-edit btn-mock">Edit</span></td><td>Opens the full edit form for that product — every field is changeable here.</td></tr>
           <tr><td><span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span></td><td>Upload, replace, or remove that product's downloadable data sheet.</td></tr>
+          <tr><td><span class="btn btn-sm btn-pdf btn-mock">Photo</span></td><td>Upload, replace, or remove that product's photo, straight from your computer. See <a href="#photos">Product photos</a>.</td></tr>
           <tr><td><span class="btn btn-sm btn-edit btn-mock">View ↗</span></td><td>Opens that exact product on your live public website in a new tab — the fastest way to double-check how a change actually looks to customers.</td></tr>
           <tr><td><span class="btn btn-sm btn-danger btn-mock">Delete</span></td><td>Permanently removes the product after you confirm. See <a href="#deleting">Deleting a product</a>.</td></tr>
         </table>
@@ -407,7 +418,7 @@ $navActive = 'help';
           <li>
             <strong>Fill in Basic Information.</strong> Three fields are required (marked with *):
             <table class="field-ref">
-              <tr><td>SKU / Part Number *</td><td>A short, unique code for this part (e.g. <code>IP33PO</code>). This becomes part of the product's web address <em>and</em> the filename of its PDF, so keep it to letters, numbers, and dashes — no spaces. It must be different from every other SKU already in your catalog.</td></tr>
+              <tr><td>SKU / Part Number *</td><td>A short, unique code for this part (e.g. <code>IP33PO</code>). This becomes part of the product's web address <em>and</em> the filenames of its PDF and photo. It may use letters, numbers, spaces and the characters <code>- _ . / &amp; + ,</code> (up to 64 characters) — plain letters, numbers and dashes are simplest. It must be different from every other SKU already in your catalog, and that check <strong>ignores capitals, spaces and punctuation</strong>: <code>ip-33 po</code> counts as the same SKU as <code>IP33PO</code> and is refused, because the website and the file names would treat them as one.</td></tr>
               <tr><td>Part Type *</td><td>Pick the category from the dropdown. This decides which section of the catalog (and which page grouping) the product appears under. <strong>You control this list yourself</strong> — it comes from <strong>Page Content → Product Families / Categories</strong>, where you can add a category, rename one, or reorder them with the ↑ ↓ buttons — that order is the order the catalog sidebar and the Products menu use. See <a href="#pagecontent">Page Content</a>.</td></tr>
               <tr><td>Product Name *</td><td>The full name shown to customers, e.g. "3:1 Polyolefin Heat Shrink Tubing."</td></tr>
               <tr><td>Operating Temperature</td><td>Optional. Free text, e.g. <code>-55°C to 135°C</code>.</td></tr>
@@ -467,11 +478,14 @@ $navActive = 'help';
         </ol>
         <div class="callout callout-tip">
           <b>Renaming a SKU</b>
-          You can change a product's SKU on this page. If it has a PDF, that file is automatically renamed to match the new SKU, so the download link keeps working. If you try to rename it to a SKU that's already used by another product, the save is blocked with a clear error — just pick a different one.
+          You can change a product's SKU on this page. If it has a PDF, that file is automatically renamed to match the new SKU, so the download link keeps working — unless another product shares that same file, in which case it keeps its old name so the other product's link keeps working too, and the confirmation message says so. If you try to rename it to a SKU that's already used by another product (or one that differs from it only in capitals, spaces or punctuation), the save is blocked with a clear error — just pick a different one.
         </div>
         <div class="callout callout-tip">
           <b>What happens to old links</b>
-          Every product's web address is built from its SKU, so a bookmark or printed catalog using the old SKU stops pointing at this product. The visitor now gets a clear <em>"We couldn't find part …"</em> message with the full catalog underneath, so nobody is shown the wrong part by mistake. Renaming a SKU is safe — just expect old links to land on that message rather than on the product.
+          <!-- ADM-9(i) — the site looks a product up by its `id`, not its SKU.
+               add.php:68 and edit.php:37 both set id = sku on every save, and
+               every product in the shipped catalog already has id = sku. -->
+          Every product's web address is built from its product ID, which the dashboard sets to the SKU every time the product is saved — so changing the SKU changes the address, and a bookmark or printed catalog using the old SKU stops pointing at this product. The visitor now gets a clear <em>"We couldn't find part …"</em> message with the full catalog underneath, so nobody is shown the wrong part by mistake. Renaming a SKU is safe — just expect old links to land on that message rather than on the product.
         </div>
         <div class="callout callout-warning">
           <b>"This product was changed by another session" message</b>
@@ -695,18 +709,30 @@ $navActive = 'help';
         <p>Click <strong>Business Details</strong> in the header. This one page controls the facts about your company that appear all over the public site — the phone number in the header, the address in the footer, the copyright year, your hours, your certifications, and the colors and logo.</p>
         <p>Change something here and it changes <em>everywhere it appears</em>. You never have to hunt for the same phone number on six pages.</p>
         <table class="field-ref">
-          <tr><td>Company name, short name, slogan</td><td>Header, footer, page titles, and the information search engines read about you.</td></tr>
-          <tr><td>Phone, fax, email</td><td>Header, footer, Contact page, About page. The phone number is also what the "call us" links dial, so type it the way you'd say it — the dialling version is a separate field beside it.</td></tr>
+          <!-- NEW-V2-2 — this row said all three drive the "header, footer,
+               page titles". The header's name beside the logo is fixed text in
+               the site code; most page titles come from content.json's seo
+               rows; shortName is only used by fitProductTitle() and the JSON-LD
+               alternateName. -->
+          <tr><td>Company name</td><td>The footer (including the © line) and the information search engines read about you. It is also the ending of product pages' browser-tab titles, and of any page that has no title of its own in <a href="#pagecontent">Page Content</a> → Search Engine Text (SEO) — every other page title comes from there, not from here. It does <strong>not</strong> change the name printed beside the logo in the site header; that is part of the site design, so ask your developer.</td></tr>
+          <tr><td>Short name</td><td>Never shown in the text of any page. It is listed in the information search engines read, and it replaces the full company name in a product page's browser-tab title when the full name would make that title too long for search results.</td></tr>
+          <tr><td>Slogan</td><td>The small line under the company name in the site header, and the information search engines read.</td></tr>
+          <tr><td>Phone, fax, email</td><td>Header, footer, Contact page, About page. The phone number is also what the "call us" links dial, so type it the way you'd say it — the dialling version is a separate field beside it. <strong>When you change the phone number, change the dial box too — or empty it</strong>: left empty, it is worked out from the phone number when you save (for an ordinary 10-digit US/Canada number; for anything else the page asks you to fill it in).</td></tr>
           <tr><td>Address, hours</td><td>Footer, Contact page, and the map listing search engines build from your site.</td></tr>
           <tr><td>Founded year</td><td>Drives the "© 1974–<?= date('Y') ?>" line automatically. You never update the second year.</td></tr>
           <tr><td>Certifications</td><td><strong>The ISO field here is the only place the ISO certification is set.</strong> What you type in it appears everywhere the site claims it &mdash; the homepage trust bar and hero badges, the Certifications &amp; Standards block on the About page, the company story, the footer and the search-engine descriptions. Put the revision year in only when your registrar has confirmed it (<code>ISO 9001:2015</code>) and every one of those places changes with it; leave it as plain <code>ISO 9001</code> and no revision is claimed anywhere. You do not need to hunt for the wording in Page Content &mdash; whatever is typed there, the revision comes from this field. <strong>The &ldquo;Other certifications&rdquo; box beside it is published too:</strong> each line appears in the footer of every page, exactly as typed, as soon as you save &mdash; list only certifications IPC currently holds. <em>(There is no separate Quality page — this row said there was until 2026-09-14.)</em></td></tr>
           <tr><td>Brand colors &amp; logo</td><td>Live preview on the right of the page as you change them.</td></tr>
-          <tr><td>Social links</td><td>Not shown as icons on the site; they tell search engines which accounts are yours.</td></tr>
+          <tr><td>Social links</td><td>Each one you fill in appears as a small clickable icon in the footer of every page, and tells search engines which accounts are yours. Leave one empty and its icon disappears. Each must be a full address starting <code>https://</code> (or <code>http://</code>).</td></tr>
           <tr><td>Catalog PDF URL</td><td>Optional. Point it at a full-catalog PDF (e.g. <code>/pdfs/catalog.pdf</code>) and a "Full product catalog (PDF)" link appears in the site footer. Leave blank for no link.</td></tr>
         </table>
         <div class="callout callout-warning">
           <b>Most fields refuse to be left blank — on purpose</b>
-          If you clear the phone number, the company name, the founded year or the address and save, the previous value comes back. That is deliberate: an empty phone number becomes a dead "call us" link and an empty year prints "©&nbsp;–<?= date('Y') ?>" to every visitor. To <em>change</em> one, type the new value over the old one.
+          <!-- ADM-9(g) — this said "the previous value comes back". It does
+               not: settings.php saves the blank, and mergeSiteInfo() in
+               src/App.jsx drops blanks and falls back to SITE_DEFAULTS, i.e.
+               the value the site shipped with. The company name is different
+               again: settings.php refuses the whole save. -->
+          If you clear the phone number, the founded year, the email or a line of the address and save, the public site does not go blank — it goes back to the <strong>original value the website was built with</strong>, not to whatever you had there before (this page will show the box empty). That is deliberate: an empty phone number becomes a dead "call us" link and an empty year prints "©&nbsp;–<?= date('Y') ?>" to every visitor. To <em>change</em> one, type the new value over the old one. The <strong>company name</strong> cannot be cleared at all: the save is refused with a message, and nothing on the page is saved until you put a name back.
           <br><br>
           The exceptions — fields you genuinely can clear, because "we don't have one" is a real answer — are <strong>fax number</strong>, the <strong>social links</strong>, <strong>short name</strong> and <strong>slogan</strong>. Clear one of those and it disappears from the site properly.
         </div>
@@ -747,7 +773,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-tip">
           <b>Every error keeps your typing</b>
-          Whatever goes wrong on this page — a stale tab, a cut-off request, a permissions problem — the form comes back with your words in it, not the old ones from the server. You should never have to retype anything.
+          Whatever goes wrong on this page — a stale tab, a cut-off request, a permissions problem — the form comes back with your words in it, not the old ones from the server. You should never have to retype anything. The one exception is being <strong>signed out</strong> while the page was open: your typing can still be recovered, but only if you sign in again in a new tab <em>first</em> — see <em>"I was signed out in the middle of editing"</em> in <a href="#faq">Troubleshooting</a>.
         </div>
       </section>
 
@@ -811,7 +837,7 @@ $navActive = 'help';
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">upload-image</span></td><td>A product photo was uploaded from a computer.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">remove-image</span></td><td>A product photo was removed, and the file deleted from the server because nothing else was using it.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">settings</span></td><td>Business Details was saved. The entry names the sections you changed.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">settings</span></td><td>Business Details was saved. The entry only says the details were updated (or that nothing had changed) — it does not list which fields. The version from before each save is kept on the <a href="#backups">Backups</a> page if you need to put it back.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#f3e8ff;color:#6b21a8;">password</span></td><td>The admin password was changed. The password itself is never recorded.</td></tr>
@@ -844,7 +870,7 @@ $navActive = 'help';
         <table class="field-ref">
           <tr><td>The <code>admin</code> folder is not writable</td><td>The most serious one. <strong>Sales leads from the contact form are being discarded</strong>, the change history cannot record anything, and the Password page cannot save. Set <code>admin/</code> to 755 (or 775) over FTP. If the warning stays, ask your host to run PHP as your account user (777 also works, as a stop-gap only).</td></tr>
           <tr><td>The <code>data</code> folder is not writable</td><td>Nothing you edit on any page can be saved at all. Set <code>data/</code> to 755 (or 775) over FTP. If the warning stays, ask your host to run PHP as your account user (777 also works, as a stop-gap only).</td></tr>
-          <tr><td>The <code>uploads/images</code> folder is missing or not writable</td><td>Product photo uploads will fail. Create <code>public_html/uploads/images/</code> over FTP and set it to 755.</td></tr>
+          <tr><td>The <code>uploads/images</code> folder is missing or not writable</td><td>Product photo uploads will fail. Create <code>public_html/uploads/images/</code> over FTP and set it to 755. <strong>Check that the file <code>public_html/uploads/.htaccess</code> is there too</strong> — it comes with the website files, and it is what stops anyone running a program from the photos folder. If it is missing, ask your developer to put it back before any more photos go up. <!-- NEW-N3-3 --></td></tr>
           <!-- A-9.B2-03 — the four rows the dashboard could raise and this
                table never listed. The section said "three things" over four
                rows while the Products page checks nine. The missing four are
@@ -855,7 +881,7 @@ $navActive = 'help';
           <tr><td>The <code>pdfs</code> folder is missing or not writable</td><td>Data sheet uploads will fail. Set <code>public_html/pdfs/</code> to 755 (or 775) over FTP. If the warning stays, ask your host to run PHP as your account user (777 also works, as a stop-gap only).</td></tr>
           <tr><td>The server's temporary folder is not writable</td><td>The contact form still works and still records every lead, but its spam rate limit is not counting, and confirmation emails to senders are held back as a precaution. Ask the host to fix permissions on it.</td></tr>
           <tr><td><strong>Quote requests are arriving but cannot be recorded</strong></td><td>The most urgent one after <code>admin</code>. The notification emails are still being sent, so nothing is lost yet — but <strong>Inquiries</strong> is not recording anything, so a lead that is missed in email is gone. Same fix as the <code>admin</code> row.</td></tr>
-          <tr><td>This server cannot resize images (<code>gd</code> is missing)</td><td>Photo uploads still work, but a large photo is saved at its original size, and that product page will be slow on a phone. Ask the host to enable the PHP <code>gd</code> extension, or resize photos to about 1600 pixels wide before uploading them.</td></tr>
+          <tr><td>This server cannot resize images (<code>gd</code> is missing)</td><td>Photo uploads still work, but a large photo is saved at its original size, and that product page will be slow on a phone. Ask the host to enable the PHP <code>gd</code> extension, or resize photos to about <?= (int)IMG_MAX_WIDTH ?> pixels wide before uploading them.</td></tr>
           <tr><td>The password-reset window is OPEN</td><td>While a file called <code>ALLOW-PASSWORD-RESET</code> sits in your admin folder, <strong>anyone on the internet</strong> who opens your admin address is shown a "Set Admin Password" form and can lock you out. It closes by itself an hour after the file was uploaded, and the warning carries a <strong>Close It Now</strong> button so you can shut it immediately. See <a href="#password">Your admin password</a>.</td></tr>
         </table>
         <div class="callout callout-warning">
@@ -874,8 +900,8 @@ $navActive = 'help';
         </details>
 
         <details class="faq">
-          <summary>I got "A product with this SKU already exists."</summary>
-          <p>Every SKU (part number) must be unique across your whole catalog. Search the dashboard for that SKU to see the existing product, or choose a different SKU for the new one.</p>
+          <summary>I got "A product with this SKU already exists" (or "… is too close to the existing SKU …").</summary>
+          <p>Every SKU (part number) must be unique across your whole catalog — and two SKUs that differ only in capitals, spaces or punctuation count as the same one, because the website and the uploaded file names ignore those. Search the dashboard for that SKU to see the existing product, or choose a different SKU for the new one.</p>
         </details>
 
         <details class="faq">
@@ -896,7 +922,22 @@ $navActive = 'help';
 
         <details class="faq">
           <summary>I can't sign in — it says my password is incorrect.</summary>
-          <p>Double-check Caps Lock and any extra spaces. After 5 incorrect attempts in a row, the page will briefly pause before allowing another try — this is a normal anti-guessing safeguard, not a lockout. Wait a few seconds and try again.</p>
+          <p>Double-check Caps Lock and any extra spaces. After <?= (int)LOGIN_FREE_ATTEMPTS + 1 ?> wrong passwords in a row, the page asks you to wait before it will check another one — <?= (int)LOGIN_COOLOFF_BASE ?> seconds at first, doubling with each further wrong password up to <?= (int)round(LOGIN_COOLOFF_MAX / 60) ?> minutes. This is a normal anti-guessing safeguard, not a lockout. Wait the time the page shows and try again; trying early does not make the wait longer. See <a href="#signing-in">Signing in &amp; out</a>.</p>
+        </details>
+
+        <details class="faq">
+          <summary>I was signed out in the middle of editing ("Your sign-in session expired").</summary>
+          <!-- ADM-2 — the order matters. Admin pages are not cached, so pressing
+               Back while signed out reloads the page, finds no session and
+               lands on the sign-in page with the typing gone. Signing in first,
+               in another tab, is what lets Back bring the typing back. -->
+          <p>Your typing can still be recovered, but <strong>the order matters</strong>:</p>
+          <ol class="steps">
+            <li>Leave that tab exactly as it is. Open your admin address in a <strong>new tab</strong> and sign in there.</li>
+            <li>Go back to the original tab and press the browser's <strong>Back</strong> button (or <strong>Back to My Unsaved Page</strong>). Your typing reappears.</li>
+            <li>Click Save again.</li>
+          </ol>
+          <p>If you press Back <em>before</em> signing in, the dashboard sends that tab to the sign-in page and what you typed is lost. If a red <strong>"You have been signed out"</strong> bar appears at the top of a page before you have saved, the same rule applies: sign in again in a new tab before you do anything else in this one.</p>
         </details>
 
         <details class="faq">
@@ -983,7 +1024,13 @@ $navActive = 'help';
       <section class="help-section" id="server-limits">
         <div class="eyebrow eyebrow-reference">Reference</div>
         <h2>🖥️ What your server allows</h2>
-        <p>These are read live from the server right now, not typed into the page. If an upload is rejected as "too large", compare the file against the first two numbers. If they read 2M and 8M, the <code>.user.ini</code> file that raises them is not being applied on this host &mdash; send this section to your developer.</p>
+        <p>These are read live from the server right now, not typed into the page. If an upload is rejected as "too large", compare the file against the first two numbers.</p>
+        <!-- NEW-N3-1 — .user.ini is only read when PHP runs as CGI/FastCGI/
+             PHP-FPM. Under mod_php it is ignored, and a php.ini dropped into
+             public_html is ignored too (and was publicly served until
+             public/.htaccess started blocking it). The only fix that works everywhere is the host's own
+             setting, so that is what this tells the owner to ask for. -->
+        <p><strong>These limits are set by your hosting, not by this dashboard.</strong> The website ships with a small settings file, <code>.user.ini</code>, that raises them. It works on the usual shared-hosting setup (PHP running as "FastCGI" or "PHP-FPM"), but some hosts ignore it. If the first three rows below still read PHP's out-of-the-box <code>2M</code>, <code>8M</code> and <code>1000</code>, ask your host to raise <code>upload_max_filesize</code>, <code>post_max_size</code> and <code>max_input_vars</code> for your account. <strong>Do not upload a <code>php.ini</code> file into the website folder</strong> to fix it: on a host that ignores <code>.user.ini</code> it is ignored too, so it only looks like a fix.</p>
         <table class="field-ref">
           <tr><th>Largest single file the server accepts</th><td><code><?= h(ini_get('upload_max_filesize') ?: 'unknown') ?></code></td></tr>
           <tr><th>Largest whole form submission</th><td><code><?= h(ini_get('post_max_size') ?: 'unknown') ?></code></td></tr>
@@ -993,6 +1040,13 @@ $navActive = 'help';
           <tr><th><code>admin</code> folder writable</th><td><?= admin_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; sales leads are being discarded</strong>' ?></td></tr>
           <tr><th><code>data</code> folder writable</th><td><?= data_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; nothing you edit can be saved</strong>' ?></td></tr>
           <tr><th><code>uploads/images</code> writable</th><td><?= (is_dir(IMG_DIR) && is_writable(IMG_DIR)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; photo uploads will fail</strong>' ?></td></tr>
+          <?php /* NEW-N3-9 — the three other checks the Products-page banner
+                   makes (admin/index.php), with the same tests, so this table
+                   and the banner cannot disagree about the same server. */
+                $helpTmpDir = sys_get_temp_dir(); ?>
+          <tr><th><code>pdfs</code> folder writable</th><td><?= (is_dir(PDF_DIR) && is_writable(PDF_DIR)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; data sheet uploads will fail</strong>' ?></td></tr>
+          <tr><th>Server temporary folder writable</th><td><?= (is_dir($helpTmpDir) && is_writable($helpTmpDir)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; the contact form&rsquo;s spam limit is not counting</strong> (<code>' . h($helpTmpDir) . '</code>)' ?></td></tr>
+          <tr><th>Photo resizing (<code>gd</code>)</th><td><?= (extension_loaded('gd') && function_exists('imagescale')) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; large photos are saved at full size</strong>' ?></td></tr>
           <tr><th>Backups kept per file</th><td><code><?= (int)BACKUP_KEEP ?></code></td></tr>
         </table>
         <div class="callout callout-tip">

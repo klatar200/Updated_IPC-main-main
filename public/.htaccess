@@ -165,3 +165,13 @@ RewriteRule ^ index.html [QSA,L]
   Order Allow,Deny
   Deny from all
 </FilesMatch>
+
+# NEW-N3-1 (audit 2026-09-27) — a php.ini in the web folder is inert under
+# mod_php (only .user.ini is read, and only by FastCGI/PHP-FPM) AND was served
+# to anyone who asked, with a 200. Older advice said to upload one; if anybody
+# does, it must at least not be public. Covers every subfolder (admin/php.ini
+# too): <FilesMatch> in .htaccess applies below this directory as well.
+<FilesMatch "^(?i:php\.ini|php5\.ini)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>

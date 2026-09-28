@@ -28,11 +28,14 @@ Use **View Live Site** (top right) any time to open your public site in a new ta
 
 Open the **Page Content** tab. It has two kinds of sections, one after the other.
 
-**Page Text (the cards at the top).** These are the fixed headlines and intros on each page — fill-in-the-blank fields, one card per area:
+**Page Text (the cards at the top).** These are fixed, fill-in-the-blank fields, one card per area. They always have the same fields — nothing to add, remove or reorder:
 
-- **Homepage Hero** — the badge, the three headline lines, the sub-headline, and both buttons (their wording and where each one links).
-- **Homepage headings** — the "Products & Services" and "Industries" eyebrows, titles, and the CTA ribbon text.
-- **Page banners** — the small eyebrow, big title, and intro paragraph at the top of the Services, Industries, About, FAQ, Contact, and Privacy pages, plus the About page's sub-headings and the Privacy lead paragraph and effective date.
+- **Site Images** — the five photographs the homepage, About and Services pages use.
+- **Homepage — Hero** — the badge, the three headline lines, the sub-headline, and both buttons (their wording and where each one links).
+- **Homepage headings** — the "Products & Services" and "Industries" eyebrows, titles, and the ribbon text and button.
+- **Page banners** — the small eyebrow, big title, and intro paragraph at the top of the Services, Industries, About, Datasheets, FAQ, Contact, and Privacy pages, plus the About page's sub-headings and the Privacy lead paragraph and effective date.
+- **Navigation — Header Labels** and **Footer — Labels** — the wording of the header menu's own labels and the footer headings.
+- **Contact Page — Form** — the labels and help text on the contact form.
 
 **Lists (the sections below).** These are the repeatable cards and rows:
 
@@ -43,14 +46,12 @@ Open the **Page Content** tab. It has two kinds of sections, one after the other
 - **About — Company Timeline**, **About — Team & Capabilities**, **About — Certifications & Standards** — the About page.
 - **FAQ / Resources** — your questions and answers.
 - **Privacy Policy — Sections** — the titled blocks of your privacy policy.
-- **Navigation — Company Menu**, **Navigation — Footer Quick Links**, **Navigation — Header Labels** and **Footer — Labels** — the wording in your header menu and footer.
+- **Navigation — Company Menu** and **Navigation — Footer Quick Links** — the links in your header's Company menu and the footer.
 - **Product Families / Categories** — the categories the catalog groups products by, and their order.
-- **Contact Page — Form** and **Contact Page — Sidebar Tips** — the labels and help text on the contact form, and the tips beside it.
-- **Datasheets page — banner** — the heading on the data-sheet library page.
-- **Site Images** — the five photographs the homepage, About and Services pages use.
+- **Contact Page — Sidebar Tips** — the tips beside the contact form.
 - **Search Engine Text (SEO)** — the title and description each page shows in Google results.
 
-*(That is all 31 sections the tab renders. This list named 22 of them until 2026-09-14 — A-9.B2-15. If you see a card here that is not in this list, the list is the thing that is out of date, not the dashboard.)*
+*(That is all 31 sections the tab renders: 14 Page Text cards and 17 lists. This list named 22 of them until 2026-09-14 — A-9.B2-15 — and until 2026-09-28 it filed five of the fixed cards under Lists — ADM-12. If you see a card here that is not in this list, the list is the thing that is out of date, not the dashboard.)*
 
 In a **Page Text** card, just click a field and type. In a **list** section you can also:
 
@@ -62,16 +63,16 @@ Then click **Save Content** at the bottom. That's it — your changes go live wi
 
 ## A few helpful notes
 
-**Clearing a heading resets it. Deleting a whole list does not.** If you empty a single Page Text field and save, that item returns to its original wording — so a page heading can never end up blank. But if you delete *every* item from a list section (all your FAQ questions, all your footer links), that is treated as what you meant: the section is genuinely empty on the live site. Sub-headings are the exception on the Page Content side: those you *can* clear, because they're optional by design.
+**Clearing a heading resets it. Deleting a whole list does not.** If you empty a single Page Text field and save, that item returns to its original wording — so a page heading can never end up blank. But if you delete *every* item from a list section (all your FAQ questions, all your footer links), that is treated as what you meant: the section is genuinely empty on the live site. Two exceptions on the Page Content side: sub-headings you *can* clear, because they're optional by design, and emptying a **Site Images** field removes that photo from the page.
 
-**The same rule applies on Business Details — with four exceptions.** Clear the phone number, company name, address or founded year and the previous value comes back when you save, for the same reason: an empty phone number becomes a dead "call us" link, and an empty year prints "© –2026" to every visitor. The fields you genuinely **can** empty, because "we don't have one" is a real answer, are:
+**A similar rule applies on Business Details.** The company name cannot be emptied at all — the save is refused with a message, and what you typed stays on screen to fix. Clear the phone number, address or founded year and the site goes back to its **built-in original** (the value the website shipped with), **not** to whatever you had before — so to *change* one of these, type the new value over the old one. This is so an empty phone number never becomes a dead "call us" link and an empty year never prints "© –2026" to every visitor. The **Phone (dial link)** box can be left blank: when it is, the click-to-call number is worked out from the phone number you typed (for a normal 10-digit US/Canada number). The fields you genuinely **can** empty, because "we don't have one" is a real answer, are:
 
 - **Fax number**
 - The seven **social links** (Twitter/X, Facebook, LinkedIn, YouTube, Instagram, TikTok, Pinterest)
 - **Short name**
 - **Slogan**
 
-Clear one of those and it disappears from the site properly — the fax line vanishes from the footer, the Contact page and the About page rather than leaving an empty label. To *change* any other field, type the new value over the old one rather than clearing it first.
+Clear one of those and it disappears from the site properly — the fax line vanishes from the footer, the Contact page and the About page rather than leaving an empty label.
 
 **Icons come from a menu.** Cards that show an icon (services, certifications, industries, stats) have an **Icon dropdown** — pick the closest match. Team cards use an emoji you can type in the "Icon" field.
 
@@ -83,11 +84,11 @@ Clear one of those and it disappears from the site properly — the fax line van
 
 **Seeing your changes.** Edits appear on the live site within about 60 seconds. If you don't see them, do a hard refresh (**Ctrl+Shift+R** on Windows, **Cmd+Shift+R** on Mac).
 
-**If you get signed out mid-edit.** You'll see a page explaining what happened, with a button back to your unsaved work. Click it, sign in again in a new tab, come back, and click Save — your typing is still there.
+**If you get signed out mid-edit.** You'll see a page saying your sign-in session expired. Do these in this order — the order matters: (1) leave that tab alone and open **yourdomain.com/admin** in a **new tab**; (2) sign in there; (3) go back to the original tab and click **Back to My Unsaved Page** (or your browser's Back button) — your typing comes back; (4) click Save. If you press Back *before* signing in again, the page reloads as the sign-in screen and your typing is gone.
 
 ## If something looks wrong
 
-Double-check you clicked **Save Content** (or **Save** on Business Details) and give it a full minute plus a hard refresh.
+Double-check you clicked **Save Content** (or **Save Business Details** on Business Details) and give it a full minute plus a hard refresh.
 
 If a section still looks wrong, click **Backups** in the top navigation and restore the version from just before your change. You can do this yourself — and restoring is itself backed up first, so it can be undone. Backups are kept for the 90 most recent saves of each file. Note that photo uploads, PDF uploads, adding a product and deleting a product all count as saves, so they fill up faster than you'd expect: if you need to roll something back, do it sooner rather than later.
 

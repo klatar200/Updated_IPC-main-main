@@ -90,6 +90,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // (audit-runs/audit5.md, Low tier)
             @file_put_contents($uploadsHt, uploads_runtime_htaccess());
         }
+        // NEW-N3-3 (audit 2026-09-27) — and CHECK it landed. The write above
+        // was unchecked, so when the PHP user cannot write uploads/ (the host
+        // runs PHP as someone other than the FTP owner) the photo was still
+        // saved into a folder with no script block, "✅ Photo uploaded", and a
+        // .php dropped there by any other route would execute. Refuse instead;
+        // the fix is one FTP upload of the shipped uploads/.htaccess.
+        $uploadsUnprotected = is_dir(dirname($uploadsHt)) && !file_exists($uploadsHt);
         $file = $_FILES['image_file'];
         $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
@@ -142,7 +149,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pixelProblem = $sniffed !== false
             ? image_pixel_problem((int)$sniffed[0], (int)$sniffed[1]) : '';
 
-        if (!isset($IMG_TYPES[$ext]) || $mimeType !== $IMG_TYPES[$ext]) {
+        if ($uploadsUnprotected) {
+            $errors[] = 'The photo was not saved: the uploads folder is missing its security file (uploads/.htaccess) and the server would not let the admin create it. '
+                      . 'Upload uploads/.htaccess from the release over FTP (turn on "show hidden files" to see it), then try again.';
+        } elseif (!isset($IMG_TYPES[$ext]) || $mimeType !== $IMG_TYPES[$ext]) {
             $errors[] = 'Only JPG, PNG, WEBP, or GIF images are accepted (extension and content must match).';
         } elseif ($hasPhpTag) {
             $errors[] = 'That file is not a usable image — it contains program code, not just picture data. '

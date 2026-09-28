@@ -6891,3 +6891,44 @@ NEW-N1-1 and V1-2 are fixed at one chokepoint, `normalizeProductRow()`.
   - **Trigger:** GO-LIVE C1's TRACE line answers 200.
   - **Action:** ask Network Solutions to set `TraceEnable Off`.
   - **Why:** `.htaccess` cannot.
+
+## 1ah. Shipped 2026-09-28 — Lows batch F (docs, plus four code fixes)
+
+`_harness/lowsF-docs.js`: 1/20 on `main` → 20/20. `lowsE-apache` gains a
+13th check (13/13).
+
+**Code:**
+
+| ID | Fix |
+|---|---|
+| ADM-2 | The expired-session page says to sign in in a new tab FIRST, then press Back |
+| NEW-N3-3 (+ R3-m3-2) | `upload-image.php` refuses a photo when `uploads/.htaccess` is still missing after its write attempt (the write was unchecked, and "✅ Photo uploaded" landed in an unprotected folder). The dashboard banners the missing file. `sync.sh` now mirrors it. |
+| NEW-N3-1 | `public/.htaccess` refuses to serve `php.ini`/`php5.ini` anywhere |
+| DEP-8 | `vite.config.js` → `.mjs` and `postcss.config.js` → `.mjs` (the bundle hash is identical); `engines.node >= 18`. `"type": "module"` was rejected: every harness suite is CommonJS. |
+
+**Docs**, split across three parallel agents, each diff reviewed against
+the code:
+
+| File | Findings |
+|---|---|
+| GO-LIVE.md | DEP-4, DEP-6/NEW-V4-2 (new §B4: the first-deploy password is set with the reset flow, and a local `config.local.php` is never uploaded), DEP-7, DEP-12, NEW-N3-7, N3-8, N3-12, V4-3, V4-4, V4-5, V4-6, V4-7, V4-8 |
+| `admin/help.php` | ADM-9 a–i, NEW-V2-2, N3-9 (pdfs, temp dir and gd rows), N3-10 (six attempts, printed from the constants), N3-1, N3-3, ADM-2 |
+| README.md, CLAUDE.md, `admin/README.md`, Editing-Your-Site-Content.md, the handoff email | DEP-9, DEP-10 (DEPLOY_READINESS_v2 §7 named frozen history), DEP-11 (the full admin I/O surface), ADM-2, ADM-10, ADM-11, ADM-12, NEW-N3-10, N3-1, N3-3, V4-8 |
+
+`public/.user.ini`'s `php.ini` advice is also corrected.
+
+**Left open, with reason:**
+- **Host facts are marked unconfirmed:** where the Network Solutions panel
+  shows PHP, whether it offers an apex→www redirect, and its
+  `display_errors` setting.
+- **Signing back in:** whether Save goes through straight after signing
+  back in depends on whether the browser restores the old hidden token.
+  Help therefore says "click Save again" rather than promising success.
+- **C2** (palette contrast) and the three escalations (ADM-8, NEW-V2-3,
+  DEP-5) are unchanged.
+
+**Self-corrections:**
+- My first F test drafts matched paraphrases rather than the sentences on
+  `main`, so 11 checks passed there. Every pattern is now the verbatim
+  false sentence.
+- The first N3-3 checks read the source. They now drive a real upload.

@@ -9,13 +9,13 @@
  * defect is present. That is a check that cannot fail — this config exists so
  * it can.
  *
- * Everything else is inherited from the real vite.config.js so the bundle under
+ * Everything else is inherited from the real vite.config.mjs so the bundle under
  * test is the same code, not a variant.
  *
  * Usage (from the repo root):
  *   npx vite build --config _harness/vite.devreact.js --outDir _harness/devdist --emptyOutDir
  */
-import base from '../vite.config.js';
+import base from '../vite.config.mjs';
 
 export default {
   ...base,

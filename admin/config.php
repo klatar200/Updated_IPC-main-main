@@ -461,9 +461,13 @@ function csrf_fail_page(string $reason): void {
        . '</style></head><body><div class="card"><h1>' . h($title) . '</h1><p>' . $lead . '</p>';
     if ($expired) {
         echo '<ol>'
-           . '<li>Click <strong>Back to my unsaved page</strong> below — the browser restores what you typed.</li>'
-           . '<li>Open <a href="auth.php" target="_blank" rel="noopener">the sign-in page</a> in a <strong>new tab</strong> and sign in again.</li>'
-           . '<li>Return to your page and click Save. It will go through.</li>'
+           // ADM-2 (audit 2026-09-27) — sign in FIRST. Admin pages are sent
+           // no-store, so Back re-requests the page; signed out, that lands
+           // on the sign-in screen and the typing is gone. Signed in (in
+           // another tab) first, Back brings the page back with what was typed.
+           . '<li><strong>First</strong>, open <a href="auth.php" target="_blank" rel="noopener">the sign-in page</a> in a <strong>new tab</strong> and sign in there. Leave this tab alone.</li>'
+           . '<li>Then come back to this tab and click <strong>Back to my unsaved page</strong> below — the browser restores what you typed.</li>'
+           . '<li>Click Save.</li>'
            . '</ol>'
            . '<p><button type="button" class="btn btn-primary" data-ipc-back>← Back to My Unsaved Page</button>'
            . '<a class="btn" href="auth.php">Sign in again</a></p>';
@@ -2226,8 +2230,8 @@ function image_in_use(array $products, string $basename): bool {
  * The size limit that ACTUALLY applies to an upload, as a display string.
  *
  * help.php printed the server's upload_max_filesize ("24M") as though it were
- * the ceiling. It is not: upload-pdf.php:79 hard-rejects anything over 20MB and
- * upload-image.php:102 caps photos at 8MB, so the real rule is
+ * the ceiling. It is not: upload-pdf.php:82 hard-rejects anything over 20MB and
+ * upload-image.php:160 caps photos at 8MB, so the real rule is
  * min(upload_max_filesize, the page's own cap) — and telling the owner to raise
  * .user.ini would not have moved either one. (AUDIT_v3_FINDINGS D6)
  */
