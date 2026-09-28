@@ -70,6 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             audit_log('password', 'admin', 'Admin password changed');
             regenerate_session_id();
+            // SEC-4 / SEC-3 — re-sign THIS session with the new hash; every
+            // other session was signed with the old one and is now signed out.
+            mark_session_authenticated($res['hash']);
             $success = 'Password changed. Use the new password the next time you sign in. Store it somewhere safe — there is no "forgot password" email. If it is ever lost, recovery means uploading an empty file named ALLOW-PASSWORD-RESET into the admin folder over FTP, then visiting /admin/ (see admin/README.md).';
         }
     }
@@ -103,7 +106,7 @@ $navActive = 'password';
 <?php include 'nav.php'; ?>
 <main>
   <h1>Password</h1>
-  <p class="sub">Updates the admin sign-in password. Takes effect on your next sign-in; your current session stays active.</p>
+  <p class="sub">Updates the admin sign-in password. Takes effect immediately: this session stays signed in, and any other signed-in browser is signed out.</p>
 
   <?php if (!empty($errors)): ?>
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
