@@ -255,6 +255,12 @@ mirror started dirty with a leftover `AUDIT9TMP.pdf` and `edit.php`'s *correct*
 no-clobber guard skipped the rename — the right behaviour for the wrong reason.
 A green control is not evidence until you know why it is green.
 
+## Go-live audit 2026-09-27 — fix acceptance (real Apache)
+
+| File | Item |
+|---|---|
+| `dep3-scriptblock.js` | **DEP-3** of `audit-runs/audit-2026-09-27.md`. The first suite here that runs a **real Apache 2.4 + mod_php**, because `php -S` ignores `.htaccess` and so every other suite is blind to it. Builds its own docroot under `/var/tmp` from the repo's `uploads/`, `data/` and `pdfs/` `.htaccess` files, plus the runtime copy `upload-image.php` writes (read from `uploads_runtime_htaccess()` in `admin/config.php`, so the served text is the text that ships). Runs it under two handler models, `AddHandler` and Debian's stock `SetHandler`, on :8691–8692. 28 checks: every one of 9 script-named payloads (`x.php.jpg`, `x.pHp.png`, `x.phar`, …) must answer 403 **and** never execute, and each directory's legitimate files must still serve 200 with exact bytes. The second arm is what stops a "deny everything" fix from passing. `pdfs/` is the control; it held before the fix. Proven: 16/28 against the unfixed rules, 28/28 after, and each of the three mutations (the image allow-list put back after the deny, the `$`-anchored uploads regex, the old `data/` regex) turns it red. **Needs `apache2` and `libapache2-mod-php`; without them it prints SKIPPED and exits 3, never 0.** Runs as root so it can `chown` the docroot to `www-data` |
+
 ## Investigative tools (one-shot, kept as evidence)
 
 `inkaudit`, `whitesurfaces`, `fgsurfaces`, `findwhite`, `findtranslucent`,

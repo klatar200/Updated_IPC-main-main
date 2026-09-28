@@ -6,30 +6,24 @@
 Options -Indexes
 
 # Never execute scripts from this folder, even if one somehow lands here.
-<FilesMatch "\.(?i:php|phtml|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+#
+# `(\.|$)`, not `$`: on a host that maps PHP with `AddHandler` (common on
+# shared hosting), mod_mime hands a file to PHP for a .php extension ANYWHERE
+# in its name, so `x.php.jpg` executes. The `$`-anchored rule this replaced
+# never matched it. Same rule as pdfs/.htaccess, which is the one that held.
+#
+# ON PURPOSE — there is no image allow-list <FilesMatch> after this any more.
+# There was one (`Order Deny,Allow` / `Allow from all` on jpe?g|png|webp|gif),
+# and Apache merges matching sections in order, so it RE-ALLOWED any name
+# ending in an image extension even when this deny had matched it: measured on
+# real Apache 2.4 + mod_php, `x.php.jpg` answered 200 and ran. It added nothing
+# else — Apache serves images by default. Do not put it back; to add
+# deny-by-default later, put the allow BEFORE this block, never after.
+# `_harness/dep3-scriptblock.js` proves both halves on a real Apache.
+# (audit-runs/audit-2026-09-27.md DEP-3)
+<FilesMatch "\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\.|$)">
   Order Allow,Deny
   Deny from all
-</FilesMatch>
-
-# Image types are explicitly allowed. NOTE — this is an allow-list on top of the
-# script blacklist above, NOT a deny-by-default: a file whose extension is in
-# neither list (.svg, .html, .txt) is still served by Apache's default. The
-# comment here used to claim "everything else in here is blocked", which was
-# true of the intent and false of the rules.
-#
-# Left as an allow-list deliberately. A real deny-by-default means adding a
-# `<Files "*">Deny from all</Files>` above this, and whether images survive it
-# depends on how Apache merges the two sections — which cannot be tested here,
-# because `php -S` ignores .htaccess entirely (GUARDRAILS 4.3). Getting that
-# wrong 404s every product photo on the live site, which is a far worse outcome
-# than the gap it closes: nothing can land in this folder today except the five
-# image types upload-image.php whitelists and cross-checks with getimagesize()
-# and finfo, with SVG deliberately excluded. Fix the comment, keep the rules,
-# and revisit with a real Apache to test against.
-# (audit-runs/audit5.md, Low tier)
-<FilesMatch "\.(?i:jpe?g|png|webp|gif)$">
-  Order Deny,Allow
-  Allow from all
 </FilesMatch>
 
 # Cache uploaded images for a day — replacements keep the same filename, so

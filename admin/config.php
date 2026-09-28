@@ -1859,6 +1859,27 @@ function pdf_delete_if_unused(array $products, string $url): string {
     return '';
 }
 
+// The uploads/.htaccess that upload-image.php writes when uploads/ was created
+// on the server instead of deployed, so the shipped file never arrived. A
+// function rather than an inline string so _harness/dep3-scriptblock.js can
+// serve the exact text that ships from a real Apache. Keep its rules in step
+// with uploads/.htaccess.
+//
+// ON PURPOSE — no image allow-list <FilesMatch> after the deny. It used to
+// carry one, and Apache merges matching sections in order, so it re-allowed
+// `x.php.jpg` after the deny matched it and PHP ran the file on an AddHandler
+// host. (audit-runs/audit-2026-09-27.md DEP-3)
+function uploads_runtime_htaccess(): string {
+    return "# Uploaded files are DATA. Never let the web server execute anything here.\n"
+        . "# Written at runtime by admin/upload-image.php because this folder was\n"
+        . "# created on the server rather than deployed. Mirrors uploads/.htaccess.\n"
+        . "Options -Indexes\n"
+        . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
+        . "  Order Allow,Deny\n"
+        . "  Deny from all\n"
+        . "</FilesMatch>\n";
+}
+
 // Helper: derive the canonical image filename for a SKU. Same sanitization as
 // pdf_filename_for_sku(); the extension comes from the validated upload.
 function image_filename_for_sku(string $sku, string $ext): string {

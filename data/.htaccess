@@ -33,7 +33,12 @@ AddDefaultCharset UTF-8
 </IfModule>
 
 # Block PHP execution outright — this directory only holds JSON.
-<FilesMatch "\.(php|phtml|phps|php\d?)$">
+# Same rule as pdfs/.htaccess. The one it replaced, `\.(php|phtml|phps|php\d?)$`,
+# was `$`-anchored, case-sensitive and had no `phar`: measured on real Apache
+# 2.4 + mod_php, `x.phar` executed here even under Ubuntu's stock handler, and
+# `x.php.jpg` / `x.PHP` executed on an AddHandler host.
+# (audit-runs/audit-2026-09-27.md DEP-3; _harness/dep3-scriptblock.js)
+<FilesMatch "\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\.|$)">
   Order Allow,Deny
   Deny from all
 </FilesMatch>
