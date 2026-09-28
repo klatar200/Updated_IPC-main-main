@@ -3191,13 +3191,13 @@ function HomePage() {
             className="text-xs font-bold tracking-widest uppercase"
             style={{ color: "var(--brand-primary-text)" }}
           >
-            Bolingbrook, Illinois
+            {withBusinessFacts("Bolingbrook, Illinois", site)}
           </div>
           <h2
             className="text-2xl font-extrabold mt-1"
             style={{ color: "#141414" }}
           >
-            The same team, the same building, since 1974
+            {withBusinessFacts("The same team, the same building, since 1974", site)}
           </h2>
           <p className="mt-2 text-sm max-w-2xl" style={{ color: "#4b5563" }}>
             {/* A-9.P4-6 — this sentence and the two facility `alt`s spelled the
@@ -3229,7 +3229,7 @@ function HomePage() {
           <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
             <img
               src={slotSrc(img.bandTeamPhoto)}
-              alt="The Insulation Products Corporation team outside the Bolingbrook facility"
+              alt={withBusinessFacts("The Insulation Products Corporation team outside the Bolingbrook facility", site)}
               loading="lazy"
               decoding="async"
               width={BAND_TEAM.w}
@@ -3249,7 +3249,7 @@ function HomePage() {
           <figure className="m-0 rounded-2xl overflow-hidden md:self-start" style={{ border: "1px solid #e5e9ee" }}>
             <img
               src={slotSrc(img.bandBuildingPhoto)}
-              alt={`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`}
+              alt={withBusinessFacts(`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`, site)}
               loading="lazy"
               decoding="async"
               width={BAND_BUILDING.w}
@@ -3694,7 +3694,7 @@ function AboutPage() {
             {img.aboutPhoto ? (
             <img
               src={slotSrc(img.aboutPhoto)}
-              alt={`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`}
+              alt={withBusinessFacts(`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`, site)}
               loading="lazy"
               decoding="async"
               width={BAND_BUILDING.w}
@@ -4524,8 +4524,7 @@ function FaqPage() {
                 Still have questions?
               </h3>
               <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
-                Our sales team is available Mon–Fri, 8am–5pm CT and responds to
-                email inquiries quickly.
+                {withBusinessFacts("Our sales team is available Mon–Fri, 8am–5pm CT and responds to email inquiries quickly.", site)}
               </p>
               <div
                 className="mt-3 space-y-1.5 text-xs"
@@ -6603,6 +6602,10 @@ function mergeSiteInfo(data) {
   const isoSource = out.certifications && out.certifications.iso;
   out.about = withIsoLabel(out.about, isoSource);
   out.company = withIsoLabel(out.company, isoSource);
+  // ADM-7 — same two prose branches, for the other facts. `company` is NOT
+  // mapped whole: it holds `foundedYear` itself, the source.
+  out.about = withBusinessFacts(out.about, out);
+  out.company = { ...out.company, description: withBusinessFacts(out.company.description, out) };
   return out;
 }
 
@@ -6700,6 +6703,80 @@ function mapStrings(node, fn) {
 
 function withIsoLabel(tree, iso) {
   const rewrite = isoRewriter(iso);
+  return rewrite ? mapStrings(tree, rewrite) : tree;
+}
+
+/**
+ * ADM-7 (audit 2026-09-27) — the other facts Business Details offers get the
+ * same treatment as the ISO label. Hours, founded year, city, minimum order and
+ * feet in stock each have ONE field in settings.php, and each was also typed
+ * into content.json and into JSX: editing the field moved some copies and not
+ * others, so the homepage showed "$75" and "$50" at once.
+ *
+ * Same restraint as `isoRewriter`: only the SHIPPED value (`SITE_DEFAULTS`) is
+ * swapped for the live one, and only when the owner actually changed it — the
+ * wording around it is never touched. Replacements go through a FUNCTION, never
+ * a replacement string: a typed "$75" is otherwise read as a backreference
+ * (the invariant 1 lesson, in JS).
+ *
+ * Deliberately NOT rewritten: "over fifty years" / "50 years". It is derived
+ * from the founded year, not stored in any field, and a founded year only
+ * changes to correct a typo.
+ */
+function factsRewriter(site) {
+  if (!site) return null;
+  const D = SITE_DEFAULTS;
+  const val = (v) => (typeof v === "string" ? v.trim() : v != null ? String(v).trim() : "");
+  const rules = [];
+  const add = (re, to) => rules.push([re, () => to]);
+  const lit = (s) => new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+
+  const hours = val(site.hours && site.hours.text);
+  if (hours && hours !== D.hours.text) add(lit(D.hours.text), hours);
+
+  const a = site.address || {};
+  const city = val(a.city);
+  const state = val(a.state);
+  const zip = val(a.zip);
+  const street = val(a.street);
+  if ((city && city !== D.address.city) || (state && state !== D.address.state)) {
+    const c = city || D.address.city;
+    const s = state || D.address.state;
+    const { street: dStreet, city: dCity, state: dState, zip: dZip } = D.address;
+    // Longest form first, so a shorter rule never splits a longer one.
+    add(lit(`${dStreet}, ${dCity}, ${dState} ${dZip}`), `${street || dStreet}, ${c}, ${s} ${zip || dZip}`);
+    add(lit(`${dCity}, ${dState} ${dZip}`), `${c}, ${s} ${zip || dZip}`);
+    // "Illinois" is only right while the state is still IL; after a move the
+    // abbreviation is the one form of the new state this file knows.
+    add(lit(`${dCity}, Illinois`), `${c}, ${s === dState ? "Illinois" : s}`);
+    add(lit(`${dCity}, ${dState}`), `${c}, ${s}`);
+    add(new RegExp(`${dCity} ${dState}\\b`, "g"), `${c} ${s}`);
+    add(lit(dCity), c);
+  }
+
+  const year = val(site.company && site.company.foundedYear);
+  if (year && year !== D.company.foundedYear) add(new RegExp(`(?<!\\d)${D.company.foundedYear}(?!\\d)`, "g"), year);
+
+  const moq = val(site.stats && site.stats.minimumOrder);
+  if (moq && moq !== D.stats.minimumOrder) add(new RegExp(`${lit(D.stats.minimumOrder).source}(?![\\d,]|\\.\\d)`, "g"), moq);
+
+  const feet = val(site.stats && site.stats.feetInStock);
+  if (feet && feet !== D.stats.feetInStock) {
+    add(lit(D.stats.feetInStock), feet);
+    // The stats strip and the hero use the short form "25M+". Say the same
+    // thing short when the new value can be read as N million; otherwise the
+    // owner's own words, which are right if not as short.
+    const m = /^(\d+(?:\.\d+)?)\s*(?:million|M)\+?$/i.exec(feet);
+    const dm = /^(\d+(?:\.\d+)?)/.exec(D.stats.feetInStock);
+    if (dm) add(new RegExp(`(?<![\\d.])${dm[1].replace(".", "\\.")}M(?=\\+|\\b)`, "g"), m ? `${m[1]}M` : feet);
+  }
+
+  if (!rules.length) return null;
+  return (text) => rules.reduce((t, [re, to]) => t.replace(re, to), text);
+}
+
+function withBusinessFacts(tree, site) {
+  const rewrite = factsRewriter(site);
   return rewrite ? mapStrings(tree, rewrite) : tree;
 }
 
@@ -7399,7 +7476,8 @@ function ContentProvider({ children }) {
   // a fresh object every render would re-render every consumer of the context.
   const site = useSiteInfo();
   const iso = site && site.certifications ? site.certifications.iso : "";
-  const value = useMemo(() => withIsoLabel(content, iso), [content, iso]);
+  // ADM-7 — the other Business Details facts ride the same chokepoint.
+  const value = useMemo(() => withBusinessFacts(withIsoLabel(content, iso), site), [content, iso, site]);
   return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>;
 }
 
@@ -12904,14 +12982,22 @@ function Footer() {
                   className="text-xs mt-0.5"
                   style={{ color: "var(--brand-accent-on-footer)", letterSpacing: "0.08em" }}
                 >
+                  {/* ADM-9b (audit 2026-09-27) — only the built-in part of the
+                      line is upper-cased. `certifications.other` is the owner's
+                      own wording and is shown exactly as typed: upper-casing it
+                      published "RoHS" as "ROHS" on every page. */}
                   {[
-                    site.company.foundedYear ? `ESTABLISHED ${site.company.foundedYear}` : null,
-                    site.certifications?.iso || null,
+                    [
+                      site.company.foundedYear ? `ESTABLISHED ${site.company.foundedYear}` : null,
+                      site.certifications?.iso || null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+                      .toUpperCase(),
                     ...(site.certifications?.other || []),
                   ]
                     .filter(Boolean)
-                    .join(" · ")
-                    .toUpperCase()}
+                    .join(" · ")}
                 </div>
               </div>
             </div>

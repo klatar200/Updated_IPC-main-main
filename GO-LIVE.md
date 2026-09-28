@@ -78,6 +78,15 @@ the last minute.
 - [ ] **Publish SPF, and DKIM/DMARC if the host offers them.** Without SPF the
       quote notifications land in spam, which looks exactly like "the form is
       broken".
+- [ ] **Then, and only then, turn on the envelope sender (DEP-2).** SPF is
+      checked against the *envelope* sender, and `contact.php` ships with it
+      OFF (`IPC_ENVELOPE_FROM` is `''`), so the host picks its own. Once the
+      SPF record above is published **and** names Network Solutions' outbound
+      mail servers (ask their support for the exact `include:`), set
+      `define('IPC_ENVELOPE_FROM', 'noreply@insulationproducts.com');` in
+      `public/contact.php`, run `npm run build`, upload `contact.php`, and send
+      one test quote. Doing it *before* SPF is right makes every notification
+      fail SPF — worse than leaving it off. Rollback: set it back to `''`.
 - [ ] **Decide apex vs `www`, and make the server agree with the code.** The
       code has already decided: `SITE_ORIGIN` (`src/App.jsx`), `sitemap.php`'s
       `$ORIGIN`, `robots.txt`'s `Sitemap:` line and `index.html`'s `og:url` all

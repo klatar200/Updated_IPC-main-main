@@ -305,6 +305,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 if (!defined('IPC_TIMEZONE')) define('IPC_TIMEZONE', 'America/Chicago');
 @date_default_timezone_set(IPC_TIMEZONE);
 
+// DEP-2 (audit 2026-09-27) — the ENVELOPE sender, i.e. sendmail's -f. It is
+// what SPF is checked against and what DMARC aligns with the From: above.
+// Without it the host MTA picks its own, so SPF on insulationproducts.com is
+// never consulted for these messages.
+//
+// OFF ON PURPOSE — do not "fix" by filling it in. Setting it BEFORE the
+// domain's SPF record authorises Network Solutions' outbound servers makes
+// every quote notification fail SPF outright, which is worse than today.
+// Turn it on only when GO-LIVE §A's SPF step is ticked: set it to
+// 'noreply@insulationproducts.com', rebuild, and upload contact.php.
+// `_harness/dep2-envelope.js` asserts it ships as ''.
+if (!defined('IPC_ENVELOPE_FROM')) define('IPC_ENVELOPE_FROM', '');
+$mailParams = IPC_ENVELOPE_FROM !== '' ? '-f' . IPC_ENVELOPE_FROM : '';
+
 define('IPC_MAX_LINE', 200);    // name, email, phone, company, subject, part…
 define('IPC_MAX_TEXT', 5000);   // message, additionalNotes, specialReqs
 
@@ -820,7 +834,7 @@ $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
 // posture. (audit-runs/audit5.md, Low tier)
 
 
-$sent = @mail($to, $subject, $body, $headers); // @ — a mail warning must never corrupt the JSON response
+$sent = @mail($to, $subject, $body, $headers, $mailParams); // @ — a mail warning must never corrupt the JSON response
 
 // Log the inquiry whether or not the mail went through — a failed send is
 // exactly the case where the log is the only surviving copy of the lead.
@@ -953,7 +967,7 @@ $replyHeaders .= "Content-Type: text/plain; charset=UTF-8\r\n";
 
 
 if ($autoReplyOk) {
-    @mail($replyTo, $replySubject, $replyBody, $replyHeaders); // best-effort, no error check
+    @mail($replyTo, $replySubject, $replyBody, $replyHeaders, $mailParams); // best-effort, no error check
 }
 
 respond(200, ['ok' => true]);

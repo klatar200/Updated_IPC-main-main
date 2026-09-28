@@ -443,6 +443,7 @@ $navActive = 'settings';
           <div class="form-group full">
             <label for="cert_other">Other Certifications — one per line</label>
             <textarea id="cert_other" name="cert_other" rows="3" placeholder="MIL-SPEC&#10;RoHS Compliant"><?= h($otherStr) ?></textarea>
+            <div class="hint"><strong>Published on every page of the website, in the footer, exactly as typed, as soon as you save.</strong> List only certifications IPC currently holds &mdash; each line is a public claim.</div>
           </div>
         </div>
       </div>

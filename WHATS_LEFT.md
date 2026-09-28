@@ -6672,3 +6672,40 @@ and mutants into the shared mirror while it was still running, so I stopped
 it, and #58 was merged on its partial results (65 ok, only `brandtext` red).
 The clean sweep above covers #58's code and is the evidence for it.
 **Rule for next time: never sync `_harness/site` while a sweep is running.**
+
+## 1ad. Shipped 2026-09-28 — ADM-3 (#60) and the remaining engineering Mediums (#61)
+
+**ADM-3** (#60): "undo a delete" now brings the product's files back too, not
+only its record.
+- **The fix:** `delete.php` moves the data sheet and photo aside as
+  `.deleted.*` (`file_to_trash()`), and a Backups restore of the catalog puts
+  them back (`restore_trashed_files()`).
+- **Measured:** `_harness/adm3-deleterestore.js` was 7/10 before and is 10/10
+  after.
+- **Regression:** sweep5, 88/90. The reds are the expected `brandtext` and
+  `plan8-polish`.
+
+**#61**: SEC-1, PUB-2, SEC-4, NEW-N2-1/2, DEP-1, NEW-N3-2 and NEW-V4-1. Each
+has its own suite, listed in `_harness/README.md` under "Go-live audit
+2026-09-27".
+
+| Suite | Before | After |
+|---|---|---|
+| `sec1-photoclobber` | 5/9 | 9/9 |
+| `sec4-sessionforge` | 4/9 | 9/9 |
+| `pub2-outage` | 6/10 | 10/10 |
+| `n2-damageddata` | 3/11 | 11/11 |
+
+- **Regression:** sweep6, 90/94.
+  - Two reds were the expected ones.
+  - The other two were the harness, not the admin:
+    - `audit9-fixes` (32/36): `sync.sh` → `setpw.php` re-hashed the unchanged
+      password after the suite had logged in, and SEC-4 now correctly signs
+      out any session when the hash changes.
+    - `audit7-lead` (22/23): its A-7.3 control counted session files in the
+      old save path.
+  - **Fixed, no assertion changed:** `setpw.php` is now idempotent, and
+    `audit7-lead` counts in `admin/.sessions/`.
+  - After the fix: 40/40 and 23/23.
+- **ON PURPOSE:** `setpw.php` leaves a hash that already verifies alone. Do
+  not make it rewrite unconditionally again.
