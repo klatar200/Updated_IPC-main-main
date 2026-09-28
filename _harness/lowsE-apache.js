@@ -17,6 +17,7 @@
  *   PUB-11  a missing file under /pdfs, /uploads, /images or /data, and a
  *           missing /favicon.ico, is a real 404 — not the SPA shell with a 200;
  *           control: an SPA route still gets the shell
+ *   N3-1    a php.ini at the root or in admin/ answers 403 (batch F)
  *   N3-6    the LimitExcept comments no longer imply they stop TRACE
  *
  *   node _harness/lowsE-apache.js              # the working tree
@@ -62,7 +63,7 @@ let conf = null;
 try {
   // ── docroot ──
   fs.mkdirSync(PUB, { recursive: true });
-  spawnSync('cp', ['-r', path.join(ROOT, 'dist') + '/.', PUB]);   // path.join would drop the '/.'
+  spawnSync('cp', ['-r', (process.env.LOWSE_DIST || path.join(ROOT, 'dist')) + '/.', PUB]);   // path.join would drop the '/.'; LOWSE_DIST: test another build
   fs.writeFileSync(path.join(PUB, '.htaccess'), src('public/.htaccess'));
   for (const d of ['admin', 'uploads', 'uploads/images', 'pdfs', 'data', 'images']) fs.mkdirSync(path.join(PUB, d), { recursive: true });
   fs.writeFileSync(path.join(PUB, 'admin', '.htaccess'), src('admin/.htaccess'));
@@ -74,6 +75,8 @@ try {
   fs.writeFileSync(path.join(PUB, 'uploads', 'images', 'CC.png'), Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4540000000049454e44ae426082', 'hex'));
   fs.writeFileSync(path.join(PUB, 'pdfs', 'CC.pdf'), '%PDF-1.4\n%%EOF\n');
   fs.rmSync(path.join(PUB, 'favicon.ico'), { force: true });
+  fs.writeFileSync(path.join(PUB, 'php.ini'), 'upload_max_filesize = 24M\n');
+  fs.writeFileSync(path.join(PUB, 'admin', 'php.ini'), 'upload_max_filesize = 24M\n');
   spawnSync('chmod', ['-R', 'a+rX', WORK]);
 
   // ── certificate ──
@@ -148,6 +151,10 @@ DocumentRoot ${PUB}
   note(shells.length === 0, 'PUB-11: a missing data sheet, photo, image, data file or favicon is a real 404, not the site shell', shells.join(' | '));
   const route = head(`${S}/products`);
   note(route.status === 200 && /text\/html/.test(route.h('Content-Type')), 'PUB-11: control — an SPA route still gets the shell (200 text/html)', `${route.status} ${route.h('Content-Type')}`);
+
+  // ── N3-1 ── a php.ini someone uploads following old advice is not public
+  const ini = ['/php.ini', '/admin/php.ini'].map((u) => [u, head(`${S}${u}`).status]).filter(([, st]) => st !== 403);
+  note(ini.length === 0, 'N3-1: a php.ini in the web folder (root or admin/) is refused, not served', ini.map(([u, st]) => `${u} ${st}`).join(' | '));
 
   // ── N3-6 ──
   const over = ['admin/.htaccess', 'data/.htaccess', 'pdfs/.htaccess'].filter((f) => {

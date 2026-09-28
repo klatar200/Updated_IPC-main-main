@@ -3,7 +3,8 @@
 Guidance for Claude Code when working in this repository.
 **Constraints and invariants only.** Current state lives in
 [WHATS_LEFT.md](WHATS_LEFT.md); the reasoning behind this release's changes is
-in [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md). Re-verified 2026-08-04.
+in [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md). Re-verified 2026-08-04;
+the `App.jsx` size, the admin I/O surface and Deploy re-verified 2026-09-28.
 
 ## Commands
 
@@ -27,7 +28,7 @@ locally — Apache is the real gate, don't report those as findings.
 
 ### Local dev serves the real `data/`
 
-`vite.config.js` carries a dev-only middleware (`serveDataDir`, `apply: 'serve'`)
+`vite.config.mjs` carries a dev-only middleware (`serveDataDir`, `apply: 'serve'`)
 that maps `/data/*` onto the repo's top-level `data/` folder, with `..`
 containment and a real 404 on a miss. So `npm run dev` exercises the same three
 files and the same code paths as production — including `mergeSiteInfo` and
@@ -55,7 +56,7 @@ two upload folders.
 | `dist/*` (from `npm run build`) | `public_html/` | Vite | React source changes |
 | `public/*` | `public_html/` | — | `.htaccess`, `.user.ini`, `contact.php`, `sitemap.php`, images change |
 | `admin/` | `public_html/admin/` | (PHP, copied) | admin code changes |
-| `admin/config.local.php` | `public_html/admin/` | hand-deployed | password changes (gitignored) |
+| `admin/config.local.php` | `public_html/admin/` | **never uploaded** — written on the server by the `ALLOW-PASSWORD-RESET` flow (GO-LIVE B4) | — (gitignored) |
 | `data/` | `public_html/data/` | — | **first deploy only** |
 | `pdfs/` | `public_html/pdfs/` | — | **first deploy only** |
 | `uploads/` | `public_html/uploads/` | — | **first deploy only** |
@@ -65,10 +66,11 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
 
 ### React side ([src/App.jsx](src/App.jsx))
 
-- **One ~13,300-line file is the entire app.** Routing shims, data fetch, every
-  page, every component, every icon set. Search by name; there is no per-page
-  split in use. (Said 8,500 until 2026-08-11, 12,270 until 2026-08-13 and 12,900
-  until 2026-09-14; it grows every release without the figure being revisited.
+- **One ~13,700-line file is the entire app** (13,742 on 2026-09-28). Routing
+  shims, data fetch, every page, every component, every icon set. Search by
+  name; there is no per-page split in use. (Said 8,500 until 2026-08-11, 12,270
+  until 2026-08-13, 12,900 until 2026-09-14 and 13,300 until 2026-09-28; it
+  grows every release without the figure being revisited.
   Re-measure with `wc -l src/App.jsx` rather than trusting this number — it will
   drift again.)
 - **There is no per-page split. Do not go looking for one, and do not start
@@ -108,12 +110,36 @@ PHP 7.4+, session auth, no DB. Every entry point includes
 
 ### Full I/O surface of the admin
 
-Read/write `data/products-all.json`, `data/site-info.json`, `data/content.json`;
-read/write/delete files in `pdfs/` and `uploads/images/`; append to
-`admin/admin-log.jsonl`; read `admin/inquiries.jsonl`; read/write
-`admin/.login-throttle.json`; read/write `admin/config.local.php`; create/delete
-`admin/ALLOW-PASSWORD-RESET`. Earlier revisions of this file claimed the surface
-was one JSON file and one folder; it is not.
+Earlier revisions of this file claimed the surface was one JSON file and one
+folder, and then listed a set that still missed the dotfiles, backups, log
+archives, temp files, session store and trash (audit 2026-09-27 DEP-11).
+Every path below is in `admin/config.php` or an `admin/*.php` page;
+`admin/README.md`'s table is the same list.
+
+- **`data/`** — read/write `products-all.json`, `site-info.json`,
+  `content.json`, each written as `<file>.<pid>-<rand>.tmp` then renamed in
+  (`json_write_atomic()`); write/prune `<prefix>.backup.<stamp>[-NN].json`
+  (`BACKUP_KEEP`); create/`flock` `.products-write.lock` (SEC-5).
+- **`pdfs/`** — read/write/delete; `upload-pdf.php` creates the folder if
+  absent. Deleting a product renames its unshared PDFs to `.deleted.<name>`
+  (`file_to_trash()`, ADM-3) and a catalog restore renames them back
+  (`restore_trashed_files()`); nothing prunes them. **Remove PDF** on
+  `upload-pdf.php` still unlinks.
+- **`uploads/images/`** — read/write/delete; created at runtime if absent, and
+  `upload-image.php` writes `uploads/.htaccess` if that is missing (and refuses
+  the upload if it still is — NEW-N3-3). Photo resizes go through a `.tmp`
+  beside the target. Deleted products' photos go to `.deleted.<name>` as above.
+- **`admin/`** — append `admin-log.jsonl`, rotated to `admin-log-<stamp>.jsonl`
+  at 16 MB (archives are read by `audit-log.php`, never deleted); read
+  `inquiries.jsonl` and its `inquiries-<stamp>.jsonl` archives (both written by
+  `public/contact.php`); read/write `.inquiries-seen.json`; read
+  `.inquiry-log-failed.json` (written and cleared by `contact.php`); read/write
+  `.login-throttle.json`; read/write `config.local.php`, backing it up to
+  `config.local.php.bak.<stamp>` (5 kept); read and **delete** — never create —
+  `ALLOW-PASSWORD-RESET` (the operator creates it over FTP); create
+  `.sessions/` (0700) plus its `.htaccess`, and PHP writes the session files
+  there (SEC-4; falls back to the default `session.save_path` if `admin/` is
+  not writable).
 
 `public/contact.php` is a **second** dynamic piece: it ships into `dist/`, calls
 `mail()`, and appends to `admin/inquiries.jsonl`.
@@ -236,10 +262,16 @@ concurrency signatures on `edit.php`, `settings.php` and `content.php`.
 ## Deploy
 
 `npm run build`, then FTP the **contents** of `/dist` into `public_html/`. The
-authoritative manifest, including the do-not-upload list, is
-[DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) §7 — which is frozen and is now
-**stale by one row**: it lists `sitemap.xml`, which no longer exists. Read
-`sitemap.php` for it. `README.md`'s two deploy tables are correct as written. `admin/` must be writable by
+current manifest, including the do-not-upload list, is `README.md`'s deploy
+tables ("The deploy manifest" and "Permissions"), walked step by step in
+[GO-LIVE.md](GO-LIVE.md). [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) §7 is
+**frozen history, not a manifest** — do not deploy from it and do not edit it. It
+disagrees with the README in at least four rows, and two of them are harmful on a
+first deploy: it calls `pdfs/` "already live" and says not to upload
+`products-all.json`, so following it ships a site with no catalog and no data
+sheets. (It also lists `sitemap.xml`, which no longer exists — `sitemap.php`
+replaced it.) This section called §7 "authoritative" and "stale by one row" until
+2026-09-28 (audit 2026-09-27 DEP-10). `admin/` must be writable by
 the PHP user or the audit log, the inquiry log, the login throttle and password
 changes all fail silently — the dashboard shows a banner when it isn't.
 

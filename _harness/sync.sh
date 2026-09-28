@@ -52,6 +52,11 @@ cp -ru pdfs _harness/site/ 2>/dev/null || cp -r pdfs _harness/site/
 # Measured 2026-08-13: present on every admin page of a first-run mirror.
 mkdir -p _harness/site/uploads/images
 cp -ru uploads/images/. _harness/site/uploads/images/ 2>/dev/null || true
+# uploads/.htaccess too: since NEW-N3-3 (audit 2026-09-27) the admin refuses a
+# photo upload when that file is missing and cannot be written, and the
+# dashboard banners it. php -S ignores the file's rules; its PRESENCE is what
+# the admin checks, exactly as on the real server.
+cp uploads/.htaccess _harness/site/uploads/.htaccess
 
 cp _harness/pristine/content.json      _harness/site/data/content.json
 cp _harness/pristine/site-info.json    _harness/site/data/site-info.json

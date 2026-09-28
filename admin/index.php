@@ -197,6 +197,14 @@ $navActive = 'products';
       $healthProblems[] = 'The <code>uploads/images</code> folder is missing or not writable. '
         . 'Product photo uploads will fail. Create public_html/uploads/images/ over FTP and set it to 755.' . $permFallback;
   }
+  // NEW-N3-3 / NEW-R3-m3-2 (audit 2026-09-27) — the folder can exist with its
+  // security file missing (created by hand, or dotfiles hidden by the FTP
+  // client). upload-image.php now refuses uploads then; say so up front.
+  $uploadsHtaccess = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
+  if (is_dir(dirname($uploadsHtaccess)) && !file_exists($uploadsHtaccess)) {
+      $healthProblems[] = 'The <code>uploads/.htaccess</code> security file is missing, so photo uploads are refused. '
+        . 'Upload <code>uploads/.htaccess</code> from the release over FTP (turn on "show hidden files" to see it).';
+  }
   // A-5.9 — the contact form's rate limit and its per-recipient auto-reply cap
   // both keep their state in the system temp dir. If that is not writable the
   // controls do not fail loudly, they simply stop counting, and nothing else

@@ -23,6 +23,12 @@ Open https://www.insulationproducts.com/data/products-all.json in a browser.
 |---|---|---|
 | A JSON catalog of products | **a re-deploy** onto a live site | Check **A**, then follow **B** — skipping B2.0 and B2.7. Never upload `data/`, `pdfs/` or `uploads/` contents — they are Rick's live edits and an FTP overwrite creates no backup. |
 | 404, or nothing there | **the first deploy** | Do **A** first (before deploy day), then **B**. The three data folders go up exactly once, in B2.7. |
+| A certificate / "not secure" warning before any page | **nothing yet** | Stop: that is the §A **certificate GATE** (apex/`www` item) — no deploy until the host fixes it. To answer this step meanwhile, `curl -sk -o /dev/null -w '%{http_code}\n' https://www.insulationproducts.com/data/products-all.json` (`-k` skips the certificate check for this one read-only request) and use the 200 / 404 rows. |
+
+A redirect is not expected here: re-measured 2026-09-27, this URL answers 404
+directly and only `/` redirects — STEP 0b handles that
+(`audit-runs/audit-2026-09-27.md`, NEW-V4-4). If it does redirect, stop and read
+STEP 0b before deciding.
 
 If it loads but the products look wrong or old, stop and diff it against
 `data/products-all.json` in the repo before deciding. **Downloading the
@@ -68,9 +74,25 @@ the last minute.
       nothing should: writing `:2015` because it is the current standard would
       invent a certification claim for a supplier to aerospace, medical and
       automotive.
-- [ ] **Rotate the admin password.** A working hash is in this public repo's
-      history. Sign in → **Password**. Do this *before* the site is public, not
-      after.
+- [ ] **Rotate the admin password — never by uploading a file.** A working
+      hash is in this public repo's history. On a **first deploy** there is no
+      password on the server, and the admin fails closed ("Admin Not
+      Configured"); setting a fresh one through the `ALLOW-PASSWORD-RESET` flow
+      in **B4** *is* the rotation, so there is no Sign in → Password step. On a
+      **re-deploy**, sign in → **Password** before deploy day. Either way,
+      choose the new password now (12–72 characters) and keep it somewhere
+      safe.
+
+      ⚠ **Never upload a local `admin/config.local.php`.** The copy in a
+      working checkout carries the test-harness password `audit-pass-123`,
+      printed in dozens of tracked files of this public repo, and every hash
+      in git history is public too. (DEP-6, NEW-V4-2)
+- [ ] **Confirm the host runs PHP 7.4 or newer** for this domain — in the
+      Network Solutions control panel, or ask their support (where the panel
+      shows it is unconfirmed from here). On 7.3 the public site and the contact
+      form still work, but every admin page is a parse-error 500 (`fn` arrow
+      functions, e.g. `admin/config.php:971`). C3 reads the exact version back
+      after deploy. (DEP-7)
 - [ ] **Confirm `noreply@insulationproducts.com` exists** as a real mailbox or
       alias on the account. Network Solutions requires the `From:` address to
       exist on the account to pass their outbound filter, and every quote
@@ -96,8 +118,13 @@ the last minute.
       it is not being served at, and `sitemap.php` advertises 52 URLs on the
       wrong host.
 
+      **Put that 301 in the Network Solutions panel**, not in
+      `public_html/.htaccess`: B2.4 overwrites that file on every deploy, and a
+      rule hand-added to it on the server silently disappears. (NEW-N3-8)
+
       ⚠ **2026-09-14 — this is now a GATE, not a checklist item.** Audit 9
-      measured the live host (`_harness/out/audit9/step0.md`): both the apex and
+      measured the live host (`audit-runs/audit9.md` §1.5, restated in
+      `audit-runs/live-triage-2026-09-15.md`): both the apex and
       `www` present an **expired** `CN=*.hostingplatform.com` certificate, which
       is not issued for this hostname at all, and plain HTTP answers
       `302 → /site/` rather than `301 → https://www.…`. The privacy policy tells
@@ -106,10 +133,12 @@ the last minute.
       `audit-runs/audit9.md` A-9.P5a-1. Nothing in the repo can fix it; it is
       the host's to do, and it has to be done before deploy day, not after.
 - [ ] **Retrieve `/site/admin/inquiries.jsonl` from the server** — or establish
-      that the predecessor site's contact form was never wired to one. Every
-      other file under `public_html/site/` is byte-identical to something in
-      this repo (`audit-runs/live-triage-2026-09-15.md` §6), so that log is the
-      one thing on the host that cannot be reproduced from here. It was not
+      that the predecessor site's contact form was never wired to one. The
+      triage found nothing else under `public_html/site/` that this repo lacks
+      (`audit-runs/live-triage-2026-09-15.md` §6) — but from ~19 requests and
+      two hash comparisons, with no directory listing, so it is a spot check,
+      not proof (NEW-V4-3; B2.10 re-checks before deleting). That log is the
+      one thing on the host known to be irreproducible from here. It was not
       opened during the audit: reading it means signing into `/site/admin/`,
       which is yours to do, not the auditor's.
 - [ ] **Find** the `/` → `/site/` redirect — in the Network Solutions panel or a
@@ -156,9 +185,17 @@ the last minute.
 
 ### Added 2026-09-14 by audit 9 — admin edits, not file uploads
 
-All four render from `data/content.json` or `data/products-all.json`, which are
-live customer state. Do them in the dashboard; do not re-upload `data/`.
-Full records in `audit-runs/audit9.md` §2, summarised in §5.1.
+All of these render from `data/content.json` or `data/products-all.json`.
+**Make the decisions this week; where you apply them depends on STEP 0:**
+
+- **First deploy** — there is no admin to sign into before launch. Either
+  apply the decided change to the repo's `data/*.json` before B2.7, so it ships
+  with `data/` (as the ticked item below was), or do it in the dashboard
+  straight after C passes (D lists it). Nothing here blocks the upload.
+- **Re-deploy** — `data/` is live customer state: do them in the dashboard,
+  never by re-uploading `data/`.
+
+(NEW-V4-6.) Full records in `audit-runs/audit9.md` §2, summarised in §5.1.
 
 - [ ] **Decide what "42 Products Stocked" counts, then change it**
       (**A-9.P4-4**, extended by **POST-9.1** — `WHATS_LEFT.md` §2p). It is
@@ -171,10 +208,12 @@ Full records in `audit-runs/audit9.md` §2, summarised in §5.1.
       Stocked", derived from the catalog** rather than typed. Nothing should
       change on the homepage until you have chosen the number — every candidate
       is defensible and only one is what IPC means.
-- [ ] **Rewrite FAQ answer 14** (**A-9.P5a-2**), at **Admin → Page Content →
-      FAQ**. Two things in it are wrong. It tells the buyer to click a
-      **"Data Sheet"** button; audit 9 gave that control one name across the
-      product page and the name is **`Datasheet`**. It also promises "the full
+- [ ] **Rewrite FAQ row #15** — *"Where can I download product data sheets?"*
+      (**A-9.P5a-2**), at **Admin → Page Content → FAQ**; in the repo it is
+      `faq[14]` of `data/content.json`, which is where the old "answer 14"
+      came from (NEW-V4-5). Two things in it are wrong. It tells the buyer to
+      click a **"Data Sheet"** button; audit 9 gave that control one name
+      across the product page and the name is **`Datasheet`**. It also promises "the full
       IPC product catalog PDF" on the Products page header and in the footer —
       there is no such file until `catalogPdfUrl` is filled in on **Business
       Details**, so either fill it in or drop the sentence.
@@ -244,9 +283,18 @@ pointing at a file that does not exist.
 3. [ ] `dist/contact.php`, `sitemap.php`, `favicon.svg`, `logo.svg`,
        `manifest.json`, `robots.txt` → `public_html/`
 4. [ ] `dist/.htaccess`, `dist/.user.ini` → `public_html/`
-5. [ ] `admin/` → `public_html/admin/` *(only if the admin code changed)*
-6. [ ] `admin/config.local.php` → `public_html/admin/` — **hand-deployed,
-       gitignored, carries the only working password hash**
+5. [ ] `admin/` → `public_html/admin/` — **mandatory on a first deploy**; on a
+       re-deploy, only if the admin code changed. Upload the tracked files only
+       (`git ls-files admin/`, including the dotfile `admin/.htaccess`). Skip
+       everything `.gitignore` lists under `admin/` — `config.local.php*`,
+       `*.jsonl`, `.login-throttle.json`, `.sessions/`, `ALLOW-PASSWORD-RESET`:
+       locally those are test leftovers, on the server they are live state.
+       (NEW-V4-8)
+6. [ ] **Do NOT upload `admin/config.local.php`.** No step creates a safe one
+       on your machine: the local copy carries the harness password
+       `audit-pass-123`, and any hash from git history is public. On a first
+       deploy the password is set on the server in **B4**; on a re-deploy the
+       server's own file is live state — never overwrite it. (DEP-6, NEW-V4-2)
 7. [ ] **first deploy only:** `data/`, `pdfs/`, `uploads/` → `public_html/`
 8. [ ] **`data/.htaccess`, `pdfs/.htaccess`, `uploads/.htaccess`** — upload the
        **file**, never the folder, whenever it has changed. These are the only
@@ -255,11 +303,20 @@ pointing at a file that does not exist.
        `AddType application/json` that the site's `jsonOrThrow()` requires and
        the `X-Robots-Tag: noindex` half of the A-5.2 fix.
 9. [ ] **`index.html` → `public_html/` — LAST**
-10. [ ] **After C has passed — delete `public_html/site/`.** Not before: it is
-        the only copy of the predecessor site and the fallback if the deploy has
-        to be backed out. Once C is green it is a second, broken, indexable copy
-        of the catalog sitting one path segment away — 42 broken photos, 42
-        broken datasheets — and `/site/sitemap.xml` is still handing a crawler
+10. [ ] **After C has passed — re-check `/site/` for owner edits, then delete
+        `public_html/site/`.** The triage was 2026-09-15; anything saved there
+        since would be lost with the folder. First download
+        `public_html/site/data/*.json` (on 2026-09-15 only `products-all.json`
+        existed; `site-info.json` and `content.json` answered 404 — look again)
+        and `public_html/site/admin/inquiries.jsonl`, and diff each against the
+        repo's `data/` and the copy retrieved in §A. Anything new: carry it into
+        the live site through the dashboard, or keep the download, before
+        deleting. (NEW-V4-3)
+
+        Then delete it — not before C: it is the only copy of the predecessor
+        site and the fallback if the deploy has to be backed out. Once C is
+        green it is a second, broken, indexable copy of the catalog sitting one
+        path segment away — 42 broken photos, 42 broken datasheets — and `/site/sitemap.xml` is still handing a crawler
         eight URLs. `audit-runs/live-triage-2026-09-15.md`.
 
 ### B3. Permissions
@@ -270,7 +327,7 @@ pointing at a file that does not exist.
 | `public_html/pdfs/` | 755, writable by PHP | data-sheet uploads |
 | `public_html/uploads/images/` | 755, writable by PHP | photo uploads |
 | `public_html/admin/` | 755, writable by PHP | audit log, **inquiry log**, throttle, password changes |
-| `public_html/admin/config.local.php` | 600 or 644 | the password hash |
+| `public_html/admin/config.local.php` | readable **and** writable by PHP | the password hash — the admin rewrites it on every password change |
 
 "Writable by PHP" is not the same as "writable by FTP". Where they differ, all
 four writes fail silently — the dashboard banner in B4 is what catches it.
@@ -281,6 +338,37 @@ write. Ask the host to run PHP as your account user (suEXEC / suPHP / PHP-FPM pe
 account) — that is the fix. Setting the folder to **777** also works, but it lets
 every account on that server write there too, so treat it as a stop-gap and tell
 the host. No other mode clears it.
+
+**`config.local.php` has the same trap, with worse symptoms** (NEW-V4-7). 600
+or 644 is right only while PHP runs as the file's owner. If PHP is a different
+user: at **600** every admin page — the reset screen included — is a blank 500,
+and an opcode cache can hide that until the server restarts; at **644** the
+password change fails with "Could not write admin/config.local.php — the admin/
+folder must be writable by the web server", which points at the wrong thing.
+Letting the admin create the file itself in B4 makes PHP its owner and avoids
+both.
+
+### B4. Set the admin password — first deploy only
+
+There is no password on the server yet, by design: `/admin/` shows **"Admin Not
+Configured"**. That is the product failing closed, not a fault. B3 must be done
+first — the admin writes `config.local.php` into `admin/`. (DEP-6, NEW-V4-2)
+
+1. [ ] Have the new password from §A to hand (12–72 characters).
+2. [ ] Over FTP, upload an **empty** file named `ALLOW-PASSWORD-RESET` into
+       `public_html/admin/`. Only when you are ready to type: until it is used,
+       anyone who opens `/admin/` can set the password. The window closes one
+       hour after the upload (`PASSWORD_RESET_WINDOW`, `admin/config.php`).
+3. [ ] Open `/admin/`, set the password on the **Set admin password** screen.
+       The admin writes `config.local.php`, deletes the flag, and signs you in
+       to the dashboard — check it for the red **"Server setup problem"**
+       banner (B3).
+4. [ ] Confirm `ALLOW-PASSWORD-RESET` is **gone** from `public_html/admin/`.
+       If it is still there, the write failed — fix `admin/` permissions (B3),
+       delete the flag, upload it again, repeat 3.
+
+On a re-deploy, skip B4: the server's password is live state. Rotate it at
+Sign in → **Password** (§A).
 
 ---
 
@@ -297,15 +385,19 @@ one of these files uses Apache 2.2 `Order`/`Deny` syntax, served on 2.4 only by
 ```bash
 curl -sI https://www.insulationproducts.com/data/products-all.json
 #  expect: 200 · Content-Type: application/json · X-Robots-Tag: noindex
-#  a 500 here means mod_access_compat is absent and the catalog is DOWN
+#  a 500 here means mod_access_compat is absent — and then the WHOLE SITE is
+#  down, not just the catalog: public/.htaccess uses Order/Deny too (NEW-N3-7)
 
 curl -sI https://www.insulationproducts.com/.user.ini            # expect 403
 curl -sI https://www.insulationproducts.com/admin/config.php     # expect 403
 curl -s  https://www.insulationproducts.com/sitemap.xml | head -3
 #  expect XML, not the SPA shell
 
-curl -sI -H 'Accept-Encoding: gzip' https://www.insulationproducts.com/assets/index-*.js
-#  expect: Content-Encoding: gzip  (376 kB vs 108 kB on every cold load)
+# curl does not expand `*` — read the real bundle name off the live shell first
+JS=$(curl -s https://www.insulationproducts.com/ | grep -o 'assets/index-[^"]*\.js' | head -1)
+echo "$JS"                                          # expect assets/index-<hash>.js
+curl -sI -H 'Accept-Encoding: gzip' "https://www.insulationproducts.com/$JS"
+#  expect: Content-Encoding: gzip  (376 kB vs 108 kB on every cold load) (DEP-4)
 
 curl -sI http://www.insulationproducts.com/                      # expect 301 → https
 curl -sI https://insulationproducts.com/                         # expect 301 → www
@@ -334,8 +426,30 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
       write, the open password-reset window, and (since A-7.4) an inquiry log
       that cannot be written.
 - [ ] **Help → What your server allows.** If it reads **2M / 8M / 1000**,
-      `.user.ini` is not being applied on this host — move the same directives
-      into a `php.ini` in `public_html/`.
+      `.user.ini` is not being applied on this host (mod_php). Ask Network
+      Solutions to raise `upload_max_filesize`, `post_max_size` and
+      `max_input_vars`; do **not** upload a `php.ini` — it is ignored there too
+      (NEW-N3-1).
+- [ ] **Same table: PHP version is 7.4 or newer** (§A, DEP-7). You only get
+      this far on 7.4+; on 7.3 every admin page is a 500 before it.
+- [ ] **The password was set fresh on this server** — first deploy: through B4,
+      and `ALLOW-PASSWORD-RESET` is no longer in `public_html/admin/`;
+      re-deploy: rotated at **Password** (§A). `audit-pass-123` must **not**
+      sign in. (DEP-6, NEW-V4-2)
+- [ ] **PHP errors are not shown to visitors** (`display_errors = Off`, set by
+      `.user.ini`). This posts 5,001 dummy fields to the read-only sitemap — it
+      writes nothing, starts no session — which makes PHP raise its
+      "Input variables exceeded" warning before any of our code runs:
+
+      ```bash
+      seq -f 'a%g=1' 5001 | paste -sd'&' - \
+        | curl -s --data-binary @- https://www.insulationproducts.com/sitemap.php | head -3
+      ```
+
+      Expect it to start with `<?xml`. Any `Warning` text or a server path means
+      errors are displayed publicly: set `display_errors` Off in the host's PHP
+      settings. A clean result is necessary, not sufficient — it proves only
+      that startup warnings are hidden. (NEW-N3-12)
 
 ### C4. The one journey the site exists for
 
@@ -354,6 +468,8 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
       chose in A) and submit `https://www.insulationproducts.com/sitemap.xml`.
 - [ ] Re-run C4 a week later. A form that worked on Saturday and silently stops
       is the failure mode with no symptom.
+- [ ] **First deploy:** any §A "admin edits" item not already made in the
+      repo's `data/` before B2.7 — do it now in the dashboard. (NEW-V4-6)
 - [ ] Check **Admin → Inquiries** in the first week even if no email arrived —
       that is exactly what the log is for.
 
@@ -364,10 +480,12 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
 | Symptom | First thing to check |
 |---|---|
 | Blank page | Did you upload `dist/` itself instead of its **contents**? |
+| Every URL, including `http://` → `https://`, answers 500 | `mod_access_compat` is absent: `public/.htaccess` uses `Order`/`Deny` (C1, NEW-N3-7). Host action |
+| Every admin page is a 500 (often blank), public site fine | PHP older than 7.4 (§A), or `config.local.php` not readable by PHP (B3) |
 | Blank page, console error about a missing `assets/…js` | `index.html` went up before `assets/`. Upload `assets/` and it resolves. |
 | Deep links 404 on refresh | `.htaccess` is missing from `public_html/` — it is a hidden dotfile |
 | "Catalog Unavailable" | `data/products-all.json` missing, unreadable, or served without `Content-Type: application/json` (that is `data/.htaccess`, step B2.8) |
-| Admin rejects a known-good password | `config.local.php` missing or overwritten. Recovery: FTP an empty file named `ALLOW-PASSWORD-RESET` into `public_html/admin/`, open `/admin/`, set a new password. Deleting `config.local.php` on its own **locks the admin**, it does not reset it |
+| Admin rejects a known-good password | `config.local.php` missing or overwritten (never with a local copy — B2.6). Recovery: FTP an empty file named `ALLOW-PASSWORD-RESET` into `public_html/admin/`, open `/admin/`, set a new password. Deleting `config.local.php` on its own **locks the admin**, it does not reset it |
 | Form says "mail server could not send" | The `noreply@` mailbox does not exist on the account (step A) |
 | Leads in email but not in Inquiries | `admin/` is not writable by PHP. The dashboard banner says so |
 
@@ -378,6 +496,11 @@ previous `assets/index-<hash>.js` and `.css` are still on the server unless
 someone deleted them, so the old shell finds its old bundle. Keep the `dist/`
 you deployed last time, or download `index.html` before overwriting it — that
 one file is the entire rollback.
+
+**First deploy:** there is no previous `index.html` to go back to. The rollback
+is restoring the `/` → `/site/` redirect removed in B2.0, which sends visitors
+back to the predecessor — the reason B2.10 waits until C has passed.
+(NEW-V4-8)
 
 This is the **frontend only**. `data/` rolls back through **Admin → Backups**,
 which keeps the 90 most recent saves per file and backs up the current state

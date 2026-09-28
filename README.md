@@ -20,9 +20,9 @@ Corrections and the reasoning behind them are in `DEPLOY_READINESS_v2.md`.
 Updated_IPC-main-main/
 ├── index.html              Vite entry — produces dist/index.html on build
 ├── package.json
-├── vite.config.js          base: '/' — see the comment in the file; './' white-screens deep links
+├── vite.config.mjs         base: '/' — see the comment in the file; './' white-screens deep links
 ├── tailwind.config.js
-├── postcss.config.js
+├── postcss.config.mjs
 ├── public/                 Copied verbatim into dist/ on build
 │   ├── .htaccess           SPA rewrite + cache headers  (LOAD-BEARING, see below)
 │   ├── .user.ini           PHP upload / form limits for the admin
@@ -32,7 +32,7 @@ Updated_IPC-main-main/
 │   └── images/             Product and marketing imagery
 ├── src/
 │   ├── main.jsx
-│   ├── App.jsx             Entire React app (single file, ~13000 lines)
+│   ├── App.jsx             Entire React app (single file, 13,742 lines on 2026-09-28 — `wc -l`)
 │   └── index.css           Tailwind entry + first-paint-critical CSS
 ├── data/                   NOT bundled by Vite — deploy separately, ONCE
 │   ├── .htaccess           Blocks backups, dotfiles, PHP execution
@@ -40,16 +40,16 @@ Updated_IPC-main-main/
 │   ├── site-info.json      Business details    — read by React, written by admin
 │   └── content.json        Editable page copy  — read by React, written by admin
 ├── pdfs/                   NOT bundled by Vite — deploy separately, ONCE
-├── uploads/                NOT bundled by Vite — deploy separately, ONCE
+├── uploads/                NOT bundled by Vite — deploy separately, ONCE, WITH its .htaccess
 │   ├── .htaccess           Blocks script execution on uploaded files
-│   └── images/             Customer-uploaded product photos (admin writes here)
-│                           NOTE: this folder is NOT in the repo — upload-image.php
-│                           creates it (and its .htaccess) on first use. Do not go
-│                           looking for it locally. (AUDIT_v3 D10)
+│   ├── images/             Product photos (admin writes here) — ships empty (.gitkeep)
+│   └── site/               The owner's own Site Images photos — ships empty (.gitkeep)
+│                           Both folders are in the repo; the old note that
+│                           images/ was not (AUDIT_v3 D10) is out of date.
 └── admin/                  PHP admin panel — deploy separately
     ├── .htaccess           Force HTTPS, security headers, file blocks
     ├── config.php          Shared config, JSON helpers, CSRF, backups, throttle
-    ├── config.local.php    THE admin password hash (gitignored, hand-deployed)
+    ├── config.local.php    THE admin password hash (gitignored; created ON the server by the reset flow)
     ├── auth.php            Login + FTP-unlocked password recovery
     ├── index.php, edit.php, add.php, delete.php
     ├── settings.php        Business details
@@ -73,7 +73,7 @@ npm run dev          # http://localhost:5173
 ```
 
 `npm run dev` serves the repo's real `data/` folder at `/data/*`, through the
-`serveDataDir` middleware in `vite.config.js`. All three runtime files —
+`serveDataDir` middleware in `vite.config.mjs`. All three runtime files —
 `products-all.json`, `site-info.json`, `content.json` — are fetched from the
 same URLs in dev and in production, so `mergeSiteInfo` and `mergeContent` (which
 hold invariants 3 and 4) are exercised locally.
@@ -90,9 +90,11 @@ hid a deleted catalog once already.
 npm run build        # → /dist
 ```
 
-Produces `dist/index.html`, `dist/assets/index-[hash].{js,css}` (≈91 KB gzipped
-JS, ≈4.5 KB gzipped CSS as of 2026-08-04) plus a verbatim copy of everything in
-`public/`.
+Produces `dist/index.html`, `dist/assets/index-[hash].{js,css}` plus a verbatim
+copy of everything in `public/`. For the current bundle size, run
+`npm run build` and read Vite's size report (or `ls -l dist/assets/`). The
+figure this paragraph used to quote (≈91 KB gzipped JS, 2026-08-04) is long out
+of date and is deliberately not replaced with another one that will drift.
 
 `dist/` is gitignored. It is a build artifact; rebuild it, don't commit it.
 
@@ -116,7 +118,7 @@ hand-deployed password file.
 | `.htaccess`, `.user.ini`, `contact.php`, `sitemap.php`, `favicon.svg`, `logo.svg`, `manifest.json`, `robots.txt` | `dist/` (copied from `public/`) | when changed |
 | `images/` | `dist/images/` (copied from `public/images/`) | when changed |
 | `admin/` | `admin/` | this release |
-| `admin/config.local.php` | (hand-deployed, gitignored) | this release — carries the password |
+| `admin/config.local.php` | never uploaded — written on the server by the `ALLOW-PASSWORD-RESET` flow (GO-LIVE B4) | first deploy |
 | `data/.htaccess`, `pdfs/.htaccess`, `uploads/.htaccess` | the repo, **not** `dist/` | **when changed — see below** |
 | **`data/`, `pdfs/`, `uploads/` — their contents** | the repo | **first deploy only — once.** `GO-LIVE.md` STEP 0 tells you which deploy this is. Skip this row on a first deploy and the site shows "Catalog Unavailable"; follow it on a re-deploy and you overwrite Rick's live edits. (DEP-1) |
 
@@ -143,7 +145,7 @@ depends on. (audit-runs/audit6.md A-6.2.)
 | `data/products-all.json` | Live customer state. Settled 2026-08-04: download the server's copy, diff, and merge only if the repo copy is genuinely ahead. An FTP overwrite is irreversible and creates no backup. |
 | `data/site-info.json`, `data/content.json` | Same — the owner edits these through the admin. |
 | `pdfs/` | Live customer state. Same rule. |
-| `uploads/` | Live customer state (product photos). `upload-image.php` creates `uploads/images/` and its `.htaccess` at runtime if absent. |
+| `uploads/` | Live customer state (product photos, and the owner's photos in `uploads/site/`). If `uploads/.htaccess` is missing, `upload-image.php` tries to write it and refuses photo uploads until it exists — the fix is uploading the shipped file, never creating the folder by hand without it (NEW-N3-3). |
 | `_harness/`, `node_modules/`, `src/`, `*.md` | Not part of the deployed site. |
 
 The `data/`, `pdfs/` and `uploads/` rows mean each folder's **contents**. The
@@ -162,7 +164,7 @@ on they are owned by the customer, and re-uploading them destroys his edits.
 | `public_html/uploads/images/` | 755, **writable by PHP** | product photo uploads |
 | `public_html/admin/` | 755, **writable by PHP** | see below |
 | `public_html/admin/config.php` | 644 | |
-| `public_html/admin/config.local.php` | 600 or 644 | contains the password hash |
+| `public_html/admin/config.local.php` | readable **and writable** by the PHP user | the admin rewrites it on a password change; created by the reset flow, so PHP owns it (GO-LIVE B3/B4) |
 
 **`admin/` must be writable by the PHP user, not just by FTP.** Four things are
 written into it: `admin-log.jsonl` (the activity log), `inquiries.jsonl` (**every
@@ -184,8 +186,11 @@ There is **no shipped default password**. `admin/config.php` defines an
 unsatisfiable sentinel, so a missing or damaged `config.local.php` fails closed —
 nobody can sign in — rather than falling back to a password printed in the docs.
 
-Deploy `admin/config.local.php` by hand. It is gitignored and carries the only
-working hash.
+Do **not** upload a local `admin/config.local.php` (DEP-6 / NEW-V4-2). The only
+local copy carries the harness password, and every hash in this repo's history
+is public. On a first deploy the admin shows "Admin Not Configured"; set the
+password with the `ALLOW-PASSWORD-RESET` flow below (GO-LIVE §B4), which writes
+`config.local.php` on the server.
 
 **If the password is lost:** over FTP, upload an empty file named
 `ALLOW-PASSWORD-RESET` into `public_html/admin/`, then open `/admin/` in a
@@ -200,6 +205,15 @@ reset anything — it locks the admin completely.
    problem" banner on the dashboard.
 3. Admin → Help → **What your server allows** — confirms the live PHP limits. If
    it reads 2M / 8M / 1000, `public/.user.ini` is not being applied on this host.
+   The site ships `.user.ini`, which works when PHP runs as CGI/FastCGI/PHP-FPM
+   (Network Solutions' usual setup). If the limits stay low, PHP is probably
+   running as an Apache module (mod_php), which ignores `.user.ini` — **ask the
+   host** to raise `upload_max_filesize`, `post_max_size` and `max_input_vars`.
+   **Never upload a `php.ini` into `public_html/` (or any web folder)**: under
+   mod_php it does nothing, and it is then served publicly to anyone who asks
+   for `/php.ini` (NEW-N3-1). Do not add `php_value` lines to `.htaccess`
+   either: that file is overwritten on every deploy, and on a CGI/FastCGI host
+   the directive is a 500 for the whole site.
 4. Submit the contact form once and confirm it appears under Admin → Inquiries.
 
 ### Subsequent deploys
@@ -285,7 +299,7 @@ until audit-runs/audit8.md A-8.2.)
 | Products don't load | `data/products-all.json` not uploaded, or not readable (644) |
 | "Failed to save" in admin | `data/` not writable by PHP |
 | Inquiries page always empty | `admin/` not writable by PHP — leads are being dropped. The dashboard banner says so |
-| Upload rejected as "too large" | Admin → Help → What your server allows. The effective ceiling is `min(upload_max_filesize, 20MB)` for PDFs and `min(…, 8MB)` for photos — the second figure is hardcoded in `upload-pdf.php:79` / `upload-image.php:102`, so raising `public/.user.ini` alone will not lift it (AUDIT_v3 D6) |
+| Upload rejected as "too large" | Admin → Help → What your server allows. The effective ceiling is `min(upload_max_filesize, 20MB)` for PDFs and `min(…, 8MB)` for photos — the second figure is hardcoded in `upload-pdf.php:82` / `upload-image.php:160`, so raising `public/.user.ini` alone will not lift it (AUDIT_v3 D6) |
 | "Content saved" but the page didn't change | Hard-refresh; the JSON is cached ~60 s |
 | Admin login rejects a known-good password | `config.local.php` missing or overwritten. Use the `ALLOW-PASSWORD-RESET` recovery above |
 | CSS looks wrong | Hard refresh (Ctrl+Shift+R) — assets are content-hashed |
@@ -300,5 +314,5 @@ until audit-runs/audit8.md A-8.2.)
 | [public/.htaccess](public/.htaccess) | Ships into `dist/` — **load-bearing** SPA rewrite + asset caching |
 | [public/.user.ini](public/.user.ini) | PHP upload and form-field limits |
 | [data/.htaccess](data/.htaccess) | Blocks backups and PHP in the JSON folder |
-| [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) | The audit this release was built against — deploy manifest in §7 |
+| [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) | The audit this release was built against. Its §7 manifest is frozen history — deploy from the tables above and `GO-LIVE.md`, not from §7 |
 | [WHATS_LEFT.md](WHATS_LEFT.md) | Open work, deliberately deferred items, and settled decisions |

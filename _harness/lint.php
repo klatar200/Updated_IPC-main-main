@@ -1,7 +1,7 @@
 <?php
 /**
  * php -l over every PHP file that ships, plus `node --check` over the admin's
- * client-side JS. Baseline: 19 PHP files, 0 failing; 8 admin JS files, 0 failing.
+ * client-side JS. Baseline: 19 PHP files, 0 failing; 10 admin JS files, 0 failing.
  *
  * Scope is the SOURCE tree (admin/, public/), never _harness/site — linting the
  * mirror would report a stale copy as green.
@@ -352,7 +352,7 @@ if ($reintroduced) {
 // scanned straight past it. The v1 mutation test "passed" only because the
 // mutation was written path-qualified; restoring the original row verbatim was
 // still green. A bare name is resolved by BASENAME anywhere in the repo, which
-// is what keeps `config.php`, `contact.php` and `vite.config.js` from tripping
+// is what keeps `config.php`, `contact.php` and `vite.config.mjs` from tripping
 // it — they live outside `_harness/` but they do exist.
 $docs = [
     __DIR__ . '/../plans/GUARDRAILS.md',

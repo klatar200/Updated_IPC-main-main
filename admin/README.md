@@ -21,22 +21,31 @@ appears on the public website within ~60 seconds.
 ```
 
 **Full I/O surface** (this used to say "one file and one folder", which is
-wrong and is already recorded as corrected in `CLAUDE.md` — AUDIT_v3 D7):
+wrong — AUDIT_v3 D7 — and then still missed the dotfiles, temp files, session
+store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`:
 
 | Path | Access |
 |---|---|
 | `data/products-all.json` | read / write |
 | `data/site-info.json` | read / write |
 | `data/content.json` | read / write |
+| `data/*.json.<pid>-<n>.tmp` | write then rename over the target (atomic save); a leftover means a killed process |
 | `data/*.backup.*.json` | write / prune (90 kept per prefix, `BACKUP_KEEP`) |
-| `pdfs/` | read / write / delete |
-| `uploads/images/` | read / write / delete (created at runtime if absent) |
-| `admin/admin-log.jsonl` | append |
-| `admin/inquiries.jsonl` | read (written by `public/contact.php`), rotated at 16MB |
+| `data/.products-write.lock` | create / `flock` around every catalog save (SEC-5) |
+| `pdfs/` | read / write / delete (created if absent) |
+| `uploads/images/` | read / write / delete (created at runtime if absent); photo resizes go through a `.tmp` beside the target |
+| `pdfs/.deleted.*`, `uploads/images/.deleted.*` | Delete Product renames the product's unshared files to these; restoring a catalog backup renames them back. Never pruned (ADM-3) |
+| `uploads/.htaccess` | written by `upload-image.php` only if missing; photo uploads are refused while it is still missing |
+| `admin/admin-log.jsonl` | append; rotated at 16MB |
+| `admin/admin-log-*.jsonl` | read (rotated archives, never deleted) |
+| `admin/inquiries.jsonl` | read (written by `public/contact.php`, which rotates it at 16MB) |
 | `admin/inquiries-*.jsonl` | read (rotated archives) |
+| `admin/.inquiries-seen.json` | read / write (the "new inquiries" badge) |
+| `admin/.inquiry-log-failed.json` | read (written and cleared by `public/contact.php`; drives a dashboard warning) |
 | `admin/.login-throttle.json` | read / write |
+| `admin/.sessions/` | created (0700, with its own `.htaccess`); PHP's session files live here. Falls back to the server default if `admin/` is not writable |
 | `admin/config.local.php` | read / write (+ `.bak.*`, 5 kept) |
-| `admin/ALLOW-PASSWORD-RESET` | read / delete |
+| `admin/ALLOW-PASSWORD-RESET` | read / delete — you create it over FTP; the admin never does |
 
 `public/contact.php` is a **second** dynamic piece: it ships into `dist/`,
 calls `mail()`, and appends to `admin/inquiries.jsonl`.
@@ -62,10 +71,11 @@ public_html/
 │   └── *.backup.*.json     ← Auto-written before every save, 90 kept per prefix
 ├── pdfs/
 │   ├── .htaccess           ← Blocks PHP execution in this folder
-│   └── *.pdf               ← Uploaded data sheets
+│   └── *.pdf               ← Uploaded data sheets (+ .deleted.* after a Delete Product)
 ├── uploads/
-│   ├── .htaccess           ← Blocks PHP execution in this folder
-│   └── images/             ← Uploaded product photos (created at runtime)
+│   ├── .htaccess           ← Blocks PHP execution in this folder — must be deployed
+│   ├── images/             ← Uploaded product photos (ships empty)
+│   └── site/               ← Your own Site Images photos (ships empty)
 └── admin/
     ├── .htaccess           ← HTTPS, security headers, file blocks
     ├── config.php          ← Shared config, helpers, password hashing, backups
@@ -89,7 +99,8 @@ public_html/
     │                         contrast-guard / csrf-back  (ten files; `ls admin/*.js`)
     ├── admin-log.jsonl     ← Audit log (auto-created on first save)
     ├── inquiries.jsonl     ← Contact-form leads (written by contact.php)
-    └── .login-throttle.json ← Per-IP failed-login counters
+    ├── .login-throttle.json ← Per-IP failed-login counters
+    └── .sessions/          ← Sign-in session files (created by the admin)
 ```
 
 (The previous version of this diagram omitted `site-info.json`, `content.json`,
@@ -100,8 +111,8 @@ public_html/
 > **Which deploy is this? Answer before following anything below.** Open
 > `https://www.insulationproducts.com/data/products-all.json`. A catalog of
 > products means the site is live and this section is history — use the
-> manifest in the root [README.md](../README.md), and **never upload `data/`
-> or `pdfs/` from the repo**, because they are live customer state, an FTP
+> manifest in the root [README.md](../README.md), and **never upload the
+> contents of `data/`, `pdfs/` or `uploads/` from the repo**, because they are live customer state, an FTP
 > overwrite creates no backup, and it destroys every edit the owner has made.
 > A 404 means this is the **first** deploy, the steps below are the ones to
 > follow, and `data/`, `pdfs/` and `uploads/` go up exactly once, now.
@@ -114,29 +125,46 @@ public_html/
 > deploy where skipping `data/` means shipping a site with no catalog.
 > (A-9.B2-12. Settled 2026-08-04 for the re-deploy branch; AUDIT_v3 D7/D9.)
 
+The full checklist is [`GO-LIVE.md`](../GO-LIVE.md) §B; the file list is the
+root [README.md](../README.md) deploy tables. In short:
+
 1. Run `npm run build` in the repo. This produces `/dist`.
-2. FTP four trees into `public_html/`:
-   - **Contents of `dist/`** → `public_html/`
-   - **`admin/`** folder → `public_html/admin/`
-   - **`pdfs/`** folder → `public_html/pdfs/` (**first deploy only — never again**)
-   - **`data/`** folder → `public_html/data/` (**first deploy only — never again**)
-3. In cPanel File Manager, set permissions:
+2. **Turn on "show hidden files" in your FTP client first.** `.htaccess` and
+   `.user.ini` start with a dot, most FTP clients hide them, and several of them
+   are what stop the server running scripts in the upload folders.
+3. FTP into `public_html/`, **in this order**:
+   1. `dist/assets/`, then everything else in `dist/` **except `index.html`**
+      (including `dist/.htaccess` and `dist/.user.ini`)
+   2. **`admin/`** → `public_html/admin/` (tracked files only, including
+      `admin/.htaccess`; not your local `*.jsonl`, `.login-throttle.json`,
+      `.sessions/` or `config.local.php*`)
+   3. **`data/`**, **`pdfs/`** and **`uploads/`** folders, each **with its
+      `.htaccess`** (**first deploy only — never again**). Upload `uploads/`
+      from the repo; never create it by hand on the server — without its
+      `.htaccess`, PHP can execute files placed in it (NEW-N3-3).
+   4. `dist/index.html` **last**.
+4. In cPanel File Manager, set permissions. The four folders must be writable
+   **by PHP**, not just by FTP — see the root README's Permissions section if
+   the dashboard banner stays:
 
    | Path | Permissions |
    |---|---|
    | `public_html/data/` | 755 |
-   | `public_html/data/products-all.json` | 644 (or 666 if 644 doesn't write) |
+   | `public_html/data/*.json` | 644 (or 666 if 644 doesn't write) |
    | `public_html/pdfs/` | 755 |
+   | `public_html/uploads/images/` | 755 |
    | `public_html/admin/` | 755 |
    | `public_html/admin/config.php` | 644 |
 
-4. **Set the admin password.** There is **no shipped default** — see the
-   section at the bottom of this file. Hand-deploy `admin/config.local.php`,
-   or use the `ALLOW-PASSWORD-RESET` recovery flow. (This step used to claim
+5. **Set the admin password.** There is **no shipped default** — see the
+   section at the bottom of this file. `/admin/` shows "Admin Not Configured";
+   upload an empty `ALLOW-PASSWORD-RESET` into `public_html/admin/` and set the
+   password on the screen that appears ([`GO-LIVE.md`](../GO-LIVE.md) §B4).
+   Do not upload a `config.local.php` from your machine. (This step used to claim
    "the shipped default is documented in this README", contradicting both
-   `config.php:58-63` and this file's own bottom section — AUDIT_v3 D3.)
-5. Visit `https://yourdomain.com/` — the site should load.
-6. Visit `https://yourdomain.com/admin/` — log in with the new password.
+   `config.php:69-77` and this file's own bottom section — AUDIT_v3 D3.)
+6. Visit `https://yourdomain.com/` — the site should load.
+7. Visit `https://yourdomain.com/admin/` — log in with the new password.
 
 ### Subsequent deploys
 
@@ -206,19 +234,20 @@ here — A-9.B2-12.)
 1. From the dashboard, click **Delete** on the row.
 2. Confirm.
 3. The product disappears from the public site within ~60 seconds.
-4. **The PDF files and the uploaded photo ARE auto-deleted**, unless another
-   product still references the same file — `delete.php` calls
-   `pdf_delete_if_unused()` and `image_in_use()` and reports what it removed
-   or kept in the audit log. Earlier revisions of this file said the opposite
-   and told you to clean up manually; following that would now delete a file a
-   second product may still be using.
+4. **The PDF files and the uploaded photo are moved aside**, unless another
+   product still references the same file — `delete.php` renames each one to
+   `.deleted.<name>` in the same folder (hidden from the web) and reports what
+   it removed or kept in the audit log. Restoring the catalog from **Backups**
+   renames them back, so undoing a delete brings the data sheet and photo back
+   too (ADM-3). Do not clean up manually: a file you delete by hand may be one
+   a second product is still using.
 
 ### Uploading a data sheet (PDF)
 
-1. From the dashboard, click **PDF** on the row.
+1. From the dashboard, click **Manage PDF** on the row.
 2. Choose a PDF file. The real ceiling is
-   **`min(upload_max_filesize, 20MB)`** — `upload-pdf.php:79` hard-rejects
-   anything over 20MB regardless of the ini value, and `upload-image.php:102`
+   **`min(upload_max_filesize, 20MB)`** — `upload-pdf.php:82` hard-rejects
+   anything over 20MB regardless of the ini value, and `upload-image.php:160`
    caps photos at 8MB the same way. Raising `.user.ini` alone will not lift
    either. Admin → Help → "What your server allows" prints both the live ini
    values and the effective limits. (AUDIT_v3 D6)
@@ -226,8 +255,9 @@ here — A-9.B2-12.)
    actual limit instead of "Please select a PDF file to upload".
 3. The file is saved as `/pdfs/<sanitized-sku>.pdf` and the product record's
    `pdfUrl` is updated automatically.
-4. On the public site, the product's button switches from **Request Data
-   Sheet** to **Download PDF** within ~60 seconds.
+4. On the public site, the product's button switches from **Request
+   Datasheet** to **Datasheet** (or the **Primary PDF Button Label** set on the
+   product's Edit page) within ~60 seconds.
 
 ### Replacing or removing a PDF
 
@@ -235,20 +265,25 @@ here — A-9.B2-12.)
   overwritten in place.
 - **Remove**: click the red **Remove PDF** button. The product record's
   `pdfUrl` is cleared, the PDF file is deleted from `/pdfs/`, and the
-  public site reverts to the **Request Data Sheet** button.
+  public site reverts to the **Request Datasheet** button.
 
 ### Viewing the audit log
 
-Click **Audit Log** in the dashboard nav. Every add, edit, delete, PDF
-upload, and PDF removal is recorded with timestamp, SKU, detail, and the
-IP that made the change.
+Click **Audit Log** in the dashboard nav. Every entry has a timestamp, SKU,
+detail, and the IP that made the change. The actions recorded are:
+`add`, `edit`, `delete`, `upload-pdf`, `remove-pdf`, `upload-image`,
+`remove-image`, `settings`, `content`, `restore`, `password`, `sign-in`,
+`sign-out` and `sign-in-failed` — the same fourteen the page's filter offers
+(`IPC_AUDIT_ACTIONS` in `config.php`).
 
 ### The navigation bar
 
 Every authenticated admin page shares the same header/nav, rendered from
-`admin/nav.php`. It's included (not copy-pasted) on every page, so Products,
-+ Add Product, Audit Log, Help, View Live Site, and Sign Out are always one
-click away no matter where you are in the admin.
+`admin/nav.php`. It's included (not copy-pasted) on every page, so
+**Products**, **+ Add Product**, **Business Details**, **Page Content**,
+**Inquiries**, **Backups**, **Audit Log**, **Password**, **Help**,
+**View Live Site ↗** and **Sign Out** are always one click away no matter where
+you are in the admin.
 
 ## Spec-table JSON examples
 
@@ -324,7 +359,7 @@ previous "shipped default" was printed in plaintext in four committed documents.
 1. Over FTP, upload an **empty file named `ALLOW-PASSWORD-RESET`** into
    `public_html/admin/`.
 2. Open `https://yourdomain.com/admin/` in a browser. A one-time
-   **"Set admin password"** screen appears instead of the login box.
+   **"Set Admin Password"** screen appears instead of the login box.
 3. Set a new password. You are signed straight in, and the flag file is
    deleted automatically.
 
@@ -354,7 +389,7 @@ admin's own Password page calls `opcache_invalidate()` so it applies at once.
 
 | Symptom | Cause / fix |
 |---|---|
-| Login loops back to the login page | Cookies blocked, or password wrong. After 5 failures in a row the page pauses before the next try: 15 seconds, doubling each time, up to a 5-minute ceiling (`LOGIN_COOLOFF_BASE` / `LOGIN_COOLOFF_MAX`). This row said "1-8 second delay" until 2026-09-14 — A-9.B2-14. |
+| Login loops back to the login page | Cookies blocked, or password wrong. Six tries in a row are checked; after the sixth wrong one the page pauses before the next try: 15 seconds, doubling each time, up to a 5-minute ceiling (`LOGIN_FREE_ATTEMPTS` / `LOGIN_COOLOFF_BASE` / `LOGIN_COOLOFF_MAX`). This row said "1-8 second delay" until 2026-09-14 — A-9.B2-14 — and "after 5" until 2026-09-28 — NEW-N3-10. |
 | "Failed to save" on Add or Edit | `data/products-all.json` is not writable. Set `data/` to 755 (or 775) and the file to 644 — try 666 only if 644 still will not write, which is what the permissions table above says. |
 | PDF upload errors with "Upload failed" | `pdfs/` is not writable — chmod 755 (or 775) |
 | Public site doesn't show my edit | Wait 60 seconds, then hard-refresh (Ctrl+Shift+R) |
@@ -368,8 +403,12 @@ admin's own Password page calls `opcache_invalidate()` so it applies at once.
   sentinel; the real hash lives only in the hand-deployed `config.local.php`.
 - Auth is PHP-session-only, over forced HTTPS (`admin/.htaccess`). Session
   cookies are `HttpOnly`, `Secure`, and `SameSite=Lax`.
-- After 5 failed logins the address is put in a cool-off that doubles from 15s
-  to a 300s ceiling. The count and the decision happen inside ONE `flock`, so
+- Every attempt is counted as it arrives (`login_attempt_gate()`). The first
+  six are checked; the sixth failure puts the address in a cool-off, so a
+  seventh try inside it is refused. The cool-off doubles from 15s to a 300s
+  ceiling. (This said "after 5 failed logins" until 2026-09-28; the code's
+  `LOGIN_FREE_ATTEMPTS = 5` is the count *before* the one that starts the
+  cool-off — NEW-N3-10.) The count and the decision happen inside ONE `flock`, so
   parallel connections queue and each takes its own number — an attacker cannot
   amortize the wait across concurrent requests, and an attempt refused during a
   cool-off is neither counted nor logged. (This paragraph described the

@@ -28,7 +28,7 @@ Please change it to something of your own the first time you sign in: click **Pa
 
 1. Click the admin dashboard link above (or type it into your browser).
 2. Enter the password I texted you and click **Sign In**.
-3. You'll land on the **Product Catalog** page — this is your home base, showing every product currently on the site.
+3. You'll land on the **Products** page — this is your home base, showing every product currently on the site.
 4. From any page, click **Help** in the top navigation whenever you want a refresher — it covers every screen in the dashboard, step by step, with examples.
 
 **A few tips to start**
