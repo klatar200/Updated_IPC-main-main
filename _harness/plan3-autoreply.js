@@ -59,6 +59,8 @@ const clearTmp = (prefix) => {
   for (const f of tmpFiles(prefix)) { try { fs.unlinkSync(path.join(os.tmpdir(), f)); } catch {} }
 };
 
+const decodeWords = (v) => v.replace(/=\?UTF-8\?B\?([^?]*)\?=\s*/gi, (_, b) => Buffer.from(b, 'base64').toString('utf8')).trim();
+
 /** Every captured message as {to, subject, body}, in send order. */
 function capturedMessages() {
   if (!fs.existsSync(MAIL_LOG)) return [];
@@ -66,7 +68,9 @@ function capturedMessages() {
     .split('===MESSAGE===').slice(1)
     .map((m) => ({
       to: ((m.match(/^To:\s*(.+)$/m) || [])[1] || '').trim(),
-      subject: ((m.match(/^Subject:\s*(.+)$/m) || [])[1] || '').trim(),
+      // Decoded as a mail client shows it: since PUB-5 (audit 2026-09-27)
+      // contact.php sends non-ASCII Subjects as RFC 2047 encoded-words.
+      subject: decodeWords(((m.match(/^Subject:\s*(.+)$/m) || [])[1] || '').trim()),
       body: m,
     }));
 }
