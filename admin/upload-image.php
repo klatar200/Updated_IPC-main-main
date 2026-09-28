@@ -85,18 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // to serve. Write the shipped file's rules instead — they are
             // stronger anyway, and they contain nothing mod_php-only.
             // (audit-runs/audit5.md, Low tier)
-            @file_put_contents($uploadsHt, "# Uploaded files are DATA. Never let the web server execute anything here.\n"
-                . "# Written at runtime by admin/upload-image.php because this folder was\n"
-                . "# created on the server rather than deployed. Mirrors uploads/.htaccess.\n"
-                . "Options -Indexes\n"
-                . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
-                . "  Order Allow,Deny\n"
-                . "  Deny from all\n"
-                . "</FilesMatch>\n"
-                . "<FilesMatch \"\\.(?i:jpe?g|png|webp|gif)$\">\n"
-                . "  Order Deny,Allow\n"
-                . "  Allow from all\n"
-                . "</FilesMatch>\n");
+            @file_put_contents($uploadsHt, uploads_runtime_htaccess());
         }
         $file = $_FILES['image_file'];
         $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
