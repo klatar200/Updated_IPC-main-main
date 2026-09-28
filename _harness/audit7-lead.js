@@ -23,13 +23,12 @@ const ROOT = path.join(__dirname, '..');
 const MIRROR_ADMIN = path.join(__dirname, 'site', 'admin');
 const INQUIRIES = path.join(MIRROR_ADMIN, 'inquiries.jsonl');
 const FAIL_MARKER = path.join(MIRROR_ADMIN, '.inquiry-log-failed.json');
-const SESS_DIR = (() => {
-  try {
-    const out = execFileSync('php', ['-c', path.join(__dirname, 'php-mail.ini'), '-r',
-      'echo ini_get("session.save_path") ?: sys_get_temp_dir();'], { encoding: 'utf8' });
-    return out.trim();
-  } catch { return '/tmp'; }
-})();
+// SEC-4 (audit 2026-09-27) moved admin sessions out of the shared default
+// save path into admin/.sessions/ — config.php sets session.save_path there
+// before session_start(). Counting the ini default after that change read a
+// delta of 0 and failed the CONTROL below while the behaviour was correct.
+// Location only; the assertions are unchanged.
+const SESS_DIR = path.join(MIRROR_ADMIN, '.sessions');
 
 const results = [];
 const note = (ok, what, detail = '') => {
