@@ -100,6 +100,34 @@
     } catch (e) { /* older browser: the guard simply stays as it was */ }
   }
 
+  /**
+   * NEW-N2-6 (audit 2026-09-27) — spreadsheet clipboard text, as a grid.
+   * Excel and Sheets put a cell holding a line break (or a tab, or a quote)
+   * in double quotes, with "" for a literal quote. Splitting on newlines first
+   * cut such a cell in two and shifted every row after it; 91 headings in 37
+   * shipped products contain a line break. An unquoted cell is taken as-is.
+   * (LibreOffice was measured putting no quotes on the clipboard at all; its
+   * line breaks arrive as spaces and this changes nothing for it.)
+   */
+  function parseTsv(text) {
+    var rows = [], row = [], cell = "", i = 0, n = text.length, quoted = false, atStart = true;
+    while (i < n) {
+      var ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') { cell += '"'; i += 2; continue; }
+        if (ch === '"') { quoted = false; i++; continue; }
+        cell += ch; i++; continue;
+      }
+      if (ch === '"' && atStart) { quoted = true; atStart = false; i++; continue; }
+      if (ch === "\t") { row.push(cell); cell = ""; atStart = true; i++; continue; }
+      if (ch === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; atStart = true; i++; continue; }
+      cell += ch; atStart = false; i++;
+    }
+    row.push(cell);
+    rows.push(row);
+    return rows;
+  }
+
   function hideOriginal(ta) {
     ta.style.display = "none";
     var prev = ta.previousElementSibling;
@@ -268,11 +296,20 @@
       return;
     }
 
+    // NEW-N2-5 (audit 2026-09-27) — a header's WIDTH is the larger of its
+    // colspan and its sub-label count. This used to trust `sub` alone, so a
+    // colspan 3 with 2 sub labels (or none) became a 2- (or 1-) leaf column,
+    // and fixRows() then cut every row short: a column of data the server had
+    // accepted was deleted by the next ordinary save with JavaScript on.
+    // Missing sub labels are filled with "" so the width survives.
     function toGroups(cs) {
       var g = (Array.isArray(cs) ? cs : []).map(function (c) {
-        if (c && c.colspan > 1 && Array.isArray(c.sub))
-          return { label: c.label != null ? String(c.label) : "", subs: c.sub.map(function (s) { return s == null ? "" : String(s); }) };
-        return { label: c && c.label != null ? String(c.label) : "", subs: [] };
+        var label = c && c.label != null ? String(c.label) : "";
+        var subs = c && Array.isArray(c.sub) ? c.sub.map(function (s) { return s == null ? "" : String(s); }) : [];
+        var width = Math.max(c && c.colspan > 1 ? Math.floor(c.colspan) : 1, subs.length);
+        if (width < 2) return { label: label, subs: [] };
+        while (subs.length < width) subs.push("");
+        return { label: label, subs: subs };
       });
       return g;
     }
@@ -297,6 +334,12 @@
         return r;
       });
     }
+    // NEW-N2-5 — and rows WIDER than the header keep their extra cells: give
+    // them unlabeled columns instead of letting fixRows() drop them.
+    (function () {
+      var widest = rows.reduce(function (n, r) { return Math.max(n, r.length); }, 0);
+      while (groups.length > 0 && leafCount() < widest) groups.push({ label: "", subs: [] });
+    })();
     if (groups.length > 0 && rows.length === 0) rows = [[]];
     if (groups.length === 0) rows = [];
     fixRows();
@@ -380,7 +423,7 @@
         bar0.querySelector('[data-a="col"]').addEventListener("click", function () {
           groups = [{ label: "Column 1", subs: [] }];
           rows = [[""]];
-          serialize(); build(); renderPreview();
+          serialize(); build(); renderPreview(); structural(host);
         });
         bar0.querySelector('[data-a="adv"]').addEventListener("click", function () { buildAdvanced(); });
         host.appendChild(bar0);
@@ -415,21 +458,21 @@
           rows.forEach(function (r) { r.splice(s, l); });
           groups.splice(gi, 1);
           if (groups.length === 0) rows = [];
-          fixRows(); serialize(); build(); renderPreview();
+          fixRows(); serialize(); build(); renderPreview(); structural(host);
         });
         var splitBtn = cell.querySelector('[data-act="split"]');
         if (splitBtn) splitBtn.addEventListener("click", function () {
           var s = leafStart(gi);
           g.subs = ["Sub 1", "Sub 2"];
           rows.forEach(function (r) { r.splice(s + 1, 0, ""); });
-          fixRows(); serialize(); build(); renderPreview();
+          fixRows(); serialize(); build(); renderPreview(); structural(host);
         });
         var addsubBtn = cell.querySelector('[data-act="addsub"]');
         if (addsubBtn) addsubBtn.addEventListener("click", function () {
           var s = leafStart(gi), l = leafLen(gi);
           g.subs.push("Sub " + (g.subs.length + 1));
           rows.forEach(function (r) { r.splice(s + l, 0, ""); });
-          fixRows(); serialize(); build(); renderPreview();
+          fixRows(); serialize(); build(); renderPreview(); structural(host);
         });
         gr.appendChild(cell);
       });
@@ -469,7 +512,10 @@
                 rows.forEach(function (r) { r.splice(s + si, 1); });
                 g.subs.splice(si, 1);
                 if (g.subs.length < 2) g.subs = []; // collapse back to a plain column
-                fixRows(); serialize(); build(); renderPreview();
+                // NEW-N2-7 — every column action is a structural change: the
+                // unsaved-changes guard was armed by typing and by row actions,
+                // never by these, so removing a column and leaving lost it.
+                fixRows(); serialize(); build(); renderPreview(); structural(host);
               });
               sr.appendChild(c);
             });
@@ -567,11 +613,10 @@
         "</div>";
       holder.querySelector('[data-p="cancel"]').addEventListener("click", function () { holder.innerHTML = ""; });
       holder.querySelector('[data-p="fill"]').addEventListener("click", function () {
-        var txt = holder.querySelector(".ste-pastebox").value.replace(/\r/g, "");
-        var lines = txt.split("\n");
-        while (lines.length && lines[lines.length - 1] === "") lines.pop();
-        if (!lines.length) { holder.innerHTML = ""; return; }
-        var matrix = lines.map(function (l) { return l.split("\t"); });
+        var txt = holder.querySelector(".ste-pastebox").value.replace(/\r\n?/g, "\n");
+        var matrix = parseTsv(txt);
+        while (matrix.length && matrix[matrix.length - 1].length === 1 && matrix[matrix.length - 1][0] === "") matrix.pop();
+        if (!matrix.length) { holder.innerHTML = ""; return; }
         var firstHead = holder.querySelector(".ste-firsthead").checked;
         var ncols = Math.max.apply(null, matrix.map(function (r) { return r.length; }));
         var cols, data;
@@ -587,7 +632,7 @@
         groups = cols.map(function (l) { return { label: l, subs: [] }; });
         rows = data.map(function (r) { r = r.slice(); while (r.length < cols.length) r.push(""); return r; });
         if (rows.length === 0) rows = [[]];
-        fixRows(); serialize(); build(); renderPreview();
+        fixRows(); serialize(); build(); renderPreview(); structural(host);
       });
     }
 

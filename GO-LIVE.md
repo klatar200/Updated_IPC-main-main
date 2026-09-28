@@ -309,6 +309,14 @@ curl -sI -H 'Accept-Encoding: gzip' https://www.insulationproducts.com/assets/in
 
 curl -sI http://www.insulationproducts.com/                      # expect 301 → https
 curl -sI https://insulationproducts.com/                         # expect 301 → www
+
+curl -sI https://www.insulationproducts.com/ | grep -i strict-transport
+#  expect: Strict-Transport-Security: max-age=31536000   (PUB-1)
+curl -sI https://www.insulationproducts.com/pdfs/no-such-sheet.pdf
+#  expect 404, NOT 200 text/html                          (PUB-11)
+curl -si -X TRACE https://www.insulationproducts.com/ | head -1
+#  expect 405 or 403. A 200 means TRACE is on: ask Network Solutions to set
+#  "TraceEnable Off" — .htaccess cannot (NEW-N3-6).
 ```
 
 ### C2. The site

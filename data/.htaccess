@@ -80,6 +80,12 @@ AddDefaultCharset UTF-8
 </IfModule>
 
 # Only allow read methods.
+# NOT A TRACE GUARD — do not read it as one. TRACE is answered by Apache core
+# before any .htaccess rule runs: LimitExcept, Rewrite [F] and <If> all miss
+# it, and `TraceEnable Off` (the only switch) is not allowed in .htaccess.
+# Measured (audit 2026-09-27 NEW-N3-6): TRACE → 200, echoing the request
+# headers, IPCADMIN cookie included. Browsers cannot send TRACE, so the risk
+# is small; the host must turn it off — GO-LIVE §C has the one-line check.
 <LimitExcept GET HEAD>
   Order Allow,Deny
   Deny from all
