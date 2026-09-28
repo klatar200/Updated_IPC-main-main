@@ -6966,3 +6966,7 @@ palette.
   - The industry-card gradient ends at the shipped palette (the open
     brand-gradient-mixed-ends item). Its heading is white there, exactly as
     before.
+
+**Regression for §1ai:** sweep12 on `5048ffa`, 103/105 suites. The only reds
+are the expected ones: `brandtext` 38/49 (unchanged) and `plan8-polish` 16/17.
+`lowsC2-palettes` passes 5/5 in the sweep.
