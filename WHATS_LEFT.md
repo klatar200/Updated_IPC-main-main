@@ -6629,3 +6629,46 @@ expected reds, `brandtext` 38/49 (ceiling 13) and `plan8-polish` 16/17.
 **Not yet done:** CLAUDE.md gains no invariant for DEP-3. The "ON PURPOSE"
 comments and the suite hold it. Whether it should become invariant 19 is an
 open question to Keagan (2026-09-28).
+
+---
+
+## 1ac. Shipped 2026-09-28 — SEC-2 (#58) and SEC-5 (#59)
+
+**SEC-2** (Medium): an image that decodes to a huge one is refused before any
+decode.
+- **The defect:** A-9.P3-2's `imagecreatefromstring()` decode ran ahead of
+  the 8 MB limit and the `IMG_MAX_PIXELS` ceiling. A 186 KB, 64 MP PNG grew
+  the worker by 428 MB, and `memory_limit` does not bound GD.
+- **The fix:** the cheap checks now run first, and the ceiling is read from
+  the `getimagesize()` header via `image_pixel_problem()`.
+- **ON PURPOSE:** an over-ceiling image is now **refused**; A-7.6 used to save
+  it at full size with a warning. It cannot be verified without the decode,
+  and a header-only polyglot claiming huge dimensions would otherwise skip
+  guard 2.
+- **Measured:** `_harness/sec2-imagebomb.js` was 3/7 before the fix
+  (+428 MB) and is 7/7 after (+0.8 MB). The mutation that drops the pixel
+  check gives 3/7.
+- **Open question to Keagan:** a 48–50 MP full-resolution phone photo is now
+  refused until it is resized.
+
+**SEC-5** (Medium): catalog saves can no longer undo each other.
+- **The fix:** `products_write_lock()` holds an exclusive flock on
+  `data/.products-write.lock` from `load_products()` (POST) and from
+  `save_products()` (restore) until the request ends.
+- **Measured:** `_harness/sec5-lostupdate.js` runs two real PHP processes
+  against the mirror's own functions. It was 4/7 before the fix (a "saved"
+  product vanished; a restore was overwritten) and is 7/7 after. The two
+  mutations give 4/7 and 6/7.
+- **Open question to Keagan:** `site-info.json` and `content.json` are left
+  on their existing whole-file signatures and do not share the lock.
+
+**Regression, one clean sweep after both** (`claude/zen-gates-p801fz` @
+`b93743c`): 87/89 suites. The two red suites are the documented expected
+reds, `brandtext` 38/49 and `plan8-polish` 16/17. `php -l` passes on 8.4
+and 7.4.
+
+**Self-correction.** SEC-2's first sweep was invalidated: I synced SEC-5 code
+and mutants into the shared mirror while it was still running, so I stopped
+it, and #58 was merged on its partial results (65 ok, only `brandtext` red).
+The clean sweep above covers #58's code and is the evidence for it.
+**Rule for next time: never sync `_harness/site` while a sweep is running.**

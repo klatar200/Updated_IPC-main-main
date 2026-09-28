@@ -78,3 +78,5 @@ data/content.backup.*.json
 _harness/site/
 _harness/pristine/
 _harness/out/
+# SEC-5 catalog write lock, created at runtime by admin/config.php
+data/.products-write.lock
