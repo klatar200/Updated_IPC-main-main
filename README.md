@@ -118,6 +118,7 @@ hand-deployed password file.
 | `admin/` | `admin/` | this release |
 | `admin/config.local.php` | (hand-deployed, gitignored) | this release — carries the password |
 | `data/.htaccess`, `pdfs/.htaccess`, `uploads/.htaccess` | the repo, **not** `dist/` | **when changed — see below** |
+| **`data/`, `pdfs/`, `uploads/` — their contents** | the repo | **first deploy only — once.** `GO-LIVE.md` STEP 0 tells you which deploy this is. Skip this row on a first deploy and the site shows "Catalog Unavailable"; follow it on a re-deploy and you overwrite Rick's live edits. (DEP-1) |
 
 **The three `.htaccess` files are the exception to the do-not-upload rule, and
 they are easy to miss.** They live inside folders that are otherwise live
@@ -135,7 +136,7 @@ them travels by itself. `data/.htaccess` also carries the
 `AddType application/json .json` line that `jsonOrThrow()` in `src/App.jsx`
 depends on. (audit-runs/audit6.md A-6.2.)
 
-**Do NOT upload:**
+**Do NOT upload — on a re-deploy** (on the first deploy the three data folders go up once, per the row above):
 
 | Path | Why |
 |---|---|
@@ -148,8 +149,8 @@ depends on. (audit-runs/audit6.md A-6.2.)
 The `data/`, `pdfs/` and `uploads/` rows mean each folder's **contents**. The
 `.htaccess` inside each one is repo code and belongs in the upload table above.
 
-`data/`, `pdfs/` and `uploads/` were uploaded once, on the first deploy, and are
-now owned by the customer. Re-uploading them destroys his edits.
+`data/`, `pdfs/` and `uploads/` go up exactly once, on the first deploy; from then
+on they are owned by the customer, and re-uploading them destroys his edits.
 
 ### Permissions
 
@@ -169,6 +170,13 @@ inbound sales lead**), `.login-throttle.json`, and `config.local.php` (password
 changes). On a host where the PHP user differs from the FTP user, all four fail
 silently. The admin dashboard now detects this and shows a red banner; check it
 after deploying.
+
+**If the banner stays after 755 and 775**, the host runs PHP as a different user
+from your FTP account (NEW-N3-2, measured on real Apache): neither mode lets PHP
+write. Ask the host to run PHP as your account user (suEXEC / suPHP / PHP-FPM per
+account) — that is the fix. Setting the folder to **777** also works, but it lets
+every account on that server write there too, so treat it as a stop-gap and tell
+the host. No other mode clears it.
 
 ### The admin password
 

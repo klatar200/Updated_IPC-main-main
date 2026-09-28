@@ -21,8 +21,8 @@ Open https://www.insulationproducts.com/data/products-all.json in a browser.
 
 | What you see | You are doing | Then |
 |---|---|---|
-| A JSON catalog of products | **a re-deploy** onto a live site | Follow **A**. Never upload `data/`, `pdfs/` or `uploads/` contents — they are Rick's live edits and an FTP overwrite creates no backup. |
-| 404, or nothing there | **the first deploy** | Follow **B**. The three data folders go up exactly once, now. |
+| A JSON catalog of products | **a re-deploy** onto a live site | Check **A**, then follow **B** — skipping B2.0 and B2.7. Never upload `data/`, `pdfs/` or `uploads/` contents — they are Rick's live edits and an FTP overwrite creates no backup. |
+| 404, or nothing there | **the first deploy** | Do **A** first (before deploy day), then **B**. The three data folders go up exactly once, in B2.7. |
 
 If it loads but the products look wrong or old, stop and diff it against
 `data/products-all.json` in the repo before deciding. **Downloading the
@@ -103,12 +103,12 @@ the last minute.
       one thing on the host that cannot be reproduced from here. It was not
       opened during the audit: reading it means signing into `/site/admin/`,
       which is yours to do, not the auditor's.
-- [ ] **Remove the `/` → `/site/` redirect**, and confirm
-      `curl -sI http://www.insulationproducts.com/` no longer points into a
-      subfolder — **before** uploading anything. It is in the Network Solutions
-      panel or a root `.htaccess` above `public_html/`. Left in place, a
-      perfectly correct deploy is invisible: visitors keep landing on the old
-      broken copy. STEP 0b and
+- [ ] **Find** the `/` → `/site/` redirect — in the Network Solutions panel or a
+      root `.htaccess` above `public_html/` — and confirm you can change it.
+      **Do not remove it yet.** Removing it is step B2.0, in the same session as
+      the upload: done days early, the domain root serves no working site (this
+      project is not in `public_html/` yet) and the old copy's one working page,
+      its homepage, goes dark with it. (NEW-V4-1, 2026-09-28.) STEP 0b and
       `audit-runs/live-triage-2026-09-15.md` §8.
 - [ ] **Apply the two corrected privacy-policy sections.** ⚠ **On a re-deploy
       this is an ADMIN EDIT, not a file upload.** The policy renders from
@@ -224,6 +224,12 @@ the site switches, and it switches to a bundle that is already on disk. Done the
 other way round, every visitor between the two uploads gets an `index.html`
 pointing at a file that does not exist.
 
+0. [ ] **First deploy only — in this same session, immediately before step 1:**
+       remove the `/` → `/site/` redirect you located in §A, and confirm
+       `curl -sI http://www.insulationproducts.com/` no longer points into a
+       subfolder. Left in place, a correct deploy is invisible; removed days
+       early, the root is dark until this upload lands. If the deploy has to be
+       backed out, putting this redirect back is the rollback. (NEW-V4-1)
 1. [ ] `dist/assets/` → `public_html/assets/`
 2. [ ] `dist/images/` → `public_html/images/`
 3. [ ] `dist/contact.php`, `sitemap.php`, `favicon.svg`, `logo.svg`,
@@ -259,6 +265,13 @@ pointing at a file that does not exist.
 
 "Writable by PHP" is not the same as "writable by FTP". Where they differ, all
 four writes fail silently — the dashboard banner in B4 is what catches it.
+
+**If the banner stays after 755 and 775**, the host runs PHP as a different user
+from your FTP account (NEW-N3-2, measured on real Apache): neither mode lets PHP
+write. Ask the host to run PHP as your account user (suEXEC / suPHP / PHP-FPM per
+account) — that is the fix. Setting the folder to **777** also works, but it lets
+every account on that server write there too, so treat it as a stop-gap and tell
+the host. No other mode clears it.
 
 ---
 
