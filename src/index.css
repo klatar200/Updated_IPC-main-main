@@ -78,7 +78,9 @@
   --brand-drawer-ink-rgb: 255, 255, 255;
   --brand-deep-ink-rgb: 255, 255, 255;
   --brand-hero-ink-rgb: 255, 255, 255;
-  --brand-accent-on-deep: #00bef2;
+  /* var(), not the literal: it must follow --brand-accent before ThemeInjector
+     runs and wherever the variables are set directly (plan10-repalette [vars]). */
+  --brand-accent-on-deep: var(--brand-accent);
   /* rgba(255,255,255,0.40 / 0.45) composited on the shipped --brand-dark-panel
      #0e2847: what the two menu description lines rendered as before. */
   --brand-panel-muted-40: #6e7e91;
