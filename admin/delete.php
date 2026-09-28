@@ -49,13 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($photoName !== '' && $photoName !== '.' && $photoName !== '..') {
                 if (image_in_use($products, $photoName)) {
                     $photoDetail = ' | Photo kept (used by another product): ' . $photoName;
-                } else {
-                    $realImgDir = realpath(IMG_DIR);
-                    $realFile   = realpath(IMG_DIR . $photoName);
-                    if ($realImgDir && $realFile && strpos($realFile, $realImgDir) === 0) {
-                        @unlink($realFile);
-                        $photoDetail = ' | Photo removed: ' . $photoName;
-                    }
+                } elseif (file_to_trash(IMG_DIR, $photoName)) {
+                    // ADM-3 — moved aside, not erased, so a catalog restore
+                    // brings it back (config.php file_to_trash()).
+                    $photoDetail = ' | Photo removed: ' . $photoName;
                 }
             }
         }
@@ -111,14 +108,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                backup first, so it CAN be undone from backups.php, which is in
                his own navigation. (AUDIT_v3_FINDINGS D13 / §3.6) */ ?>
       This removes it from the catalog. Its PDF data sheet and its uploaded
-      photo are deleted from the server too — unless another product still
-      uses the same file, in which case that file is kept.
+      photo come off the website too — unless another product still uses the
+      same file, in which case that file stays.
     </p>
     <p style="font-size:13px;color:#4b5563">
+      <?php /* ADM-3 — this promise used to be half true: the catalog came back
+               but the files had been erased. They are now kept out of sight,
+               and a restore puts them back. */ ?>
       <strong>This can be undone.</strong> A backup of the whole catalog is
-      saved immediately before the deletion, so if this is a mistake, go to
+      saved immediately before the deletion, and the data sheet and photo are
+      kept out of sight rather than erased. If this is a mistake, go to
       <a href="backups.php">Backups</a> and restore the most recent
-      <em>Product Catalog</em> entry. Do it before making other changes — only
+      <em>Product Catalog</em> entry — the product, its data sheet and its photo
+      all come back. Do it before making other changes — only
       the <?= (int)BACKUP_KEEP ?> most recent backups are kept, and every save
       counts.
     </p>
