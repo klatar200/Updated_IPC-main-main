@@ -25,6 +25,11 @@
  * Runs over a throwaway COPY of the mirror (own `php -S` on :8723), so it never
  * writes to _harness/site and is safe beside other suites.
  *
+ * 4. WHATS_LEFT §2t: the three "nothing found" messages follow a Business
+ *    Details phone change (two had 630.771.0700 typed in; the Product Index's
+ *    empty-catalog line told the public to "add your first product … in the
+ *    dashboard").
+ *
  *   node _harness/docmap.js [--where]     # --where prints the field → page map
  */
 const fs = require('fs');
@@ -36,7 +41,7 @@ const { launch } = require('./browser');
 
 const ROOT = path.join(__dirname, '..');
 const MIRROR = path.join(__dirname, 'site');
-const PORT = 8723;
+const PORT = +(process.env.DOCMAP_PORT || 8723);
 const BASE = `http://127.0.0.1:${PORT}`;
 const PW = 'audit-pass-123';
 const WHERE = process.argv.includes('--where');
@@ -276,6 +281,35 @@ async function crawl(browser) {
     // is prose that mentions it (a lower-cased match passed with the row deleted).
     const undocumented = settingNames.filter((k) => !/^(csrf_token|orig_sig)$/.test(k)).filter((k) => !DOC_TERMS[k] || !help.includes(DOC_TERMS[k]));
     note(undocumented.length === 0, `help.php covers all ${settingNames.length - 2} Business Details fields`, undocumented.join(', '));
+
+    // ── 4. §2t: empty states follow the Business Details phone ──
+    {
+      const NEWPHONE = '630.555.0142';
+      const g = await a.req('GET', '/admin/settings.php');
+      const pairs = a.formFields(g.body, /orig_sig/).map(([k, v]) => (k === 'contact_phone' ? [k, NEWPHONE] : k === 'contact_phoneDial' ? [k, ''] : [k, v]));
+      const r = await a.post('/admin/settings.php', pairs);
+      note(r.status === 302, '§2t setup: Business Details phone changed to ' + NEWPHONE, `status ${r.status}`);
+      const read = async (route, fill) => {
+        const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+        const p = await ctx.newPage();
+        await p.goto(BASE + route, { waitUntil: 'networkidle' });
+        if (fill) { await p.fill(`input[placeholder^="${fill}"]`, 'zzqqxxnomatch'); await p.waitForTimeout(400); }
+        const t = await p.evaluate(() => (document.querySelector('main') || document.body).innerText);
+        await ctx.close();
+        return t;
+      };
+      const ds = await read('/datasheets', 'Filter by part number');
+      note(/No datasheets found/.test(ds) && ds.includes(NEWPHONE) && !ds.includes('630.771.0700'), '§2t: /datasheets "No datasheets found" gives the Business Details phone');
+      const pr = await read('/products', 'Search by part number');
+      note(/No products found/.test(pr) && pr.includes(NEWPHONE) && !pr.includes('630.771.0700'), '§2t: /products "No products found" gives the Business Details phone');
+      const cat = path.join(SITE, 'data', 'products-all.json');
+      const keep = fs.readFileSync(cat);
+      fs.writeFileSync(cat, '[]');
+      const dash = await read('/dashboard');
+      fs.writeFileSync(cat, keep);
+      note(/No products in the catalog yet/.test(dash) && dash.includes(NEWPHONE) && !/dashboard/i.test(dash.replace(/Product Index/g, '')),
+        '§2t: an empty catalog tells the public to call, not to use the admin dashboard', dash.slice(0, 200).replace(/\s+/g, ' '));
+    }
 
     if (WHERE) {
       for (const [f, w] of Object.entries(byField)) console.log(`   ${f.padEnd(40)} ${[...new Set(w.map((x) => x.replace(/ (visible|attrs|title|ld|header)$/, (s) => s)))].slice(0, 6).join(' | ')}`);
