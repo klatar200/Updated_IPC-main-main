@@ -7015,7 +7015,7 @@ site, ahead of Rick taking the site over.
   `Editing-Your-Site-Content.md`, `Email to Rick - Admin Dashboard Handoff.md`,
   `_harness/docmap.js`, `_harness/README.md`.
 
-## 2t. Open after the owner-docs audit — 2026-09-29
+## 2t. Open after the owner-docs audit — 2026-09-29 — SUPERSEDED-BY §1ak (2026-09-29)
 
 Code, found by the audit, not fixed in it (docs-only change). Each is
 documented as-is in Help → `#sitemap`.
@@ -7029,3 +7029,22 @@ documented as-is in Help → `#sitemap`.
 - **The Product Index's empty-catalog text is admin-facing** — "Add your first
   product from the Products page in the dashboard." (~11379) is shown to the
   public. Reachable only with an empty catalog.
+
+## 1ak. Shipped 2026-09-29 — §2t: empty states follow the Business Details phone
+
+Both §2t items, fixed in `src/App.jsx`. Evidence: `_harness/docmap.js` arm 4
+(new), 3 FAIL on the unfixed build → 28/28 fixed. The arm changes the phone
+through Business Details to `630.555.0142` and then reads each message.
+
+- **`DatasheetsPage` "No datasheets found" and `CatalogLanding` "No products
+  found"** now say `call {site.contact.phone}`. Each had `630.771.0700` typed
+  in and never read site info, so a phone change left the old number. Both
+  components gained `useSiteInfo()`.
+- **The Product Index's empty-catalog line** read "Add your first product from
+  the Products page in the dashboard." — admin wording shown to the public. It
+  now reads "No products are listed right now. Call {phone} and we will help
+  you directly." (public copy; reword freely).
+- **`dist/` rebuilt**: `8ca5912` ("build") put `dist/` under version control
+  on main, so a `src/` change without it would leave the committed bundle
+  stale. The `dist/index.html` diff is the bundle hash plus line endings
+  (the committed copy had CRLF from a Windows build).

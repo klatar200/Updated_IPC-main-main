@@ -2979,6 +2979,7 @@ function ApprovalFilter({ products, selected, onToggle, onClear }) {
 
 function DatasheetsPage({ products }) {
   const [q, setQ] = useState("");
+  const site = useSiteInfo();
   const content = useContent();
   const { copy } = content;
   const famOrder = familyOrder(content);
@@ -3097,8 +3098,11 @@ function DatasheetsPage({ products }) {
                   surface; the other eleven quoted strings are straight. */}
               Nothing matches "{q}". This filter covers part numbers, product
               names and families — sizes are listed inside each datasheet, so
-              try the part number or call 630.771.0700 and we will point you at
-              the right one.
+              {/* Owner-docs audit 2026-09-29 (WHATS_LEFT §2t) — this was a
+                  typed 630.771.0700 that a Business Details phone change never
+                  reached. */}
+              try the part number or call {site.contact.phone} and we will point
+              you at the right one.
             </p>
             <button
               type="button"
@@ -9718,6 +9722,7 @@ function CatalogLanding({
   onClearFilters,
 }) {
   const searchId = useId();
+  const site = useSiteInfo();
   const filtered = !!(query || activeFamily);
   return (
     <div>
@@ -9801,8 +9806,10 @@ function CatalogLanding({
             {query
               ? `No results for "${query}"${activeFamily ? ` in ${activeFamily}` : ""}. Try a different term, or clear the filters.`
               : `Nothing in ${activeFamily}.`}{" "}
+            {/* Owner-docs audit 2026-09-29 (WHATS_LEFT §2t) — was a typed
+                630.771.0700; see DatasheetsPage. */}
             Sizes are listed on each product page — if you know the size but not
-            the part number, call 630.771.0700 and we will point you at it.
+            the part number, call {site.contact.phone} and we will point you at it.
           </p>
           <button
             type="button"
@@ -11375,8 +11382,11 @@ function DashboardPage({ products }) {
                               honest about the scope, but nobody re-reads a
                               placeholder after a miss — say it here, where the
                               miss actually happens. */}
+                          {/* Owner-docs audit 2026-09-29 (WHATS_LEFT §2t) — the
+                              empty-catalog line told the PUBLIC to "add your
+                              first product … in the dashboard". */}
                           {tableRows.length === 0
-                            ? "Add your first product from the Products page in the dashboard."
+                            ? `No products are listed right now. Call ${site.contact.phone} and we will help you directly.`
                             : `No results${search ? ` for "${search}"` : ""}${activeFamily !== "All" ? ` in ${activeFamily}` : ""}${approvals.length ? ` with ${approvals.join(" + ")}` : ""}. This searches part IDs, types and descriptions — sizes are listed on each product page. Try a different term, clear the ${approvals.length ? "filters" : "category filter"}, or call ${site.contact.phone}.`}
                         </div>
                         {/* NEW-N1-2 (audit 2026-09-27) — "Clear all filters" left
