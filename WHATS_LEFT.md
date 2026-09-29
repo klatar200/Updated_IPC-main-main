@@ -7128,3 +7128,11 @@ Manager (Help taught those steps for one day, §1aj).
   file; and it offered "Use the Original Logo" when the stored value was
   already `/logo.svg`, and pre-selected the in-use picture so "Use This One"
   was a no-op. All three fixed before commit.
+- **Sweep 15 caught two static arms the refactor moved out from under:**
+  `audit9-fixes` p2-2/p3-2 (38/40) and `audit7-lead` A-7.6 (22/23) grep
+  `upload-image.php` for the decode step, the no-gd message and
+  `too-many-pixels`, which now live in `config.php`. Their behavioural arms
+  stayed green (the polyglot is still refused, nothing lands). Re-pointed, not
+  loosened: each now reads `upload-image.php` plus the body of each shared
+  helper it CALLS, so the search is still the upload path and not all of
+  `config.php`. 40/40, 23/23.

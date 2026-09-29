@@ -351,7 +351,16 @@ const RFQ = {
           'so the owner gets the same message for a 41 MP upload as for a correct one'
         : ''
     );
-    const up = fs.readFileSync(path.join(ROOT, 'admin', 'upload-image.php'), 'utf8');
+    // upload-image.php PLUS the body of each shared helper it calls: the
+    // pixel check moved into config.php's uploaded_image_problem() on
+    // 2026-09-29 so site-images.php runs the same one. Only helpers the
+    // uploader actually calls count, so this is still the upload path.
+    let up = fs.readFileSync(path.join(ROOT, 'admin', 'upload-image.php'), 'utf8');
+    const cfgSrc = fs.readFileSync(path.join(ROOT, 'admin', 'config.php'), 'utf8');
+    for (const fn of ['uploaded_image_problem', 'image_resize_note']) {
+      const i = cfgSrc.indexOf(`function ${fn}(`);
+      if (i >= 0 && new RegExp(`\\b${fn}\\s*\\(`).test(up)) up += '\n' + cfgSrc.slice(i, cfgSrc.indexOf('\n}\n', i) + 2);
+    }
     note(
       /too-many-pixels/.test(up),
       'A-7.6 — upload-image.php branches on that reason',
