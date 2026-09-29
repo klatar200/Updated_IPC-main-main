@@ -239,10 +239,28 @@ function armP21() {
     /GOOD-OK/.test(out), `probe said ${JSON.stringify(out.slice(0, 200))}`);
 }
 
+// The uploader's source for the static arms below: upload-image.php PLUS the
+// body of each shared helper it calls. 2026-09-29 moved the checks into
+// config.php (uploaded_image_problem(), image_resize_note()) so site-images.php
+// runs the same ones; a function counts only if upload-image.php calls it, so
+// this reads exactly the code on the upload path, not all of config.php.
+function uploaderSrc() {
+  let src = fs.readFileSync(path.join(ROOT, 'admin', 'upload-image.php'), 'utf8');
+  const cfg = fs.readFileSync(path.join(ROOT, 'admin', 'config.php'), 'utf8');
+  for (const fn of ['uploaded_image_problem', 'image_resize_note', 'uploads_protection_problem']) {
+    if (!new RegExp(`\\b${fn}\\s*\\(`).test(src)) continue;
+    const i = cfg.indexOf(`function ${fn}(`);
+    if (i < 0) continue;
+    const j = cfg.indexOf('\n}\n', i);
+    src += '\n' + cfg.slice(i, j < 0 ? undefined : j + 2);
+  }
+  return src;
+}
+
 // A-9.P2-2 — a photo kept at full size because gd is absent must say so.
 function armP22() {
   section('A-9.P2-2  a photo kept at full size names the reason');
-  const src = fs.readFileSync(path.join(ROOT, 'admin', 'upload-image.php'), 'utf8');
+  const src = uploaderSrc();
   const hasNoGdBranch = /no-gd/.test(src);
   const surfaced = /no-gd[\s\S]{0,400}?(\$msg|\$notice|message|could not be resized|full size)/i.test(src)
     || /(could not be resized|kept at its original size|image tools)/i.test(src);
@@ -260,7 +278,7 @@ function armP22() {
 // one that is written but unreachable.
 async function armP32() {
   section('A-9.P3-2  a 29-byte GIF+PHP polyglot is refused');
-  const src = fs.readFileSync(path.join(ROOT, 'admin', 'upload-image.php'), 'utf8');
+  const src = uploaderSrc();
   ok('p3-2  the uploader checks the decoded image, not just the header and MIME',
     /\bimagecreatefromstring\b/.test(src), 'no decode step found in upload-image.php');
 

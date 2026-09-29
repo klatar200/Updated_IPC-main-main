@@ -48,6 +48,7 @@ const NARROW = [
   ['password.php', 'Password', 520],
   ['upload-pdf.php', 'Upload PDF', 600],
   ['upload-image.php', 'Upload Image', 600],
+  ['site-images.php', 'Site Images & Logo', 600],   // 2026-09-29
   ['delete.php', 'Delete', null], // <main> is a flex centring box; the CARD is 440
 ];
 

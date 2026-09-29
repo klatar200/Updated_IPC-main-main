@@ -873,13 +873,16 @@ $navActive = 'help';
         </table>
 
         <h3 id="newfiles">Putting a new photo or logo on the server</h3>
-        <p>The <strong>Site Images</strong> boxes and the <strong>Logo URL</strong> hold the <em>address</em> of a picture that is already on your server — there is no upload button for them. (Product photos are different: use the <strong>Photo</strong> button, see <a href="#photos">Product photos</a>.) To use a new one you need your hosting File Manager (or FTP) login:</p>
+        <!-- Rewritten 2026-09-29: the Site Images & Logo page (site-images.php)
+             replaced the File Manager steps this section taught for one day. -->
+        <p>Open <a href="site-images.php"><strong>Site Images &amp; Logo</strong></a> — it is linked from the <strong>Site Images</strong> card on Page Content and from the <strong>Logo URL</strong> box on Business Details. There is one card for each of the five page photos and one for the logo, each showing what is on the website now. (Product photos are different: use the <strong>Photo</strong> button, see <a href="#photos">Product photos</a>.)</p>
         <ol class="steps">
-          <li>Sign in to your hosting account's <strong>File Manager</strong> (on Network Solutions: Hosting → Manage → File Manager) and open <code>public_html/uploads/site/</code>. If there is no <code>site</code> folder inside <code>uploads</code>, create it.</li>
-          <li>Upload the picture. Give it a short name with no spaces, e.g. <code>hero-2026.jpg</code>. Photos: JPG, PNG or WEBP, about 1600&nbsp;pixels wide at most. Logo: SVG or PNG.</li>
-          <li>For a page photo: Page Content → <strong>Site Images</strong>, type <code>uploads/site/hero-2026.jpg</code> in the right box, and <strong>Save Content</strong>. For the logo: Business Details → <strong>Logo URL</strong>, type <code>/uploads/site/logo.svg</code>, and <strong>Save Business Details</strong>.</li>
+          <li><strong>Upload a new picture:</strong> click <strong>Choose File</strong> on the card, pick a JPG, PNG, WEBP or GIF from your computer (<?= h(min_upload_label(8)) ?> at most), and click <strong>Upload &amp; Use →</strong>. It is checked the same way as a product photo, scaled down if it is wider than <?= (int)IMG_MAX_WIDTH ?>&nbsp;pixels, and goes on the website straight away.</li>
+          <li><strong>Or reuse one already on the server:</strong> pick it from the list under the upload box — your earlier uploads first, then the pictures that came with the website — and click <strong>Use This One</strong>.</li>
+          <li><strong>Remove Photo</strong> empties that spot on the page; on the logo card, <strong>Use the Original Logo</strong> puts the shipped logo back.</li>
           <li>Open the page on the live site and hard-refresh (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>).</li>
         </ol>
+        <p>Nothing on that page deletes a file, so an old picture stays in the list, and <strong>Backups</strong> can put a previous choice back. An <strong>SVG</strong> logo cannot be uploaded there — SVG files can carry program code — so that one is still for your developer (or upload it into <code>public_html/uploads/site/</code> with your hosting File Manager and type <code>/uploads/site/logo.svg</code> into Business Details → Logo URL).</p>
         <div class="callout callout-warning">
           <b>Never put your own pictures in the <code>images</code> folder</b>
           Everything in <code>public_html/images/</code> is part of the website itself and is replaced the next time your developer updates the site — a photo you put there silently disappears. <code>uploads/</code> is yours and is never touched by an update.
@@ -942,7 +945,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-tip">
           <b>The photos on the homepage, About and Services pages</b>
-          The <strong>Site Images</strong> section holds the five pictures that are part of the pages themselves rather than of any product: the homepage hero photo, the two photos in the homepage band (your team and your building), the About page photo and the Services page photo. Each is a path to a file already on your server. <strong>Clearing one removes that picture from the page</strong> rather than restoring the original — which is the point, if you would rather show no photo than the wrong one.
+          The <strong>Site Images</strong> section holds the five pictures that are part of the pages themselves rather than of any product: the homepage hero photo, the two photos in the homepage band (your team and your building), the About page photo and the Services page photo. Each is a path to a picture on your server — to upload a new one or pick another, use the <a href="site-images.php">Site Images &amp; Logo</a> page (see <a href="#newfiles">Putting a new photo or logo on the server</a>). <strong>Clearing one removes that picture from the page</strong> rather than restoring the original — which is the point, if you would rather show no photo than the wrong one.
         </div>
         <div class="callout callout-tip">
           <b>It also controls what Google shows</b>
@@ -1018,7 +1021,7 @@ $navActive = 'help';
       <section class="help-section" id="auditlog">
         <div class="eyebrow eyebrow-advanced">Advanced</div>
         <h2>🕒 Audit log / change history</h2>
-        <p><strong>Everything you can change from this dashboard is recorded here</strong> — not just products. Adding, editing and deleting parts; uploading and removing data sheets and photos; saving Business Details; saving Page Content; restoring a backup; and changing your password. Each entry records what happened, which product it was about, exactly when, and the IP address it came from.</p>
+        <p><strong>Everything you can change from this dashboard is recorded here</strong> — not just products. Adding, editing and deleting parts; uploading and removing data sheets and photos; changing a page photo or the logo; saving Business Details; saving Page Content; restoring a backup; and changing your password. Each entry records what happened, which product it was about, exactly when, and the IP address it came from.</p>
         <ol class="steps">
           <li>Click <strong>Audit Log</strong> in the header navigation.</li>
           <li>Browse the list — newest changes are always at the top.</li>
@@ -1034,6 +1037,7 @@ $navActive = 'help';
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">upload-image</span></td><td>A product photo was uploaded from a computer.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">remove-image</span></td><td>A product photo was removed, and the file deleted from the server because nothing else was using it.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">site-image</span></td><td>A page photo or the logo was uploaded, picked or removed on the Site Images &amp; Logo page. The entry names which one.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">settings</span></td><td>Business Details was saved. The entry only says the details were updated (or that nothing had changed) — it does not list which fields. The version from before each save is kept on the <a href="#backups">Backups</a> page if you need to put it back.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>

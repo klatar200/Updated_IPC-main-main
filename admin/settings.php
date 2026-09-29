@@ -374,7 +374,7 @@ $navActive = 'settings';
           <div class="form-group full">
             <label for="theme_logo">Logo URL</label>
             <input type="text" id="theme_logo" name="theme_logo" value="<?= h($th['logoUrl'] ?? '') ?>" placeholder="/logo.svg or https://…" />
-            <div class="hint">Path or URL to your logo (SVG or PNG) — shown in the site header, footer, and product pages. Leave blank to use <code>/logo.svg</code>.</div>
+            <div class="hint">Path or URL to your logo — shown in the site header, footer, and product pages. Leave blank to use <code>/logo.svg</code>. <a href="site-images.php#slot-logo">Upload a new logo on the Site Images &amp; Logo page →</a></div>
           </div>
         </div>
         <div class="hint">These colors re-skin the entire public website. Changes go live within ~60 seconds.</div>

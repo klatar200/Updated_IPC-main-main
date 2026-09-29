@@ -1124,6 +1124,9 @@ $navActive = 'content';
     <?php foreach ($COPY_GROUPS as $g => $gcfg): ?>
       <fieldset class="card">
         <legend class="card-title"><?= $gcfg['title'] ?></legend>
+        <?php if ($g === 'siteImages'): /* §2h item 3b — the upload button lives on its own page */ ?>
+          <p class="sub" style="margin:0 0 12px"><a href="site-images.php">Upload a new picture, or pick one already on the server, on the <strong>Site Images &amp; Logo</strong> page →</a> The boxes below show the result; you can still type a path here.</p>
+        <?php endif; ?>
         <div class="grid-2">
           <?php /* PLAN-9 item 1 — `??` and not `?:`: only a key ABSENT from the
                 stored file falls back to the field default. A stored "" is a

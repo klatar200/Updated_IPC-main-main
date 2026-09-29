@@ -328,6 +328,7 @@ pointing at a file that does not exist.
 | `public_html/data/` | 755, writable by **PHP** | every admin save |
 | `public_html/pdfs/` | 755, writable by PHP | data-sheet uploads |
 | `public_html/uploads/images/` | 755, writable by PHP | photo uploads |
+| `public_html/uploads/site/` | 755, writable by PHP | page photos and logo uploads (Site Images & Logo) |
 | `public_html/admin/` | 755, writable by PHP | audit log, **inquiry log**, throttle, password changes |
 | `public_html/admin/config.local.php` | readable **and** writable by PHP | the password hash — the admin rewrites it on every password change |
 

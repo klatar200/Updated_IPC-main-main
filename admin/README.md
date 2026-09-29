@@ -34,6 +34,7 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 | `data/.products-write.lock` | create / `flock` around every catalog save (SEC-5) |
 | `pdfs/` | read / write / delete (created if absent) |
 | `uploads/images/` | read / write / delete (created at runtime if absent); photo resizes go through a `.tmp` beside the target |
+| `uploads/site/` | read / write, never delete (created at runtime if absent by `site-images.php`); page photos and the logo, named `<slot>-<stamp>.<ext>`. `images/site/` is read for its picker, never written |
 | `pdfs/.deleted.*`, `uploads/images/.deleted.*` | Delete Product renames the product's unshared files to these; restoring a catalog backup renames them back. Never pruned (ADM-3) |
 | `uploads/.htaccess` | written by `upload-image.php` only if missing; photo uploads are refused while it is still missing |
 | `admin/admin-log.jsonl` | append; rotated at 16MB |
@@ -153,6 +154,7 @@ root [README.md](../README.md) deploy tables. In short:
    | `public_html/data/*.json` | 644 (or 666 if 644 doesn't write) |
    | `public_html/pdfs/` | 755 |
    | `public_html/uploads/images/` | 755 |
+   | `public_html/uploads/site/` | 755 |
    | `public_html/admin/` | 755 |
    | `public_html/admin/config.php` | 644 |
 

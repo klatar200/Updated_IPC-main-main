@@ -14,15 +14,8 @@ $idx      = find_product($products, $sku);
 $errors   = [];
 $success  = '';
 
-// Accepted formats: extension AND sniffed MIME must both match. SVG is
-// deliberately excluded (script-injection vector when served inline).
-$IMG_TYPES = [
-    'jpg'  => 'image/jpeg',
-    'jpeg' => 'image/jpeg',
-    'png'  => 'image/png',
-    'webp' => 'image/webp',
-    'gif'  => 'image/gif',
-];
+// Accepted formats: IPC_IMG_TYPES in config.php (extension AND sniffed MIME
+// must match; SVG deliberately excluded — script-injection vector).
 
 if ($idx === -1) {
     flash_redirect('Product not found', 'error');
@@ -75,101 +68,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!is_dir(IMG_DIR) && !@mkdir(IMG_DIR, 0755, true) && !is_dir(IMG_DIR)) {
             $errors[] = 'Could not create the uploads/images folder on the server. Create public_html/uploads/images/ over FTP and make it writable (755).';
         }
-        $uploadsHt = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
-        if (is_dir(dirname($uploadsHt)) && !file_exists($uploadsHt)) {
-            // `php_flag` is a mod_php directive. This project targets PHP as
-            // CGI/FastCGI — public/.user.ini exists precisely because php_value
-            // and php_flag do not work there — and Apache answers an unknown
-            // directive with "Invalid command 'php_flag'" and a 500 for the
-            // WHOLE directory, which here would be every product photo on the
-            // site. This branch only runs when uploads/.htaccess is missing
-            // (the folder was created at runtime rather than deployed), so it
-            // was a latent 500 waiting for exactly the recovery case it exists
-            // to serve. Write the shipped file's rules instead — they are
-            // stronger anyway, and they contain nothing mod_php-only.
-            // (audit-runs/audit5.md, Low tier)
-            @file_put_contents($uploadsHt, uploads_runtime_htaccess());
-        }
-        // NEW-N3-3 (audit 2026-09-27) — and CHECK it landed. The write above
-        // was unchecked, so when the PHP user cannot write uploads/ (the host
-        // runs PHP as someone other than the FTP owner) the photo was still
-        // saved into a folder with no script block, "✅ Photo uploaded", and a
-        // .php dropped there by any other route would execute. Refuse instead;
-        // the fix is one FTP upload of the shipped uploads/.htaccess.
-        $uploadsUnprotected = is_dir(dirname($uploadsHt)) && !file_exists($uploadsHt);
-        $file = $_FILES['image_file'];
-        $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-        // Content sniffing via getimagesize() — decodes the actual image
-        // header, needs no PHP extension (fileinfo isn't enabled everywhere).
-        $sniffed  = @getimagesize($file['tmp_name']);
-        $mimeType = $sniffed !== false ? (string)($sniffed['mime'] ?? '') : '';
-        // Cross-check with finfo when the extension is available (Linux hosts).
-        if ($mimeType !== '' && function_exists('finfo_open')) {
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $fmime = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
-            if ($fmime !== $mimeType) $mimeType = '';
-        }
-
-        // A-9.P3-2 — "extension and content must match" is not the same as "is
-        // a usable image". A 29-byte GIF header followed by a PHP block
-        // satisfies BOTH checks above. (The literal payload is not written out
-        // here on purpose: a close tag inside a one-line comment ends PHP mode,
-        // which is how the first version of this comment broke the file.)
-        // getimagesize() reads the six-byte GIF header and reports
-        // 16188×26736, and finfo agrees it is image/gif, because both only ever
-        // look at the header. The file then lands as uploads/images/<SKU>.gif
-        // and becomes the product's live photoUrl. Two independent guards, so
-        // neither a missing extension nor a novel container defeats it:
-        //   1. the bytes must not contain a PHP open tag — that is the payload
-        //      half of a polyglot, and no photograph the owner uploads has one;
-        //   2. where gd exists, the image must actually DECODE, which a header
-        //      with no image data cannot do. gd is not assumed (see A-9.P2-2).
-        // NEW-V1-1 (audit 2026-09-27) — the WHOLE file, not its first 2 MB: a
-        // valid PNG with the tag at byte 3,005,931 was accepted, and the decode
-        // below reads every byte anyway. Anything over the 8 MB limit is
-        // refused further down, so reading one byte past it is enough.
-        $raw        = (string)@file_get_contents($file['tmp_name'], false, null, 0, 8 * 1024 * 1024 + 1);
-        $hasPhpTag  = (stripos($raw, '<?php') !== false || stripos($raw, '<?=') !== false);
-
-        // SEC-2 — every cheap check runs BEFORE the decode, and the pixel
-        // ceiling is enforced from the header's dimensions. The decode above
-        // (guard 2) used to run first, ahead of both the 8 MB limit and
-        // IMG_MAX_PIXELS, so a 420 KB PNG claiming 12000x12000 made one PHP
-        // worker allocate ~1 GB (23000x23000: 3.66 GB) before anything could
-        // refuse it — memory_limit does not bound GD (A-6.6). getimagesize()
-        // reads only the header, so the pixel count costs nothing.
-        //
-        // ON PURPOSE an over-ceiling image is now REFUSED, where A-7.6 used to
-        // save it at full size with a warning. It cannot be verified without
-        // the decode it is too big for, and a header-only polyglot claiming
-        // huge dimensions (A-9.P3-2's own example reports 16188x26736) would
-        // otherwise skip guard 2 entirely. (audit-runs/audit-2026-09-27.md SEC-2)
-        $pixelProblem = $sniffed !== false
-            ? image_pixel_problem((int)$sniffed[0], (int)$sniffed[1]) : '';
-
-        if ($uploadsUnprotected) {
-            $errors[] = 'The photo was not saved: the uploads folder is missing its security file (uploads/.htaccess) and the server would not let the admin create it. '
-                      . 'Upload uploads/.htaccess from the release over FTP (turn on "show hidden files" to see it), then try again.';
-        } elseif (!isset($IMG_TYPES[$ext]) || $mimeType !== $IMG_TYPES[$ext]) {
-            $errors[] = 'Only JPG, PNG, WEBP, or GIF images are accepted (extension and content must match).';
-        } elseif ($hasPhpTag) {
-            $errors[] = 'That file is not a usable image — it contains program code, not just picture data. '
-                      . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
-        } elseif ($file['size'] > 8 * 1024 * 1024) {
-            $errors[] = 'File is too large. Maximum size is 8MB.';
-        } elseif ($pixelProblem === 'too-many-pixels') {
-            $errors[] = 'That photo is ' . round(((int)$sniffed[0] * (int)$sniffed[1]) / 1000000, 1) . ' megapixels — more than the '
-                      . (int)(IMG_MAX_PIXELS / 1000000) . ' megapixels the server can safely process, so it was not saved. '
-                      . 'Resize it to about ' . IMG_MAX_WIDTH . ' pixels wide in any photo editor and upload it again.';
-        } elseif (function_exists('imagecreatefromstring')
-                  && ($im = @imagecreatefromstring((string)@file_get_contents($file['tmp_name']))) === false) {
-            $errors[] = 'That file looks like an image on the outside but cannot be opened as one — it is damaged or incomplete. '
-                      . 'Re-save it from an image editor and upload it again.';
+        // uploads/.htaccess (NEW-N3-3) and every image check — extension and
+        // sniffed MIME (A-5.x), no PHP tag in the bytes (A-9.P3-2, NEW-V1-1),
+        // 8 MB, the pixel ceiling before any decode (SEC-2), a real decode —
+        // now live in config.php (uploads_protection_problem(),
+        // uploaded_image_problem()) so the Site Images page runs the same ones.
+        // Order and messages are unchanged.
+        $file    = $_FILES['image_file'];
+        $problem = uploads_protection_problem();
+        if ($problem === '') $problem = uploaded_image_problem($file, $ext);
+        if ($problem !== '') {
+            $errors[] = $problem;
         } else {
-            if (isset($im) && $im !== false && function_exists('imagedestroy')) @imagedestroy($im);
-            unset($im);
             // Filename strategy (mirrors the PDF manager): replace in place if
             // this product already has a managed photo with the same extension;
             // otherwise derive a fresh name from the SKU.
@@ -226,31 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (save_products($products)) {
                     audit_log('upload-image', $sku, ($isReplacement ? 'Replaced' : 'Uploaded') . ' photo: ' . $filename);
                     $success      = ($isReplacement ? 'Photo replaced' : 'Photo uploaded') . ' and product updated.'
-                                    // A-5.16 — say so rather than quietly handing back a different file.
-                                    . ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '')
-                                    // A-7.6's third outcome ("over IMG_MAX_PIXELS, saved at full
-                                    // size with a warning") no longer reaches here: SEC-2 refuses
-                                    // those uploads before the decode, above.
-                                    // A-9.P2-2 — the FOURTH outcome, and the
-                                    // only one that was silent. When the host
-                                    // has no gd (or no imagescale),
-                                    // image_downscale_in_place() returns
-                                    // 'no-gd' and the photo is kept at full
-                                    // size — measured: a 4032×3024 upload
-                                    // stored at 4032×3024 under the plain
-                                    // "Photo uploaded and product updated."
-                                    // That file then becomes the product
-                                    // page's eagerly loaded LCP image, and
-                                    // nothing on the dashboard or the Help
-                                    // page named the missing extension. Same
-                                    // shape as A-7.6 above, different cause:
-                                    // there the server could resize and chose
-                                    // not to, here it cannot resize at all.
-                                    . ($resizeReason === 'no-gd'
-                                        ? ' ⚠ This server cannot resize images (its image tools are not installed), so the photo has been'
-                                          . ' saved at its original size and this product page may load slowly. Please resize it to about '
-                                          . IMG_MAX_WIDTH . ' pixels wide and upload it again, or ask the host to enable the PHP "gd" extension.'
-                                        : '');
+                                    // A-5.16 (resized), A-9.P2-2 (no gd: saved at full size, the only
+                                    // silent outcome until then) — text in image_resize_note(), shared
+                                    // with site-images.php. SEC-2 refuses over-ceiling images earlier.
+                                    . image_resize_note($wasResized, $resizeReason);
                     $currentPhoto = $destUrl;
                     $isManaged    = true;
                     $product      = $products[$idx];

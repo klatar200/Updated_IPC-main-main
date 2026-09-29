@@ -162,6 +162,7 @@ on they are owned by the customer, and re-uploading them destroys his edits.
 | `public_html/data/*.json` | 644 (666 if PHP can't write) | |
 | `public_html/pdfs/` | 755, **writable by PHP** | data-sheet uploads |
 | `public_html/uploads/images/` | 755, **writable by PHP** | product photo uploads |
+| `public_html/uploads/site/` | 755, **writable by PHP** | page photos and logo (Site Images & Logo page) |
 | `public_html/admin/` | 755, **writable by PHP** | see below |
 | `public_html/admin/config.php` | 644 | |
 | `public_html/admin/config.local.php` | readable **and writable** by the PHP user | the admin rewrites it on a password change; created by the reset flow, so PHP owns it (GO-LIVE B3/B4) |

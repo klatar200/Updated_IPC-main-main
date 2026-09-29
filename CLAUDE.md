@@ -129,6 +129,12 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   `upload-image.php` writes `uploads/.htaccess` if that is missing (and refuses
   the upload if it still is — NEW-N3-3). Photo resizes go through a `.tmp`
   beside the target. Deleted products' photos go to `.deleted.<name>` as above.
+- **`uploads/site/`** — read/write, **never delete**; created at runtime if
+  absent by `site-images.php` (2026-09-29), which stores page photos and the
+  logo as `<slot>-<stamp>.<ext>` and never overwrites. It also READS
+  `images/site/` (shipped pictures, offered in its picker) and writes one key
+  of `content.json` (`copy.siteImages.<slot>`) or `site-info.json`
+  (`theme.logoUrl`) through the same `save_*()` helpers.
 - **`admin/`** — append `admin-log.jsonl`, rotated to `admin-log-<stamp>.jsonl`
   at 16 MB (archives are read by `audit-log.php`, never deleted); read
   `inquiries.jsonl` and its `inquiries-<stamp>.jsonl` archives (both written by
