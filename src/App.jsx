@@ -732,14 +732,17 @@ function Navbar({ products = [], catalogFailed = false }) {
                   : "2px solid transparent",
               transition: "color 0.15s",
             }}
+            // NEW-N1-6 (audit 2026-09-27) — these two writes follow the ink.
+            // They were #ffffff / rgba(255,255,255,0.6), so ONE hover replaced
+            // the themed colour above for good: 4.55 → 1.11:1 on a pale dark.
             onMouseEnter={(e) => {
               if (currentPage !== "home")
-                e.currentTarget.style.color = "#ffffff";
+                e.currentTarget.style.color = "var(--brand-dark-ink)";
               setOpenDropdown(null);
             }}
             onMouseLeave={(e) => {
               if (currentPage !== "home")
-                e.currentTarget.style.color = "rgba(255,255,255,0.6)";
+                e.currentTarget.style.color = "rgba(var(--brand-dark-ink-rgb), 0.6)";
             }}
           >
             {nc.home}
@@ -886,7 +889,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontWeight: 700,
                           letterSpacing: "0.1em",
                           textTransform: "uppercase",
-                          color: "rgba(255,255,255,0.3)",
+                          color: "rgba(var(--brand-panel-ink-rgb), 0.3)",
                           padding: "0 20px 8px",
                         }}
                       >
@@ -953,7 +956,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                               style={{
                                 fontSize: 13,
                                 fontWeight: 600,
-                                color: itemActive ? "var(--brand-accent)" : "#ffffff",
+                                color: itemActive ? "var(--brand-accent1-on-dark)" : "rgb(var(--brand-panel-ink-rgb))",
                                 lineHeight: 1.3,
                               }}
                             >
@@ -962,7 +965,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                             <span
                               style={{
                                 fontSize: 11,
-                                color: "rgba(255,255,255,0.4)",
+                                color: "var(--brand-panel-muted-40)",
                                 marginTop: 2,
                               }}
                             >
@@ -981,7 +984,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontWeight: 700,
                           letterSpacing: "0.1em",
                           textTransform: "uppercase",
-                          color: "rgba(255,255,255,0.3)",
+                          color: "rgba(var(--brand-panel-ink-rgb), 0.3)",
                           padding: "0 20px 8px",
                         }}
                       >
@@ -997,7 +1000,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           style={{
                             padding: "8px 20px",
                             fontSize: 12,
-                            color: "rgba(255,255,255,0.3)",
+                            color: "rgba(var(--brand-panel-ink-rgb), 0.3)",
                           }}
                         >
                           {catalogFailed ? (
@@ -1007,7 +1010,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                                 type="button"
                                 onClick={() => window.location.reload()}
                                 style={{
-                                  color: "rgba(255,255,255,0.6)",
+                                  color: "rgba(var(--brand-panel-ink-rgb), 0.6)",
                                   textDecoration: "underline",
                                   background: "none",
                                   border: 0,
@@ -1063,7 +1066,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                               style={{
                                 fontSize: 12,
                                 fontWeight: 500,
-                                color: "rgba(var(--brand-primary-ink-rgb), 0.75)",
+                                color: "rgba(var(--brand-panel-ink-rgb), 0.75)",
                               }}
                             >
                               {cat}
@@ -1227,7 +1230,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                             style={{
                               fontSize: 13,
                               fontWeight: 600,
-                              color: itemActive ? "var(--brand-accent)" : "#ffffff",
+                              color: itemActive ? "var(--brand-accent1-on-dark)" : "rgb(var(--brand-panel-ink-rgb))",
                               lineHeight: 1.3,
                             }}
                           >
@@ -1236,7 +1239,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           <span
                             style={{
                               fontSize: 11,
-                              color: "rgba(255,255,255,0.45)",
+                              color: "var(--brand-panel-muted-45)",
                               marginTop: 2,
                               lineHeight: 1.3,
                             }}
@@ -1385,7 +1388,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                 fontSize: 14,
                 fontWeight: 500,
                 color:
-                  currentPage === "home" ? "#ffffff" : "rgba(255,255,255,0.65)",
+                  currentPage === "home" ? "rgb(var(--brand-drawer-ink-rgb))" : "rgba(var(--brand-drawer-ink-rgb), 0.65)",
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
                 borderLeft:
                   currentPage === "home"
@@ -1415,8 +1418,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                   fontSize: 14,
                   fontWeight: 500,
                   color: groupActive(["products", "dashboard"])
-                    ? "#ffffff"
-                    : "rgba(255,255,255,0.65)",
+                    ? "rgb(var(--brand-drawer-ink-rgb))"
+                    : "rgba(var(--brand-drawer-ink-rgb), 0.65)",
                   borderBottom:
                     mobileOpen === "products"
                       ? "none"
@@ -1479,7 +1482,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                         style={{
                           fontSize: 13,
                           fontWeight: 600,
-                          color: currentPage === item.p ? "var(--brand-accent)" : "#ffffff",
+                          color: currentPage === item.p ? "var(--brand-accent1-on-dark)" : "rgb(var(--brand-drawer-ink-rgb))",
                         }}
                       >
                         {item.label}
@@ -1495,7 +1498,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontWeight: 700,
                           letterSpacing: "0.1em",
                           textTransform: "uppercase",
-                          color: "rgba(255,255,255,0.3)",
+                          color: "rgba(var(--brand-drawer-ink-rgb), 0.3)",
                           padding: "10px 20px 4px",
                         }}
                       >
@@ -1534,7 +1537,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                             style={{
                               fontSize: 12,
                               fontWeight: 500,
-                              color: "rgba(var(--brand-primary-ink-rgb), 0.70)",
+                              color: "rgba(var(--brand-drawer-ink-rgb), 0.70)",
                             }}
                           >
                             {cat}
@@ -1565,8 +1568,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                   fontSize: 14,
                   fontWeight: 500,
                   color: groupActive(["industries", "services", "about", "faq"])
-                    ? "var(--brand-dark-ink)"
-                    : "rgba(var(--brand-dark-ink-rgb), 0.65)",
+                    ? "rgb(var(--brand-drawer-ink-rgb))"
+                    : "rgba(var(--brand-drawer-ink-rgb), 0.65)",
                   borderBottom:
                     mobileOpen === "company"
                       ? "none"
@@ -1630,7 +1633,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontSize: 13,
                           fontWeight: 600,
                           color:
-                            currentPage === item.page ? "var(--brand-accent)" : "var(--brand-dark-ink)",
+                            currentPage === item.page ? "var(--brand-accent1-on-dark)" : "rgb(var(--brand-drawer-ink-rgb))",
                         }}
                       >
                         {item.label}
@@ -1638,7 +1641,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                       <span
                         style={{
                           fontSize: 11,
-                          color: "rgba(var(--brand-dark-ink-rgb), 0.40)",
+                          color: "rgba(var(--brand-drawer-ink-rgb), 0.40)",
                           marginTop: 1,
                         }}
                       >
@@ -1666,8 +1669,8 @@ function Navbar({ products = [], catalogFailed = false }) {
                 fontWeight: 500,
                 color:
                   currentPage === "contact"
-                    ? "var(--brand-dark-ink)"
-                    : "rgba(var(--brand-dark-ink-rgb), 0.65)",
+                    ? "rgb(var(--brand-drawer-ink-rgb))"
+                    : "rgba(var(--brand-drawer-ink-rgb), 0.65)",
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
                 borderLeft:
                   currentPage === "contact"
@@ -1848,7 +1851,7 @@ function Hero() {
           </div>
           <h1
             className="font-extrabold leading-tight mb-6"
-            style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)", color: "#ffffff" }}
+            style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)", color: "rgb(var(--brand-hero-ink-rgb))" }}
           >
             {c.headlineLine1}
             <br />
@@ -1858,7 +1861,7 @@ function Hero() {
           </h1>
           <p
             className="text-base leading-relaxed mb-8 max-w-lg"
-            style={{ color: "rgba(255,255,255,0.75)" }}
+            style={{ color: "rgba(var(--brand-hero-ink-rgb), 0.75)" }}
           >
             {c.subhead}
           </p>
@@ -1882,7 +1885,7 @@ function Hero() {
               style={{
                 display: "inline-block",
                 background: "transparent",
-                color: "var(--brand-primary-ink)",
+                color: "rgb(var(--brand-hero-ink-rgb))",
                 cursor: "pointer",
               }}
             >
@@ -1923,7 +1926,7 @@ function Hero() {
                 className="font-semibold"
                 style={{
                   fontSize: "clamp(11px, 1.5vw, 14px)",
-                  color: "var(--brand-dark-ink)",
+                  color: "rgb(var(--brand-hero-ink-rgb))",
                   marginBottom: 2,
                 }}
               >
@@ -1932,7 +1935,7 @@ function Hero() {
               <div
                 style={{
                   fontSize: "clamp(10px, 1.2vw, 12px)",
-                  color: "rgba(var(--brand-dark-ink-rgb), 0.5)",
+                  color: "rgba(var(--brand-hero-ink-rgb), 0.5)",
                 }}
               >
                 {p.sub}
@@ -2056,7 +2059,7 @@ function Hero() {
                 key={idx}
                 className="flex items-center gap-1.5 flex-shrink-0"
                 style={{
-                  color: "rgba(var(--brand-dark-ink-rgb), 0.60)",
+                  color: "rgba(var(--brand-hero-ink-rgb), 0.60)",
                   fontSize: 12,
                   fontWeight: 500,
                   paddingRight: 48,
@@ -3823,7 +3826,7 @@ function AboutPage() {
                         fontSize: 11,
                         fontWeight: 700,
                         background: isLast ? "var(--brand-primary)" : "rgba(var(--brand-primary-rgb),0.08)",
-                        color: isLast ? "var(--brand-dark-ink)" : "var(--brand-primary-text)",
+                        color: isLast ? "var(--brand-primary-ink)" : "var(--brand-primary-text)",
                       }}
                     >
                       {m.year}
@@ -4004,16 +4007,16 @@ function AboutPage() {
                 display: "inline-block",
                 background: "transparent",
                 color: "rgba(var(--brand-dark-ink-rgb), 0.7)",
-                border: "1px solid rgba(255,255,255,0.3)",
+                border: "1px solid rgba(var(--brand-dark-ink-rgb), 0.3)",
                 cursor: "pointer",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#ffffff";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.6)";
+                e.currentTarget.style.color = "var(--brand-dark-ink)";
+                e.currentTarget.style.borderColor = "rgba(var(--brand-dark-ink-rgb), 0.6)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "rgba(255,255,255,0.7)";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)";
+                e.currentTarget.style.color = "rgba(var(--brand-dark-ink-rgb), 0.7)";
+                e.currentTarget.style.borderColor = "rgba(var(--brand-dark-ink-rgb), 0.3)";
               }}
             >
               View Services
@@ -4127,7 +4130,7 @@ function FaqItem({ question, answer, open, onToggle }) {
             width: 28,
             height: 28,
             background: open ? "var(--brand-primary)" : "rgba(var(--brand-primary-rgb),0.07)",
-            color: open ? "var(--brand-dark-ink)" : "var(--brand-primary-text)",
+            color: open ? "var(--brand-primary-ink)" : "var(--brand-primary-text)",
           }}
         >
           +
@@ -4474,7 +4477,7 @@ function FaqPage() {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "var(--brand-primary)";
-                e.currentTarget.style.color = "#ffffff";
+                e.currentTarget.style.color = "var(--brand-primary-ink)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "#ffffff";
@@ -4508,7 +4511,7 @@ function FaqPage() {
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "var(--brand-primary)";
-            e.currentTarget.style.color = "#ffffff";
+            e.currentTarget.style.color = "var(--brand-primary-ink)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "#ffffff";
@@ -8235,10 +8238,62 @@ function ThemeInjector() {
         Math.max(0, Math.min(255, Math.round(b[i] * (s[i] === 0 ? mean : l[i] / s[i])))));
       return `rgb(${out[0]}, ${out[1]}, ${out[2]})`;
     };
+    const darkPanel = shadeOf(dark, "#0d2d52", "#0e2847");
+    const darkDrawer = shadeOf(dark, "#0d2d52", "#0a2444");
+    const primaryDeep = shadeOf(primary, "#005da3", "#003d7a");
     root.style.setProperty("--brand-dark-2", shadeOf(dark, "#0d2d52", "#0a2a52"));
-    root.style.setProperty("--brand-dark-panel", shadeOf(dark, "#0d2d52", "#0e2847"));
-    root.style.setProperty("--brand-dark-drawer", shadeOf(dark, "#0d2d52", "#0a2444"));
-    root.style.setProperty("--brand-primary-deep", shadeOf(primary, "#005da3", "#003d7a"));
+    root.style.setProperty("--brand-dark-panel", darkPanel);
+    root.style.setProperty("--brand-dark-drawer", darkDrawer);
+    root.style.setProperty("--brand-primary-deep", primaryDeep);
+
+    // C2 (audit 2026-09-27 NEW-N1-4/5/6) — an ink for every DERIVED surface,
+    // not only the three base colours. The mega-menu panel and the drawer
+    // follow --brand-dark through shadeOf() but painted white or the PRIMARY's
+    // ink; the industry cards' deep→primary gradient painted white; the hero's
+    // dark overlay painted the dark or primary ink. All white on the shipped
+    // palette (so the deployed site is unchanged) and all wrong on a pale one.
+    const hexOf = (c) => {
+      const m = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(c || "");
+      return m ? "#" + [m[1], m[2], m[3]].map((x) => (+x).toString(16).padStart(2, "0")).join("") : c;
+    };
+    // `over` composited at `alpha` on `base` — the hero's rgba(20,20,20,a).
+    const veil = (base, over, alpha) => {
+      const b = rgbOf(base), o = rgbOf(over);
+      if (!b || !o) return base;
+      return "#" + [0, 1, 2].map((i) => Math.round(o[i] * alpha + b[i] * (1 - alpha)).toString(16).padStart(2, "0")).join("");
+    };
+    const deepHex = hexOf(primaryDeep);
+    const deepInk = inkFor([deepHex, primary]);
+    // The hero overlay runs 0.72 → 0.50 black over primary → accent-2 → accent.
+    const heroInk = inkFor([veil(primary, "#141414", 0.72), veil(accent2, "#141414", 0.61), veil(accent, "#141414", 0.5)]);
+    root.style.setProperty("--brand-panel-ink-rgb", inkRgb(inkFor(hexOf(darkPanel))));
+    // Muted text on the panel (the menu's description lines) at the alpha it
+    // ships with, raised only as far as 3:1 needs. A dark ink at 0.4 on a pale
+    // panel measured 2.2:1; white at 0.4 on the shipped navy is 3.5:1, so the
+    // shipped value is exactly rgba(255,255,255,0.4) composited — unchanged.
+    const panelHex = hexOf(darkPanel);
+    const panelInk = inkFor(panelHex);
+    const mutedOn = (bg, ink, alpha, min = 3) => {
+      const b = rgbOf(bg), k = rgbOf(ink);
+      if (!b || !k) return ink;
+      for (let a = alpha; ; a = Math.min(1, a + 0.05)) {
+        const c = "#" + [0, 1, 2].map((i) => Math.round(k[i] * a + b[i] * (1 - a)).toString(16).padStart(2, "0")).join("");
+        if (contrastRatio(c, bg) >= min || a >= 1) return c;
+      }
+    };
+    root.style.setProperty("--brand-panel-muted-40", mutedOn(panelHex, panelInk, 0.4));
+    root.style.setProperty("--brand-panel-muted-45", mutedOn(panelHex, panelInk, 0.45));
+    root.style.setProperty("--brand-drawer-ink-rgb", inkRgb(inkFor(hexOf(darkDrawer))));
+    root.style.setProperty("--brand-deep-ink-rgb", inkRgb(deepInk));
+    root.style.setProperty("--brand-hero-ink-rgb", inkRgb(heroInk));
+    // The accent as TEXT on the deep→primary gradient (industry-card chips).
+    // Kept whenever it is no worse there than the shipped accent is on the
+    // shipped gradient (so the deployed site is unchanged) or clears 3:1;
+    // otherwise the gradient's own ink.
+    const worstOn = (fg, bgs) => Math.min(...bgs.map((b) => contrastRatio(fg, b)));
+    const shippedAccentOnDeep = worstOn("#00bef2", ["#003d7a", "#005da3"]);
+    root.style.setProperty("--brand-accent-on-deep",
+      worstOn(accent, [deepHex, primary]) >= Math.min(3, shippedAccentOnDeep) ? accent : deepInk);
   }, [site]);
   return null;
 }
@@ -10958,7 +11013,7 @@ function DashboardPage({ products }) {
                     background: active
                       ? "rgba(255,255,255,0.10)"
                       : "rgba(var(--brand-primary-rgb),0.08)",
-                    color: active ? "var(--brand-dark-ink)" : "var(--brand-primary-text)",
+                    color: active ? "var(--brand-primary-ink)" : "var(--brand-primary-text)",  // NEW-N1-4: the pill is --brand-primary
                   }}
                 >
                   {count}
@@ -11135,7 +11190,7 @@ function DashboardPage({ products }) {
                     fontSize: 14,
                     fontWeight: 600,
                     background: 'var(--brand-primary)',
-                    color: '#ffffff',
+                    color: 'var(--brand-primary-ink)',
                     border: 'none',
                     cursor: 'pointer',
                   }}
@@ -11197,7 +11252,7 @@ function DashboardPage({ products }) {
                         letterSpacing: "0.08em",
                         color:
                           sortCol === col.key
-                            ? "var(--brand-accent)"
+                            ? "var(--brand-accent1-on-dark)"
                             : "rgba(var(--brand-dark-ink-rgb), 0.65)",
                         textTransform: "uppercase",
                         whiteSpace: "nowrap",
@@ -11859,7 +11914,7 @@ function IndustriesPage() {
                   width: 44,
                   height: 44,
                   background: "rgba(var(--brand-primary-rgb),0.5)",
-                  color: "var(--brand-accent)",
+                  color: "var(--brand-accent-on-deep)",
                   border: "1px solid rgba(var(--brand-accent-rgb),0.3)",
                 }}
               >
@@ -11874,13 +11929,17 @@ function IndustriesPage() {
                     that is the open item brand-gradient-mixed-ends, and it is
                     deliberately NOT part of this change. The heading is
                     left-aligned, i.e. over the dark end, where white is correct
-                    for the shipped palette. */}
-                <h2 className="text-xl font-extrabold text-white">
+                    for the shipped palette.
+                    C2 (audit 2026-09-27 NEW-N1-5): now the gradient's own ink,
+                    --brand-deep-ink-rgb — WHITE on the shipped palette, so the
+                    open brand-gradient-mixed-ends item is untouched; on a pale
+                    primary the white heading measured 1.0:1. */}
+                <h2 className="text-xl font-extrabold" style={{ color: "rgb(var(--brand-deep-ink-rgb))" }}>
                   {ind.name}
                 </h2>
                 <p
                   className="text-xs font-semibold mt-0.5"
-                  style={{ color: "var(--brand-accent)" }}
+                  style={{ color: "var(--brand-accent-on-deep)" }}
                 >
                   {ind.subhead}
                 </p>
@@ -12451,7 +12510,7 @@ function ServicesPage() {
               </div>
               <div
                 className="text-xs font-medium mt-0.5"
-                style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.75)" }}
+                style={{ color: "rgba(var(--brand-header-ink-rgb), 0.75)" }}
               >
                 {/* B21 — the exception belongs here, beside the pointer to the
                     cards, not spliced into the headline with a middot. */}

@@ -100,6 +100,9 @@ const VAR_CSS = ':root{' + Object.entries({
   '--brand-accent-on-dark': '#e8873a',
   '--brand-accent-on-footer': '#e8873a',
   '--brand-accent1-on-dark': '#ff9d2e',
+  // C2 (audit 2026-09-27 NEW-N1-5): a ThemeInjector-derived, accent-coloured
+  // variable like the four above, so the drill must set it too.
+  '--brand-accent-on-deep': '#ff9d2e',
   '--brand-accent-rgb': '255, 157, 46',
   '--brand-accent-2-rgb': '210, 105, 30',
   // Item 12's four. Deliberately arbitrary non-navy sentinels rather than the
