@@ -103,6 +103,8 @@ $navActive = 'help';
     table.field-ref td { padding: 10px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: top; color: #374151; }
     table.field-ref td:first-child { font-weight: 700; color: #005da3; white-space: nowrap; }
     table.field-ref tr:last-child td { border-bottom: none; }
+    /* #sitemap's tables: the left column is a description, not a label, so it wraps (nowrap put it 325px past a 1440 viewport). */
+    table.map-ref td:first-child { white-space: normal; width: 38%; }
 
     /* FAQ disclosure */
     details.faq { border: 1px solid #e5e9ee; border-radius: 10px; padding: 4px 16px; margin-bottom: 10px; transition: border-color 0.15s ease; }
@@ -202,6 +204,7 @@ $navActive = 'help';
       <a href="#walkthrough">Launching a new product, start to finish</a>
 
       <div class="toc-group">🌐 Your Website</div>
+      <a href="#sitemap">Where each part of the site is edited</a>
       <a href="#business">Business Details</a>
       <a href="#pagecontent">Page Content</a>
       <a href="#inquiries">Inquiries (contact-form leads)</a>
@@ -256,7 +259,10 @@ $navActive = 'help';
           <tr><td>Remove a part that's discontinued</td><td><a href="#deleting">Deleting a product</a></td></tr>
           <tr><td><strong>Undo a mistake / get something back</strong></td><td><a href="#backups">Backups &amp; undo</a> — you can do this yourself</td></tr>
           <tr><td><strong>Change your password</strong></td><td><a href="#password">Your admin password</a> — you can do this yourself</td></tr>
+          <tr><td><strong>"Where do I change <em>this</em>?" — any text, photo or link on a page</strong></td><td><a href="#sitemap">Where each part of the site is edited</a> — every page, top to bottom</td></tr>
           <tr><td>Change the phone number, address, hours, logo or colors</td><td><a href="#business">Business Details</a></td></tr>
+          <tr><td>Change the automatic reply email, or add a holiday-closure notice to it</td><td><a href="#pagecontent">Page Content</a> → Contact Page — Form → the three <em>Auto-reply</em> boxes at the bottom</td></tr>
+          <tr><td>Put a new photo on the homepage, About or Services page, or a new logo</td><td><a href="#newfiles">Putting a new photo or logo on the server</a></td></tr>
           <tr><td>Change wording on the site, the FAQ, services or footer links</td><td><a href="#pagecontent">Page Content</a></td></tr>
           <tr><td>Add or rename a product category</td><td><a href="#pagecontent">Page Content</a> → Product Families / Categories — you can do this yourself</td></tr>
           <tr><td>Change the title or description Google shows for a page</td><td><a href="#pagecontent">Page Content</a> → Search Engine Text (SEO)</td></tr>
@@ -437,7 +443,10 @@ $navActive = 'help';
           </li>
           <li>
             <strong>Approvals &amp; Certifications</strong> — tick every approval this part genuinely holds. These are tick-boxes rather than free text on purpose: they drive the approval filters and the certification badges on the public site, so they have to be the same words everywhere. The twelve available are <code>UL Recognized</code>, <code>UL Listed</code>, <code>UL Approved</code>, <code>cUL</code>, <code>CSA</code>, <code>MIL-SPEC</code>, <code>RoHS</code>, <code>FDA</code>, <code>USP Class VI</code>, <code>ISO 10993-5</code>, <code>UL VW-1</code> and <code>UL-94</code>.
-            <div class="visual-note"><span class="vn-icon">✅</span>Ticking a box here is not the same as typing "RoHS" as a Feature Badge. The badge is decoration; the tick-box is the fact a buyer can filter on. If a part is RoHS compliant, do both.</div>
+            <!-- Docs audit 2026-09-29 — this said "If a part is RoHS compliant, do
+                 both". isStandardBadge() in src/App.jsx drops any badge that names
+                 a standard from Product Features, so the badge half never shows. -->
+            <div class="visual-note"><span class="vn-icon">✅</span>Tick the box — don't type "RoHS" (or UL, MIL-SPEC, FDA …) as a Feature Badge. The tick-box is the fact a buyer can filter on and it shows as an Approvals chip on the product page; a badge that names a standard is deliberately left out of the "Product Features" chips so the same certification is never listed twice.</div>
           </li>
           <li>
             <strong>Specifications</strong> — this is the label/value list customers see (Material, Color, Shrink Ratio, etc.). Use the visual builder — see <a href="#specs">Building the specifications list</a> below for a full walkthrough.
@@ -703,6 +712,180 @@ $navActive = 'help';
         <div class="visual-note"><span class="vn-icon">✅</span>None of this has to happen in one sitting. A product with no photo or PDF yet is still live and visible on the site — just less complete. Come back and finish it with Edit whenever the missing pieces are ready.</div>
       </section>
 
+      <!-- Page-by-page map, added 2026-09-29 (owner-docs audit). Every row was
+           measured, not read off the code: _harness/docmap.js writes a unique
+           marker into every Page Content and Business Details field through the
+           real admin forms, loads every page, and records where each marker
+           appears; the "Fixed" rows are the text no field reaches. If you add a
+           field to content.php or settings.php, add its row here — docmap.js
+           fails until you do. -->
+      <section class="help-section" id="sitemap">
+        <div class="eyebrow eyebrow-site">Your Website</div>
+        <h2>🗺️ Where each part of the website is edited</h2>
+        <p>Every word, photo and link on your public website comes from one of four places:</p>
+        <ul class="plain">
+          <li><strong>Business Details</strong> — the facts about your company (phone, address, hours, certifications, colors, logo). Change one there and it changes on every page at once. See <a href="#business">Business Details</a>.</li>
+          <li><strong>Page Content</strong> — the wording and the lists: headings, buttons, cards, FAQ, menus, the privacy policy. Each section below names the exact box. See <a href="#pagecontent">Page Content</a>.</li>
+          <li><strong>The product itself</strong> — anything about one part comes from its <strong>Edit</strong>, <strong>Photo</strong> and <strong>Manage PDF</strong> screens on the Products page.</li>
+          <li><strong>Fixed</strong> — part of the site's design. Nothing in this dashboard changes it; ask your developer. These are listed below so you don't go looking for a box that doesn't exist.</li>
+        </ul>
+        <div class="callout callout-tip">
+          <b>You don't need to retype your phone number in the wording</b>
+          The website swaps the <em>original</em> phone number, fax, email and address for your current Business Details wherever they appear inside FAQ answers, the privacy policy, search-engine descriptions and the contact form's error messages. It does the same for the original business hours, city and street, founded year, minimum order and "25 million" stock figure inside all Page Content wording. So after you change one of those in Business Details, the older wording keeps up by itself. (A <em>new</em> sentence you type yourself is shown exactly as typed.)
+        </div>
+
+        <h3>On every page — the header (top bar and menus)</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Logo</td><td>Business Details → <strong>Logo URL</strong>. To use a new logo file, see <a href="#newfiles">Putting a new photo or logo on the server</a>.</td></tr>
+          <tr><td>"INSULATION PRODUCTS CORPORATION" beside the logo</td><td><strong>Fixed.</strong> It does not follow the Company name field.</td></tr>
+          <tr><td>The small line under the name</td><td>Business Details → <strong>Slogan / Tagline</strong> (clear it and the line disappears).</td></tr>
+          <tr><td>"Home", "Products", "Company" and the <strong>Request a Quote</strong> button</td><td>Page Content → <strong>Navigation — Header Labels</strong>.</td></tr>
+          <tr><td>Products menu: its column headings and the Browse All / Product Index / Datasheets links</td><td>Page Content → <strong>Navigation — Header Labels</strong>. The small grey line under each link is <strong>fixed</strong>.</td></tr>
+          <tr><td>Products menu: the list of categories</td><td>Built from your products' <strong>Part Type</strong>, in the order set in Page Content → <strong>Product Families / Categories</strong>. A category that no product uses is not shown.</td></tr>
+          <tr><td>Company menu: each item, its grey sub-line and where it goes</td><td>Page Content → <strong>Navigation — Company Menu</strong>.</td></tr>
+          <tr><td>The "Contact" link in the phone-sized menu</td><td><strong>Fixed.</strong></td></tr>
+          <tr><td>The colors of the bar, buttons and highlights</td><td>Business Details → <strong>Branding &amp; Theme</strong> colors.</td></tr>
+        </table>
+
+        <h3>On every page — the footer</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Logo and company name</td><td>Business Details → <strong>Logo URL</strong> and <strong>Company Name</strong>.</td></tr>
+          <tr><td>"ESTABLISHED 1974 · ISO 9001" and any other certifications</td><td>Business Details → <strong>Founded Year</strong>, <strong>ISO Certification</strong> and <strong>Other Certifications</strong> (one per line, shown exactly as typed). The word "ESTABLISHED" is fixed.</td></tr>
+          <tr><td>The short paragraph about IPC</td><td><strong>Fixed</strong>, except the minimum-order figure in it, which is Business Details → <strong>Minimum Order</strong>.</td></tr>
+          <tr><td>Social media icons</td><td>Business Details → <strong>Social Links</strong>. An empty box removes that icon.</td></tr>
+          <tr><td>"Contact" and "Quick Links" headings</td><td>Page Content → <strong>Footer — Labels</strong>.</td></tr>
+          <tr><td>Phone, fax, email, address, hours</td><td>Business Details → <strong>Contact</strong>, <strong>Address</strong> and <strong>Hours (display text)</strong>.</td></tr>
+          <tr><td>"Full product catalog (PDF)" link</td><td>Business Details → <strong>Catalog PDF URL</strong>. Hidden while that box is empty.</td></tr>
+          <tr><td>The Quick Links themselves</td><td>Page Content → <strong>Navigation — Footer Quick Links</strong>.</td></tr>
+          <tr><td>"© 1974–<?= date('Y') ?> …" line</td><td>Business Details → <strong>Founded Year</strong> and <strong>Company Name</strong>. The second year updates itself every January.</td></tr>
+          <tr><td>The web address shown under it</td><td>Page Content → <strong>Footer — Labels</strong> → <strong>Domain shown in footer</strong>; the city, state and ZIP after it come from Business Details.</td></tr>
+          <tr><td>The footer's dark blue background</td><td><strong>Fixed</strong> — it does not follow the brand colors.</td></tr>
+        </table>
+
+        <h3>Homepage</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Small badge, the three headline lines, the paragraph and the two buttons (their words and where they go)</td><td>Page Content → <strong>Homepage — Hero</strong>.</td></tr>
+          <tr><td>The small cards beside the headline ("$50 Minimum Order" …)</td><td>Page Content → <strong>Homepage — Hero Proof Points</strong>.</td></tr>
+          <tr><td>The large photo</td><td>Page Content → <strong>Site Images</strong> → Homepage hero. See <a href="#newfiles">Putting a new photo on the server</a>.</td></tr>
+          <tr><td>The scrolling strip of ✓ items</td><td>Page Content → <strong>Homepage — Hero Trust Ticker</strong>.</td></tr>
+          <tr><td>The bar of numbers under the hero (years in business, products stocked …)</td><td>Page Content → <strong>Trust Bar Stats</strong>. <strong>These numbers are typed by you, not counted</strong> — when you add or remove products, update the "Products Stocked" figure here yourself.</td></tr>
+          <tr><td>"Products &amp; Services" heading, the dark ribbon's text and its button</td><td>Page Content → <strong>Homepage — "Products &amp; Services" heading</strong>. The "View Full Catalog →" link is fixed.</td></tr>
+          <tr><td>The product and service cards</td><td>Page Content → <strong>Products &amp; Services Cards</strong>.</td></tr>
+          <tr><td>The team and building photos band</td><td>Photos: Page Content → <strong>Site Images</strong> (team and building). The heading and sentence are <strong>fixed</strong> wording, with your street address and ISO filled in from Business Details. The band disappears if you empty both photos.</td></tr>
+          <tr><td>"Industries" heading and its paragraph</td><td>Page Content → <strong>Homepage — "Industries" heading</strong>.</td></tr>
+          <tr><td>The industry cards</td><td>Page Content → <strong>Industries Grid</strong>. Each card's "Learn More →" jumps to the matching section of the Industries page — so the card's <strong>Name</strong> must be spelled exactly like that section's <strong>Industry name</strong> in <em>Industries Page — Detail Sections</em>, or it lands at the top of the page instead.</td></tr>
+          <tr><td>The "$50 minimum order. 25 million feet in stock." band near the bottom</td><td>Business Details → <strong>Minimum Order</strong>, <strong>Feet In Stock</strong>, <strong>Phone</strong> and <strong>Fax</strong>. The rest of the wording and its two buttons are fixed.</td></tr>
+        </table>
+
+        <h3>Products page and each product's own page</h3>
+        <table class="field-ref map-ref">
+          <tr><td>"Product Catalog" heading and "Browse all 42 products …"</td><td><strong>Fixed</strong> wording; the number is counted automatically.</td></tr>
+          <tr><td>Category list in the left column, and its counts</td><td>Your products' <strong>Part Type</strong>, in the order of Page Content → <strong>Product Families / Categories</strong>.</td></tr>
+          <tr><td>Each product card: photo, part number, category, name</td><td>That product's <strong>Photo</strong> button, <strong>SKU</strong>, <strong>Part Type</strong> and <strong>Product Name</strong>.</td></tr>
+          <tr><td>Product page: the name and part number at the top</td><td><strong>Product Name</strong> and <strong>SKU</strong>.</td></tr>
+          <tr><td>The line under the name, and the caption under the photo</td><td><strong>Image Caption</strong> (both places). Left empty, the line under the name reads "Part … — full specifications, data sheet and quote request below."</td></tr>
+          <tr><td>"Datasheet" button</td><td><strong>Manage PDF</strong>; its wording is <strong>Primary PDF Button Label</strong>. Extra buttons: <strong>Additional PDF Links</strong>. With no PDF the button reads "Request Datasheet" (fixed).</td></tr>
+          <tr><td>"Approvals &amp; Certifications" chips</td><td>The <strong>Approvals &amp; Certifications</strong> tick-boxes.</td></tr>
+          <tr><td>"Product Features" chips</td><td><strong>Feature Badges</strong>. A badge that names a standard (UL, RoHS, MIL-SPEC, FDA …) is <strong>left out here on purpose</strong> — the Approvals chips already say it — so tick the box rather than typing it as a badge.</td></tr>
+          <tr><td>Body paragraphs</td><td><strong>Description Paragraphs</strong>.</td></tr>
+          <tr><td>Specification list and size chart</td><td><a href="#specs">Specifications</a> and <a href="#sizechart">Size chart</a> on the Edit screen.</td></tr>
+          <tr><td>"Related Products"</td><td>Automatic: up to four other products with the same Part Type. (Not shown for Accessory, Adhesive or Tape — fixed.)</td></tr>
+          <tr><td>The product page's browser-tab title and Google description</td><td>Automatic, from <strong>Product Name</strong>, <strong>SKU</strong>, <strong>Part Type</strong> and <strong>Specifications Summary</strong>.</td></tr>
+          <tr><td>"Request a Quote" and "Request Datasheet" buttons, "Product Detail" label, section headings</td><td><strong>Fixed.</strong></td></tr>
+        </table>
+
+        <h3>Product Index page (the searchable table)</h3>
+        <table class="field-ref map-ref">
+          <tr><td>"Product Index" heading and the sentence under it</td><td><strong>Fixed</strong> — this page has no banner card in Page Content.</td></tr>
+          <tr><td>Category buttons</td><td>Part Type, in Product Families order.</td></tr>
+          <tr><td>"Filter by approval" chips</td><td>The products' Approvals tick-boxes.</td></tr>
+          <tr><td>Table columns</td><td>Product Name, SKU, Part Type, the start of the first Description paragraph, <strong>Operating Temperature</strong> ("Temp") and <strong>Specifications Summary</strong> ("Specifications"). This table is the <strong>only</strong> place Operating Temperature appears.</td></tr>
+        </table>
+
+        <h3>Datasheets page</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Heading and intro</td><td>Page Content → <strong>Datasheets page — banner</strong>. Those boxes are empty as shipped, which means the site shows its built-in wording ("Datasheets" …); type in them to replace it.</td></tr>
+          <tr><td>The list of data sheets</td><td>Automatic: every product that has a PDF, grouped by Part Type. Add one with <strong>Manage PDF</strong>.</td></tr>
+        </table>
+
+        <h3>Industries page</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Banner</td><td>Page Content → <strong>Industries page — banner</strong>.</td></tr>
+          <tr><td>Each industry: icon, name, sub-heading, "Common Applications", "IPC Products" links, certification chips</td><td>Page Content → <strong>Industries Page — Detail Sections</strong>. Product links are one per line as <code>SKU | name shown</code>; the SKU must match a product in your catalog (the page warns you when it doesn't).</td></tr>
+          <tr><td>The three small headings in each section, its buttons, and the "PPAP &amp; IMDS Documentation Available" box at the bottom</td><td><strong>Fixed.</strong></td></tr>
+        </table>
+
+        <h3>Services page</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Banner</td><td>Page Content → <strong>Services page — banner</strong>. Photo: <strong>Site Images</strong> → Services.</td></tr>
+          <tr><td>"Standard Lead Time: …" bar</td><td>Worked out from the <strong>Lead time</strong> boxes in <strong>Value-Added Services</strong>: the lead time most services share is shown here, and a card shows its own lead time only when it differs. The rest of that bar is fixed.</td></tr>
+          <tr><td>Service cards: icon, title, description, ✓ bullet points, brochure download</td><td>Page Content → <strong>Value-Added Services</strong>.</td></tr>
+          <tr><td>"Need something not listed?" panel</td><td><strong>Fixed.</strong></td></tr>
+        </table>
+
+        <h3>About page</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Banner, and the "Our Story", Certifications, Team and bottom headings</td><td>Page Content → <strong>About page — banner &amp; headings</strong>.</td></tr>
+          <tr><td>"Our Story" paragraphs</td><td>Business Details → <strong>About story</strong> (one paragraph per line) — not Page Content.</td></tr>
+          <tr><td>Photo</td><td>Page Content → <strong>Site Images</strong> → About.</td></tr>
+          <tr><td>Fact box: Founded, Headquarters, Inventory, Minimum Order, Quality, Phone, Fax</td><td>Business Details. The rows "Privately Held", "Custom Lead Time ≤ 1 week" and "PPAP / IMDS: Available on request" are <strong>fixed</strong>.</td></tr>
+          <tr><td>"Company Timeline" and its entries</td><td>The heading is fixed; the entries are Page Content → <strong>About — Company Timeline</strong>.</td></tr>
+          <tr><td>Certification cards</td><td>Page Content → <strong>About — Certifications &amp; Standards</strong>.</td></tr>
+          <tr><td>Team cards</td><td>Page Content → <strong>About — Team &amp; Capabilities</strong>.</td></tr>
+          <tr><td>Bottom "Call …, email …" line and its buttons</td><td>Fixed wording, your phone and email from Business Details.</td></tr>
+        </table>
+
+        <h3>FAQ page</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Banner</td><td>Page Content → <strong>FAQ page — banner</strong>.</td></tr>
+          <tr><td>The category buttons and category headings</td><td>The <strong>Category</strong> box on each FAQ row, in the order they first appear. Spell a category the same way every time or it splits into two.</td></tr>
+          <tr><td>Questions and answers</td><td>Page Content → <strong>FAQ / Resources</strong>. Google is given the same list.</td></tr>
+          <tr><td>"Still have questions?" box</td><td>Fixed wording; hours, phone, fax and email from Business Details.</td></tr>
+        </table>
+
+        <h3>Contact page, the confirmation, and the emails</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Banner and the "Direct Contact" heading</td><td>Page Content → <strong>Contact page — banner</strong>.</td></tr>
+          <tr><td>The two tabs, form headings, every field's label and grey example text, the submit buttons, "Sending…", the "required" line and the privacy line above the button</td><td>Page Content → <strong>Contact Page — Form</strong>.</td></tr>
+          <tr><td>The cards on the right: phone, fax, email, address, hours</td><td>Business Details. The card titles and the lines "For POs &amp; documentation" and "Typical reply: same day" are <strong>fixed</strong>.</td></tr>
+          <tr><td>"For fastest response, include:" and the tips under it</td><td>The heading: <strong>Contact Page — Form</strong> (Sidebar tips heading). The tips: <strong>Contact Page — Sidebar Tips</strong>.</td></tr>
+          <tr><td>After someone sends the form: the title, "Thank you!", the message and the "For urgent inquiries" line</td><td>Page Content → <strong>Contact Page — Form</strong>, the <em>Success</em> boxes.</td></tr>
+          <tr><td>The message shown if sending fails</td><td>Page Content → <strong>Contact Page — Form</strong>, the <em>Error</em> boxes.</td></tr>
+          <tr><td><strong>Where quote requests are emailed</strong></td><td>Business Details → <strong>Email</strong>. The same address is shown on the site — change it and new leads go to the new address.</td></tr>
+          <tr><td>The automatic reply the customer receives</td><td>Page Content → <strong>Contact Page — Form</strong>, the three <em>Auto-reply</em> boxes: the response promise for quotes, the one for messages, and an optional notice (e.g. a holiday closure — empty it again afterwards). The rest of that email is fixed.</td></tr>
+        </table>
+
+        <h3>Privacy Policy page</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Title, "Effective Date" and the lead paragraph</td><td>Page Content → <strong>Privacy page — banner</strong>. Update the effective date whenever you change the policy.</td></tr>
+          <tr><td>The numbered sections</td><td>Page Content → <strong>Privacy Policy — Sections</strong> (the numbers are automatic).</td></tr>
+        </table>
+
+        <h3>Browser tabs, Google and social-media previews</h3>
+        <table class="field-ref map-ref">
+          <tr><td>Each page's browser-tab title and Google description</td><td>Page Content → <strong>Search Engine Text (SEO)</strong>, one row per page. The Datasheets page has no row as shipped — add one with <strong>+ Add Page</strong> and choose Datasheets if you want to set its text. Product pages are automatic (above).</td></tr>
+          <tr><td>The company information Google reads: description, opening days and times, country, short name, social accounts</td><td>Business Details → <strong>Short Description</strong>, <strong>Opens</strong> / <strong>Closes</strong> / <strong>Open Days</strong>, <strong>Country</strong>, <strong>Short Name</strong>, <strong>Social Links</strong>. None of these appears in the text of a page (Short Name can end a product page's browser-tab title — see <a href="#business">Business Details</a>).</td></tr>
+        </table>
+
+        <h3>Error pages</h3>
+        <table class="field-ref map-ref">
+          <tr><td>"Page not found", "Catalog Unavailable" and "Something went wrong"</td><td><strong>Fixed</strong> wording, with your phone and email from Business Details.</td></tr>
+        </table>
+
+        <h3 id="newfiles">Putting a new photo or logo on the server</h3>
+        <p>The <strong>Site Images</strong> boxes and the <strong>Logo URL</strong> hold the <em>address</em> of a picture that is already on your server — there is no upload button for them. (Product photos are different: use the <strong>Photo</strong> button, see <a href="#photos">Product photos</a>.) To use a new one you need your hosting File Manager (or FTP) login:</p>
+        <ol class="steps">
+          <li>Sign in to your hosting account's <strong>File Manager</strong> (on Network Solutions: Hosting → Manage → File Manager) and open <code>public_html/uploads/site/</code>. If there is no <code>site</code> folder inside <code>uploads</code>, create it.</li>
+          <li>Upload the picture. Give it a short name with no spaces, e.g. <code>hero-2026.jpg</code>. Photos: JPG, PNG or WEBP, about 1600&nbsp;pixels wide at most. Logo: SVG or PNG.</li>
+          <li>For a page photo: Page Content → <strong>Site Images</strong>, type <code>uploads/site/hero-2026.jpg</code> in the right box, and <strong>Save Content</strong>. For the logo: Business Details → <strong>Logo URL</strong>, type <code>/uploads/site/logo.svg</code>, and <strong>Save Business Details</strong>.</li>
+          <li>Open the page on the live site and hard-refresh (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>).</li>
+        </ol>
+        <div class="callout callout-warning">
+          <b>Never put your own pictures in the <code>images</code> folder</b>
+          Everything in <code>public_html/images/</code> is part of the website itself and is replaced the next time your developer updates the site — a photo you put there silently disappears. <code>uploads/</code> is yours and is never touched by an update.
+        </div>
+      </section>
+
       <section class="help-section" id="business">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>🏢 Business Details</h2>
@@ -717,11 +900,16 @@ $navActive = 'help';
           <tr><td>Company name</td><td>The footer (including the © line) and the information search engines read about you. It is also the ending of product pages' browser-tab titles, and of any page that has no title of its own in <a href="#pagecontent">Page Content</a> → Search Engine Text (SEO) — every other page title comes from there, not from here. It does <strong>not</strong> change the name printed beside the logo in the site header; that is part of the site design, so ask your developer.</td></tr>
           <tr><td>Short name</td><td>Never shown in the text of any page. It is listed in the information search engines read, and it replaces the full company name in a product page's browser-tab title when the full name would make that title too long for search results.</td></tr>
           <tr><td>Slogan</td><td>The small line under the company name in the site header, and the information search engines read.</td></tr>
-          <tr><td>Phone, fax, email</td><td>Header, footer, Contact page, About page. The phone number is also what the "call us" links dial, so type it the way you'd say it — the dialling version is a separate field beside it. <strong>When you change the phone number, change the dial box too — or empty it</strong>: left empty, it is worked out from the phone number when you save (for an ordinary 10-digit US/Canada number; for anything else the page asks you to fill it in).</td></tr>
-          <tr><td>Address, hours</td><td>Footer, Contact page, and the map listing search engines build from your site.</td></tr>
+          <tr><td>Phone, fax, email</td><td>Footer, Contact page, About page, FAQ page and the homepage quote band. <strong>The email address is also where every quote request and contact-form message is sent</strong> — change it and new leads go to the new address, so make sure it is a mailbox someone reads. The phone number is also what the "call us" links dial, so type it the way you'd say it — the dialling version is a separate field beside it. <strong>When you change the phone number, change the dial box too — or empty it</strong>: left empty, it is worked out from the phone number when you save (for an ordinary 10-digit US/Canada number; for anything else the page asks you to fill it in).</td></tr>
+          <tr><td>Address</td><td>Footer, Contact page, About page fact box, Privacy page, and the map listing search engines build from your site. <strong>Country</strong> is only given to search engines.</td></tr>
+          <tr><td>Hours (display text)</td><td>The hours shown in the footer and on the Contact page, e.g. "Mon–Fri, 8am–5pm CT".</td></tr>
+          <tr><td>Opens, Closes, Open Days</td><td>Not shown on any page — they are the opening hours search engines (Google Maps and the like) read, so keep them in step with the display text above. Times are 24-hour (<code>08:00</code>, <code>17:00</code>); days are full names separated by commas.</td></tr>
+          <tr><td>Short Description</td><td>Not shown on any page — it is the one-paragraph description of IPC given to search engines. (The box's own hint on the Business Details page also mentioned the footer until 2026-09-29; the footer paragraph is fixed.)</td></tr>
+          <tr><td>Minimum Order, Feet In Stock</td><td>The homepage quote band ("$50 minimum order. 25 million feet in stock."), the About page fact box and the footer paragraph. The site also swaps the original "$50" and "25 million" for these values inside your Page Content wording.</td></tr>
+          <tr><td>About story</td><td>The "Our Story" paragraphs on the About page — one paragraph per line. (Its heading is in Page Content → About page — banner &amp; headings.)</td></tr>
           <tr><td>Founded year</td><td>Drives the "© 1974–<?= date('Y') ?>" line automatically. You never update the second year.</td></tr>
           <tr><td>Certifications</td><td><strong>The ISO field here is the only place the ISO certification is set.</strong> What you type in it appears everywhere the site claims it &mdash; the homepage trust bar and hero badges, the Certifications &amp; Standards block on the About page, the company story, the footer and the search-engine descriptions. Put the revision year in only when your registrar has confirmed it (<code>ISO 9001:2015</code>) and every one of those places changes with it; leave it as plain <code>ISO 9001</code> and no revision is claimed anywhere. You do not need to hunt for the wording in Page Content &mdash; whatever is typed there, the revision comes from this field. <strong>The &ldquo;Other certifications&rdquo; box beside it is published too:</strong> each line appears in the footer of every page, exactly as typed, as soon as you save &mdash; list only certifications IPC currently holds. <em>(There is no separate Quality page — this row said there was until 2026-09-14.)</em></td></tr>
-          <tr><td>Brand colors &amp; logo</td><td>Live preview on the right of the page as you change them.</td></tr>
+          <tr><td>Brand colors &amp; logo</td><td>Live preview on the right of the page as you change them. <strong>Primary</strong> colors buttons and highlights, <strong>Dark</strong> the navigation bar and dark bands, and the <strong>Secondary accent</strong> (with Primary) the page banners; a note beside each warns when text on it would be hard to read. The footer background does not follow these colors. The <strong>Logo URL</strong> is the address of a picture already on your server — to use a new one, see <a href="#newfiles">Putting a new photo or logo on the server</a>.</td></tr>
           <tr><td>Social links</td><td>Each one you fill in appears as a small clickable icon in the footer of every page, and tells search engines which accounts are yours. Leave one empty and its icon disappears. Each must be a full address starting <code>https://</code> (or <code>http://</code>).</td></tr>
           <tr><td>Catalog PDF URL</td><td>Optional. Point it at a full-catalog PDF (e.g. <code>/pdfs/catalog.pdf</code>) and a "Full product catalog (PDF)" link appears in the site footer. Leave blank for no link.</td></tr>
         </table>
@@ -745,7 +933,8 @@ $navActive = 'help';
       <section class="help-section" id="pagecontent">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>📝 Page Content</h2>
-        <p>Click <strong>Page Content</strong> in the header. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the navigation menus, the footer links, the contact-page tips, and the privacy/terms text.</p>
+        <p>Click <strong>Page Content</strong> in the header. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the navigation menus, the footer links, the contact form's wording and its automatic reply email, and the privacy policy.</p>
+        <p>Not sure which card controls something you can see on the site? <a href="#sitemap">Where each part of the site is edited</a> walks every page top to bottom and names the card.</p>
         <p>Each block is a row. Rows have <strong>↑ ↓</strong> buttons to reorder them, an <strong>✕</strong> to remove them, and a <strong>+ Add</strong> button at the bottom of each section.</p>
         <div class="callout callout-warning">
           <b>Renaming a product category does not move the products in it</b>
@@ -765,7 +954,12 @@ $navActive = 'help';
         </div>
         <div class="callout callout-warning">
           <b>Headings and labels won't go blank</b>
-          Clearing a heading or a button label restores the previous wording rather than leaving an empty space, because a button with no text is one you can never find again to fix. To change one, type over it. Sub-headings <em>can</em> be cleared, since those are genuinely optional.
+          <!-- Docs audit 2026-09-29 — this said "restores the previous wording". It
+               restores the BUILT-IN wording (COPY_DEFAULTS via mergeContent in
+               src/App.jsx), the same trap ADM-9(g) fixed for Business Details. -->
+          Clearing a heading or a button label and saving puts back the website's <strong>built-in original wording</strong> — not whatever you had there before — rather than leaving an empty space, because a button with no text is one you can never find again to fix. To change one, type over it. The homepage sub-headline and the <strong>Site Images</strong> can be cleared, since those are genuinely optional.
+          <br><br>
+          This is also why a few boxes are <strong>empty as shipped</strong> — the Datasheets page banner, the header's "Datasheets" link, and the form's "required fields" and privacy lines: an empty box means the site is showing its built-in wording. Type in one to replace it.
         </div>
         <div class="callout callout-warning">
           <b>If the page says it didn't submit completely</b>
@@ -784,13 +978,16 @@ $navActive = 'help';
         <p>Click any row to expand it and see the full message, the part number, quantities, required date and the visitor's contact details. Reply from your own email program — this page does not send email.</p>
         <table class="field-ref">
           <tr><td><span class="badge-mock">Quote</span> / <span class="badge-mock">Message</span></td><td>Which form the visitor used. "Quote" is a full RFQ with part number and quantity.</td></tr>
-          <tr><td><span class="badge-mock">Emailed</span></td><td>The notification reached your inbox. Normal.</td></tr>
+          <!-- Docs audit 2026-09-29 — this row said "Emailed … reached your inbox";
+               inquiries.php renamed the badge in A-5.6 because the site cannot
+               see an inbox, only the hand-off to the mail server. -->
+          <tr><td><span class="badge-mock">Sent to mail server</span></td><td>The notification was handed to your mail server. Normal. The website cannot see your inbox, so this is not proof it arrived — if a customer says you never replied, check here and in your spam folder.</td></tr>
           <tr><td><span class="badge-mock">Email failed</span></td><td>The mail server refused it. <strong>The lead is not lost</strong> — it's right here. If you see several of these, tell your developer.</td></tr>
           <tr><td><span class="badge-mock">Spam trap</span> / <span class="badge-mock">Rate limited</span> / <span class="badge-mock">Blocked</span></td><td>The website refused the submission. Almost always a bot. These are counted separately and are <em>not</em> an email problem.</td></tr>
         </table>
         <div class="callout callout-tip">
-          <b>The two numbers at the top</b>
-          <strong>Total received</strong> is everything ever submitted. <strong>Email delivery failed</strong> counts only genuine send failures — if that number is above zero, something is wrong with mail. Blocked spam is deliberately kept out of it so it can't cause a false alarm.
+          <b>The numbers at the top</b>
+          <strong>Total received</strong> is everything ever submitted. <strong>Mail server refused</strong> counts only genuine send failures — if that number is above zero, something is wrong with mail. Blocked spam is deliberately kept out of it so it can't cause a false alarm.
         </div>
         <div class="callout callout-tip">
           <b>Why a blocked entry might be worth reading</b>
@@ -1015,6 +1212,7 @@ $navActive = 'help';
         <ul class="plain">
           <li>Recovering a <em>forgotten</em> password, if you don't have your own FTP login (see <a href="#password">Your admin password</a> — you can do it yourself if you do)</li>
           <li>Adding a second or third PDF <em>file</em> to a product (see <a href="#editing">Editing an existing product</a>)</li>
+          <li>Any wording marked <strong>Fixed</strong> in <a href="#sitemap">Where each part of the site is edited</a> — e.g. the name beside the logo, the footer paragraph, the Product Index heading</li>
           <li>Changing the overall look, layout, or features of the public website beyond what <a href="#business">Business Details</a> and <a href="#pagecontent">Page Content</a> cover</li>
           <li>Anything in <a href="#server-limits">What your server allows</a> reading a value you were told it shouldn't</li>
         </ul>

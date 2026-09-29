@@ -6,10 +6,11 @@ Hi Rick,
 
 The full guide is built into the dashboard itself — sign in and click **Help** in the top navigation. It's always there, it's always current, and it matches exactly what's on your screen. It covers:
 
+- A page-by-page map of the website showing where every heading, photo, button and link is edited — and which few things are fixed in the design
 - Adding, editing, and removing products from the catalog
 - Uploading product photos (one click, straight from your computer) and PDF data sheets
 - Editing your business details — phone, address, hours, certifications, brand colors and logo
-- Editing the marketing copy on your pages, and your FAQ
+- Editing the marketing copy on your pages, your FAQ, and the automatic reply email customers receive
 - Seeing every quote request and contact-form message that comes in
 - Restoring an earlier version yourself if a save goes wrong
 - Changing your own password
@@ -19,7 +20,7 @@ If you were sent an earlier Word document (*IPC Admin Dashboard – Help and Doc
 
 **Your login details**
 
-- Admin Dashboard: [https://insulationproducts.com/admin/]
+- Admin Dashboard: [https://www.insulationproducts.com/admin/]
 - Password: **I'll send this to you by text separately** — it isn't written down in this email on purpose. If you don't have it, call me.
 
 Please change it to something of your own the first time you sign in: click **Password** in the top navigation. There's no "forgot password" email on a site this size, so store it somewhere you'll still have in a year — a password manager, or written down somewhere safe. If it ever does get lost, call me; I can reset it for you over FTP in about two minutes.
