@@ -12,9 +12,11 @@ Use **View Live Site** (top right) any time to open your public site in a new ta
 
 ## What you can edit
 
+**Not sure where something is edited?** In the dashboard, open **Help → Where each part of the site is edited**. It walks every page of the website top to bottom — header, footer, homepage, products, every other page, the contact form's emails — and names the exact box for each thing you can see, or says it is fixed in the site design (a developer job).
+
 **Products** — your catalog. Add a new product, edit an existing one, upload or replace a product's data-sheet PDF, and upload a product photo. Use the search box to find a product quickly by name or part number.
 
-**Business Details** — your company information wherever it appears on the site: phone, fax, email, address, hours, ISO/certification text, social links, the "About" paragraphs, and your brand colors and logo. Change a color here and the whole site re-skins.
+**Business Details** — your company information wherever it appears on the site: phone, fax, email, address, hours, ISO/certification text, minimum order and feet in stock, social links, the About page's "Our Story" paragraphs, and your brand colors and logo. Change a color here and the whole site re-skins. The **email** here is also where every quote request is sent — change it and new leads go to the new address.
 
 **Page Content** — the marketing sections of your pages (explained below).
 
@@ -35,7 +37,7 @@ Open the **Page Content** tab. It has two kinds of sections, one after the other
 - **Homepage headings** — the "Products & Services" and "Industries" eyebrows, titles, and the ribbon text and button.
 - **Page banners** — the small eyebrow, big title, and intro paragraph at the top of the Services, Industries, About, Datasheets, FAQ, Contact, and Privacy pages, plus the About page's sub-headings and the Privacy lead paragraph and effective date.
 - **Navigation — Header Labels** and **Footer — Labels** — the wording of the header menu's own labels and the footer headings.
-- **Contact Page — Form** — the labels and help text on the contact form.
+- **Contact Page — Form** — the labels and help text on the contact form, the "thank you" and error messages, and the three **Auto-reply** boxes that go into the automatic email a customer receives (use the notice box for a holiday closure, and empty it again afterwards).
 
 **Lists (the sections below).** These are the repeatable cards and rows:
 
@@ -63,7 +65,7 @@ Then click **Save Content** at the bottom. That's it — your changes go live wi
 
 ## A few helpful notes
 
-**Clearing a heading resets it. Deleting a whole list does not.** If you empty a single Page Text field and save, that item returns to its original wording — so a page heading can never end up blank. But if you delete *every* item from a list section (all your FAQ questions, all your footer links), that is treated as what you meant: the section is genuinely empty on the live site. Two exceptions on the Page Content side: sub-headings you *can* clear, because they're optional by design, and emptying a **Site Images** field removes that photo from the page.
+**Clearing a heading resets it. Deleting a whole list does not.** If you empty a single Page Text field and save, that item returns to its original wording — so a page heading can never end up blank. But if you delete *every* item from a list section (all your FAQ questions, all your footer links), that is treated as what you meant: the section is genuinely empty on the live site. Two exceptions on the Page Content side: the homepage sub-headline you *can* clear, because it's optional by design, and emptying a **Site Images** field removes that photo from the page. A few boxes are empty as shipped (the Datasheets page banner, the header's "Datasheets" link, the form's "required fields" and privacy lines) — an empty box means the site shows its built-in wording.
 
 **A similar rule applies on Business Details.** The company name cannot be emptied at all — the save is refused with a message, and what you typed stays on screen to fix. Clear the phone number, address or founded year and the site goes back to its **built-in original** (the value the website shipped with), **not** to whatever you had before — so to *change* one of these, type the new value over the old one. This is so an empty phone number never becomes a dead "call us" link and an empty year never prints "© –2026" to every visitor. The **Phone (dial link)** box can be left blank: when it is, the click-to-call number is worked out from the phone number you typed (for a normal 10-digit US/Canada number). The fields you genuinely **can** empty, because "we don't have one" is a real answer, are:
 
@@ -73,6 +75,8 @@ Then click **Save Content** at the bottom. That's it — your changes go live wi
 - **Slogan**
 
 Clear one of those and it disappears from the site properly — the fax line vanishes from the footer, the Contact page and the About page rather than leaving an empty label.
+
+**New page photos and logos go in `uploads/site/`.** The **Site Images** boxes and the **Logo URL** hold the address of a picture already on your server; there is no upload button for them. Upload the file with your hosting File Manager into `public_html/uploads/site/`, then type `uploads/site/your-file.jpg` into the box (the logo takes `/uploads/site/logo.svg`). Never use the `images` folder — it is replaced whenever the website is updated. Full steps: **Help → Putting a new photo or logo on the server**. Product photos use the **Photo** button instead.
 
 **Icons come from a menu.** Cards that show an icon (services, certifications, industries, stats) have an **Icon dropdown** — pick the closest match. Team cards use an emoji you can type in the "Icon" field.
 

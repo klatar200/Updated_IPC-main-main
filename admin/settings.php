@@ -363,7 +363,7 @@ $navActive = 'settings';
           ?>
           <div class="form-group"><label for="theme_primary">Primary color</label><input type="color" id="theme_primary" name="theme_primary" value="<?= h($cPrimary) ?>" style="height:44px;padding:4px;width:100%;">
             <?= contrast_note([$cPrimary], 'buttons and highlights', 'cnote_primary') ?></div>
-          <div class="form-group"><label for="theme_dark">Dark (headers &amp; footer)</label><input type="color" id="theme_dark" name="theme_dark" value="<?= h($cDark) ?>" style="height:44px;padding:4px;width:100%;">
+          <div class="form-group"><?php /* Docs audit 2026-09-29 — this said "headers & footer"; the footer background is a fixed #0a2240 in src/App.jsx and does not follow this color. */ ?><label for="theme_dark">Dark (navigation bar &amp; dark panels)</label><input type="color" id="theme_dark" name="theme_dark" value="<?= h($cDark) ?>" style="height:44px;padding:4px;width:100%;">
             <?= contrast_note([$cDark], 'the navigation bar', 'cnote_dark') ?></div>
           <div class="form-group"><label for="theme_accent">Accent</label><input type="color" id="theme_accent" name="theme_accent" value="<?= h($cAccent) ?>" style="height:44px;padding:4px;width:100%;"></div>
           <div class="form-group"><label for="theme_accent2">Secondary accent</label><input type="color" id="theme_accent2" name="theme_accent2" value="<?= h($cAccent2) ?>" style="height:44px;padding:4px;width:100%;">
@@ -402,7 +402,7 @@ $navActive = 'settings';
           <div class="form-group full">
             <label for="company_description">Short Description</label>
             <textarea id="company_description" name="company_description" rows="3"><?= h($c['description'] ?? '') ?></textarea>
-            <div class="hint">Used in the site footer and search-engine (Schema.org) data.</div>
+            <?php /* Docs audit 2026-09-29 — this said "site footer"; measured, the text appears only in the search-engine data (the footer paragraph is fixed). */ ?><div class="hint">Not shown on any page — this is the description of your company given to search engines (Google and the like).</div>
           </div>
         </div>
       </div>

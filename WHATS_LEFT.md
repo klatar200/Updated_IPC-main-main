@@ -6970,3 +6970,62 @@ palette.
 **Regression for §1ai:** sweep12 on `5048ffa`, 103/105 suites. The only reds
 are the expected ones: `brandtext` 38/49 (unchanged) and `plan8-polish` 16/17.
 `lowsC2-palettes` passes 5/5 in the sweep.
+
+## 1aj. Shipped 2026-09-29 — owner-docs audit: where every part of the site is edited
+
+Asked for: stand the backend up and audit the owner documentation (Help page,
+`Editing-Your-Site-Content.md`, the handoff email) against every section of the
+site, ahead of Rick taking the site over.
+
+- **Method, measured not read:** `_harness/docmap.js` (new, 24/24) writes a
+  marker into all 419 editable text fields through the real admin forms and
+  records where each one renders — 12 routes × 2 widths, menus, drawer, form
+  states, captured mail. The "Fixed" list is the code inventory's text that no
+  marker reaches.
+- **The gap:** no document mapped *what Rick sees on a page* to *the box that
+  changes it*. The Help page described each screen; Rick has to start from the
+  page. Added Help → **Where each part of the site is edited** (`#sitemap`):
+  15 tables, every page top to bottom, each row naming the Business Details
+  field, Page Content card, product field — or **Fixed** (developer). Plus
+  **Putting a new photo or logo on the server** (`#newfiles`): Site Images and
+  the Logo URL have no upload button; File Manager into `uploads/site/`.
+- **Wrong statements corrected** (each measured):
+
+  | Where | Said | Is |
+  |---|---|---|
+  | help.php Inquiries | badge "Emailed — reached your inbox"; tile "Email delivery failed" | "Sent to mail server" (A-5.6 renamed it; no inbox is observable); tile "Mail server refused" |
+  | help.php Adding | "If a part is RoHS compliant, do both" (tick + badge) | `isStandardBadge()` drops a standard-naming badge from Product Features — tick only |
+  | help.php Page Content | clearing a heading "restores the previous wording" | restores the BUILT-IN wording (same trap ADM-9(g) fixed for BD); four boxes ship empty on purpose |
+  | help.php Page Content | "privacy/terms text" | there is no terms page |
+  | settings.php hint, Short Description | "Used in the site footer and search-engine data" | search-engine data only (docmap: JSON-LD, never visible) |
+  | settings.php label | "Dark (headers & footer)" | footer background is a fixed `#0a2240`; now "navigation bar & dark panels" |
+  | handoff email | admin at `https://insulationproducts.com/admin/` | `www.` — the canonical host every other file names |
+
+- **Business Details rows added to Help:** the email is the lead recipient
+  (docmap: `To:` header); Hours display vs Opens/Closes/Open Days
+  (search-only); Country, Short Description (search-only); Minimum Order /
+  Feet In Stock (where they show, and the facts rewrite); About story; what
+  each colour paints; Logo URL is a path.
+- **Page Content additions:** auto-reply boxes (holiday notice), success and
+  error messages, Industries Grid name must equal the detail section's name
+  for "Learn More" to jump, Services lead-time banner is the most common lead
+  time, FAQ categories, SEO has no Datasheets row, Trust Bar numbers are typed
+  not counted.
+- **Files:** `admin/help.php`, `admin/settings.php` (label + hint text only),
+  `Editing-Your-Site-Content.md`, `Email to Rick - Admin Dashboard Handoff.md`,
+  `_harness/docmap.js`, `_harness/README.md`.
+
+## 2t. Open after the owner-docs audit — 2026-09-29
+
+Code, found by the audit, not fixed in it (docs-only change). Each is
+documented as-is in Help → `#sitemap`.
+
+- **Two empty-state messages hardcode the phone number** — `src/App.jsx`
+  "No datasheets found … call 630.771.0700" (~3100) and the catalog's "No
+  products found … call 630.771.0700" (~9805). Neither goes through
+  `site.contact.phone` or `localizeProse`, so a Business Details phone change
+  leaves the old number there. Recommended: use `site.contact.phone`
+  (the Product Index empty state already does, ~11380).
+- **The Product Index's empty-catalog text is admin-facing** — "Add your first
+  product from the Products page in the dashboard." (~11379) is shown to the
+  public. Reachable only with an empty catalog.
