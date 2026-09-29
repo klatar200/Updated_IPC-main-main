@@ -606,8 +606,28 @@ function current_password_hash(?string $set = null): string {
 function session_auth_token(?string $passwordHash = null): string {
     return hash_hmac('sha256', 'ipc-admin-session|' . session_id(), $passwordHash ?? current_password_hash());
 }
-function mark_session_authenticated(?string $passwordHash = null): void {
+// SEC-3 (audit 2026-09-27; limits decided by Keagan 2026-09-29) — a signed-in
+// session now ends on the SERVER after ADMIN_IDLE_LIMIT without a page load and
+// ADMIN_ABSOLUTE_LIMIT after sign-in, whatever the cookie says. Before this the
+// only clock was session.gc_maxlifetime, which is probabilistic garbage
+// collection, and unsaved.js's 5-minute keepalive touched the session file, so
+// an editing tab left open stayed signed in indefinitely. ping.php only READS
+// is_authenticated(); require_auth() is what records activity, so the
+// keepalive can no longer extend the idle clock. Expiry lands on the existing
+// paths: a GET goes to auth.php, a POST gets the "session expired, your typing
+// is still there" page (invariant 12), and ping.php reports ok:false so the
+// editing page shows its signed-out banner before Save is pressed.
+define('ADMIN_IDLE_LIMIT', 8 * 3600);
+define('ADMIN_ABSOLUTE_LIMIT', 12 * 3600);
+
+// $fresh = false keeps the sign-in time: a password change re-signs the
+// session with the new hash but is not a new sign-in, and must not buy another
+// 12 hours.
+function mark_session_authenticated(?string $passwordHash = null, bool $fresh = true): void {
     $_SESSION[ADMIN_SESSION_KEY] = session_auth_token($passwordHash);
+    $now = time();
+    if ($fresh || !isset($_SESSION['ipc_auth_at'])) $_SESSION['ipc_auth_at'] = $now;
+    $_SESSION['ipc_active_at'] = $now;
 }
 
 // Call this immediately after a successful password check to prevent session
@@ -621,8 +641,23 @@ function regenerate_session_id(): void {
 // Helper: check if admin is logged in
 function is_authenticated(): bool {
     $t = $_SESSION[ADMIN_SESSION_KEY] ?? '';
-    return ADMIN_PASSWORD_CONFIGURED && is_string($t) && $t !== ''
-        && hash_equals(session_auth_token(), $t);
+    if (!(ADMIN_PASSWORD_CONFIGURED && is_string($t) && $t !== ''
+        && hash_equals(session_auth_token(), $t))) return false;
+    // SEC-3 — a validly signed session that predates the timestamps (signed in
+    // before this shipped) is stamped now rather than signed out.
+    $now = time();
+    $authAt   = (int)($_SESSION['ipc_auth_at'] ?? 0);
+    $activeAt = (int)($_SESSION['ipc_active_at'] ?? 0);
+    if ($authAt <= 0 || $activeAt <= 0) {
+        $_SESSION['ipc_auth_at']   = $authAt > 0 ? $authAt : $now;
+        $_SESSION['ipc_active_at'] = $activeAt > 0 ? $activeAt : $now;
+        return true;
+    }
+    if ($now - $activeAt > ADMIN_IDLE_LIMIT || $now - $authAt > ADMIN_ABSOLUTE_LIMIT) {
+        unset($_SESSION[ADMIN_SESSION_KEY], $_SESSION['ipc_auth_at'], $_SESSION['ipc_active_at']);
+        return false;
+    }
+    return true;
 }
 
 // Helper: redirect to login if not authenticated.
@@ -631,7 +666,10 @@ function is_authenticated(): bool {
 // styled "your session expired, your typing is still in the previous page"
 // screen instead. (DEPLOY_READINESS_v2 T1.8)
 function require_auth(): void {
-    if (is_authenticated()) return;
+    if (is_authenticated()) {
+        $_SESSION['ipc_active_at'] = time();   // SEC-3 — a real page load, not the keepalive
+        return;
+    }
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         csrf_fail_page('expired');
     }
@@ -2196,6 +2234,14 @@ function uploads_runtime_htaccess(): string {
         . "# Written at runtime by admin/upload-image.php because this folder was\n"
         . "# created on the server rather than deployed. Mirrors uploads/.htaccess.\n"
         . "Options -Indexes\n"
+        // Deny by default, re-allow images, then deny script names again —
+        // the same three sections in the same order as uploads/.htaccess
+        // (the order is the mechanism; dep3-scriptblock.js measures this copy).
+        . "<FilesMatch \".\">\n  Order Allow,Deny\n  Deny from all\n</FilesMatch>\n"
+        . "<FilesMatch \"\\.(?i:jpe?g|png|webp|gif)$\">\n  Order Deny,Allow\n  Allow from all\n</FilesMatch>\n"
+        . "<IfModule mod_headers.c>\n  <FilesMatch \"\\.(?i:svg)$\">\n    Order Deny,Allow\n    Allow from all\n"
+        . "    Header set Content-Security-Policy \"default-src 'none'; style-src 'unsafe-inline'; sandbox\"\n"
+        . "    Header set X-Content-Type-Options \"nosniff\"\n  </FilesMatch>\n</IfModule>\n"
         . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
         . "  Order Allow,Deny\n"
         . "  Deny from all\n"

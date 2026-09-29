@@ -53,7 +53,10 @@ const VP = {
 // Every signed-in admin page includes nav.php, so a fix here is site-wide in
 // the admin. Three pages rather than one, because $navExtra lets a page inject
 // extra items and a header that fits on index.php could still overflow there.
-const PAGES = ['/admin/index.php', '/admin/settings.php', '/admin/help.php'];
+// upload-image.php added 2026-09-29: it injects two $navExtra items (Edit
+// Details, Manage PDF), the most of any page — 13 in the bar — and was the one
+// page that could overflow while these three passed (WHATS_LEFT §2d).
+const PAGES = ['/admin/index.php', '/admin/settings.php', '/admin/help.php', '/admin/upload-image.php?sku=IP38FE'];
 
 const MEASURE = `(() => {
   const hdr = document.querySelector('.ipc-admin-header');
@@ -183,10 +186,13 @@ async function signIn(ctx) {
   note(errs.length === 0, `every signed-in page renders the admin header (${Object.keys(VP).length} viewports x ${PAGES.length} pages)`, errs.join(', '));
 
   const ELEVEN = 11;
+  // The shared bar is 11 on every page; a page's own $navExtra items come on
+  // top (upload-image.php adds Edit Details and Manage PDF).
+  const NAV_EXTRA = { '/admin/upload-image.php?sku=IP38FE': 2 };
   for (const vp of Object.keys(VP)) {
-    const counts = Object.values(data[vp]).map((m) => m.items.length);
-    note(counts.every((c) => c === ELEVEN),
-      `${vp}: all ${ELEVEN} nav items present on every admin page (${counts.join('/')})`,
+    const counts = PAGES.map((u) => data[vp][u].items.length);
+    note(PAGES.every((u, i) => counts[i] === ELEVEN + (NAV_EXTRA[u] || 0)),
+      `${vp}: all ${ELEVEN} nav items (plus the page's own extras) present on every admin page (${counts.join('/')})`,
       'nav items were removed or added — A10-033 already records the header being under-described');
   }
 

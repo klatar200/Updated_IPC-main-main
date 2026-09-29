@@ -31,6 +31,11 @@
  * Builds its docroot under /var/tmp (the Apache user cannot traverse a 0700
  * scratch dir) on ports 8691-8692, and removes it on exit.
  *
+ * Deny-by-default (2026-09-29): in uploads/ (and the runtime copy) every
+ * NON-image file must also answer 403 — an uploaded page, script, text, JSON or
+ * extension-less file — while JPG/PNG/WEBP/GIF (any case) and an SVG logo
+ * still serve, the SVG only with its sandboxing CSP.
+ *
  *   node _harness/dep3-scriptblock.js
  */
 const fs = require('fs');
@@ -62,13 +67,19 @@ const note = (ok, label, detail) => {
 // unambiguous: the marker appears only if PHP ran it.
 const PAYLOADS = ['x.php', 'x.php.jpg', 'x.pHp.png', 'x.phtml.gif', 'x.php5', 'x.PHP', 'x.phar', 'x.php.pdf', 'x.phps'];
 
+// uploads/ is deny-by-default: these are not scripts, and must still be 403.
+const NONIMAGE = [['page.html', '<script>alert(1)</script>\n'], ['x.js', 'alert(1)\n'], ['notes.txt', 'hi\n'],
+  ['data.json', '{}\n'], ['noext', 'hi\n'], ['x.svgz', 'hi\n']];
+const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>\n';
+const isUploads = (dir) => /^(rt\/)?uploads(\/|$)/.test(dir);
+
 // Directory -> .htaccess source, and the legitimate files that must still serve.
 const DIRS = {
   'uploads': { ht: fs.readFileSync(path.join(ROOT, 'uploads/.htaccess')), legit: [['ok.png', PNG]] },
-  'uploads/images': { ht: null, legit: [['CC.png', PNG], ['IP12-GA.jpg', PNG]] },
-  'uploads/site': { ht: null, legit: [['hero.v2.png', PNG]] },
+  'uploads/images': { ht: null, legit: [['CC.png', PNG], ['IP12-GA.jpg', PNG], ['UPPER.JPG', PNG]] },
+  'uploads/site': { ht: null, legit: [['hero.v2.png', PNG], ['logo.svg', SVG]] },
   'rt/uploads': { ht: null, legit: [['ok.png', PNG]] }, // runtime copy, filled below
-  'rt/uploads/images': { ht: null, legit: [['CC.webp', PNG]] },
+  'rt/uploads/images': { ht: null, legit: [['CC.webp', PNG], ['logo.svg', SVG]] },
   'data': { ht: fs.readFileSync(path.join(ROOT, 'data/.htaccess')), legit: [['products-all.json', '[]\n']] },
   'pdfs': { ht: fs.readFileSync(path.join(ROOT, 'pdfs/.htaccess')), legit: [['CC.pdf', '%PDF-1.4\n%%EOF\n']] },
 };
@@ -95,6 +106,7 @@ function build(model, port) {
     if (spec.ht) fs.writeFileSync(path.join(d, '.htaccess'), spec.ht);
     for (const p of PAYLOADS) fs.writeFileSync(path.join(d, p), PAYLOAD);
     for (const [name, body] of spec.legit) fs.writeFileSync(path.join(d, name), body);
+    if (isUploads(dir)) for (const [name, body] of NONIMAGE) fs.writeFileSync(path.join(d, name), body);
   }
   fs.mkdirSync(path.join(base, 'logs'), { recursive: true });
   const mods = ['mpm_prefork', 'authz_core', 'authz_host', 'access_compat', 'mime', 'headers', 'setenvif', 'dir', 'alias']
@@ -157,6 +169,15 @@ try {
         if (r.code !== 200 || r.body !== Buffer.from(body).toString('latin1')) broke.push(`${name} ${r.code}`);
       }
       note(broke.length === 0, `${model}: ${dir}/ still serves its legitimate files (200, exact bytes)`, broke.join(', '));
+      if (isUploads(dir)) {
+        const open = NONIMAGE.map(([n]) => [n, get(port, `${dir}/${n}`).code]).filter(([, c]) => c !== 403).map(([n, c]) => `${n} ${c}`);
+        note(open.length === 0, `${model}: ${dir}/ denies every non-image file (deny-by-default)`, open.join(', '));
+        const svg = spec.legit.find(([n]) => n.endsWith('.svg'));
+        if (svg) {
+          const h = spawnSync('curl', ['-s', '--noproxy', '*', '--max-time', '10', '-o', '/dev/null', '-D', '-', `http://127.0.0.1:${port}/${dir}/${svg[0]}`], { encoding: 'latin1' }).stdout || '';
+          note(/^content-security-policy:.*sandbox/mi.test(h), `${model}: ${dir}/ serves an SVG only with the sandboxing CSP`, h.split('\n')[0]);
+        }
+      }
     }
     port++;
   }

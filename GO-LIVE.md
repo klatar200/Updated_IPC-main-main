@@ -66,14 +66,16 @@ quote requests). The triage record carries the ordered list.
 These are the ones that need someone other than you, so they cannot be done at
 the last minute.
 
-- [ ] **Resolve the ISO 9001 revision claims.** The site currently advertises
-      **two different withdrawn revisions** of a certification, in six places,
-      on two different admin screens. Run `node _harness/isoclaims.js` for the
-      exact list. This needs the registrar's answer, not a guess — see
-      `audit-runs/audit8.md` **A-8.5**. Nothing in the code will fix it and
-      nothing should: writing `:2015` because it is the current standard would
-      invent a certification claim for a supplier to aerospace, medical and
-      automotive.
+- [ ] **Confirm which ISO 9001 revision IPC holds.** Since 2026-09-15 the
+      site claims plain **`ISO 9001`** everywhere, from one field (Admin →
+      Business Details → ISO Certification), and no withdrawn revision renders
+      anywhere (`node _harness/isoclaims.js` asserts it). What is still open is
+      the registrar's answer: add the revision year to that one field only once
+      it is confirmed — see `audit-runs/audit8.md` **A-8.5**. Writing `:2015`
+      because it is the current standard would invent a certification claim
+      for a supplier to aerospace, medical and automotive. (Until 2026-09-29
+      this item said the site "currently advertises two withdrawn revisions in
+      six places", which §1aa of `WHATS_LEFT.md` had made false.)
 - [ ] **Rotate the admin password — never by uploading a file.** A working
       hash is in this public repo's history. On a **first deploy** there is no
       password on the server, and the admin fails closed ("Admin Not

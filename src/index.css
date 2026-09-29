@@ -78,6 +78,8 @@
   --brand-drawer-ink-rgb: 255, 255, 255;
   --brand-deep-ink-rgb: 255, 255, 255;
   --brand-hero-ink-rgb: 255, 255, 255;
+  --brand-product-head-ink-rgb: 255, 255, 255;
+  --brand-product-head-sub: #e2e8f0;
   /* var(), not the literal: it must follow --brand-accent before ThemeInjector
      runs and wherever the variables are set directly (plan10-repalette [vars]). */
   --brand-accent-on-deep: var(--brand-accent);

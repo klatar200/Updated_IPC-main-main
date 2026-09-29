@@ -493,7 +493,7 @@ Ordered by value. Nothing here blocks the upload.
   `REPALETTE` maps. `plan10-repalette.js`'s `vars` arm is that same drill with
   the complete set, and it reports **0** leaks.
 
-- [ ] **`brand-gradient-mixed-ends` — the product-header ink comment's premise
+- [x] **SUPERSEDED-BY §1al (2026-09-29)** — product-header half closed (the industries half closed in §1ai). **`brand-gradient-mixed-ends` — the product-header ink comment's premise
   will go stale when PLAN-10 item 12 lands.** Recorded 2026-08-10 by PLAN-10
   phase B, because item 12 is the item that unblocks it and phase C has not run
   yet. The comment at `src/App.jsx:8214` justifies the product-detail
@@ -619,7 +619,7 @@ Ordered by value. Nothing here blocks the upload.
   citation check was **not** built — it is a new harness feature, not a record
   fix, and it belongs to whoever scopes it.
 
-- [ ] **`admin/upload-image.php` carries more admin-nav items than any other
+- [x] **SUPERSEDED-BY §1al (2026-09-29)** — now measured by `plan10-adminnav`. **`admin/upload-image.php` carries more admin-nav items than any other
   page and is measured by nothing.** Found 2026-08-11 by AUDIT-11. `$navExtra`
   is injected by **three** pages, not the two PLAN-10's records name:
   `admin/edit.php:289` and `admin/upload-pdf.php:168` each add one link, but
@@ -3491,7 +3491,7 @@ The right fix, if one is wanted, is to install a metric-compatible face on the
 box that runs it. Do not read a red C49 on Linux as a code regression without
 checking the font first.
 
-**`copy-extractors-are-blind-to-comments`.** NEW, and it cost time twice in
+**`copy-extractors-are-blind-to-comments`** — **SUPERSEDED-BY §1al (2026-09-29).** NEW, and it cost time twice in
 one sitting. `_harness/dump-copy-groups.php` and `_harness/copydrift.js` both
 isolate their literal by bracket-matching, and both skip **string literals**
 so that a bracket inside a label cannot unbalance them — but neither skips
@@ -4914,7 +4914,7 @@ closed by earlier tiers and are marked as such rather than counted twice.
 | ID | What changed |
 |---|---|
 | `pdfs/.htaccess` | The script block now matches `uploads/`'s breadth: case-insensitive, `(\.|$)`-anchored so the `x.php.pdf` double-extension form is caught, and covering phtml/phar/pl/py/cgi/sh. |
-| `uploads/.htaccess` | **Comment corrected; rules deliberately unchanged.** It promised deny-by-default and implemented an allow-list. A real deny-by-default means adding `<Files "*">Deny from all</Files>`, and whether images survive that depends on how Apache merges the two sections — untestable here, because `php -S` ignores `.htaccess` (GUARDRAILS §4.3). Getting it wrong 404s every product photo on the live site, which is far worse than the gap it closes, and nothing can land in that folder today anyway. Flagged for a session with a real Apache. |
+| `uploads/.htaccess` | **SUPERSEDED-BY §1al (2026-09-29): deny-by-default shipped, measured on real Apache.** **Comment corrected; rules deliberately unchanged.** It promised deny-by-default and implemented an allow-list. A real deny-by-default means adding `<Files "*">Deny from all</Files>`, and whether images survive that depends on how Apache merges the two sections — untestable here, because `php -S` ignores `.htaccess` (GUARDRAILS §4.3). Getting it wrong 404s every product photo on the live site, which is far worse than the gap it closes, and nothing can land in that folder today anyway. Flagged for a session with a real Apache. |
 | Runtime `uploads/.htaccess` | No longer writes `php_flag engine off` — a **mod_php-only** directive, and this project targets CGI/FastCGI, where Apache answers an unknown directive with a 500 for the whole directory. It fired only when the folder was created at runtime, i.e. exactly the recovery case it exists to serve. It now writes the shipped file's rules. |
 | HSTS | `SetEnvIf` on `X-Forwarded-Proto` as well as `HTTPS`. It was gated `env=HTTPS`, which mod_ssl sets only when TLS terminates locally — while the redirect four lines above exists precisely because it often does not. The two rules assumed opposite topologies, and in the proxy case the header was silently never sent. |
 | `/assets/` fallthrough | A missing file under `/assets/` now 404s instead of falling into the SPA catch-all and returning `index.html` as `text/html`, which the browser then tries to execute — a blank page for the length of an FTP deploy window. |
@@ -7048,3 +7048,42 @@ through Business Details to `630.555.0142` and then reads each message.
   on main, so a `src/` change without it would leave the committed bundle
   stale. The `dist/index.html` diff is the bundle hash plus line endings
   (the committed copy had CRLF from a Windows build).
+
+## 1al. Shipped 2026-09-29 — WHATS_LEFT triage batch (items 1–9)
+
+A triage of every open item in this file (three read-only passes over
+§2–§2t, each item checked against the later ledger and the current code)
+sorted them into engineering / owner / host / deferred. Keagan: "go on 1-9"
+(2026-09-29). Each fix below was shown red on the old code first.
+
+**Decision recorded (Keagan, 2026-09-29):** SEC-3 admin session limits are
+**8 hours idle, 12 hours absolute.**
+
+| # | Item | Fix | Evidence |
+|---|---|---|---|
+| 1 | `GO-LIVE.md` §A said the site "currently advertises two withdrawn ISO revisions in six places" — false since §1aa | Reworded to what is open: the registrar's answer; the site claims plain ISO 9001 from one field | — (doc) |
+| 2 | R3-l4-2: `admin/README.md` "Do NOT re-upload … `admin/`" unqualified; dist list only `index.html` + `assets/` | Full dist list; `admin/` re-uploaded when admin code changes, tracked files only, live-state files named | — (doc) |
+| 3 | `plans/README.md` called the AUDIT-10 C/D plan "PLAN-11", the number the audit-9 plan took; R3-l4-1's stale `terms` comment (`src/App.jsx`) | Renamed "a future plan (PLAN-12 or later)"; comment says the routes are gone | — (doc) |
+| 5 | **SEC-3** (idle/absolute half; the revocation half shipped with SEC-4): no server-side session expiry, and the 5-minute keepalive kept an open tab signed in indefinitely | `ADMIN_IDLE_LIMIT` 8 h / `ADMIN_ABSOLUTE_LIMIT` 12 h in `is_authenticated()`; `require_auth()` records activity, `ping.php` only reads; password change keeps the sign-in time; a pre-upgrade session is stamped, not signed out; Help states the limits | `sec3-sessionexpiry` (new) 1/10 → 10/10; `sec4-sessionforge` 9/9 |
+| 6 | **NEW-R3-m2-1**: `shadeOf()` tinted pale palettes (#d0dcea dark → pinkish menu panel) | Shipped base → the literal (byte-identical); any other base → one uniform factor, hue kept | `r3-shades` (new): hue drift 31.6° → ≤1.1° |
+| 7 | `brand-gradient-mixed-ends`, product-header half: `<h1>` pinned white on dark-2 → primary | `--brand-product-head-ink-rgb` = `inkFor([dark2, primary])`; SKU line follows (`#e2e8f0` kept on the shipped palette) | `r3-shades`: 10.6–11.9:1 at two pale palettes (white failed); shipped white / `#e2e8f0` unchanged. 2/9 → 9/9 overall |
+| 8 | `uploads/.htaccess` deny-by-default (§1t row, flagged "for a session with a real Apache") | Deny all → re-allow jpg/png/webp/gif (+ SVG only with a sandboxing CSP, only where mod_headers exists) → deny script names again. Order is the mechanism, commented. `uploads_runtime_htaccess()` mirrors it | `dep3-scriptblock` extended: non-image files 200 → 403 in every uploads dir, both PHP handler models; 42/42. `lowsE-apache` 13/13 |
+| 9a | `upload-image.php` (13 nav items) measured by nothing | Added to `plan10-adminnav`; the count check allows each page's own `$navExtra` | 27/27 |
+| 9b | `copy-extractors-are-blind-to-comments` | Both bracket matchers skip `//`, `#`, `/* */` | `copydrift-comments` (new): "PHP Parse error: Unclosed '['" → 1/1; `copydrift-selftest` 5/5 unchanged |
+| — | **Self-correction:** this batch first wrote the comments test over the existing `_harness/copydrift-selftest.js` (PLAN-2's drift-direction proof) without reading it; caught in `git status` before commit, restored, and the new test moved to `copydrift-comments.js`. Rule: check a path exists before `Write` in `_harness/`. | restored | — |
+| — | **Self-correction:** #67 put three long no-wrap rows in Help's Quick reference; `plan10-helpwidth` caught 8 px of sideways scroll at 1024 px (and the table count 12 → 26) | Rows shortened; `EXPECTED_TABLES` 26 with the reason | 19/21 → 21/21 |
+
+**Item 4, ledger bookkeeping — audit 2026-09-27 records with no outcome here
+until now:**
+- **SEC-3** — revocation half shipped with SEC-4 (§1ac); idle/absolute half above.
+- **NEW-R3-m2-1** — above. **NEW-R3-l4-2**, **NEW-R3-l4-1** — above (the Help half of l4-1 was §1aj).
+- **NEW-R3-m4-1** (GO-LIVE §0 order) and **NEW-R3-m3-1** (`.user.ini` `php_value` advice) — already fixed in the files (`GO-LIVE.md` STEP 0 table; `public/.user.ini`), never recorded. Recorded now.
+- **NEW-R3-m2-2** — **still open, owner/brand**: translucent de-emphasised text below AA on the shipped palette (drawer "BY CATEGORY" 2.65, hero proof sub-lines 3.11–3.46). It overlaps `brandtext` and `page-header-sublines-on-gradient`, which are escalated brand decisions; not changed here.
+
+**Not done, and why:**
+- **9c `plan3-autoreply-unverifiable-on-windows`** — not built. The fix
+  (an SMTP sink plus `SMTP`/`smtp_port` for Windows PHP) cannot be verified
+  on Linux, where PHP always uses `sendmail_path`, so shipping it would be an
+  unmeasured claim. The suite is green on Linux; `_harness/README.md` already
+  marks mail suites `[UNVERIFIED]` on Windows. (The §2b line saying
+  `_harness/smtpsink.js` "exists" is stale — it does not.)

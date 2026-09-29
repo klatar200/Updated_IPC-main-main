@@ -44,8 +44,10 @@ Two things that lived only in the deleted plans were moved rather than dropped:
   `public/images/site/` but must never *delete* from it, because that folder is
   build output the next deploy would silently restore — is duplicated verbatim in
   `WHATS_LEFT.md` §2h. That is now its only home.
-- **PLAN-10 §12's out-of-scope list** — the six severity-C clusters that make the
-  natural PLAN-11 — is still in PLAN-10, which stays.
+- **PLAN-10 §12's out-of-scope list** — the six severity-C clusters that would make
+  the next AUDIT-10 plan — is still in PLAN-10, which stays. (That plan is **not**
+  PLAN-11: the number went to the audit-9 go-live plan. This line and item 1
+  below called it "PLAN-11" until 2026-09-29.)
 
 ---
 
@@ -54,7 +56,8 @@ Two things that lived only in the deleted plans were moved rather than dropped:
 1. **The 39 severity-C and 9 severity-D findings from AUDIT-10.** Untouched, and
    recorded **only** in `_harness/AUDIT10-REPORT.md`. That file is not an audit
    record to be tidied away — it is the backlog. PLAN-10 §12 names the six
-   clusters the report groups as one fix each; that is the shape of a PLAN-11.
+   clusters the report groups as one fix each; that is the shape of a future plan
+   (PLAN-12 or later).
 2. **Everything in `WHATS_LEFT.md` §2-series**, including PLAN-7 item 3b, the
    `/contact` message tab's four mislabelled fields, and A10-037 (the ISO 9001
    revision contradiction), which is blocked on an owner decision.

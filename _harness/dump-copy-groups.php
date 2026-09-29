@@ -23,6 +23,16 @@ $open = strpos($src, '[', $start);
 $depth = 0; $end = null;
 for ($i = $open, $n = strlen($src); $i < $n; $i++) {
     $c = $src[$i];
+    // Skip comments (// # /* */): an apostrophe or bracket in one used to
+    // unbalance this match — content.php carried a "no apostrophes in comments
+    // inside this literal" rule because of it (WHATS_LEFT
+    // copy-extractors-are-blind-to-comments).
+    if (($c === '/' && ($src[$i + 1] ?? '') === '/') || $c === '#') {
+        $nl = strpos($src, "\n", $i); $i = $nl === false ? $n : $nl; continue;
+    }
+    if ($c === '/' && ($src[$i + 1] ?? '') === '*') {
+        $e = strpos($src, '*/', $i + 2); $i = $e === false ? $n : $e + 1; continue;
+    }
     if ($c === '[') $depth++;
     elseif ($c === ']') { $depth--; if ($depth === 0) { $end = $i; break; } }
     // Skip over string literals so a bracket inside a label cannot unbalance us.
