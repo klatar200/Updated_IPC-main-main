@@ -3835,7 +3835,7 @@ controls. `plan7-slots` 16/16, **6/16 before**.
 
 ## 2h. Open after item 3a — item 3b is NOT started
 
-**`plan7-item-3b-image-picker`.** The owner can now point a slot at any path,
+**`plan7-item-3b-image-picker`** — **SUPERSEDED-BY §1am (2026-09-29): built as the Site Images & Logo page.** The owner can now point a slot at any path,
 but he still has to TYPE it — `/images/site/Marker-Sample-2.jpg`, capitalisation
 and all. That is not a hypothetical failure: four `photoUrl` values shipped
 with exactly that defect and put a placeholder on 4 of 42 product pages.
@@ -7087,3 +7087,44 @@ until now:**
   unmeasured claim. The suite is green on Linux; `_harness/README.md` already
   marks mail suites `[UNVERIFIED]` on Windows. (The §2b line saying
   `_harness/smtpsink.js` "exists" is stale — it does not.)
+
+## 1am. Shipped 2026-09-29 — Site Images & Logo: an upload button for the page photos and the logo
+
+Keagan: "start on #11" (item 11 of the 2026-09-29 triage; PLAN-7 item 3b,
+§2h). Until now the five page photos and the logo were TYPED paths, and the
+owner's only way to put a new picture on the server was the hosting File
+Manager (Help taught those steps for one day, §1aj).
+
+- **`admin/site-images.php` (new)** — one card per slot (hero, team, building,
+  About, Services, logo) showing what the website shows now; per card:
+  **Upload & Use** (JPG/PNG/WEBP/GIF), **pick a picture already on the server**
+  (`uploads/site/` then the shipped `images/site/`), **Remove Photo** /
+  **Use the Original Logo**. Linked from the Site Images card on Page Content
+  and the Logo URL box on Business Details; not in the nav bar (the bar's 11
+  items are measured by `plan10-adminnav`).
+- **Rules, each on purpose** (header comment of the file): the same checks as
+  a product photo, from ONE copy — `uploaded_image_problem()` /
+  `uploads_protection_problem()` / `image_resize_note()` moved into
+  `config.php` and `upload-image.php` now calls them (messages unchanged);
+  SVG still refused, so an SVG logo stays a developer job; saved as
+  `<slot>-<stamp>.<ext>`, never overwriting; the picker never deletes (the
+  §2h rule, recorded before this was built); one key written, read fresh;
+  the target data file's damage is checked BEFORE the upload is stored.
+- **Stale tabs:** Page Content and Business Details keep their `orig_sig`
+  checks, so a form opened before an upload refuses to save over it —
+  measured, not assumed.
+- **Audit:** new action `site-image` (list, filter colour, Help table).
+- **Docs:** Help `#newfiles` rewritten around the page (File Manager kept only
+  for an SVG logo); Help Page Content callout, audit table; owner guide;
+  `CLAUDE.md` / `admin/README.md` I/O surface (`uploads/site/` read/write,
+  never delete; `images/site/` read); permissions tables in `README.md`,
+  `GO-LIVE.md` §B3, `admin/README.md` gain `uploads/site/` 755.
+- **Evidence:** `_harness/siteimages.js` (new) 24/24; removing the early damage
+  check and the picker's allow-list fails 6 of them (orphan file; traversal and
+  outside paths accepted). Layout checked at 1440 and 390: no overflow, no
+  broken image.
+- **Self-correction during the build:** the first draft stored the upload
+  before discovering a damaged `content.json`, which would have left an orphan
+  file; and it offered "Use the Original Logo" when the stored value was
+  already `/logo.svg`, and pre-selected the in-use picture so "Use This One"
+  was a no-op. All three fixed before commit.

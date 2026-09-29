@@ -1235,7 +1235,7 @@ function save_content(array $content): bool {
  */
 const IPC_AUDIT_ACTIONS = [
     'add', 'edit', 'delete',
-    'upload-pdf', 'remove-pdf', 'upload-image', 'remove-image',
+    'upload-pdf', 'remove-pdf', 'upload-image', 'remove-image', 'site-image',
     'settings', 'content', 'restore', 'password',
     'sign-in', 'sign-out', 'sign-in-failed',
 ];
@@ -1963,6 +1963,90 @@ define('IMG_MAX_PIXELS', 40000000);
 // (audit-runs/audit-2026-09-27.md SEC-2)
 function image_pixel_problem(int $w, int $h): string {
     return ($w > 0 && $h > 0 && $w * $h > IMG_MAX_PIXELS) ? 'too-many-pixels' : '';
+}
+
+// ── Shared image-upload checks (product photos AND site images) ─────────────
+// One copy of the checks upload-image.php grew over audits 5–9 and 2026-09-27,
+// so the Site Images page (site-images.php, WHATS_LEFT §2h item 3b) cannot
+// accept anything a product photo would refuse. Messages are unchanged.
+const IPC_IMG_TYPES = [
+    'jpg'  => 'image/jpeg',
+    'jpeg' => 'image/jpeg',
+    'png'  => 'image/png',
+    'webp' => 'image/webp',
+    'gif'  => 'image/gif',
+];
+// Owner photography for the page slots and the logo. Beside uploads/images/,
+// under the same deny-by-default uploads/.htaccess; never touched by a deploy.
+define('SITE_IMG_DIR', __DIR__ . '/../uploads/site/');
+define('SITE_IMG_PATH', 'uploads/site/');   // how content.json's siteImages slots store it
+
+// uploads/.htaccess must exist before anything is written under uploads/.
+// Writes the runtime copy if it is missing; returns the refusal message if it
+// is STILL missing (NEW-N3-3), else ''.
+function uploads_protection_problem(): string {
+    $uploadsHt = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
+    if (is_dir(dirname($uploadsHt)) && !file_exists($uploadsHt)) {
+        @file_put_contents($uploadsHt, uploads_runtime_htaccess());
+    }
+    if (is_dir(dirname($uploadsHt)) && !file_exists($uploadsHt)) {
+        return 'The photo was not saved: the uploads folder is missing its security file (uploads/.htaccess) and the server would not let the admin create it. '
+             . 'Upload uploads/.htaccess from the release over FTP (turn on "show hidden files" to see it), then try again.';
+    }
+    return '';
+}
+
+// Everything that decides whether an uploaded file is a usable, safe image:
+// extension AND sniffed MIME agree (A-5.x), no PHP tag anywhere in the bytes
+// (A-9.P3-2 / NEW-V1-1), 8 MB, the pixel ceiling BEFORE any decode (SEC-2),
+// then it must actually decode where gd exists. Returns '' when it passes and
+// sets $ext to the lower-cased extension.
+function uploaded_image_problem(array $file, ?string &$ext = null): string {
+    $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+    $tmp = (string)($file['tmp_name'] ?? '');
+    $sniffed  = @getimagesize($tmp);
+    $mimeType = $sniffed !== false ? (string)($sniffed['mime'] ?? '') : '';
+    if ($mimeType !== '' && function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $fmime = finfo_file($finfo, $tmp);
+        finfo_close($finfo);
+        if ($fmime !== $mimeType) $mimeType = '';
+    }
+    $raw       = (string)@file_get_contents($tmp, false, null, 0, 8 * 1024 * 1024 + 1);
+    $hasPhpTag = (stripos($raw, '<?php') !== false || stripos($raw, '<?=') !== false);
+    $pixelProblem = $sniffed !== false ? image_pixel_problem((int)$sniffed[0], (int)$sniffed[1]) : '';
+    if (!isset(IPC_IMG_TYPES[$ext]) || $mimeType !== IPC_IMG_TYPES[$ext]) {
+        return 'Only JPG, PNG, WEBP, or GIF images are accepted (extension and content must match).';
+    }
+    if ($hasPhpTag) {
+        return 'That file is not a usable image — it contains program code, not just picture data. '
+             . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
+    }
+    if ((int)($file['size'] ?? 0) > 8 * 1024 * 1024) return 'File is too large. Maximum size is 8MB.';
+    if ($pixelProblem === 'too-many-pixels') {
+        return 'That photo is ' . round(((int)$sniffed[0] * (int)$sniffed[1]) / 1000000, 1) . ' megapixels — more than the '
+             . (int)(IMG_MAX_PIXELS / 1000000) . ' megapixels the server can safely process, so it was not saved. '
+             . 'Resize it to about ' . IMG_MAX_WIDTH . ' pixels wide in any photo editor and upload it again.';
+    }
+    if (function_exists('imagecreatefromstring')) {
+        $im = @imagecreatefromstring((string)@file_get_contents($tmp));
+        if ($im === false) {
+            return 'That file looks like an image on the outside but cannot be opened as one — it is damaged or incomplete. '
+                 . 'Re-save it from an image editor and upload it again.';
+        }
+        if (function_exists('imagedestroy')) @imagedestroy($im);
+    }
+    return '';
+}
+
+// The "saved it smaller / could not resize" sentence both upload pages append.
+function image_resize_note(bool $wasResized, string $reason, string $what = 'this product page'): string {
+    return ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '')
+         . ($reason === 'no-gd'
+            ? ' ⚠ This server cannot resize images (its image tools are not installed), so the photo has been'
+              . ' saved at its original size and ' . $what . ' may load slowly. Please resize it to about '
+              . IMG_MAX_WIDTH . ' pixels wide and upload it again, or ask the host to enable the PHP "gd" extension.'
+            : '');
 }
 
 function image_downscale_in_place(string $path, string $ext, ?string &$reason = null): bool {

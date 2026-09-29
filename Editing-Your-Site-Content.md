@@ -76,7 +76,7 @@ Then click **Save Content** at the bottom. That's it — your changes go live wi
 
 Clear one of those and it disappears from the site properly — the fax line vanishes from the footer, the Contact page and the About page rather than leaving an empty label.
 
-**New page photos and logos go in `uploads/site/`.** The **Site Images** boxes and the **Logo URL** hold the address of a picture already on your server; there is no upload button for them. Upload the file with your hosting File Manager into `public_html/uploads/site/`, then type `uploads/site/your-file.jpg` into the box (the logo takes `/uploads/site/logo.svg`). Never use the `images` folder — it is replaced whenever the website is updated. Full steps: **Help → Putting a new photo or logo on the server**. Product photos use the **Photo** button instead.
+**New page photos and the logo have their own upload page.** Open **Site Images & Logo** (linked from the Site Images card on Page Content and from the Logo URL box on Business Details). Each of the five page photos and the logo has a card: upload a JPG, PNG, WEBP or GIF from your computer, or pick a picture that is already on the server, or remove it. Nothing there deletes a file. An SVG logo can't be uploaded there (SVG files can carry program code) — that one is for your developer. Product photos still use the **Photo** button on the Products page.
 
 **Icons come from a menu.** Cards that show an icon (services, certifications, industries, stats) have an **Icon dropdown** — pick the closest match. Team cards use an emoji you can type in the "Icon" field.
 

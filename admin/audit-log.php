@@ -84,6 +84,7 @@ function action_color(string $a): array {
         case 'remove-pdf':  return ['#fde68a', '#92400e'];
         case 'upload-image': return ['#ede9fe', '#5b21b6'];
         case 'remove-image': return ['#fee2e2', '#991b1b'];
+        case 'site-image':  return ['#ede9fe', '#5b21b6'];
         case 'settings':    return ['#e0f2fe', '#075985'];
         case 'content':     return ['#e0f2fe', '#075985'];
         case 'restore':     return ['#fef3c7', '#92400e'];
