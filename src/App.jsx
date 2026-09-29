@@ -7801,7 +7801,7 @@ function PageMeta({ products }) {
     //     mean "stop overriding titles", not "silently keep the old ones" and
     //     certainly not "blank every page". (AUDIT_v3 §3.8)
     //  2. `|| home.title` gave every page WITHOUT its own seo row the homepage's
-    //     title. `terms` and `quality` have no row, so three routes shipped the
+    //     title. `terms` and `quality` (both routes since removed) had no row, so three routes shipped the
     //     same <title> — a duplicate-title signal on the exact pages that need a
     //     distinct one.
     //
@@ -8233,19 +8233,29 @@ function ThemeInjector() {
     // the red channel of #003d7a against #005da3. Those take the mean of the
     // defined ratios, which still multiplies 0 on the shipped palette and is
     // therefore still exact, and behaves sensibly on a color that has red in it.
+    //
+    // NEW-R3-m2-1 (audit 2026-09-27) — and ONLY on the shipped palette. The
+    // per-channel ratios are not equal (the panel's are 1.08 / 0.89 / 0.87), so
+    // applying them to another base TINTS it as well as darkening it: a pale
+    // #d0dcea dark gained red against blue and the mega-menu turned pinkish.
+    // Off the shipped palette the shade is now ONE factor, the mean of the
+    // defined ratios, applied to all three channels — a uniform RGB scale keeps
+    // the owner's hue and saturation and only darkens. The shipped palette still
+    // returns the literal itself, so the deployed site is byte-identical.
     const shadeOf = (base, shippedBase, literal) => {
       const b = rgbOf(base), s = rgbOf(shippedBase), l = rgbOf(literal);
       if (!b || !s || !l) return literal;
+      if (b[0] === s[0] && b[1] === s[1] && b[2] === s[2]) return `rgb(${l[0]}, ${l[1]}, ${l[2]})`;
       const defined = [0, 1, 2].filter((i) => s[i] !== 0).map((i) => l[i] / s[i]);
-      const mean = defined.length ? defined.reduce((a, x) => a + x, 0) / defined.length : 1;
-      const out = [0, 1, 2].map((i) =>
-        Math.max(0, Math.min(255, Math.round(b[i] * (s[i] === 0 ? mean : l[i] / s[i])))));
+      const k = defined.length ? defined.reduce((a, x) => a + x, 0) / defined.length : 1;
+      const out = b.map((c) => Math.max(0, Math.min(255, Math.round(c * k))));
       return `rgb(${out[0]}, ${out[1]}, ${out[2]})`;
     };
     const darkPanel = shadeOf(dark, "#0d2d52", "#0e2847");
     const darkDrawer = shadeOf(dark, "#0d2d52", "#0a2444");
     const primaryDeep = shadeOf(primary, "#005da3", "#003d7a");
-    root.style.setProperty("--brand-dark-2", shadeOf(dark, "#0d2d52", "#0a2a52"));
+    const dark2 = shadeOf(dark, "#0d2d52", "#0a2a52");
+    root.style.setProperty("--brand-dark-2", dark2);
     root.style.setProperty("--brand-dark-panel", darkPanel);
     root.style.setProperty("--brand-dark-drawer", darkDrawer);
     root.style.setProperty("--brand-primary-deep", primaryDeep);
@@ -8290,6 +8300,14 @@ function ThemeInjector() {
     root.style.setProperty("--brand-drawer-ink-rgb", inkRgb(inkFor(hexOf(darkDrawer))));
     root.style.setProperty("--brand-deep-ink-rgb", inkRgb(deepInk));
     root.style.setProperty("--brand-hero-ink-rgb", inkRgb(heroInk));
+    // brand-gradient-mixed-ends, product-header half (WHATS_LEFT §2d) — the
+    // product page's name and SKU sit on dark-2 → primary, both owner colours,
+    // and were a flat white / #e2e8f0. One ink for both ends, as the site
+    // header's already is. White on the shipped palette, and the SKU keeps its
+    // exact #e2e8f0 there.
+    const productHeadInk = inkFor([hexOf(dark2), primary]);
+    root.style.setProperty("--brand-product-head-ink-rgb", inkRgb(productHeadInk));
+    root.style.setProperty("--brand-product-head-sub", productHeadInk === INK_LIGHT ? "#e2e8f0" : productHeadInk);
     // The accent as TEXT on the deep→primary gradient (industry-card chips).
     // Kept whenever it is no worse there than the shipped accent is on the
     // shipped gradient (so the deployed site is unchanged) or clears 3:1;
@@ -9196,16 +9214,10 @@ function ProductDetail({ product, allProducts }) {
             >
               Product Detail
             </div>
-            {/* Stays white. This used to read "the gradient starts at a
-                HARDCODED #0a2a52, and only its far end is owner-controlled" —
-                A10-046 removed that hardcode, so the near end is now
-                var(--brand-dark-2) and both ends follow the owner. The ink is
-                still a flat white rather than a computed one: deriving it
-                through inkFor([dark-2, primary]) the way the site header ink
-                already is (see ThemeInjector) is the open item
-                brand-gradient-mixed-ends, and it is deliberately NOT part of
-                this change. The heading is left-aligned, i.e. over the dark
-                end, where white is correct for the shipped palette. */}
+            {/* brand-gradient-mixed-ends (closed 2026-09-29) — both gradient
+                ends follow the owner since A10-046, so the ink is now derived
+                through inkFor([dark-2, primary]) in ThemeInjector, the way the
+                site header's is. White on the shipped palette, as before. */}
             {/* C47 — not uppercased. These are the longest strings on the site
                 ("NONMETALLIC LIQUID-TIGHT CONDUIT COUPLING"), and all-caps cost
                 legibility on exactly the ones that wrap. The small uppercase
@@ -9214,7 +9226,7 @@ function ProductDetail({ product, allProducts }) {
             {/* A3 — the <h1> of a product page is the product's name. It was an
                 <h2> under a "Product Catalog" <h1>, so all 42 pages announced
                 the same top-level heading. */}
-            <h1 className="text-xl font-extrabold text-white leading-tight">
+            <h1 className="text-xl font-extrabold leading-tight" style={{ color: "rgb(var(--brand-product-head-ink-rgb))" }}>
               {product.name}
             </h1>
             {/* C45 — the SKU used to be a filled pill in the action row to the
@@ -9226,7 +9238,7 @@ function ProductDetail({ product, allProducts }) {
                 style={{
                   font: "600 12px ui-monospace, SFMono-Regular, Menlo, monospace",
                   letterSpacing: "0.06em",
-                  color: "#e2e8f0",
+                  color: "var(--brand-product-head-sub)",
                   marginTop: 6,
                 }}
               >

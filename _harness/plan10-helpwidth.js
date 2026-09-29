@@ -163,7 +163,9 @@ async function signIn(ctx) {
   // criterion of A10-022. The checks that ARE the criterion (page overflow 0, no
   // table past the viewport without a working scroller, every explanation column
   // reachable) all ran against the new table and passed before this was touched.
-  const EXPECTED_TABLES = 12;
+  // 12 until 2026-09-29, when Help gained "Where each part of the site is edited"
+  // (#sitemap): 14 more field-ref tables, one per page area.
+  const EXPECTED_TABLES = 26;
   note(m.tableCount === EXPECTED_TABLES,
     `the Help page renders all ${EXPECTED_TABLES} field-ref tables (${m.tableCount})`,
     'a table disappeared, or one was added without updating EXPECTED_TABLES');

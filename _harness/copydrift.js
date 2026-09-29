@@ -46,6 +46,10 @@ const openIdx = appJsx.indexOf('{', declIdx);
 let depth = 0, endIdx = -1;
 for (let i = openIdx; i < appJsx.length; i++) {
   const c = appJsx[i];
+  // Skip comments too (WHATS_LEFT copy-extractors-are-blind-to-comments): an
+  // apostrophe or brace in a comment used to unbalance the match.
+  if (c === '/' && appJsx[i + 1] === '/') { const nl = appJsx.indexOf('\n', i); i = nl < 0 ? appJsx.length : nl; continue; }
+  if (c === '/' && appJsx[i + 1] === '*') { const e = appJsx.indexOf('*/', i + 2); i = e < 0 ? appJsx.length : e + 1; continue; }
   if (c === '"' || c === "'" || c === '`') {           // skip string literals
     const q = c;
     for (i++; i < appJsx.length; i++) {

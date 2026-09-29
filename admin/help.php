@@ -259,10 +259,10 @@ $navActive = 'help';
           <tr><td>Remove a part that's discontinued</td><td><a href="#deleting">Deleting a product</a></td></tr>
           <tr><td><strong>Undo a mistake / get something back</strong></td><td><a href="#backups">Backups &amp; undo</a> — you can do this yourself</td></tr>
           <tr><td><strong>Change your password</strong></td><td><a href="#password">Your admin password</a> — you can do this yourself</td></tr>
-          <tr><td><strong>"Where do I change <em>this</em>?" — any text, photo or link on a page</strong></td><td><a href="#sitemap">Where each part of the site is edited</a> — every page, top to bottom</td></tr>
+          <tr><td><strong>Find where anything on a page is edited</strong></td><td><a href="#sitemap">Where each part of the site is edited</a> — every page, top to bottom</td></tr>
           <tr><td>Change the phone number, address, hours, logo or colors</td><td><a href="#business">Business Details</a></td></tr>
-          <tr><td>Change the automatic reply email, or add a holiday-closure notice to it</td><td><a href="#pagecontent">Page Content</a> → Contact Page — Form → the three <em>Auto-reply</em> boxes at the bottom</td></tr>
-          <tr><td>Put a new photo on the homepage, About or Services page, or a new logo</td><td><a href="#newfiles">Putting a new photo or logo on the server</a></td></tr>
+          <tr><td>Change the auto-reply email, or add a holiday notice</td><td><a href="#pagecontent">Page Content</a> → Contact Page — Form → the three <em>Auto-reply</em> boxes at the bottom</td></tr>
+          <tr><td>Put up a new page photo or logo</td><td><a href="#newfiles">Putting a new photo or logo on the server</a></td></tr>
           <tr><td>Change wording on the site, the FAQ, services or footer links</td><td><a href="#pagecontent">Page Content</a></td></tr>
           <tr><td>Add or rename a product category</td><td><a href="#pagecontent">Page Content</a> → Product Families / Categories — you can do this yourself</td></tr>
           <tr><td>Change the title or description Google shows for a page</td><td><a href="#pagecontent">Page Content</a> → Search Engine Text (SEO)</td></tr>
@@ -294,7 +294,7 @@ $navActive = 'help';
           After <?= (int)LOGIN_FREE_ATTEMPTS + 1 ?> wrong passwords in a row, the sign-in page asks you to wait <strong><?= (int)LOGIN_COOLOFF_BASE ?> seconds</strong> before it will check another one — even the right one. Each further wrong password doubles the wait, up to a maximum of <strong><?= (int)round(LOGIN_COOLOFF_MAX / 60) ?> minutes</strong>. It never locks you out permanently, and it forgets the failed attempts entirely after <?= (int)round(LOGIN_THROTTLE_WINDOW / 60) ?> quiet minutes. This is a normal security precaution against guessing attacks, not an error. Wait it out and re-enter your password carefully (check that Caps Lock isn't on).
         </div>
         <h3>Signing out</h3>
-        <p>Click <strong>Sign Out</strong> in the top-right corner of any page. Your sign-in stays active until you do this (or until the dashboard has gone unused for a long stretch) — simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed. If you are ever signed out in the middle of an edit, see <em>"I was signed out in the middle of editing"</em> in <a href="#faq">Troubleshooting</a> before you press anything.</p>
+        <p>Click <strong>Sign Out</strong> in the top-right corner of any page. Your sign-in stays active until you do this, until <strong><?= (int)(ADMIN_IDLE_LIMIT / 3600) ?> hours</strong> pass without you opening or saving a page, or <strong><?= (int)(ADMIN_ABSOLUTE_LIMIT / 3600) ?> hours</strong> after you signed in, whichever comes first. A page left open does not count as using the dashboard. Simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed. If you are ever signed out in the middle of an edit, see <em>"I was signed out in the middle of editing"</em> in <a href="#faq">Troubleshooting</a> before you press anything.</p>
         <div class="callout callout-tip">
           <b>One password for everyone</b>
           This dashboard uses a single shared admin password rather than individual employee logins. If more than one person updates the catalog, everyone signs in with the same password. Keep that in mind for two things: anyone who has the password can make changes, and the <a href="#auditlog">Audit log</a> can only identify a change by device/location and time, not by which person was typing — see the note in that section.
@@ -1233,7 +1233,8 @@ $navActive = 'help';
           <tr><th>Largest single file the server accepts</th><td><code><?= h(ini_get('upload_max_filesize') ?: 'unknown') ?></code></td></tr>
           <tr><th>Largest whole form submission</th><td><code><?= h(ini_get('post_max_size') ?: 'unknown') ?></code></td></tr>
           <tr><th>Max form fields per save</th><td><code><?= h((string)(ini_get('max_input_vars') ?: 'unknown')) ?></code> (the Page Content form currently posts about 450)</td></tr>
-          <tr><th>Signed-out after inactivity</th><td><code><?= h((string)round(((int)ini_get('session.gc_maxlifetime')) / 60)) ?> minutes</code></td></tr>
+          <?php /* SEC-3 — this read session.gc_maxlifetime, which is garbage collection, not a limit; the real limits are the two constants. */ ?>
+          <tr><th>Signed-out after inactivity</th><td><code><?= (int)(ADMIN_IDLE_LIMIT / 3600) ?> hours</code> without opening or saving a page; <code><?= (int)(ADMIN_ABSOLUTE_LIMIT / 3600) ?> hours</code> after signing in at most</td></tr>
           <tr><th>PHP version</th><td><code><?= h(PHP_VERSION) ?></code></td></tr>
           <tr><th><code>admin</code> folder writable</th><td><?= admin_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; sales leads are being discarded</strong>' ?></td></tr>
           <tr><th><code>data</code> folder writable</th><td><?= data_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; nothing you edit can be saved</strong>' ?></td></tr>

@@ -174,12 +174,19 @@ When you change the React source and rebuild:
 npm run build
 ```
 
-FTP only the **contents** of `/dist` (`index.html` + `assets/`) into
-`public_html/`, overwriting the old `index.html` and `assets/` folder — and
-upload `assets/` **before** `index.html`, or every visitor between the two
-uploads gets a shell pointing at a bundle that is not there yet.
-**Do NOT re-upload `data/`, `pdfs/`, or `admin/`** — those are live on the
-server and your local copies are stale.
+FTP the **contents** of `/dist` into `public_html/` — `assets/`, `images/`,
+`contact.php`, `sitemap.php`, the dotfiles `.htaccess` and `.user.ini`, and the
+small root files — in the order `GO-LIVE.md` §B2 gives: `assets/` **before**
+`index.html`, or every visitor between the two uploads gets a shell pointing at
+a bundle that is not there yet.
+**Do NOT re-upload `data/`, `pdfs/` or `uploads/`** — those are live customer
+state on the server and your local copies are stale.
+**`admin/` is re-uploaded only when admin code changed**, and then only its
+tracked files (`git ls-files admin/`). Never its live-state files:
+`config.local.php*`, `*.jsonl`, `.login-throttle.json`, `.inquiries-seen.json`,
+`.sessions/`, `ALLOW-PASSWORD-RESET`. (Until 2026-09-29 this said "Do NOT
+re-upload `admin/`" unqualified, and listed `dist/` as only `index.html` +
+`assets/` — audit 2026-09-27 R3-l4-2.)
 
 **With one exception:** `data/.htaccess`, `pdfs/.htaccess` and
 `uploads/.htaccess` are repo code that happens to live inside those folders.

@@ -5,6 +5,40 @@
 # No directory listings
 Options -Indexes
 
+# DENY BY DEFAULT (WHATS_LEFT §4917 item, done 2026-09-29, measured on real
+# Apache 2.4 by _harness/dep3-scriptblock.js under both PHP handler models).
+# This folder holds pictures and nothing else, so it serves pictures and
+# nothing else: anything that is not a known image type answers 403 — an
+# uploaded .html, .js, .txt or anything nameless is data, never a page.
+#
+# ORDER IS THE MECHANISM. Apache merges matching <FilesMatch> sections in the
+# order written, and the LAST matching section's access rules win:
+#   1. deny everything;
+#   2. re-allow the image types (and SVG only with its sandbox header);
+#   3. deny script-named files AGAIN, after the allow, so `x.php.jpg` stays
+#      denied even though it ends in .jpg. Move 3 above 2 and it is served.
+<FilesMatch ".">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+<FilesMatch "\.(?i:jpe?g|png|webp|gif)$">
+  Order Deny,Allow
+  Allow from all
+</FilesMatch>
+# SVG is for an owner-placed logo in uploads/site/ (the admin's own photo
+# upload refuses SVG). An SVG opened directly can run script in this site's
+# origin, so it is served ONLY with a sandboxing CSP — and only where
+# mod_headers can send one: without it this section does not exist and SVG
+# stays denied (fails closed). As an <img> the CSP changes nothing.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(?i:svg)$">
+    Order Deny,Allow
+    Allow from all
+    Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+    Header set X-Content-Type-Options "nosniff"
+  </FilesMatch>
+</IfModule>
+
 # Never execute scripts from this folder, even if one somehow lands here.
 #
 # `(\.|$)`, not `$`: on a host that maps PHP with `AddHandler` (common on
@@ -12,13 +46,10 @@ Options -Indexes
 # in its name, so `x.php.jpg` executes. The `$`-anchored rule this replaced
 # never matched it. Same rule as pdfs/.htaccess, which is the one that held.
 #
-# ON PURPOSE — there is no image allow-list <FilesMatch> after this any more.
-# There was one (`Order Deny,Allow` / `Allow from all` on jpe?g|png|webp|gif),
-# and Apache merges matching sections in order, so it RE-ALLOWED any name
+# ON PURPOSE — this block comes AFTER the image allow above, never before.
+# An allow-list placed after it (as shipped until DEP-3) RE-ALLOWED any name
 # ending in an image extension even when this deny had matched it: measured on
-# real Apache 2.4 + mod_php, `x.php.jpg` answered 200 and ran. It added nothing
-# else — Apache serves images by default. Do not put it back; to add
-# deny-by-default later, put the allow BEFORE this block, never after.
+# real Apache 2.4 + mod_php, `x.php.jpg` answered 200 and ran.
 # `_harness/dep3-scriptblock.js` proves both halves on a real Apache.
 # (audit-runs/audit-2026-09-27.md DEP-3)
 <FilesMatch "\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\.|$)">
