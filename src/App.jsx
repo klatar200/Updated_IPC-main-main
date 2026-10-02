@@ -3695,6 +3695,7 @@ function AboutPage() {
   const { milestones, capabilities, certs, copy } = useContent();
   const c = copy.aboutHeader;
   const img = copy.siteImages;
+  const claims = copy.claims;
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -3756,14 +3757,16 @@ function AboutPage() {
             {[
               { label: "Founded", value: `Since ${site.company.foundedYear}` },
               { label: "Headquarters", value: `${site.address.city}, ${site.address.state} ${site.address.zip}` },
-              { label: "Structure", value: "Privately Held" },
+              // ADM-8 — the three claim rows are Page Content → Company
+              // Claims; a cleared one drops its row through the filter below.
+              { label: "Structure", value: claims.aboutStructureClaim },
               { label: "Inventory", value: `${site.stats.feetInStock} feet in stock` },
               { label: "Minimum Order", value: site.stats.minimumOrder },
               { label: "Quality", value: `${site.certifications.iso} Registered` },
-              { label: "Custom Lead Time", value: "≤ 1 week" },
+              { label: "Custom Lead Time", value: claims.aboutLeadTimeClaim },
               { label: "Phone", value: site.contact.phone },
               { label: "Fax", value: site.contact.fax },
-              { label: "PPAP / IMDS", value: "Available on request" },
+              { label: "PPAP / IMDS", value: claims.aboutPpapClaim },
             ].filter((item) => item.value) /* a cleared Fax drops its row (NB4) */
               .map((item) => (
               <div
@@ -4695,7 +4698,7 @@ const CONTACT_CARDS = [
     title: "Email",
     info: "sales@insulationproducts.com",
     href: "mailto:sales@insulationproducts.com",
-    sub: "Typical reply: same day",
+    // sub: copy.claims.contactEmailReplyClaim, set in ContactPage (ADM-8)
   },
   {
     icon: (
@@ -5017,7 +5020,8 @@ function ContactPage() {
     if (card.title === "Phone") return { ...card, info: site.contact.phone, href: `tel:${site.contact.phoneDial}`, sub: site.hours.text };
     // No href: a fax number is not dialable from a phone. (4.8)
     if (card.title === "Fax") return { ...card, info: site.contact.fax, href: null };
-    if (card.title === "Email") return { ...card, info: site.contact.email, href: `mailto:${site.contact.email}` };
+    // ADM-8 — the reply-time line is Page Content → Company Claims; cleared, the card has no sub-line.
+    if (card.title === "Email") return { ...card, info: site.contact.email, href: `mailto:${site.contact.email}`, sub: _copy.claims.contactEmailReplyClaim };
     if (card.title === "Address") return { ...card, info: site.address.street, sub: `${site.address.city}, ${site.address.state} ${site.address.zip}` };
     return card;
     // A cleared Fax removes the card entirely rather than showing an empty
@@ -5916,9 +5920,11 @@ function ContactPage() {
                     </a>
                   ) : item.info}
                 </div>
+                {item.sub ? (
                 <div className="text-xs" style={{ color: "#4b5563" }}>
                   {item.sub}
                 </div>
+                ) : null}
               </div>
             </div>
           ))}
@@ -7106,6 +7112,35 @@ const COPY_DEFAULTS = {
     aboutPhoto: "images/site/IPC-Building.jpg",
     servicesPhoto: "images/site/Marker-Sample-2.jpg",
   },
+  /**
+   * ADM-8 + NEW-V2-3 (audit 2026-09-27) — business claims that used to be
+   * hardcoded in the components below, with no admin screen: About's
+   * Structure / Custom Lead Time / PPAP rows, the Industries PPAP panel, the
+   * Services "Rush service" line, the Contact email card's reply time, the
+   * footer description, and the brand / manufacturer every product page tells
+   * search engines. Made editable on Keagan's decision 2026-10-02
+   * (WHATS_LEFT §1ao). The defaults are the old hardcoded text, byte for
+   * byte, so nothing changes on the page until the owner edits one.
+   *
+   * CLEARING ONE REMOVES IT, for the same reason as siteImages: every key
+   * ends in "Claim" and matches COPY_CLEARABLE. A claim the owner deletes
+   * because it is not true must not re-seed itself from this default.
+   * content.php carries the same values as `default` entries (prefill for an
+   * absent key) and _harness/claims.js holds the two sides equal.
+   */
+  claims: {
+    aboutStructureClaim: "Privately Held",
+    aboutLeadTimeClaim: "≤ 1 week",
+    aboutPpapClaim: "Available on request",
+    industriesPpapTitleClaim: "PPAP & IMDS Documentation Available",
+    industriesPpapBodyClaim: "IPC can support automotive supplier requirements for PPAP packages and IMDS material data submissions. Contact our sales team for details.",
+    servicesRushClaim: "Rush service available — contact sales for details.",
+    contactEmailReplyClaim: "Typical reply: same day",
+    footerDescriptionClaim: "A spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives.",
+    footerServiceClaim: "Quick, accurate, courteous service — the customer is always number one.",
+    productBrandClaim: "Insulation Products Corporation",
+    productManufacturerClaim: "Insulation Products Corporation",
+  },
   hero: {
     badge: "Bolingbrook, IL — Made in USA Since 1974",
     headlineLine1: "25 Million Feet in Stock.",
@@ -7513,7 +7548,9 @@ function contentDefaults() {
 // actually go away: re-seeding it would restore the image the owner had just
 // deleted and report "Saved" while doing it. Same asymmetry SITE_CLEARABLE
 // handles for site-info.
-const COPY_CLEARABLE = /^(subhead|.*Subhead|.*Photo)$/;
+// `...Claim` joins for ADM-8 (WHATS_LEFT §1ao): a business claim the owner
+// removes because it is not true must stay removed.
+const COPY_CLEARABLE = /^(subhead|.*Subhead|.*Photo|.*Claim)$/;
 
 function mergeContent(data) {
   const defaults = contentDefaults();
@@ -9123,6 +9160,7 @@ function RelatedArrow() {
  */
 function ProductDetail({ product, allProducts }) {
   const site = useSiteInfo();
+  const claims = useContent().copy.claims;
   // Falls back to the branded placeholder when the photo 404s. The SPA rewrite
   // returns 200 + index.html for a missing image, so only the browser's own
   // load failure can detect it. (DEPLOY_READINESS_v2 T2.7)
@@ -9164,8 +9202,20 @@ function ProductDetail({ product, allProducts }) {
       "description": Array.isArray(product.description)
         ? product.description.filter(Boolean).join(" ")
         : product.description || product.name,
-      "brand": { "@type": "Brand", "name": "Insulation Products Corporation" },
-      "manufacturer": { "@type": "Organization", "name": "Insulation Products Corporation", "url": "https://www.insulationproducts.com" },
+      // NEW-V2-3 (audit 2026-09-27) — Page Content → Company Claims. IPC is
+      // a distributor, and this said IPC made all 42 products, a UL-listed
+      // heat gun included. Now the owner's call: a cleared field omits the
+      // key (`undefined` drops it), and the manufacturer carries the site's
+      // URL only while it names the company itself — a third party's name
+      // beside IPC's URL would be a new false statement.
+      "brand": claims.productBrandClaim ? { "@type": "Brand", "name": claims.productBrandClaim } : undefined,
+      "manufacturer": claims.productManufacturerClaim
+        ? {
+            "@type": "Organization",
+            "name": claims.productManufacturerClaim,
+            ...(claims.productManufacturerClaim === site.company.name ? { "url": SITE_ORIGIN } : {}),
+          }
+        : undefined,
       // A-9.P4-9 (the `image` half) — the photo is already validated and
       // already painted on this page, so omitting it from the Product block
       // was free warning volume in Search Console on all 42 routes. Same
@@ -9178,7 +9228,8 @@ function ProductDetail({ product, allProducts }) {
     });
     document.head.appendChild(el);
     return () => { document.getElementById("product-ld")?.remove(); };
-  }, [product.id, product.name, product.partNumber, product.description, product.photoUrl]);
+  }, [product.id, product.name, product.partNumber, product.description, product.photoUrl,
+      claims.productBrandClaim, claims.productManufacturerClaim, site.company.name]);
 
   return (
     <div
@@ -11872,6 +11923,7 @@ const industryAnchor = (list, i) => {
 
 function IndustriesPage() {
   const c = useContent().copy.industriesHeader;
+  const claims = useContent().copy.claims;
   const industries = useContent().industryDetail;
 
   // C30 — a cold load of /industries#medical. The browser tried to resolve
@@ -12159,24 +12211,27 @@ function IndustriesPage() {
           </div>
         ))}
 
-        {/* PPAP / IMDS note */}
+        {/* PPAP / IMDS note. ADM-8 — Page Content → Company Claims; a
+            cleared heading removes the whole panel, a cleared body only the
+            sentence under it. */}
+        {claims.industriesPpapTitleClaim ? (
         <div
           className="rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4"
           style={{ background: "var(--brand-dark)" }}
         >
           <div>
             <div className="text-sm font-bold ipc-ink-dark mb-1">
-              PPAP &amp; IMDS Documentation Available
+              {claims.industriesPpapTitleClaim}
             </div>
             {/* 0.55 was the original de-emphasis and it measured 3.95:1 against
                 a pale --brand-dark — correct ink, but the opacity diluted it
                 under AA. 0.75 keeps the sub-line visibly secondary and clears
                 4.5:1 at both ends of the palette. (brand-ink-translucent) */}
+            {claims.industriesPpapBodyClaim ? (
             <p className="text-xs" style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.75)" }}>
-              IPC can support automotive supplier requirements for PPAP packages
-              and IMDS material data submissions. Contact our sales team for
-              details.
+              {claims.industriesPpapBodyClaim}
             </p>
+            ) : null}
           </div>
           <PageLink
             page="contact"
@@ -12192,6 +12247,7 @@ function IndustriesPage() {
             Contact Sales
           </PageLink>
         </div>
+        ) : null}
       </div>
     </div>
   );
@@ -12537,8 +12593,11 @@ function ServicesPage() {
                 {/* B21 — the exception belongs here, beside the pointer to the
                     cards, not spliced into the headline with a middot. */}
                 {leadTimeSummary.note ? `${leadTimeSummary.note}. ` : ""}
-                All fabrication services listed below. Rush service available —
-                contact sales for details.
+                All fabrication services listed below.
+                {/* ADM-8 — Page Content → Company Claims. The explicit space
+                    is B11's: JSX drops the newline between text and an
+                    {expression}. */}
+                {copy.claims.servicesRushClaim ? ` ${copy.claims.servicesRushClaim}` : ""}
               </div>
             </div>
           </div>
@@ -13250,15 +13309,16 @@ function Footer() {
               className="text-xs leading-relaxed max-w-xs"
               style={{ color: "#94a3b8" }}
             >
-              A spec-grade stocking distributor of heat-shrinkable &amp;
-              extruded tubing, electrical sleeving, and industrial adhesives.
-              {/* B11 — the explicit space is load-bearing. JSX collapses a
-                  newline between two pieces of TEXT to a space, but strips it
-                  entirely between text and an {expression}, so this rendered
-                  "adhesives.$50 minimum order." on every page of the site. */}
-              {" "}
-              {site.stats.minimumOrder} minimum order. Quick, accurate, courteous service — the
-              customer is always number one.
+              {/* ADM-8 — both sentences are Page Content → Company Claims;
+                  the minimum order between them is Business Details. Joined
+                  as one string so a cleared part leaves no double space.
+                  (B11 — this used to render "adhesives.$50 minimum order."
+                  when the JSX dropped a newline before an {expression}.) */}
+              {[
+                copy.claims.footerDescriptionClaim,
+                site.stats.minimumOrder ? `${site.stats.minimumOrder} minimum order.` : "",
+                copy.claims.footerServiceClaim,
+              ].filter(Boolean).join(" ")}
             </p>
             <FooterSocial social={site.social} />
           </div>

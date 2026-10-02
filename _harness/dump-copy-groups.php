@@ -64,7 +64,9 @@ foreach ($COPY_GROUPS as $group => $cfg) {
             'key'   => $f['key'],
             'type'  => $f['type'] ?? '',
             'label' => $f['label'] ?? '',
-        ];
+        ] + (array_key_exists('default', $f) ? ['default' => $f['default']] : []);
+        // `default` (absent-key prefill) is emitted only where a field has one,
+        // so _harness/claims.js can hold it equal to COPY_DEFAULTS.
     }
 }
 echo json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), "\n";

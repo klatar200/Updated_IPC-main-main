@@ -344,6 +344,32 @@ $COPY_GROUPS = [
         ['key' => 'aboutPhoto',         'type' => 'text', 'labelHtml' => true, 'label' => 'About page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',             'default' => 'images/site/IPC-Building.jpg'],
         ['key' => 'servicesPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
     ]],
+    // ADM-8 + NEW-V2-3 (audit 2026-09-27) — business claims that were
+    // hardcoded in src/App.jsx with no admin screen. Made editable on the
+    // decision of 2026-10-02 (WHATS_LEFT 1ao).
+    //
+    // CLEARING A FIELD REMOVES THE CLAIM. Every key ends in "Claim", which
+    // puts it in COPY_CLEARABLE on the App.jsx side, so a blank stays blank
+    // instead of re-seeding the default the owner just deleted.
+    //
+    // Each field therefore MUST carry a default, byte-identical to
+    // COPY_DEFAULTS.claims (_harness/claims.js holds the pair): the prefill
+    // uses it only while the key is absent from the stored file. Without it,
+    // the first save of a content.json that predates this group would write
+    // eleven blanks, and COPY_CLEARABLE would read them as eleven deletions.
+    'claims' => ['title' => 'Company Claims', 'fields' => [
+        ['key' => 'aboutStructureClaim',      'type' => 'text',     'label' => 'About page facts — Structure (empty removes the row)',            'default' => 'Privately Held'],
+        ['key' => 'aboutLeadTimeClaim',       'type' => 'text',     'label' => 'About page facts — Custom Lead Time (empty removes the row)',     'default' => '≤ 1 week'],
+        ['key' => 'aboutPpapClaim',           'type' => 'text',     'label' => 'About page facts — PPAP / IMDS (empty removes the row)',          'default' => 'Available on request'],
+        ['key' => 'industriesPpapTitleClaim', 'type' => 'text',     'label' => 'Industries page — PPAP panel heading (empty removes the whole panel)', 'default' => 'PPAP & IMDS Documentation Available'],
+        ['key' => 'industriesPpapBodyClaim',  'type' => 'textarea', 'label' => 'Industries page — PPAP panel text (empty removes it)',             'default' => 'IPC can support automotive supplier requirements for PPAP packages and IMDS material data submissions. Contact our sales team for details.'],
+        ['key' => 'servicesRushClaim',        'type' => 'text',     'label' => 'Services page — rush service line under the lead time (empty removes it)', 'default' => 'Rush service available — contact sales for details.'],
+        ['key' => 'contactEmailReplyClaim',   'type' => 'text',     'label' => 'Contact page — reply time under the email address (empty removes it)', 'default' => 'Typical reply: same day'],
+        ['key' => 'footerDescriptionClaim',   'type' => 'textarea', 'label' => 'Footer — company description, before the minimum order (empty removes it)', 'default' => 'A spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives.'],
+        ['key' => 'footerServiceClaim',       'type' => 'text',     'label' => 'Footer — service line, after the minimum order (empty removes it)', 'default' => 'Quick, accurate, courteous service — the customer is always number one.'],
+        ['key' => 'productBrandClaim',        'type' => 'text',     'labelHtml' => true, 'label' => 'Search engines — brand of every product (empty leaves it out)<br><small style="font-weight:400;color:#4b5563">Not shown on the page. Google reads it from every product page. IPC is a distributor: if these products are not sold under the IPC name, clear this or put the right brand.</small>', 'default' => 'Insulation Products Corporation'],
+        ['key' => 'productManufacturerClaim', 'type' => 'text',     'labelHtml' => true, 'label' => 'Search engines — manufacturer of every product (empty leaves it out)<br><small style="font-weight:400;color:#4b5563">Not shown on the page. One value applies to all products, so if they come from several makers, clearing it is the accurate choice.</small>', 'default' => 'Insulation Products Corporation'],
+    ]],
     'hero' => ['title' => 'Homepage — Hero', 'fields' => [
         ['key' => 'badge',             'type' => 'text',     'label' => 'Badge (small text above headline)'],
         ['key' => 'headlineLine1',     'type' => 'text',     'label' => 'Headline — line 1'],
