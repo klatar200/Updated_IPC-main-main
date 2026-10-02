@@ -77,6 +77,9 @@ data/content.backup.*.json
 _harness/site/
 _harness/pristine/
 _harness/out/
+# Transient dev-mode React build made by plan5-keys / plan5b-sidebar
+# (vite.devreact.js); rebuilt on every run, never source.
+_harness/devdist/
 # SEC-5 catalog write lock, created at runtime by admin/config.php
 data/.products-write.lock
 # SEC-4 private session store, created at runtime by admin/config.php
