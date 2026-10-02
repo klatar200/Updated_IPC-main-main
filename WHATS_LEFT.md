@@ -7201,3 +7201,64 @@ a held content lock completes in ~6 ms). `sec5-lostupdate` 7/7 unchanged.
   real photo — the same five — and still requires the branded panel on each.
 - `audit7-lead`'s "just over the ceiling" fixture is now derived from
   `IMG_MAX_PIXELS` instead of a literal 41.6 MP.
+
+## 1ao. Shipped 2026-10-02 — ADM-8 + NEW-V2-3: the hardcoded claims are editable (Page Content → Company Claims)
+
+**Decision recorded (Keagan, 2026-10-02):** "make the two hardcoded items
+editable in Page Content". Both were ESCALATED on 2026-09-28 (§1af) as the
+owner's call on wording; this makes the wording his to change in the
+dashboard. **What each claim should say is still Rick's decision** — the
+defaults are the old hardcoded text, byte for byte, so nothing on the live
+site changes until he edits one.
+
+| Claim (was hardcoded in `src/App.jsx`) | Page Content → Company Claims key | Empty → |
+|---|---|---|
+| About facts: Structure "Privately Held" | `aboutStructureClaim` | row removed |
+| About facts: Custom Lead Time "≤ 1 week" | `aboutLeadTimeClaim` | row removed |
+| About facts: PPAP / IMDS "Available on request" | `aboutPpapClaim` | row removed |
+| Industries PPAP panel heading | `industriesPpapTitleClaim` | whole panel removed, Contact Sales button included |
+| Industries PPAP panel text | `industriesPpapBodyClaim` | sentence removed, heading kept |
+| Services banner "Rush service available — contact sales for details." | `servicesRushClaim` | line removed |
+| Contact email card "Typical reply: same day" | `contactEmailReplyClaim` | sub-line removed |
+| Footer sentence before the minimum order | `footerDescriptionClaim` | sentence removed |
+| Footer sentence after the minimum order | `footerServiceClaim` | sentence removed |
+| Product JSON-LD `brand` (NEW-V2-3) | `productBrandClaim` | key omitted |
+| Product JSON-LD `manufacturer` (NEW-V2-3) | `productManufacturerClaim` | key omitted; carries `url` only while it equals Company Name |
+
+**Mechanism:** one `copy.claims` group, the `siteImages` pattern.
+- `COPY_CLEARABLE` gains `.*Claim`, so a cleared claim stays cleared instead
+  of re-seeding the default.
+- Every content.php field carries a `default`, equal to `COPY_DEFAULTS.claims`.
+  Without that, the first save of a content.json with no `claims` key would
+  write eleven `""`, and `COPY_CLEARABLE` would read them as eleven deletions
+  (plan9-firstsave's defect, prevented the same way).
+- `data/` is untouched: an absent key renders the defaults and prefills them.
+
+**Deliberately not done:**
+- The About "Custom Lead Time" row is still typed by hand. It does not follow
+  the Services lead-time boxes (ADM-8 C-ADJ). The Help row now says so.
+  Deriving it is a separate item, not asked for.
+- The /products and /dashboard intros were dropped from ADM-8 by C-ADJ as
+  generic copy, so they are not in this group.
+- The Contact Fax card's "For POs & documentation" is still fixed.
+- `CONTACT_CARDS` keeps no Email `sub`; ContactPage sets it from the claim.
+
+**Evidence:**
+- `_harness/claims.js` (new), 27/27.
+- Unfixed tree (src + content.php stashed, rebuilt): fails `pair`,
+  `literals`, the Industries default and firstsave, then crashes on
+  `stored()` being undefined.
+- Its default arms pass on both trees. That is the point: the shipped
+  rendering is unchanged.
+- `docmap` 28/28, `copydrift` OK (121 fields), `lint.php` 0 FAIL.
+- Help (`#sitemap` rows for the footer, Industries, Services, About and
+  Contact; the Google table; a Company Claims callout; "Fixed" list) and
+  `Editing-Your-Site-Content.md` are updated.
+- `plan4-admin` POSTED_BEFORE 447 → 458: eleven new fields. The count is the
+  form's posted-variable total, which this change raises by exactly eleven;
+  updated with the change, the same way as in §1an.
+
+**Self-correction:** I killed my own shell (exit 144) with
+`pgrep -f "php -S 127.0.0.1:813"`, the same mistake as the earlier `pkill -f`:
+the pattern matched the command line running it. **Rule: select server PIDs
+from `ps -eo pid,comm,args` with `comm == php`, never `pgrep -f`/`pkill -f`.**

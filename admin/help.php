@@ -751,7 +751,7 @@ $navActive = 'help';
         <table class="field-ref map-ref">
           <tr><td>Logo and company name</td><td>Business Details → <strong>Logo URL</strong> and <strong>Company Name</strong>.</td></tr>
           <tr><td>"ESTABLISHED 1974 · ISO 9001" and any other certifications</td><td>Business Details → <strong>Founded Year</strong>, <strong>ISO Certification</strong> and <strong>Other Certifications</strong> (one per line, shown exactly as typed). The word "ESTABLISHED" is fixed.</td></tr>
-          <tr><td>The short paragraph about IPC</td><td><strong>Fixed</strong>, except the minimum-order figure in it, which is Business Details → <strong>Minimum Order</strong>.</td></tr>
+          <tr><td>The short paragraph about IPC</td><td>Page Content → <strong>Company Claims</strong> → the two <strong>Footer</strong> boxes (the sentence before the minimum order and the one after it). The minimum-order figure between them is Business Details → <strong>Minimum Order</strong>. Empty a box to remove that sentence.</td></tr>
           <tr><td>Social media icons</td><td>Business Details → <strong>Social Links</strong>. An empty box removes that icon.</td></tr>
           <tr><td>"Contact" and "Quick Links" headings</td><td>Page Content → <strong>Footer — Labels</strong>.</td></tr>
           <tr><td>Phone, fax, email, address, hours</td><td>Business Details → <strong>Contact</strong>, <strong>Address</strong> and <strong>Hours (display text)</strong>.</td></tr>
@@ -812,13 +812,14 @@ $navActive = 'help';
         <table class="field-ref map-ref">
           <tr><td>Banner</td><td>Page Content → <strong>Industries page — banner</strong>.</td></tr>
           <tr><td>Each industry: icon, name, sub-heading, "Common Applications", "IPC Products" links, certification chips</td><td>Page Content → <strong>Industries Page — Detail Sections</strong>. Product links are one per line as <code>SKU | name shown</code>; the SKU must match a product in your catalog (the page warns you when it doesn't).</td></tr>
-          <tr><td>The three small headings in each section, its buttons, and the "PPAP &amp; IMDS Documentation Available" box at the bottom</td><td><strong>Fixed.</strong></td></tr>
+          <tr><td>The three small headings in each section, and its buttons</td><td><strong>Fixed.</strong></td></tr>
+          <tr><td>The "PPAP &amp; IMDS Documentation Available" box at the bottom</td><td>Page Content → <strong>Company Claims</strong> → <strong>Industries page — PPAP panel</strong> heading and text. Empty the heading to remove the whole box (with its Contact Sales button); empty only the text to keep the heading alone.</td></tr>
         </table>
 
         <h3>Services page</h3>
         <table class="field-ref map-ref">
           <tr><td>Banner</td><td>Page Content → <strong>Services page — banner</strong>. Photo: <strong>Site Images</strong> → Services.</td></tr>
-          <tr><td>"Standard Lead Time: …" bar</td><td>Worked out from the <strong>Lead time</strong> boxes in <strong>Value-Added Services</strong>: the lead time most services share is shown here, and a card shows its own lead time only when it differs. The rest of that bar is fixed.</td></tr>
+          <tr><td>"Standard Lead Time: …" bar</td><td>Worked out from the <strong>Lead time</strong> boxes in <strong>Value-Added Services</strong>: the lead time most services share is shown here, and a card shows its own lead time only when it differs. The "Rush service available" line under it is Page Content → <strong>Company Claims</strong> → <strong>Services page — rush service line</strong> (empty removes it); the rest of that bar is fixed.</td></tr>
           <tr><td>Service cards: icon, title, description, ✓ bullet points, brochure download</td><td>Page Content → <strong>Value-Added Services</strong>.</td></tr>
           <tr><td>"Need something not listed?" panel</td><td><strong>Fixed.</strong></td></tr>
         </table>
@@ -828,7 +829,7 @@ $navActive = 'help';
           <tr><td>Banner, and the "Our Story", Certifications, Team and bottom headings</td><td>Page Content → <strong>About page — banner &amp; headings</strong>.</td></tr>
           <tr><td>"Our Story" paragraphs</td><td>Business Details → <strong>About story</strong> (one paragraph per line) — not Page Content.</td></tr>
           <tr><td>Photo</td><td>Page Content → <strong>Site Images</strong> → About.</td></tr>
-          <tr><td>Fact box: Founded, Headquarters, Inventory, Minimum Order, Quality, Phone, Fax</td><td>Business Details. The rows "Privately Held", "Custom Lead Time ≤ 1 week" and "PPAP / IMDS: Available on request" are <strong>fixed</strong>.</td></tr>
+          <tr><td>Fact box: Founded, Headquarters, Inventory, Minimum Order, Quality, Phone, Fax</td><td>Business Details. The rows <strong>Structure</strong> ("Privately Held"), <strong>Custom Lead Time</strong> ("≤ 1 week") and <strong>PPAP / IMDS</strong> ("Available on request") are Page Content → <strong>Company Claims</strong> → the three <strong>About page facts</strong> boxes; empty one to remove its row. The Custom Lead Time row does not follow the service lead times, so change it when you change those.</td></tr>
           <tr><td>"Company Timeline" and its entries</td><td>The heading is fixed; the entries are Page Content → <strong>About — Company Timeline</strong>.</td></tr>
           <tr><td>Certification cards</td><td>Page Content → <strong>About — Certifications &amp; Standards</strong>.</td></tr>
           <tr><td>Team cards</td><td>Page Content → <strong>About — Team &amp; Capabilities</strong>.</td></tr>
@@ -847,7 +848,7 @@ $navActive = 'help';
         <table class="field-ref map-ref">
           <tr><td>Banner and the "Direct Contact" heading</td><td>Page Content → <strong>Contact page — banner</strong>.</td></tr>
           <tr><td>The two tabs, form headings, every field's label and grey example text, the submit buttons, "Sending…", the "required" line and the privacy line above the button</td><td>Page Content → <strong>Contact Page — Form</strong>.</td></tr>
-          <tr><td>The cards on the right: phone, fax, email, address, hours</td><td>Business Details. The card titles and the lines "For POs &amp; documentation" and "Typical reply: same day" are <strong>fixed</strong>.</td></tr>
+          <tr><td>The cards on the right: phone, fax, email, address, hours</td><td>Business Details. The line "Typical reply: same day" under the email is Page Content → <strong>Company Claims</strong> → <strong>Contact page — reply time</strong> (empty removes it). The card titles and "For POs &amp; documentation" are <strong>fixed</strong>.</td></tr>
           <tr><td>"For fastest response, include:" and the tips under it</td><td>The heading: <strong>Contact Page — Form</strong> (Sidebar tips heading). The tips: <strong>Contact Page — Sidebar Tips</strong>.</td></tr>
           <tr><td>After someone sends the form: the title, "Thank you!", the message and the "For urgent inquiries" line</td><td>Page Content → <strong>Contact Page — Form</strong>, the <em>Success</em> boxes.</td></tr>
           <tr><td>The message shown if sending fails</td><td>Page Content → <strong>Contact Page — Form</strong>, the <em>Error</em> boxes.</td></tr>
@@ -864,6 +865,7 @@ $navActive = 'help';
         <h3>Browser tabs, Google and social-media previews</h3>
         <table class="field-ref map-ref">
           <tr><td>Each page's browser-tab title and Google description</td><td>Page Content → <strong>Search Engine Text (SEO)</strong>, one row per page. The Datasheets page has no row as shipped — add one with <strong>+ Add Page</strong> and choose Datasheets if you want to set its text. Product pages are automatic (above).</td></tr>
+          <tr><td>The brand and manufacturer Google is told for every product</td><td>Page Content → <strong>Company Claims</strong> → the two <strong>Search engines</strong> boxes. Not shown on any page. As shipped both say Insulation Products Corporation; IPC is a distributor, so if a product is not made or branded by IPC, correct them or empty them — an empty box leaves that statement out. One value covers every product.</td></tr>
           <tr><td>The company information Google reads: description, opening days and times, country, short name, social accounts</td><td>Business Details → <strong>Short Description</strong>, <strong>Opens</strong> / <strong>Closes</strong> / <strong>Open Days</strong>, <strong>Country</strong>, <strong>Short Name</strong>, <strong>Social Links</strong>. None of these appears in the text of a page (Short Name can end a product page's browser-tab title — see <a href="#business">Business Details</a>).</td></tr>
         </table>
 
@@ -907,7 +909,7 @@ $navActive = 'help';
           <tr><td>Address</td><td>Footer, Contact page, About page fact box, Privacy page, and the map listing search engines build from your site. <strong>Country</strong> is only given to search engines.</td></tr>
           <tr><td>Hours (display text)</td><td>The hours shown in the footer and on the Contact page, e.g. "Mon–Fri, 8am–5pm CT".</td></tr>
           <tr><td>Opens, Closes, Open Days</td><td>Not shown on any page — they are the opening hours search engines (Google Maps and the like) read, so keep them in step with the display text above. Times are 24-hour (<code>08:00</code>, <code>17:00</code>); days are full names separated by commas.</td></tr>
-          <tr><td>Short Description</td><td>Not shown on any page — it is the one-paragraph description of IPC given to search engines. (The box's own hint on the Business Details page also mentioned the footer until 2026-09-29; the footer paragraph is fixed.)</td></tr>
+          <tr><td>Short Description</td><td>Not shown on any page — it is the one-paragraph description of IPC given to search engines. (The box's own hint on the Business Details page also mentioned the footer until 2026-09-29; the footer paragraph is Page Content → Company Claims.)</td></tr>
           <tr><td>Minimum Order, Feet In Stock</td><td>The homepage quote band ("$50 minimum order. 25 million feet in stock."), the About page fact box and the footer paragraph. The site also swaps the original "$50" and "25 million" for these values inside your Page Content wording.</td></tr>
           <tr><td>About story</td><td>The "Our Story" paragraphs on the About page — one paragraph per line. (Its heading is in Page Content → About page — banner &amp; headings.)</td></tr>
           <tr><td>Founded year</td><td>Drives the "© 1974–<?= date('Y') ?>" line automatically. You never update the second year.</td></tr>
@@ -948,6 +950,10 @@ $navActive = 'help';
           The <strong>Site Images</strong> section holds the five pictures that are part of the pages themselves rather than of any product: the homepage hero photo, the two photos in the homepage band (your team and your building), the About page photo and the Services page photo. Each is a path to a picture on your server — to upload a new one or pick another, use the <a href="site-images.php">Site Images &amp; Logo</a> page (see <a href="#newfiles">Putting a new photo or logo on the server</a>). <strong>Clearing one removes that picture from the page</strong> rather than restoring the original — which is the point, if you would rather show no photo than the wrong one.
         </div>
         <div class="callout callout-tip">
+          <b>Company Claims — statements about IPC you can change or remove</b>
+          The <strong>Company Claims</strong> section holds statements about the business that appear on several pages: the Structure, Custom Lead Time and PPAP rows on the About page, the PPAP box on the Industries page, the rush-service line on the Services page, the reply time on the Contact page, the two sentences in the footer, and the brand and manufacturer search engines are told for every product. Each label says where it appears. <strong>Emptying a box removes that statement</strong> rather than restoring the original — if one is not true for IPC, empty it.
+        </div>
+        <div class="callout callout-tip">
           <b>It also controls what Google shows</b>
           The <strong>Search Engine Text (SEO)</strong> section sets the browser-tab title and the description that appears under your link in search results — and the preview card when someone shares a page on social media. There is one row per page, and the <strong>home</strong> row is the site-wide default used by any page without its own. You are writing for two readers at once here: a search engine, and a buyer deciding whether to click. Describe the page plainly and include the words a customer would actually type.
         </div>
@@ -960,7 +966,7 @@ $navActive = 'help';
           <!-- Docs audit 2026-09-29 — this said "restores the previous wording". It
                restores the BUILT-IN wording (COPY_DEFAULTS via mergeContent in
                src/App.jsx), the same trap ADM-9(g) fixed for Business Details. -->
-          Clearing a heading or a button label and saving puts back the website's <strong>built-in original wording</strong> — not whatever you had there before — rather than leaving an empty space, because a button with no text is one you can never find again to fix. To change one, type over it. The homepage sub-headline and the <strong>Site Images</strong> can be cleared, since those are genuinely optional.
+          Clearing a heading or a button label and saving puts back the website's <strong>built-in original wording</strong> — not whatever you had there before — rather than leaving an empty space, because a button with no text is one you can never find again to fix. To change one, type over it. The homepage sub-headline, the <strong>Site Images</strong> and the <strong>Company Claims</strong> can be cleared, since those are genuinely optional.
           <br><br>
           This is also why a few boxes are <strong>empty as shipped</strong> — the Datasheets page banner, the header's "Datasheets" link, and the form's "required fields" and privacy lines: an empty box means the site is showing its built-in wording. Type in one to replace it.
         </div>
@@ -1216,7 +1222,7 @@ $navActive = 'help';
         <ul class="plain">
           <li>Recovering a <em>forgotten</em> password, if you don't have your own FTP login (see <a href="#password">Your admin password</a> — you can do it yourself if you do)</li>
           <li>Adding a second or third PDF <em>file</em> to a product (see <a href="#editing">Editing an existing product</a>)</li>
-          <li>Any wording marked <strong>Fixed</strong> in <a href="#sitemap">Where each part of the site is edited</a> — e.g. the name beside the logo, the footer paragraph, the Product Index heading</li>
+          <li>Any wording marked <strong>Fixed</strong> in <a href="#sitemap">Where each part of the site is edited</a> — e.g. the name beside the logo, the Product Index heading</li>
           <li>Changing the overall look, layout, or features of the public website beyond what <a href="#business">Business Details</a> and <a href="#pagecontent">Page Content</a> cover</li>
           <li>Anything in <a href="#server-limits">What your server allows</a> reading a value you were told it shouldn't</li>
         </ul>

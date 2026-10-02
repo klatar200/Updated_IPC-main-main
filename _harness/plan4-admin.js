@@ -66,7 +66,10 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // 2026-10-02: **447** — the Datasheets row added to footerLinks in
 // data/content.json (WHATS_LEFT §1an, C35) is one more row of two fields
 // (label, page). Data-only, like 2026-09-28's; plan2-trunc re-run at 447.
-const POSTED_BEFORE = 447;
+// 2026-10-02: **458** — Company Claims (WHATS_LEFT §1ao, ADM-8 + NEW-V2-3)
+// adds eleven fixed copy fields, one posted variable each. Structural this
+// time, not data: the new group is the whole delta (447 + 11).
+const POSTED_BEFORE = 458;
 
 const results = [];
 const note = (ok, what, detail = '') => {
