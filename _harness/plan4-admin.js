@@ -63,7 +63,10 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // until the 2026-09-28 build test caught it. Proven data-only: against
 // d922525~1's content.json this suite is 19/19 unmodified. Count moves with
 // the shipped row count, not with the form's structure.
-const POSTED_BEFORE = 445;
+// 2026-10-02: **447** — the Datasheets row added to footerLinks in
+// data/content.json (WHATS_LEFT §1an, C35) is one more row of two fields
+// (label, page). Data-only, like 2026-09-28's; plan2-trunc re-run at 447.
+const POSTED_BEFORE = 447;
 
 const results = [];
 const note = (ok, what, detail = '') => {
