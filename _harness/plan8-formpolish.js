@@ -112,9 +112,13 @@ async function tab(page, which) {
   // So the default is driven the way plan6-families drives day-one state: the
   // key is REMOVED from the served content.json, which is the shape a fresh
   // install has, and the rendered value is then the default under test.
+  // 2026-10-02: owner action 8 was TAKEN — Keagan decided to change the stored
+  // value before the first deploy (WHATS_LEFT §1an), so data/ now carries the
+  // default's own wording. This arm asserted "still Optional (data untouched)"
+  // until then; it now asserts the decided live value instead.
   const rfq = await tab(page, 'rfq');
-  note(/^optional$/i.test(rfq.phonePlaceholder || ''),
-    'C39: the LIVE phone placeholder is still the owner\'s "Optional" (data untouched)',
+  note(rfq.phonePlaceholder === 'e.g. 630.771.0700 ext 12',
+    'C39: the LIVE phone placeholder is the decided worked example, not "Optional"',
     JSON.stringify(rfq.phonePlaceholder));
 
   const ctxD = await browser.newContext({ viewport: { width: 1440, height: 1000 } });

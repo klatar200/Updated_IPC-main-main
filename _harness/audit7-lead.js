@@ -319,8 +319,10 @@ const RFQ = {
       require '${path.join(ROOT, 'admin', 'config.php').replace(/'/g, "\\'")}';
       $dir = sys_get_temp_dir() . '/ipc-audit7-img';
       @mkdir($dir);
-      // Just over IMG_MAX_PIXELS (40 MP) and wider than IMG_MAX_WIDTH.
-      $w = 8000; $h = 5200;                       // 41.6 MP
+      // Just over IMG_MAX_PIXELS and wider than IMG_MAX_WIDTH — derived from
+      // the constant (it was a literal 8000x5200 = 41.6 MP against a 40 MP
+      // cap until the cap went to 52 MP on 2026-10-02).
+      $w = 8000; $h = intdiv(IMG_MAX_PIXELS, $w) + 100;
       $im = imagecreatetruecolor($w, $h);
       $p = $dir . '/huge.jpg';
       imagejpeg($im, $p, 40);

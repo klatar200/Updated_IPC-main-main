@@ -519,6 +519,8 @@ if ($saved && !empty($_SESSION['content_warnings'])) {
 // Optimistic-concurrency signature, same mechanism as edit.php:17-31 and
 // settings.php. Two tabs open on this page used to clobber each other with no
 // warning. (DEPLOY_READINESS_v2 T1.7)
+// Lock BEFORE the read the orig_sig check compares against (WHATS_LEFT §1an).
+if ($_SERVER['REQUEST_METHOD'] === 'POST') data_write_lock('content');
 $storedContent = load_content();
 $storedSig     = sha1(json_encode($storedContent));
 // NEW-N2-1 — say so on arrival, not only after he has typed and pressed Save.

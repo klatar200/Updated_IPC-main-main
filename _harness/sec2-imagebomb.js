@@ -20,6 +20,10 @@
  *             uploads/images, photoUrl unchanged.
  *   control   a 1200x900 PNG still uploads and becomes the photoUrl — so a
  *             "refuse everything" fix cannot pass.
+ *   phone50   8160x6144 PNG (50.1 MP, a 50 MP phone sensor's full size) is
+ *             ACCEPTED and scaled to IMG_MAX_WIDTH — the ceiling went 40 → 52 MP
+ *             on 2026-10-02 (WHATS_LEFT §1an) because SEC-2 had made the 40 MP
+ *             one a refusal of ordinary phone photos.
  *
  * Needs Linux /proc and gd (the defect is gd's). Restores the mirror catalog
  * from _harness/pristine/ in a finally and asserts the restore.
@@ -96,6 +100,8 @@ const imgFiles = () => (fs.existsSync(IMGDIR) ? fs.readdirSync(IMGDIR).filter((f
   const okPath = path.join(TMP, 'normal.png');
   fs.writeFileSync(bombPath, png(8000, 8000, false));
   fs.writeFileSync(okPath, png(1200, 900, true));
+  const phonePath = path.join(TMP, 'phone50.png');
+  fs.writeFileSync(phonePath, png(8160, 6144, false));
   console.log(`bomb ${fs.statSync(bombPath).size} B for 64 MP · control ${fs.statSync(okPath).size} B`);
 
   // The worker PID must be OURS: a stale server already on the port would make
@@ -144,6 +150,13 @@ const imgFiles = () => (fs.existsSync(IMGDIR) ? fs.readdirSync(IMGDIR).filter((f
     note(/Photo (uploaded|replaced)/.test(c.text), 'control: a normal 1200x900 photo still uploads',
       c.text.split('\n').filter((l) => /photo|image|error/i.test(l)).slice(0, 3).join(' | '));
     note(/\/uploads\/images\/CC\.png$/.test(photoOf() || ''), 'control: and it becomes the product photo', `photoUrl ${photoOf()}`);
+
+    // ── phone50 ──
+    const ph = await upload(phonePath);
+    const w = spawnSync('php', ['-r', '$s=getimagesize($argv[1]); echo $s[0];', path.join(IMGDIR, 'CC.png')], { encoding: 'utf8' }).stdout;
+    note(/Photo (uploaded|replaced)/.test(ph.text) && w === '1600',
+      'phone50: a 50 MP phone-size photo is accepted and scaled to 1600 px wide',
+      `${ph.text.split('\n').filter((l) => /photo|megapixel|image/i.test(l)).slice(0, 2).join(' | ')} · width ${w}`);
   } finally {
     if (browser) await browser.close();
     srv.kill();

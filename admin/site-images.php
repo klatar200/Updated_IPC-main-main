@@ -103,6 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
     $slot   = as_str($_POST['slot'] ?? null);
     $action = as_str($_POST['action'] ?? null);
+    // Lock the target file BEFORE slot_write() reads it (WHATS_LEFT §1an).
+    if (isset($SLOTS[$slot])) data_write_lock($slot === 'logo' ? 'site-info' : 'content');
     // The target file is checked BEFORE anything is uploaded, so a damaged
     // data file never leaves an orphan picture behind.
     $damagedMsg = !isset($SLOTS[$slot]) ? '' : ($slot === 'logo'
