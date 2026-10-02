@@ -17,3 +17,9 @@
 # Both scripts carry a shebang and are executed by a POSIX shell — sync.sh
 # directly, fakemail.sh through PHP's sendmail_path — so both need LF.
 *.sh text eol=lf
+
+# dist/index.html is committed (8ca5912) and built on both Windows and Linux.
+# The Windows build wrote it with CRLF (plus stray CRs), so git stored it as
+# non-text and every Linux rebuild showed a whole-file diff with identical
+# content. Stored as LF text, either platform's build commits the same bytes.
+dist/index.html text eol=lf
