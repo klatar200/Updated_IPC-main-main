@@ -11,7 +11,7 @@ Options -Indexes
 # nothing else: anything that is not a known image type answers 403 — an
 # uploaded .html, .js, .txt or anything nameless is data, never a page.
 #
-# ORDER IS THE MECHANISM. Apache merges matching <FilesMatch> sections in the
+# ORDER IS THE MECHANISM (CLAUDE.md invariant 19). Apache merges matching <FilesMatch> sections in the
 # order written, and the LAST matching section's access rules win:
 #   1. deny everything;
 #   2. re-allow the image types (and SVG only with its sandbox header);

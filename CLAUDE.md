@@ -256,6 +256,19 @@ incident.
     no request existed. Do not simplify `sentParam === "1" && sentThisSession`
     back to the parameter. Enforced by `_harness/audit9-fixes.js` arm `p7-2`.
     (audit 9, A-9.P7-2)
+19. **In `uploads/.htaccess` — and its runtime copy, `uploads_runtime_htaccess()`
+    in `admin/config.php` — the script-name deny block comes LAST.** Apache
+    merges matching `<FilesMatch>` sections in the order written and the last
+    one's access rules win, so the order is the mechanism: deny everything,
+    re-allow the image types (SVG only with its sandbox header), then deny
+    script-named files again. Shipped with an image allow-list AFTER the
+    script deny, `x.php.jpg` matched both, was re-allowed, answered 200 and
+    ran under mod_php; the regex was also `$`-anchored, so it never matched
+    `x.php.jpg` at all. The deny pattern ends `(\.|$)`, not `$`, for that
+    reason, and the same `(\.|$)` rule holds in `data/.htaccess` and
+    `pdfs/.htaccess`. Enforced on real Apache by
+    `_harness/dep3-scriptblock.js` under both PHP handler models.
+    (audit 2026-09-27 DEP-3; made an invariant 2026-10-02)
 
 ## Security posture (verified, keep it this way)
 

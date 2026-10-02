@@ -4348,7 +4348,7 @@ note inside a deferred item, so it binds a session that never opens §2h.
 `public/images/_unmatched/adhesiveLined.webp` is in the same class and was never
 touched — the directory name is the whole record of why it is there.
 
-### Not deleted, pending an owner decision
+### Not deleted, pending an owner decision — SUPERSEDED-BY §1an (deleted 2026-10-02 on Keagan's decision)
 
 `site-screenshots/2026-08-11-after-plan10/` — 62 MB, 83 PNGs, and the single
 largest object in the repo. Its README frames it as the "after" half of a
@@ -7147,8 +7147,8 @@ Manager (Help taught those steps for one day, §1aj).
 | Raise the 40 MP photo ceiling | **Yes** |
 | Extend SEC-5's lock to `site-info.json` and `content.json` | **Yes** |
 | Make the repo private, or rewrite its history | **No.** The hash in history is rotated by GO-LIVE §B4 (a fresh password is set on the server); the repo stays public and its history stays as it is |
-| DEP-3's rule as CLAUDE.md invariant 19 | Asked what it is — explained, awaiting a yes/no |
-| `site-screenshots/` (62 MB) | Answer "Yes" to "keep or delete" — awaiting which |
+| DEP-3's rule as CLAUDE.md invariant 19 | **Yes** — added as invariant 19 |
+| `site-screenshots/` (62 MB) | **Delete** — removed (83 PNGs, recoverable from git history, e.g. `43c25dd`); `plan10-crawl.js` / `plan10-admincrawl.js` regenerate the set into `_harness/out/` |
 
 **GUARDRAILS §2 says never modify `data/*.json` ("live customer state").**
 Nothing is deployed yet, so `data/` is still what the first upload ships, and

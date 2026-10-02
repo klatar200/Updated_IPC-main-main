@@ -45,6 +45,8 @@ const { launch } = require('./browser');
 const BASE = process.env.CRAWL_BASE || 'http://127.0.0.1:8123';
 // DEFAULT OUT is _harness/out/ (gitignored), NOT the dated folder under
 // site-screenshots/.
+// (That folder was deleted 2026-10-02 on Keagan's decision — WHATS_LEFT §1an;
+// the 83 PNGs remain in git history, e.g. at commit 43c25dd.)
 //
 // That folder is a TRACKED historical record — 83 PNGs captured on 2026-08-11
 // and referenced by name in WHATS_LEFT.md. Writing there by default meant that
