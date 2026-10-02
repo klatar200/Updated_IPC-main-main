@@ -556,6 +556,10 @@
             "page": "dashboard"
         },
         {
+            "label": "Datasheets",
+            "page": "datasheets"
+        },
+        {
             "label": "Resources / FAQ",
             "page": "faq"
         },
@@ -858,7 +862,7 @@
             "quantityLabel": "Quantity Required *",
             "quantityPlaceholder": "e.g. 500 ft, 1000 pcs, 10 spools",
             "dateLabel": "Required Delivery Date",
-            "datePlaceholder": "e.g. ASAP, end of month, 6/30/2025",
+            "datePlaceholder": "e.g. ASAP, end of month, or a specific date",
             "specialLabel": "Special Requirements",
             "specialPlaceholder": "e.g. C of C required, PPAP, custom marking, specific color, certifications needed",
             "notesLabel": "Additional Notes",
@@ -885,7 +889,7 @@
             "emailLabel": "Email *",
             "emailPlaceholder": "you@company.com",
             "phoneLabel": "Phone",
-            "phonePlaceholder": "Optional",
+            "phonePlaceholder": "e.g. 630.771.0700 ext 12",
             "requiredLegend": "",
             "privacyNote": "",
             "companyLabel": "Company",

@@ -2,6 +2,8 @@
 require_once 'config.php';
 require_auth();
 
+// Lock BEFORE the read the orig_sig check compares against (WHATS_LEFT §1an).
+if ($_SERVER['REQUEST_METHOD'] === 'POST') data_write_lock('site-info');
 $info   = load_site_info();
 $errors = [];
 $saved  = isset($_GET['saved']);

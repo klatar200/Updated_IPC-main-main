@@ -43,8 +43,11 @@ const PRISTINE_CONTENT = path.join(__dirname, 'pristine', 'content.json');
 const products = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'pristine', 'products-all.json'), 'utf8')
 );
-/** The five the audit names, plus a control with a real photograph. */
-const PLACEHOLD = products.filter((p) => /placehold\.co/.test(String(p.photoUrl || '')));
+/** The five the audit names, plus a control with a real photograph. Their
+ *  dead placehold.co photoUrls were cleared from data/ on 2026-10-02 (A7's
+ *  data half, Keagan's decision — WHATS_LEFT §1an), so they are now the products
+ *  with no photoUrl at all; either shape must render the branded panel. */
+const PLACEHOLD = products.filter((p) => !p.photoUrl || /placehold\.co/.test(String(p.photoUrl)));
 const REAL_PHOTO = products.find((p) => p.photoUrl && !/placehold\.co/.test(p.photoUrl));
 
 const results = [];
@@ -333,7 +336,7 @@ const readBanner = () => {
     `(${rec.imageRequests} image requests, all same-origin)`,
     rec.externalImages.join('\n         '));
   note(rec.fallbackRenders.every((f) => f.branded),
-    `the branded panel renders for all ${PLACEHOLD.length} placehold.co products`,
+    `the branded panel renders for all ${PLACEHOLD.length} products without a real photo`,
     rec.fallbackRenders.filter((f) => !f.branded).map((f) => f.id).join(', '));
 
   const bad = results.filter((r) => !r.ok).length;

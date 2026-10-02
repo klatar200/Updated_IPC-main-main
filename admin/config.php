@@ -750,6 +750,34 @@ function products_write_lock(): void {
     @flock($fh, LOCK_EX);
 }
 
+// SEC-5's lock for the other two files (Keagan's decision, 2026-10-02;
+// WHATS_LEFT §1an). settings.php and content.php have orig_sig, so two of THEIR
+// saves cannot silently undo each other — but site-images.php writes one key
+// of each file with no signature, and a backup restore writes the whole file,
+// so either could land inside another save's load -> save window and be
+// overwritten by its stale copy. Same mechanism as products_write_lock():
+// held until the request ends, blocking, proceeds unlocked if the lock file
+// cannot be opened (the save then fails with its own banner).
+//
+// ON PURPOSE it is NOT taken by load_content()/load_site_info() on a POST,
+// the way load_products() takes the catalog lock: edit.php and delete.php
+// hold the catalog lock and then READ content.json (industry_refs_broken_by()),
+// while content.php's POST holds content.json and then reads the catalog —
+// locking on every read would make those two a deadlock. Only the pages that
+// WRITE a file take its lock, BEFORE they read it (content.php, settings.php,
+// site-images.php), and save_content()/save_site_info() take it themselves for
+// the restore path. Order rule: a content/site-info lock may be followed by
+// the catalog lock, never the reverse.
+function data_write_lock(string $which): void {
+    static $held = [];
+    if (!in_array($which, ['content', 'site-info'], true) || isset($held[$which])) return;
+    $file = $which === 'content' ? CONTENT_JSON : SITE_INFO_JSON;
+    $fh = @fopen(dirname($file) . '/.' . $which . '-write.lock', 'c');
+    if ($fh === false) return;
+    @flock($fh, LOCK_EX);
+    $held[$which] = $fh;
+}
+
 // NEW-N2-1 / NEW-N2-2 — a data file that EXISTS but does not parse. Every
 // loader maps it onto [] (the same value as "missing"), and the admin then
 // treated [] as the truth: a catalog with one stray comma read "0 products",
@@ -1037,6 +1065,7 @@ function load_site_info(): array {
 // Helper: save business details. Mirrors save_products(): timestamped backup
 // (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
 function save_site_info(array $info): bool {
+    data_write_lock('site-info'); // a no-op if the page already took it
     $path = SITE_INFO_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
@@ -1201,6 +1230,7 @@ function ipc_product_families(): array {
 // Helper: save editable page content. Mirrors save_site_info(): timestamped
 // backup (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
 function save_content(array $content): bool {
+    data_write_lock('content'); // a no-op if the page already took it
     $path = CONTENT_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
@@ -1936,12 +1966,19 @@ define('IMG_MAX_WIDTH', 1600);
  * mode is: the photo lands on disk, the catalog is never updated, and the owner
  * gets a blank page. Retrying reproduces it exactly, forever.
  *
- * 40 megapixels is past every phone and every full-frame DSLR, so the ceiling
- * only ever catches the pathological case, and it degrades to "uploaded at its
- * original size" — the same outcome as a host with no GD — rather than to a
- * dead page. getimagesize() already gives us the height; nothing new is read.
+ * 40 megapixels was chosen as "past every phone", which stopped being true:
+ * 48 and 50 MP phone sensors (8000x6000, 8160x6144) save full-resolution
+ * photos, and SEC-2 made an over-ceiling upload a REFUSAL, so an owner's
+ * ordinary phone photo was turned away. Raised to 52 MP on 2026-10-02
+ * (Keagan's decision; WHATS_LEFT §1an), which admits every 48-50 MP phone and
+ * still refuses the decompression-bomb shapes (sec2-imagebomb's 64 MP).
+ * The cost, on purpose: a 50 MP decode is ~200 MB inside GD, which
+ * memory_limit does not bound (A-6.6). A host with a lower per-process cap
+ * kills that request; the owner then sees an error page and the fix is the
+ * one this message already gives — resize to IMG_MAX_WIDTH and re-upload.
+ * 108/200 MP sensors stay refused with that message.
  */
-define('IMG_MAX_PIXELS', 40000000);
+define('IMG_MAX_PIXELS', 52000000);
 
 /**
  * A-7.6 — `$reason` tells the caller WHY a false was returned.

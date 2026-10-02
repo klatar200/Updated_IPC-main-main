@@ -6648,7 +6648,7 @@ decode.
 - **Measured:** `_harness/sec2-imagebomb.js` was 3/7 before the fix
   (+428 MB) and is 7/7 after (+0.8 MB). The mutation that drops the pixel
   check gives 3/7.
-- **Open question to Keagan:** a 48–50 MP full-resolution phone photo is now
+- **ANSWERED 2026-10-02 — SUPERSEDED-BY §1an (ceiling raised to 52 MP).** **Open question to Keagan:** a 48–50 MP full-resolution phone photo is now
   refused until it is resized.
 
 **SEC-5** (Medium): catalog saves can no longer undo each other.
@@ -6659,7 +6659,7 @@ decode.
   against the mirror's own functions. It was 4/7 before the fix (a "saved"
   product vanished; a restore was overwritten) and is 7/7 after. The two
   mutations give 4/7 and 6/7.
-- **Open question to Keagan:** `site-info.json` and `content.json` are left
+- **ANSWERED 2026-10-02 — SUPERSEDED-BY §1an (both files now locked).** **Open question to Keagan:** `site-info.json` and `content.json` are left
   on their existing whole-file signatures and do not share the lock.
 
 **Regression, one clean sweep after both** (`claude/zen-gates-p801fz` @
@@ -7136,3 +7136,68 @@ Manager (Help taught those steps for one day, §1aj).
   loosened: each now reads `upload-image.php` plus the body of each shared
   helper it CALLS, so the search is still the upload path and not all of
   `config.php`. 40/40, 23/23.
+
+## 1an. Shipped 2026-10-02 — Keagan's go-live decisions: four data fixes, 52 MP, the data-file lock
+
+**Decisions recorded (Keagan, 2026-10-02, answering the go-live status list):**
+
+| Question | Answer |
+|---|---|
+| Four data fixes in the repo before the first upload | **Yes** |
+| Raise the 40 MP photo ceiling | **Yes** |
+| Extend SEC-5's lock to `site-info.json` and `content.json` | **Yes** |
+| Make the repo private, or rewrite its history | **No.** The hash in history is rotated by GO-LIVE §B4 (a fresh password is set on the server); the repo stays public and its history stays as it is |
+| DEP-3's rule as CLAUDE.md invariant 19 | Asked what it is — explained, awaiting a yes/no |
+| `site-screenshots/` (62 MB) | Answer "Yes" to "keep or delete" — awaiting which |
+
+**GUARDRAILS §2 says never modify `data/*.json` ("live customer state").**
+Nothing is deployed yet, so `data/` is still what the first upload ships, and
+§1z (2026-09-15) set the precedent of fixing it in the repo for exactly that
+reason. These edits are made on Keagan's explicit instruction, before first
+deploy only; after first deploy the rule stands unchanged and every such
+change is an admin edit. The edits went through PHP with the admin's own
+`json_encode` flags, and an unmodified re-encode was first shown byte-identical,
+so the files stay in the admin's output format (V2-1).
+
+| Fix | Change | Was |
+|---|---|---|
+| A7 data half (PLAN-8 owner action) | the 5 dead `placehold.co` `photoUrl`s removed (IP12GA-IP1274, IP13SP, IP25PU, IP30UV, IP47HV) — the same as the admin's **Remove Photo**; the branded panel renders | an external placeholder image service |
+| B22 | `datePlaceholder` → `e.g. ASAP, end of month, or a specific date` (the default's own wording) | `…, 6/30/2025` — a date in the past |
+| C39 (owner action 8) | `phonePlaceholder` → `e.g. 630.771.0700 ext 12` (the default's own wording) | `Optional` |
+| C35 | Footer Quick Links gain **Datasheets**, after Product Index — where `FOOTER_LINKS`' default has it | 8 links, no Datasheets |
+
+`_harness/pristine/` refreshed from `data/` in the same change.
+
+**52 MP:** `IMG_MAX_PIXELS` 40 → 52 MP. SEC-2 turned an over-ceiling upload
+into a refusal, which refused ordinary 48–50 MP phone photos. 52 admits every
+48–50 MP sensor (8160×6144 = 50.1 MP) and still refuses `sec2-imagebomb`'s
+64 MP bomb. **Downside, on purpose:** a 50 MP decode is ~200 MB inside GD, which
+`memory_limit` does not bound (A-6.6); a host with a lower per-process cap
+kills that request and the owner sees an error page — the remedy is the one
+the refusal message already gives (resize and re-upload). 108/200 MP sensors
+stay refused. Evidence: `sec2-imagebomb` new arm `phone50` — FAIL at 40 MP,
+pass at 52 (8/8).
+
+**The data-file lock:** `data_write_lock('content'|'site-info')` in
+`config.php`, the same mechanism as `products_write_lock()`. Taken by the pages
+that WRITE those files, before they read them (`content.php`, `settings.php`,
+`site-images.php`), and by `save_content()`/`save_site_info()` themselves for a
+backup restore. **Not** taken on every POST read the way the catalog lock is:
+`edit.php`/`delete.php` hold the catalog lock and then READ `content.json`,
+while `content.php` holds `content.json` and then reads the catalog — locking
+reads would deadlock those two. Order rule, in the code comment: a
+content/site-info lock may be followed by the catalog lock, never the reverse.
+Evidence: `_harness/sec5b-datalock.js` (new) — unfixed 6/9 (a logo pick and an
+About-photo pick both lost under a slow save; a restore issued second
+overwritten), fixed 9/9, including a no-deadlock arm (an `edit.php` save under
+a held content lock completes in ~6 ms). `sec5-lostupdate` 7/7 unchanged.
+
+**Tests that pinned the old data, updated with the decision (not loosened):**
+- `plan8-formpolish` C39 asserted the live phone placeholder was "still the
+  owner's Optional (data untouched)" — the encoding of "owner action 8 is not
+  ours". The action was taken; it now asserts the decided value.
+- `plan8-chrome` found the five fallback products by their `placehold.co` URL
+  (`PLACEHOLD[0]` crashed once none were left); it now takes products with no
+  real photo — the same five — and still requires the branded panel on each.
+- `audit7-lead`'s "just over the ceiling" fixture is now derived from
+  `IMG_MAX_PIXELS` instead of a literal 41.6 MP.
