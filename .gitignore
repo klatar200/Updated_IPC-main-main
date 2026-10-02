@@ -82,5 +82,8 @@ _harness/out/
 _harness/devdist/
 # SEC-5 catalog write lock, created at runtime by admin/config.php
 data/.products-write.lock
+# Its content.json / site-info.json siblings (data_write_lock(), WHATS_LEFT §1an)
+data/.content-write.lock
+data/.site-info-write.lock
 # SEC-4 private session store, created at runtime by admin/config.php
 admin/.sessions/
