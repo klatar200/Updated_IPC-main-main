@@ -241,7 +241,7 @@ $targetOptions = function (bool $withNone) use ($services) {
                   <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>">
                   <input type="hidden" name="action" value="stop">
                   <input type="hidden" name="target" value="<?= h($tgt) ?>">
-                  <button type="submit" class="btn btn-danger">Stop using</button>
+                  <button type="submit" class="btn btn-danger">Stop Using</button>
                 </form>
                 <?php endif; ?>
               </li>

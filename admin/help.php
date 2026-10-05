@@ -899,7 +899,7 @@ $navActive = 'help';
         <ol class="steps">
           <li>Click <strong>Choose File</strong> and pick the PDF (<?= h(min_upload_label(20)) ?> at most).</li>
           <li>In <strong>Use it for</strong>, choose <strong>Full product catalog</strong> or the Services card the brochure belongs to — or <em>Just upload it</em> to decide later — and click <strong>Upload</strong>.</li>
-          <li>Every PDF on that page has its own <strong>Use This PDF</strong> button, and each place a PDF is used has a <strong>Stop using</strong> button. The brochure's link text is set in Page Content → Value-Added Services.</li>
+          <li>Every PDF on that page has its own <strong>Use This PDF</strong> button, and each place a PDF is used has a <strong>Stop Using</strong> button. The brochure's link text is set in Page Content → Value-Added Services.</li>
         </ol>
         <p>An upload never replaces a file already on the server (a second <code>catalog.pdf</code> is saved as <code>catalog-2.pdf</code>), and nothing on that page deletes a file. A product's own data sheet is different: use the <strong>PDF</strong> button on the Products page.</p>
       </section>
