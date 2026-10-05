@@ -178,10 +178,16 @@ function pngWithLateTag() {
     fs.writeFileSync(INQ, line('rfq') + line('message'));
     php('inquiries_mark_seen(2);');
     fs.appendFileSync(INQ, line('honeypot') + line('rate-limited') + line('blocked-referer') + line('rfq'));
-    note(php('echo inquiries_new_count();') === '1', 'N2-8: the "new" count ignores submissions blocked as spam (3 blocked + 1 lead → 1)',
+    // 2026-10-05 (WHATS_LEFT §1ap, UX-11, Keagan's "fix them all"): a
+    // rate-limited entry is no longer counted as spam — contact.php logs it as
+    // "may be a real customer … Worth a call back" and Help says to call it
+    // back, so it raises the badge. Spam-trap and other-website entries still
+    // do not (and contact.php now logs a rate-limited request that filled the
+    // spam field as honeypot). So 1 lead + 1 call-back → 2; was → 1.
+    note(php('echo inquiries_new_count();') === '2', 'N2-8: the "new" count ignores spam-trap and other-website submissions, and counts the rate-limited call-back (2 ignored + 1 call-back + 1 lead → 2)',
       `count ${php('echo inquiries_new_count();')}`);
     const nav = await a.req('GET', '/admin/index.php');
-    note(/class="nav-badge"[^>]*>1</.test(nav.body), 'N2-8: and the nav badge shows 1');
+    note(/class="nav-badge"[^>]*>2</.test(nav.body), 'N2-8: and the nav badge shows 2');
     // Rotation: a NEW file that has grown past the old mark.
     php('inquiries_mark_seen(6);');
     fs.writeFileSync(INQ, Array.from({ length: 25 }, () => line('rfq')).join(''));

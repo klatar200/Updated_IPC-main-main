@@ -644,8 +644,14 @@ ipc_prune_limiter_files($now);
 if (count($state['hits']) >= $maxHits) {
     if ($state['blocked'] < $maxLogged) {
         $state['blocked']++;
+        // UX-11 (admin audit 2026-10-05) — rate-limited entries now raise the
+        // owner's new-inquiries badge (they are "worth a call back"). A bot
+        // that trips the limit would raise it up to $maxLogged times a window,
+        // so one that ALSO filled the hidden spam field is logged as the spam
+        // it is. The residual risk — a bot that leaves that field empty — is
+        // recorded in WHATS_LEFT §1ap.
         ipc_log_inquiry(ipc_partial_entry(
-            'rate-limited',
+            !empty($_POST['website']) ? 'honeypot' : 'rate-limited',
             'Refused by the 5-per-10-minutes rate limit — this may be a real customer sharing an office '
             . 'internet connection with someone who just submitted. No email was sent. Worth a call back.',
             $ip

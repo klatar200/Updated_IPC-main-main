@@ -7328,7 +7328,7 @@ Critical/High/Medium. Walkthrough: 0 console errors, 274 admin links OK, all
 | G1 | New **Catalog & Brochure PDFs** page: upload to `pdfs/marketing/` (name from the file, never overwrites, never deletes), use as the footer catalog or a Services brochure, Stop using. Linked from Business Details, Page Content → Value-Added Services and Help (no new nav item — the Site Images precedent). Audit action `marketing-pdf`. `uploaded_pdf_problem()` now shared with upload-pdf.php (messages unchanged) | `marketing-pdfs.php` (new), `config.php`, `settings.php`, `content.php`, `help.php`, `audit-log.php` |
 
 **Tests:**
-- `_harness/adminaudit11.js` (new): **0/36 on the unfixed tree**, 37/37 after (one pair check added with UX-12).
+- `_harness/adminaudit11.js` (new): **0/36 on the unfixed tree**, 38/38 after (a pair check added with UX-12, a spam-trap check with UX-11).
 - `_harness/marketingpdfs.js` (new): 15/15 (the page did not exist before).
 - `claims.js`: its "absent key" fixture is now BUILT (pristine minus `copy.claims`), as `plan9-firstsave` builds its pre-3a file — `data/` now ships the key (DI-8). The case under test is unchanged.
 - `adminwidth.js`: the new page added to the narrow list.
@@ -7337,3 +7337,24 @@ Critical/High/Medium. Walkthrough: 0 console errors, 274 admin links OK, all
 - The first UX-10 arm passed on the unfixed tree: its regex matched the #sitemap row's "both places", not the Adding-a-product row it was about. Tightened to that row before any fix; then 0/36.
 - The first UX-11 arm read the mirror's 775-line inquiry fixture instead of the six new lines; it now counts only lines it wrote and compares the badge before/after.
 - The audit's data-integrity pass sent one upload to the security pass's port (scratch copies only; reported by the pass itself).
+
+**UX-11 supersedes part of NEW-N2-8 (audit 2026-09-27).** N2-8 kept
+`rate-limited` out of the new-inquiries badge as spam, and `lowsA2-admin`
+asserted it (3 blocked + 1 lead → 1). contact.php's own log note calls the
+same entry "may be a real customer … Worth a call back" and Help says to call
+it back, so UX-11 (decided 2026-10-05) counts it. The assertion now expects
+1 lead + 1 call-back → 2, with the reason in the test. **Downside, on
+purpose:** a bot that trips the rate limit could raise the badge up to 10
+times per IP per 10 minutes (`$maxLogged`). Mitigation shipped: a rate-limited
+request that also filled the hidden spam field is logged as `honeypot` and
+does not count (adminaudit11 arm). Residual: a bot that leaves that field
+empty still counts.
+
+**Regression (sweep on `4e11101` + the UX-11 follow-up):**
+- First half 59/61: `brandtext` (pre-existing, expected) and
+  `audit9-admin-text` b2-10 ("Stop using" button not Title Case on the new
+  page — fixed, 15/15).
+- Second half 51/53: `plan8-polish` (pre-existing, expected) and
+  `lowsA2-admin` N2-8 (above — 28/28 after).
+- Contact-form suites re-run after the contact.php change: 8/8 clean
+  (contactflow 85/85, plan3-contact 51/51, …).

@@ -356,6 +356,13 @@ function startServer(port, limited) {
       note(codes[5] === 429 && rl && rl.quantity === '500 ft #6' && rl.part === 'IP33PO-6', 'UX-11: a rate-limited quote request keeps its part number and quantity', `codes ${codes} entry ${JSON.stringify(rl || null).slice(0, 200)}`);
       const b1 = await badgeNow();
       note(lines.length === 6 && b1 - b0 === 6, 'UX-11: all six requests — five delivered, one rate-limited — raise the new-inquiries badge', `badge ${b0} → ${b1}, ${lines.length} new log lines`);
+      // A rate-limited request that ALSO filled the hidden spam field is a bot:
+      // logged as honeypot, and it must not raise the badge.
+      const botBody = new URLSearchParams({ form_type: 'message', name: 'Bot', email: 'bot@example.com', message: 'spam', website: 'http://spam.example' }).toString();
+      await new Promise((resolve) => { const rq = require('http').request({ host: '127.0.0.1', port: PORT, method: 'POST', path: '/contact.php', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(botBody), Referer: BASE + '/contact' } }, (res) => { res.resume(); res.on('end', resolve); }); rq.end(botBody); });
+      const last = JSON.parse(fs.readFileSync(LOG, 'utf8').trim().split('\n').pop());
+      const b2 = await badgeNow();
+      note(last.type === 'honeypot' && b2 === b1, 'UX-11: a rate-limited request that filled the hidden spam field is logged as spam and does not raise the badge', `type ${last.type}, badge ${b1} → ${b2}`);
     });
 
     // ── UX-12 ──
