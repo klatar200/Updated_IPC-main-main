@@ -8206,15 +8206,20 @@ function textSafeOnEach(color, bgs, target = 4.5) {
   if (!parseHexColor(color) || !list.length) return color;
   const worst = (c) => Math.min(...list.map((b) => contrastRatio(c, b)));
   if (worst(color) >= target) return color;
-  const darken = list.some((b) => relativeLuminance(parseHexColor(b)) > 0.5);
+  // The nearest passing shade in either direction — on a mid-tone surface
+  // (an orange primary) lightening may never pass while darkening does.
   const { h, s, l } = rgbToHsl(parseHexColor(color));
   for (let step = 1; step <= 100; step++) {
-    const nl = darken ? l - step / 100 : l + step / 100;
-    if (nl < 0 || nl > 1) break;
-    const cand = hslToHex({ h, s, l: nl });
-    if (worst(cand) >= target) return cand;
+    for (const nl of [l + step / 100, l - step / 100]) {
+      if (nl < 0 || nl > 1) continue;
+      const cand = hslToHex({ h, s, l: nl });
+      if (worst(cand) >= target) return cand;
+    }
   }
-  return darken ? INK_DARK : INK_LIGHT;
+  // No shade of the hue passes everywhere: the plain ink that reads best
+  // across the whole surface (lowsC2-palettes caught a fixed-white fallback
+  // at 2.41:1 on an orange palette, where the dark ink measures 4.70:1).
+  return inkFor(list);
 }
 
 function ThemeInjector() {
