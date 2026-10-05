@@ -32,10 +32,12 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 | `data/*.json.<pid>-<n>.tmp` | write then rename over the target (atomic save); a leftover means a killed process |
 | `data/*.backup.*.json` | write / prune (90 kept per prefix, `BACKUP_KEEP`) |
 | `data/.products-write.lock` | create / `flock` around every catalog save (SEC-5) |
-| `pdfs/` | read / write / delete (created if absent) |
+| `pdfs/` | read / write (created if absent); removed and replaced-by-rename data sheets go to `.deleted.*`, not deleted |
+| `pdfs/marketing/` | read / write, never delete (created at runtime if absent by `marketing-pdfs.php`); catalog and brochure PDFs, named from the uploaded file's own name, never overwritten (`-2`, `-3` …) |
 | `uploads/images/` | read / write / delete (created at runtime if absent); photo resizes go through a `.tmp` beside the target |
 | `uploads/site/` | read / write, never delete (created at runtime if absent by `site-images.php`); page photos and the logo, named `<slot>-<stamp>.<ext>`. `images/site/` is read for its picker, never written |
-| `pdfs/.deleted.*`, `uploads/images/.deleted.*` | Delete Product renames the product's unshared files to these; restoring a catalog backup renames them back. Never pruned (ADM-3) |
+| `pdfs/.deleted.*`, `uploads/images/.deleted.*` | Delete Product, Remove PDF, Remove Photo and a photo replaced by another file type rename the unshared file to these; restoring a catalog backup renames them back. A second trash of the same name keeps the older one as `.deleted.<stamp>.<name>`. Never pruned (ADM-3, admin audit 2026-10-05) |
+| `admin/.pdf-renames.json` | read / write; the data sheets a SKU rename moved (last 500), so restoring the catalog from before the rename moves them back (DI-1) |
 | `uploads/.htaccess` | written by `upload-image.php` only if missing; photo uploads are refused while it is still missing |
 | `admin/admin-log.jsonl` | append; rotated at 16MB |
 | `admin/admin-log-*.jsonl` | read (rotated archives, never deleted) |
@@ -155,6 +157,7 @@ root [README.md](../README.md) deploy tables. In short:
    | `public_html/pdfs/` | 755 |
    | `public_html/uploads/images/` | 755 |
    | `public_html/uploads/site/` | 755 |
+   | `public_html/pdfs/marketing/` | 755 |
    | `public_html/admin/` | 755 |
    | `public_html/admin/config.php` | 644 |
 
@@ -273,8 +276,10 @@ here — A-9.B2-12.)
 - **Replace**: upload a new file from the same page — the old file is
   overwritten in place.
 - **Remove**: click the red **Remove PDF** button. The product record's
-  `pdfUrl` is cleared, the PDF file is deleted from `/pdfs/`, and the
-  public site reverts to the **Request Datasheet** button.
+  `pdfUrl` is cleared, the PDF file is moved aside in `/pdfs/` (renamed
+  `.deleted.<name>`, not shown on the site), and the public site reverts to
+  the **Request Datasheet** button. Restoring the catalog from Backups brings
+  the file back.
 
 ### Viewing the audit log
 

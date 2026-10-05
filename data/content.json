@@ -768,6 +768,19 @@
             "aboutPhoto": "images/site/IPC-Building.jpg",
             "servicesPhoto": "images/site/Marker-Sample-2.jpg"
         },
+        "claims": {
+            "aboutStructureClaim": "Privately Held",
+            "aboutLeadTimeClaim": "≤ 1 week",
+            "aboutPpapClaim": "Available on request",
+            "industriesPpapTitleClaim": "PPAP & IMDS Documentation Available",
+            "industriesPpapBodyClaim": "IPC can support automotive supplier requirements for PPAP packages and IMDS material data submissions. Contact our sales team for details.",
+            "servicesRushClaim": "Rush service available — contact sales for details.",
+            "contactEmailReplyClaim": "Typical reply: same day",
+            "footerDescriptionClaim": "A spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives.",
+            "footerServiceClaim": "Quick, accurate, courteous service — the customer is always number one.",
+            "productBrandClaim": "Insulation Products Corporation",
+            "productManufacturerClaim": "Insulation Products Corporation"
+        },
         "hero": {
             "badge": "Bolingbrook, IL — Made in USA Since 1974",
             "headlineLine1": "25 Million Feet in Stock.",

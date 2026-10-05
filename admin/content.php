@@ -131,7 +131,7 @@ $SECTIONS = [
     ],
     'services' => [
         'title'    => 'Value-Added Services',
-        'sub'      => 'The fabrication service cards on the Services page. The "bullet points" box takes one item per line; the brochure link is optional.',
+        'sub'      => 'The fabrication service cards on the Services page. The "bullet points" box takes one item per line; the brochure link is optional. To put a brochure PDF on the server, use the <a href="marketing-pdfs.php">Catalog &amp; Brochure PDFs</a> page.',
         'page'     => '/services',
         'anchor'   => 'ipc-sec-services',
         'addLabel' => 'Service',
@@ -1142,6 +1142,25 @@ $navActive = 'content';
     <div class="warn-list">
       <strong>⚠️ Check these product codes</strong>
       <ul><?php foreach ($warnings as $w): ?><li><?= h($w) ?></li><?php endforeach; ?></ul>
+    </div>
+  <?php endif; ?>
+  <?php /* UX-4 (admin audit 2026-10-05) — a Site Images path or a brochure
+           address on this site whose file is not there saved under a green
+           banner: an empty photo box with alt text, or a brochure link to the
+           "page not found" screen. Checked on every visit from what is STORED,
+           so it stays until fixed. */
+        $missingFiles = [];
+        foreach ((array)($content['copy']['siteImages'] ?? []) as $k => $u) {
+            if (site_file_missing($u)) $missingFiles[] = 'Site Images → ' . $k . ': ' . $u;
+        }
+        foreach ((array)($content['services'] ?? []) as $sv) {
+            $bu = is_array($sv) ? ($sv['brochure']['url'] ?? '') : '';
+            if (site_file_missing($bu)) $missingFiles[] = 'Value-Added Services → ' . ($sv['title'] ?? '?') . ' brochure: ' . $bu;
+        }
+        if ($missingFiles): ?>
+    <div class="warn-list" role="status">
+      <strong>⚠️ Not on the server — these addresses point at files that do not exist, so the page will show an empty photo box or a broken link</strong>
+      <ul><?php foreach ($missingFiles as $mf): ?><li><?= h($mf) ?></li><?php endforeach; ?></ul>
     </div>
   <?php endif; ?>
 

@@ -967,10 +967,32 @@ function backup_before_write(string $path, string $prefix): ?string {
 // identical. Comparing arrays would call that a change and write it.
 //
 // A missing or unreadable file always needs the write.
+//
+// DI-8 (admin audit 2026-10-05) — and a difference ONLY in the order of an
+// object's keys is not a change either. The browser editors rebuild objects in
+// their own key order ({columnSpans, rows} where the shipped file had
+// {rows, columnSpans}), so opening and saving an untouched product wrote a
+// backup and logged "Product details updated" — 42 of those would have pushed
+// real history out of the 90 kept backups. Lists keep their order: reordering
+// rows IS a change. Nothing in these three files renders by object key order.
 function json_write_needed(string $path, string $json): bool {
     if (!is_file($path)) return true;
     $current = @file_get_contents($path);
-    return $current === false || $current !== $json;
+    if ($current === false) return true;
+    if ($current === $json) return false;
+    $a = json_decode($current, true);
+    $b = json_decode($json, true);
+    if (!is_array($a) || !is_array($b)) return true;
+    return json_canonical($a) !== json_canonical($b);
+}
+
+/** $v with every associative array's keys sorted, recursively; lists keep their order. */
+function json_canonical($v) {
+    if (!is_array($v)) return $v;
+    $isList = $v === [] || array_keys($v) === range(0, count($v) - 1);
+    foreach ($v as $k => $x) $v[$k] = json_canonical($x);
+    if (!$isList) ksort($v, SORT_STRING);
+    return $v;
 }
 
 // Set by the three save_*() helpers below; read by the pages that want to say
@@ -1152,6 +1174,96 @@ const IPC_APPROVAL_PATTERNS = [
     'UL-94'         => '/\bUL-?94\b/i',
 ];
 
+/**
+ * Is $u an address on THIS website whose file is not there? (admin audit
+ * 2026-10-05, DI-6 / UX-4.) External addresses (http://, https://, //) and
+ * blanks are not checked — there is nothing on this server to look at. Paths
+ * are taken from the site root with or without a leading slash
+ * ("/pdfs/x.pdf", "images/site/x.jpg"); a ".." anywhere counts as missing.
+ */
+function site_file_missing($u): bool {
+    if (!is_string($u)) return false;
+    $u = trim($u);
+    if ($u === '' || preg_match('#^([a-z][a-z0-9+.-]*:|//)#i', $u)) return false;
+    $path = '/' . ltrim((string)preg_replace('/[?#].*$/', '', $u), '/');
+    if (strpos($path, '..') !== false) return true;
+    return !is_file(__DIR__ . '/..' . rawurldecode($path));
+}
+
+/**
+ * Things a product save should say out loud even though it succeeded
+ * (admin audit 2026-10-05). Returned as plain sentences for the flash message.
+ *
+ * DI-6 — an Additional-PDF or photo address on this server whose file is not
+ * there saved as a dead Datasheet button / broken image under "saved
+ * successfully". Warn, do not block (the 4.12 Industries-code precedent): the
+ * owner may be about to upload the file.
+ *
+ * UX-2 — a badge that names a standard ("RoHS Compliant", "UL Listed") is
+ * never shown as a badge: the product page prints standards only through the
+ * Approvals tick-boxes (App.jsx isStandardBadge). With the matching box
+ * unticked the claim appeared nowhere at all, after a green save.
+ */
+function product_save_warnings(array $p): array {
+    $out = [];
+    $urls = array_merge([$p['photoUrl'] ?? ''], array_map(static function ($ap) {
+        return is_array($ap) ? ($ap['url'] ?? '') : '';
+    }, (array)($p['additionalPdfs'] ?? [])));
+    $missing = array_values(array_filter($urls, 'site_file_missing'));
+    if ($missing) {
+        $out[] = 'Not on the server, so the link will not work until the file is uploaded: ' . implode(', ', $missing) . '.';
+    }
+    $ticked = array_flip(ipc_product_approvals($p));
+    $hidden = [];
+    foreach ((array)($p['badges'] ?? []) as $b) {
+        foreach (IPC_APPROVAL_PATTERNS as $name => $rx) {
+            if (preg_match($rx, (string)$b) && !isset($ticked[$name])) { $hidden[] = '"' . $b . '" (' . $name . ')'; break; }
+        }
+    }
+    if ($hidden) {
+        $out[] = 'Badges that name a standard are shown only through the Approvals tick-boxes, so these will not appear on the website until you tick the box: ' . implode(', ', $hidden) . '.';
+    }
+    return $out;
+}
+
+/**
+ * UX-1 (admin audit 2026-10-05) — IPC_APPROVAL_PATTERNS for product-preview.js,
+ * as a non-executing JSON block (the admin CSP allows no inline script). The
+ * preview filters standard-naming badges with these, as the product page's
+ * isStandardBadge() does, so it no longer shows pills the site drops.
+ */
+function approval_patterns_json_tag(): string {
+    $out = [];
+    foreach (IPC_APPROVAL_PATTERNS as $name => $rx) {
+        $end = strrpos($rx, '/');
+        $out[] = ['name' => $name, 'source' => substr($rx, 1, $end - 1), 'flags' => substr($rx, $end + 1)];
+    }
+    return '<script type="application/json" id="ipc-approval-patterns">'
+        . json_encode($out, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) . '</script>';
+}
+
+// UX-12 (admin audit 2026-10-05) — the values the PUBLIC site shows when a
+// Business Details box is left empty (App.jsx SITE_DEFAULTS; mergeSiteInfo()
+// drops blanks, invariant 4), keyed by settings.php input id, for the live
+// preview. Only fields that fall back; fax, slogan, short name and the social
+// links are clearable and really do disappear; an empty click-to-call box is
+// worked out from the phone on save, not defaulted. _harness/adminaudit11.js
+// compares every entry with SITE_DEFAULTS.
+const SITE_INFO_PREVIEW_DEFAULTS = [
+    'company_name'        => 'Insulation Products Corporation',
+    'company_foundedYear' => '1974',
+    'contact_phone'       => '630.771.0700',
+    'contact_email'       => 'sales@insulationproducts.com',
+    'addr_street'         => '250 Gibraltar Dr',
+    'addr_city'           => 'Bolingbrook',
+    'addr_state'          => 'IL',
+    'addr_zip'            => '60440',
+    'hours_text'          => 'Mon–Fri, 8am–5pm CT',
+    'cert_iso'            => 'ISO 9001',
+    'stats_min'           => '$50',
+    'stats_feet'          => '25 million',
+];
+
 /** Everything on a product that can legitimately name an approval. */
 function ipc_approval_haystack(array $p): string {
     return implode(' | ', [
@@ -1265,7 +1377,7 @@ function save_content(array $content): bool {
  */
 const IPC_AUDIT_ACTIONS = [
     'add', 'edit', 'delete',
-    'upload-pdf', 'remove-pdf', 'upload-image', 'remove-image', 'site-image',
+    'upload-pdf', 'remove-pdf', 'upload-image', 'remove-image', 'site-image', 'marketing-pdf',
     'settings', 'content', 'restore', 'password',
     'sign-in', 'sign-out', 'sign-in-failed',
 ];
@@ -1339,12 +1451,24 @@ function inquiry_rejected_types(): array {
     return ['honeypot', 'rate-limited', 'blocked-referer', 'rfq-incomplete', 'message-incomplete'];
 }
 
-/** Real leads (not rejected submissions) in bytes [$from, $to) of the log; $to < 0 = to the end. */
+/**
+ * UX-11 (admin audit 2026-10-05) — the refused types the new-inquiries badge
+ * still counts: each is logged "Worth a call back" (a real customer behind a
+ * shared office connection, or one whose email the browser accepted and the
+ * server did not), and Help tells the owner to call them back — but they never
+ * raised the badge, so nothing told him one had arrived. Spam-trap and
+ * other-website submissions stay out.
+ */
+function inquiry_callback_types(): array {
+    return ['rate-limited', 'rfq-incomplete', 'message-incomplete'];
+}
+
+/** Badge-worthy entries (real leads + call-backs) in bytes [$from, $to) of the log; $to < 0 = to the end. */
 function inquiries_count_leads(string $path, int $from = 0, int $to = -1): int {
     $fh = @fopen($path, 'rb');
     if (!$fh) return 0;
     if ($from > 0) fseek($fh, $from);
-    $rejected = array_flip(inquiry_rejected_types());
+    $rejected = array_flip(array_diff(inquiry_rejected_types(), inquiry_callback_types()));
     $n = 0;
     $carry = '';
     $remaining = $to < 0 ? PHP_INT_MAX : $to - $from;
@@ -1494,15 +1618,22 @@ define('LOGIN_COOLOFF_MAX', 300);   // hard ceiling — Rick must never be stran
 
 function login_throttle_client_ip(): string {
     // Default: REMOTE_ADDR — correct and unspoofable on direct hosting (F4).
-    // If the site is later fronted by a trusted reverse proxy/CDN that presents
-    // a single IP, define TRUST_PROXY_FORWARDED = true (e.g. in config.local.php)
-    // so the throttle keys on the real client IP from X-Forwarded-For instead of
-    // over-blocking everyone behind the proxy. Only enable behind a proxy you
-    // trust — X-Forwarded-For is otherwise client-spoofable.
+    // If the site is later fronted by ONE trusted reverse proxy/CDN that
+    // presents a single IP, define TRUST_PROXY_FORWARDED = true (e.g. in
+    // config.local.php) so the throttle keys on the client IP that proxy saw
+    // instead of over-blocking everyone behind it.
+    //
+    // SEC-A2 (admin audit 2026-10-05) — that is the RIGHT-MOST entry, the one
+    // the proxy appended. This read the left-most, which the client writes
+    // itself: proxies append to whatever X-Forwarded-For arrived, so rotating
+    // a fake first entry made every attempt a fresh "address" and switched the
+    // cool-off off entirely (40 of 40 guesses checked). Behind more than one
+    // proxy hop this is still the nearest proxy's view; do not enable it then.
     if (defined('TRUST_PROXY_FORWARDED') && TRUST_PROXY_FORWARDED
         && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $first = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
-        if (filter_var($first, FILTER_VALIDATE_IP)) return $first;
+        $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $last  = trim(end($parts));
+        if (filter_var($last, FILTER_VALIDATE_IP)) return $last;
     }
     return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 }
@@ -1519,6 +1650,12 @@ function login_throttle_key(string $ip): string {
     if (strpos($ip, ':') === false || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) return $ip;
     $bin = @inet_pton($ip);
     if ($bin === false || strlen($bin) !== 16) return $ip;
+    // SEC-A1 (admin audit 2026-10-05) — an IPv4 client that a dual-stack
+    // server reports as ::ffff:a.b.c.d is ONE IPv4 address, not a /64: its
+    // first eight bytes are zero for every such client, so all of them (and
+    // ::1) shared the key "::/64", and one attacker's failures put every
+    // visitor, the owner included, into the cool-off.
+    if (substr($bin, 0, 12) === str_repeat("\0", 10) . "\xff\xff") return inet_ntop(substr($bin, 12));
     return inet_ntop(substr($bin, 0, 8) . str_repeat("\0", 8)) . '/64';
 }
 
@@ -2296,16 +2433,106 @@ function file_to_trash(string $dir, string $name): bool {
     $realDir  = realpath($dir);
     $realFile = realpath($dir . $name);
     if (!$realDir || !$realFile || strpos($realFile, $realDir) !== 0 || !is_file($realFile)) return false;
-    return @rename($realFile, $realDir . '/' . TRASH_PREFIX . $name);
+    $trash = $realDir . '/' . TRASH_PREFIX . $name;
+    // DI-7 (admin audit 2026-10-05) — a second trash of the same name (delete
+    // a product, re-add it with a new sheet, delete again) renamed straight
+    // over the first, so the older file was gone for good. The older copy is
+    // kept under a dated name first; the plain `.deleted.<name>` stays the
+    // newest, which is the one restore_trashed_files() brings back.
+    if (file_exists($trash)) {
+        $stamp = date('Ymd-His', (int)@filemtime($trash));
+        for ($n = 0; $n < 100; $n++) {
+            $keep = $realDir . '/' . TRASH_PREFIX . $stamp . ($n ? '-' . $n : '') . '.' . $name;
+            if (!file_exists($keep)) break;
+        }
+        if (!@rename($trash, $keep)) return false;
+    }
+    return @rename($realFile, $trash);
 }
 
+// DI-1 (admin audit 2026-10-05) — the data sheets a SKU rename moved.
+//
+// edit.php renames <OLD>.pdf to <NEW>.pdf on disk when the SKU changes, and a
+// Backups restore of the catalog brought back a product pointing at <OLD>.pdf,
+// which no longer existed: both Datasheet buttons served the site shell under
+// a green "restored". Backups cover the JSON only, so the moves are recorded
+// here, newest last, and restore_trashed_files() walks them backwards.
+// admin/ is not web-readable (admin/.htaccess); the file is gitignored.
+define('PDF_RENAMES_FILE', __DIR__ . '/.pdf-renames.json');
+define('PDF_RENAMES_KEEP', 500);
+
+/** Append [old name, new name] pairs (basenames inside PDF_DIR). */
+function pdf_renames_record(array $pairs): void {
+    if (!$pairs) return;
+    $fh = @fopen(PDF_RENAMES_FILE, 'c+');
+    if (!$fh) return;
+    flock($fh, LOCK_EX);
+    $list = json_decode((string)stream_get_contents($fh), true);
+    if (!is_array($list)) $list = [];
+    foreach ($pairs as [$old, $new]) $list[] = ['old' => (string)$old, 'new' => (string)$new, 'at' => date('c')];
+    $list = array_slice($list, -PDF_RENAMES_KEEP);
+    ftruncate($fh, 0);
+    rewind($fh);
+    fwrite($fh, json_encode($list, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    fflush($fh);
+    flock($fh, LOCK_UN);
+    fclose($fh);
+}
+
+function pdf_renames_load(): array {
+    $list = json_decode((string)@file_get_contents(PDF_RENAMES_FILE), true);
+    return is_array($list) ? $list : [];
+}
+
+/**
+ * Why an uploaded PDF must be refused, or '' when it is fine: the extension
+ * and the sniffed content must both be PDF, and it must be 20 MB or smaller.
+ * finfo is not compiled into every PHP build, so fall back to the %PDF- magic
+ * bytes. Shared by upload-pdf.php and marketing-pdfs.php (admin audit
+ * 2026-10-05, G1) so the two cannot drift.
+ */
+function uploaded_pdf_problem(array $file): string {
+    $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+    if (function_exists('finfo_open')) {
+        $finfo    = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+    } else {
+        $head     = (string)@file_get_contents($file['tmp_name'], false, null, 0, 5);
+        $mimeType = $head === '%PDF-' ? 'application/pdf' : '';
+    }
+    if ($ext !== 'pdf' || $mimeType !== 'application/pdf') {
+        return 'Only PDF files are accepted (extension and content must both be PDF).';
+    }
+    if (($file['size'] ?? 0) > 20 * 1024 * 1024) {
+        return 'File is too large. Maximum size is 20MB.';
+    }
+    return '';
+}
+
+// G1 (admin audit 2026-10-05) — catalog and brochure PDFs: not tied to a
+// product, so not <SKU>.pdf. The shipped brochures already live here.
+define('MARKETING_PDF_DIR', PDF_DIR . 'marketing/');
+define('MARKETING_PDF_URL', PDF_URL . 'marketing/');
+
 // After a catalog restore: bring back every PDF / uploaded photo the restored
-// products point at that is missing but was moved aside by a delete. A live
-// file of the same name always wins — it is never overwritten. Returns the
-// names brought back, for the success message.
+// products point at that is missing but was moved aside by a delete (or, for a
+// data sheet, moved by a SKU rename — DI-1). A live file of the same name
+// always wins — it is never overwritten. Returns the names brought back, for
+// the success message.
 function restore_trashed_files(array $products): array {
     $back = [];
-    $try = function (string $dir, string $urlPrefix, string $url) use (&$back) {
+    // Every file name the restored catalog points at: a renamed file is only
+    // moved back when nothing in that catalog still uses its new name.
+    $wanted = [];
+    foreach ($products as $p) {
+        if (!is_array($p)) continue;
+        foreach (array_merge([$p['pdfUrl'] ?? ''], array_map(static function ($ap) { return is_array($ap) ? ($ap['url'] ?? '') : ''; }, (array)($p['additionalPdfs'] ?? []))) as $u) {
+            if (is_string($u) && $u !== '') $wanted[basename($u)] = true;
+        }
+    }
+    $renames = null;
+    $try = function (string $dir, string $urlPrefix, string $url) use (&$back, &$renames, $wanted) {
         if (strpos($url, $urlPrefix) !== 0) return;
         $name = basename($url);
         if ($name === '' || $name[0] === '.') return;
@@ -2313,7 +2540,25 @@ function restore_trashed_files(array $products): array {
         if (!$realDir) return;
         $live  = $realDir . '/' . $name;
         $trash = $realDir . '/' . TRASH_PREFIX . $name;
-        if (!file_exists($live) && is_file($trash) && @rename($trash, $live)) $back[] = $name;
+        if (file_exists($live)) return;
+        if (is_file($trash) && @rename($trash, $live)) { $back[] = $name; return; }
+        if ($dir !== PDF_DIR) return;
+        // DI-1 — follow the recorded renames forward (OLD → NEW → NEWER …)
+        // to wherever the file is now, newest record first.
+        if ($renames === null) $renames = pdf_renames_load();
+        $cur = $name;
+        for ($hop = 0; $hop < 10; $hop++) {
+            $next = null;
+            for ($i = count($renames) - 1; $i >= 0; $i--) {
+                if (($renames[$i]['old'] ?? null) === $cur) { $next = (string)($renames[$i]['new'] ?? ''); break; }
+            }
+            if ($next === null || $next === '' || $next[0] === '.' || $next !== basename($next)) return;
+            if (is_file($realDir . '/' . $next)) {
+                if (!isset($wanted[$next]) && @rename($realDir . '/' . $next, $live)) $back[] = $name;
+                return;
+            }
+            $cur = $next;
+        }
     };
     foreach ($products as $p) {
         if (!is_array($p)) continue;

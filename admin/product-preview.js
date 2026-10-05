@@ -27,10 +27,10 @@
   // Muted example data shown when a section is still empty.
   var SAMPLE = {
     name: "Product name",
-    meta: "SKU-123 &nbsp;·&nbsp; Part type &nbsp;·&nbsp; Operating temperature",
-    badges: ["Flame retardant", "RoHS compliant", "2:1 shrink ratio"],
+    meta: "SKU-123 &nbsp;·&nbsp; Part type",
+    badges: ["Flame retardant", "2:1 shrink ratio", "Flexible"],
+    approvals: ["UL Listed", "RoHS"],
     pdf: "Data sheet",
-    summary: "U/L 224 · RoHS · -55°C to 135°C · 600V",
     descr: ["A short product description. Each line you enter becomes its own paragraph on the product page."],
     spec1: [
       { label: "Material", value: "Polyolefin" },
@@ -84,7 +84,9 @@
     ".pp-img{max-width:100%;border-radius:8px;border:1px solid #e5e9ee;display:block;margin-bottom:6px;}" +
     ".pp-imgph{height:120px;border:1px dashed #d1d9e0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#aeb8c4;font-size:12px;margin-bottom:12px;background:#f8fafc;}" +
     ".pp-cap{font-size:11px;color:#9ca3af;margin-bottom:12px;font-style:italic;}" +
-    ".pp-summary{font-size:12px;color:#374151;background:#f0f4f8;border-radius:8px;padding:8px 10px;margin-bottom:12px;}" +
+    ".pp-h{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4b5563;margin:0 0 6px;}" +
+    ".pp-apprs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}" +
+    ".pp-appr{font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em;background:#fff;color:#374151;border:1px solid #d1d9e0;padding:3px 8px;border-radius:4px;}" +
     ".pp-p{font-size:13px;color:#4b5563;line-height:1.5;margin:0 0 8px;}" +
     ".pp-block{margin-bottom:14px;}" +
     ".pp-sthead{font-size:12px;font-weight:700;color:#fff;background:#0d2d52;padding:6px 10px;border-radius:8px 8px 0 0;}" +
@@ -107,7 +109,12 @@
     // change is `main{max-width:900px}`, dropped for the same reason as above —
     // the shared container owns the page width now, so a stacked editor at
     // 1024 uses the full 1024 instead of being pinned 124px narrower.
-    "@media(max-width:1024px){.ipc-editor-layout{flex-direction:column;}.ipc-preview-col{flex:1 1 auto;width:100%;}.ipc-preview-inner{position:static;max-height:none;}}";
+    // UX-7 (admin audit 2026-10-05) — stacked, the form takes the full width
+    // like the preview. With align-items:flex-start and no width it sized to
+    // its widest content, so a size chart with many columns made the form
+    // (and its Save button) 44 px wider than a 390 px phone; the chart now
+    // scrolls inside its own box (spectable-editor.js .ste-host).
+    "@media(max-width:1024px){.ipc-editor-layout{flex-direction:column;}.ipc-editor-layout>form{width:100%;}.ipc-preview-col{flex:1 1 auto;width:100%;}.ipc-preview-inner{position:static;max-height:none;}}";
 
   function injectCSS() {
     var s = document.createElement("style");
@@ -160,6 +167,23 @@
 
   function ghost(inner) { return '<div class="pp-ghost">' + inner + "</div>"; }
 
+  // UX-1 (admin audit 2026-10-05) — the panel claims to show "what the website
+  // shows", and it showed three things the product page does not: badges that
+  // name a standard (the site drops them — App.jsx isStandardBadge), the
+  // Operating Temperature and the Specifications Summary; and it hid the one
+  // thing the site does show for them, the ticked Approvals. The patterns are
+  // the server's own IPC_APPROVAL_PATTERNS, handed over in a JSON block.
+  var STANDARD = (function () {
+    try {
+      var el = document.getElementById("ipc-approval-patterns");
+      return JSON.parse(el ? el.textContent : "[]").map(function (p) { return new RegExp(p.source, p.flags); });
+    } catch (e) { return []; }
+  })();
+  function isStandard(b) { return STANDARD.some(function (rx) { return rx.test(b); }); }
+  function ticked() {
+    return Array.prototype.slice.call(document.querySelectorAll('input[name="approvals[]"]:checked')).map(function (x) { return x.value; });
+  }
+
   function render(content) {
     var html = "";
 
@@ -172,14 +196,21 @@
     // so the panel looks identical. (audit-runs/audit4.md D-05)
     html += nameV ? '<div class="pp-name">' + esc(nameV) + "</div>" : '<div class="pp-name pp-ph">' + SAMPLE.name + "</div>";
 
-    var metaParts = [esc(val("sku")), esc(val("partType")), esc(val("operatingTemp"))].filter(Boolean);
+    var metaParts = [esc(val("sku")), esc(val("partType"))].filter(Boolean);
     html += metaParts.length
       ? '<div class="pp-meta">' + metaParts.join(" &nbsp;·&nbsp; ") + "</div>"
       : '<div class="pp-meta pp-ph">' + SAMPLE.meta + "</div>";
 
-    var badges = lines(val("badges"));
+    var appr = ticked();
+    var apprHtml = function (arr) {
+      return '<div class="pp-h">Approvals &amp; Certifications</div><div class="pp-apprs">' +
+        arr.map(function (a) { return '<span class="pp-appr">' + esc(a) + "</span>"; }).join("") + "</div>";
+    };
+    html += appr.length ? apprHtml(appr) : ghost(apprHtml(SAMPLE.approvals));
+
+    var badges = lines(val("badges")).filter(function (b) { return !isStandard(b); });
     var badgeHtml = function (arr) {
-      return '<div class="pp-badges">' + arr.map(function (b) { return '<span class="pp-badge">' + esc(b) + "</span>"; }).join("") + "</div>";
+      return '<div class="pp-h">Product Features</div><div class="pp-badges">' + arr.map(function (b) { return '<span class="pp-badge">' + esc(b) + "</span>"; }).join("") + "</div>";
     };
     html += badges.length ? badgeHtml(badges) : ghost(badgeHtml(SAMPLE.badges));
 
@@ -194,9 +225,6 @@
     } else {
       html += '<div class="pp-imgph">Product photo</div>';
     }
-
-    var sum = val("specificationsSummary").trim();
-    html += sum ? '<div class="pp-summary">' + esc(sum) + "</div>" : '<div class="pp-summary pp-ph">' + SAMPLE.summary + "</div>";
 
     var descr = lines(val("description"));
     var descrHtml = function (arr) { return arr.map(function (p) { return '<p class="pp-p">' + esc(p) + "</p>"; }).join(""); };

@@ -37,12 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unset($products[$idx]['photoUrl']);
         if (save_products($products)) {
             $oldName = basename($oldUrl);
+            // DI-4 (admin audit 2026-10-05) — moved aside, not erased, the way
+            // delete.php does it (ADM-3): the Backups undo of this removal
+            // brings back a catalog pointing at this file, and
+            // restore_trashed_files() can only return what still exists.
             if (strpos($oldUrl, IMG_URL) === 0 && !image_in_use($products, $oldName)) {
-                $realImgDir = realpath(IMG_DIR);
-                $realFile   = realpath(IMG_DIR . $oldName);
-                if ($realImgDir && $realFile && strpos($realFile, $realImgDir) === 0) {
-                    @unlink($realFile);
-                }
+                file_to_trash(IMG_DIR, $oldName);
             }
             audit_log('remove-image', $sku, 'Removed photo: ' . $oldName);
             $success      = 'Photo removed. The product will show the IPC branded placeholder.';
@@ -119,21 +119,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // said out loud instead of reading like "already fine".
                 $resizeReason = '';
                 $wasResized = image_downscale_in_place($destPath, $ext, $resizeReason);
-                // If the extension changed, clean up the old managed file
-                // (unless another product still points at it).
-                if ($isManaged && basename($currentPhoto) !== $filename) {
-                    $oldName = basename($currentPhoto);
-                    $products[$idx]['photoUrl'] = $destUrl; // update before in-use check
-                    if (!image_in_use($products, $oldName)) {
-                        $realImgDir = realpath(IMG_DIR);
-                        $realFile   = realpath(IMG_DIR . $oldName);
-                        if ($realImgDir && $realFile && strpos($realFile, $realImgDir) === 0) {
-                            @unlink($realFile);
-                        }
-                    }
-                }
                 $products[$idx]['photoUrl'] = $destUrl;
                 if (save_products($products)) {
+                    // If the file name changed, move the old managed file aside
+                    // (unless another product still points at it).
+                    // DI-3 (admin audit 2026-10-05) — only AFTER the catalog
+                    // save: it used to be unlinked first, so a failed save left
+                    // the catalog naming a file that was already gone.
+                    // DI-4 — and to the trash, not erased, so a Backups undo of
+                    // the replace can bring it back (restore_trashed_files()).
+                    if ($isManaged && basename($currentPhoto) !== $filename
+                        && !image_in_use($products, basename($currentPhoto))) {
+                        file_to_trash(IMG_DIR, basename($currentPhoto));
+                    }
                     audit_log('upload-image', $sku, ($isReplacement ? 'Replaced' : 'Uploaded') . ' photo: ' . $filename);
                     $success      = ($isReplacement ? 'Photo replaced' : 'Photo uploaded') . ' and product updated.'
                                     // A-5.16 (resized), A-9.P2-2 (no gd: saved at full size, the only
@@ -144,7 +142,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $isManaged    = true;
                     $product      = $products[$idx];
                 } else {
-                    $errors[] = 'Image was saved but could not update products-all.json.';
+                    // DI-3 — nothing changed in the catalog, so a NEW file this
+                    // upload created is an orphan; a same-name replacement has
+                    // already overwritten the old bytes and stays.
+                    if (!$isReplacement) @unlink($destPath);
+                    $errors[] = 'The photo could not be saved: the product catalog (products-all.json) could not be updated, so nothing was changed and the current photo is still in place. The server may be out of space — try again, or check the data/ folder.';
                 }
             } else {
                 $errors[] = 'Upload failed. Check write permissions on the /uploads/images/ directory.';
@@ -202,8 +204,8 @@ include 'nav.php';
       <div class="current-img">
         <img src="<?= h($currentPhoto) ?>" alt="<?= h($sku) ?> product photo">
         <div class="img-row">
-          <span>🖼 <?= h(basename($currentPhoto)) ?><?= $isManaged ? '' : ' (external — not stored in /uploads/images/)' ?></span>
-          <form method="POST" style="display:inline" data-confirm="Remove this photo? The product will revert to the IPC branded placeholder on the website.<?= $isManaged ? ' The image file will be deleted from the server.' : '' ?>">
+          <span>🖼 <?= h(basename($currentPhoto)) ?><?= $isManaged ? '' : (strpos($currentPhoto, '/images/') === 0 ? ' (shipped with the website)' : ' (an address on another website)') ?></span>
+          <form method="POST" style="display:inline" data-confirm="Remove this photo? The product will revert to the IPC branded placeholder on the website.<?= $isManaged ? ' The image file is kept aside on the server, so restoring the catalog from Backups brings it back.' : '' ?>">
             <input type="hidden" name="action" value="remove">
             <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
             <button type="submit" class="btn btn-secondary" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca">Remove Photo</button>

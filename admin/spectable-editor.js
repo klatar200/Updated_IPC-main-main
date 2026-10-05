@@ -36,6 +36,7 @@
     ".ste-sprow:last-child{border-bottom:none;}" +
     ".ste-splab{color:#005da3;font-weight:600;}" +
     ".ste-note{color:#6b7280;}" +
+    ".ste-host{overflow-x:auto;max-width:100%;}" +
     ".ste-grid{display:grid;gap:6px;align-items:start;margin-bottom:6px;}" +
     ".ste-grp{display:flex;flex-direction:column;gap:5px;border:1px solid #e5e9ee;border-radius:7px;padding:6px;background:#f8fafc;}" +
     ".ste-gtools{display:flex;gap:4px;flex-wrap:wrap;}" +
@@ -347,6 +348,10 @@
     hideOriginal(ta);
     var wrap = document.createElement("div");
     var host = document.createElement("div");
+    // UX-7 (admin audit 2026-10-05) — the grid's columns have a 92 px floor,
+    // so a wide size chart is wider than a phone; it scrolls inside this box
+    // instead of pushing the whole Edit page (and its Save button) sideways.
+    host.className = "ste-host";
     var prevWrap = document.createElement("div");
     prevWrap.className = "ste-prevwrap";
     prevWrap.innerHTML =
