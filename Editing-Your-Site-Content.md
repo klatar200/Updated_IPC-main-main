@@ -24,6 +24,8 @@ Use **View Live Site** (top right) any time to open your public site in a new ta
 
 **Backups** — a saved copy of your catalog, business details and page content from before each save. One click rolls any of them back. Each entry shows what's in it (how many products, how many content rows) so you're not picking blind.
 
+**Audit Log** — every change made through the dashboard, newest first, with what changed and when; use it to see who did what or to find the moment something changed before restoring a backup.
+
 **Password** — change your admin password yourself.
 
 ## Editing Page Content
@@ -33,6 +35,7 @@ Open the **Page Content** tab. It has two kinds of sections, one after the other
 **Page Text (the cards at the top).** These are fixed, fill-in-the-blank fields, one card per area. They always have the same fields — nothing to add, remove or reorder:
 
 - **Site Images** — the five photographs the homepage, About and Services pages use.
+- **Company Claims** — statements about IPC: the About fact-box rows (Structure, Custom Lead Time, PPAP / IMDS), the Industries PPAP box, the Services rush-service line, the Contact page's reply time, the two footer sentences, and the brand and manufacturer search engines are told for every product. Empty one to remove it from the place its label names.
 - **Homepage — Hero** — the badge, the three headline lines, the sub-headline, and both buttons (their wording and where each one links).
 - **Homepage headings** — the "Products & Services" and "Industries" eyebrows, titles, and the ribbon text and button.
 - **Page banners** — the small eyebrow, big title, and intro paragraph at the top of the Services, Industries, About, Datasheets, FAQ, Contact, and Privacy pages, plus the About page's sub-headings and the Privacy lead paragraph and effective date.
@@ -51,9 +54,9 @@ Open the **Page Content** tab. It has two kinds of sections, one after the other
 - **Navigation — Company Menu** and **Navigation — Footer Quick Links** — the links in your header's Company menu and the footer.
 - **Product Families / Categories** — the categories the catalog groups products by, and their order.
 - **Contact Page — Sidebar Tips** — the tips beside the contact form.
-- **Search Engine Text (SEO)** — the title and description each page shows in Google results.
+- **Search Engine Text (SEO)** — the title and description each page shows in Google results, and on the preview card when someone shares a link to the page (LinkedIn, Teams, Slack, email). Product pages use the product's own name, details and photo automatically.
 
-*(That is all 31 sections the tab renders: 14 Page Text cards and 17 lists. This list named 22 of them until 2026-09-14 — A-9.B2-15 — and until 2026-09-28 it filed five of the fixed cards under Lists — ADM-12. If you see a card here that is not in this list, the list is the thing that is out of date, not the dashboard.)*
+*(That is all 32 sections the tab renders: 15 Page Text cards and 17 lists (Company Claims added 2026-10-02). This list named 22 of them until 2026-09-14 — A-9.B2-15 — and until 2026-09-28 it filed five of the fixed cards under Lists — ADM-12. If you see a card here that is not in this list, the list is the thing that is out of date, not the dashboard.)*
 
 In a **Page Text** card, just click a field and type. In a **list** section you can also:
 
@@ -65,7 +68,7 @@ Then click **Save Content** at the bottom. That's it — your changes go live wi
 
 ## A few helpful notes
 
-**Clearing a heading resets it. Deleting a whole list does not.** If you empty a single Page Text field and save, that item returns to its original wording — so a page heading can never end up blank. But if you delete *every* item from a list section (all your FAQ questions, all your footer links), that is treated as what you meant: the section is genuinely empty on the live site. Three exceptions on the Page Content side: the homepage sub-headline you *can* clear, because it's optional by design; emptying a **Site Images** field removes that photo from the page; and emptying a **Company Claims** field (statements such as "Privately Held", "Typical reply: same day", the footer sentences, and the brand and manufacturer search engines are told) removes that statement from the site. A few boxes are empty as shipped (the Datasheets page banner, the header's "Datasheets" link, the form's "required fields" and privacy lines) — an empty box means the site shows its built-in wording.
+**Clearing a heading resets it. Deleting a whole list does not.** If you empty a single Page Text field and save, that item returns to its original wording — so a page heading can never end up blank. But if you delete *every* item from a list section (all your FAQ questions, all your footer links), that is treated as what you meant: the section is genuinely empty on the live site. Three exceptions on the Page Content side: the homepage sub-headline you *can* clear, because it's optional by design; emptying a **Site Images** field removes that photo from the page; and emptying a **Company Claims** field (statements such as "Privately Held", "Typical reply: same day", the footer sentences, and the brand and manufacturer search engines are told) removes that statement from the one place its label names — the same words elsewhere (for example the "Privately Held" certification card) are separate boxes. A few boxes are empty as shipped (the Datasheets page banner, the header's "Datasheets" link, the form's "required fields" and privacy lines) — an empty box means the site shows its built-in wording.
 
 **A similar rule applies on Business Details.** The company name cannot be emptied at all — the save is refused with a message, and what you typed stays on screen to fix. Clear the phone number, address or founded year and the site goes back to its **built-in original** (the value the website shipped with), **not** to whatever you had before — so to *change* one of these, type the new value over the old one. This is so an empty phone number never becomes a dead "call us" link and an empty year never prints "© –2026" to every visitor. The **Phone (dial link)** box can be left blank: when it is, the click-to-call number is worked out from the phone number you typed (for a normal 10-digit US/Canada number). The fields you genuinely **can** empty, because "we don't have one" is a real answer, are:
 
@@ -73,8 +76,11 @@ Then click **Save Content** at the bottom. That's it — your changes go live wi
 - The seven **social links** (Twitter/X, Facebook, LinkedIn, YouTube, Instagram, TikTok, Pinterest)
 - **Short name**
 - **Slogan**
+- **ISO certification** — emptying it stops the footer, the About fact box and the homepage band claiming ISO; Business Details then lists any wording of yours that still mentions ISO 9001 so you can edit it
 
 Clear one of those and it disappears from the site properly — the fax line vanishes from the footer, the Contact page and the About page rather than leaving an empty label.
+
+**Your catalog and brochure PDFs have an upload page too.** Open **Catalog & Brochure PDFs** (linked from the Catalog PDF URL box on Business Details and the Value-Added Services card on Page Content). Upload a PDF and choose where it is used — the "Full product catalog (PDF)" link in the footer, or a Services brochure — or upload it now and choose later. An upload never replaces a file already there, and nothing on that page deletes a file. It is also how to put a second PDF on a product: upload it there, copy the address it shows, and add it under Additional PDF Links when you edit the product.
 
 **New page photos and the logo have their own upload page.** Open **Site Images & Logo** (linked from the Site Images card on Page Content and from the Logo URL box on Business Details). Each of the five page photos and the logo has a card: upload a JPG, PNG, WEBP or GIF from your computer, or pick a picture that is already on the server, or remove it. Nothing there deletes a file. An SVG logo can't be uploaded there (SVG files can carry program code) — that one is for your developer. Product photos still use the **Photo** button on the Products page.
 

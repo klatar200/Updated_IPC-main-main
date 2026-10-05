@@ -32,13 +32,14 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 | `data/*.json.<pid>-<n>.tmp` | write then rename over the target (atomic save); a leftover means a killed process |
 | `data/*.backup.*.json` | write / prune (90 kept per prefix, `BACKUP_KEEP`) |
 | `data/.products-write.lock` | create / `flock` around every catalog save (SEC-5) |
+| `data/.content-write.lock`, `data/.site-info-write.lock` | create / `flock` around every Page Content / Business Details write (`data_write_lock()`, WHATS_LEFT §1an) |
 | `pdfs/` | read / write (created if absent); removed and replaced-by-rename data sheets go to `.deleted.*`, not deleted |
 | `pdfs/marketing/` | read / write, never delete (created at runtime if absent by `marketing-pdfs.php`); catalog and brochure PDFs, named from the uploaded file's own name, never overwritten (`-2`, `-3` …) |
 | `uploads/images/` | read / write / delete (created at runtime if absent); photo resizes go through a `.tmp` beside the target |
 | `uploads/site/` | read / write, never delete (created at runtime if absent by `site-images.php`); page photos and the logo, named `<slot>-<stamp>.<ext>`. `images/site/` is read for its picker, never written |
 | `pdfs/.deleted.*`, `uploads/images/.deleted.*` | Delete Product, Remove PDF, Remove Photo and a photo replaced by another file type rename the unshared file to these; restoring a catalog backup renames them back. A second trash of the same name keeps the older one as `.deleted.<stamp>.<name>`. Never pruned (ADM-3, admin audit 2026-10-05) |
 | `admin/.pdf-renames.json` | read / write; the data sheets a SKU rename moved (last 500), so restoring the catalog from before the rename moves them back (DI-1) |
-| `uploads/.htaccess` | written by `upload-image.php` only if missing; photo uploads are refused while it is still missing |
+| `uploads/.htaccess` | written by `uploads_protection_problem()` (Product photo and Site Images uploads) only if missing; both refuse uploads while it is still missing |
 | `admin/admin-log.jsonl` | append; rotated at 16MB |
 | `admin/admin-log-*.jsonl` | read (rotated archives, never deleted) |
 | `admin/inquiries.jsonl` | read (written by `public/contact.php`, which rotates it at 16MB) |
@@ -51,7 +52,10 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 | `admin/ALLOW-PASSWORD-RESET` | read / delete — you create it over FTP; the admin never does |
 
 `public/contact.php` is a **second** dynamic piece: it ships into `dist/`,
-calls `mail()`, and appends to `admin/inquiries.jsonl`.
+reads `data/site-info.json` and `data/content.json`, calls `mail()`, appends to
+`admin/inquiries.jsonl` (rotating it at 16 MB), writes and clears
+`admin/.inquiry-log-failed.json`, and keeps its rate-limit / auto-reply-cap
+state as `ipc_rl_*`, `ipc_ar_*`, `ipc_lk_*` files in the PHP temp dir.
 
 The React site reads the three `data/*.json` files at runtime. The React build
 itself is fully static.
@@ -61,9 +65,10 @@ itself is fully static.
 ```
 public_html/
 ├── index.html              ← React app (FTP'd from your local /dist)
+├── index.php               ← front controller: every page's head + plain-HTML body from data/ (A-5.10)
 ├── assets/                 ← Hashed JS/CSS from Vite
 ├── contact.php             ← Contact/RFQ mail handler (ships inside dist/)
-├── .htaccess               ← SPA rewrite + cache headers + dotfile block
+├── .htaccess               ← rewrite to index.php + cache headers + dotfile block
 ├── .user.ini               ← PHP limits for public_html/ and everything under it
 ├── images/                 ← Static site imagery
 ├── data/
@@ -94,6 +99,9 @@ public_html/
     ├── password.php        ← Signed-in password change
     ├── upload-pdf.php      ← Upload, replace, or remove a PDF
     ├── upload-image.php    ← Upload or remove a product photo
+    ├── site-images.php     ← Site Images & Logo (page photos, logo; never deletes)
+    ├── marketing-pdfs.php  ← Catalog & Brochure PDFs (never deletes)
+    ├── logo.svg            ← Admin favicon / header mark
     ├── ping.php            ← Session keepalive probe for unsaved.js
     ├── help.php            ← In-app help & documentation
     ├── audit-log.php       ← View every change made through the admin
@@ -102,7 +110,12 @@ public_html/
     │                         contrast-guard / csrf-back  (ten files; `ls admin/*.js`)
     ├── admin-log.jsonl     ← Audit log (auto-created on first save)
     ├── inquiries.jsonl     ← Contact-form leads (written by contact.php)
+    ├── admin-log-*.jsonl, inquiries-*.jsonl ← Rotated archives (16 MB), never deleted
     ├── .login-throttle.json ← Per-IP failed-login counters
+    ├── .inquiries-seen.json ← Where the "new inquiries" badge last stopped
+    ├── .inquiry-log-failed.json ← Written by contact.php when it cannot log a lead
+    ├── .pdf-renames.json   ← Data sheets a SKU rename moved (for Backups undo)
+    ├── config.local.php.bak.* ← Last 5 password files
     └── .sessions/          ← Sign-in session files (created by the admin)
 ```
 
@@ -137,16 +150,18 @@ root [README.md](../README.md) deploy tables. In short:
    are what stop the server running scripts in the upload folders.
 3. FTP into `public_html/`, **in this order**:
    1. `dist/assets/`, then everything else in `dist/` **except `index.html`**
-      (including `dist/.htaccess` and `dist/.user.ini`)
+      (including `dist/.htaccess` and `dist/.user.ini`) — `dist/index.php`
+      **before** `dist/.htaccess`, which sends every page to it (A-5.10)
    2. **`admin/`** → `public_html/admin/` (tracked files only, including
       `admin/.htaccess`; not your local `*.jsonl`, `.login-throttle.json`,
+      `.inquiries-seen.json`, `.inquiry-log-failed.json`, `.pdf-renames.json`,
       `.sessions/` or `config.local.php*`)
    3. **`data/`**, **`pdfs/`** and **`uploads/`** folders, each **with its
       `.htaccess`** (**first deploy only — never again**). Upload `uploads/`
       from the repo; never create it by hand on the server — without its
       `.htaccess`, PHP can execute files placed in it (NEW-N3-3).
    4. `dist/index.html` **last**.
-4. In cPanel File Manager, set permissions. The four folders must be writable
+4. In cPanel File Manager, set permissions. The six folders below must be writable
    **by PHP**, not just by FTP — see the root README's Permissions section if
    the dashboard banner stays:
 
@@ -189,7 +204,8 @@ state on the server and your local copies are stale.
 **`admin/` is re-uploaded only when admin code changed**, and then only its
 tracked files (`git ls-files admin/`). Never its live-state files:
 `config.local.php*`, `*.jsonl`, `.login-throttle.json`, `.inquiries-seen.json`,
-`.sessions/`, `ALLOW-PASSWORD-RESET`. (Until 2026-09-29 this said "Do NOT
+`.inquiry-log-failed.json`, `.pdf-renames.json`, `.sessions/`,
+`ALLOW-PASSWORD-RESET`. (Until 2026-09-29 this said "Do NOT
 re-upload `admin/`" unqualified, and listed `dist/` as only `index.html` +
 `assets/` — audit 2026-09-27 R3-l4-2.)
 
@@ -258,9 +274,10 @@ here — A-9.B2-12.)
 
 1. From the dashboard, click **Manage PDF** on the row.
 2. Choose a PDF file. The real ceiling is
-   **`min(upload_max_filesize, 20MB)`** — `upload-pdf.php:82` hard-rejects
-   anything over 20MB regardless of the ini value, and `upload-image.php:160`
-   caps photos at 8MB the same way. Raising `.user.ini` alone will not lift
+   **`min(upload_max_filesize, 20MB)`** — `uploaded_pdf_problem()` in
+   `config.php` hard-rejects anything over 20MB regardless of the ini value, and
+   `uploaded_image_problem()` caps photos at 8MB the same way (both shared by
+   every upload page). Raising `.user.ini` alone will not lift
    either. Admin → Help → "What your server allows" prints both the live ini
    values and the effective limits. (AUDIT_v3 D6)
    If the upload is rejected for size you now get a message that names the
@@ -286,8 +303,9 @@ here — A-9.B2-12.)
 Click **Audit Log** in the dashboard nav. Every entry has a timestamp, SKU,
 detail, and the IP that made the change. The actions recorded are:
 `add`, `edit`, `delete`, `upload-pdf`, `remove-pdf`, `upload-image`,
-`remove-image`, `settings`, `content`, `restore`, `password`, `sign-in`,
-`sign-out` and `sign-in-failed` — the same fourteen the page's filter offers
+`remove-image`, `site-image`, `marketing-pdf`, `settings`, `content`, `restore`,
+`password`, `sign-in`, `sign-out` and `sign-in-failed` — the same sixteen the
+page's filter offers
 (`IPC_AUDIT_ACTIONS` in `config.php`).
 
 ### The navigation bar

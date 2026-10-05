@@ -1,5 +1,9 @@
 # UX Usability Audit Report — Insulation Products Corporation (Dev)
 
+> **Historical record (2026-08-12) — not a current backlog.** Every finding
+> F1–F17 below was fixed in PR #42 (`WHATS_LEFT.md` §1c). Current open work is
+> in `WHATS_LEFT.md`. (Banner added 2026-10-05.)
+
 **Date:** 2026-08-12
 **Environment:**
 - `npm install` + `npm run dev` → Vite 5.4.21 on `http://localhost:5173` (Node v22.22.2, npm 10.9.7)

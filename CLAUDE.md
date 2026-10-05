@@ -4,7 +4,8 @@ Guidance for Claude Code when working in this repository.
 **Constraints and invariants only.** Current state lives in
 [WHATS_LEFT.md](WHATS_LEFT.md); the reasoning behind this release's changes is
 in [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md). Re-verified 2026-08-04;
-the `App.jsx` size, the admin I/O surface and Deploy re-verified 2026-09-28.
+the `App.jsx` size, the admin I/O surface and Deploy re-verified 2026-09-28;
+whole file re-verified against the code 2026-10-05 (WHATS_LEFT §1aq).
 
 ## Commands
 
@@ -54,7 +55,7 @@ two upload folders.
 | Local | Server | Built by | Re-deploy when… |
 |---|---|---|---|
 | `dist/*` (from `npm run build`) | `public_html/` | Vite | React source changes |
-| `public/*` | `public_html/` | — | `.htaccess`, `.user.ini`, `contact.php`, `sitemap.php`, images change |
+| `public/*` | `public_html/` | — | `.htaccess`, `.user.ini`, `index.php`, `contact.php`, `sitemap.php`, images change |
 | `admin/` | `public_html/admin/` | (PHP, copied) | admin code changes |
 | `admin/config.local.php` | `public_html/admin/` | **never uploaded** — written on the server by the `ALLOW-PASSWORD-RESET` flow (GO-LIVE B4) | — (gitignored) |
 | `data/` | `public_html/data/` | — | **first deploy only** |
@@ -66,10 +67,11 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
 
 ### React side ([src/App.jsx](src/App.jsx))
 
-- **One ~13,700-line file is the entire app** (13,742 on 2026-09-28). Routing
+- **One ~13,900-line file is the entire app** (13,918 on 2026-10-05). Routing
   shims, data fetch, every page, every component, every icon set. Search by
   name; there is no per-page split in use. (Said 8,500 until 2026-08-11, 12,270
-  until 2026-08-13, 12,900 until 2026-09-14 and 13,300 until 2026-09-28; it
+  until 2026-08-13, 12,900 until 2026-09-14, 13,300 until 2026-09-28 and 13,700
+  until 2026-10-05; it
   grows every release without the figure being revisited.
   Re-measure with `wc -l src/App.jsx` rather than trusting this number — it will
   drift again.)
@@ -87,7 +89,18 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
   "read the param, then strip it" cleanup, or Back gets trapped.
 - **Navigation uses real path segments.** `/products`, `/contact`, `/dashboard`.
   `public/.htaccess`'s rewrite is therefore **load-bearing**: without it every
-  deep link and every refresh 404s. Do not describe it as a safety net.
+  deep link and every refresh 404s. Do not describe it as a safety net. Since
+  A-5.10 (WHATS_LEFT §1ar) it rewrites to `index.php`, not `index.html`, and
+  its `DirectoryIndex index.php index.html` sends `/` there too.
+- **`PageMeta` has a server-side twin.** `public/index.php` ports `PageMeta`
+  and its helpers (`findProductByParam`, `fitProductTitle`, `trimToWord`,
+  `localizeProse`, `isoRewriter`, `factsRewriter`, `SEO_DEFAULT`, the
+  page-header title defaults) so crawlers and link unfurlers that never run
+  the bundle get the same head. Change either side and run
+  `node _harness/prerender.js` (parity on every route and product, under
+  mutated data too) and `node _harness/prerender-apache.js` (the `.htaccess`
+  routing on real Apache). `index.php` fails closed: any error, or a damaged
+  `site-info.json` / `content.json`, serves `index.html` unmodified.
 - **Data fetch.** Three files, per-minute cache-buster, 12 s abort timeout,
   60 s in-memory TTL. `data/.htaccess` caches ~60 s.
 - **Vite config** sets `base: '/'` (changed from `'./'` in PLAN-8 A5 —
@@ -119,7 +132,8 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
 - **`data/`** — read/write `products-all.json`, `site-info.json`,
   `content.json`, each written as `<file>.<pid>-<rand>.tmp` then renamed in
   (`json_write_atomic()`); write/prune `<prefix>.backup.<stamp>[-NN].json`
-  (`BACKUP_KEEP`); create/`flock` `.products-write.lock` (SEC-5).
+  (`BACKUP_KEEP`); create/`flock` `.products-write.lock` (SEC-5) and
+  `.content-write.lock` / `.site-info-write.lock` (`data_write_lock()`, §1an).
 - **`pdfs/`** — read/write/delete; `upload-pdf.php` creates the folder if
   absent. Deleting a product renames its unshared PDFs to `.deleted.<name>`
   (`file_to_trash()`, ADM-3) and a catalog restore renames them back
@@ -134,8 +148,9 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   overwriting, and writes `site-info.json` `catalogPdfUrl` or one
   `content.json` `services[i].brochure` through the same `save_*()` helpers.
 - **`uploads/images/`** — read/write/delete; created at runtime if absent, and
-  `upload-image.php` writes `uploads/.htaccess` if that is missing (and refuses
-  the upload if it still is — NEW-N3-3). Photo resizes go through a `.tmp`
+  `uploads_protection_problem()` (called by `upload-image.php` and
+  `site-images.php`) writes `uploads/.htaccess` if that is missing — both
+  refuse the upload if it still is (NEW-N3-3). Photo resizes go through a `.tmp`
   beside the target. Deleted products' photos go to `.deleted.<name>` as above.
 - **`uploads/site/`** — read/write, **never delete**; created at runtime if
   absent by `site-images.php` (2026-09-29), which stores page photos and the
@@ -155,8 +170,12 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   there (SEC-4; falls back to the default `session.save_path` if `admin/` is
   not writable).
 
-`public/contact.php` is a **second** dynamic piece: it ships into `dist/`, calls
-`mail()`, and appends to `admin/inquiries.jsonl`.
+`public/contact.php` is a **second** dynamic piece: it ships into `dist/`, reads
+`data/site-info.json` and `data/content.json`, calls `mail()`, appends to
+`admin/inquiries.jsonl` (rotating it to `inquiries-<stamp>.jsonl` at 16 MB),
+writes and clears `admin/.inquiry-log-failed.json`, and keeps its rate-limit /
+auto-reply-cap state as `ipc_rl_*`, `ipc_ar_*`, `ipc_lk_*` files in the PHP
+temp dir (pruned).
 
 `public/sitemap.php` is a **third**: it ships into `dist/`, reads
 `data/products-all.json` on every request, and is served at `/sitemap.xml`
@@ -164,6 +183,10 @@ through a rewrite in `public/.htaccess`. There is deliberately **no
 `sitemap.xml` file** — if one existed, the catch-all's `!-f` condition would
 serve it and the rewrite would look like it worked while a stale file shipped.
 It reads only; it starts no session and does not include `admin/config.php`.
+
+`public/index.php` is a **fourth**: every page route is served through it
+(A-5.10). It reads `index.html` and the three `data/*.json` files, writes
+nothing, starts no session, and does not include `admin/config.php`.
 
 ## Invariants — each of these caused a real defect
 
@@ -201,10 +224,12 @@ incident.
    the catalog loading/error gate.** They used to sit behind it, so a JSON blip
    took the phone number off the Contact page.
 9. **`.ipc-skeleton` and `.ipc-page-header` must be defined in `src/index.css`.**
-   `GlobalStyles` mounts inside the tree that only renders *after* loading
-   finishes, so defining the skeleton only there made it styleless in the exact
-   situation it exists for. `.ipc-page-header` is deliberately in **both**
-   (`index.css:341` and `App.jsx`'s `GlobalStyles`) — the two are complementary
+   `GlobalStyles` used to mount inside the tree that only renders *after*
+   loading finishes, so defining the skeleton only there made it styleless in
+   the exact situation it exists for. (It now mounts beside `Navbar`, above the
+   gate — the rule stays: first-paint CSS must not depend on any component
+   mounting. Corrected 2026-10-05.) `.ipc-page-header` is deliberately in
+   **both** (`src/index.css` and `App.jsx`'s `GlobalStyles`) — the two are complementary
    and nothing is broken. The earlier wording said "not in `GlobalStyles`",
    which was false as written. (Corrected 2026-08-05.)
 10. **`public/contact.php`'s `s()` does not HTML-escape.** Its destinations are a
@@ -235,8 +260,9 @@ incident.
 15. **`admin_head()` (`admin/config.php`) must be echoed BEFORE the page's own
     `<style>`.** It carries only the *majority* variant of each shared rule;
     pages that genuinely differ keep their declaration in their own `<style>`
-    and win on source order. Reverse the order and thirteen pages restyle at
-    once. Narrow pages (Password, Delete, both uploads) opt out of the wide
+    and win on source order. Reverse the order and fifteen pages restyle at
+    once. Narrow pages (Password, Delete, Upload PDF, Upload Image, Site Images
+    & Logo, Catalog & Brochure PDFs) opt out of the wide
     container by simply not carrying `.admin-wide` — do not add it "for
     consistency"; `_harness/adminwidth.js` fails if you do.
 16. **A no-op save returns `true`, and `backup_before_write()` returning `null`
@@ -249,7 +275,7 @@ incident.
     Pages that need to word it differently call `last_save_was_noop()`.
 17. **A SKU rename in `edit.php` must not rename a PDF another product points
     at.** Two products share one data sheet in the shipped catalog (`IP12GA` and
-    `IP12GA - IP1274`), so the unconditional
+    `IP12GA-IP1274`), so the unconditional
     `rename(/pdfs/<old>.pdf, /pdfs/<new>.pdf)` 404'd the *other* product's Data
     Sheet button — silently, with no error, and with no way back: `pdfs/` is not
     covered by `backup_before_write()`. The rename now builds the set of PDF

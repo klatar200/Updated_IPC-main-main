@@ -220,6 +220,17 @@ $navActive = 'products';
       $healthProblems[] = 'The <code>pdfs</code> folder is missing or not writable. '
         . 'Data sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.' . $permFallback;
   }
+  // §1aq (doc verification 2026-10-05) — the two folders the newer upload
+  // pages write were in the permissions tables but not checked here, so a
+  // read-only one surfaced only as a failed upload. Each is created on first
+  // use, so "missing" is fine while its parent folder is writable.
+  foreach ([[SITE_IMG_DIR, 'uploads/site', 'Site Images &amp; Logo uploads'], [MARKETING_PDF_DIR, 'pdfs/marketing', 'Catalog &amp; Brochure PDF uploads']] as [$dir, $label, $what]) {
+      $d = rtrim($dir, '/');
+      if (is_dir($d) ? !is_writable($d) : !is_writable(dirname($d))) {
+          $healthProblems[] = 'The <code>' . $label . '</code> folder is not writable (or cannot be created). '
+            . $what . ' will fail. Create public_html/' . $label . '/ over FTP and set it to 755.' . $permFallback;
+      }
+  }
   /* A-9.P2-2 — the image extension the photo resizer needs. Every other row
      here is a permission; this one is a missing PHP extension, and it fails
      SOFTLY: the upload still succeeds, the photo is just never scaled down, so

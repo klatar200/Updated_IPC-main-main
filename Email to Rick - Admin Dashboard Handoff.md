@@ -10,7 +10,9 @@ The full guide is built into the dashboard itself — sign in and click **Help**
 - Adding, editing, and removing products from the catalog
 - Uploading product photos (one click, straight from your computer) and PDF data sheets
 - Editing your business details — phone, address, hours, certifications, brand colors and logo
-- Editing the marketing copy on your pages, your FAQ, and the automatic reply email customers receive
+- Editing the marketing copy on your pages, your FAQ, the statements about IPC ("Company Claims"), and the automatic reply email customers receive
+- Putting new page photos and your logo on the site (Site Images & Logo), and your full catalog or a brochure PDF (Catalog & Brochure PDFs)
+- Seeing every change made through the dashboard (Audit Log)
 - Seeing every quote request and contact-form message that comes in
 - Restoring an earlier version yourself if a save goes wrong
 - Changing your own password

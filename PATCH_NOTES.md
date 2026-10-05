@@ -1,6 +1,7 @@
 # Patch Notes
 
-Changes since the site went live, **2026-07-08 → 2026-08-07** (`8902180` → `2253874`).
+Changes since the work began, **2026-07-08 → 2026-10-05**. The first block below
+covers 2026-07-08 → 2026-08-07 (`8902180` → `2253874`); later blocks are dated.
 191 files, 12 merged PRs. Full record with measurements: `WHATS_LEFT.md` §1, §1b, §4*.
 
 **Not yet deployed.** Nothing below is on the live server.
@@ -36,7 +37,7 @@ Changes since the site went live, **2026-07-08 → 2026-08-07** (`8902180` → `
 - **`max_input_vars` truncation** silently dropped the back half of a long save. A positional sentinel now refuses the save instead.
 - **A 302 on an expired session turned the POST into a GET**, discarding everything typed. It now renders in place, with a route back to the unsaved work, a `beforeunload` guard and a keepalive.
 - Optimistic-concurrency signatures on Edit, Settings and Content, so two tabs cannot overwrite each other.
-- Backups: 30 kept (was 5), correct ordering, same-second collision suffix, sequence past 99, item counts shown on the restore page.
+- Backups: 30 kept (was 5; 90 since 2026-09-28), correct ordering, same-second collision suffix, sequence past 99, item counts shown on the restore page.
 - Advanced-mode spec-table JSON no longer discarded on a syntax error.
 - Delete confirmation names the photo and drops the false "cannot be undone" — a backup is written first.
 - Deleting a product removes its photo, keeping shared ones; upload refuses to overwrite another product's data sheet.
@@ -158,7 +159,7 @@ to a hardcoded default, which was broken until this release.
 
 # 2026-08-08 — UI/UX audit remediation (PLAN-8)
 
-Source: [UI_UX_AUDIT_2026-08-08.md](UI_UX_AUDIT_2026-08-08.md). 50 items —
+Source: `UI_UX_AUDIT_2026-08-08.md` (since deleted; its items are recorded in `WHATS_LEFT.md` §1c and §4*). 50 items —
 **18 shipped, 25 deferred, 7 handed to the owner.** Four of six phases were
 executed; scope was cut to severity A and B by agreement partway through, and
 two whole phases were not started. Everything not shipped is named below, and
@@ -566,7 +567,7 @@ comes from the footer.
 
 # 2026-08-09 — PLAN-8, the severity-C suggestions
 
-Source: `UI_UX_AUDIT_2026-08-08.md`. The A and B tiers closed on 2026-08-08.
+Source: `UI_UX_AUDIT_2026-08-08.md` (since deleted, see above). The A and B tiers closed on 2026-08-08.
 This section covers the fifteen severity-C items that needed code, in three
 commits — two of which shipped on 2026-08-08 without their notes and are
 recorded here.
@@ -835,7 +836,7 @@ four of its files are now referenced by rendered pages.
 # 2026-08-09c — PLAN-9, remediating the same-day audit
 
 Six findings, every one CONFIRMED with a runnable probe before a line changed
-(`_harness/AUDIT-REPORT-2026-08-09.md`), every fix landed with a suite that
+(`_harness/AUDIT-REPORT-2026-08-09.md`, since deleted; findings in `WHATS_LEFT.md` §4*), every fix landed with a suite that
 failed first.
 
 - **Rick's first Page Content save deleted every marketing photograph.** The
@@ -875,7 +876,7 @@ failed first.
 
 ---
 
-# PLAN-10 — remediating AUDIT-10 (in progress)
+# PLAN-10 — remediating AUDIT-10 (closed 2026-08-11)
 
 Written from `_harness/AUDIT10-REPORT.md`: 13 findings, one severity A and
 twelve severity B. The plan is `plans/PLAN-10-audit10-remediation.md`; this
@@ -1259,5 +1260,47 @@ Two badge pairs are still yours to choose between, because there is no majority
 to follow: "Low Temperature Flexibility" vs "Low-Temperature Flexibility", and
 "125°C Rated" vs "Rated 125°C". The certification marks still wait on the
 certificates themselves.
+
+---
+
+# 2026-09-15 → 2026-10-05 — what changed for the owner
+
+Full record with measurements: `WHATS_LEFT.md` §1af–§1aq.
+
+## New things you can do yourself
+- **Site Images & Logo** page: upload a photo or logo from your computer, or
+  pick one already on the server, for the homepage, About and Services photos
+  and the logo. Nothing is ever deleted from the server.
+- **Catalog & Brochure PDFs** page: upload your full catalog (the footer link)
+  or a Services brochure and choose where it is used, or stop using it.
+- **Company Claims** (Page Content): the statements that were fixed in the
+  code — "Privately Held", "≤ 1 week", the PPAP box, "Rush service
+  available", "Typical reply: same day", the two footer sentences, and the
+  brand and manufacturer search engines are told — can be edited or removed.
+- **ISO**: type a revision (e.g. `ISO 9001:2015`) and it appears in every
+  current mention; empty the box to stop claiming ISO, and Business Details
+  lists any of your own wording that still mentions it. The 1990s milestone
+  stays as history.
+- Large phone photos (up to 52 megapixels) are accepted.
+
+## Your work is safer
+- Removing or replacing a photo or a data sheet keeps the old file aside on
+  the server, so **Backups → restore** brings it back; undoing a part-number
+  rename brings its data sheets back too.
+- Business Details refuses to save over a damaged file, as Page Content
+  already did; two people saving at once can no longer undo each other.
+- Saving a page you did not change no longer uses up a backup.
+- Changing only the phone number moves the tap-to-call number with it.
+- Saves say so when a photo, PDF or picture address points at nothing, and
+  when a badge naming a standard (RoHS, UL …) will not show because its
+  Approvals box is unticked.
+
+## Leads
+- A quote request refused by the rate limit keeps its part number and
+  quantity, and counts in the new-inquiries badge so you can call back.
+
+## Public site
+- Product and other pages now print cleanly: no menus, footer or buttons,
+  black text on white, ruled tables.
 
 **Not yet deployed.** Nothing above is on the live server.

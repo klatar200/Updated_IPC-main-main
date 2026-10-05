@@ -30,20 +30,19 @@ Nothing was lost with them, because a plan was never where the outcome lived:
 
 | What you might have wanted a plan for | Where it actually is |
 |---|---|
-| What shipped, and what it measured | `WHATS_LEFT.md` §1-series (§1b … §1n) and its §4-series evidence blocks |
-| The owner-facing summary of the whole release | `PATCH_NOTES.md` |
+| What shipped, and what it measured | `WHATS_LEFT.md` §1-series (§1b … §1aq) and its §4-series evidence blocks |
+| The owner-facing summary of the release | `PATCH_NOTES.md` (through 2026-09-15; later changes are in `WHATS_LEFT.md` §1am–§1aq) |
 | What is still open | `WHATS_LEFT.md` §2-series |
 | Which suite proves which item | `_harness/README.md` |
-| The regression baseline every plan preserved | GUARDRAILS §4.1 — 65 suites, measured 2026-08-11 |
+| The regression baseline every plan preserved | GUARDRAILS §4.1 — 84 suites, measured 2026-09-14/15; the current sweep lists are in `_harness/README.md` |
 | Settled decisions and refuted findings | GUARDRAILS §7 |
 
 Two things that lived only in the deleted plans were moved rather than dropped:
 
-- **PLAN-7 item 3b (the image picker) was never built.** Its full specification —
-  including the one rule that matters, that the picker may *offer*
-  `public/images/site/` but must never *delete* from it, because that folder is
-  build output the next deploy would silently restore — is duplicated verbatim in
-  `WHATS_LEFT.md` §2h. That is now its only home.
+- **PLAN-7 item 3b (the image picker) shipped 2026-09-29** as the Site Images &
+  Logo page (`admin/site-images.php`, `WHATS_LEFT.md` §1am), keeping the rule
+  that mattered: it *offers* `images/site/` but never deletes from it. (Until
+  2026-10-05 this line said it was never built.)
 - **PLAN-10 §12's out-of-scope list** — the six severity-C clusters that would make
   the next AUDIT-10 plan — is still in PLAN-10, which stays. (That plan is **not**
   PLAN-11: the number went to the audit-9 go-live plan. This line and item 1
@@ -58,9 +57,11 @@ Two things that lived only in the deleted plans were moved rather than dropped:
    record to be tidied away — it is the backlog. PLAN-10 §12 names the six
    clusters the report groups as one fix each; that is the shape of a future plan
    (PLAN-12 or later).
-2. **Everything in `WHATS_LEFT.md` §2-series**, including PLAN-7 item 3b, the
-   `/contact` message tab's four mislabelled fields, and A10-037 (the ISO 9001
-   revision contradiction), which is blocked on an owner decision.
+2. **What `WHATS_LEFT.md` still lists as open** — its §1aq truth pass
+   (2026-10-05) says, item by item, what remains and who it waits on. Of the
+   items this line used to name, PLAN-7 item 3b and the `/contact` labels
+   shipped and A10-037's contradiction is fixed (§1aa); what remains of it is
+   the registrar's answer on the ISO revision year (GO-LIVE §A).
 3. **Nothing is deployed.** `PATCH_NOTES.md` describes a release that is still
    only in this repo.
 

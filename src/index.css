@@ -467,3 +467,35 @@ svg[stroke="#005da3"] {
 body.ipc-has-sticky-rfq {
   padding-bottom: 76px;
 }
+
+/* A-7.7 (audit 7, closed 2026-10-05 — WHATS_LEFT §1aq) — a print stylesheet.
+   Buyers print spec pages into requisitions, and there were zero print rules:
+   the site header, the 440 px footer and the sticky quote bar all printed, the
+   product name started 364 px down, and ~350 dark blocks went to the printer.
+   On paper: no site chrome, no buttons, black text on white, tables ruled,
+   rows and images kept whole. `!important` throughout because most of what it
+   overrides is inline style and Tailwind utilities, which load after this
+   file (invariant 14). Marked-up exceptions carry data-print="hide". */
+@media print {
+  @page { margin: 12mm; }
+  html, body { background: #fff !important; }
+  *, *::before, *::after {
+    background: transparent !important;
+    background-image: none !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  /* GlobalStyles (App.jsx) re-declares the banner gradient with !important;
+     a class selector there outranks `*` here, so name it with more weight. */
+  html body .ipc-page-header { background: none !important; }
+  header, footer, .ipc-skip, button, [data-print="hide"] { display: none !important; }
+  main, .ipc-container { max-width: none !important; width: auto !important; padding-left: 0 !important; padding-right: 0 !important; }
+  a { text-decoration: none !important; }
+  img { max-width: 100% !important; break-inside: avoid; }
+  table { border-collapse: collapse !important; }
+  th, td { border: 1px solid #999 !important; }
+  tr, img, li { break-inside: avoid; }
+  h1, h2, h3 { break-after: avoid; }
+}
+

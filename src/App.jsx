@@ -3255,9 +3255,13 @@ function HomePage() {
                 reason the street does. It was the one ISO string in this file
                 typed as prose, so it could not follow an admin edit at all —
                 `withIsoLabel` only reaches stored copy, not JSX. */}
+            {/* §1aq — the ISO box may be emptied (Keagan 2026-10-05): with no
+                certification the sentence ends at "independent", not at
+                "and  registered". */}
             IPC has stocked, cut and shipped from {site.address.street} for over
-            fifty years — privately held, independent, and{" "}
-            {site.certifications.iso} registered.{" "}
+            fifty years — privately held{site.certifications.iso
+              ? <>, independent, and {site.certifications.iso} registered.</>
+              : <> and independent.</>}{" "}
             <PageLink
               page="about"
               style={{
@@ -3762,7 +3766,8 @@ function AboutPage() {
               { label: "Structure", value: claims.aboutStructureClaim },
               { label: "Inventory", value: `${site.stats.feetInStock} feet in stock` },
               { label: "Minimum Order", value: site.stats.minimumOrder },
-              { label: "Quality", value: `${site.certifications.iso} Registered` },
+              // §1aq — an emptied ISO box drops the row (the filter below).
+              { label: "Quality", value: site.certifications.iso ? `${site.certifications.iso} Registered` : "" },
               { label: "Custom Lead Time", value: claims.aboutLeadTimeClaim },
               { label: "Phone", value: site.contact.phone },
               { label: "Fax", value: site.contact.fax },
@@ -5982,9 +5987,10 @@ const PRODUCTS_JSON_URL = "/data/products-all.json";
  * copy that self-canonicalises is worse than one pointing at the wrong host.
  *
  * `www` matches every other declaration in the repo — the $ORIGIN in
- * public/sitemap.php (which generates every <loc>), public/robots.txt's
+ * public/sitemap.php (which generates every <loc>), IPC_ORIGIN in
+ * public/index.php (the server-side head, §1ar), public/robots.txt's
  * Sitemap: line, and index.html's shipped og:url. If the apex is ever chosen
- * instead, this constant and those three files must change together.
+ * instead, this constant and those four files must change together.
  */
 const SITE_ORIGIN = "https://www.insulationproducts.com";
 
@@ -6657,6 +6663,13 @@ const SITE_CLEARABLE = new Set([
   "social.tiktok",
   "company.shortName",
   "company.slogan",
+  // §1aq (Keagan 2026-10-05) — whether IPC claims ISO at all is the owner's
+  // call in Business Details. Before, an emptied box re-seeded "ISO 9001"
+  // (invariant 4's blank-drop), so the claim could not be removed from the
+  // admin. Every place that renders it handles "" (footer, About fact box,
+  // homepage band); stored Page Content wording is left as typed and
+  // settings.php lists the entries that still mention ISO.
+  "certifications.iso",
 ]);
 
 function mergeSiteInfo(data) {
@@ -6774,17 +6787,19 @@ function localizeProse(text, site) {
  * `certs`, `heroTrust`, `heroProofPoints`, `features`, `milestones`,
  * `capabilities`, `seo` and `about.paragraphs`.
  *
- * WHAT IT REWRITES, AND WHY NOT MORE. It rewrites the REVISION only: any
- * `ISO 9001:<year>` becomes the source's revision, or loses the suffix entirely
- * when the source carries none. A bare `ISO 9001` is left alone.
+ * WHAT IT REWRITES. SUPERSEDED-BY §1aq (2026-10-05): it used to rewrite the
+ * REVISION only and leave a bare `ISO 9001` alone. Once §1aa made every
+ * shipped mention bare, a revision typed in the admin reached nothing in the
+ * stored copy. Now: a source WITH a revision is written into every mention; a
+ * bare source strips revisions everywhere.
  *
- * That restraint is the whole design. `milestones[2]` reads "1990s — Achieved
- * ISO 9001 registration"; a rewrite that stamped the CURRENT revision onto
- * every mention would turn a true historical sentence into a false one, and
- * "ISO 9001 in-process & final inspection" and "ISO 9001 Quality" are
- * revision-neutral for the same reason. A revision is a fact about the
- * certificate IPC holds today and must be consistent everywhere; the standard's
- * name is not.
+ * The restraint that remains is history. `milestones[2]` reads "1990s —
+ * Achieved ISO 9001 registration"; stamping today's revision (or a different
+ * standard) onto it would turn a true historical sentence into a false one, so
+ * withIsoLabel() never rewrites `milestones`. Every other mention is a claim
+ * about the certificate IPC holds today. An EMPTY source (the owner removed
+ * the claim) rewrites nothing; Business Details lists the wording that still
+ * mentions ISO instead.
  *
  * The one exception is a source that is not an ISO 9001 string at all — if the
  * owner types a different certification into the field, the whole token is
@@ -6804,10 +6819,20 @@ function isoRewriter(iso) {
     // A different certification entirely: replace the whole token.
     return (text) => text.replace(ISO_9001_TOKEN, src);
   }
-  const revision = m[1] ? `ISO 9001:${m[1]}` : "ISO 9001";
-  // Only a token that CARRIES a revision is touched. `$1` is the revision group;
-  // when it is undefined the match is a bare `ISO 9001` and is returned as-is.
-  return (text) => text.replace(ISO_9001_TOKEN, (whole, rev) => (rev ? revision : whole));
+  // §1aq (2026-10-05) — SUPERSEDES "only a token that carries a revision is
+  // touched". Since §1aa every shipped mention is a bare `ISO 9001`, so under
+  // that rule a revision typed in Business Details reached the footer, the
+  // About fact box and the homepage band and nothing else — not the "waterfall
+  // to all locations" Keagan asked for on 2026-09-15, and the field's own hint
+  // promised it everywhere. A revision now reaches every mention; a bare
+  // source strips revisions everywhere, as before. The one place that must
+  // NOT follow — history, "1990s · Achieved ISO 9001 registration" — is kept
+  // out by withIsoLabel(), which skips `milestones`.
+  if (m[1]) {
+    const revision = `ISO 9001:${m[1]}`;
+    return (text) => text.replace(ISO_9001_TOKEN, revision);
+  }
+  return (text) => text.replace(ISO_9001_TOKEN, "ISO 9001");
 }
 
 /** Deep-map every string in a plain JSON tree. Arrays and objects are rebuilt;
@@ -6823,9 +6848,18 @@ function mapStrings(node, fn) {
   return node;
 }
 
+// The milestone timeline is history: "Achieved ISO 9001 registration" in the
+// 1990s must never gain today's revision or today's standard (isowaterfall.js
+// negative control). Everything else in the tree is a current claim.
+const ISO_HISTORY_KEYS = new Set(["milestones"]);
+
 function withIsoLabel(tree, iso) {
   const rewrite = isoRewriter(iso);
-  return rewrite ? mapStrings(tree, rewrite) : tree;
+  if (!rewrite) return tree;
+  if (!tree || typeof tree !== "object" || Array.isArray(tree)) return mapStrings(tree, rewrite);
+  const out = {};
+  for (const k of Object.keys(tree)) out[k] = ISO_HISTORY_KEYS.has(k) ? tree[k] : mapStrings(tree[k], rewrite);
+  return out;
 }
 
 /**
@@ -7780,6 +7814,10 @@ function NotFoundPage() {
   );
 }
 
+// A-5.10 (§1ar) — public/index.php computes this same head on the server for
+// clients that never run this code (link unfurlers, Bing, AI crawlers). It is
+// a port of this function and its helpers; change one, change the other, and
+// run `node _harness/prerender.js`, which diffs the two on every route.
 function PageMeta({ products }) {
   const site = useSiteInfo();
   const { seo, copy } = useContent();
@@ -8482,7 +8520,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
     // id — E2. The catalogue sidebar is what Page Content =>
     // "Product Families / Categories" actually drives; the anchor was first
     // put on the /dashboard pill strip, which is a different page.
-    <aside id="ipc-sec-productFamilies" className="w-full lg:w-72 flex-shrink-0">
+    <aside id="ipc-sec-productFamilies" className="w-full lg:w-72 flex-shrink-0" data-print={selectedId ? "hide" : undefined}>
       {/* ── MOBILE VIEW: horizontal pill strip + product grid ── */}
       <div className="lg:hidden mb-4">
         {/* Family filter pills — horizontal scroll */}
@@ -9297,7 +9335,7 @@ function ProductDetail({ product, allProducts }) {
               </div>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-2 mt-1">
+          <div className="flex flex-wrap items-center gap-2 mt-1" data-print="hide">
             {hasPdfFile ? (
               <>
                 {/* Primary PDF — uses pdfLabel if set (e.g. "Molded Cap" for
@@ -9654,6 +9692,7 @@ function ProductDetail({ product, allProducts }) {
       {related.length > 0 && (
         <div
           className="p-8"
+          data-print="hide"
           style={{ borderTop: "1px solid #e5e9ee", background: "#f8fafc" }}
         >
           <div
@@ -10342,6 +10381,7 @@ function ProductPage({ products }) {
           is nothing for it to be about. */}
       {product && (
       <div
+        data-print="hide"
         style={{
           position: "fixed",
           bottom: 0,

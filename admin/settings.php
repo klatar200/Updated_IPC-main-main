@@ -348,10 +348,21 @@ $navActive = 'settings';
             'Catalog PDF URL' => $info['catalogPdfUrl'] ?? '',
             'Logo URL'        => $info['theme']['logoUrl'] ?? '',
         ], 'site_file_missing'));
+        // §1aq — with the ISO box empty, list the stored wording that still
+        // claims ISO (iso_mentions() in config.php).
+        $isoLeft = trim((string)($info['certifications']['iso'] ?? 'x')) === ''
+            ? iso_mentions(load_content(), $info) : [];
+        if ($isoLeft): ?>
+    <div class="warn-list" role="status" id="iso-mentions">
+      <strong>⚠️ The ISO box is empty, but these entries still mention ISO 9001</strong>
+      <ul><?php foreach ($isoLeft as $m): ?><li><?= h($m) ?></li><?php endforeach; ?></ul>
+      <div style="font-size:12px;margin-top:6px">Edit or remove each in the place named. A historical sentence (for example a milestone) can stay if it is still true.</div>
+    </div>
+  <?php endif;
         if ($missingFiles): ?>
     <div class="warn-list" role="status">
       <strong>⚠️ Not on the server</strong>
-      <ul><?php foreach ($missingFiles as $mf): ?><li><?= h($mf) ?> — there is no file at this address, so the link on the website will not work. Upload the file first (Marketing PDFs, or Site Images &amp; Logo), or correct the address.</li><?php endforeach; ?></ul>
+      <ul><?php foreach ($missingFiles as $mf): ?><li><?= h($mf) ?> — there is no file at this address, so the link on the website will not work. Upload the file first (on the Catalog &amp; Brochure PDFs page, or Site Images &amp; Logo for the logo), or correct the address.</li><?php endforeach; ?></ul>
     </div>
   <?php endif; ?>
   <?php if (!empty($errors)): ?>
@@ -553,6 +564,12 @@ $navActive = 'settings';
               places at once. Leave it as plain <code>ISO 9001</code> and no
               revision is claimed anywhere &mdash; which is the safe answer if
               you are not certain which one your certificate names.
+              <br>
+              <strong>Empty this box</strong> and the website stops claiming ISO
+              in the footer, the About fact box and the homepage band. Wording
+              you typed yourself in Page Content is not changed: after saving,
+              this page lists every entry that still mentions ISO, so you can
+              edit or remove each one.
             </div>
           </div>
           <div class="form-group">

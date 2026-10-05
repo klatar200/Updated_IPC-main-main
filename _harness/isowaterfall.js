@@ -45,6 +45,13 @@
  *     certificate IPC holds now, and leaves the bare standard name alone. This
  *     control is what stops anyone "fixing" that back.
  *
+ * SUPERSEDED IN PART by §1aq (2026-10-05): the rewrite now writes a source
+ * revision into EVERY mention (bare ones too), because §1aa had made every
+ * shipped mention bare and a typed revision then reached none of them. The
+ * milestone control above still holds — `milestones` is excluded from the
+ * rewrite by name. `_harness/isoedit.js` asserts the new behaviour through the
+ * real admin form. Every assertion in this file is unchanged and still passes.
+ *
  * It restores the mirror's `site-info.json` byte-for-byte at the end, and
  * compares against `_harness/pristine/` (GUARDRAILS 4.2) so a crashed run
  * cannot leave the mirror dirty for the next suite.

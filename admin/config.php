@@ -1175,6 +1175,49 @@ const IPC_APPROVAL_PATTERNS = [
 ];
 
 /**
+ * §1aq (Keagan 2026-10-05) — every stored sentence that still names ISO 9001,
+ * for the Business Details page to list once the ISO box is emptied. The box
+ * controls the structural claims (footer line, About fact box, homepage band)
+ * and the revision inside stored wording, but the wording itself is the
+ * owner's: a milestone such as "Achieved ISO 9001 registration" may stay true
+ * history after a lapse, so nothing is deleted automatically — the owner is
+ * shown where each mention is instead. Returns "Where: text" lines.
+ */
+function iso_mentions(array $content, array $info): array {
+    $names = [
+        'certs' => 'Page Content → Certifications', 'heroTrust' => 'Page Content → Homepage — Hero Trust Ticker',
+        'heroProofPoints' => 'Page Content → Homepage — Hero Proof Points', 'stats' => 'Page Content → Trust Bar Stats',
+        'features' => 'Page Content → Features', 'milestones' => 'Page Content → Milestones',
+        'capabilities' => 'Page Content → Capabilities', 'seo' => 'Page Content → Search Engine Text (SEO)',
+        'faq' => 'Page Content → FAQ', 'industryDetail' => 'Page Content → Industries Page — Detail Sections',
+        'services' => 'Page Content → Value-Added Services', 'copy' => 'Page Content → page text',
+    ];
+    $out = [];
+    $walk = function ($node, string $where, int $row) use (&$walk, &$out) {
+        if (is_string($node)) {
+            if (preg_match('/\bISO\s*9001/i', $node)) {
+                // No mbstring (A-9.P2-1): cut on characters with a /u regex.
+                $text = preg_match('/^.{91}/us', $node) && preg_match('/^.{0,87}/us', $node, $cut) ? $cut[0] . '…' : $node;
+                $out[] = $where . ($row > 0 ? ' (row ' . $row . ')' : '') . ': "' . $text . '"';
+            }
+        } elseif (is_array($node)) {
+            foreach ($node as $v) $walk($v, $where, $row);
+        }
+    };
+    foreach ($content as $key => $val) {
+        $where = $names[$key] ?? ('Page Content → ' . $key);
+        if (is_array($val) && $val !== [] && array_keys($val) === range(0, count($val) - 1)) {
+            foreach ($val as $i => $row) $walk($row, $where, $i + 1);
+        } else {
+            $walk($val, $where, 0);
+        }
+    }
+    foreach ((array)($info['about']['paragraphs'] ?? []) as $i => $p) $walk($p, 'Business Details → About story', $i + 1);
+    $walk((string)($info['company']['description'] ?? ''), 'Business Details → Short Description', 0);
+    return $out;
+}
+
+/**
  * Is $u an address on THIS website whose file is not there? (admin audit
  * 2026-10-05, DI-6 / UX-4.) External addresses (http://, https://, //) and
  * blanks are not checked — there is nothing on this server to look at. Paths
@@ -1246,7 +1289,8 @@ function approval_patterns_json_tag(): string {
 // Business Details box is left empty (App.jsx SITE_DEFAULTS; mergeSiteInfo()
 // drops blanks, invariant 4), keyed by settings.php input id, for the live
 // preview. Only fields that fall back; fax, slogan, short name and the social
-// links are clearable and really do disappear; an empty click-to-call box is
+// links — and, since §1aq, the ISO box — are clearable and really do
+// disappear; an empty click-to-call box is
 // worked out from the phone on save, not defaulted. _harness/adminaudit11.js
 // compares every entry with SITE_DEFAULTS.
 const SITE_INFO_PREVIEW_DEFAULTS = [
@@ -1259,7 +1303,6 @@ const SITE_INFO_PREVIEW_DEFAULTS = [
     'addr_state'          => 'IL',
     'addr_zip'            => '60440',
     'hours_text'          => 'Mon–Fri, 8am–5pm CT',
-    'cert_iso'            => 'ISO 9001',
     'stats_min'           => '$50',
     'stats_feet'          => '25 million',
 ];
