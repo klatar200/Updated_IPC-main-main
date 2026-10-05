@@ -7,7 +7,7 @@
  *
  *   RewriteCond %{REQUEST_FILENAME} !-f
  *   RewriteCond %{REQUEST_FILENAME} !-d
- *   RewriteRule ^ index.html [QSA,L]
+ *   RewriteRule ^ index.php [QSA,L]      (A-5.10; index.html if no index.php)
  *
  * The sitemap rule is emulated because the sitemap is generated from the live
  * catalog and `plan5c-sitemap.js` fetches it at its real address. Without it
@@ -74,7 +74,15 @@ if ($full !== false && $realRoot !== false && strpos($full, $realRoot) === 0) {
     }
 }
 
-// No such file or directory -> the SPA shell, 200, exactly like the rewrite.
+// No such file or directory -> the front controller, exactly like the rewrite
+// (A-5.10, §1ar: `RewriteRule ^ index.php`). REQUEST_URI stays the visitor's.
+if (is_file($root . '/index.php')) {
+    $_SERVER['SCRIPT_FILENAME'] = $root . '/index.php';
+    $_SERVER['SCRIPT_NAME'] = '/index.php';
+    require $root . '/index.php';
+    return true;
+}
+// A mirror without one (an old build) -> the SPA shell, 200.
 $shell = $root . '/index.html';
 if (file_exists($shell)) {
     header('Content-Type: text/html; charset=UTF-8');

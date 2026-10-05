@@ -7,6 +7,11 @@
 # the homepage worked. If the host rejects FollowSymLinks, swap the line below
 # for:  Options -MultiViews +SymLinksIfOwnerMatch
 Options -MultiViews +FollowSymLinks
+
+# A-5.10 — `/` goes through the front controller too, so the homepage gets the
+# same server-filled head as every other route. index.html stays second, so a
+# host that cannot run PHP here still serves the static shell.
+DirectoryIndex index.php index.html
 RewriteEngine On
 RewriteBase /
 
@@ -101,10 +106,17 @@ RewriteCond %{REQUEST_URI} !^/(favicon\.ico|apple-touch-icon[^/]*\.png|robots\.t
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
-# Fall through to index.html so react-router can handle the URL on the client.
+# Fall through to index.php so react-router can handle the URL on the client.
 # The SPA uses real paths (/products, /contact, etc.) so this rule is essential
 # for any direct navigation or refresh on a non-root path.
-RewriteRule ^ index.html [QSA,L]
+#
+# A-5.10 (WHATS_LEFT §1ar) — index.php, not index.html. It serves the same
+# built index.html with this route's title, description, canonical and share
+# card filled in from data/*.json, plus a plain-HTML body, for the crawlers
+# and link unfurlers that never run the bundle. On any error it serves
+# index.html unmodified. REQUEST_URI is still the visitor's URL after this
+# internal rewrite, which is what index.php reads.
+RewriteRule ^ index.php [QSA,L]
 
 # Long-cache the hashed assets Vite emits under /assets — the filename changes
 # whenever the content changes, so it is safe to cache those aggressively.

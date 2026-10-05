@@ -55,7 +55,7 @@ two upload folders.
 | Local | Server | Built by | Re-deploy when… |
 |---|---|---|---|
 | `dist/*` (from `npm run build`) | `public_html/` | Vite | React source changes |
-| `public/*` | `public_html/` | — | `.htaccess`, `.user.ini`, `contact.php`, `sitemap.php`, images change |
+| `public/*` | `public_html/` | — | `.htaccess`, `.user.ini`, `index.php`, `contact.php`, `sitemap.php`, images change |
 | `admin/` | `public_html/admin/` | (PHP, copied) | admin code changes |
 | `admin/config.local.php` | `public_html/admin/` | **never uploaded** — written on the server by the `ALLOW-PASSWORD-RESET` flow (GO-LIVE B4) | — (gitignored) |
 | `data/` | `public_html/data/` | — | **first deploy only** |
@@ -89,7 +89,18 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
   "read the param, then strip it" cleanup, or Back gets trapped.
 - **Navigation uses real path segments.** `/products`, `/contact`, `/dashboard`.
   `public/.htaccess`'s rewrite is therefore **load-bearing**: without it every
-  deep link and every refresh 404s. Do not describe it as a safety net.
+  deep link and every refresh 404s. Do not describe it as a safety net. Since
+  A-5.10 (WHATS_LEFT §1ar) it rewrites to `index.php`, not `index.html`, and
+  its `DirectoryIndex index.php index.html` sends `/` there too.
+- **`PageMeta` has a server-side twin.** `public/index.php` ports `PageMeta`
+  and its helpers (`findProductByParam`, `fitProductTitle`, `trimToWord`,
+  `localizeProse`, `isoRewriter`, `factsRewriter`, `SEO_DEFAULT`, the
+  page-header title defaults) so crawlers and link unfurlers that never run
+  the bundle get the same head. Change either side and run
+  `node _harness/prerender.js` (parity on every route and product, under
+  mutated data too) and `node _harness/prerender-apache.js` (the `.htaccess`
+  routing on real Apache). `index.php` fails closed: any error, or a damaged
+  `site-info.json` / `content.json`, serves `index.html` unmodified.
 - **Data fetch.** Three files, per-minute cache-buster, 12 s abort timeout,
   60 s in-memory TTL. `data/.htaccess` caches ~60 s.
 - **Vite config** sets `base: '/'` (changed from `'./'` in PLAN-8 A5 —
@@ -172,6 +183,10 @@ through a rewrite in `public/.htaccess`. There is deliberately **no
 `sitemap.xml` file** — if one existed, the catch-all's `!-f` condition would
 serve it and the rewrite would look like it worked while a stale file shipped.
 It reads only; it starts no session and does not include `admin/config.php`.
+
+`public/index.php` is a **fourth**: every page route is served through it
+(A-5.10). It reads `index.html` and the three `data/*.json` files, writes
+nothing, starts no session, and does not include `admin/config.php`.
 
 ## Invariants — each of these caused a real defect
 

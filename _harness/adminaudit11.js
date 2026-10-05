@@ -19,7 +19,7 @@
  *         and drops the operating temperature and summary like the site does
  *   UX-2  the badge hint is true, and a standard badge with its box unticked
  *         is reported on save
- *   UX-3  Help no longer claims the SEO rows set social-share previews
+ *   UX-3  Help says what sets the social-share preview (SEO text since §1ar; picture fixed)
  *   UX-4  Catalog PDF / Site Images paths that are not on the server are reported
  *   UX-5..7  Backups, Audit Log and a size-chart edit page fit 390 px
  *   UX-8  a shipped product photo is not called "external"
@@ -276,15 +276,22 @@ function startServer(port, limited) {
     await arm('help', async () => {
       const helpRaw = (await a.req('GET', '/admin/help.php')).body;
       const help = helpRaw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-      note(!/preview card when someone shares a page on social media/.test(help) && /social media[^.]{0,200}(fixed|not change|does not follow)/i.test(help),
-        'UX-3: Help no longer says the SEO rows set social-share previews, and says those are fixed');
+      // UX-3 as changed by the A-5.10 decision (2026-10-05, §1ar): public/index.php
+      // now serves each page's SEO title and description in the share tags, so
+      // "the card is fixed" became false. Held instead: Help says the SEO row
+      // sets the card's text, and that only the picture is fixed.
+      note(/SEO\)[^.]{0,120}\. It is also the title and description on the preview card/i.test(help) && /card's picture is fixed/i.test(help) && !/that card is fixed/.test(help),
+        'UX-3: Help says the SEO rows set the share card\'s text and only its picture is fixed (§1ar)');
       const capRow = ((/<td>Image Caption<\/td><td>([\s\S]*?)<\/td>/.exec(helpRaw) || [])[1] || '');
       note(/photo/i.test(capRow) && /name|banner|title/i.test(capRow), 'UX-10: Help\'s Image Caption row (Adding a product) names both places the caption shows', capRow.slice(0, 160));
       // G2 as decided 2026-10-05 (§1aq): the box IS clearable now, and Help says how.
       note(/To stop claiming ISO, empty the box and save/.test(help) && !/ISO box cannot be emptied/.test(help), 'G2: Help says how to stop claiming ISO (empty the box) — §1aq');
       note(/View All Industries/.test(help) && /IMAGE COMING SOON/i.test(help) && /favicon|browser-tab icon/i.test(help), 'G5: Help lists the small fixed labels (View All Industries, IMAGE COMING SOON, browser-tab icon)');
       note(/(description|alt)[^.]{0,120}(read aloud|screen reader)[^.]{0,200}fixed|fixed[^.]{0,200}screen reader/i.test(help), 'G4: Help says the Site Images photo descriptions are fixed');
-      note(/JavaScript switched off|without JavaScript|no-JavaScript/i.test(help) && /shared on social media/i.test(help), 'G3: Help names the fixed share tags and the no-JavaScript contact block');
+      // G3 as changed by §1ar: the no-JavaScript page now follows Business Details,
+      // with the fixed block only as the fallback — Help must say both.
+      note(/JavaScript switched off/i.test(help) && /shared on social media/i.test(help) && /fall back to a Fixed contact block/i.test(help),
+        'G3: Help covers shared links and what a no-JavaScript visitor sees, including the fixed fallback (§1ar)');
     });
 
     // ── UX-4 ──

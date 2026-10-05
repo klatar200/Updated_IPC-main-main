@@ -68,8 +68,8 @@ $ROUTES = [
  * a request to the apex or to a staging copy would then emit a sitemap whose
  * URLs every page on it disowns, which is the one way a sitemap can actively
  * hurt. If the apex is ever chosen instead, this constant, App.jsx's
- * SITE_ORIGIN, robots.txt's Sitemap: line and index.html's og:url change
- * together.
+ * SITE_ORIGIN, index.php's IPC_ORIGIN, robots.txt's Sitemap: line and
+ * index.html's og:url change together.
  */
 $ORIGIN = 'https://www.insulationproducts.com';
 

@@ -54,7 +54,7 @@ Open the **Page Content** tab. It has two kinds of sections, one after the other
 - **Navigation — Company Menu** and **Navigation — Footer Quick Links** — the links in your header's Company menu and the footer.
 - **Product Families / Categories** — the categories the catalog groups products by, and their order.
 - **Contact Page — Sidebar Tips** — the tips beside the contact form.
-- **Search Engine Text (SEO)** — the title and description each page shows in Google results.
+- **Search Engine Text (SEO)** — the title and description each page shows in Google results, and on the preview card when someone shares a link to the page (LinkedIn, Teams, Slack, email). Product pages use the product's own name, details and photo automatically.
 
 *(That is all 32 sections the tab renders: 15 Page Text cards and 17 lists (Company Claims added 2026-10-02). This list named 22 of them until 2026-09-14 — A-9.B2-15 — and until 2026-09-28 it filed five of the fixed cards under Lists — ADM-12. If you see a card here that is not in this list, the list is the thing that is out of date, not the dashboard.)*
 

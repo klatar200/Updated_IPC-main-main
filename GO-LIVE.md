@@ -115,7 +115,7 @@ the last minute.
       fail SPF — worse than leaving it off. Rollback: set it back to `''`.
 - [ ] **Decide apex vs `www`, and make the server agree with the code.** The
       code has already decided: `SITE_ORIGIN` (`src/App.jsx`), `sitemap.php`'s
-      `$ORIGIN`, `robots.txt`'s `Sitemap:` line and `index.html`'s `og:url` all
+      `$ORIGIN`, `index.php`'s `IPC_ORIGIN`, `robots.txt`'s `Sitemap:` line and `index.html`'s `og:url` all
       say **`https://www.insulationproducts.com`**, consistently. So the server
       needs a 301 from the apex to `www`, and a certificate covering both. If
       the apex is served without redirecting, every page declares a canonical
@@ -256,9 +256,10 @@ npm install
 npm run build
 ```
 
-Confirm the build printed no errors and that `dist/` contains **eleven** things:
-`index.html`, `assets/`, `images/`, `.htaccess`, `.user.ini`, `contact.php`,
-`sitemap.php`, `favicon.svg`, `logo.svg`, `manifest.json`, `robots.txt`.
+Confirm the build printed no errors and that `dist/` contains **twelve** things:
+`index.html`, `index.php`, `assets/`, `images/`, `.htaccess`, `.user.ini`,
+`contact.php`, `sitemap.php`, `favicon.svg`, `logo.svg`, `manifest.json`,
+`robots.txt`.
 
 ⚠ `.htaccess` and `.user.ini` are **dotfiles**. Most FTP clients hide them by
 default. In FileZilla: *Server → Force showing hidden files*. If they do not
@@ -284,8 +285,10 @@ pointing at a file that does not exist.
        backed out, putting this redirect back is the rollback. (NEW-V4-1)
 1. [ ] `dist/assets/` → `public_html/assets/`
 2. [ ] `dist/images/` → `public_html/images/`
-3. [ ] `dist/contact.php`, `sitemap.php`, `favicon.svg`, `logo.svg`,
-       `manifest.json`, `robots.txt` → `public_html/`
+3. [ ] `dist/index.php`, `contact.php`, `sitemap.php`, `favicon.svg`,
+       `logo.svg`, `manifest.json`, `robots.txt` → `public_html/`.
+       `index.php` **before step 4**: the new `.htaccess` sends every page,
+       `/` included, to it (A-5.10, WHATS_LEFT §1ar).
 4. [ ] `dist/.htaccess`, `dist/.user.ini` → `public_html/`
 5. [ ] `admin/` → `public_html/admin/` — **mandatory on a first deploy**; on a
        re-deploy, only if the admin code changed. Upload the tracked files only
@@ -409,6 +412,12 @@ echo "$JS"                                          # expect assets/index-<hash>
 curl -sI -H 'Accept-Encoding: gzip' "https://www.insulationproducts.com/$JS"
 #  expect: Content-Encoding: gzip  (~386 kB vs ~112 kB on every cold load, 2026-10-05 build) (DEP-4)
 
+curl -s 'https://www.insulationproducts.com/products?productId=CC' | grep -E '<title>|rel="canonical"'
+#  expect the product's own title and a canonical ending ?productId=CC — not
+#  the homepage title. The homepage title means index.php is not being reached
+#  (missing, or .htaccess did not arrive); the page still works, but every
+#  shared link previews as the homepage (A-5.10, §1ar)
+
 curl -sI http://www.insulationproducts.com/                      # expect 301 → https
 curl -sI https://insulationproducts.com/                         # expect 301 → www
 
@@ -494,6 +503,7 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
 | Every admin page is a 500 (often blank), public site fine | PHP older than 7.4 (§A), or `config.local.php` not readable by PHP (B3) |
 | Blank page, console error about a missing `assets/…js` | `index.html` went up before `assets/`. Upload `assets/` and it resolves. |
 | Deep links 404 on refresh | `.htaccess` is missing from `public_html/` — it is a hidden dotfile |
+| Every page 404s or 500s right after uploading `.htaccess` | `index.php` is not in `public_html/` yet — upload it (B2 step 3). `.htaccess` sends every page to it |
 | "Catalog Unavailable" | `data/products-all.json` missing, unreadable, or served without `Content-Type: application/json` (that is `data/.htaccess`, step B2.8) |
 | Admin rejects a known-good password | `config.local.php` missing or overwritten (never with a local copy — B2.6). Recovery: FTP an empty file named `ALLOW-PASSWORD-RESET` into `public_html/admin/`, open `/admin/`, set a new password. Deleting `config.local.php` on its own **locks the admin**, it does not reset it |
 | Form says "mail server could not send" | The `noreply@` mailbox does not exist on the account (step A) |

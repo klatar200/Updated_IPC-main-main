@@ -65,9 +65,10 @@ itself is fully static.
 ```
 public_html/
 ├── index.html              ← React app (FTP'd from your local /dist)
+├── index.php               ← front controller: every page's head + plain-HTML body from data/ (A-5.10)
 ├── assets/                 ← Hashed JS/CSS from Vite
 ├── contact.php             ← Contact/RFQ mail handler (ships inside dist/)
-├── .htaccess               ← SPA rewrite + cache headers + dotfile block
+├── .htaccess               ← rewrite to index.php + cache headers + dotfile block
 ├── .user.ini               ← PHP limits for public_html/ and everything under it
 ├── images/                 ← Static site imagery
 ├── data/
@@ -149,7 +150,8 @@ root [README.md](../README.md) deploy tables. In short:
    are what stop the server running scripts in the upload folders.
 3. FTP into `public_html/`, **in this order**:
    1. `dist/assets/`, then everything else in `dist/` **except `index.html`**
-      (including `dist/.htaccess` and `dist/.user.ini`)
+      (including `dist/.htaccess` and `dist/.user.ini`) — `dist/index.php`
+      **before** `dist/.htaccess`, which sends every page to it (A-5.10)
    2. **`admin/`** → `public_html/admin/` (tracked files only, including
       `admin/.htaccess`; not your local `*.jsonl`, `.login-throttle.json`,
       `.inquiries-seen.json`, `.inquiry-log-failed.json`, `.pdf-renames.json`,

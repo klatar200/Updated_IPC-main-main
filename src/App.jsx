@@ -5987,9 +5987,10 @@ const PRODUCTS_JSON_URL = "/data/products-all.json";
  * copy that self-canonicalises is worse than one pointing at the wrong host.
  *
  * `www` matches every other declaration in the repo — the $ORIGIN in
- * public/sitemap.php (which generates every <loc>), public/robots.txt's
+ * public/sitemap.php (which generates every <loc>), IPC_ORIGIN in
+ * public/index.php (the server-side head, §1ar), public/robots.txt's
  * Sitemap: line, and index.html's shipped og:url. If the apex is ever chosen
- * instead, this constant and those three files must change together.
+ * instead, this constant and those four files must change together.
  */
 const SITE_ORIGIN = "https://www.insulationproducts.com";
 
@@ -7813,6 +7814,10 @@ function NotFoundPage() {
   );
 }
 
+// A-5.10 (§1ar) — public/index.php computes this same head on the server for
+// clients that never run this code (link unfurlers, Bing, AI crawlers). It is
+// a port of this function and its helpers; change one, change the other, and
+// run `node _harness/prerender.js`, which diffs the two on every route.
 function PageMeta({ products }) {
   const site = useSiteInfo();
   const { seo, copy } = useContent();

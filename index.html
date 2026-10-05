@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0d2d52" />
+    <!-- A-5.10 (WHATS_LEFT §1ar) — public/index.php puts a plain-HTML copy of
+         the page inside #root for clients that do not run JavaScript. This
+         hides it before first paint when JavaScript does run; React's
+         createRoot() then clears #root on its first render. Inline, in the
+         head, on purpose: it must run before the body paints, and the CSS
+         bundle may be the thing that failed. -->
+    <script>document.documentElement.className += " ipc-js";</script>
+    <style>.ipc-js #ipc-prerender { display: none; }</style>
     <title>Insulation Products Corporation — Heat Shrink Tubing, Sleeving &amp; Adhesives</title>
     <meta
       name="description"
@@ -65,6 +73,9 @@
          is written down here so nobody "fixes" it by wiring it to something
          that needs the bundle it exists to survive. If the phone number
          changes, change it here too.
+         A-5.10 (§1ar): public/index.php now serves a plain-HTML page with the
+         LIVE details inside #root and removes this block, so this copy only
+         renders when index.php has fallen back to the unmodified shell.
          Styles are inline for the same reason: the CSS bundle may be the thing
          that failed. -->
     <noscript>

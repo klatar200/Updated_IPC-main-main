@@ -24,7 +24,8 @@ Updated_IPC-main-main/
 ├── tailwind.config.js
 ├── postcss.config.mjs
 ├── public/                 Copied verbatim into dist/ on build
-│   ├── .htaccess           SPA rewrite + cache headers  (LOAD-BEARING, see below)
+│   ├── .htaccess           Rewrite to index.php + cache headers  (LOAD-BEARING, see below)
+│   ├── index.php           Front controller: each route's head + plain-HTML body from data/ (A-5.10, §1ar)
 │   ├── .user.ini           PHP upload / form limits for the admin
 │   ├── contact.php         Contact + RFQ handler (mail() + inquiry log)
 │   ├── sitemap.php         Sitemap, generated from the live catalog per request
@@ -126,7 +127,7 @@ hand-deployed password file.
 
 | Upload to `public_html/` | From | When |
 |---|---|---|
-| `index.html`, `assets/` | `dist/` | every frontend deploy |
+| `index.html`, `index.php`, `assets/` | `dist/` (`index.php` copied from `public/`) | every frontend deploy — `index.php` before `.htaccess` (below) |
 | `.htaccess`, `.user.ini`, `contact.php`, `sitemap.php`, `favicon.svg`, `logo.svg`, `manifest.json`, `robots.txt` | `dist/` (copied from `public/`) | when changed |
 | `images/` | `dist/images/` (copied from `public/images/`) | when changed |
 | `admin/` | `admin/` | this release |
@@ -252,6 +253,15 @@ JavaScript, which is the difference between a blank page and a blank page with
 a console error — it does not stop the window happening. (audit-runs/audit8.md
 A-8.3.)
 
+**Upload `index.php` before `.htaccess`.** Since A-5.10 (WHATS_LEFT §1ar)
+`public/.htaccess` sends every page — `/` included, through its
+`DirectoryIndex` — to `index.php`. That front controller serves the built
+`index.html` with each route's title, description, canonical, share card and a
+plain-HTML body filled in from `data/*.json`, and on any error it serves
+`index.html` unmodified. A `.htaccess` that arrives before `index.php` points
+every page at a file that is not there yet. `index.php` reads whichever
+`index.html` is on the server, so it can go up any time before `.htaccess`.
+
 **To roll a bad frontend deploy back**, re-upload the previous `index.html`.
 Content-hashed filenames mean the previous `assets/index-<hash>.js` and `.css`
 are still on the server unless someone deleted them, so the old shell finds its
@@ -304,6 +314,15 @@ until audit-runs/audit8.md A-8.2.)
   it, every direct navigation and every refresh on a deep path 404s. Earlier
   revisions of this file claimed navigation was query-param-only on the root
   URL; that was false, and acting on it would have deleted the rewrite.
+- **`public/index.php` is the page every route is served through** (A-5.10,
+  WHATS_LEFT §1ar). It fills the built `index.html`'s head (title,
+  description, canonical, robots, `og:*`) and a plain-HTML body from
+  `data/*.json`, for link unfurlers and crawlers that never run the bundle.
+  It is a port of `PageMeta` in `src/App.jsx` — change one, change the other,
+  and run `node _harness/prerender.js`, which diffs the two on every route and
+  product. Any error → `index.html` unmodified. `npm run dev` does not run
+  it (Vite serves `index.html`), so the dev server shows only the
+  browser-computed head.
 
 ## Troubleshooting
 
@@ -311,6 +330,8 @@ until audit-runs/audit8.md A-8.2.)
 |---|---|
 | Blank page after upload | Uploaded `dist/` itself instead of its contents |
 | Refresh on a deep path 404s | `.htaccess` missing from `public_html/` — it ships in `dist/` (from `public/`) |
+| Every page 404s or 500s | `.htaccess` is there but `index.php` is not — upload `dist/index.php` |
+| A shared link previews as the homepage | `index.php` not reached (missing, or `.htaccess` old) — GO-LIVE C1's product-title check |
 | Products don't load | `data/products-all.json` not uploaded, or not readable (644) |
 | "Failed to save" in admin | `data/` not writable by PHP |
 | Inquiries page always empty | `admin/` not writable by PHP — leads are being dropped. The dashboard banner says so |
@@ -326,7 +347,8 @@ until audit-runs/audit8.md A-8.2.)
 | [src/App.jsx](src/App.jsx) | Entire React app. `PRODUCTS_JSON_URL` / `SITE_INFO_URL` / `CONTENT_URL` near the data-fetch section |
 | [admin/config.php](admin/config.php) | Password plumbing, session hardening, JSON read/write, backup rotation, CSRF, upload errors |
 | [admin/README.md](admin/README.md) | Admin-specific docs (password recovery, audit log, spec-table formats) |
-| [public/.htaccess](public/.htaccess) | Ships into `dist/` — **load-bearing** SPA rewrite + asset caching |
+| [public/.htaccess](public/.htaccess) | Ships into `dist/` — **load-bearing** rewrite to `index.php` + asset caching |
+| [public/index.php](public/index.php) | Ships into `dist/` — every page's server-side head and plain-HTML body (A-5.10) |
 | [public/.user.ini](public/.user.ini) | PHP upload and form-field limits |
 | [data/.htaccess](data/.htaccess) | Blocks backups and PHP in the JSON folder |
 | [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) | The audit this release was built against. Its §7 manifest is frozen history — deploy from the tables above and `GO-LIVE.md`, not from §7 |

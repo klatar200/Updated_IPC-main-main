@@ -4701,7 +4701,7 @@ remediation cycle.
 - [x] **A-5.9 — SHIPPED 2026-08-18 (§1r) — both contact-form abuse controls fail open silently.** Limiter
   state lives in `sys_get_temp_dir()` behind `@`-suppressed writes, is never
   cleaned up (`grep unlink public/contact.php` → 0), and has no health check.
-- [ ] **STILL OPEN (2026-10-05, §1aq) — needs a decision: the fix (serve each route's title, description, share card and a plain-HTML body from PHP, the way `sitemap.php` serves the sitemap) changes how every page is served. Recommendation and trade-off in §1aq.** **A-5.10 — client-only rendering with no prerender.** Beyond Google,
+- [x] **DONE — decided and shipped 2026-10-05, §1ar: `public/index.php` serves each route's head and a plain-HTML body (`prerender` 24/24, `prerender-apache` 11/11).** ~~STILL OPEN (2026-10-05, §1aq) — needs a decision.~~ **A-5.10 — client-only rendering with no prerender.** Beyond Google,
   nothing sees the catalog: Bing, the AI answer engines and every social
   unfurler get the generic shell.
 
@@ -7439,7 +7439,7 @@ After: **16/16**.
 
 | Item | Waits on | Note |
 |---|---|---|
-| A-5.10 no prerender (share cards, Bing/AI crawlers see the shell) | **Keagan — architecture decision** | Recommended: a `index.php` front controller that serves the built `index.html` with each route's title, description, canonical and share card filled in from `data/*.json` (the `sitemap.php` pattern), plus a plain-HTML product body for crawlers. Fixes G3 too. Downside: every page is then served through PHP, so the `.htaccess` rewrite changes and a PHP error would affect the whole site (mitigation: fall back to the static file on any error; prove on real Apache like `lowsE-apache`). ~1 day |
+| A-5.10 no prerender (share cards, Bing/AI crawlers see the shell) — **SUPERSEDED-BY §1ar: decided and shipped 2026-10-05** | **Keagan — architecture decision** | Recommended: a `index.php` front controller that serves the built `index.html` with each route's title, description, canonical and share card filled in from `data/*.json` (the `sitemap.php` pattern), plus a plain-HTML product body for crawlers. Fixes G3 too. Downside: every page is then served through PHP, so the `.htaccess` rewrite changes and a PHP error would affect the whole site (mitigation: fall back to the static file on any error; prove on real Apache like `lowsE-apache`). ~1 day |
 | page-header-sublines-on-gradient; brand-accent-on-dark-surfaces; spec-table-subheader-contrast; NEW-R3-m2-2; `brandtext` 11 failing | **Owner — brand colours** | One decision covers all: accept darker/lighter brand derivatives for small text, or keep the look |
 | CLAIM-1 RoHS "entire line", CLAIM-2 "42 Products Stocked", CLAIM-3 AMS, FAQ #15, cert spellings, ISO revision year, privacy date, 5 photos, social links | **Rick — content** | All editable in the dashboard now (§1ao, §1aq) |
 | Password set at deploy (B4); certificate, apex→www 301, `/site/` redirect, PHP ≥7.4, `noreply@`, SPF/DKIM/DMARC, TRACE off | **Host / deploy day** | GO-LIVE §A–§C |
@@ -7527,3 +7527,60 @@ All findings are fixed in this change. The main ones:
 - Sweep 2026-10-05: 113/116 suites clean. The three reds were the two
   expected font-metric reds (`brandtext`, `plan8-polish`) and the
   `audit9-fixes` regression above, now fixed.
+
+## 1ar. 2026-10-05 — A-5.10: every route's head and a plain-HTML body served from PHP
+
+**Decision (Keagan, 2026-10-05):** take the §1aq recommendation for A-5.10.
+`public/index.php` becomes the front controller for every page route. It
+serves the built `index.html` with these filled in from `data/*.json`:
+- each route's `<title>`, description, canonical, `og:*` and robots tags;
+- a plain-HTML body (heading, summary, product details or catalog links, and
+  the site's nav and contact block) for clients that do not run JavaScript.
+
+The rationale, recorded at decision time:
+- Bing, the AI answer engines and every link unfurler (LinkedIn, Slack,
+  Teams, email) see only the generic shell today. All 42 product links
+  preview as the homepage.
+
+**Engineering decisions made under it:**
+- **The client stays the source of truth.** `index.php` ports the head
+  computation of `PageMeta`, `findProductByParam`, `fitProductTitle`,
+  `trimToWord`, `localizeProse`, `isoRewriter` and `factsRewriter`.
+  `_harness/prerender.js` diffs the server's head against the head the
+  browser computes, for every route and every product, under the shipped
+  data and under mutated data. That suite is the drift guard — the same
+  pattern as `plan5c-sitemap`.
+- **It fails closed to today's behaviour.** On any PHP error, or any missing
+  or unparseable data file, `index.php` emits the unmodified `index.html`. If
+  `index.html` itself is missing it gives a 500, not an empty 200.
+- **Unknown routes keep answering 200 with `noindex`** (A5, unchanged). A real
+  404 status would be a separate decision.
+- **The plain-HTML body sits inside `#root`.** React's `createRoot` clears it
+  on the first render. A one-line inline script hides it before first paint
+  when JavaScript runs, so visitors never see it flash. The static
+  `<noscript>` contact block stays as the floor.
+
+**Shipped (2026-10-05):**
+
+| File | Change |
+|---|---|
+| `public/index.php` (new) | The front controller. It is a port of `PageMeta` plus its helpers: `findProductByParam`, `fitProductTitle`, `trimToWord`, `localizeProse`, `isoRewriter`, `factsRewriter`, `SEO_DEFAULT` and the header-title defaults. It measures length in characters through `preg_split('//u')`, so it needs no mbstring. It fills the head, puts a plain-HTML body inside `#root`, and removes the fixed `<noscript>` block once the live body is present. On any error it serves `index.html` unmodified; with no `index.html` at all it returns a 500. |
+| `public/.htaccess` | The catch-all rewrites to `index.php`, not `index.html`. Adds `DirectoryIndex index.php index.html`. |
+| `index.html` | An inline `ipc-js` class and one style rule hide the plain-HTML copy before first paint. The `<noscript>` comment now explains when that block still renders. |
+| `src/App.jsx` | Comments only: the PageMeta ↔ index.php pairing and the origin change-together list. The bundle hash is unchanged. |
+| `public/sitemap.php` | The origin change-together list (comment). |
+| `_harness/router.php` | Emulates the new rewrite. Falls back to `index.html` when the mirror has no `index.php`. |
+| `_harness/prerender.js` (new, 24), `prerender-apache.js` (new, 11) | The parity/drift guard, and the `.htaccess` routing on real Apache. |
+| `_harness/adminaudit11.js` | UX-3 and G3 updated, because this decision changed the behaviour they pinned. Help used to say "the share card is fixed", which was true then. The SEO text now reaches the card and only the picture is fixed. The reason is recorded in the test. |
+| `admin/help.php`, `admin/content.php`, `Editing-Your-Site-Content.md` | The share-card and no-JavaScript wording now matches the new behaviour. Five statements that were true until this change are corrected. |
+| `README.md`, `GO-LIVE.md`, `admin/README.md`, `CLAUDE.md`, `_harness/README.md` | Deploy order: `index.php` goes up **before** `.htaccess`. Also: the twelve-item `dist/` list, a C1 check that a product URL serves its own title, two troubleshooting rows, the fourth dynamic PHP piece, and the PageMeta twin rule. |
+
+**Not done, on purpose:**
+- **Unknown routes still answer 200.** A real 404 is now possible, but it is
+  a separate decision (A5's comment).
+- **No server-side JSON-LD.** The browser's Product and BreadcrumbList blocks
+  render for Google, and a second server copy would duplicate them.
+- **The PHP-FPM / CGI handler model was not exercised.** Only mod_php is
+  installed here. `index.php` uses nothing handler-specific.
+- [UNVERIFIED] How often each unfurler re-reads a cached card. Help says only
+  "for a while".
