@@ -7584,3 +7584,16 @@ The rationale, recorded at decision time:
   installed here. `index.php` uses nothing handler-specific.
 - [UNVERIFIED] How often each unfurler re-reads a cached card. Help says only
   "for a while".
+
+**Self-correction (2026-10-05, same day, before merge).** The first version of
+`index.php` *removed* the shell's `<noscript>` block once the live body was
+present. The sweep caught it: `plan8-polish` C38 dropped 16/17 → 14/17. Those
+two checks hold the no-JavaScript floor — a served `<noscript>` naming the
+company with a working `tel:` link.
+
+`index.php` now rewrites that block from the live Business Details instead:
+the company name, a `tel:` link to the live dial number (derived the way
+`mergeSiteInfo` derives it, NEW-N1-15) and the email. The fixed copy in
+`index.html` still serves the fallback path. The C38 assertions are
+unchanged. The table row above that says "removes the fixed `<noscript>`
+block" is superseded by this paragraph.

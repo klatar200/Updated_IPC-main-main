@@ -179,8 +179,9 @@ function rawHead(html) {
       writeData('site-info.json', inf);
       await noJs.goto(BASE + '/contact');
       const t = await noJs.innerText('body');
-      note(/630\.555\.0199/.test(t) && !/630\.771\.0700/.test(t) && !(await get('/contact')).body.includes('<noscript>'),
-        'no JS: the contact details follow Business Details, and the fixed <noscript> copy is not shown beside them', t.slice(-300));
+      const ns = ((await get('/contact')).body.match(/<noscript>([\s\S]*?)<\/noscript>/) || [, ''])[1];
+      note(/630\.555\.0199/.test(t) && !/630\.771\.0700/.test(t) && /tel:\+16305550199/.test(ns) && /Insulation Products Corporation/.test(ns),
+        'no JS: the contact details follow Business Details — the <noscript> floor (C38) too, with a tel: link to the new number', t.slice(-300));
       pristine();
     }
 

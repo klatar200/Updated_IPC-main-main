@@ -88,7 +88,7 @@ function ipc_site_defaults()
 {
     return [
         'company' => ['name' => 'Insulation Products Corporation', 'shortName' => 'IPC', 'foundedYear' => '1974'],
-        'contact' => ['phone' => '630.771.0700', 'fax' => '630.771.0701', 'email' => 'sales@insulationproducts.com'],
+        'contact' => ['phone' => '630.771.0700', 'phoneDial' => '+16307710700', 'fax' => '630.771.0701', 'email' => 'sales@insulationproducts.com'],
         'address' => ['street' => '250 Gibraltar Dr', 'city' => 'Bolingbrook', 'state' => 'IL', 'zip' => '60440'],
         'hours' => ['text' => 'Mon–Fri, 8am–5pm CT'],
         'certifications' => ['iso' => 'ISO 9001'],
@@ -222,6 +222,15 @@ function ipc_merge_site(array $data)
             }
             $out[$section][$key] = $val;
         }
+    }
+    // NEW-N1-15 — a moved display phone with the shipped dial number derives
+    // the dial number from it (North American formats), as mergeSiteInfo does.
+    $D = ipc_site_defaults();
+    $c = $out['contact'];
+    if ($c['phone'] !== $D['contact']['phone'] && $c['phoneDial'] === $D['contact']['phoneDial']) {
+        $digits = preg_replace('/\D/', '', $c['phone']);
+        $dial = strlen($digits) === 10 ? '+1' . $digits : ((strlen($digits) === 11 && $digits[0] === '1') ? '+' . $digits : '');
+        if ($dial !== '') $out['contact']['phoneDial'] = $dial;
     }
     return $out;
 }
@@ -683,6 +692,20 @@ function ipc_render_body(array $st)
     return $o;
 }
 
+/** The C38 floor, from the live Business Details: who IPC is and how to reach them. */
+function ipc_render_noscript(array $site)
+{
+    $c = $site['contact'];
+    $a = 'style="color:#0a2240"';
+    $o = '<noscript>' . "\n";
+    $o .= '      <div style="max-width:38rem;margin:0 auto;padding:1.5rem;font-family:system-ui,-apple-system,\'Segoe UI\',sans-serif;color:#141414;line-height:1.55">';
+    $o .= '<p style="margin:0 0 .75rem;padding:.75rem 1rem;background:#f8fafc;border:1px solid #e5e9ee;border-radius:6px"><strong>'
+        . ipc_h($site['company']['name']) . '</strong> &mdash; parts of this site need JavaScript. Please call or email us and we will help you directly.</p>';
+    $o .= '<p style="margin:0 0 .4rem"><strong>Phone</strong> <a href="tel:' . ipc_h($c['phoneDial']) . '" ' . $a . '>' . ipc_h($c['phone']) . '</a></p>';
+    $o .= '<p style="margin:0"><strong>Email</strong> <a href="mailto:' . ipc_h($c['email']) . '" ' . $a . '>' . ipc_h($c['email']) . '</a></p>';
+    return $o . "</div>\n    </noscript>";
+}
+
 // ── Serve ────────────────────────────────────────────────────────────────────
 
 $shell = @file_get_contents(__DIR__ . '/index.html');
@@ -707,12 +730,13 @@ try {
     $st = ipc_route_state(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/', __DIR__ . '/data/');
     $html = ipc_render_head($shell, $st);
     $html = ipc_replace_one('#<div id="root"></div>#', '<div id="root">' . ipc_render_body($st) . '</div>', $html);
-    // The shell's <noscript> block is a FIXED copy of the contact details,
-    // written for the day nothing else renders. The body above carries the
-    // live ones, so keeping both would show a no-JavaScript visitor two phone
-    // numbers the first time Business Details changes. It stays in the shell
-    // for the fallback path, where it is the only thing a visitor sees.
-    $out = ipc_replace_one('#<noscript>.*?</noscript>\s*#s', '', $html);
+    // The shell's <noscript> block (C38) is a FIXED copy of the contact
+    // details, written for the day nothing else renders, and it would show a
+    // no-JavaScript visitor the old phone number beside the live one the first
+    // time Business Details changes. Rewritten from the live values instead;
+    // the fixed copy still serves the fallback path above, where it is the
+    // only thing a visitor sees.
+    $out = ipc_replace_one('#<noscript>.*?</noscript>#s', ipc_render_noscript($st['site']), $html);
 } catch (Throwable $e) {
     $out = $shell;
 }
