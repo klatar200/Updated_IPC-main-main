@@ -7519,3 +7519,11 @@ All findings are fixed in this change. The main ones:
 - Two new Help health-table labels were longer than the table's no-wrap
   first column allowed, giving 86 px of overflow at 1024
   (`plan10-helpwidth` 20/21). Shortened.
+- Self-correction: the documentation pass dropped two facts that
+  `audit9-fixes` pins. The `copydrift` row lost the words "110 fields", and
+  the GUARDRAILS row lost its `admin/content.php:341-345` photo-slot citation
+  (d3, d4 → 38/40). Both facts are restored; the assertions are unchanged
+  (40/40).
+- Sweep 2026-10-05: 113/116 suites clean. The three reds were the two
+  expected font-metric reds (`brandtext`, `plan8-polish`) and the
+  `audit9-fixes` regression above, now fixed.
