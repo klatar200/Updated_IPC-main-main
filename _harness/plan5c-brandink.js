@@ -196,7 +196,9 @@ const PROBE = function ([brightVars, textSafeVars]) {
    */
   // 18 measured. Every one is on a navy panel, where --brand-accent-text is the
   // WRONG direction (1.34:1) — see the item note. It may fall, never rise.
-  const DARK_BASELINE = 18;
+  // 0 since §1as (Keagan 2026-10-05): the lighter derivatives now exist —
+  // --brand-accent-on-deep / -on-hero / -on-hero-lg, from textSafeOnEach().
+  const DARK_BASELINE = 0;
   for (const r of [...new Set(darkBad.map((r) => `${r.v} ${r.value.toFixed(2)}:1 on ${r.on} — ${r.where}`))]) {
     console.log(`     ·  ${r}`);
   }

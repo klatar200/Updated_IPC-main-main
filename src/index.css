@@ -80,13 +80,34 @@
   --brand-hero-ink-rgb: 255, 255, 255;
   --brand-product-head-ink-rgb: 255, 255, 255;
   --brand-product-head-sub: #e2e8f0;
-  /* var(), not the literal: it must follow --brand-accent before ThemeInjector
-     runs and wherever the variables are set directly (plan10-repalette [vars]). */
-  --brand-accent-on-deep: var(--brand-accent);
-  /* rgba(255,255,255,0.40 / 0.45) composited on the shipped --brand-dark-panel
-     #0e2847: what the two menu description lines rendered as before. */
-  --brand-panel-muted-40: #6e7e91;
-  --brand-panel-muted-45: #7a899a;
+  /* §1as (Keagan 2026-10-05) — small text in a brand colour or a faded ink
+     reaches WCAG AA. ThemeInjector derives every value below from the palette
+     (textSafeOnEach / mutedOn); these are the shipped navy palette's results,
+     so the first paint already matches. --brand-accent-on-deep was
+     var(--brand-accent) until §1as: the shipped accent measured 3.12:1 on the
+     industry cards and is now lightened to 4.5:1. */
+  --brand-accent-on-deep: #72e1ff;
+  /* The industry-card icon (not text — §1as covered text only) keeps the
+     accent. var(), so it follows --brand-accent before ThemeInjector runs and
+     wherever the variables are set directly (plan10-repalette [vars]). */
+  --brand-accent-on-deep-icon: var(--brand-accent);
+  --brand-accent-on-hero: #45d7ff;
+  --brand-accent-on-hero-lg: #30d3ff;
+  --brand-hero-card-ink-rgb: 255, 255, 255;
+  --brand-hero-muted-50: #e9ebed;
+  --brand-hero-muted-60: #cfd4d8;
+  --brand-hero-muted-75: #cfd4d8;
+  /* Were rgba(255,255,255,0.30–0.75) on the panel and drawer; 0.30–0.45
+     measured 2.63–3.58:1 and are raised to 4.5:1, the rest are unchanged. */
+  --brand-panel-muted-30: #8794a3;
+  --brand-panel-muted-40: #8794a3;
+  --brand-panel-muted-45: #8794a3;
+  --brand-panel-muted-60: #9fa9b5;
+  --brand-panel-muted-75: #c3c9d1;
+  --brand-drawer-muted-30: #8592a2;
+  --brand-drawer-muted-40: #8592a2;
+  --brand-drawer-muted-65: #a9b2be;
+  --brand-drawer-muted-70: #b6bdc7;
 
   /* The brand colors used as TEXT rather than as a background
      (brand-color-as-foreground). ThemeInjector darkens or lightens these only

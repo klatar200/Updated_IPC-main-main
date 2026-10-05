@@ -889,7 +889,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontWeight: 700,
                           letterSpacing: "0.1em",
                           textTransform: "uppercase",
-                          color: "rgba(var(--brand-panel-ink-rgb), 0.3)",
+                          color: "var(--brand-panel-muted-30)",
                           padding: "0 20px 8px",
                         }}
                       >
@@ -984,7 +984,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontWeight: 700,
                           letterSpacing: "0.1em",
                           textTransform: "uppercase",
-                          color: "rgba(var(--brand-panel-ink-rgb), 0.3)",
+                          color: "var(--brand-panel-muted-30)",
                           padding: "0 20px 8px",
                         }}
                       >
@@ -1000,7 +1000,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           style={{
                             padding: "8px 20px",
                             fontSize: 12,
-                            color: "rgba(var(--brand-panel-ink-rgb), 0.3)",
+                            color: "var(--brand-panel-muted-30)",
                           }}
                         >
                           {catalogFailed ? (
@@ -1010,7 +1010,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                                 type="button"
                                 onClick={() => window.location.reload()}
                                 style={{
-                                  color: "rgba(var(--brand-panel-ink-rgb), 0.6)",
+                                  color: "var(--brand-panel-muted-60)",
                                   textDecoration: "underline",
                                   background: "none",
                                   border: 0,
@@ -1066,7 +1066,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                               style={{
                                 fontSize: 12,
                                 fontWeight: 500,
-                                color: "rgba(var(--brand-panel-ink-rgb), 0.75)",
+                                color: "var(--brand-panel-muted-75)",
                               }}
                             >
                               {cat}
@@ -1388,7 +1388,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                 fontSize: 14,
                 fontWeight: 500,
                 color:
-                  currentPage === "home" ? "rgb(var(--brand-drawer-ink-rgb))" : "rgba(var(--brand-drawer-ink-rgb), 0.65)",
+                  currentPage === "home" ? "rgb(var(--brand-drawer-ink-rgb))" : "var(--brand-drawer-muted-65)",
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
                 borderLeft:
                   currentPage === "home"
@@ -1419,7 +1419,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                   fontWeight: 500,
                   color: groupActive(["products", "dashboard"])
                     ? "rgb(var(--brand-drawer-ink-rgb))"
-                    : "rgba(var(--brand-drawer-ink-rgb), 0.65)",
+                    : "var(--brand-drawer-muted-65)",
                   borderBottom:
                     mobileOpen === "products"
                       ? "none"
@@ -1498,7 +1498,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontWeight: 700,
                           letterSpacing: "0.1em",
                           textTransform: "uppercase",
-                          color: "rgba(var(--brand-drawer-ink-rgb), 0.3)",
+                          color: "var(--brand-drawer-muted-30)",
                           padding: "10px 20px 4px",
                         }}
                       >
@@ -1537,7 +1537,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                             style={{
                               fontSize: 12,
                               fontWeight: 500,
-                              color: "rgba(var(--brand-drawer-ink-rgb), 0.70)",
+                              color: "var(--brand-drawer-muted-70)",
                             }}
                           >
                             {cat}
@@ -1569,7 +1569,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                   fontWeight: 500,
                   color: groupActive(["industries", "services", "about", "faq"])
                     ? "rgb(var(--brand-drawer-ink-rgb))"
-                    : "rgba(var(--brand-drawer-ink-rgb), 0.65)",
+                    : "var(--brand-drawer-muted-65)",
                   borderBottom:
                     mobileOpen === "company"
                       ? "none"
@@ -1641,7 +1641,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                       <span
                         style={{
                           fontSize: 11,
-                          color: "rgba(var(--brand-drawer-ink-rgb), 0.40)",
+                          color: "var(--brand-drawer-muted-40)",
                           marginTop: 1,
                         }}
                       >
@@ -1670,7 +1670,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                 color:
                   currentPage === "contact"
                     ? "rgb(var(--brand-drawer-ink-rgb))"
-                    : "rgba(var(--brand-drawer-ink-rgb), 0.65)",
+                    : "var(--brand-drawer-muted-65)",
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
                 borderLeft:
                   currentPage === "contact"
@@ -1834,7 +1834,8 @@ function Hero() {
             className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest uppercase mb-6 px-3 py-1.5 rounded"
             style={{
               background: "rgba(var(--brand-accent-rgb),0.15)",
-              color: "var(--brand-accent)",
+              // §1as — 12 px text: the accent's text-safe shade for the hero.
+              color: "var(--brand-accent-on-hero)",
               border: "1px solid rgba(var(--brand-accent-rgb),0.3)",
             }}
           >
@@ -1861,7 +1862,7 @@ function Hero() {
           </h1>
           <p
             className="text-base leading-relaxed mb-8 max-w-lg"
-            style={{ color: "rgba(var(--brand-hero-ink-rgb), 0.75)" }}
+            style={{ color: "var(--brand-hero-muted-75)" }}
           >
             {c.subhead}
           </p>
@@ -1917,7 +1918,8 @@ function Hero() {
                 className="font-extrabold leading-none mb-1"
                 style={{
                   fontSize: "clamp(1.25rem, 3vw, 1.75rem)",
-                  color: "var(--brand-accent)",
+                  // §1as — large text (3:1); the accent's shade for the hero.
+                  color: "var(--brand-accent-on-hero-lg)",
                 }}
               >
                 {p.stat}
@@ -1926,7 +1928,7 @@ function Hero() {
                 className="font-semibold"
                 style={{
                   fontSize: "clamp(11px, 1.5vw, 14px)",
-                  color: "rgb(var(--brand-hero-ink-rgb))",
+                  color: "rgb(var(--brand-hero-card-ink-rgb))",
                   marginBottom: 2,
                 }}
               >
@@ -1935,7 +1937,7 @@ function Hero() {
               <div
                 style={{
                   fontSize: "clamp(10px, 1.2vw, 12px)",
-                  color: "rgba(var(--brand-hero-ink-rgb), 0.5)",
+                  color: "var(--brand-hero-muted-50)",
                 }}
               >
                 {p.sub}
@@ -2059,7 +2061,7 @@ function Hero() {
                 key={idx}
                 className="flex items-center gap-1.5 flex-shrink-0"
                 style={{
-                  color: "rgba(var(--brand-hero-ink-rgb), 0.60)",
+                  color: "var(--brand-hero-muted-60)",
                   fontSize: 12,
                   fontWeight: 500,
                   paddingRight: 48,
@@ -8192,6 +8194,34 @@ function textSafeOn(color, bg, target = 4.5) {
   return darken ? INK_DARK : INK_LIGHT;
 }
 
+/**
+ * §1as (Keagan 2026-10-05) — `color` adjusted just far enough to reach
+ * `target` on EVERY background in `bgs` (a gradient's stops, a scrim's two
+ * ends). textSafeOn() solves for one background; text that sits on a gradient
+ * has to survive its worst point. Lightens when every background is dark,
+ * darkens otherwise; a no-op when the colour already passes everywhere.
+ */
+function textSafeOnEach(color, bgs, target = 4.5) {
+  const list = (bgs || []).filter((b) => parseHexColor(b));
+  if (!parseHexColor(color) || !list.length) return color;
+  const worst = (c) => Math.min(...list.map((b) => contrastRatio(c, b)));
+  if (worst(color) >= target) return color;
+  // The nearest passing shade in either direction — on a mid-tone surface
+  // (an orange primary) lightening may never pass while darkening does.
+  const { h, s, l } = rgbToHsl(parseHexColor(color));
+  for (let step = 1; step <= 100; step++) {
+    for (const nl of [l + step / 100, l - step / 100]) {
+      if (nl < 0 || nl > 1) continue;
+      const cand = hslToHex({ h, s, l: nl });
+      if (worst(cand) >= target) return cand;
+    }
+  }
+  // No shade of the hue passes everywhere: the plain ink that reads best
+  // across the whole surface (lowsC2-palettes caught a fixed-white fallback
+  // at 2.41:1 on an orange palette, where the dark ink measures 4.70:1).
+  return inkFor(list);
+}
+
 function ThemeInjector() {
   const site = useSiteInfo();
   useEffect(() => {
@@ -8362,19 +8392,47 @@ function ThemeInjector() {
     // shipped value is exactly rgba(255,255,255,0.4) composited — unchanged.
     const panelHex = hexOf(darkPanel);
     const panelInk = inkFor(panelHex);
-    const mutedOn = (bg, ink, alpha, min = 3) => {
-      const b = rgbOf(bg), k = rgbOf(ink);
-      if (!b || !k) return ink;
+    // §1as (Keagan 2026-10-05) — SUPERSEDES "raised only as far as 3:1": these
+    // faded inks are small text (10–13 px), and the brand-colour decision put
+    // small text at WCAG AA, 4.5:1. The ink keeps its shipped alpha wherever
+    // that already passes and is raised only as far as 4.5:1 needs, against
+    // EVERY background in `bgs` (the hero is a scrim over a gradient).
+    // Returned opaque, composited over the first background.
+    const mutedOn = (bgs, ink, alpha, min = 4.5) => {
+      const list = (Array.isArray(bgs) ? bgs : [bgs]).filter((b) => rgbOf(b));
+      const k = rgbOf(ink);
+      if (!list.length || !k) return ink;
+      const mix = (b, a) => "#" + [0, 1, 2].map((i) => Math.round(k[i] * a + b[i] * (1 - a)).toString(16).padStart(2, "0")).join("");
       for (let a = alpha; ; a = Math.min(1, a + 0.05)) {
-        const c = "#" + [0, 1, 2].map((i) => Math.round(k[i] * a + b[i] * (1 - a)).toString(16).padStart(2, "0")).join("");
-        if (contrastRatio(c, bg) >= min || a >= 1) return c;
+        if (list.every((bg) => contrastRatio(mix(rgbOf(bg), a), bg) >= min) || a >= 1) return mix(rgbOf(list[0]), a);
       }
     };
-    root.style.setProperty("--brand-panel-muted-40", mutedOn(panelHex, panelInk, 0.4));
-    root.style.setProperty("--brand-panel-muted-45", mutedOn(panelHex, panelInk, 0.45));
+    for (const a of [30, 40, 45, 60, 75]) root.style.setProperty(`--brand-panel-muted-${a}`, mutedOn(panelHex, panelInk, a / 100));
     root.style.setProperty("--brand-drawer-ink-rgb", inkRgb(inkFor(hexOf(darkDrawer))));
+    const drawerHex = hexOf(darkDrawer);
+    for (const a of [30, 40, 65, 70]) root.style.setProperty(`--brand-drawer-muted-${a}`, mutedOn(drawerHex, inkFor(drawerHex), a / 100));
     root.style.setProperty("--brand-deep-ink-rgb", inkRgb(deepInk));
     root.style.setProperty("--brand-hero-ink-rgb", inkRgb(heroInk));
+    // §1as — the hero's small text sits on the scrim at any point along it,
+    // and the proof-point cards add 7% white. Solved against all six.
+    const heroStops = [veil(primary, "#141414", 0.72), veil(accent2, "#141414", 0.61), veil(accent, "#141414", 0.5)];
+    const heroBgs = [...heroStops, ...heroStops.map((b) => veil(b, "#ffffff", 0.07))];
+    // The intro paragraph (75%) and the trust ticker (60%) can sit anywhere
+    // along the scrim (the columns stack on a phone). The proof-point cards
+    // add 7% white, so their text gets its own ink, chosen on the cards —
+    // white on the shipped palette, as before — and their 50% sub-lines fade
+    // from that.
+    const heroCardInk = inkFor(heroBgs.slice(3));
+    root.style.setProperty("--brand-hero-card-ink-rgb", inkRgb(heroCardInk));
+    root.style.setProperty("--brand-hero-muted-75", mutedOn(heroStops, heroInk, 0.75));
+    root.style.setProperty("--brand-hero-muted-60", mutedOn(heroStops, heroInk, 0.6));
+    root.style.setProperty("--brand-hero-muted-50", mutedOn(heroBgs.slice(3), heroCardInk, 0.5));
+    // The accent as TEXT on the hero. The badge (12 px, on its own 15% accent
+    // tint) sits in the left half, between the primary and accent-2 stops;
+    // the proof-point stats are large text (>= 20 px bold), 3:1, anywhere.
+    root.style.setProperty("--brand-accent-on-hero",
+      textSafeOnEach(accent, heroStops.slice(0, 2).map((b) => veil(b, accent, 0.15)), DARK_TARGET));
+    root.style.setProperty("--brand-accent-on-hero-lg", textSafeOnEach(accent, heroBgs, 3));
     // brand-gradient-mixed-ends, product-header half (WHATS_LEFT §2d) — the
     // product page's name and SKU sit on dark-2 → primary, both owner colours,
     // and were a flat white / #e2e8f0. One ink for both ends, as the site
@@ -8383,13 +8441,20 @@ function ThemeInjector() {
     const productHeadInk = inkFor([hexOf(dark2), primary]);
     root.style.setProperty("--brand-product-head-ink-rgb", inkRgb(productHeadInk));
     root.style.setProperty("--brand-product-head-sub", productHeadInk === INK_LIGHT ? "#e2e8f0" : productHeadInk);
-    // The accent as TEXT on the deep→primary gradient (industry-card chips).
-    // Kept whenever it is no worse there than the shipped accent is on the
-    // shipped gradient (so the deployed site is unchanged) or clears 3:1;
-    // otherwise the gradient's own ink.
+    // The accent as TEXT on the deep→primary gradient (industry-card chips and
+    // sub-lines, 12 px). §1as (Keagan 2026-10-05) — SUPERSEDES "kept whenever
+    // it is no worse than the shipped accent on the shipped gradient": that
+    // rule held the shipped 3.12:1 on purpose. Small text now reaches 4.5:1 at
+    // both ends, with the accent's hue kept and only its lightness moved.
+    root.style.setProperty("--brand-accent-on-deep", textSafeOnEach(accent, [deepHex, primary], DARK_TARGET));
+    // The industry-card ICON keeps the pre-§1as rule: an icon is not text
+    // (WCAG 1.4.11, 3:1), and the decision covered small text only. Kept
+    // whenever it is no worse there than the shipped accent is on the shipped
+    // gradient (so the deployed site is unchanged) or clears 3:1; otherwise
+    // the gradient's own ink.
     const worstOn = (fg, bgs) => Math.min(...bgs.map((b) => contrastRatio(fg, b)));
     const shippedAccentOnDeep = worstOn("#00bef2", ["#003d7a", "#005da3"]);
-    root.style.setProperty("--brand-accent-on-deep",
+    root.style.setProperty("--brand-accent-on-deep-icon",
       worstOn(accent, [deepHex, primary]) >= Math.min(3, shippedAccentOnDeep) ? accent : deepInk);
   }, [site]);
   return null;
@@ -12028,7 +12093,7 @@ function IndustriesPage() {
                   width: 44,
                   height: 44,
                   background: "rgba(var(--brand-primary-rgb),0.5)",
-                  color: "var(--brand-accent-on-deep)",
+                  color: "var(--brand-accent-on-deep-icon)",
                   border: "1px solid rgba(var(--brand-accent-rgb),0.3)",
                 }}
               >
