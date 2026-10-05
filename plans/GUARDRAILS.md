@@ -52,22 +52,24 @@ These are absolute. There is no plan-level exception.
 | `git checkout`, `reset`, `stash`, `revert`, `rebase`, `push --force`, or `commit` **unless explicitly asked in the current conversation** | The working tree has repeatedly been the only copy of hours of work |
 | Edit `DEPLOY_READINESS_v2.md` | Frozen. It is the original audit and its value is that it did not change |
 | Write a real password hash into `admin/config.php` | It defines an unsatisfiable sentinel on purpose. Two previous hashes shipped: the PHP-manual example for the string `password`, and one printed in four committed docs |
-| Commit `admin/config.local.php` | Gitignored (`.gitignore:29`). It holds the live credential. **The repo is public** |
+| Commit `admin/config.local.php` | Gitignored (`.gitignore:28`). It holds the live credential. **The repo is public** |
 | Modify `data/*.json`, `pdfs/`, or `uploads/` | Live customer state. `_harness/pristine/` holds the reference copies; if a test writes to `data/`, restore from there before finishing |
 | Use `preg_replace` on anything that writes a bcrypt hash | Every bcrypt hash contains `$2y$12$`; as a replacement string those are backreferences. Use `preg_replace_callback`. The shipped code once wrote `y$…` and the password page was 0% functional |
 | Add a form field after `form_complete` in `admin/content.php` | It is the `max_input_vars` truncation sentinel and is enforced **positionally**. It must remain the last field in the form |
 | Introduce a paid dependency, service, or tier | $0 budget. Genuine perpetual free tiers only |
 | Resume the `src/pages/` `src/components/` `src/lib/` extraction | Settled and closed. The directories were deleted 2026-08-12 after four weeks of reading as live source while importing into nothing. Do not recreate them |
 | Re-upload `data/products-all.json` or `pdfs/` from the repo | Settled 2026-08-04 |
-| Delete anything from `public/images/site/` because nothing references it | The five photo slots in `admin/content.php:341-345` are free-text path fields and no picker lists the folder, so an unreferenced image is an option the owner has not taken yet, not an orphan. Deleting one makes the path he later types render a broken frame under a successful save. Seven were deleted on this reasoning on 2026-08-12 and restored the same day (`WHATS_LEFT.md` §1o) |
+| Delete anything from `public/images/site/` because nothing references it | The five photo slots are free-text path fields in Page Content, and the Site Images & Logo picker (`admin/site-images.php`, 2026-09-29) OFFERS this folder, so an unreferenced image is an option the owner has not taken yet, not an orphan. Deleting one makes the path he later types render a broken frame under a successful save. Seven were deleted on this reasoning on 2026-08-12 and restored the same day (`WHATS_LEFT.md` §1o) |
 | Treat any in-repo copy of the deployed site as source | `_localsite/` was one — a mirror of an older deploy, tracked despite being gitignored, holding a **working admin credential** on a public repo. Deleted 2026-08-12. If you need a deploy diff, take it from the server, keep it outside the repo, and never let it carry `config.local.php` |
 
 ---
 
-## 3. The twelve invariants
+## 3. The invariants
 
 Each of these caused a real, named defect. `CLAUDE.md` §Invariants carries the
-full account and each has an inline comment in the code naming its incident.
+full account — nineteen as of 2026-10-05 (this heading said "twelve" until
+then); `invariants.js` checks 1–12, and 17, 18 and 19 are held by
+`audit9-fixes` p7-1, p7-2 and `dep3-scriptblock` and each has an inline comment in the code naming its incident.
 
 **Never "simplify" one back. After any change, run:**
 
@@ -240,8 +242,9 @@ Three of these need saying out loud:
   assertion fails: `php-mail.ini` points `sendmail_path` at `../fakemail.sh`, a
   POSIX shell script Windows PHP cannot exec, so no mail log is written.
 
-`php -l` counts 20 files where a clean checkout counts 19 — the extra is a local
-gitignored `admin/config.local.php`. 0 failing either way.
+`php -l` counts the PHP files under `admin/` and `public/` — 21 on a clean
+checkout on 2026-10-05, one more where a local gitignored
+`admin/config.local.php` exists. 0 failing either way.
 
 **Run the full set before you start**, so you know which failures you inherited
 and which you caused. A plan that starts from red must say so.
@@ -269,8 +272,8 @@ worth knowing, because more will surface:
 
 **Corrected 2026-08-11.** This said "`_harness/` is gitignored, ~30 MB". Only
 the three *generated* directories are ignored — `_harness/site/`,
-`_harness/pristine/` and `_harness/out/` (`.gitignore:67-69`). **The suite code
-is tracked**: 214 files, including every `plan*.js`, the `php-*.ini` files and
+`_harness/pristine/` and `_harness/out/` (`.gitignore:77-79`). **The suite code
+is tracked**: ~220 files on 2026-10-05, including every `plan*.js`, the `php-*.ini` files and
 `lint.php`. That matters before you write a new suite — it will be committed and
 reviewed like any other code, not left behind in a container. §4.1 already
 described the new state; this line was a leftover from before it.
@@ -434,13 +437,11 @@ false finding already:
   Tab/Enter, never `.focus()`.
 - **The Tailwind extractor emits rules for bare utility words in comments.**
   `cssdiff.js` is the guard.
-- **`admin/logo.svg` reads as 45 broken images in the mirror.** `sync.sh` copies
-  only `admin/*.php` and `admin/*.js`; `router.php` then answers the request with
-  the SPA shell, 200 `text/html`, `naturalWidth 0`. The file is tracked and does
-  deploy. Copy it into the mirror before believing any admin image count.
-- **The mirror has no `uploads/` directory**, which is what drives the admin
-  health banner in every mirror screenshot, and what makes two homepage images
-  read as invisible at 834 and 390.
+- ~~`admin/logo.svg` reads as 45 broken images in the mirror~~ and ~~the
+  mirror has no `uploads/` directory~~ — both FIXED in `sync.sh` (it copies
+  `admin/logo.svg` and creates `uploads/images` with `uploads/.htaccess`).
+  Kept as a record: before that fix both produced false findings in mirror
+  screenshots. (Struck 2026-10-05.)
 - **Playwright paints a sticky element once, at an arbitrary position, in a
   full-page capture.** Three reviewers reported "the sticky Save bar covers a
   field" on `admin/content.php` from full-page shots. Measure overlap live at
@@ -496,8 +497,9 @@ Not defects. Each was decided, with a reason:
 - A3/C29 Option B: `?productId=` URLs stay.
 - C34 datasheet file sizes, C40 no-JS JSON response, C31 catalog scoping, and
   PLAN-7 slot 5 are deferred with reasons.
-- The shipped `data/content.json` lacking `copy.siteImages` is by design
-  post-PLAN-9 — the admin prefills, and the first save materialises it.
+- ~~The shipped `data/content.json` lacking `copy.siteImages`~~ — it now ships
+  materialised (NEW-V2-1), and so does `copy.claims` (§1ap, DI-8). The admin
+  prefill still covers a site deployed before either key existed.
 - The three expected regression exceptions in §4.1 are documented state:
   `plan8-contrast` 34/35 (`EXEMPT_BRAND_SURFACE`), `plan8-polish` 16/17 on Linux
   (the C49 font check only), and `brandtext` at ≤ 13 failing — **judge the

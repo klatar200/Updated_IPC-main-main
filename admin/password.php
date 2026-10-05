@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // SEC-4 / SEC-3 — re-sign THIS session with the new hash; every
             // other session was signed with the old one and is now signed out.
             mark_session_authenticated($res['hash'], false); // SEC-3 — not a new sign-in
-            $success = 'Password changed. Use the new password the next time you sign in. Store it somewhere safe — there is no "forgot password" email. If it is ever lost, recovery means uploading an empty file named ALLOW-PASSWORD-RESET into the admin folder over FTP, then visiting /admin/ (see admin/README.md).';
+            $success = 'Password changed. Use the new password the next time you sign in. Store it somewhere safe — there is no "forgot password" email. If it is ever lost, recovery means uploading an empty file named ALLOW-PASSWORD-RESET into the admin folder over FTP, then visiting /admin/ (Help → Your admin password explains the steps).';
         }
     }
 }

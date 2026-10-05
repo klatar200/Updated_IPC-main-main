@@ -280,7 +280,8 @@ function startServer(port, limited) {
         'UX-3: Help no longer says the SEO rows set social-share previews, and says those are fixed');
       const capRow = ((/<td>Image Caption<\/td><td>([\s\S]*?)<\/td>/.exec(helpRaw) || [])[1] || '');
       note(/photo/i.test(capRow) && /name|banner|title/i.test(capRow), 'UX-10: Help\'s Image Caption row (Adding a product) names both places the caption shows', capRow.slice(0, 160));
-      note(/ISO[^.]{0,200}(cannot be (left )?empt|can't be (left )?empt|emptying it puts back)/i.test(help), 'G2: Help says the ISO box cannot be emptied');
+      // G2 as decided 2026-10-05 (§1aq): the box IS clearable now, and Help says how.
+      note(/To stop claiming ISO, empty the box and save/.test(help) && !/ISO box cannot be emptied/.test(help), 'G2: Help says how to stop claiming ISO (empty the box) — §1aq');
       note(/View All Industries/.test(help) && /IMAGE COMING SOON/i.test(help) && /favicon|browser-tab icon/i.test(help), 'G5: Help lists the small fixed labels (View All Industries, IMAGE COMING SOON, browser-tab icon)');
       note(/(description|alt)[^.]{0,120}(read aloud|screen reader)[^.]{0,200}fixed|fixed[^.]{0,200}screen reader/i.test(help), 'G4: Help says the Site Images photo descriptions are fixed');
       note(/JavaScript switched off|without JavaScript|no-JavaScript/i.test(help) && /shared on social media/i.test(help), 'G3: Help names the fixed share tags and the no-JavaScript contact block');
@@ -387,7 +388,7 @@ function startServer(port, limited) {
       const SD = eval('(' + app.slice(o, e + 1) + ')');
       const MAP = { company_name: SD.company.name, company_foundedYear: SD.company.foundedYear, contact_phone: SD.contact.phone, contact_email: SD.contact.email,
         addr_street: SD.address.street, addr_city: SD.address.city, addr_state: SD.address.state, addr_zip: SD.address.zip, hours_text: SD.hours.text,
-        cert_iso: SD.certifications.iso, stats_min: SD.stats.minimumOrder, stats_feet: SD.stats.feetInStock };
+        stats_min: SD.stats.minimumOrder, stats_feet: SD.stats.feetInStock };   // cert_iso left the list in §1aq: it is clearable now
       const php = JSON.parse(execFileSync('php', ['-r', `require ${JSON.stringify(path.join(ROOT, 'admin', 'config.php'))}; echo json_encode(SITE_INFO_PREVIEW_DEFAULTS, JSON_UNESCAPED_UNICODE);`]).toString());
       note(JSON.stringify(php) === JSON.stringify(MAP), 'UX-12: the preview fallbacks equal App.jsx SITE_DEFAULTS', `php ${JSON.stringify(php)}\n       js  ${JSON.stringify(MAP)}`);
     });

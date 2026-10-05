@@ -258,8 +258,15 @@ $contact = (string)@file_get_contents(__DIR__ . '/../public/contact.php');
 $inq     = (string)@file_get_contents(__DIR__ . '/../admin/inquiries.php');
 
 $rejWritten = [];
-if (preg_match_all("/ipc_partial_entry\(\s*'([^']+)'/s", $contact, $mm)) {
-    foreach ($mm[1] as $t) $rejWritten[$t] = true;
+// Every quoted type in the first argument — a plain 'type', or a ternary
+// `cond ? 'a' : 'b'` (UX-11, 2026-10-05: a rate-limited request that filled
+// the spam field is logged as honeypot). Missing the ternary form turned this
+// check red on main after #74; §1aq records it.
+if (preg_match_all("/ipc_partial_entry\(\s*([^,]*?)\s*,/s", $contact, $mm)) {
+    foreach ($mm[1] as $arg) {
+        $arg = preg_replace('/\$_[A-Z]+\[[^\]]*\]/', '', $arg);   // the condition's own $_POST['…'] keys are not types
+        if (preg_match_all("/'([a-z-]+)'/", $arg, $tt)) foreach ($tt[1] as $t) $rejWritten[$t] = true;
+    }
 }
 $rejWritten = array_keys($rejWritten);
 
@@ -540,6 +547,30 @@ if ($guardGaps) {
        . "      owner is told why (audit-runs/audit4.md D-01)\n";
 } else {
     echo "href guard drift          2 owner-editable href fields, guarded client and server side\n";
+}
+
+// ── admin header drift ──────────────────────────────────────────────────────
+// WHATS_LEFT 430 (found 2026-08-11, A10-021): six pages carried their own bare
+// `header { background…; height: 60px; … }`, and the explicit `height` on two
+// of them silently defeated nav.php's min-height fix. The copies were removed
+// in d0f9340; nothing stopped one coming back. nav.php's scoped
+// `.ipc-admin-header` is the one definition. A page may still set what nav.php
+// does not (help.php's `position: sticky`), never the box itself.
+$hdrDrift = [];
+foreach (glob(__DIR__ . '/../admin/*.php') as $f) {
+    if (basename($f) === 'nav.php') continue;
+    if (preg_match_all('/(?:^|[}\s])header\s*\{([^}]*)\}/', (string)file_get_contents($f), $mm)) {
+        foreach ($mm[1] as $body) {
+            if (preg_match('/\b(background|height|padding|display|align-items|justify-content)\s*:/', $body)) $hdrDrift[] = basename($f);
+        }
+    }
+}
+if ($hdrDrift) {
+    $fail++;
+    echo "FAIL  admin header drift\n      " . implode(', ', array_unique($hdrDrift))
+       . " redeclare the header box nav.php owns (WHATS_LEFT 430 / A10-021)\n";
+} else {
+    echo "admin header drift        only nav.php declares the header box\n";
 }
 
 exit(($fail + $jsFail) === 0 ? 0 : 1);

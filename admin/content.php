@@ -262,7 +262,7 @@ $SECTIONS = [
     ],
     'seo' => [
         'title'    => 'Search Engine Text (SEO)',
-        'sub'      => 'The browser-tab title and description for each page — also used for social-media share previews. The "home" row is the site-wide default.',
+        'sub'      => 'The browser-tab title and description for each page, and the description Google shows. The preview card when a page is shared on social media is fixed (see Help). The "home" row is the site-wide default.',
         'example'  => 'Nothing on the page itself shows this. It is the text in the browser tab, in Google results, and in the preview card that appears when someone pastes a link into Teams or LinkedIn. To check it, open a page and read the browser tab.',
         'addLabel' => 'Page',
         'icons'    => [],

@@ -332,7 +332,7 @@ $navActive = 'help';
         <h2>📊 Reading the dashboard</h2>
         <p>The <strong>Products</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
         <ul class="plain">
-          <li><strong>Header bar</strong> — your logo on the left; on the right, a link to every page of the dashboard: <strong>Products</strong>, <strong>+ Add Product</strong>, <strong>Business Details</strong>, <strong>Page Content</strong>, <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups</strong>, <strong>Audit Log</strong>, <strong>Password</strong> and <strong>Help</strong>, plus <strong>View Live Site ↗</strong> to open the public website in a new tab and <strong>Sign Out</strong>. This same navigation bar appears at the top of every admin page, so you're never more than one click from anywhere else in the dashboard.</li>
+          <li><strong>Header bar</strong> — your logo on the left; on the right, a link to every page of the dashboard: <strong>Products</strong>, <strong>+ Add Product</strong>, <strong>Business Details</strong>, <strong>Page Content</strong>, <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups</strong>, <strong>Audit Log</strong>, <strong>Password</strong> and <strong>Help</strong>, plus <strong>View Live Site ↗</strong> to open the public website in a new tab and <strong>Sign Out</strong>. This same navigation bar appears at the top of every admin page. Two pages are not in the bar: <strong>Site Images &amp; Logo</strong> and <strong>Catalog &amp; Brochure PDFs</strong> — open them from the links on Page Content (the Site Images and Value-Added Services cards) and Business Details (the Logo URL and Catalog PDF URL boxes).</li>
           <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>
           <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
           <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
@@ -412,7 +412,7 @@ $navActive = 'help';
           <tr><td><span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span></td><td>Upload, replace, or remove that product's downloadable data sheet.</td></tr>
           <tr><td><span class="btn btn-sm btn-pdf btn-mock">Photo</span></td><td>Upload, replace, or remove that product's photo, straight from your computer. See <a href="#photos">Product photos</a>.</td></tr>
           <tr><td><span class="btn btn-sm btn-edit btn-mock">View ↗</span></td><td>Opens that exact product on your live public website in a new tab — the fastest way to double-check how a change actually looks to customers.</td></tr>
-          <tr><td><span class="btn btn-sm btn-danger btn-mock">Delete</span></td><td>Permanently removes the product after you confirm. See <a href="#deleting">Deleting a product</a>.</td></tr>
+          <tr><td><span class="btn btn-sm btn-danger btn-mock">Delete</span></td><td>Removes the product after you confirm — you can undo it from Backups. See <a href="#deleting">Deleting a product</a>.</td></tr>
         </table>
         <p>This dashboard works in any modern desktop or tablet browser (Chrome, Edge, Safari, Firefox). On narrower screens, the product tables scroll left-to-right — drag within the table itself to reach the Actions column on the right.</p>
       </section>
@@ -436,7 +436,7 @@ $navActive = 'help';
           </li>
           <li>
             <strong>Feature Badges</strong> — type one badge per line (press Enter between each). These become small colored pill labels on the product page, e.g.:
-            <div class="visual-note"><span class="vn-icon">🏷️</span>Example: typing <code>Flame Retardant</code> on one line and <code>RoHS Compliant</code> on the next creates two separate badges shown side by side on the live page.</div>
+            <div class="visual-note"><span class="vn-icon">🏷️</span>Example: typing <code>Flame Retardant</code> on one line and <code>Flexible</code> on the next creates two separate badges shown side by side on the live page. A badge that names a standard (RoHS, UL, CSA, MIL-Spec …) is not shown — tick it under Approvals &amp; Certifications instead; the save message tells you if you typed one.</div>
           </li>
           <li>
             <strong>Description Paragraphs</strong> — one paragraph per line. Each line you type becomes its own paragraph of body text on the product page.
@@ -481,7 +481,7 @@ $navActive = 'help';
             </table>
             <div class="callout callout-warning">
               <b>Additional PDF files need developer help</b>
-              This field only creates the extra download <em>button and link</em> — it does not upload a file. The dashboard's file-upload tool (on the <a href="#pdfs">PDF data sheets</a> page) only handles a product's one primary data sheet. To add a second or third PDF, ask your web developer to place that file in the <code>/pdfs/</code> folder first; once it's there, you can point an Additional PDF Link at it yourself, the same way you'd link to any file.
+              This field only creates the extra download <em>button and link</em> — it does not upload a file. The product's <strong>Manage PDF</strong> page handles its one primary data sheet. To add a second or third PDF yourself: upload it on <a href="#marketingpdfs">Catalog &amp; Brochure PDFs</a> with <em>Just upload it — I will choose later</em>, copy the address it shows (for example <code>/pdfs/marketing/Plugged-Cap.pdf</code>), and put that address on a line here. The save message warns you if an address points at no file.
             </div>
           </li>
           <li>Click <span class="btn btn-primary btn-mock">Save Changes</span>.</li>
@@ -512,12 +512,13 @@ $navActive = 'help';
         <h2>📋 Building the specifications list</h2>
         <p>This is the label/value list shown on the left side of a product's detail page (Material, Color, Shrink Ratio, and so on). Both the Add and Edit forms use the same easy, visual builder — no code required.</p>
         <ol class="steps">
+          <li>The <strong>Section heading</strong> box above the list is the dark title bar over it on the product page — "Specifications:" unless you change it.</li>
           <li>Click <span class="btn btn-primary btn-mock" style="background:#fff;color:#005da3;border:1px solid #d1d9e0;">+ Add Specification</span> to add a new row.</li>
           <li>Type a <strong>Label</strong> (e.g. "Material") and its <strong>Value</strong> (e.g. "Polyolefin") into the two boxes.</li>
           <li>Leave the Label box empty to create a wide note row instead — useful for a standalone line like "RoHS Compliant · UL 224" that doesn't need its own label.</li>
           <li>Click the <strong>×</strong> button on the right of any row to remove it.</li>
         </ol>
-        <div class="visual-note"><span class="vn-icon">👀</span>As you type, a <strong>"Live preview — what the website shows"</strong> panel appears right below the editor, so you can see exactly how the list will look on the public page before you even save.</div>
+        <div class="visual-note"><span class="vn-icon">👀</span>The <strong>"Live preview — what the website shows"</strong> panel on the right of the Add and Edit pages (below the form on a narrow screen) shows the whole product page — this list included — and updates as you type, so you can see how it will look before you save.</div>
       </section>
 
       <section class="help-section" id="sizechart">
@@ -569,7 +570,7 @@ $navActive = 'help';
           <tr><td>Split into Sub-columns</td><td>Turns one column heading into a group covering two or more narrower columns underneath it — e.g. a heading "Recovered" split into "Diameter" and "Wall."</td></tr>
           <tr><td>+ sub-column</td><td>Adds another narrow column under a heading that's already split.</td></tr>
           <tr><td>+ Add Row</td><td>Adds a blank data row at the bottom. Click into each cell and type the value.</td></tr>
-          <tr><td>× (on a row or column)</td><td>Removes that row or column, and shifts the rest to fill the gap.</td></tr>
+          <tr><td>× on a row, <strong>Remove</strong> on a column</td><td>Removes that row or column, and shifts the rest to fill the gap.</td></tr>
         </table>
         <h3>Pasting straight from a spreadsheet</h3>
         <p>If you already have this data in Excel or Google Sheets, you don't need to retype it:</p>
@@ -582,7 +583,7 @@ $navActive = 'help';
         </ol>
         <div class="callout callout-tip">
           <b>Advanced mode</b>
-          There's an <strong>Advanced</strong> link in the corner of both spec-table editors that shows the raw underlying data as text. This is entirely optional and meant for technical users only — the visual editor above does everything most people will ever need. If you do open Advanced mode by accident, just don't change anything and switch back; nothing is lost.
+          There's an <strong>Advanced</strong> link in the corner of the Size chart editor that shows the raw underlying data as text. This is entirely optional and meant for technical users only — the visual editor above does everything most people will ever need. If you do open Advanced mode by accident, just don't change anything and switch back; nothing is lost.
         </div>
       </section>
 
@@ -629,7 +630,7 @@ $navActive = 'help';
         </ol>
         <div class="callout callout-warning">
           <b>Shared data sheets</b>
-          Some data sheets cover more than one related product (a single PDF listing several SKUs). If you remove that PDF from one product while another product still points to the same file, the dashboard automatically keeps the file safe on the server for the other product — it's only deleted once nothing references it anymore.
+          Some data sheets cover more than one related product (a single PDF listing several SKUs). If you remove that PDF from one product while another product still points to the same file, the dashboard automatically keeps the file safe on the server for the other product — it's only taken off the website (kept aside on the server, so a Product Catalog restore from Backups brings it back) once nothing references it anymore. <strong>Replacing</strong> a shared data sheet with Manage PDF replaces it for every product that uses it, and the old version is not kept — save a copy first if you may want it back.
         </div>
       </section>
 
@@ -814,7 +815,7 @@ $navActive = 'help';
           <tr><td>Banner</td><td>Page Content → <strong>Industries page — banner</strong>.</td></tr>
           <tr><td>Each industry: icon, name, sub-heading, "Common Applications", "IPC Products" links, certification chips</td><td>Page Content → <strong>Industries Page — Detail Sections</strong>. Product links are one per line as <code>SKU | name shown</code>; the SKU must match a product in your catalog (the page warns you when it doesn't).</td></tr>
           <tr><td>The three small headings in each section, and its buttons</td><td><strong>Fixed.</strong></td></tr>
-          <tr><td>The "PPAP &amp; IMDS Documentation Available" box at the bottom</td><td>Page Content → <strong>Company Claims</strong> → <strong>Industries page — PPAP panel</strong> heading and text. Empty the heading to remove the whole box (with its Contact Sales button); empty only the text to keep the heading alone.</td></tr>
+          <tr><td>The "PPAP &amp; IMDS Documentation Available" box at the bottom</td><td>Page Content → <strong>Company Claims</strong> → <strong>Industries page — PPAP panel</strong> heading and text. Empty the heading to remove the whole box (with its Contact Sales button); empty only the text to keep the heading and its Contact Sales button.</td></tr>
         </table>
 
         <h3>Services page</h3>
@@ -876,7 +877,7 @@ $navActive = 'help';
 
         <h3>Error pages</h3>
         <table class="field-ref map-ref">
-          <tr><td>"Page not found", "Catalog Unavailable" and "Something went wrong"</td><td><strong>Fixed</strong> wording, with your phone and email from Business Details.</td></tr>
+          <tr><td>"Page not found", "Catalog Unavailable" and "Something went wrong"</td><td><strong>Fixed</strong> wording. "Page not found" shows your phone; the other two show your phone and email — all from Business Details.</td></tr>
         </table>
 
         <h3 id="newfiles">Putting a new photo or logo on the server</h3>
@@ -901,7 +902,7 @@ $navActive = 'help';
           <li>In <strong>Use it for</strong>, choose <strong>Full product catalog</strong> or the Services card the brochure belongs to — or <em>Just upload it</em> to decide later — and click <strong>Upload</strong>.</li>
           <li>Every PDF on that page has its own <strong>Use This PDF</strong> button, and each place a PDF is used has a <strong>Stop Using</strong> button. The brochure's link text is set in Page Content → Value-Added Services.</li>
         </ol>
-        <p>An upload never replaces a file already on the server (a second <code>catalog.pdf</code> is saved as <code>catalog-2.pdf</code>), and nothing on that page deletes a file. A product's own data sheet is different: use the <strong>PDF</strong> button on the Products page.</p>
+        <p>An upload never replaces a file already on the server (a second <code>catalog.pdf</code> is saved as <code>catalog-2.pdf</code>), and nothing on that page deletes a file. A product's own data sheet is different: use the <strong>Manage PDF</strong> button on the Products page.</p>
       </section>
 
       <section class="help-section" id="business">
@@ -918,7 +919,7 @@ $navActive = 'help';
           <tr><td>Company name</td><td>The footer (including the © line) and the information search engines read about you. It is also the ending of product pages' browser-tab titles, and of any page that has no title of its own in <a href="#pagecontent">Page Content</a> → Search Engine Text (SEO) — every other page title comes from there, not from here. It does <strong>not</strong> change the name printed beside the logo in the site header; that is part of the site design, so ask your developer.</td></tr>
           <tr><td>Short name</td><td>Never shown in the text of any page. It is listed in the information search engines read, and it replaces the full company name in a product page's browser-tab title when the full name would make that title too long for search results.</td></tr>
           <tr><td>Slogan</td><td>The small line under the company name in the site header, and the information search engines read.</td></tr>
-          <tr><td>Phone, fax, email</td><td>Footer, Contact page, About page, FAQ page and the homepage quote band. <strong>The email address is also where every quote request and contact-form message is sent</strong> — change it and new leads go to the new address, so make sure it is a mailbox someone reads. The phone number is also what the "call us" links dial, so type it the way you'd say it — the dialling version is a separate field beside it. <strong>When you change the phone number, change the dial box too — or empty it</strong>: left empty, it is worked out from the phone number when you save (for an ordinary 10-digit US/Canada number; for anything else the page asks you to fill it in).</td></tr>
+          <tr><td>Phone, fax, email</td><td>Footer, Contact page, About page, FAQ page and the homepage quote band. <strong>The email address is also where every quote request and contact-form message is sent</strong> — change it and new leads go to the new address, so make sure it is a mailbox someone reads. The phone number is also what the "call us" links dial, so type it the way you'd say it — the dialling version is a separate field beside it. <strong>When you change the phone number, the click-to-call number follows it automatically when you save</strong> (for an ordinary 10-digit US/Canada number). For any other number — an extension, a non-US number — fill in the dial box yourself. If the two boxes hold different numbers, the save is refused and tells you why, so a visitor never sees one number and dials another.</td></tr>
           <tr><td>Address</td><td>Footer, Contact page, About page fact box, Privacy page, and the map listing search engines build from your site. <strong>Country</strong> is only given to search engines.</td></tr>
           <tr><td>Hours (display text)</td><td>The hours shown in the footer and on the Contact page, e.g. "Mon–Fri, 8am–5pm CT".</td></tr>
           <tr><td>Opens, Closes, Open Days</td><td>Not shown on any page — they are the opening hours search engines (Google Maps and the like) read, so keep them in step with the display text above. Times are 24-hour (<code>08:00</code>, <code>17:00</code>); days are full names separated by commas.</td></tr>
@@ -926,8 +927,8 @@ $navActive = 'help';
           <tr><td>Minimum Order, Feet In Stock</td><td>The homepage quote band ("$50 minimum order. 25 million feet in stock."), the About page fact box and the footer paragraph. The site also swaps the original "$50" and "25 million" for these values inside your Page Content wording.</td></tr>
           <tr><td>About story</td><td>The "Our Story" paragraphs on the About page — one paragraph per line. (Its heading is in Page Content → About page — banner &amp; headings.)</td></tr>
           <tr><td>Founded year</td><td>Drives the "© 1974–<?= date('Y') ?>" line automatically. You never update the second year.</td></tr>
-          <tr><td>Certifications</td><td><strong>The ISO field here is the only place the ISO certification is set.</strong> What you type in it appears everywhere the site claims it &mdash; the homepage trust bar and hero badges, the Certifications &amp; Standards block on the About page, the company story, the footer and the search-engine descriptions. Put the revision year in only when your registrar has confirmed it (<code>ISO 9001:2015</code>) and every one of those places changes with it; leave it as plain <code>ISO 9001</code> and no revision is claimed anywhere. <strong>The ISO box cannot be emptied:</strong> left empty, the site puts back "ISO 9001" (like the phone and address boxes), so emptying it does not remove the ISO claim — ask your developer if IPC ever needs to stop claiming ISO. You do not need to hunt for the wording in Page Content &mdash; whatever is typed there, the revision comes from this field. <strong>The &ldquo;Other certifications&rdquo; box beside it is published too:</strong> each line appears in the footer of every page, exactly as typed, as soon as you save &mdash; list only certifications IPC currently holds. <em>(There is no separate Quality page — this row said there was until 2026-09-14.)</em></td></tr>
-          <tr><td>Brand colors &amp; logo</td><td>Live preview on the right of the page as you change them. <strong>Primary</strong> colors buttons and highlights, <strong>Dark</strong> the navigation bar and dark bands, and the <strong>Secondary accent</strong> (with Primary) the page banners; a note beside each warns when text on it would be hard to read. The footer background does not follow these colors. The <strong>Logo URL</strong> is the address of a picture already on your server — to use a new one, see <a href="#newfiles">Putting a new photo or logo on the server</a>.</td></tr>
+          <tr><td>Certifications</td><td><strong>The ISO field here is the only place the ISO certification is set.</strong> What you type in it appears everywhere the site claims it &mdash; the homepage trust bar and hero badges, the Certifications &amp; Standards block on the About page, the company story, the footer and the search-engine descriptions. Put the revision year in only when your registrar has confirmed it (<code>ISO 9001:2015</code>) and every one of those places changes with it; leave it as plain <code>ISO 9001</code> and no revision is claimed anywhere. <strong>To stop claiming ISO, empty the box and save.</strong> The footer line, the About fact box and the homepage band then say nothing about ISO. Wording you typed yourself in Page Content (the trust ticker, a certification card, a milestone, the search-engine descriptions …) is left as it is: after the save, Business Details lists every entry that still mentions ISO 9001 so you can edit or remove each one. The preview card shown when a page is shared on social media is fixed and keeps its wording (see <a href="#sitemap">Where each part of the site is edited</a>). You do not need to hunt for the wording in Page Content &mdash; whatever is typed there, the revision comes from this field. <strong>The &ldquo;Other certifications&rdquo; box beside it is published too:</strong> each line appears in the footer of every page, exactly as typed, as soon as you save &mdash; list only certifications IPC currently holds. <em>(There is no separate Quality page — this row said there was until 2026-09-14.)</em></td></tr>
+          <tr><td>Brand colors &amp; logo</td><td>Live preview on the right of the page as you change them. <strong>Primary</strong> colors buttons and highlights, <strong>Dark</strong> the navigation bar and dark bands, the <strong>Accent</strong> underlines, borders and small highlights, and the <strong>Secondary accent</strong> (with Primary) the page banners; a note beside each warns when text on it would be hard to read. The footer background does not follow these colors. The <strong>Logo URL</strong> is the address of a picture already on your server — to use a new one, see <a href="#newfiles">Putting a new photo or logo on the server</a>.</td></tr>
           <tr><td>Social links</td><td>Each one you fill in appears as a small clickable icon in the footer of every page, and tells search engines which accounts are yours. Leave one empty and its icon disappears. Each must be a full address starting <code>https://</code> (or <code>http://</code>).</td></tr>
           <tr><td>Catalog PDF URL</td><td>Optional. Point it at a full-catalog PDF and a "Full product catalog (PDF)" link appears in the site footer. Leave blank for no link. To put the PDF on the server, see <a href="#marketingpdfs">Putting a catalog or brochure PDF on the server</a> — that page fills this box in for you. If the address points at no file, this page says so in an amber box.</td></tr>
         </table>
@@ -940,7 +941,7 @@ $navActive = 'help';
                again: settings.php refuses the whole save. -->
           If you clear the phone number, the founded year, the email or a line of the address and save, the public site does not go blank — it goes back to the <strong>original value the website was built with</strong>, not to whatever you had there before (this page will show the box empty). That is deliberate: an empty phone number becomes a dead "call us" link and an empty year prints "©&nbsp;–<?= date('Y') ?>" to every visitor. To <em>change</em> one, type the new value over the old one. The <strong>company name</strong> cannot be cleared at all: the save is refused with a message, and nothing on the page is saved until you put a name back.
           <br><br>
-          The exceptions — fields you genuinely can clear, because "we don't have one" is a real answer — are <strong>fax number</strong>, the <strong>social links</strong>, <strong>short name</strong> and <strong>slogan</strong>. Clear one of those and it disappears from the site properly.
+          The exceptions — fields you genuinely can clear, because "we don't have one" is a real answer — are <strong>fax number</strong>, the <strong>social links</strong>, <strong>short name</strong>, <strong>slogan</strong> and <strong>ISO certification</strong> (emptying it stops the footer, About fact box and homepage band claiming ISO; Business Details then lists any wording of yours that still mentions it). Clear one of those and it disappears from the site properly.
         </div>
         <div class="callout callout-tip">
           <b>If you have two tabs open</b>
@@ -972,7 +973,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-tip">
           <b>Deleting every row of a section really does empty it</b>
-          If you remove all eight footer links, the site shows no footer links. Earlier versions quietly put the originals back; this one does what you asked. The same is true for FAQ entries, services, industries, milestones and the privacy text.
+          If you remove every footer link, the site shows no footer links. Earlier versions quietly put the originals back; this one does what you asked. The same is true for FAQ entries, services, industries, milestones and the privacy text.
         </div>
         <div class="callout callout-warning">
           <b>Headings and labels won't go blank</b>
@@ -1005,11 +1006,12 @@ $navActive = 'help';
                see an inbox, only the hand-off to the mail server. -->
           <tr><td><span class="badge-mock">Sent to mail server</span></td><td>The notification was handed to your mail server. Normal. The website cannot see your inbox, so this is not proof it arrived — if a customer says you never replied, check here and in your spam folder.</td></tr>
           <tr><td><span class="badge-mock">Email failed</span></td><td>The mail server refused it. <strong>The lead is not lost</strong> — it's right here. If you see several of these, tell your developer.</td></tr>
-          <tr><td><span class="badge-mock">Spam trap</span> / <span class="badge-mock">Rate limited</span> / <span class="badge-mock">Blocked</span></td><td>The website refused the submission. Almost always a bot. These are counted separately and are <em>not</em> an email problem.</td></tr>
+          <tr><td><span class="badge-mock">Spam trap</span> / <span class="badge-mock">Blocked</span></td><td>Refused as spam, or as sent from another website — almost always a bot. Not counted in the red number on Inquiries, and <em>not</em> an email problem.</td></tr>
+          <tr><td><span class="badge-mock">Rate limited</span> / <span class="badge-mock">Incomplete</span></td><td>Refused, but often a real customer — several people at one office connection, or an email address the server did not accept. These <strong>do</strong> raise the red number on Inquiries: call them back. Not an email problem either.</td></tr>
         </table>
         <div class="callout callout-tip">
           <b>The numbers at the top</b>
-          <strong>Total received</strong> is everything ever submitted. <strong>Mail server refused</strong> counts only genuine send failures — if that number is above zero, something is wrong with mail. Blocked spam is deliberately kept out of it so it can't cause a false alarm.
+          <strong>Total received</strong> is everything ever submitted. <strong>Mail server refused</strong> counts only genuine send failures — if that number is above zero, something is wrong with mail. <strong>Refused by the form</strong> counts every submission a guard refused — spam, other-website, rate-limited and incomplete — and is kept out of the mail number so it can't cause a false alarm. The blue "new inquiries" box on the Products page and the red number on <strong>Inquiries</strong> count real leads plus the rate-limited and incomplete ones worth a call back.
         </div>
         <div class="callout callout-tip">
           <b>Why a blocked entry might be worth reading</b>
@@ -1051,7 +1053,7 @@ $navActive = 'help';
         <table class="field-ref">
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dcfce7;color:#166534;">add</span></td><td>A brand-new product was created.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dbeafe;color:#1e40af;">edit</span></td><td>An existing product's details were changed.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">delete</span></td><td>A product was permanently removed.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">delete</span></td><td>A product was deleted (restorable from Backups).</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#cffafe;color:#155e75;">upload-pdf</span></td><td>A data sheet was uploaded or replaced.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">upload-image</span></td><td>A product photo was uploaded from a computer.</td></tr>
@@ -1099,6 +1101,12 @@ $navActive = 'help';
                to guess: a data sheet upload that fails, a rate limit that has
                quietly stopped counting, leads that are arriving and not being
                written down, and photos that are never resized. -->
+          <!-- §1aq (2026-10-05) — four more rows the Products page can raise
+               that this table did not list. -->
+          <tr><td>A file in <code>data</code> is damaged</td><td>The product catalog, Page Content or Business Details file cannot be read — usually because it was edited by hand or only partly uploaded. The website shows its built-in content for that part, and saving on that page is refused so nothing is overwritten. Go to <strong>Backups</strong> and restore the most recent entry for that file.</td></tr>
+          <tr><td>The <code>uploads/.htaccess</code> security file is missing</td><td>Photo uploads (product photos and Site Images) are refused until it is back, because without it a file in that folder could be run as a program. Upload <code>uploads/.htaccess</code> from the release over FTP (turn on "show hidden files" to see it).</td></tr>
+          <tr><td>A newer upload folder is not writable</td><td>The warning names <code>uploads/site</code> or <code>pdfs/marketing</code>. Uploads on Site Images &amp; Logo, or on Catalog &amp; Brochure PDFs, will fail. Create the folder under <code>public_html/</code> over FTP and set it to 755.</td></tr>
+          <tr><td>An old password-reset file is still there</td><td>The file <code>ALLOW-PASSWORD-RESET</code> no longer does anything, but should not be left in the admin folder. Click <strong>Close It Now</strong> in the warning, or delete the file over FTP.</td></tr>
           <tr><td>The <code>pdfs</code> folder is missing or not writable</td><td>Data sheet uploads will fail. Set <code>public_html/pdfs/</code> to 755 (or 775) over FTP. If the warning stays, ask your host to run PHP as your account user (777 also works, as a stop-gap only).</td></tr>
           <tr><td>The server's temporary folder is not writable</td><td>The contact form still works and still records every lead, but its spam rate limit is not counting, and confirmation emails to senders are held back as a precaution. Ask the host to fix permissions on it.</td></tr>
           <tr><td><strong>Quote requests are arriving but cannot be recorded</strong></td><td>The most urgent one after <code>admin</code>. The notification emails are still being sent, so nothing is lost yet — but <strong>Inquiries</strong> is not recording anything, so a lead that is missed in email is gone. Same fix as the <code>admin</code> row.</td></tr>
@@ -1132,7 +1140,7 @@ $navActive = 'help';
 
         <details class="faq">
           <summary>The Specifications or Size Chart won't save — it mentions invalid data/JSON.</summary>
-          <p>This usually only happens if the optional "Advanced" text box was edited directly and a bracket, quote, or comma got out of place. The safest fix is to close the page without saving, reopen Edit, and rebuild the change using the visual editor (the +Add specification / +Add row buttons) instead of the Advanced box. If you're not sure, ask your web developer to take a look.</p>
+          <p>This usually only happens if the optional "Advanced" text box was edited directly and a bracket, quote, or comma got out of place. The safest fix is to close the page without saving, reopen Edit, and rebuild the change using the visual editor (the +Add specification / +Add row buttons) instead of the Size chart's Advanced box. If you're not sure, ask your web developer to take a look.</p>
         </details>
 
         <details class="faq">
@@ -1178,7 +1186,7 @@ $navActive = 'help';
 
         <details class="faq">
           <summary>How do I add a second PDF to a product that already has one?</summary>
-          <p>Use the <strong>Additional PDF Links</strong> field on the Edit page — but note it only creates the extra download button, it doesn't upload the file. Ask your web developer to place the second PDF in the <code>/pdfs/</code> folder first, then point the link at it. See <a href="#editing">Editing an existing product</a>.</p>
+          <p>Upload the second PDF on <a href="#marketingpdfs">Catalog &amp; Brochure PDFs</a> (choose <em>Just upload it — I will choose later</em>), copy the address it shows, and put it in the <strong>Additional PDF Links</strong> field on the Edit page. See <a href="#editing">Editing an existing product</a>.</p>
         </details>
 
         <details class="faq">
@@ -1208,7 +1216,7 @@ $navActive = 'help';
         <table class="field-ref">
           <tr><td>SKU / Part Number</td><td>The unique code identifying one specific product, e.g. <code>IP33PO</code>. It also becomes part of that product's web address and its PDF file's name.</td></tr>
           <tr><td>Part Type</td><td>The category a product belongs to (Heat Shrink, End Cap, Tape, etc.), which controls where it's grouped on the dashboard and the site.</td></tr>
-          <tr><td>Badge</td><td>A small colored pill shown on a product page highlighting a certification or feature, e.g. "RoHS Compliant."</td></tr>
+          <tr><td>Badge</td><td>A small colored pill under "Product Features" on a product page, e.g. "Flame Retardant." Certifications are not badges — tick them under Approvals &amp; Certifications.</td></tr>
           <tr><td>Specifications list</td><td>The label/value list on a product page (Material, Color, Shrink Ratio, etc.) — see <a href="#specs">Building the specifications list</a>.</td></tr>
           <tr><td>Size / dimension chart</td><td>The grid table of measurements on a product page (order sizes, expanded/recovered diameters, etc.) — see <a href="#sizechart">Building the size / dimension chart</a>.</td></tr>
           <tr><td>PDF data sheet</td><td>The downloadable data sheet document customers can get for a product — see <a href="#pdfs">Managing PDF data sheets</a>.</td></tr>
@@ -1217,7 +1225,7 @@ $navActive = 'help';
           <tr><td>Backup</td><td>A dated copy of your catalog, business details or page content, saved automatically just before each change. Restore one yourself from <a href="#backups">Backups</a>.</td></tr>
           <tr><td>RFQ / Quote request</td><td>The longer contact form, with part number, quantity and required date. Arrives in <a href="#inquiries">Inquiries</a> badged "Quote".</td></tr>
           <tr><td>Honeypot / spam trap</td><td>A field on the contact form that is invisible to people but which automated spam programs fill in. Anything that fills it is recorded but not emailed to you.</td></tr>
-          <tr><td>FTP</td><td>A way of copying files directly to and from your web server, separate from this dashboard. You only need it to recover a forgotten password — see <a href="#password">Your admin password</a>.</td></tr>
+          <tr><td>FTP</td><td>A way of copying files directly to and from your web server, separate from this dashboard. You need it to recover a forgotten password (see <a href="#password">Your admin password</a>) and for the few folder fixes listed under <a href="#health">If the dashboard warns you about the server</a>.</td></tr>
         </table>
       </section>
 
@@ -1227,7 +1235,7 @@ $navActive = 'help';
         <h3>A quick safety checklist</h3>
         <ul class="plain">
           <li>Don't share the admin password over insecure channels like plain text or email if you can help it — anyone who has it can change the catalog (see <a href="#signing-in">Signing in &amp; out</a>).</li>
-          <li>Don't edit the "Advanced" raw-text box in the Specifications or Size chart editors unless you're comfortable with it — the visual editor above it does everything most people need.</li>
+          <li>Don't edit the Size chart's "Advanced" raw-text box unless you're comfortable with it — the visual editor above it does everything most people need.</li>
           <li>Don't rename a SKU that's already been shared publicly unless you're prepared for old links to stop working (see the warning in <a href="#editing">Editing an existing product</a>).</li>
           <li>Check the <a href="#auditlog">Audit Log</a> before assuming something is a bug — it often shows a change was made on purpose.</li>
           <li>When in doubt before deleting something, it's always safe to click Cancel and double-check first — and if you do delete the wrong thing, go straight to <a href="#backups">Backups</a>.</li>
@@ -1235,7 +1243,6 @@ $navActive = 'help';
         <p>This guide covers everything you can do from inside the dashboard, which is nearly all of it — including <strong>changing your own password</strong> and <strong>restoring a backup</strong>, both of which used to be developer jobs and are not any more. What genuinely still needs your developer:</p>
         <ul class="plain">
           <li>Recovering a <em>forgotten</em> password, if you don't have your own FTP login (see <a href="#password">Your admin password</a> — you can do it yourself if you do)</li>
-          <li>Adding a second or third PDF <em>file</em> to a product (see <a href="#editing">Editing an existing product</a>)</li>
           <li>Any wording marked <strong>Fixed</strong> in <a href="#sitemap">Where each part of the site is edited</a> — e.g. the name beside the logo, the Product Index heading, the preview card shown when a page is shared</li>
           <li>Changing the overall look, layout, or features of the public website beyond what <a href="#business">Business Details</a> and <a href="#pagecontent">Page Content</a> cover</li>
           <li>Anything in <a href="#server-limits">What your server allows</a> reading a value you were told it shouldn't</li>
@@ -1267,6 +1274,10 @@ $navActive = 'help';
                    makes (admin/index.php), with the same tests, so this table
                    and the banner cannot disagree about the same server. */
                 $helpTmpDir = sys_get_temp_dir(); ?>
+          <?php foreach ([[SITE_IMG_DIR, 'uploads/site', 'Site Images &amp; Logo uploads will fail'], [MARKETING_PDF_DIR, 'pdfs/marketing', 'Catalog &amp; Brochure PDF uploads will fail']] as [$hDir, $hLbl, $hFail]):
+                $hD = rtrim($hDir, '/'); $hOk = is_dir($hD) ? is_writable($hD) : is_writable(dirname($hD)); ?>
+          <tr><th><code><?= $hLbl ?></code> writable</th><td><?= $hOk ? 'Yes' . (is_dir($hD) ? '' : ' (created on first upload)') : '<strong style="color:#dc2626">NO &mdash; ' . $hFail . '</strong>' ?></td></tr>
+          <?php endforeach; ?>
           <tr><th><code>pdfs</code> folder writable</th><td><?= (is_dir(PDF_DIR) && is_writable(PDF_DIR)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; data sheet uploads will fail</strong>' ?></td></tr>
           <tr><th>Server temporary folder writable</th><td><?= (is_dir($helpTmpDir) && is_writable($helpTmpDir)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; the contact form&rsquo;s spam limit is not counting</strong> (<code>' . h($helpTmpDir) . '</code>)' ?></td></tr>
           <tr><th>Photo resizing (<code>gd</code>)</th><td><?= (extension_loaded('gd') && function_exists('imagescale')) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; large photos are saved at full size</strong>' ?></td></tr>

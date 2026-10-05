@@ -6,7 +6,9 @@ that is the problem this file solves: on deploy day nobody reads four documents
 and reassembles the order. **`README.md` remains authoritative on *what* to
 upload; this file is the *sequence*.**
 
-Written 2026-08-27 for the 2026-08-29/30 launch (audit-runs/audit8.md).
+Written 2026-08-27 for a 2026-08-29/30 launch that did not happen; nothing is
+deployed yet (audit-runs/audit8.md). Re-verified against the code 2026-10-05
+(WHATS_LEFT §1aq) — the steps hold for whichever day the deploy is.
 
 ---
 
@@ -93,7 +95,7 @@ the last minute.
       Network Solutions control panel, or ask their support (where the panel
       shows it is unconfirmed from here). On 7.3 the public site and the contact
       form still work, but every admin page is a parse-error 500 (`fn` arrow
-      functions, e.g. `admin/config.php:971`). C3 reads the exact version back
+      functions, e.g. `save_products()`'s `usort(… fn(…))` in `admin/config.php`). C3 reads the exact version back
       after deploy. (DEP-7)
 - [ ] **Confirm `noreply@insulationproducts.com` exists** as a real mailbox or
       alias on the account. Network Solutions requires the `From:` address to
@@ -289,7 +291,9 @@ pointing at a file that does not exist.
        re-deploy, only if the admin code changed. Upload the tracked files only
        (`git ls-files admin/`, including the dotfile `admin/.htaccess`). Skip
        everything `.gitignore` lists under `admin/` — `config.local.php*`,
-       `*.jsonl`, `.login-throttle.json`, `.sessions/`, `ALLOW-PASSWORD-RESET`:
+       `*.jsonl`, `.login-throttle.json`, `.inquiries-seen.json`,
+       `.inquiry-log-failed.json`, `.pdf-renames.json`, `.sessions/`,
+       `ALLOW-PASSWORD-RESET`:
        locally those are test leftovers, on the server they are live state.
        (NEW-V4-8)
 6. [ ] **Do NOT upload `admin/config.local.php`.** No step creates a safe one
@@ -333,8 +337,10 @@ pointing at a file that does not exist.
 | `public_html/admin/` | 755, writable by PHP | audit log, **inquiry log**, throttle, password changes |
 | `public_html/admin/config.local.php` | readable **and** writable by PHP | the password hash — the admin rewrites it on every password change |
 
-"Writable by PHP" is not the same as "writable by FTP". Where they differ, all
-four writes fail silently — the dashboard banner in B4 is what catches it.
+"Writable by PHP" is not the same as "writable by FTP". Where they differ, the
+writes fail silently — the dashboard banner in B4 is what catches it (it checks
+every folder in this table, `uploads/site/` and `pdfs/marketing/` included since
+2026-10-05).
 
 **If the banner stays after 755 and 775**, the host runs PHP as a different user
 from your FTP account (NEW-N3-2, measured on real Apache): neither mode lets PHP
@@ -401,7 +407,7 @@ curl -s  https://www.insulationproducts.com/sitemap.xml | head -3
 JS=$(curl -s https://www.insulationproducts.com/ | grep -o 'assets/index-[^"]*\.js' | head -1)
 echo "$JS"                                          # expect assets/index-<hash>.js
 curl -sI -H 'Accept-Encoding: gzip' "https://www.insulationproducts.com/$JS"
-#  expect: Content-Encoding: gzip  (376 kB vs 108 kB on every cold load) (DEP-4)
+#  expect: Content-Encoding: gzip  (~386 kB vs ~112 kB on every cold load, 2026-10-05 build) (DEP-4)
 
 curl -sI http://www.insulationproducts.com/                      # expect 301 → https
 curl -sI https://insulationproducts.com/                         # expect 301 → www

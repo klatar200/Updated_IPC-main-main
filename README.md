@@ -5,7 +5,7 @@ admin panel that manages the product catalog, business details, page content,
 data sheets and product photos directly on the hosting server (no database, no
 external API).
 
-**Facts in this file were re-verified against the code on 2026-08-04.**
+**Facts in this file were re-verified against the code on 2026-10-05** (first on 2026-08-04).
 Corrections and the reasoning behind them are in `DEPLOY_READINESS_v2.md`.
 
 ## Prerequisites
@@ -32,7 +32,7 @@ Updated_IPC-main-main/
 │   └── images/             Product and marketing imagery
 ├── src/
 │   ├── main.jsx
-│   ├── App.jsx             Entire React app (single file, 13,742 lines on 2026-09-28 — `wc -l`)
+│   ├── App.jsx             Entire React app (single file, 13,918 lines on 2026-10-05 — `wc -l`)
 │   └── index.css           Tailwind entry + first-paint-critical CSS
 ├── data/                   NOT bundled by Vite — deploy separately, ONCE
 │   ├── .htaccess           Blocks backups, dotfiles, PHP execution
@@ -40,6 +40,8 @@ Updated_IPC-main-main/
 │   ├── site-info.json      Business details    — read by React, written by admin
 │   └── content.json        Editable page copy  — read by React, written by admin
 ├── pdfs/                   NOT bundled by Vite — deploy separately, ONCE
+│   └── marketing/          Catalog and brochure PDFs (ships the two Services brochures;
+│                           the admin's Catalog & Brochure PDFs page adds here, never deletes)
 ├── uploads/                NOT bundled by Vite — deploy separately, ONCE, WITH its .htaccess
 │   ├── .htaccess           Blocks script execution on uploaded files
 │   ├── images/             Product photos (admin writes here) — ships empty (.gitkeep)
@@ -58,7 +60,12 @@ Updated_IPC-main-main/
     ├── backups.php         Self-service restore
     ├── password.php        Change the admin password
     ├── audit-log.php, help.php, ping.php
-    ├── upload-pdf.php, upload-image.php
+    ├── upload-pdf.php, upload-image.php   A product's data sheet / photo
+    ├── site-images.php     Site Images & Logo (page photos, logo)
+    ├── marketing-pdfs.php  Catalog & Brochure PDFs
+    ├── nav.php             Shared header included by every page
+    ├── *.js (10)           Admin scripts (CSP: script-src 'self', no inline JS)
+    ├── logo.svg            Admin favicon / header mark
     └── README.md           Admin-specific setup notes
 ```
 
@@ -96,7 +103,12 @@ copy of everything in `public/`. For the current bundle size, run
 figure this paragraph used to quote (≈91 KB gzipped JS, 2026-08-04) is long out
 of date and is deliberately not replaced with another one that will drift.
 
-`dist/` is gitignored. It is a build artifact; rebuild it, don't commit it.
+`dist/` is **committed** (72 files) and rebuilt with `npm run build` whenever
+`src/` or `public/` changes; a fresh build of the committed source must
+reproduce it exactly (`git status` clean after the build). `dist/index.html` is
+stored with LF line endings (`.gitattributes`). (Said "gitignored, don't commit
+it" until 2026-10-05, which stopped being true when the build output was first
+committed.)
 
 ## Deploying to Network Solutions
 
@@ -145,7 +157,7 @@ depends on. (audit-runs/audit6.md A-6.2.)
 | `data/products-all.json` | Live customer state. Settled 2026-08-04: download the server's copy, diff, and merge only if the repo copy is genuinely ahead. An FTP overwrite is irreversible and creates no backup. |
 | `data/site-info.json`, `data/content.json` | Same — the owner edits these through the admin. |
 | `pdfs/` | Live customer state. Same rule. |
-| `uploads/` | Live customer state (product photos, and the owner's photos in `uploads/site/`). If `uploads/.htaccess` is missing, `upload-image.php` tries to write it and refuses photo uploads until it exists — the fix is uploading the shipped file, never creating the folder by hand without it (NEW-N3-3). |
+| `uploads/` | Live customer state (product photos, and the owner's photos in `uploads/site/`). If `uploads/.htaccess` is missing, the photo and Site Images uploads try to write it (`uploads_protection_problem()`) and refuse uploads until it exists — the fix is uploading the shipped file, never creating the folder by hand without it (NEW-N3-3). |
 | `_harness/`, `node_modules/`, `src/`, `*.md` | Not part of the deployed site. |
 
 The `data/`, `pdfs/` and `uploads/` rows mean each folder's **contents**. The
@@ -168,11 +180,12 @@ on they are owned by the customer, and re-uploading them destroys his edits.
 | `public_html/admin/config.php` | 644 | |
 | `public_html/admin/config.local.php` | readable **and writable** by the PHP user | the admin rewrites it on a password change; created by the reset flow, so PHP owns it (GO-LIVE B3/B4) |
 
-**`admin/` must be writable by the PHP user, not just by FTP.** Four things are
-written into it: `admin-log.jsonl` (the activity log), `inquiries.jsonl` (**every
-inbound sales lead**), `.login-throttle.json`, and `config.local.php` (password
-changes). On a host where the PHP user differs from the FTP user, all four fail
-silently. The admin dashboard now detects this and shows a red banner; check it
+**`admin/` must be writable by the PHP user, not just by FTP.** Chiefly:
+`admin-log.jsonl` (the activity log), `inquiries.jsonl` (**every inbound sales
+lead**), `.login-throttle.json`, `config.local.php` (password changes),
+`.sessions/` (sign-in sessions) and `.pdf-renames.json` (undo of a SKU rename);
+the full list is CLAUDE.md's "Full I/O surface". On a host where the PHP user
+differs from the FTP user, all of these fail silently. The admin dashboard now detects this and shows a red banner; check it
 after deploying.
 
 **If the banner stays after 755 and 775**, the host runs PHP as a different user
@@ -301,7 +314,7 @@ until audit-runs/audit8.md A-8.2.)
 | Products don't load | `data/products-all.json` not uploaded, or not readable (644) |
 | "Failed to save" in admin | `data/` not writable by PHP |
 | Inquiries page always empty | `admin/` not writable by PHP — leads are being dropped. The dashboard banner says so |
-| Upload rejected as "too large" | Admin → Help → What your server allows. The effective ceiling is `min(upload_max_filesize, 20MB)` for PDFs and `min(…, 8MB)` for photos — the second figure is hardcoded in `upload-pdf.php:82` / `upload-image.php:160`, so raising `public/.user.ini` alone will not lift it (AUDIT_v3 D6) |
+| Upload rejected as "too large" | Admin → Help → What your server allows. The effective ceiling is `min(upload_max_filesize, 20MB)` for PDFs and `min(…, 8MB)` for photos — the second figure is hardcoded in `uploaded_pdf_problem()` / `uploaded_image_problem()` in `admin/config.php` (shared by every upload page), so raising `public/.user.ini` alone will not lift it (AUDIT_v3 D6) |
 | "Content saved" but the page didn't change | Hard-refresh; the JSON is cached ~60 s |
 | Admin login rejects a known-good password | `config.local.php` missing or overwritten. Use the `ALLOW-PASSWORD-RESET` recovery above |
 | CSS looks wrong | Hard refresh (Ctrl+Shift+R) — assets are content-hashed |

@@ -5,7 +5,8 @@ their bug inventories were either shipped or superseded by
 `DEPLOY_READINESS_v2.md`, and the plan's Phase-4 completion criterion was
 unmeetable and misleading).
 
-**Snapshot as of 2026-08-05.** This is the only file describing current state.
+**Snapshot as of 2026-08-05; the current state is the §1aq truth pass
+(2026-10-05) — read that first.** This is the only file describing current state.
 `DEPLOY_READINESS_v2.md` is the audit this release was built against and is
 frozen — do not edit it; record outcomes here instead.
 `AUDIT_v3_FINDINGS.md` is session 2's adversarial audit of session 1's work and
@@ -140,7 +141,10 @@ Fixing `AUDIT_v3_FINDINGS.md`. Evidence in §4b.
 
 ## 2. Open — not launch blockers
 
-Ordered by value. Nothing here blocks the upload.
+Ordered by value. Nothing here blocks the upload. (Launch-gating items live in
+`GO-LIVE.md` §A — the password set at deploy (B4), the host's certificate and
+redirect, SPF; §2k's "genuinely launch-gating" pair are those, not §2 items.
+Clarified 2026-10-05.)
 
 - [x] **4.11b** ~~Footer social icons were promised by v2 4.11 and never built — `social.*` still feeds JSON-LD `sameAs` only. (Split out 2026-08-05, AUDIT_v3 D18.)~~ **SHIPPED 2026-08-06 (Plan 5)** — five inline-SVG icons in the footer brand column, only the non-empty ones, and **no container at all** when all five are cleared (asserted absent, not empty). 9/19 → 31/31. See §1b and §4k.
 - [x] **4.15b** ~~Auto-reply per-recipient cap is defeated by plus- and dot-addressing (`a+1@gmail.com`, `a.b@gmail.com`). Normalising Gmail-style addresses is the fix; the per-IP cap still bounds the damage. (Split out 2026-08-05, AUDIT_v3 §3.3.)~~ **SHIPPED 2026-08-06 (Plan 3)** — measured before the fix: four spellings of one Gmail mailbox produced **four** distinct cap files and **four** auto-replies. After: **one** cap key, three auto-replies then the cap holds. `a.b@example.com` and `ab@example.com` stay distinct and both get theirs. See §1b and §4j.
@@ -150,7 +154,14 @@ Ordered by value. Nothing here blocks the upload.
 - [x] **4.1** ~~FAQ JSON-LD `useEffect` has `[]` deps and runs before `content.json` loads, so owner-edited FAQs never reach Google's rich results.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [x] **4.3** ~~No `rel="canonical"` anywhere; `og:url` is hardcoded to the homepage on all 9 pages.~~ **SHIPPED 2026-08-05 (Plan 1)** — see §1b and §4e.
 - [x] **product detail URLs are in no sitemap** ~~Noticed 2026-08-07 while closing `sitemap/dashboard`. `public/sitemap.xml` lists the 9 routes and none of the **42** `?productId=` pages, each of which 4.3 made canonical to itself. They are not orphans — 4.21 made every internal link a real `<a href>`, so a crawler reaches them from `/products` and `/dashboard` — but they are not declared either. **Deliberately not fixed, and this is the reason:** `sitemap.xml` is a static file in `public/` that Rick cannot edit from the admin, so a hand-written list of 42 product URLs goes stale the moment he adds or deletes a product, and a sitemap that advertises a dead URL is worse than one that omits a live one. Doing this properly means generating the sitemap from `products-all.json` at build time — which is a real feature, not a fix, and it would need a decision about what happens when the built sitemap and the server-owned catalog disagree.~~ **SHIPPED 2026-08-07 (Plan 5c), decision made by Keagan: `sitemap.php`, not a build-time generator.** The objection above was right and the build-time option does not answer it — the build runs from the repo's `data/` on a laptop, the catalog is server-owned and edited in the admin, and `npm run build` is not part of adding a product, so the generated file would be correct exactly until Rick's first save. `public/sitemap.xml` is deleted and `public/sitemap.php` renders the document from `data/products-all.json` per request; `.htaccess` rewrites `/sitemap.xml` to it so `robots.txt`, any Search Console submission and every external reference keep working. **9 → 51 URLs.** See §1b and §4l.
-- [ ] **4.27 residual reorder cost** Recorded here because PLAN-5 requires it. The keys chosen are `` `${index}-${value}` ``, **not** a stable per-row id assigned in `admin/content.php` and carried in `content.json`. A per-row id has to be posted from that form, which currently posts **421** named controls under a positionally-enforced `max_input_vars` sentinel; ~90 more hidden fields moves that number and the invariant asserted against it, and existing rows would have no id until Rick re-saved, so a fallback would be needed anyway. The cost of the cheaper option is that an index-bearing key reorders poorly — React would reuse a fiber by position rather than by row. **Measured, that cost is currently zero**: `content.json` is fetched exactly once per page load (`ContentProvider`, `[]` deps), no owner-editable list is reordered in place at runtime, and a reorder in the admin reaches the public site as a fresh page load. It becomes real the day the 4.25 `visibilitychange` refetch is extended from products to content, or any live-refresh of `content.json` is added — at which point the per-row id is the fix. Asserted today by `plan5-keys.js` phase C (reorder in the admin, save, public order matches). (Logged 2026-08-06, Plan 5.)
+- [x] **DECLINED (2026-10-05, §1aq).** The trigger this item waited for has happened —
+  A-5.14 refetches `content.json` on return to the tab — but the key is
+  `${index}-${value}`, so a reordered row REMOUNTS rather than reusing another
+  row's state; the only cost is a lost open/closed accordion state on a tab the
+  visitor left open while the owner reordered that list. A per-row id would add
+  ~90 posted fields under the `max_input_vars` sentinel and a data migration,
+  for that. Original entry kept below.
+  **4.27 residual reorder cost** Recorded here because PLAN-5 requires it. The keys chosen are `` `${index}-${value}` ``, **not** a stable per-row id assigned in `admin/content.php` and carried in `content.json`. A per-row id has to be posted from that form, which currently posts **421** named controls under a positionally-enforced `max_input_vars` sentinel; ~90 more hidden fields moves that number and the invariant asserted against it, and existing rows would have no id until Rick re-saved, so a fallback would be needed anyway. The cost of the cheaper option is that an index-bearing key reorders poorly — React would reuse a fiber by position rather than by row. **Measured, that cost is currently zero**: `content.json` is fetched exactly once per page load (`ContentProvider`, `[]` deps), no owner-editable list is reordered in place at runtime, and a reorder in the admin reaches the public site as a fresh page load. It becomes real the day the 4.25 `visibilitychange` refetch is extended from products to content, or any live-refresh of `content.json` is added — at which point the per-row id is the fix. Asserted today by `plan5-keys.js` phase C (reorder in the admin, save, public order matches). (Logged 2026-08-06, Plan 5.)
 - [x] **photoUrl case mismatch — 4 products show the placeholder** ~~Found 2026-08-06 while measuring for 4.32.~~ **FIXED 2026-08-06 by Keagan's instruction** — see the closing note at the end of this item. Original wording kept for the record. Found 2026-08-06 while measuring for 4.32. `data/products-all.json` gives `IP12GA` → `/images/products/IP12GA.jpg`, `IP52EC` → `IP52EC.png`, `IP63ES` → `IP63ES.jpg` and `VALUE-ADDED` → `VALUE-ADDED.png`, but the files on disk are `ip12ga.jpg`, `ip52ec.png`, `ip63es.jpg` and `value-added.png`. On a case-sensitive filesystem — which the deploy target is — the SPA rewrite answers the miss with `index.html` and a **200**, so the browser is handed HTML where it asked for an image and the T2.7 `onError` fallback swaps in the branded placeholder. Measured: `curl /images/products/IP52EC.png` → `200 text/html; charset=UTF-8`, 2,094 bytes. So **4 of 42 product pages show a placeholder instead of the photograph that exists**, on top of the 5 that legitimately point at `placehold.co`. **Not fixed, deliberately:** both available fixes are forbidden by PLAN-5's scope boundary — renaming the files ("Keep filenames identical … renaming breaks the mapping silently") and editing `products-all.json` ("You are **not** … altering `products-all.json` to point at renamed images"). The set is pinned in `plan5-images.js` so it cannot silently grow. **Needed a decision: rename the four files, or correct the four `photoUrl` values.** The second is the safer one — it is a data edit the admin itself can make.
 
   **RESOLVED 2026-08-06 by Keagan: correct the four `photoUrl` values.** Done —
@@ -339,13 +350,13 @@ Ordered by value. Nothing here blocks the upload.
   shipped with the eyebrow fix, so the gradient rows were re-measured, and the
   four solid-background rows the amendment relied on were never affected.
 
-- [ ] **page-header-sublines-on-gradient** Found 2026-08-07 (Plan 5c) while fixing `page-header-eyebrow-contrast` — the residue that fix could not reach, with the numbers that show why it is a different problem. **18 elements**: the 16 intro `<p>` sub-lines at `rgba(var(--brand-header-ink-rgb), 0.65)` (2.25–3.14:1), the `/dashboard` header's `<strong>"View Product"</strong>`, and the `/faq` header's inline link. **The last two are already at FULL-opacity header ink and still measure 3.68:1**, which is the whole point: there is nothing left to choose. `.ipc-page-header` is `linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))` at 135°, so text further down the block sits further along the axis, and on the shipped navy the far end is `#119EC8` — where **white is 3.12:1 and dark ink is 2.72:1 at the near end**. No single ink clears 4.5:1 across that band, so this one really is the "change the page-header design" case the eyebrow was wrongly accused of being. **Pre-existing, not introduced here** — on the navy palette `rgba(ink, 0.65)` composites identically to the `rgba(255,255,255,0.65)` it replaced, and `inkaudit.js` already counted these in its 609 "fail on both palettes" bucket. The `<h1>` is unaffected: 36 px extrabold is large text and 3.11:1 clears its 3:1 bar. Options, in the order I would take them: **(a)** darken the gradient's right stop so one ink serves the whole band — this is mockup `eyebrow-D-darker-gradient.png`, already rendered against the real page, and it is a visible change to the shipped look; **(b)** raise the sub-lines to full opacity, which improves them but does **not** reach AA at 375 and costs the visual hierarchy; **(c)** accept it and record that the page-header sub-line is decorative. **Escalate before changing** — this is a design decision, not a colour pick. Held on a ratchet at 18 by `_harness/plan5c-eyebrow.js`, which lists every one on every run.
-- [ ] **brand-accent-on-dark-surfaces** Split out of `brand-text-on-brand-surface` on 2026-08-07 when its light half shipped. **18 elements** paint a bright accent as text on a dark navy surface and miss AA: the Industries panel sub-lines (3.26–4.29:1), `/products`'s "UL Listed" and "PRODUCT DETAIL" labels (3.34–4.46:1), and the homepage's "BOLINGBROOK, IL" and "ISO 9001" lines. **The fix that closed the light half is the exact wrong move here**: `--brand-accent-text` is `textSafeOn(accent2, "#ffffff")`, solved for white, and on these panels it measures **1.34:1** — four times worse than what is there now. They need a *lighter* derivative (`#7fdcf7` reaches 4.54, white 7.07), which `textSafeOn()` can already produce against a dark surface; what does not exist is a decision about whether a lighter cyan is still the brand, or whether these labels should simply be white. Most are within 0.2–1.2 of the bar, so this is legibility polish, not a defect anyone will report. **Escalate the colour question before changing.** Held on a ratchet at 18 by `_harness/plan5c-brandink.js`, which lists every one on every run.
+- [ ] **STILL OPEN (2026-10-05, §1aq) — waits on a brand/colour decision (owner).** **page-header-sublines-on-gradient** Found 2026-08-07 (Plan 5c) while fixing `page-header-eyebrow-contrast` — the residue that fix could not reach, with the numbers that show why it is a different problem. **18 elements**: the 16 intro `<p>` sub-lines at `rgba(var(--brand-header-ink-rgb), 0.65)` (2.25–3.14:1), the `/dashboard` header's `<strong>"View Product"</strong>`, and the `/faq` header's inline link. **The last two are already at FULL-opacity header ink and still measure 3.68:1**, which is the whole point: there is nothing left to choose. `.ipc-page-header` is `linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))` at 135°, so text further down the block sits further along the axis, and on the shipped navy the far end is `#119EC8` — where **white is 3.12:1 and dark ink is 2.72:1 at the near end**. No single ink clears 4.5:1 across that band, so this one really is the "change the page-header design" case the eyebrow was wrongly accused of being. **Pre-existing, not introduced here** — on the navy palette `rgba(ink, 0.65)` composites identically to the `rgba(255,255,255,0.65)` it replaced, and `inkaudit.js` already counted these in its 609 "fail on both palettes" bucket. The `<h1>` is unaffected: 36 px extrabold is large text and 3.11:1 clears its 3:1 bar. Options, in the order I would take them: **(a)** darken the gradient's right stop so one ink serves the whole band — this is mockup `eyebrow-D-darker-gradient.png`, already rendered against the real page, and it is a visible change to the shipped look; **(b)** raise the sub-lines to full opacity, which improves them but does **not** reach AA at 375 and costs the visual hierarchy; **(c)** accept it and record that the page-header sub-line is decorative. **Escalate before changing** — this is a design decision, not a colour pick. Held on a ratchet at 18 by `_harness/plan5c-eyebrow.js`, which lists every one on every run.
+- [ ] **STILL OPEN (2026-10-05, §1aq) — waits on the colour decision named below (owner).** **brand-accent-on-dark-surfaces** Split out of `brand-text-on-brand-surface` on 2026-08-07 when its light half shipped. **18 elements** paint a bright accent as text on a dark navy surface and miss AA: the Industries panel sub-lines (3.26–4.29:1), `/products`'s "UL Listed" and "PRODUCT DETAIL" labels (3.34–4.46:1), and the homepage's "BOLINGBROOK, IL" and "ISO 9001" lines. **The fix that closed the light half is the exact wrong move here**: `--brand-accent-text` is `textSafeOn(accent2, "#ffffff")`, solved for white, and on these panels it measures **1.34:1** — four times worse than what is there now. They need a *lighter* derivative (`#7fdcf7` reaches 4.54, white 7.07), which `textSafeOn()` can already produce against a dark surface; what does not exist is a decision about whether a lighter cyan is still the brand, or whether these labels should simply be white. Most are within 0.2–1.2 of the bar, so this is legibility polish, not a defect anyone will report. **Escalate the colour question before changing.** Held on a ratchet at 18 by `_harness/plan5c-brandink.js`, which lists every one on every run.
 - [x] **approvals-are-free-text** ~~Raised 2026-08-07 in the follow-up review: certifications live only in badge strings, so nothing can count, filter or list them.~~ **SHIPPED 2026-08-07 (PLAN-7 item 3c).** Measured first: **112 distinct badge strings across 42 products**, ~20 carrying an approval in 20 spellings (`U/L CSA`, `U/L CSA MIL-Spec.`, `U/L CSA and MIL-SPEC`, `U/L, MIL-Spec.`, `UL & CSA Approved`). **The badge field also understated the catalogue** — read the whole record (badges + `specificationsSummary` + `description` + `specTable1`) and UL VW-1 goes **1 → 11** products, MIL-SPEC **5 → 12**, FDA **2 → 6**, and products with at least one approval **23 → 30**. A buyer filtering for MIL-SPEC would have seen 5 where 12 qualify. Shipped: a twelve-name vocabulary in `admin/config.php` and `src/App.jsx`, checkbox grids on Add/Edit Product, intersecting filter chips on the Product Index (41 → MIL-SPEC 12 → +CSA 7), and approval marks on product detail pages and datasheet cards. **The migration is progressive, not a bulk rewrite** — `data/products-all.json` is server-owned, so a 30-product edit here would not travel; the field materialises when the owner saves a product and the site derives from the same text until then. Held by `_harness/plan7-approvals.js` **11/11**; `content.php`'s posted count is **unchanged at 439** because these fields are on the product editor, not the content editor. **Two traps, both caught by the harness rather than by reading — recorded because each is a general lesson.** (1) *An explicit empty list must stay empty.* `approvals` is read by presence (`Array.isArray` / `array_key_exists`), never truthiness: a product whose owner unticked every box stores `approvals: []`, and re-deriving there resurrects exactly what he removed. Invariant 3 applied to a new field, and **the first draft had the bug** (`Array.isArray(p.approvals) && p.approvals.length`); mutating it back fails the suite 10/11. (2) *PHP and JS disagreed invisibly.* PHP's `json_encode` escapes `/` by default, so `"U/L Recognized"` in `specTable1` became `"U\/L Recognized"` and `\bU\/?L\b` stopped matching — PHP derived one fewer approval than JS for `IP17TW-IP18SW-IP19LW`. Fixed with `JSON_UNESCAPED_SLASHES`. **No source diff would have shown it**, which is why `plan7-approvals.js` compares the two *behaviourally* over all 42 products and `lint.php`'s `approval drift` check covers the names only, and says so. Also: word boundaries are load-bearing — `Ultra Clear` and `Encapsulating` both contain *ul*, and the boundary test runs the deriver against those bare strings after an earlier indirect version wrongly flagged `IP42MW`, which carries `Encapsulating` **and** a real `U/L Approved`.
 - [x] **datasheet-index** ~~Raised 2026-08-07 in the follow-up review: all 42 products carry a published PDF, 8 MB of the most search-worthy content on the site, reachable only from inside an individual product page. No index, nothing in the sitemap.~~ **SHIPPED 2026-08-07 (PLAN-7 item 3b).** `/datasheets` lists all 42 grouped by product family, filterable, ungated — no form, no email address, because gating datasheets buys lead volume at the cost of lead quality. Banner copy is owner-editable (Page Content → *Datasheets page — banner*); the route is in the sitemap with the same catalogue-derived `<lastmod>` as `/products` and `/dashboard`. Held by `_harness/plan7-datasheets.js`, **8/8**. Costs paid and re-verified: posted variable count **435 → 439**, `plan2-trunc` re-run against a real `max_input_vars=100` server (13/13) and `form_complete` still last of 439 (invariant 6); sitemap static routes **9 → 10** across `sitemap.php`, `SEO_DEFAULT`, `plan5b-sitemap` (9/9) and `plan5c-sitemap` (17/17); `sync.sh` now mirrors `pdfs/`, without which every link 404s for a reason that has nothing to do with the site. **Two things this turned up that are worth more than the page.** (1) *The footer's Quick Links could not carry it.* Adding a row to `FOOTER_LINKS` in `App.jsx` works locally and does nothing on a deployed site: `content.json` already stores the owner's own eight rows and `mergeContent` gives a stored non-empty array priority over the default (**invariant 3**), so the default is reached only by a fresh install. The link is therefore in the Products mega-menu, which is structural — reachable on day one whatever the owner has saved — with the `FOOTER_LINKS` row left as the fresh-install default and an inline comment saying why. (2) *A live broken link*, below.
 - [x] **pdfUrl case mismatch — VALUE-ADDED downloads HTML** ~~Found 2026-08-07 while building the datasheet index.~~ **FIXED 2026-08-07**, on Keagan's instruction to "fix the one broken link" as part of that item. `data/products-all.json` gave `VALUE-ADDED` → `/pdfs/VALUE-ADDED.pdf`; the file on disk is `Value-Added.pdf`. On a case-sensitive filesystem the SPA rewrite answers the miss with `index.html` and a **200**, so the visitor downloaded **2,094 bytes of HTML named `.pdf`**. Identical failure class to the four `photoUrl` case mismatches under 4.32. **The reason it survived: no suite anywhere checked a `pdfUrl` at all.** `plan5-images.js` asserts every `/images/` response is a 2xx with an `image/*` content type; nothing did the equivalent for `/pdfs/`. `deadlinks.js` sounds like it would and does not — it resolves industry→SKU references in `content.json` and never makes an HTTP request. `plan7-datasheets.js` now asserts all 42, and the **content-type clause is the load-bearing half**, measured against the pre-fix URL: `200 text/html` → a status-only check *passes and misses it*, the content-type check *fails and catches it*. **The second edit ever made to `data/products-all.json`** — one line, 1 add / 1 delete, verified by `git diff --numstat`; `_harness/pristine/` was re-bootstrapped through `sync.sh`'s documented path after proving `content.json` and `site-info.json` were byte-identical first, rather than copied over (which is the laundering the design warns against). ⚠️ **Does not reach production by itself** — the deployed copy is server-owned, so the same correction must be made on the server through the admin, exactly as with the four `photoUrl` values.
-- [ ] **backdrop-skips-raster-layers** Found 2026-08-07 while planning the marketing-imagery item. `_harness/backdrop.js` is the shared contrast core behind `brandtext.js`, `plan5c-eyebrow.js` and `plan5c-brandink.js`. Its layer walk calls `parseLinear(layer)` and does `if (!g) continue;` — and `parseLinear` matches `^linear-gradient\((.*)\)$`, so a **`url(...)` background layer returns `null` and is silently skipped**. The walk then composites whatever translucent layers it *did* understand over whatever sits *below* the image, and returns a contrast number for a background no visitor ever sees. **Not currently reachable** — `grep -n 'images/' src/App.jsx` returns nothing and no element on the site has a raster background, so today this is latent. It stops being latent the moment any photograph goes behind text, which is exactly what PLAN-7 item 2 proposes for the homepage hero. Recorded as its own item rather than as a line in that plan because **it is worth closing whether or not any image ever ships**: a silent skip in the one file three suites trust is the same failure mode as the box-vs-ink error that produced §2's false "nothing passes AA in the page header" claim. The fix is two parts — make the skip loud (return a flag; every existing suite fails if it ever sees one), and add a pixel primitive that screenshots the ink rect and scores against the **worst** pixel actually painted, since gradient maths cannot answer the question over a photograph. `plans/PLAN-7-marketing-imagery.md` §1.
-- [ ] **marketing-imagery-unwired** Raised 2026-08-07 as item 2 of the admin-surface review, held back then for a scope decision; measured 2026-08-07 and planned in `plans/PLAN-7-marketing-imagery.md`. `src/App.jsx` contains **four `<img>` elements in 9,900 lines and three of them are the logo** — the homepage, About, Services, Industries, FAQ, Contact and Privacy pages paint no photography at all. Meanwhile `public/images/site/` holds 22 files, 1.1 MB, referenced by nothing, shipping to the server on every deploy. §2's earlier decision settled *keeping* them; it did not consider using them. **The review's framing was off in both directions and the plan corrects it.** It said "27 photographs he can't put anywhere" — opened one by one, **six are usable**: `Slide1.png`/`main-banner-*.jpg` (one scene), `staff.jpg`, `IPC-Building.jpg`, `Marker-Sample-2.jpg`, `Front-Cover.jpg`. `staff-image.png` is the same photograph as `staff.jpg` with white padding and a drop shadow baked into the pixels; the three `featured-category-*.jpg` are 360 × 162 in the **original** too; the remaining eleven are 194–350 px line drawings. It also implied photography might be needed — **it is not**: 4.32 capped unpainted files at 1000 px on the long edge, correctly, because there was no paint size to target, and the originals are intact in git at `febc0b7` (`Slide1.png` **1948 × 414**, `Marker-Sample-2.jpg` **2400 × 1600**, `Front-Cover.jpg` **1700 × 2200**). Re-deriving them at the real paint size is free. **Needs a decision** — three questions in PLAN-7 §5, the sharpest being the hero scrim: `Hero()` already stacks `rgba(20,20,20,0.72) → rgba(20,20,20,0.50)` over the brand gradient, which is a scrim, which is what you put over a photograph, so the slot was designed for one and never got it. But the 0.50 end will not carry white body text over a photo (worst case **2.67:1** for the 75 %-opacity subhead). Flattening the ramp to a constant 0.72 makes **every** ink on the hero better than it is today — headline 6.25 → 7.36, subhead 4.27 → 5.00, accent proof-stat 2.47 → 2.82 — at the cost of a flatter-looking hero. ⚠️ That last row is below 4.5 in both columns because it is `brand-accent-on-dark-surfaces` above; PLAN-7 moves it in the right direction and **must not be read as closing it**.
+- [x] **DONE — closed 2026-10-05, §1aq: shipped as PLAN-7 item 1 (`2ce4152`, §1h; `backdrop-selftest` 9/9); the checkbox was never ticked.** **backdrop-skips-raster-layers** Found 2026-08-07 while planning the marketing-imagery item. `_harness/backdrop.js` is the shared contrast core behind `brandtext.js`, `plan5c-eyebrow.js` and `plan5c-brandink.js`. Its layer walk calls `parseLinear(layer)` and does `if (!g) continue;` — and `parseLinear` matches `^linear-gradient\((.*)\)$`, so a **`url(...)` background layer returns `null` and is silently skipped**. The walk then composites whatever translucent layers it *did* understand over whatever sits *below* the image, and returns a contrast number for a background no visitor ever sees. **Not currently reachable** — `grep -n 'images/' src/App.jsx` returns nothing and no element on the site has a raster background, so today this is latent. It stops being latent the moment any photograph goes behind text, which is exactly what PLAN-7 item 2 proposes for the homepage hero. Recorded as its own item rather than as a line in that plan because **it is worth closing whether or not any image ever ships**: a silent skip in the one file three suites trust is the same failure mode as the box-vs-ink error that produced §2's false "nothing passes AA in the page header" claim. The fix is two parts — make the skip loud (return a flag; every existing suite fails if it ever sees one), and add a pixel primitive that screenshots the ink rect and scores against the **worst** pixel actually painted, since gradient maths cannot answer the question over a photograph. `plans/PLAN-7-marketing-imagery.md` §1.
+- [x] **DONE — closed 2026-10-05, §1aq: PLAN-7 item 2 (§1h), item 3a (§1i) and the Site Images & Logo page (§1am); the checkbox was never ticked.** **marketing-imagery-unwired** Raised 2026-08-07 as item 2 of the admin-surface review, held back then for a scope decision; measured 2026-08-07 and planned in `plans/PLAN-7-marketing-imagery.md`. `src/App.jsx` contains **four `<img>` elements in 9,900 lines and three of them are the logo** — the homepage, About, Services, Industries, FAQ, Contact and Privacy pages paint no photography at all. Meanwhile `public/images/site/` holds 22 files, 1.1 MB, referenced by nothing, shipping to the server on every deploy. §2's earlier decision settled *keeping* them; it did not consider using them. **The review's framing was off in both directions and the plan corrects it.** It said "27 photographs he can't put anywhere" — opened one by one, **six are usable**: `Slide1.png`/`main-banner-*.jpg` (one scene), `staff.jpg`, `IPC-Building.jpg`, `Marker-Sample-2.jpg`, `Front-Cover.jpg`. `staff-image.png` is the same photograph as `staff.jpg` with white padding and a drop shadow baked into the pixels; the three `featured-category-*.jpg` are 360 × 162 in the **original** too; the remaining eleven are 194–350 px line drawings. It also implied photography might be needed — **it is not**: 4.32 capped unpainted files at 1000 px on the long edge, correctly, because there was no paint size to target, and the originals are intact in git at `febc0b7` (`Slide1.png` **1948 × 414**, `Marker-Sample-2.jpg` **2400 × 1600**, `Front-Cover.jpg` **1700 × 2200**). Re-deriving them at the real paint size is free. **Needs a decision** — three questions in PLAN-7 §5, the sharpest being the hero scrim: `Hero()` already stacks `rgba(20,20,20,0.72) → rgba(20,20,20,0.50)` over the brand gradient, which is a scrim, which is what you put over a photograph, so the slot was designed for one and never got it. But the 0.50 end will not carry white body text over a photo (worst case **2.67:1** for the 75 %-opacity subhead). Flattening the ramp to a constant 0.72 makes **every** ink on the hero better than it is today — headline 6.25 → 7.36, subhead 4.27 → 5.00, accent proof-stat 2.47 → 2.82 — at the cost of a flatter-looking hero. ⚠️ That last row is below 4.5 in both columns because it is `brand-accent-on-dark-surfaces` above; PLAN-7 moves it in the right direction and **must not be read as closing it**.
 - [x] **brand-gradient-mixed-ends** ~~while fixing `brand-ink-translucent`. Two heading strips use a gradient running from a **hardcoded dark** color to an **owner-controlled** one — `linear-gradient(135deg, #0a2a52, var(--brand-primary))` on the product-detail header (`src/App.jsx:5885`) and `linear-gradient(135deg, #003d7a, var(--brand-primary))` on the industry section headers (`:7789`). No single ink can serve both ends: white is right over the fixed navy, dark is right over a pale primary. Left as `text-white`, which is correct for the default palette and for where the left-aligned heading actually sits, and both carry an inline comment saying so. Accounts for the last **12** of the 274 remaining failures. The real fix is a design decision — either make the fixed end `var(--brand-dark)` so one ink can serve the whole band (a visible change to the current look, `#003d7a` is notably brighter than `#0d2d52`), or stop putting text across a two-owner gradient.~~ **CLOSED 2026-08-07 (Plan 5c) — decision confirmed, not deferred again.** The escalation was made and answered: **leave both strips as they are.** The reasoning is already recorded in §3 and is unchanged by this session's measurement work — the two headings are left-aligned over the *hardcoded* dark end, where white measures 10.78:1, so the failing end of each gradient is the empty end. Option A (`var(--brand-dark)` as the fixed stop) passes at every palette but costs a visible deepening of `#003d7a → #0d2d52` on the shipped navy and turns an anchoring band into a fully owner-controlled one. A certain visual cost against a hypothetical failure. This item is closed rather than left open because re-asking a settled question every session is how the eyebrow survived two of them.
 - [x] **sidebar-active-border** ~~`ProductSidebar`'s desktop product rows set `borderLeft: active ? "3px solid var(--brand-primary)" : "3px solid transparent"` and then `border: "none"` **two lines later** in the same style object. React applies the keys in order, so `border: none` wipes it: the selected product never gets its left indicator. Measured on the built bundle at 1440 px — the active row's computed `border-left-width` is `0px`. It also makes React log *"Updating a style property during rerender (borderLeft) when a conflicting property is set (border)"* on every selection change in dev. Pre-existing, **not** introduced by 4.21: identical at `HEAD:src/App.jsx:5385-5388` (`a0b07e1`), where the element was still a `<button>`; 4.21 only changed the tag. Found 2026-08-05 while converting that list; **not fixed** — out of Plan 1's scope. Current location `src/App.jsx:5488-5491`.~~
 
@@ -427,7 +438,7 @@ Ordered by value. Nothing here blocks the upload.
   field's own wrapper and reports which mechanism found it, so the fallback
   cannot quietly become the norm.
 
-- [ ] **Six admin pages redeclare the shared header that `admin/nav.php` owns,
+- [x] **DONE — the copies were removed in `d0f9340` (§1p); the acceptance check it asked for is now `lint.php` "admin header drift" (2026-10-05, §1aq).** **Six admin pages redeclare the shared header that `admin/nav.php` owns,
   and one of the copies silently defeated a fix.** Found 2026-08-11 while
   measuring PLAN-10 item 6 (A10-021). `admin/nav.php` is documented at its top
   as *"self-contained (its own scoped `<style>` block) so it renders the same
@@ -457,7 +468,7 @@ Ordered by value. Nothing here blocks the upload.
   an acceptance check that no admin page declares `header {` outside nav.php —
   `lint.php` is the natural home, alongside the other drift checks.
 
-- [ ] **`audit10-repalette.js` and `audit10-p7reverify.js` cannot show A10-045
+- [x] **CLOSED as information, not work (2026-10-05, §1aq).** The probes are frozen audit evidence; `plan10-repalette` 33/33 is the proof. **`audit10-repalette.js` and `audit10-p7reverify.js` cannot show A10-045
   or A10-046 as fixed, and this is a property of the probes, not of the site.**
   Recorded 2026-08-11 by PLAN-10 phase C. **Do not re-chase either finding on
   their output.** Both were fixed and both are proved green by
@@ -543,7 +554,7 @@ Ordered by value. Nothing here blocks the upload.
   currently measure 10.78:1 at the shipped palette and are left alone.
   `brandtext` is unchanged at 11 failing.
 
-- [ ] **Four published numbers and fourteen `file:line` citations from PLAN-10
+- [x] **DONE — "RESOLVED 2026-08-11" in its own body; ticked 2026-10-05, §1aq.** **Four published numbers and fourteen `file:line` citations from PLAN-10
   do not resolve.** Found 2026-08-11 by AUDIT-11, the independent verification
   of PLAN-10. No code is wrong — every one of PLAN-10's twelve executed findings
   verified closed — but the records a future session will read are wrong in
@@ -640,9 +651,9 @@ Ordered by value. Nothing here blocks the upload.
 
 ## 3. Deliberately deferred / declined
 
-- **`src/pages/`, `src/components/`, `src/lib/` extraction.** Populated, imported by nothing. Not resumed: splitting an 8,500-line file with no test suite is a large uninstrumented refactor with no user-visible benefit. Either finish it behind tests or delete the folders — leaving them looks like completed work and misleads every reader. Not scheduled.
-- **Git history rewrite for the exposed `_localsite/admin/config.local.php` hash (commit `169c0d7`).** Escalated 2026-08-04. Repo confirmed **public**, so the live production hash was publicly readable. Removing the file in a new commit does not un-publish it. Recommendation on the table: rotate the live password (done as part of this release) and make the repo private; skip the rewrite, because a force-push over `main` is forbidden by the standing workflow and does not help once the blob has been scraped. **Awaiting Keagan.**
-- **`data/products-all.json` upload.** Decided 2026-08-04: **do not upload from the repo.** Download the server's copy, diff, merge only if the repo copy is genuinely ahead. The repo copy (239 KB) looks newer than the deployed one (178 KB) but `data/` has been server-owned since the last deploy, and an FTP overwrite is irreversible with no backup.
+- **DONE differently (2026-08-12, §1o): the three folders were deleted, not finished. Noted 2026-10-05.** **`src/pages/`, `src/components/`, `src/lib/` extraction.** Populated, imported by nothing. Not resumed: splitting an 8,500-line file with no test suite is a large uninstrumented refactor with no user-visible benefit. Either finish it behind tests or delete the folders — leaving them looks like completed work and misleads every reader. Not scheduled.
+- **DECIDED 2026-10-02 (§1an): No — the repo stays public and history is unchanged; the password set at deploy (GO-LIVE B4) is the rotation.** **Git history rewrite for the exposed `_localsite/admin/config.local.php` hash (commit `169c0d7`).** Escalated 2026-08-04. Repo confirmed **public**, so the live production hash was publicly readable. Removing the file in a new commit does not un-publish it. Recommendation on the table: rotate the live password (done as part of this release) and make the repo private; skip the rewrite, because a force-push over `main` is forbidden by the standing workflow and does not help once the blob has been scraped. **Awaiting Keagan.**
+- **SUPERSEDED 2026-10-02 (§1an): nothing is deployed yet, so the FIRST upload ships the repo's `data/` (GO-LIVE STEP 0, B2 step 7); the rule below applies to every later deploy.** **`data/products-all.json` upload.** Decided 2026-08-04: **do not upload from the repo.** Download the server's copy, diff, merge only if the repo copy is genuinely ahead. The repo copy (239 KB) looks newer than the deployed one (178 KB) but `data/` has been server-owned since the last deploy, and an FTP overwrite is irreversible with no backup.
 - **Paid tooling of any kind.** $0 budget, free tiers only.
 
 ### Decisions taken 2026-08-05 (session 3)
@@ -761,6 +772,8 @@ Ordered by value. Nothing here blocks the upload.
   `_harness/out/`. Rationale and bootstrap in `_harness/README.md`.
 
 ### Still awaiting Keagan (restated, not re-derived)
+
+**ANSWERED 2026-10-02 (§1an): No** — nothing below is still awaiting him.
 
 - **Git history rewrite for the exposed `_localsite/admin/config.local.php`
   hash (commit `169c0d7`).** Escalated 2026-08-04, **re-raised and explicitly
@@ -3959,7 +3972,7 @@ Found while standing the harness up for the crawl that produced
 `site-screenshots/2026-08-11-after-plan10/`. Recorded, not repaired — the crawl
 was a capture-and-report task and this belongs to whoever owns the docs.
 
-- [ ] **GUARDRAILS §4.2 names the wrong ini for :8123, and it is the one that
+- [x] **DONE in `0d5b953` (GUARDRAILS now says `php-mail.ini`); ticked 2026-10-05, §1aq.** **GUARDRAILS §4.2 names the wrong ini for :8123, and it is the one that
   breaks the contact form.** The server table at `plans/GUARDRAILS.md:244` says
   port 8123 runs `php-extra.ini`. `_harness/php-extra.ini` sets no
   `sendmail_path`, so on that server every `contact.php` POST dies in the "mail
@@ -3983,7 +3996,7 @@ was a capture-and-report task and this belongs to whoever owns the docs.
   Fix is one word in one table row, but §4.2 is inside a binding document, so it
   wants an owner rather than a drive-by edit.
 
-- [ ] **GUARDRAILS §4.2's opening line still says `_harness/` is gitignored.**
+- [x] **DONE in `0d5b953` ("Corrected 2026-08-11"); ticked 2026-10-05, §1aq.** **GUARDRAILS §4.2's opening line still says `_harness/` is gitignored.**
   `plans/GUARDRAILS.md:232` — "`_harness/` is gitignored, ~30 MB, and must never
   be deployed". Only the three generated directories are ignored now
   (`.gitignore:67-69`: `_harness/site/`, `_harness/pristine/`, `_harness/out/`);
@@ -4369,7 +4382,7 @@ file has under the doc-drift check.
 
 ## 2j. Open after the stale-file sweep (2026-08-12)
 
-- [ ] **Rotate the admin password on the live server.** `_localsite/admin/config.local.php`
+- [ ] **STILL OPEN (2026-10-05, §1aq) — deploy day, GO-LIVE §B4.** The method in this entry (write `config.local.php` by FTP) is SUPERSEDED: never upload that file; on a first deploy the `ALLOW-PASSWORD-RESET` flow in B4 sets a fresh password, which is the rotation (§1an: the repo stays public, history unchanged). **Rotate the admin password on the live server.** `_localsite/admin/config.local.php`
   published a working `$2y$12$` hash on a public repo (§1o). Removing the file
   from the working tree does not remove it from history — the blob is readable
   at `cad013b` and at every commit after it. Until the live password is changed,
@@ -4380,12 +4393,12 @@ file has under the doc-drift check.
   longer works. A history rewrite (`git filter-repo`) is optional after that and
   does not substitute for it.
 
-- [ ] **`plans/README.md`'s claim that AUDIT-10's C/D findings are the natural
+- [ ] **STILL OPEN (2026-10-05, §1aq) — a scope decision (owner): whether the 48 AUDIT-10 C/D findings get a plan at all.** **`plans/README.md`'s claim that AUDIT-10's C/D findings are the natural
   PLAN-11 has no plan behind it.** 48 findings, six named clusters, no owner and
   no sequencing. Recorded so the gap is visible; writing that plan is not itself
   open work until someone decides the tier is in scope.
 
-- [ ] **A10-037 — the site states four different ISO 9001 claims.** *Logged here
+- [x] **DONE in code — §1aa (one ISO field, `isoclaims` 4/4); since §1aq the field also reaches every mention and can be emptied. What remains is the registrar's answer on the revision year (GO-LIVE §A). Ticked 2026-10-05, §1aq.** **A10-037 — the site states four different ISO 9001 claims.** *Logged here
   2026-08-12; it should have been logged 2026-08-11.* PLAN-10 §10 required its
   owner action to be recorded in §2 and it never was, which AUDIT-11 §11 caught
   and this sweep confirmed: before today the only record of it in the repo was
@@ -4688,13 +4701,13 @@ remediation cycle.
 - [x] **A-5.9 — SHIPPED 2026-08-18 (§1r) — both contact-form abuse controls fail open silently.** Limiter
   state lives in `sys_get_temp_dir()` behind `@`-suppressed writes, is never
   cleaned up (`grep unlink public/contact.php` → 0), and has no health check.
-- [ ] **A-5.10 — client-only rendering with no prerender.** Beyond Google,
+- [ ] **STILL OPEN (2026-10-05, §1aq) — needs a decision: the fix (serve each route's title, description, share card and a plain-HTML body from PHP, the way `sitemap.php` serves the sitemap) changes how every page is served. Recommendation and trade-off in §1aq.** **A-5.10 — client-only rendering with no prerender.** Beyond Google,
   nothing sees the catalog: Bing, the AI answer engines and every social
   unfurler get the generic shell.
 
 ### Medium and Low
 
-**All nineteen Medium items shipped 2026-08-18 — see §1s.** The twenty-two Low
+**All nineteen Medium items shipped 2026-08-18 — see §1s; the twenty-two Low shipped the same day — see §1t, which closes the audit-5 backlog (noted 2026-10-05).** The twenty-two Low
 items remain open and are listed in full in `audit-runs/audit5.md`.
 
 
@@ -5327,7 +5340,7 @@ earlier fix's comment **already named the gap**.
   happened, so an over-ceiling upload got a message identical to a photo that
   needed nothing — while a 60 MP file becomes that page's LCP image. A gap in
   audit 6's own fix.
-- [ ] **A-7.7 — no print stylesheet, on a site whose buyers print spec pages.**
+- [x] **DONE (2026-10-05, §1aq) — `@media print` in `src/index.css`; `_harness/printcss.js` 4/21 → 21/21; IP33PO 4 → 3 Letter pages.** **A-7.7 — no print stylesheet, on a site whose buyers print spec pages.**
   Measured with `emulateMedia({media:'print'})`: **0** `@media print` rules,
   440px of footer and 65px of header printed, the `<h1>` starting at y=364 on a
   ~1800px (2-page) document, 94 dark blocks totalling ~13.1M px². **STILL
@@ -5582,7 +5595,7 @@ ones with commercial rather than technical weight).
 
 ### High
 
-- [ ] **A-8.5 — the site advertises two DIFFERENT withdrawn revisions of its ISO
+- [x] **DONE in code (§1aa); the registrar's revision answer stays with Rick (GO-LIVE §A). Ticked 2026-10-05, §1aq.** **A-8.5 — the site advertises two DIFFERENT withdrawn revisions of its ISO
   certification, in six places, on two admin screens.** A2's comment settled the
   hardcoded defaults correctly and deferred the live strings to the owner, but
   two things in it were incomplete. It is **not three places, it is six**, and
@@ -5643,7 +5656,7 @@ ones with commercial rather than technical weight).
 
 ### Low
 
-- [ ] **A-8.7 — the privacy policy does not disclose that every submission
+- [x] **DONE — "SHIPPED 2026-08-28 … §1x" in its own body; ticked 2026-10-05, §1aq.** **A-8.7 — the privacy policy does not disclose that every submission
   stores the visitor's IP address.** *Information We Collect* enumerates what
   the visitor provides; every stored record also carries `ip` from
   `REMOTE_ADDR`, for rejected submissions as well as accepted ones. Read out of
@@ -5657,7 +5670,7 @@ ones with commercial rather than technical weight).
   an **admin edit, not a deploy** — `data/` is never re-uploaded and
   `mergeContent()` prefers live data over the defaults, so `GO-LIVE.md` §A
   carries the paragraph ready to paste.
-- [ ] **A-8.8 — the stated three-year retention ceiling is not implemented.**
+- [x] **DONE — "SHIPPED 2026-08-28 … §1x" in its own body; ticked 2026-10-05, §1aq.** **A-8.8 — the stated three-year retention ceiling is not implemented.**
   The policy promises "not to exceed three (3) years". Nothing expires:
   `contact.php`'s own comment says *"Rotated files are never deleted"*, and
   there is no `unlink` of any inquiry file anywhere in `admin/` — zero
@@ -7358,3 +7371,151 @@ empty still counts.
   `lowsA2-admin` N2-8 (above — 28/28 after).
 - Contact-form suites re-run after the contact.php change: 8/8 clean
   (contactflow 85/85, plan3-contact 51/51, …).
+
+## 1aq. 2026-10-05 — ISO fully owner-editable; WHATS_LEFT truth pass; documentation verification
+
+**Decisions recorded (Keagan, 2026-10-05):**
+- "Rick should be able to alter the ISO details and data from within the Admin
+  dashboard without issue." This settles G2 (§1ap, offered as a business
+  question): the ISO box becomes clearable, so whether IPC claims ISO is Rick's
+  to decide in Business Details, not a developer job.
+- "Verify each item in the what's left and fix/implement whatever you can
+  without my intervention."
+- "Ensure the documentation in its entirety is complete and verified."
+
+**ISO — verified, and the three gaps fixed.** Claim under test: Rick can
+alter the ISO details from the dashboard without issue. Measured through the
+real Business Details form on a private copy (`_harness/isoedit.js`, new):
+**9/16 on the unfixed tree** —
+1. a revision typed in the box (`ISO 9001:2015`) reached only the footer, the
+   About fact box and the homepage band; every stored mention stayed bare,
+   because the rewrite touched only mentions that already carried a year and
+   §1aa had made all of them bare (the box's own hint promised "everywhere");
+2. a different standard (`AS9100D`) also rewrote the 1990s milestone
+   "Achieved ISO 9001 registration" — a false history line;
+3. an emptied box re-seeded "ISO 9001" (invariant 4), so the claim could not be
+   removed (G2).
+After: **16/16**.
+- `isoRewriter()`: a revision now reaches every mention; `withIsoLabel()` skips
+  `milestones` (history) by name.
+- `certifications.iso` is in `SITE_CLEARABLE`. The footer, About fact box
+  and homepage band handle "" (the band reads "privately held and
+  independent.").
+- Business Details lists every Page Content / About-story entry that still
+  mentions ISO 9001 when the box is empty (`iso_mentions()`, no mbstring —
+  A-9.P2-1); its hint and Help say how.
+- Other Certifications: already editable and clearable, footer shows them
+  as typed — verified, unchanged.
+- `isowaterfall` 19/19, `isoclaims` 4/4, `adminaudit11` 38/38 (its G2 arm and
+  UX-12 pair updated to the decided behaviour, reasons inline).
+- **Not changeable from the dashboard, by design and documented:** the share
+  card text in `index.html` ("… ISO 9001 registered.") — G3/A-5.10.
+
+**Also fixed in this pass:**
+- **`lint.php` was red on `main` after #74 — my defect.** Its inquiry-type
+  check read only `ipc_partial_entry('type', …)`; the UX-11 follow-up passes
+  `cond ? 'honeypot' : 'rate-limited'`, so it reported "rate-limited never
+  written". After #74's last commit I re-ran only the contact-form suites,
+  not lint. Fixed: it reads every quoted type in the first argument (ignoring
+  `$_POST['…']` keys). **Rule: after any change to a file a lint drift check
+  parses, run `php _harness/lint.php` before pushing.**
+- **A-7.7 print stylesheet** — see the ticked item.
+- **Admin header duplication guard** — `lint.php` "admin header drift"
+  (planted duplicate → FAIL, removed → pass).
+- **Dashboard banner** now also checks `uploads/site/` and `pdfs/marketing/`
+  (both in the permissions tables, neither checked). [UNRUN: the container
+  runs as root, so no folder reads as unwritable here.]
+- **`claims.js` moved :8732 → :8746** — `lowsE-apache` uses :8732 for HTTPS.
+
+**WHATS_LEFT truth pass:**
+- Ten unticked items that were already done are now ticked with where they
+  shipped.
+- 4.27 declined, with its reason.
+- §3's two "awaiting Keagan" entries and the stale `products-all.json` rule
+  are marked with the 2026-10-02 decisions.
+- The snapshot line and §2's "nothing blocks" are clarified.
+
+**What is still open, and who it waits on (2026-10-05):**
+
+| Item | Waits on | Note |
+|---|---|---|
+| A-5.10 no prerender (share cards, Bing/AI crawlers see the shell) | **Keagan — architecture decision** | Recommended: a `index.php` front controller that serves the built `index.html` with each route's title, description, canonical and share card filled in from `data/*.json` (the `sitemap.php` pattern), plus a plain-HTML product body for crawlers. Fixes G3 too. Downside: every page is then served through PHP, so the `.htaccess` rewrite changes and a PHP error would affect the whole site (mitigation: fall back to the static file on any error; prove on real Apache like `lowsE-apache`). ~1 day |
+| page-header-sublines-on-gradient; brand-accent-on-dark-surfaces; spec-table-subheader-contrast; NEW-R3-m2-2; `brandtext` 11 failing | **Owner — brand colours** | One decision covers all: accept darker/lighter brand derivatives for small text, or keep the look |
+| CLAIM-1 RoHS "entire line", CLAIM-2 "42 Products Stocked", CLAIM-3 AMS, FAQ #15, cert spellings, ISO revision year, privacy date, 5 photos, social links | **Rick — content** | All editable in the dashboard now (§1ao, §1aq) |
+| Password set at deploy (B4); certificate, apex→www 301, `/site/` redirect, PHP ≥7.4, `noreply@`, SPF/DKIM/DMARC, TRACE off | **Host / deploy day** | GO-LIVE §A–§C |
+| AUDIT-10's 48 C/D findings | **Owner — scope** | Whether they get a plan at all |
+| PLAN-7 slot 5 (catalog cover in the footer) | Engineering, optional | Unblocked by G1 (a catalog PDF can now be uploaded); a design addition, not a defect |
+| `product-index-rows-over-120px` (3 of 42) | Declined | Both fixes cost more than they buy (§2b) |
+| `product-page-footer-layout-shift` | Accepted | CLS 0.007–0.024 at 1440, under the 0.1 "good" threshold |
+| `c49-guard-is-font-metric-dependent` (`plan8-polish` 16/17 on Linux) | Environment | Passes on the Windows/macOS font stack; DejaVu is ~21% wider |
+| `plan3-autoreply` on Windows | Environment | Needs a Windows host to verify |
+
+**Documentation verification (2026-10-05).** Three independent read-only
+checks, each against the code and the running admin, every finding
+reproduced:
+1. developer/deploy docs (README, GO-LIVE, CLAUDE.md, admin/README,
+   plans/README, GUARDRAILS, PATCH_NOTES, UX_AUDIT);
+2. owner docs (Help, Editing-Your-Site-Content, the handoff email), each
+   claim exercised in the admin and on the public site;
+3. `_harness/README.md` against every suite, plus this file's open items.
+All findings are fixed in this change. The main ones:
+- **README:** said `dist/` is gitignored — it is committed (72 files).
+  Listed four files written into `admin/` — there are more, now all named.
+  The admin file list was missing the two new pages.
+- **CLAUDE.md:**
+  - `App.jsx` line count; the two data-file locks; the `uploads/.htaccess`
+    writer; `contact.php`'s full I/O.
+  - Invariant 9's rationale (`GlobalStyles` now mounts above the gate).
+  - Invariant 15's page counts; invariant 17's SKU spelling
+    (`IP12GA-IP1274`).
+- **admin/README, GO-LIVE:**
+  - The do-not-upload lists were missing `.pdf-renames.json`,
+    `.inquiry-log-failed.json` and `.inquiries-seen.json` — uploading a
+    local one overwrites live state.
+  - The audit-action count is now 16. Stale line citations replaced with
+    function names; the launch date and bundle size refreshed.
+- **Help (19 false statements):**
+  - Two examples used "RoHS Compliant" as a badge, which never shows.
+  - The spec editor's preview location; "Advanced in both editors" (Size
+    chart only); a column's Remove button.
+  - The dial number "change it too" (it follows automatically now);
+    rate-limited and incomplete entries are "almost always a bot" (they
+    raise the badge).
+  - Delete is "permanent" and a PDF is "deleted" (both kept aside and
+    restorable).
+  - "eight" footer links (nine); "one click from anywhere" (two pages are
+    not in the bar); FTP is "only" for passwords.
+  - "Ask your developer for a second PDF" — the Catalog & Brochure PDFs page
+    does it now.
+  - Error-page contact details; the "PDF" button is "Manage PDF".
+  - Also: four server-warning rows added, two writable rows in "What your
+    server allows", and the Accent colour, Specifications "Section heading",
+    Incomplete badge, the "Refused by the form" stat and the shared data
+    sheet replace documented.
+- **Admin wording:**
+  - settings named "Marketing PDFs" (it is "Catalog & Brochure PDFs").
+  - Page Content's SEO card claimed it sets share previews (it does not —
+    G3).
+  - The password page pointed the owner at `admin/README.md`.
+  - The Inquiries stat "Blocked as spam" counted call-backs too; it is now
+    "Refused by the form".
+- **Editing guide:** the Page Text card count (now 32, with Company Claims);
+  the Company Claims scope; ISO in the clearable list; the Catalog PDFs page
+  and the Audit Log.
+- **Other docs:**
+  - `plans/README`: PLAN-7 3b and the `/contact` labels shipped, A10-037
+    fixed, the baseline is 84 suites.
+  - `GUARDRAILS`: the invariant count (19), two line citations, the
+    mirror's `logo.svg`/`uploads/` notes (fixed in `sync.sh`).
+  - `PATCH_NOTES` gains an owner summary of 2026-09-15 → 10-05, and its dead
+    links are marked.
+  - `UX_AUDIT_PREPROD` now carries a "historical" banner.
+  - `_harness/README`: ~15 stale counts and claims, plus the missing suites
+    and tools.
+
+**Self-corrections this pass:**
+- `iso_mentions()` quoted with curly quotes (`audit9-admin-text` b2-09a
+  holds the admin to straight ones). Fixed.
+- Two new Help health-table labels were longer than the table's no-wrap
+  first column allowed, giving 86 px of overflow at 1024
+  (`plan10-helpwidth` 20/21). Shortened.

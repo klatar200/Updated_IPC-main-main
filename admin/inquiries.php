@@ -154,7 +154,7 @@ $navActive = 'inquiries';
     <div class="stat"><div class="stat-num"><?= $total ?></div><div class="stat-lbl">Total received</div></div>
     <div class="stat"><div class="stat-num <?= $failed > 0 ? 'bad' : '' ?>"><?= $failed ?></div><div class="stat-lbl">Mail server refused<?= $total > $MAX_SHOW ? ' (last ' . $MAX_SHOW . ')' : '' ?></div></div>
     <?php if ($rejected > 0): ?>
-      <div class="stat"><div class="stat-num"><?= $rejected ?></div><div class="stat-lbl">Blocked as spam<?= $total > $MAX_SHOW ? ' (last ' . $MAX_SHOW . ')' : '' ?></div></div>
+      <div class="stat"><div class="stat-num"><?= $rejected ?></div><div class="stat-lbl">Refused by the form<?= $total > $MAX_SHOW ? ' (last ' . $MAX_SHOW . ')' : '' ?></div></div>
     <?php endif; ?>
   </div>
   <?php if ($failed > 0): ?>

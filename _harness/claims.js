@@ -23,7 +23,7 @@
  *             sentences, the JSON-LD keys — and stay empty on reload
  *   body      a cleared panel text keeps the heading
  *
- * Own `php -S` on :8732 over the mirror (npm run build && sh _harness/sync.sh
+ * Own `php -S` on :8746 over the mirror (npm run build && sh _harness/sync.sh
  * first). Restores the mirror's content.json from _harness/pristine/.
  *
  *   node _harness/claims.js
@@ -37,7 +37,7 @@ const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
 const CONTENT = path.join(SITE, 'data', 'content.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'content.json');
-const PORT = 8732;
+const PORT = 8746;   // was 8732 until 2026-10-05, which lowsE-apache also uses for HTTPS
 const BASE = `http://127.0.0.1:${PORT}`;
 const PASS = 'audit-pass-123';
 const PRODUCT = '/products?productId=IP38FE';
