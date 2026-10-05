@@ -87,3 +87,5 @@ data/.content-write.lock
 data/.site-info-write.lock
 # SEC-4 private session store, created at runtime by admin/config.php
 admin/.sessions/
+# DI-1 rename record, written by edit.php (WHATS_LEFT §1ap)
+admin/.pdf-renames.json

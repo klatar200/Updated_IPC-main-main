@@ -5,7 +5,18 @@
  */
 (function () {
   "use strict";
-  function v(id) { var e = document.getElementById(id); return e ? e.value.trim() : ""; }
+  // UX-12 (admin audit 2026-10-05) — an emptied box that the site refills
+  // with its original value (invariant 4) shows that value here, not
+  // a gap the website never has. Clearable boxes (fax, slogan, social) are
+  // not in the list and really do disappear.
+  var DEFAULTS = (function () {
+    try { var el = document.getElementById("ipc-site-defaults"); return JSON.parse(el ? el.textContent : "{}"); } catch (e) { return {}; }
+  })();
+  function v(id) {
+    var e = document.getElementById(id);
+    var x = e ? e.value.trim() : "";
+    return x === "" && DEFAULTS[id] ? DEFAULTS[id] : x;
+  }
   function esc(s) {
     return (s == null ? "" : String(s)).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
@@ -28,7 +39,7 @@
   function inject() { var s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); }
 
   function render(box) {
-    var name = v("company_name") || "Company name";
+    var name = v("company_name");
     var slogan = v("company_slogan");
     var phone = v("contact_phone"), dial = v("contact_phoneDial") || phone;
     var fax = v("contact_fax"), email = v("contact_email");

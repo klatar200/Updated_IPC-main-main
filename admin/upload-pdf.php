@@ -30,13 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // never delete a file another product still references (this
             // product's pdfUrl was already cleared above).
             $oldName = basename($oldUrl);
+            // Moved aside, not erased (admin audit 2026-10-05, the DI-4 fix
+            // applied to the same button for data sheets): a Backups undo of
+            // this removal brings back a catalog pointing at this file, and
+            // restore_trashed_files() can only return what still exists.
             if (!pdf_in_use($products, $oldName)) {
-                $candidate = PDF_DIR . $oldName;
-                $realPdfDir = realpath(PDF_DIR);
-                $realFile   = realpath($candidate);
-                if ($realPdfDir && $realFile && strpos($realFile, $realPdfDir) === 0) {
-                    @unlink($realFile);
-                }
+                file_to_trash(PDF_DIR, $oldName);
             }
             audit_log('remove-pdf', $sku, 'Removed PDF: ' . $oldName);
             $success    = 'PDF removed. Visitors will now see "Request Datasheet" for this product.';
@@ -63,24 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mkdir(PDF_DIR, 0755, true);
         }
         $file    = $_FILES['pdf_file'];
-        $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-
-        // Validate both extension and actual MIME type (defense in depth).
-        // finfo isn't compiled into every PHP build (e.g. Windows dev boxes),
-        // so fall back to checking the %PDF- magic bytes directly.
-        if (function_exists('finfo_open')) {
-            $finfo    = finfo_open(FILEINFO_MIME_TYPE);
-            $mimeType = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
-        } else {
-            $head     = (string)@file_get_contents($file['tmp_name'], false, null, 0, 5);
-            $mimeType = $head === '%PDF-' ? 'application/pdf' : '';
-        }
-
-        if ($ext !== 'pdf' || $mimeType !== 'application/pdf') {
-            $errors[] = 'Only PDF files are accepted (extension and content must both be PDF).';
-        } elseif ($file['size'] > 20 * 1024 * 1024) {
-            $errors[] = 'File is too large. Maximum size is 20MB.';
+        // Extension AND sniffed content, 20 MB — uploaded_pdf_problem() in
+        // config.php, shared with the Marketing PDFs page (G1). Messages and
+        // order unchanged.
+        $pdfProblem = uploaded_pdf_problem($file);
+        if ($pdfProblem !== '') {
+            $errors[] = $pdfProblem;
         } else {
             // Filename strategy:
             //  - If this product already has a PDF, REPLACE IT IN PLACE by
@@ -184,7 +171,7 @@ include 'nav.php';
         <span>📄 <?= h(basename($currentPdf)) ?></span>
         <div style="display:flex;gap:8px;align-items:center">
           <a href="<?= h($currentPdf) ?>" target="_blank" class="btn btn-secondary">View PDF</a>
-          <form method="POST" style="display:inline" data-confirm="Remove this PDF? The product will revert to showing &quot;Request Datasheet&quot; on the website. The PDF file will be deleted from the server.">
+          <form method="POST" style="display:inline" data-confirm="Remove this PDF? The product will revert to showing &quot;Request Datasheet&quot; on the website. The file is kept aside on the server, so restoring the catalog from Backups brings it back.">
             <input type="hidden" name="action" value="remove">
             <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
             <button type="submit" class="btn btn-secondary" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca">Remove PDF</button>

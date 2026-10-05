@@ -263,6 +263,7 @@ $navActive = 'help';
           <tr><td>Change the phone number, address, hours, logo or colors</td><td><a href="#business">Business Details</a></td></tr>
           <tr><td>Change the auto-reply email, or add a holiday notice</td><td><a href="#pagecontent">Page Content</a> → Contact Page — Form → the three <em>Auto-reply</em> boxes at the bottom</td></tr>
           <tr><td>Put up a new page photo or logo</td><td><a href="#newfiles">Putting a new photo or logo on the server</a></td></tr>
+          <tr><td>Put up a catalog or brochure PDF</td><td><a href="#marketingpdfs">Catalog &amp; Brochure PDFs</a></td></tr>
           <tr><td>Change wording on the site, the FAQ, services or footer links</td><td><a href="#pagecontent">Page Content</a></td></tr>
           <tr><td>Add or rename a product category</td><td><a href="#pagecontent">Page Content</a> → Product Families / Categories — you can do this yourself</td></tr>
           <tr><td>Change the title or description Google shows for a page</td><td><a href="#pagecontent">Page Content</a> → Search Engine Text (SEO)</td></tr>
@@ -428,7 +429,7 @@ $navActive = 'help';
               <tr><td>Part Type *</td><td>Pick the category from the dropdown. This decides which section of the catalog (and which page grouping) the product appears under. <strong>You control this list yourself</strong> — it comes from <strong>Page Content → Product Families / Categories</strong>, where you can add a category, rename one, or reorder them with the ↑ ↓ buttons — that order is the order the catalog sidebar and the Products menu use. See <a href="#pagecontent">Page Content</a>.</td></tr>
               <tr><td>Product Name *</td><td>The full name shown to customers, e.g. "3:1 Polyolefin Heat Shrink Tubing."</td></tr>
               <tr><td>Operating Temperature</td><td>Optional. Free text, e.g. <code>-55°C to 135°C</code>.</td></tr>
-              <tr><td>Image Caption</td><td>Optional short line shown underneath the product photo.</td></tr>
+              <tr><td>Image Caption</td><td>Optional short line shown in two places: under the product name at the top of the product page, and under the photo.</td></tr>
               <tr><td>Specifications Summary</td><td>Optional one-line summary shown in list/index views — keep it under about 120 characters, e.g. <code>U/L 224 · RoHS · -55°C to 135°C</code>.</td></tr>
             </table>
             <div class="visual-note"><span class="vn-icon">💡</span><strong>Not the same field:</strong> "Specifications Summary" above is only a one-line teaser shown in list views. The full label/value list customers see on the product page itself is a separate step further down the form — see <a href="#specs">Building the specifications list</a>.</div>
@@ -601,7 +602,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-tip">
           <b>Replacing or removing one</b>
-          Uploading again simply replaces the old picture. To go back to the branded placeholder, open the <span class="btn btn-sm btn-edit btn-mock">Photo</span> screen again and click <strong>Remove Photo</strong> — that clears the product's Photo URL <em>and</em> deletes the file from the server, as long as no other product is still using it.
+          Uploading again simply replaces the old picture. To go back to the branded placeholder, open the <span class="btn btn-sm btn-edit btn-mock">Photo</span> screen again and click <strong>Remove Photo</strong> — that clears the product's Photo URL <em>and</em> takes the file off the website (kept out of sight on the server, as long as no other product is still using it), so restoring the Product Catalog from Backups brings the photo back.
           <br><br>
           You can also clear the <strong>Photo URL</strong> box on the <strong>Edit</strong> screen, and the placeholder comes back the same way — but that only forgets the link. The image file itself stays on the server, where nothing lists it and nothing will ever clean it up. Use <strong>Remove Photo</strong> unless you have a reason not to.
         </div>
@@ -624,7 +625,7 @@ $navActive = 'help';
         <ol class="steps">
           <li>Open the product's "Manage PDF" page.</li>
           <li>Click the red <span class="btn btn-sm btn-mock" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">Remove PDF</span> button next to the current file.</li>
-          <li>Confirm the removal. The product reverts to showing "Request Datasheet," and the file is deleted from the server.</li>
+          <li>Confirm the removal. The product reverts to showing "Request Datasheet," and the file is kept aside on the server (not on the website), so restoring the Product Catalog from Backups brings it back.</li>
         </ol>
         <div class="callout callout-warning">
           <b>Shared data sheets</b>
@@ -772,7 +773,7 @@ $navActive = 'help';
           <tr><td>"Products &amp; Services" heading, the dark ribbon's text and its button</td><td>Page Content → <strong>Homepage — "Products &amp; Services" heading</strong>. The "View Full Catalog →" link is fixed.</td></tr>
           <tr><td>The product and service cards</td><td>Page Content → <strong>Products &amp; Services Cards</strong>.</td></tr>
           <tr><td>The team and building photos band</td><td>Photos: Page Content → <strong>Site Images</strong> (team and building). The heading and sentence are <strong>fixed</strong> wording, with your street address and ISO filled in from Business Details. The band disappears if you empty both photos.</td></tr>
-          <tr><td>"Industries" heading and its paragraph</td><td>Page Content → <strong>Homepage — "Industries" heading</strong>.</td></tr>
+          <tr><td>"Industries" heading and its paragraph</td><td>Page Content → <strong>Homepage — "Industries" heading</strong>. The "View All Industries →" button is fixed.</td></tr>
           <tr><td>The industry cards</td><td>Page Content → <strong>Industries Grid</strong>. Each card's "Learn More →" jumps to the matching section of the Industries page — so the card's <strong>Name</strong> must be spelled exactly like that section's <strong>Industry name</strong> in <em>Industries Page — Detail Sections</em>, or it lands at the top of the page instead.</td></tr>
           <tr><td>The "$50 minimum order. 25 million feet in stock." band near the bottom</td><td>Business Details → <strong>Minimum Order</strong>, <strong>Feet In Stock</strong>, <strong>Phone</strong> and <strong>Fax</strong>. The rest of the wording and its two buttons are fixed.</td></tr>
         </table>
@@ -781,7 +782,7 @@ $navActive = 'help';
         <table class="field-ref map-ref">
           <tr><td>"Product Catalog" heading and "Browse all 42 products …"</td><td><strong>Fixed</strong> wording; the number is counted automatically.</td></tr>
           <tr><td>Category list in the left column, and its counts</td><td>Your products' <strong>Part Type</strong>, in the order of Page Content → <strong>Product Families / Categories</strong>.</td></tr>
-          <tr><td>Each product card: photo, part number, category, name</td><td>That product's <strong>Photo</strong> button, <strong>SKU</strong>, <strong>Part Type</strong> and <strong>Product Name</strong>.</td></tr>
+          <tr><td>Each product card: photo, part number, category, name</td><td>That product's <strong>Photo</strong> button, <strong>SKU</strong>, <strong>Part Type</strong> and <strong>Product Name</strong>. A product with no photo shows "IMAGE COMING SOON" (fixed).</td></tr>
           <tr><td>Product page: the name and part number at the top</td><td><strong>Product Name</strong> and <strong>SKU</strong>.</td></tr>
           <tr><td>The line under the name, and the caption under the photo</td><td><strong>Image Caption</strong> (both places). Left empty, the line under the name reads "Part … — full specifications, data sheet and quote request below."</td></tr>
           <tr><td>"Datasheet" button</td><td><strong>Manage PDF</strong>; its wording is <strong>Primary PDF Button Label</strong>. Extra buttons: <strong>Additional PDF Links</strong>. With no PDF the button reads "Request Datasheet" (fixed).</td></tr>
@@ -820,7 +821,7 @@ $navActive = 'help';
         <table class="field-ref map-ref">
           <tr><td>Banner</td><td>Page Content → <strong>Services page — banner</strong>. Photo: <strong>Site Images</strong> → Services.</td></tr>
           <tr><td>"Standard Lead Time: …" bar</td><td>Worked out from the <strong>Lead time</strong> boxes in <strong>Value-Added Services</strong>: the lead time most services share is shown here, and a card shows its own lead time only when it differs. The "Rush service available" line under it is Page Content → <strong>Company Claims</strong> → <strong>Services page — rush service line</strong> (empty removes it); the rest of that bar is fixed.</td></tr>
-          <tr><td>Service cards: icon, title, description, ✓ bullet points, brochure download</td><td>Page Content → <strong>Value-Added Services</strong>.</td></tr>
+          <tr><td>Service cards: icon, title, description, ✓ bullet points, brochure download</td><td>Page Content → <strong>Value-Added Services</strong>. The brochure PDF itself: <a href="#marketingpdfs">Catalog &amp; Brochure PDFs</a>.</td></tr>
           <tr><td>"Need something not listed?" panel</td><td><strong>Fixed.</strong></td></tr>
         </table>
 
@@ -838,7 +839,7 @@ $navActive = 'help';
 
         <h3>FAQ page</h3>
         <table class="field-ref map-ref">
-          <tr><td>Banner</td><td>Page Content → <strong>FAQ page — banner</strong>.</td></tr>
+          <tr><td>Banner</td><td>Page Content → <strong>FAQ page — banner</strong>. Its "Contact our team." link and the "Expand all" button are fixed.</td></tr>
           <tr><td>The category buttons and category headings</td><td>The <strong>Category</strong> box on each FAQ row, in the order they first appear. Spell a category the same way every time or it splits into two.</td></tr>
           <tr><td>Questions and answers</td><td>Page Content → <strong>FAQ / Resources</strong>. Google is given the same list.</td></tr>
           <tr><td>"Still have questions?" box</td><td>Fixed wording; hours, phone, fax and email from Business Details.</td></tr>
@@ -862,10 +863,14 @@ $navActive = 'help';
           <tr><td>The numbered sections</td><td>Page Content → <strong>Privacy Policy — Sections</strong> (the numbers are automatic).</td></tr>
         </table>
 
-        <h3>Browser tabs, Google and social-media previews</h3>
+        <h3>Browser tabs, Google and shared links</h3>
         <table class="field-ref map-ref">
           <tr><td>Each page's browser-tab title and Google description</td><td>Page Content → <strong>Search Engine Text (SEO)</strong>, one row per page. The Datasheets page has no row as shipped — add one with <strong>+ Add Page</strong> and choose Datasheets if you want to set its text. Product pages are automatic (above).</td></tr>
           <tr><td>The brand and manufacturer Google is told for every product</td><td>Page Content → <strong>Company Claims</strong> → the two <strong>Search engines</strong> boxes. Not shown on any page. As shipped both say Insulation Products Corporation; IPC is a distributor, so if a product is not made or branded by IPC, correct them or empty them — an empty box leaves that statement out. One value covers every product.</td></tr>
+          <tr><td>The preview card when a page is shared on social media (Facebook, LinkedIn, X) or in an email</td><td><strong>Fixed</strong> — always the same title, description and picture, written into the website's code. Those services do not run the page the way a browser does, so they never see your SEO rows or Business Details; the card does not change when you change them. Ask your developer to update it.</td></tr>
+          <tr><td>The contact block shown to a visitor whose browser has JavaScript switched off</td><td><strong>Fixed</strong> — phone, fax, email, address and hours as they were when the website was built. It does not follow Business Details; if those change, ask your developer to update it.</td></tr>
+          <tr><td>The browser-tab icon (favicon)</td><td><strong>Fixed</strong> — it does not follow the Logo URL.</td></tr>
+          <tr><td>The description of each page photo that screen readers read aloud</td><td><strong>Fixed</strong> for each Site Images slot (e.g. "The IPC facility at …") — it does not change when you put a different picture in the slot, so keep each slot's picture of the same kind of thing.</td></tr>
           <tr><td>The company information Google reads: description, opening days and times, country, short name, social accounts</td><td>Business Details → <strong>Short Description</strong>, <strong>Opens</strong> / <strong>Closes</strong> / <strong>Open Days</strong>, <strong>Country</strong>, <strong>Short Name</strong>, <strong>Social Links</strong>. None of these appears in the text of a page (Short Name can end a product page's browser-tab title — see <a href="#business">Business Details</a>).</td></tr>
         </table>
 
@@ -889,6 +894,14 @@ $navActive = 'help';
           <b>Never put your own pictures in the <code>images</code> folder</b>
           Everything in <code>public_html/images/</code> is part of the website itself and is replaced the next time your developer updates the site — a photo you put there silently disappears. <code>uploads/</code> is yours and is never touched by an update.
         </div>
+        <h3 id="marketingpdfs">Putting a catalog or brochure PDF on the server</h3>
+        <p>Your full product catalog (the "Full product catalog (PDF)" link in the footer) and the brochures on the Services page are PDFs that do not belong to one product. Open <a href="marketing-pdfs.php"><strong>Catalog &amp; Brochure PDFs</strong></a> — it is linked from the <strong>Catalog PDF URL</strong> box on Business Details and from the <strong>Value-Added Services</strong> card on Page Content.</p>
+        <ol class="steps">
+          <li>Click <strong>Choose File</strong> and pick the PDF (<?= h(min_upload_label(20)) ?> at most).</li>
+          <li>In <strong>Use it for</strong>, choose <strong>Full product catalog</strong> or the Services card the brochure belongs to — or <em>Just upload it</em> to decide later — and click <strong>Upload</strong>.</li>
+          <li>Every PDF on that page has its own <strong>Use This PDF</strong> button, and each place a PDF is used has a <strong>Stop using</strong> button. The brochure's link text is set in Page Content → Value-Added Services.</li>
+        </ol>
+        <p>An upload never replaces a file already on the server (a second <code>catalog.pdf</code> is saved as <code>catalog-2.pdf</code>), and nothing on that page deletes a file. A product's own data sheet is different: use the <strong>PDF</strong> button on the Products page.</p>
       </section>
 
       <section class="help-section" id="business">
@@ -913,10 +926,10 @@ $navActive = 'help';
           <tr><td>Minimum Order, Feet In Stock</td><td>The homepage quote band ("$50 minimum order. 25 million feet in stock."), the About page fact box and the footer paragraph. The site also swaps the original "$50" and "25 million" for these values inside your Page Content wording.</td></tr>
           <tr><td>About story</td><td>The "Our Story" paragraphs on the About page — one paragraph per line. (Its heading is in Page Content → About page — banner &amp; headings.)</td></tr>
           <tr><td>Founded year</td><td>Drives the "© 1974–<?= date('Y') ?>" line automatically. You never update the second year.</td></tr>
-          <tr><td>Certifications</td><td><strong>The ISO field here is the only place the ISO certification is set.</strong> What you type in it appears everywhere the site claims it &mdash; the homepage trust bar and hero badges, the Certifications &amp; Standards block on the About page, the company story, the footer and the search-engine descriptions. Put the revision year in only when your registrar has confirmed it (<code>ISO 9001:2015</code>) and every one of those places changes with it; leave it as plain <code>ISO 9001</code> and no revision is claimed anywhere. You do not need to hunt for the wording in Page Content &mdash; whatever is typed there, the revision comes from this field. <strong>The &ldquo;Other certifications&rdquo; box beside it is published too:</strong> each line appears in the footer of every page, exactly as typed, as soon as you save &mdash; list only certifications IPC currently holds. <em>(There is no separate Quality page — this row said there was until 2026-09-14.)</em></td></tr>
+          <tr><td>Certifications</td><td><strong>The ISO field here is the only place the ISO certification is set.</strong> What you type in it appears everywhere the site claims it &mdash; the homepage trust bar and hero badges, the Certifications &amp; Standards block on the About page, the company story, the footer and the search-engine descriptions. Put the revision year in only when your registrar has confirmed it (<code>ISO 9001:2015</code>) and every one of those places changes with it; leave it as plain <code>ISO 9001</code> and no revision is claimed anywhere. <strong>The ISO box cannot be emptied:</strong> left empty, the site puts back "ISO 9001" (like the phone and address boxes), so emptying it does not remove the ISO claim — ask your developer if IPC ever needs to stop claiming ISO. You do not need to hunt for the wording in Page Content &mdash; whatever is typed there, the revision comes from this field. <strong>The &ldquo;Other certifications&rdquo; box beside it is published too:</strong> each line appears in the footer of every page, exactly as typed, as soon as you save &mdash; list only certifications IPC currently holds. <em>(There is no separate Quality page — this row said there was until 2026-09-14.)</em></td></tr>
           <tr><td>Brand colors &amp; logo</td><td>Live preview on the right of the page as you change them. <strong>Primary</strong> colors buttons and highlights, <strong>Dark</strong> the navigation bar and dark bands, and the <strong>Secondary accent</strong> (with Primary) the page banners; a note beside each warns when text on it would be hard to read. The footer background does not follow these colors. The <strong>Logo URL</strong> is the address of a picture already on your server — to use a new one, see <a href="#newfiles">Putting a new photo or logo on the server</a>.</td></tr>
           <tr><td>Social links</td><td>Each one you fill in appears as a small clickable icon in the footer of every page, and tells search engines which accounts are yours. Leave one empty and its icon disappears. Each must be a full address starting <code>https://</code> (or <code>http://</code>).</td></tr>
-          <tr><td>Catalog PDF URL</td><td>Optional. Point it at a full-catalog PDF (e.g. <code>/pdfs/catalog.pdf</code>) and a "Full product catalog (PDF)" link appears in the site footer. Leave blank for no link.</td></tr>
+          <tr><td>Catalog PDF URL</td><td>Optional. Point it at a full-catalog PDF and a "Full product catalog (PDF)" link appears in the site footer. Leave blank for no link. To put the PDF on the server, see <a href="#marketingpdfs">Putting a catalog or brochure PDF on the server</a> — that page fills this box in for you. If the address points at no file, this page says so in an amber box.</td></tr>
         </table>
         <div class="callout callout-warning">
           <b>Most fields refuse to be left blank — on purpose</b>
@@ -955,7 +968,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-tip">
           <b>It also controls what Google shows</b>
-          The <strong>Search Engine Text (SEO)</strong> section sets the browser-tab title and the description that appears under your link in search results — and the preview card when someone shares a page on social media. There is one row per page, and the <strong>home</strong> row is the site-wide default used by any page without its own. You are writing for two readers at once here: a search engine, and a buyer deciding whether to click. Describe the page plainly and include the words a customer would actually type.
+          The <strong>Search Engine Text (SEO)</strong> section sets the browser-tab title and the description that appears under your link in Google's results. It does <strong>not</strong> change the preview card when someone shares a link on social media or in an email — that card is fixed (see <a href="#sitemap">Where each part of the site is edited</a> → Browser tabs, Google and shared links). There is one row per page, and the <strong>home</strong> row is the site-wide default used by any page without its own. You are writing for two readers at once here: a search engine, and a buyer deciding whether to click. Describe the page plainly and include the words a customer would actually type.
         </div>
         <div class="callout callout-tip">
           <b>Deleting every row of a section really does empty it</b>
@@ -1042,8 +1055,9 @@ $navActive = 'help';
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#cffafe;color:#155e75;">upload-pdf</span></td><td>A data sheet was uploaded or replaced.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">upload-image</span></td><td>A product photo was uploaded from a computer.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">remove-image</span></td><td>A product photo was removed, and the file deleted from the server because nothing else was using it.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">remove-image</span></td><td>A product photo was removed. The file is kept aside on the server (not shown on the site), so restoring the catalog from Backups brings the photo back.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">site-image</span></td><td>A page photo or the logo was uploaded, picked or removed on the Site Images &amp; Logo page. The entry names which one.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#cffafe;color:#155e75;">marketing-pdf</span></td><td>A catalog or brochure PDF was uploaded on the Catalog &amp; Brochure PDFs page, or chosen for (or taken off) the footer catalog link or a Services brochure. The entry names the file and where.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">settings</span></td><td>Business Details was saved. The entry only says the details were updated (or that nothing had changed) — it does not list which fields. The version from before each save is kept on the <a href="#backups">Backups</a> page if you need to put it back.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>
@@ -1222,7 +1236,7 @@ $navActive = 'help';
         <ul class="plain">
           <li>Recovering a <em>forgotten</em> password, if you don't have your own FTP login (see <a href="#password">Your admin password</a> — you can do it yourself if you do)</li>
           <li>Adding a second or third PDF <em>file</em> to a product (see <a href="#editing">Editing an existing product</a>)</li>
-          <li>Any wording marked <strong>Fixed</strong> in <a href="#sitemap">Where each part of the site is edited</a> — e.g. the name beside the logo, the Product Index heading</li>
+          <li>Any wording marked <strong>Fixed</strong> in <a href="#sitemap">Where each part of the site is edited</a> — e.g. the name beside the logo, the Product Index heading, the preview card shown when a page is shared</li>
           <li>Changing the overall look, layout, or features of the public website beyond what <a href="#business">Business Details</a> and <a href="#pagecontent">Page Content</a> cover</li>
           <li>Anything in <a href="#server-limits">What your server allows</a> reading a value you were told it shouldn't</li>
         </ul>

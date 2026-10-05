@@ -85,6 +85,7 @@ function action_color(string $a): array {
         case 'upload-image': return ['#ede9fe', '#5b21b6'];
         case 'remove-image': return ['#fee2e2', '#991b1b'];
         case 'site-image':  return ['#ede9fe', '#5b21b6'];
+        case 'marketing-pdf': return ['#cffafe', '#155e75'];
         case 'settings':    return ['#e0f2fe', '#075985'];
         case 'content':     return ['#e0f2fe', '#075985'];
         case 'restore':     return ['#fef3c7', '#92400e'];
@@ -127,6 +128,10 @@ function action_color(string $a): array {
     .detail { color: #374151; }
     .ip { color: #9ca3af; font-size: 11px; font-family: monospace; white-space: nowrap; }
     .empty { padding: 40px; text-align: center; color: #9ca3af; font-size: 14px; }
+    /* UX-6 (admin audit 2026-10-05) — at 390 px the 700 px table pushed the
+       whole page sideways and hid the Detail column; it scrolls in its own
+       box instead, as on the dashboard. */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
   </style>
 </head>
 <body>
@@ -175,6 +180,7 @@ function action_color(string $a): array {
   <?php if (empty($entries)): ?>
     <div class="empty">No entries match the current filter.</div>
   <?php else: ?>
+    <div class="table-scroll">
     <table>
       <thead>
         <tr>
@@ -199,6 +205,7 @@ function action_color(string $a): array {
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   <?php endif; ?>
 </main>
 </body>

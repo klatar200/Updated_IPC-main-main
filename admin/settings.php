@@ -44,8 +44,22 @@ function sfList(string $key, $current, string $sep = "\n"): array {
     return array_values(array_filter(array_map('trim', $parts), static function ($v) { return $v !== ''; }));
 }
 
+// DI-2 (admin audit 2026-10-05) — the NEW-N2-1 guard content.php has. A
+// damaged site-info.json loads as [], every box below reads empty, and a save
+// wrote a mostly-blank file over it: the About story vanished from the site,
+// the dashboard's damaged-file banner went away, and the newest backup was the
+// unreadable file. Say so on arrival, and refuse the save.
+$siteInfoDamaged = data_file_damaged(SITE_INFO_JSON);
+if ($siteInfoDamaged && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read. The boxes below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Business Details entry.';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
+
+    if ($siteInfoDamaged) {
+        $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved — saving now would replace them with this mostly empty form. Go to Backups and restore the most recent Business Details entry, then make your change again.';
+    }
 
     $submittedSig = $_POST['orig_sig'] ?? '';
     if ($submittedSig !== '' && $submittedSig !== $storedSig) {
@@ -206,6 +220,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif (strlen($digits) === 11 && $digits[0] === '1') $dial = '+' . $digits;
         else $errors[] = 'Please fill in the click-to-call number (digits with country code) — it could not be worked out from the phone number.';
     }
+    // DI-5 (admin audit 2026-10-05) — the two boxes were saved independently,
+    // so changing only the display phone kept every tel: link and the JSON-LD
+    // dialling the OLD number (the site only papers over this while the dial
+    // box still holds the shipped default). When the display phone is a plain
+    // North American number and the two disagree: a display-only change takes
+    // the dial number with it; two different numbers typed on purpose are
+    // refused with a reason. Anything else (an extension, a vanity number) is
+    // left to the owner, as before.
+    $dispDigits = preg_replace('/\D/', '', $updated['contact']['phone']);
+    $derived = strlen($dispDigits) === 10 ? '+1' . $dispDigits
+             : ((strlen($dispDigits) === 11 && $dispDigits[0] === '1') ? '+' . $dispDigits : '');
+    if ($derived !== '' && $dial !== '' && ltrim($dial, '+') !== ltrim($derived, '+')) {
+        $storedPhone = (string)($curT['phone'] ?? '');
+        $storedDial  = preg_replace('/[\s.\-()]/', '', (string)($curT['phoneDial'] ?? ''));
+        $phoneChanged = $updated['contact']['phone'] !== $storedPhone;
+        $dialChanged  = $dial !== $storedDial;
+        if ($phoneChanged && !$dialChanged) {
+            $dial = $derived;
+        } elseif ($dialChanged) {
+            $errors[] = 'The phone number (' . $updated['contact']['phone'] . ') and the click-to-call number (' . $dial . ') are different numbers, so visitors would see one and dial the other. Make them the same number, or empty the click-to-call box and it will be worked out from the phone number.';
+        }
+    }
     $updated['contact']['phoneDial'] = $dial;
 
     foreach (array_keys($updated['social']) as $s) {
@@ -263,6 +299,11 @@ $navActive = 'settings';
   <title>IPC Admin — Business Details</title>
   <?= admin_head() ?>
   <style>
+    /* UX-4 — the amber "saved, but…" box, same as content.php's. */
+    .warn-list { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+    .warn-list strong { display: block; font-size: 13px; margin-bottom: 6px; }
+    .warn-list ul { margin: 0; padding-left: 20px; }
+    .warn-list li { font-size: 13px; margin-bottom: 4px; line-height: 1.5; overflow-wrap: anywhere; }
     .layout { display: flex; gap: 24px; align-items: flex-start; }
     .layout > form { flex: 1 1 auto; min-width: 0; }
     /* D2 — the same clamp as .ipc-preview-col in product-preview.js, and for
@@ -299,6 +340,20 @@ $navActive = 'settings';
 
   <?php if ($saved && $noChange): ?><div class="alert-info">No changes to save — the business details already say exactly this, so nothing was written and no backup was used.</div>
   <?php elseif ($saved): ?><div class="alert-success">✅ Business details saved. The website will reflect the changes within ~60 seconds.</div><?php endif; ?>
+  <?php /* UX-4 (admin audit 2026-10-05) — a Catalog PDF or logo address on this
+           site whose file is not there saved under a green banner and gave a
+           footer link to the "page not found" screen / a broken logo. Checked
+           on every visit, not only after a save: it stays true until fixed. */
+        $missingFiles = array_values(array_filter([
+            'Catalog PDF URL' => $info['catalogPdfUrl'] ?? '',
+            'Logo URL'        => $info['theme']['logoUrl'] ?? '',
+        ], 'site_file_missing'));
+        if ($missingFiles): ?>
+    <div class="warn-list" role="status">
+      <strong>⚠️ Not on the server</strong>
+      <ul><?php foreach ($missingFiles as $mf): ?><li><?= h($mf) ?> — there is no file at this address, so the link on the website will not work. Upload the file first (Marketing PDFs, or Site Images &amp; Logo), or correct the address.</li><?php endforeach; ?></ul>
+    </div>
+  <?php endif; ?>
   <?php if (!empty($errors)): ?>
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
   <?php endif; ?>
@@ -535,7 +590,7 @@ $navActive = 'settings';
           <div class="form-group"><label for="social_pinterest">Pinterest</label><input type="text" id="social_pinterest" name="social_pinterest" value="<?= h($so['pinterest'] ?? '') ?>" placeholder="https://pinterest.com/…" /></div>
           <div class="form-group"><label for="social_instagram">Instagram</label><input type="text" id="social_instagram" name="social_instagram" value="<?= h($so['instagram'] ?? '') ?>" placeholder="https://instagram.com/…" /></div>
           <div class="form-group"><label for="social_tiktok">TikTok</label><input type="text" id="social_tiktok" name="social_tiktok" value="<?= h($so['tiktok'] ?? '') ?>" placeholder="https://tiktok.com/@…" /></div>
-          <div class="form-group"><label for="catalogPdfUrl">Catalog PDF URL</label><input type="text" id="catalogPdfUrl" name="catalogPdfUrl" value="<?= h($info['catalogPdfUrl'] ?? '') ?>" placeholder="/pdfs/catalog.pdf" /></div>
+          <div class="form-group"><label for="catalogPdfUrl">Catalog PDF URL</label><input type="text" id="catalogPdfUrl" name="catalogPdfUrl" value="<?= h($info['catalogPdfUrl'] ?? '') ?>" placeholder="/pdfs/catalog.pdf" /><div class="hint">Shows a "Full product catalog (PDF)" link in the footer. <a href="marketing-pdfs.php">Upload the catalog PDF on the Catalog &amp; Brochure PDFs page →</a></div></div>
         </div>
       </div>
 
@@ -551,6 +606,12 @@ $navActive = 'settings';
       <div class="preview-inner">
         <div class="preview-head">Live preview</div>
         <div class="preview-body" id="settings-preview"></div>
+        <?php /* UX-12 (admin audit 2026-10-05) — what the site shows for a box
+                 left EMPTY: mergeSiteInfo() drops blanks and renders the
+                 shipped value (invariant 4), so the preview must too, or it
+                 shows a gap the site never has. Byte-identical to App.jsx
+                 SITE_DEFAULTS; _harness/adminaudit11.js holds the pair. */ ?>
+        <script type="application/json" id="ipc-site-defaults"><?= json_encode(SITE_INFO_PREVIEW_DEFAULTS, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
       </div>
     </aside>
   </div>

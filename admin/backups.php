@@ -73,10 +73,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $filesBack = $key === 'products-all' ? restore_trashed_files(load_products()) : [];
                 audit_log('restore', $key, 'Restored ' . $TARGETS[$key]['label'] . ' from ' . $file
                           . ($filesBack ? ' | Files brought back: ' . implode(', ', $filesBack) : ''));
-                // Name the exact file, not just the second — two backups written
-                // in the same second are otherwise indistinguishable in this
-                // message. (AUDIT_v3_FINDINGS NB17)
-                $success = $TARGETS[$key]['label'] . ' restored from ' . $m[2] . ' (' . $file . ')'
+                // Identify the exact backup, not just the second — two backups
+                // written in the same second are otherwise indistinguishable in
+                // this message (AUDIT_v3_FINDINGS NB17). UX-9 (admin audit
+                // 2026-10-05): in the list's own words — "2026-10-05 09:09:04
+                // (#2 that second)" — not the raw "20261005-090904 (…json)";
+                // the exact file name stays in the audit log above.
+                $when = substr($m[2], 0, 4) . '-' . substr($m[2], 4, 2) . '-' . substr($m[2], 6, 2)
+                      . ' ' . substr($m[2], 9, 2) . ':' . substr($m[2], 11, 2) . ':' . substr($m[2], 13, 2);
+                if (preg_match('/-(\d{2,4})\.json$/', $file, $seq)) $when .= ' (#' . ltrim($seq[1], '0') . ' that second)';
+                $success = $TARGETS[$key]['label'] . ' restored to how it was at ' . $when
                          . '. The website will reflect it within ~60 seconds.'
                          . ($filesBack ? ' Data sheets and photos brought back: ' . implode(', ', $filesBack) . '.' : '')
                          . ' (The state from just before this restore was backed up too, so you can undo.)';
@@ -156,7 +162,9 @@ $navActive = 'backups';
   <style>
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
     .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
-    .row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f4f8; font-size: 13px; }
+    /* UX-5 (admin audit 2026-10-05) — wraps: at 390 px the Restore button,
+       the page's one action, ran 39 px off the right edge. */
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-bottom: 1px solid #f0f4f8; font-size: 13px; }
     .row:last-child { border-bottom: none; }
     .when { font-weight: 600; }
     .size { color: #9ca3af; font-size: 12px; }

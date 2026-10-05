@@ -123,8 +123,16 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
 - **`pdfs/`** — read/write/delete; `upload-pdf.php` creates the folder if
   absent. Deleting a product renames its unshared PDFs to `.deleted.<name>`
   (`file_to_trash()`, ADM-3) and a catalog restore renames them back
-  (`restore_trashed_files()`); nothing prunes them. **Remove PDF** on
-  `upload-pdf.php` still unlinks.
+  (`restore_trashed_files()`); nothing prunes them. **Remove PDF**, **Remove
+  Photo** and a photo replaced by another file type trash the same way (admin
+  audit 2026-10-05), and a second trash of one name keeps the older file as
+  `.deleted.<stamp>.<name>`. A SKU rename's data-sheet moves are recorded in
+  `admin/.pdf-renames.json` so a restore can move them back (DI-1).
+- **`pdfs/marketing/`** — read/write, **never delete**; created at runtime if
+  absent by `marketing-pdfs.php` (2026-10-05, G1), which stores catalog and
+  brochure PDFs under a name made from the uploaded file's own name, never
+  overwriting, and writes `site-info.json` `catalogPdfUrl` or one
+  `content.json` `services[i].brochure` through the same `save_*()` helpers.
 - **`uploads/images/`** — read/write/delete; created at runtime if absent, and
   `upload-image.php` writes `uploads/.htaccess` if that is missing (and refuses
   the upload if it still is — NEW-N3-3). Photo resizes go through a `.tmp`

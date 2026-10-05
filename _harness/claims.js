@@ -157,9 +157,17 @@ const footerText = (...parts) => parts.filter(Boolean).join(' ');
   const srv = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', SITE, path.join(__dirname, 'router.php')], { cwd: SITE, stdio: 'ignore' });
   const browser = await launch();
   try {
-    fs.copyFileSync(PRISTINE, CONTENT);
+    // FIXTURE, 2026-10-05 (WHATS_LEFT §1ap, DI-8): data/content.json now SHIPS
+    // with copy.claims, as the admin writes it. The claims-free file this suite
+    // protects is what a site deployed before §1ao holds, so build it —
+    // pristine minus the key — the way plan9-firstsave builds its pre-3a file.
+    {
+      const pre = JSON.parse(fs.readFileSync(PRISTINE, 'utf8'));
+      delete pre.copy.claims;
+      fs.writeFileSync(CONTENT, JSON.stringify(pre, null, 2));
+    }
     await new Promise((r) => setTimeout(r, 700));
-    note(stored() === undefined, 'default: the shipped content.json has no claims key (the first-deploy shape)');
+    note(stored() === undefined, 'default: a content.json from before Company Claims has no claims key');
 
     // ── default ──
     let s = await surfaces(browser);

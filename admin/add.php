@@ -94,9 +94,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $products[] = $new;
         if (save_products($products)) {
             audit_log('add', $sku, 'New product added'); // #6
-            flash_redirect($sku . ' added successfully', 'success');
+            $msg = $sku . ' added successfully';
+            foreach (product_save_warnings($new) as $w) $msg .= '. Note: ' . rtrim($w, '.'); // DI-6 / UX-2
+            flash_redirect($msg, 'success');
         }
-        $errors[] = 'Failed to save. Check file permissions on products-all.json.';
+        // DI-9 (admin audit 2026-10-05) — save_products() also refuses when the
+        // catalog file is damaged (NEW-N2-1); "check file permissions" sent the
+        // owner to the wrong fix.
+        $errors[] = products_load_damaged()
+            ? 'The product catalog (data/products-all.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Product Catalog entry, then add the product again.'
+            : 'Failed to save. Check file permissions on products-all.json.';
     }
 
     // Repopulate from the submitted values. Only scalars — an array-typed field
@@ -218,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                (audit-runs/audit1.md A-07) */ ?>
       <label for="badges">One badge per line</label>
       <textarea id="badges" name="badges" rows="4" placeholder="Flame Retardant&#10;RoHS Compliant&#10;2:1 Shrink Ratio"><?= h(is_array($product['badges'] ?? '') ? implode("\n", $product['badges']) : ($product['badges'] ?? '')) ?></textarea>
+      <div class="hint">Each line appears as a pill under "Product Features" on the product page — except a badge that names a standard (RoHS, UL, CSA, MIL-Spec…): those show only through the Approvals tick-boxes above, so tick the box instead.</div>
     </div>
 
     <div class="card">
@@ -254,6 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </form>
 </main>
 <script src="spectable-editor.js"></script>
+<?= approval_patterns_json_tag() ?>
 <script src="product-preview.js"></script>
 <script src="unsaved.js" defer></script>
 </body>

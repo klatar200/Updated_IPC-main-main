@@ -40,6 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $updated['operatingTemp']         = post_str('operatingTemp');
     $updated['specificationsSummary'] = post_str('specificationsSummary');
     $updated['photoUrl']              = post_str('photoUrl');
+    // DI-8 — a product with no photo has no photoUrl key; an untouched save
+    // must not add `"photoUrl": ""` (a change with nothing changed).
+    if ($updated['photoUrl'] === '' && !array_key_exists('photoUrl', $product)) unset($updated['photoUrl']);
 
     // Whitelisted against the vocabulary — a posted value that is not an
     // approval never reaches the catalog. array_intersect also deduplicates
@@ -239,6 +242,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $products[$idx] = $updated;
         $brokenRefs = $updated['sku'] !== $sku ? industry_refs_broken_by($before, $products) : []; // ADM-14
         if (save_products($products)) {
+            // DI-1 — record the data sheets this rename moved, so a Backups
+            // restore of the catalog from before it can move them back.
+            pdf_renames_record(array_map(static function ($pr) { return [basename($pr[1]), basename($pr[0])]; }, $renamedPairs ?? []));
             // F3 — a no-op save is still a success and still redirects, so the
             // concurrency signature is recomputed from (unchanged) disk on the
             // next load and matches. Only the flash message differs; edit.php
@@ -250,6 +256,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $msg = $noop
                 ? $updated['sku'] . ' — no changes to save'
                 : $updated['sku'] . ' saved successfully';
+            // DI-6 / UX-2 (admin audit 2026-10-05) — true even on a no-op save.
+            foreach (product_save_warnings($updated) as $w) $msg .= '. Note: ' . rtrim($w, '.');
             if ($brokenRefs) {
                 $msg .= '. Note: the Industries page links to the old SKU from ' . implode(', ', $brokenRefs)
                       . ' — those links now show "product not found". Update them in Page Content → Industries.';
@@ -446,7 +454,7 @@ include 'nav.php';
       <div class="form-group">
         <label for="badges">One badge per line</label>
         <textarea id="badges" name="badges" rows="4" placeholder="Flame Retardant&#10;RoHS Compliant&#10;2:1 Shrink Ratio"><?= h($badgesStr) ?></textarea>
-        <div class="hint">These appear as pill badges on the product detail page.</div>
+        <div class="hint">Each line appears as a pill under "Product Features" on the product page — except a badge that names a standard (RoHS, UL, CSA, MIL-Spec…): those show only through the Approvals tick-boxes above, so tick the box instead.</div>
       </div>
     </div>
 
@@ -514,6 +522,7 @@ include 'nav.php';
      not exemption — it was never wired. -->
 <script src="unsaved.js" defer></script>
 <script src="spectable-editor.js"></script>
+<?= approval_patterns_json_tag() ?>
 <script src="product-preview.js"></script>
 </body>
 </html>

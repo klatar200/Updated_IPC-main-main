@@ -168,7 +168,7 @@ $navActive = 'inquiries';
   <?php foreach ($entries as $e):
       $type   = $e['type'] ?? '';
       $rej    = $REJECTED[$type] ?? null;
-      $isRfq  = $type === 'rfq';
+      $isRfq  = $type === 'rfq' || ($e['form'] ?? '') === 'rfq';   // UX-11 — a refused quote keeps its quote fields
       $sent   = !empty($e['sent']);
   ?>
   <details class="inq<?= $rej ? ' inq-rejected' : '' ?>">

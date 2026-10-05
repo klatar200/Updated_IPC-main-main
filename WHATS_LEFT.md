@@ -7262,3 +7262,78 @@ site changes until he edits one.
 `pgrep -f "php -S 127.0.0.1:813"`, the same mistake as the earlier `pkill -f`:
 the pattern matched the command line running it. **Rule: select server PIDs
 from `ps -eo pid,comm,args` with `comm == php`, never `pgrep -f`/`pkill -f`.**
+
+## 1ap. 2026-10-05 — admin dashboard audit: findings, decisions, fixes
+
+**Decisions (Keagan, 2026-10-05):** "yes fix them all, and yes to G1" — every
+finding below is fixed in one change, and Rick gets a dashboard upload for the
+catalog / brochure PDFs (G1, a new page). G2–G5 were offered as help-text
+corrections only (G2 is a business claim — whether the ISO claim may be
+removed — and was not asked for); they are documented, not changed in code.
+
+**Method.** Three independent passes on private copies of the built site
+(data integrity, security, owner walkthrough at 390–1440 px); every finding
+reproduced; anything already open in §2/§3 excluded. Security found nothing
+Critical/High/Medium. Walkthrough: 0 console errors, 274 admin links OK, all
+373 Page Content and 15 Business Details fields land where Help says.
+
+| ID | Sev | Finding |
+|---|---|---|
+| DI-1 | High | Undoing a SKU rename via Backups restores PDF/photo URLs the rename moved away; restore only recovers `.deleted.*` files |
+| DI-2 | High | Business Details has no damaged-file gate: a damaged `site-info.json` loads blank and Save overwrites it |
+| UX-2 | High | Badge hint says every badge shows; a standard-naming badge with its box unticked appears nowhere, after a green save |
+| UX-3 | High | Help says SEO rows set social-share previews; unfurlers only ever see `index.html`'s fixed tags (A-5.10) |
+| DI-3 | Med | Photo replace (new extension) unlinks the old file before the catalog save; a failed save leaves a dead photo |
+| DI-4 | Med | Remove Photo / replace erase instead of trash, so a Backups restore brings back a dead photo |
+| DI-5 | Med | Editing only the display phone leaves every `tel:` link and the JSON-LD dialling the old number |
+| UX-1 | Med | Add/Edit "Live preview" differs from the product page (standard badges, temp, summary shown; approvals hidden) |
+| UX-4 | Med | Catalog PDF / brochure / Site Images paths save with no existence check |
+| UX-5 | Med | Backups: Restore buttons off-screen at 390 px |
+| DI-6 | Low | Additional-PDF / photo URL typo saves as a dead link |
+| DI-7 | Low | A second trash of the same file name overwrites the first |
+| DI-8 | Low | A browser save of an unchanged product is a "change" (editor key order) — 42 needless backups |
+| DI-9 | Low | Add Product on a damaged catalog says "check file permissions" |
+| SEC-A1 | Low | v4-mapped IPv6 clients (and `::1`) share one throttle key `::/64` |
+| SEC-A2 | Low | `TRUST_PROXY_FORWARDED` keys on the client-controlled leftmost XFF entry |
+| UX-6/7 | Low | Audit Log table and the size-chart editor overflow at 390 px |
+| UX-8–12 | Low | "external" label on shipped photos; raw filename in restore message; caption Help row; rate-limited entries raise no badge and lose fields; Business Details preview shows blanks where the site uses defaults |
+| G1 | gap | No dashboard route to put a catalog or brochure PDF on the server |
+| G2–G5 | gap | ISO claim cannot be emptied; `index.html` share tags + `<noscript>` block fixed; Site Images alt text fixed per slot; a few small labels fixed — none listed as Fixed in Help |
+
+**Fixes (same change):**
+
+| ID | Fix | Where |
+|---|---|---|
+| DI-1 | A SKU rename's data-sheet moves are recorded (`admin/.pdf-renames.json`, last 500); a catalog restore follows them and moves the file back when nothing in the restored catalog uses the new name. The restore message names the files | `config.php` `pdf_renames_record()`, `restore_trashed_files()`; `edit.php` |
+| DI-2 | Business Details warns on open and refuses to save over a damaged `site-info.json` (the content.php guard) | `settings.php` |
+| DI-3 | The old photo is moved aside only AFTER the catalog save; a failed save removes the new orphan and says nothing changed | `upload-image.php` |
+| DI-4 | Remove Photo and a replace by another file type trash instead of unlink. **Also applied to Remove PDF** (same defect class, `upload-pdf.php`; CLAUDE.md had recorded "still unlinks") | `upload-image.php`, `upload-pdf.php` |
+| DI-5 | A display-only phone change re-derives the dial number; two different numbers typed on purpose are refused with a reason; extensions / vanity numbers left alone | `settings.php` |
+| DI-6 | A local photo / Additional-PDF address with no file is named in the save message (warn, not block — 4.12 precedent) | `config.php` `product_save_warnings()`, `site_file_missing()`; `edit.php`, `add.php` |
+| DI-7 | A second trash of one name keeps the older file as `.deleted.<stamp>.<name>`; the plain `.deleted.<name>` stays the newest | `config.php` `file_to_trash()` |
+| DI-8 | `json_write_needed()` treats an object-key-order-only difference as no change (lists keep order); edit.php no longer adds `photoUrl: ""` to a product without one; `data/content.json` ships `copy.claims` (values = defaults, before first deploy — the §1an exception) | `config.php`, `edit.php`, `data/content.json`, `_harness/pristine/` |
+| DI-9 | Add Product on a damaged catalog says it is damaged and to restore | `add.php` |
+| UX-1 | Preview: standard badges filtered with the server's own `IPC_APPROVAL_PATTERNS` (JSON block), ticked approvals shown, Operating Temperature and Summary removed | `product-preview.js`, `config.php` `approval_patterns_json_tag()` |
+| UX-2 | Badge hint on Edit and Add tells the truth; a save names any standard badge whose box is unticked | `edit.php`, `add.php`, `product_save_warnings()` |
+| UX-3, G2–G5 | Help: share cards and the no-JavaScript block are Fixed; the ISO box cannot be emptied; favicon, photo descriptions, "View All Industries →", "IMAGE COMING SOON", FAQ banner link/"Expand all" listed as fixed | `help.php` |
+| UX-4 | Business Details (catalog PDF, logo) and Page Content (Site Images, brochures) show an amber "Not on the server" box whenever a stored local address has no file | `settings.php`, `content.php` |
+| UX-5/6/7 | Backups rows wrap; Audit Log table scrolls in its own box; stacked editor form is full width and the size chart scrolls in its own box | `backups.php`, `audit-log.php`, `product-preview.js`, `spectable-editor.js` |
+| UX-8 | Shipped photo labelled "shipped with the website"; confirm text says the file is kept aside | `upload-image.php` |
+| UX-9 | Restore message: "restored to how it was at 2026-10-05 09:09:04 (#2 that second)"; exact file stays in the audit log | `backups.php` |
+| UX-10 | Image Caption row names both places | `help.php` |
+| UX-11 | A refused RFQ keeps part, material, quantity, date, special reqs, notes (capped); rate-limited / incomplete entries ("worth a call back") raise the badge; spam-trap and other-website ones do not | `public/contact.php`, `config.php` `inquiry_callback_types()`, `inquiries.php` |
+| UX-12 | Preview shows the original value for an emptied box the site refills (`SITE_INFO_PREVIEW_DEFAULTS`, held equal to App.jsx `SITE_DEFAULTS`) | `settings-preview.js`, `settings.php`, `config.php` |
+| SEC-A1 | `::ffff:a.b.c.d` keys as `a.b.c.d` | `config.php` `login_throttle_key()` |
+| SEC-A2 | Trusted-proxy mode reads the right-most XFF entry; comment says one hop only | `config.php` `login_throttle_client_ip()` |
+| G1 | New **Catalog & Brochure PDFs** page: upload to `pdfs/marketing/` (name from the file, never overwrites, never deletes), use as the footer catalog or a Services brochure, Stop using. Linked from Business Details, Page Content → Value-Added Services and Help (no new nav item — the Site Images precedent). Audit action `marketing-pdf`. `uploaded_pdf_problem()` now shared with upload-pdf.php (messages unchanged) | `marketing-pdfs.php` (new), `config.php`, `settings.php`, `content.php`, `help.php`, `audit-log.php` |
+
+**Tests:**
+- `_harness/adminaudit11.js` (new): **0/36 on the unfixed tree**, 37/37 after (one pair check added with UX-12).
+- `_harness/marketingpdfs.js` (new): 15/15 (the page did not exist before).
+- `claims.js`: its "absent key" fixture is now BUILT (pristine minus `copy.claims`), as `plan9-firstsave` builds its pre-3a file — `data/` now ships the key (DI-8). The case under test is unchanged.
+- `adminwidth.js`: the new page added to the narrow list.
+
+**Self-corrections:**
+- The first UX-10 arm passed on the unfixed tree: its regex matched the #sitemap row's "both places", not the Adding-a-product row it was about. Tightened to that row before any fix; then 0/36.
+- The first UX-11 arm read the mirror's 775-line inquiry fixture instead of the six new lines; it now counts only lines it wrote and compares the badge before/after.
+- The audit's data-integrity pass sent one upload to the security pass's port (scratch copies only; reported by the pass itself).

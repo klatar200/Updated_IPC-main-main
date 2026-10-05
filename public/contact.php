@@ -512,6 +512,20 @@ function ipc_ar_cap_key(string $email): string {
 // Whatever we know about a rejected submission, shaped like a log entry so a
 // lead that hits a guard is still recoverable from admin/inquiries.php.
 function ipc_partial_entry(string $type, string $note, string $ip): array {
+    // UX-11 (admin audit 2026-10-05) — a refused QUOTE request kept only name,
+    // email and the notes, so a rate-limited RFQ (the office-NAT customer this
+    // entry exists for) lost its part number and quantity. Keep them, under the
+    // keys inquiries.php already shows for a quote, capped like the message.
+    $rfq = (is_string($_POST['form_type'] ?? null) ? $_POST['form_type'] : '') === 'rfq';
+    $extra = !$rfq ? [] : [
+        'form'     => 'rfq',
+        'part'     => s($_POST['partNumber'] ?? '', 200),
+        'material' => s($_POST['material'] ?? '', 200),
+        'quantity' => s($_POST['quantity'] ?? '', 200),
+        'reqDate'  => s($_POST['requiredDate'] ?? '', 200),
+        'special'  => s($_POST['specialReqs'] ?? '', 500),
+        'notes'    => s($_POST['additionalNotes'] ?? '', 500),
+    ];
     return [
         'ts'      => date('Y-m-d H:i:s'),
         'type'    => $type,
@@ -530,7 +544,7 @@ function ipc_partial_entry(string $type, string $note, string $ip): array {
         'ip'      => $ip,
         'sent'    => false,
         'note'    => $note,
-    ];
+    ] + $extra;
 }
 
 // ── Rate limit: 5 per IP per 10 minutes ───────────────────────
