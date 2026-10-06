@@ -7744,3 +7744,44 @@ built until then.
 **Decision (Keagan, 2026-10-06):** approved as proposed. All 31 FIX rows get
 built, A10-059 first. The 13 DECLINE rows are declined with the reasons
 above; they are settled, so do not re-propose them without new evidence.
+
+**Shipped (2026-10-06):** all 31 approved fixes. `_harness/audit10cd.js`
+(+ `audit10cd-admin.js`) has one arm per finding, measured the triage's way.
+It was **1/34 before the fixes** (A10-049's first arm passed vacuously on a
+page with no affected buttons and was widened to ten pages) and is
+**34/34 after**.
+
+| ID | Fix |
+|---|---|
+| A10-059 | ProductSidebar's `onNavigate` stamps `_sidebarScrollAt`; App's A-5.23 scroll-to-top skips a product change within 1 s of a sidebar pick. The detail column has `scroll-margin-top: 84px`. |
+| A10-003 | Product body grid `md:items-start`; the divider moved to the (stretched) description cell |
+| A10-004 | `h-full` dropped from SpecTable1 / SpecTable2 |
+| A10-005 | The catalog rail scrolls its own `scrollTop` to the `data-ipc-rail-active` row (centred, below the sticky header) |
+| A10-006 / A10-016 | Spec grid `md:grid-cols-2` → `xl:grid-cols-2`; the divider follows |
+| A10-007 | `px-6` moved from three homepage `<section>`s onto their `.ipc-container`; CLAUDE.md invariant 13 records the rule |
+| A10-008 | `datasheets` added to the Products nav group (desktop and drawer) |
+| A10-009 | Placeholder "Part ID, type or description…" (the `aria-label` keeps "Search products"); `lowsC-public` now locates the box by its `aria-label` |
+| A10-013 | "✕ Clear filter": `padding: 4px 0; min-height: 24px` |
+| A10-014 | Footer grid `md:grid-cols-2 lg:grid-cols-4` |
+| A10-017 | `.ipc-chip-rail`: a 28 px edge fade + 28 px end padding on the family rail and the FAQ chips. **Deviation from the approved row:** "wrap the FAQ chips" was measured first, and wrapping grows the sticky FAQ bar from 55 px to 181 px of an 844 px phone screen, so both rails take the fade instead. |
+| A10-018 | Special Requirements is a 3-row textarea (`contact.php` already caps it at 5,000 characters and keeps newlines) |
+| A10-038 | The five `.slice(0, N) + "…"` → `trimToWord()` |
+| A10-051 | "Still have questions?" h3 → h2 |
+| A10-055 | Navbar: a document-level Escape listener while a menu is open |
+| A10-057 | RFQ bar transition `none` and FAQ panel `motion-reduce:transition-none` under reduced motion |
+| A10-058 | The drawer's scroll-lock offset is captured at the burger click, not in the effect |
+| A10-060 / A10-061 | `.ipc-hover-primary` / `-border` / `-tint` / `-ondark` (brand variables, `!important` to beat inline styles); `.ipc-sort-btn:hover` |
+| A10-043 | `doesn&rsquo;t` → `doesn't`; "specification-grade" → "spec-grade" in `App.jsx`, `index.php`'s `SEO_DEFAULT`, `data/content.json` and the pristine copy |
+| A10-024 | Label placeholder is "Label"; one hint line above the rows says a blank label makes a note |
+| A10-030 | `.error-list` `#dc2626` → `#b91c1c` (5.91:1) |
+| A10-031 | Help's credentials box states the admin address (`…/admin/`) |
+| A10-033 | Help diagram "Del" → "Delete" |
+| A10-034 | Help bullet reworded into a sentence |
+| A10-039 | Three section titles stored as plain "&"; the two `<legend>`s now echo through `h()` |
+| A10-040 | Business Details preview: "© {founded}–{year} {name}. All rights reserved.", as the site footer |
+| A10-041 | Dial-number hint in plain words |
+| A10-049 | `button { font-family: inherit }` in `admin_head()` |
+| A10-050 | 21 `#9ca3af` text colours → `#6b7280`; `#4b5563` for the two on the `#f0f4f8` page background, where `#6b7280` would be 4.32:1. The Help SVG mock-up keeps its greys (an illustration). |
+
+**Owner content (Rick):** the FAQ answer that says to click the "Data Sheet"
+button. The button reads "Datasheet".
