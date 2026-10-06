@@ -1,29 +1,29 @@
 {
- "_note": "Captured from the UNMODIFIED tree. desktop-1440 column widths and the mobile-390 card list are what AUDIT-10 measured as CORRECT; item 2 must leave both alone. A global px band is the wrong assertion here — the card heights vary per product — so \"unchanged\" means unchanged PER ITEM.",
+ "_note": "Captured from the UNMODIFIED tree. desktop-1440 column widths and the mobile-390 card list are what AUDIT-10 measured as CORRECT; item 2 must leave both alone. A global px band is the wrong assertion here \u2014 the card heights vary per product \u2014 so \"unchanged\" means unchanged PER ITEM. Re-based 2026-10-06 (WHATS_LEFT \u00a71at, A10-038): three mobile cards, CT 205.9 -> 187.9, IP30UV 252.6 -> 234.6, IP55FL 234.4 -> 216.4, one line shorter because the 110-character description cut now ends at a word (trimToWord) instead of mid-word. Every other card and every desktop column is unchanged.",
  "desktop-1440": {
   "cols": [
    {
-    "t": "Product Name ⇅",
+    "t": "Product Name \u21c5",
     "w": 190
    },
    {
-    "t": "Part ID ▲",
+    "t": "Part ID \u25b2",
     "w": 105
    },
    {
-    "t": "Part Type ⇅",
+    "t": "Part Type \u21c5",
     "w": 115
    },
    {
-    "t": "Description ⇅",
+    "t": "Description \u21c5",
     "w": 300
    },
    {
-    "t": "Temp ⇅",
+    "t": "Temp \u21c5",
     "w": 150
    },
    {
-    "t": "Specifications ⇅",
+    "t": "Specifications \u21c5",
     "w": 215
    },
    {
@@ -52,7 +52,7 @@
    {
     "id": "CT",
     "w": 342,
-    "h": 205.9
+    "h": 187.9
    },
    {
     "id": "IP10EX",
@@ -107,7 +107,7 @@
    {
     "id": "IP30UV",
     "w": 342,
-    "h": 252.6
+    "h": 234.6
    },
    {
     "id": "IP32IP",
@@ -197,7 +197,7 @@
    {
     "id": "IP55FL",
     "w": 342,
-    "h": 234.4
+    "h": 216.4
    },
    {
     "id": "IP56DR",

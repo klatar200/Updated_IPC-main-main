@@ -7785,3 +7785,10 @@ page with no affected buttons and was widened to ten pages) and is
 
 **Owner content (Rick):** the FAQ answer that says to click the "Data Sheet"
 button. The button reads "Datasheet".
+
+Sweep 2026-10-06: first half 61/61 (after the fix below), second half
+58/59 (`plan8-polish` 16/17, the expected Linux font-metric red).
+`plan10-dashboard` went 24/25 because A10-038 made three mobile cards one
+line shorter (CT, IP30UV and IP55FL; their descriptions are over 110
+characters and now end at a word). The baseline was updated for those three
+cards only, with the reason in its `_note`; the assertion is unchanged.
