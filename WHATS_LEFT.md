@@ -4393,7 +4393,7 @@ file has under the doc-drift check.
   longer works. A history rewrite (`git filter-repo`) is optional after that and
   does not substitute for it.
 
-- [ ] **STILL OPEN (2026-10-05, §1aq) — a scope decision (owner): whether the 48 AUDIT-10 C/D findings get a plan at all.** **`plans/README.md`'s claim that AUDIT-10's C/D findings are the natural
+- [ ] **TRIAGED 2026-10-06 (§1at): 4 fixed, 31 to fix, 13 to decline — waits on Keagan approving that split.** ~~STILL OPEN (2026-10-05, §1aq) — a scope decision (owner).~~ **`plans/README.md`'s claim that AUDIT-10's C/D findings are the natural
   PLAN-11 has no plan behind it.** 48 findings, six named clusters, no owner and
   no sequencing. Recorded so the gap is visible; writing that plan is not itself
   open work until someone decides the tier is in scope.
@@ -7667,3 +7667,76 @@ The navy values are unchanged.
 
 Sweep: first half 61/61, second half 57/58 (`plan8-polish` 16/17, the
 expected Linux font-metric red). `brandtext` is no longer an expected red.
+
+## 1at. 2026-10-06 — AUDIT-10's 48 C/D findings: triage against today's site
+
+**Decision (Keagan, 2026-10-06):** take the §1aq recommendation: one triage
+pass with no code changes. Every finding is sorted into fix, decline or
+already fixed, and the list goes back to Keagan for approval before anything
+is built.
+
+**Method:**
+- Three read-only agents, each on its own `php -S` mirror port. They re-ran
+  the report's own probes where those still matched the page, and small
+  replacements where selectors had gone stale. Nothing was POSTed or saved.
+  The admin was viewed signed in.
+- Their scratch scripts are under `/tmp/claude-0/triage{A,B,C}/` (session-local).
+- Spot-checked by the lead before this entry:
+  - A10-059 reproduced: h1 at 1713 px (834) and 2085 px (390) after a sidebar
+    pick.
+  - Six source citations confirmed: A10-030, A10-034, A10-038, A10-040,
+    A10-041, A10-049.
+
+**Result: 4 already fixed, 31 to fix, 13 to decline (total 48).**
+
+| ID | Today | Proposed | Note |
+|---|---|---|---|
+| A10-023 | fixed | — | edit form 0 px overflow at 390 (was 118) |
+| A10-032 | fixed | — | all four controls labelled |
+| A10-035 | fixed | — | audit-log table in a scroller, 0 px page overflow |
+| A10-042 | fixed | — | one shipping promise (owner copy could reintroduce a conflict) |
+| **A10-059** | **regressed** | **FIX first** | After a sidebar pick at 834/390 the page jumps to the top. The new product's h1 sits 1713/2085 px down: the A-5.23 scroll-to-top cancels the scroll to the product. |
+| A10-003 | present | FIX | photo cell void up to 972 px; make the photo sticky inside its cell |
+| A10-004 | present | FIX | `h-full` spec panels leave up to 1392 px of empty card; drop `h-full` |
+| A10-005 | present | FIX | the catalog rail never scrolls to the current product (14/42 below the fold) |
+| A10-006 + A10-016 | present | FIX | spec table in a 261 px (1024) / 326 px (834) scroller; spec grid `md:` → `xl:grid-cols-2` |
+| A10-007 | present | FIX | three homepage headings 24 px left of everything else. Mind invariant 13. |
+| A10-008 | present | FIX | /datasheets lights no nav item; add it to `prodPages` |
+| A10-009 | present | FIX | /dashboard search placeholder cut 22–60 px; shorten it |
+| A10-013 | present | FIX | "✕ Clear filter" 16.5 px tap target; pad to 24 |
+| A10-014 | present | FIX | footer at 834 keeps four columns; `md:grid-cols-2 lg:grid-cols-4` |
+| A10-017 | present | FIX | chip rails at 390 hide most chips with no cue; wrap the FAQ chips, add an edge fade |
+| A10-018 | present | FIX | /contact Special Requirements placeholder cut 296 px at 390; make the field a 2-row textarea |
+| A10-038 | partly | FIX | 49 mid-word cuts on /dashboard; the five `.slice(0,N)+"…"` → `trimToWord()` |
+| A10-051 | present | FIX | /faq h3 (18 px) larger than its h2s (16 px) |
+| A10-055 | partly | FIX | Escape does not close a mega-menu opened by hover; add a document-level listener |
+| A10-057 | present | FIX | RFQ bar spring and FAQ collapse ignore `prefers-reduced-motion` |
+| A10-058 | present | FIX | opening and closing the mobile menu moves the page 276 px |
+| A10-060 | present | FIX | four CTAs/cards whose hover never paints (inline style overrides the utility) |
+| A10-061 | present | FIX (part) | hover feedback for sort headers, FAQ rows, sidebar heads and chips; inline tel/mailto and the admin nav declined |
+| A10-043 (D) | partly | FIX (part) | the one curly apostrophe; "specification-grade" ×2 in code. The FAQ "Data Sheet" wording is Rick's content, now listed for him. Rest declined. |
+| A10-024 | partly | FIX | spec-row Label placeholder cut at 390 only; shorten it |
+| A10-030 | present | FIX | admin error text 4.41:1 → `#b91c1c` (5.91:1) |
+| A10-031 | present | FIX | Help "Admin dashboard address" is a blank rule; print the real address |
+| A10-033 | partly | FIX (part) | Help diagram says "Del"; the button is "Delete". Sidebar naming drift declined. |
+| A10-034 | present | FIX | Help bullet is a sentence fragment |
+| A10-039 | present | FIX | 96 accessible names say "&amp;"; three escaped string literals |
+| A10-040 | present | FIX | Business Details preview copyright line differs from the site's |
+| A10-041 | partly | FIX | the dial-number hint still says "(tel:) links" |
+| A10-049 | present | FIX | 442 admin buttons render in Arial, not the page font; `button { font-family: inherit }` in `admin_head()` (re-run `adminwidth`) |
+| A10-050 | present | FIX (part) | `#9ca3af` hint/th/time/IP text 2.30–2.54:1 → `#6b7280`. The add-product preview placeholders are declined. |
+| A10-015 | partly | DECLINE | /dashboard at 834 scrolls inside its card by design (the comment at the call site) |
+| A10-010 (D) | present | DECLINE | empty spec cells, 3-of-4 related rows |
+| A10-019 (D) | present | DECLINE | legitimate hyphen break points at 390 |
+| A10-047 | present | DECLINE | near-duplicate border greys; invisible |
+| A10-048 | present | DECLINE | three card shadow depths; barely perceptible |
+| A10-053 (D) | present | DECLINE | off-scale type/radius/monospace tokens; the report calls them invisible |
+| A10-054 (D) | present | DECLINE | images cannot follow the palette; the logo is replaceable in Site Images & Logo |
+| A10-062 (D) | present | DECLINE | three focus styles, all visible; a global cyan ring would itself fail contrast on white |
+| A10-025 | present (source) | DECLINE | a "filter hides history" line shown only when `admin/` is unwritable, which already shows a banner |
+| A10-026 | present | DECLINE | the sticky Save bar covers labels while scrolling; a focused field scrolls clear |
+| A10-052 (D) | present | DECLINE | admin text 0.1–0.35 under AA. `.btn-danger` may take A10-030's colour in the same edit. |
+| A10-036 / A10-044 (D) | partly | DECLINE | leftovers: "dialling", one missing "in", JS-off JSON strings |
+
+**Waiting on:** Keagan's approval of the FIX / DECLINE split above. Nothing is
+built until then.
