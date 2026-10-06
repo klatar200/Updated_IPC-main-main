@@ -74,7 +74,7 @@ $PAGE_OPTIONS = [
 // Section definitions: field list + which icon set + copy.
 $SECTIONS = [
     'features' => [
-        'title'    => 'Products &amp; Services Cards',
+        'title'    => 'Products & Services Cards',
         'sub'      => 'The card grid under "A Complete Insulation Supply Source" on the homepage. Any number of cards works.',
         'page'     => '/',
         'anchor'   => 'ipc-sec-features',
@@ -173,7 +173,7 @@ $SECTIONS = [
         ],
     ],
     'capabilities' => [
-        'title'    => 'About — Team &amp; Capabilities',
+        'title'    => 'About — Team & Capabilities',
         'sub'      => 'The "Our Team & Capabilities" cards on the About page. The icon is an emoji.',
         'page'     => '/about',
         'anchor'   => 'ipc-sec-capabilities',
@@ -186,7 +186,7 @@ $SECTIONS = [
         ],
     ],
     'certs' => [
-        'title'    => 'About — Certifications &amp; Standards',
+        'title'    => 'About — Certifications & Standards',
         'sub'      => 'The certification cards on the About page.',
         'page'     => '/about',
         'anchor'   => 'ipc-sec-certs',
@@ -750,11 +750,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $changedTitles[] = (string)$gcfg['title'];
             }
         }
-        // Three section titles are stored ALREADY HTML-escaped ('Products
-        // &amp; Services Cards' at :77, :162, :173) — that is A10-039, a
-        // separate C finding, and fixing the storage is out of scope here.
-        // Decoding for the log line keeps "Products & Services Cards" out of
-        // the audit log as "Products &amp; Services Cards". audit_log() writes
+        // A10-039 (§1at) — the three section titles that were stored
+        // ALREADY HTML-escaped ('Products &amp; Services Cards') are plain
+        // text now, escaped by h() where they render (the legends, the
+        // aria-labels — 96 accessible names read a literal "&amp;"). The
+        // decode stays as a guard for any title written with an entity. audit_log() writes
         // JSONL, not HTML, and inquiries.php-style rendering escapes at the
         // render boundary, so decoding here is correct and not a hole.
         $changedTitles = array_map(
@@ -1170,7 +1170,7 @@ $navActive = 'content';
 
     <?php foreach ($COPY_GROUPS as $g => $gcfg): ?>
       <fieldset class="card">
-        <legend class="card-title"><?= $gcfg['title'] ?></legend>
+        <legend class="card-title"><?= h((string)$gcfg['title']) ?></legend>
         <?php if ($g === 'siteImages'): /* §2h item 3b — the upload button lives on its own page */ ?>
           <p class="sub" style="margin:0 0 12px"><a href="site-images.php">Upload a new picture, or pick one already on the server, on the <strong>Site Images &amp; Logo</strong> page →</a> The boxes below show the result; you can still type a path here.</p>
         <?php endif; ?>
@@ -1201,7 +1201,7 @@ $navActive = 'content';
         }
     ?>
       <fieldset class="card" data-section="<?= h($sec) ?>" data-section-title="<?= h((string)($cfg['title'] ?? '')) ?>">
-        <legend class="card-title"><?= $cfg['title'] ?></legend>
+        <legend class="card-title"><?= h((string)$cfg['title']) ?></legend>
         <p class="sub"><?= $cfg['sub'] ?></p>
         <?php /* E1/E2 — "where does this actually appear?"
                  Every group already described its location in prose ("the

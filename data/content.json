@@ -680,7 +680,7 @@
         {
             "page": "industries",
             "title": "Industries Served — Insulation Products Corporation",
-            "desc": "IPC supplies specification-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry."
+            "desc": "IPC supplies spec-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry."
         },
         {
             "page": "services",
@@ -801,7 +801,7 @@
         "homeMarkets": {
             "eyebrow": "Industries Served",
             "title": "Trusted Across Demanding Markets",
-            "subtitle": "IPC stocks specification-grade insulation materials used across every sector that requires reliable, certified wire and component protection."
+            "subtitle": "IPC stocks spec-grade insulation materials used across every sector that requires reliable, certified wire and component protection."
         },
         "servicesHeader": {
             "eyebrow": "Fabrication",

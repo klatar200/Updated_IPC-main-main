@@ -96,7 +96,7 @@ $navActive = 'password';
     label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 6px; }
     input[type=password] { width: 100%; padding: 11px 14px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: 14px; color: #141414; outline: none; }
     input[type=password]:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
-    .hint { font-size: 11px; color: #9ca3af; margin-top: 5px; }
+    .hint { font-size: 11px; color: #6b7280; margin-top: 5px; }
     .btn-primary { width: 100%; padding: 12px; background: #005da3; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
     .btn-primary:hover { background: #004e8c; }
     .note { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 12px 16px; font-size: 12px; margin-top: 16px; }

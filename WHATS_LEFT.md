@@ -4393,7 +4393,7 @@ file has under the doc-drift check.
   longer works. A history rewrite (`git filter-repo`) is optional after that and
   does not substitute for it.
 
-- [ ] **TRIAGED 2026-10-06 (§1at): 4 fixed, 31 to fix, 13 to decline — waits on Keagan approving that split.** ~~STILL OPEN (2026-10-05, §1aq) — a scope decision (owner).~~ **`plans/README.md`'s claim that AUDIT-10's C/D findings are the natural
+- [ ] **APPROVED 2026-10-06 (§1at): 31 to fix, 13 declined — fixes in progress.** ~~TRIAGED — waits on Keagan approving that split.~~ ~~STILL OPEN (2026-10-05, §1aq) — a scope decision (owner).~~ **`plans/README.md`'s claim that AUDIT-10's C/D findings are the natural
   PLAN-11 has no plan behind it.** 48 findings, six named clusters, no owner and
   no sequencing. Recorded so the gap is visible; writing that plan is not itself
   open work until someone decides the tier is in scope.
@@ -7740,3 +7740,7 @@ is built.
 
 **Waiting on:** Keagan's approval of the FIX / DECLINE split above. Nothing is
 built until then.
+
+**Decision (Keagan, 2026-10-06):** approved as proposed. All 31 FIX rows get
+built, A10-059 first. The 13 DECLINE rows are declined with the reasons
+above; they are settled, so do not re-propose them without new evidence.

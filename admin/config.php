@@ -387,7 +387,11 @@ function admin_head(): string {
   .form-group { margin-bottom: 16px; }
   .form-group.full { grid-column: 1 / -1; }
   label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 5px; }
-  .hint { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+  .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+  /* A10-049 (§1at) — UA stylesheets give <button> its own font (Arial on
+     the measured box): 442 of 458 admin buttons ignored the page's system-ui.
+     Size and line-height stay with each button's own rule. */
+  button { font-family: inherit; }
   input[type=text], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; transition: border-color 0.15s; }
   input[type=text]:focus, select:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
   textarea { resize: vertical; }
@@ -417,7 +421,8 @@ function admin_head(): string {
      changed is what trained him not to trust the banner. Palette matches
      help.php's .callout-tip. */
   .alert-info { background: #eff8ff; color: #0c4a6e; border: 1px solid #bfe0f7; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
-  .error-list { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+  /* A10-030 (§1at) — #dc2626 measured 4.41:1 on #fef2f2 at 13px; #b91c1c is 5.91:1. */
+  .error-list { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
   .error-list li { font-size: 13px; margin-bottom: 4px; }
 </style>
 CSS;

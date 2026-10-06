@@ -50,7 +50,7 @@ const restore = () => { for (const n of ['products-all.json', 'content.json', 's
     const dashNames = () => page.$$eval('table tbody tr', (trs) => trs.filter((tr) => tr.querySelectorAll('td').length > 2)
       .map((tr) => tr.querySelector('td').innerText || '').filter(Boolean));
     const dashSearch = async (q) => {
-      const box = page.locator('input[placeholder^="Search by part ID"]:visible').first();
+      const box = page.locator('input[aria-label="Search products"]:visible').first();
       await box.fill(q);
       await page.waitForTimeout(250);
     };
@@ -102,7 +102,7 @@ const restore = () => { for (const n of ['products-all.json', 'content.json', 's
     if (famLink.length) {
       await page.evaluate((href) => { const a = document.querySelector(`a[href="${href}"]`); a.click(); }, famLink[0]);
       await page.waitForTimeout(400);
-      const q = await page.locator('input[placeholder^="Search by part ID"]:visible').first().inputValue();
+      const q = await page.locator('input[aria-label="Search products"]:visible').first().inputValue();
       note(q === '' && (await dashNames()).length > 0, 'N1-12: picking a family from the navbar on /dashboard clears the old search', `search "${q}"`);
     } else {
       note(false, 'N1-12: a navbar link to /dashboard?family= exists to test with', 'none found');

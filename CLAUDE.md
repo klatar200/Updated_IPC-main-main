@@ -248,8 +248,12 @@ incident.
     `index.css` for invariant 9's reason twice over: `Navbar` renders above the
     catalog gate and `CatalogSkeleton` *is* the loading state. Its wide value is
     `80vw`, **not `80%`** — a percentage max-width resolves against the
-    containing block, and four homepage containers sit inside a section with its
+    containing block, and four homepage containers sat inside a section with its
     own `px-6`, so `80%` put a 19px step in the left edge at 1600/1920/2560.
+    The horizontal padding goes ON the container (`ipc-container px-6`), never
+    on the section around it: three homepage sections still had it on the
+    `<section>`, which put their headings 24px left of everything else at 1440
+    (AUDIT-10 A10-007, fixed 2026-10-06, §1at; `audit10cd.js` holds it).
 14. **Custom CSS in `src/index.css` loses to Tailwind utilities regardless of
     where you put it.** Tailwind v3 does not emit `@tailwind utilities` at the
     directive on line 3 — it hoists the whole utility layer to the END of the

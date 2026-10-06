@@ -37,7 +37,7 @@ $navActive = 'help';
     /* Two-column layout */
     .help-layout { display: flex; align-items: flex-start; gap: 32px; }
     .help-toc { position: sticky; top: 92px; width: 250px; flex-shrink: 0; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; max-height: calc(100vh - 120px); overflow-y: auto; }
-    .help-toc .toc-group { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #9ca3af; margin: 16px 0 6px; padding: 0 10px; }
+    .help-toc .toc-group { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #6b7280; margin: 16px 0 6px; padding: 0 10px; }
     .help-toc .toc-group:first-child { margin-top: 0; }
     .help-toc a { display: block; font-size: 12.5px; color: #374151; text-decoration: none; padding: 6px 10px 6px 9px; border-radius: 6px; margin-bottom: 1px; line-height: 1.4; border-left: 3px solid transparent; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease; }
     .help-toc a:hover { background: #f0f4f8; color: #005da3; }
@@ -86,7 +86,8 @@ $navActive = 'help';
     .credentials-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px dashed #d9dee5; }
     .credentials-row:last-child { border-bottom: none; }
     .cred-label { flex: 0 0 210px; font-size: 12.5px; font-weight: 700; color: #0d2d52; }
-    .cred-fill  { flex: 1; border-bottom: 1px solid #9ca3af; min-height: 20px; }
+    /* A10-031 (§1at) — was .cred-fill, an empty 620px rule with no instruction. */
+    .cred-value { flex: 1; font-size: 13px; color: #374151; }
 
     /* Diagrams */
     .diagram-wrap { background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; margin: 16px 0 20px; }
@@ -308,7 +309,7 @@ $navActive = 'help';
         <p>This dashboard is protected by a single password — the same one is used by anyone who manages the catalog (see <a href="#signing-in">Signing in &amp; out</a>).</p>
 
         <div class="credentials-box">
-          <div class="credentials-row"><span class="cred-label">Admin dashboard address</span><span class="cred-fill"></span></div>
+          <div class="credentials-row"><span class="cred-label">Admin dashboard address</span><span class="cred-value">your website address followed by <code>/admin/</code> — for example <code>https://www.insulationproducts.com/admin/</code></span></div>
         </div>
 
         <div class="callout callout-tip">
@@ -390,7 +391,7 @@ $navActive = 'help';
             <rect x="440" y="228" width="60" height="16" rx="8" fill="rgba(0,190,242,0.15)"/>
             <text x="447" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#0369a1">View PDF</text>
             <rect x="530" y="228" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#005da3">Edit</text>
-            <rect x="568" y="228" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Del</text>
+            <rect x="568" y="228" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Delete</text>
 
             <rect x="10" y="250" width="620" height="30" fill="#f8fafc"/>
             <text x="20" y="269" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#005da3">IP50PVDF</text>
@@ -398,7 +399,7 @@ $navActive = 'help';
             <text x="340" y="269" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">-55°C to 175°C</text>
             <text x="440" y="269" font-family="system-ui,sans-serif" font-size="8" fill="#9ca3af">None</text>
             <rect x="530" y="258" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="270" font-family="system-ui,sans-serif" font-size="8" fill="#005da3">Edit</text>
-            <rect x="568" y="258" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="270" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Del</text>
+            <rect x="568" y="258" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="270" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Delete</text>
 
             <line x1="10" y1="280" x2="630" y2="280" stroke="#f0f4f8" stroke-width="2"/>
             <text x="10" y="302" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">PRODUCT TABLE — grouped by category, action buttons on the right</text>
@@ -1245,7 +1246,7 @@ $navActive = 'help';
           <li>Recovering a <em>forgotten</em> password, if you don't have your own FTP login (see <a href="#password">Your admin password</a> — you can do it yourself if you do)</li>
           <li>Any wording marked <strong>Fixed</strong> in <a href="#sitemap">Where each part of the site is edited</a> — e.g. the name beside the logo, the Product Index heading, the picture on the preview card shown when a page other than a product is shared</li>
           <li>Changing the overall look, layout, or features of the public website beyond what <a href="#business">Business Details</a> and <a href="#pagecontent">Page Content</a> cover</li>
-          <li>Anything in <a href="#server-limits">What your server allows</a> reading a value you were told it shouldn't</li>
+          <li>Any row in <a href="#server-limits">What your server allows</a> that shows a value you were told it shouldn't</li>
         </ul>
         <p>For anything covered on this page that isn't behaving the way it's described, that's worth flagging to your developer too — it may be worth a second look.</p>
       </section>

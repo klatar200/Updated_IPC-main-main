@@ -113,7 +113,7 @@ $navActive = 'inquiries';
   <title>IPC Admin — Inquiries</title>
   <?= admin_head() ?>
   <style>
-    .empty { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 40px; text-align: center; color: #9ca3af; font-size: 14px; }
+    .empty { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 40px; text-align: center; color: #6b7280; font-size: 14px; }
     .inq { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
     .inq summary { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; list-style: none; flex-wrap: wrap; }
     .inq summary::-webkit-details-marker { display: none; }
@@ -130,10 +130,10 @@ $navActive = 'inquiries';
     .note-box { margin: 0 0 12px; padding: 10px 12px; background: #f8fafc; border-left: 3px solid #d1d9e0; border-radius: 4px; font-size: 12px; color: #4b5563; line-height: 1.5; }
     .who { font-size: 13px; font-weight: 600; }
     .who small { color: #6b7280; font-weight: 400; }
-    .when { margin-left: auto; font-size: 12px; color: #9ca3af; flex-shrink: 0; }
+    .when { margin-left: auto; font-size: 12px; color: #6b7280; flex-shrink: 0; }
     .detail { border-top: 1px solid #eef2f6; padding: 16px 18px; }
     .detail table { border-collapse: collapse; width: 100%; }
-    .detail th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; padding: 5px 14px 5px 0; vertical-align: top; white-space: nowrap; width: 130px; }
+    .detail th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; padding: 5px 14px 5px 0; vertical-align: top; white-space: nowrap; width: 130px; }
     .detail td { font-size: 13px; color: #374151; padding: 5px 0; white-space: pre-wrap; word-break: break-word; }
     .detail a { color: #005da3; }
     .stats { display: flex; gap: 12px; margin-bottom: 20px; }
@@ -141,7 +141,7 @@ $navActive = 'inquiries';
     .stat-num { font-size: 20px; font-weight: 800; color: #005da3; }
     .stat-num.bad { color: #dc2626; }
     .stat-lbl { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; }
-    .note { font-size: 12px; color: #9ca3af; margin-top: 16px; }
+    .note { font-size: 12px; color: #4b5563; margin-top: 16px; }
   </style>
 </head>
 <body>
@@ -184,7 +184,7 @@ $navActive = 'inquiries';
         <span class="badge <?= $sent ? 'badge-sent' : 'badge-failed' ?>" title="<?= $sent ? 'Handed to the mail server. That is not proof it reached the inbox — check with the sender if in doubt.' : 'The mail server refused the message outright.' ?>"><?= $sent ? 'Sent to mail server' : 'Email failed' ?></span>
       <?php endif; ?>
       <span class="who"><?= h($e['name'] ?? '') !== '' ? h($e['name']) : '—' ?> <small><?= h($e['company'] ?? '') ?></small></span>
-      <?php if ($rej): ?><small style="color:#9ca3af"><?= h($rej['blurb']) ?></small><?php endif; ?>
+      <?php if ($rej): ?><small style="color:#6b7280"><?= h($rej['blurb']) ?></small><?php endif; ?>
       <span class="when"><?= h($e['ts'] ?? '') ?></span>
     </summary>
     <div class="detail">

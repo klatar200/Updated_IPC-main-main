@@ -19,7 +19,7 @@
     ".vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}" +
     ".ste-lab{flex:0 0 32%;}" +
     ".ste-val{flex:1;resize:vertical;line-height:1.4;overflow:hidden;min-height:34px;}" +
-    ".ste-x{flex:0 0 auto;width:32px;height:34px;border:1px solid #e5e9ee;background:#fff;border-radius:7px;color:#9ca3af;cursor:pointer;font-size:17px;line-height:1;}" +
+    ".ste-x{flex:0 0 auto;width:32px;height:34px;border:1px solid #e5e9ee;background:#fff;border-radius:7px;color:#6b7280;cursor:pointer;font-size:17px;line-height:1;}" +
     ".ste-x:hover{background:#fef2f2;color:#dc2626;border-color:#fecaca;}" +
     ".ste-x.sm{width:26px;height:28px;font-size:14px;}" +
     ".ste-add{padding:7px 12px;border:1px solid #d1d9e0;background:#fff;border-radius:7px;color:#005da3;font-weight:600;font-size:12px;cursor:pointer;}" +
@@ -30,7 +30,7 @@
     ".ste-adv:hover{color:#005da3;text-decoration:underline;}" +
     ".ste-adv:focus-visible{outline:2px solid #005da3;outline-offset:2px;border-radius:4px;}" +
     ".ste-prevwrap{margin-top:14px;border-top:1px solid #e5e9ee;padding-top:12px;}" +
-    ".ste-prevlab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:8px;}" +
+    ".ste-prevlab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:8px;}" +
     ".ste-splist{border:1px solid #e5e9ee;border-radius:10px;overflow:hidden;}" +
     ".ste-sprow{padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f4f8;color:#4b5563;}" +
     ".ste-sprow:last-child{border-bottom:none;}" +
@@ -165,6 +165,14 @@
     prevWrap.className = "ste-prevwrap";
     prevWrap.innerHTML =
       '<div class="ste-prevlab">Live preview — what the website shows</div><div class="ste-splist"></div>';
+    // A10-024 (§1at) — the instruction moved out of the Label placeholder
+    // ("Label (leave blank for a note)" needed ~212px and the field is 91px
+    // at 390) into one line above the rows, where it shows at every width.
+    var hint = document.createElement("div");
+    hint.className = "hint";
+    hint.style.margin = "0 0 8px";
+    hint.textContent = "Leave a row's label blank to show its text as a note.";
+    wrap.appendChild(hint);
     wrap.appendChild(rows);
     wrap.appendChild(addBtn);
     wrap.appendChild(prevWrap);
@@ -222,7 +230,7 @@
         var row = document.createElement("div");
         row.className = "ste-row";
         row.innerHTML =
-          '<input class="ste-in ste-lab" placeholder="Label (leave blank for a note)">' +
+          '<input class="ste-in ste-lab" placeholder="Label">' +
           '<textarea class="ste-in ste-val" rows="1" placeholder="Value"></textarea>' +
           '<button type="button" class="ste-x">×</button>';
         var lab = row.querySelector(".ste-lab");

@@ -316,7 +316,7 @@ $navActive = 'products';
     <input type="search" id="productSearch" placeholder="Search by SKU / part number or product name…" autocomplete="off" aria-label="Search products" />
     <span id="searchCount" style="display:flex;align-items:center;font-size:13px;color:#6b7280;white-space:nowrap;"></span>
   </div>
-  <p id="searchEmpty" style="display:none;color:#9ca3af;font-size:13px;margin:0 0 24px;">No products match your search.</p>
+  <p id="searchEmpty" style="display:none;color:#4b5563;font-size:13px;margin:0 0 24px;">No products match your search.</p>
 
   <!-- Stats -->
   <div class="stats">
@@ -357,7 +357,7 @@ $navActive = 'products';
             <?php if (!empty($p['pdfUrl'])): ?>
               <a href="<?= h($p['pdfUrl']) ?>" target="_blank" class="btn btn-sm btn-pdf">View PDF</a>
             <?php else: ?>
-              <span style="color:#9ca3af;font-size:12px;">None</span>
+              <span style="color:#6b7280;font-size:12px;">None</span>
             <?php endif; ?>
           </td>
           <td>

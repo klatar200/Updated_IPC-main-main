@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
        password.php have always used 6px here. One pixel, but the point of
        the extraction was that it changed nothing on screen. */
     label { margin-bottom: 6px; }
-    .hint { font-size: 11px; color: #9ca3af; margin-top: 5px; }
+    .hint { font-size: 11px; color: #6b7280; margin-top: 5px; }
     input[type=file] { width: 100%; padding: 10px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: 13px; cursor: pointer; transition: border-color 0.15s; }
     input[type=file]:hover { border-color: #005da3; }
     .btn { display: inline-flex; align-items: center; padding: 10px 22px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
@@ -213,7 +213,7 @@ include 'nav.php';
         </div>
       </div>
     <?php else: ?>
-      <p style="color:#9ca3af;font-size:13px;margin:0">No photo set — the website is showing the IPC branded placeholder for this product.</p>
+      <p style="color:#6b7280;font-size:13px;margin:0">No photo set — the website is showing the IPC branded placeholder for this product.</p>
     <?php endif; ?>
   </div>
 
