@@ -167,13 +167,13 @@ $navActive = 'backups';
     .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-bottom: 1px solid #f0f4f8; font-size: 13px; }
     .row:last-child { border-bottom: none; }
     .when { font-weight: 600; }
-    .size { color: #9ca3af; font-size: 12px; }
+    .size { color: #6b7280; font-size: 12px; }
     .items { color: #374151; font-size: 12px; background: #f0f4f8; border-radius: 5px; padding: 2px 8px; }
     .row form { margin-left: auto; }
     .btn { display: inline-flex; align-items: center; padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: 1px solid #d1d9e0; background: #fff; color: #141414; }
     .btn:hover { border-color: #005da3; background: #eef4fb; }
-    .none { color: #9ca3af; font-size: 13px; }
-    .note { font-size: 12px; color: #9ca3af; }
+    .none { color: #6b7280; font-size: 13px; }
+    .note { font-size: 12px; color: #4b5563; }
   </style>
 </head>
 <body>

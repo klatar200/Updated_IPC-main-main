@@ -83,7 +83,7 @@
     ".pp-pdf{background:#005da3;color:#fff;font-size:12px;font-weight:600;padding:5px 12px;border-radius:6px;}" +
     ".pp-img{max-width:100%;border-radius:8px;border:1px solid #e5e9ee;display:block;margin-bottom:6px;}" +
     ".pp-imgph{height:120px;border:1px dashed #d1d9e0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#aeb8c4;font-size:12px;margin-bottom:12px;background:#f8fafc;}" +
-    ".pp-cap{font-size:11px;color:#9ca3af;margin-bottom:12px;font-style:italic;}" +
+    ".pp-cap{font-size:11px;color:#6b7280;margin-bottom:12px;font-style:italic;}" +
     ".pp-h{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4b5563;margin:0 0 6px;}" +
     ".pp-apprs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}" +
     ".pp-appr{font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em;background:#fff;color:#374151;border:1px solid #d1d9e0;padding:3px 8px;border-radius:4px;}" +

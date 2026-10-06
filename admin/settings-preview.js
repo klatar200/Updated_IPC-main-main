@@ -27,13 +27,13 @@
     ".sp-name{font-size:16px;font-weight:800;color:#141414;margin:0 0 2px;}" +
     ".sp-slogan{font-size:12px;color:#6b7280;font-style:italic;margin:0 0 14px;}" +
     ".sp-row{display:flex;gap:8px;font-size:12px;color:#374151;padding:5px 0;border-bottom:1px solid #f0f4f8;}" +
-    ".sp-row .k{color:#9ca3af;flex:0 0 58px;text-transform:uppercase;font-size:10px;letter-spacing:.05em;padding-top:1px;}" +
+    ".sp-row .k{color:#6b7280;flex:0 0 58px;text-transform:uppercase;font-size:10px;letter-spacing:.05em;padding-top:1px;}" +
     ".sp-row a{color:#005da3;text-decoration:none;}" +
     ".sp-badges{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;}" +
     ".sp-badge{background:rgba(0,93,163,0.08);color:#005da3;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;}" +
     ".sp-social{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}" +
     ".sp-social a{font-size:11px;color:#fff;background:#0d2d52;padding:3px 9px;border-radius:5px;text-decoration:none;}" +
-    ".sp-foot{margin-top:14px;padding-top:10px;border-top:1px solid #e5e9ee;font-size:11px;color:#9ca3af;}" +
+    ".sp-foot{margin-top:14px;padding-top:10px;border-top:1px solid #e5e9ee;font-size:11px;color:#6b7280;}" +
     ".sp-empty{color:#aeb8c4;}";
 
   function inject() { var s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); }
@@ -75,8 +75,11 @@
     html += rows || '<div class="sp-row sp-empty">Contact details appear here.</div>';
     if (badges) html += '<div class="sp-badges">' + badges + "</div>";
     if (socials) html += '<div class="sp-social">' + socials + "</div>";
-    html += '<div class="sp-foot">© ' + new Date().getFullYear() + " " + esc(name) +
-      (founded ? " — serving industry since " + esc(founded) : "") + "</div>";
+    // A10-040 (§1at) — the site footer's own line (Footer in src/App.jsx):
+    // "© {founded}–{year} {name}. All rights reserved." This preview printed a
+    // line the site has never rendered, under a heading that says "Live".
+    html += '<div class="sp-foot">© ' + (founded ? esc(founded) + "–" : "") + new Date().getFullYear() + " " + esc(name) +
+      ". All rights reserved.</div>";
     box.innerHTML = html;
   }
 

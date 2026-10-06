@@ -485,7 +485,7 @@ $navActive = 'settings';
           <div class="form-group">
             <label for="contact_phoneDial">Phone (dial link)</label>
             <input type="text" id="contact_phoneDial" name="contact_phoneDial" value="<?= h($ct['phoneDial'] ?? '') ?>" placeholder="+16307710700" />
-            <div class="hint">Digits with country code for click-to-call (tel:) links.</div>
+            <div class="hint">Digits with the country code — the number the site's "call us" links dial.</div>
           </div>
           <div class="form-group">
             <label for="contact_fax">Fax</label>

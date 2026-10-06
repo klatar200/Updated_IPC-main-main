@@ -448,6 +448,18 @@ function Navbar({ products = [], catalogFailed = false }) {
   };
   const [mobileOpen, setMobileOpen] = useState(null);
 
+  // A10-055 (§1at) — completes F10. The wrapper's onKeyDown only hears Escape
+  // while focus is inside the menu; a menu opened by HOVER has focus on the
+  // body, so Escape did nothing (aria-expanded stayed true, panel visible).
+  // While a menu is open, Escape anywhere closes it. Focus is left alone: the
+  // visitor never put it in the menu.
+  useEffect(() => {
+    if (!openDropdown) return;
+    const onKey = (e) => { if (e.key === "Escape") setOpenDropdown(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [openDropdown]);
+
   const currentPage = page || "home";
 
   // Every navigational control here is a <PageLink>; the URL update lives in
@@ -483,11 +495,16 @@ function Navbar({ products = [], catalogFailed = false }) {
    */
   const drawerRef = useRef(null);
   const burgerRef = useRef(null);
+  // A10-058 (§1at) — the offset to restore, captured at the CLICK. Read in
+  // the effect it was already wrong: the drawer renders above the page first,
+  // so a visitor at 600 came back to 876 every time (390 and 834, measured).
+  const openScrollY = useRef(null);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
 
-    const y = window.scrollY;
+    const y = openScrollY.current ?? window.scrollY;
+    openScrollY.current = null;
     const body = document.body;
     const prev = {
       position: body.style.position,
@@ -750,7 +767,8 @@ function Navbar({ products = [], catalogFailed = false }) {
 
           {/* ── Products dropdown trigger ── */}
           {(() => {
-            const prodPages = ["products", "dashboard"];
+            // A10-008 (§1at) — /datasheets is reached only from this menu.
+            const prodPages = ["products", "dashboard", "datasheets"];
             const active = groupActive(prodPages);
             const open = openDropdown === "products";
             return (
@@ -1293,7 +1311,10 @@ function Navbar({ products = [], catalogFailed = false }) {
         <button
           ref={burgerRef}
           className="lg:hidden"
-          onClick={() => setMenuOpen((o) => !o)}
+          onClick={() => {
+            if (!menuOpen) openScrollY.current = window.scrollY;
+            setMenuOpen((o) => !o);
+          }}
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
           style={{
@@ -1417,14 +1438,14 @@ function Navbar({ products = [], catalogFailed = false }) {
                   cursor: "pointer",
                   fontSize: 14,
                   fontWeight: 500,
-                  color: groupActive(["products", "dashboard"])
+                  color: groupActive(["products", "dashboard", "datasheets"])
                     ? "rgb(var(--brand-drawer-ink-rgb))"
                     : "var(--brand-drawer-muted-65)",
                   borderBottom:
                     mobileOpen === "products"
                       ? "none"
                       : "1px solid rgba(255,255,255,0.06)",
-                  borderLeft: groupActive(["products", "dashboard"])
+                  borderLeft: groupActive(["products", "dashboard", "datasheets"])
                     ? "3px solid var(--brand-accent)"
                     : "3px solid transparent",
                   paddingLeft: 16,
@@ -2222,7 +2243,7 @@ function SectionHeader({ eyebrow, title, subtitle, action }) {
         <PageLink
           page={action.page}
           params={action.params}
-          className="transition-colors duration-150 hover:bg-blue-700"
+          className="transition-colors duration-150 ipc-hover-primary"
           style={{
             display: "inline-block",
             flexShrink: 0,
@@ -2389,8 +2410,11 @@ function Features() {
   return (
     // id — E2. Matches the `features` key in admin/content.php's $SECTIONS so
     // Page Content can deep-link at this block. Offset lives in index.css.
-    <section id="ipc-sec-features" className="py-20 px-6" style={{ background: "#f5f7fa" }}>
-      <div className="ipc-container">
+    // A10-007 (§1at) — px-6 on the container, not the section, like every
+    // other block: on the section it put these headings 24px left of the
+    // logo, hero and footer at 1440 (the container is capped at 1280).
+    <section id="ipc-sec-features" className="py-20" style={{ background: "#f5f7fa" }}>
+      <div className="ipc-container px-6">
         <SectionHeader
           eyebrow={c.eyebrow}
           title={c.title}
@@ -2942,7 +2966,7 @@ function ApprovalFilter({ products, selected, onToggle, onClear }) {
               data-ipc-approval={c.label}
               onClick={() => onToggle(c.label)}
               aria-pressed={active}
-              className="rounded transition-colors duration-150"
+              className="rounded transition-colors duration-150 ipc-hover-border"
               style={{
                 font: "600 11px ui-monospace, SFMono-Regular, Menlo, monospace",
                 letterSpacing: "0.04em",
@@ -3224,7 +3248,7 @@ function HomePage() {
           1:1 and the crop removes it. Both files are at their resolution
           ceiling and cannot go larger or retina — measured in the amendment. */}
       {(img.bandTeamPhoto || img.bandBuildingPhoto) ? (
-      <section className="px-6 py-14" style={{ background: "#f5f7fa" }}>
+      <section className="py-14" style={{ background: "#f5f7fa" }}>
         {/* F14 — these two photographs sat between "Talk to Our Sales Team"
             and "Industries Served" with no heading, caption or link: a sighted
             visitor saw two uncaptioned images and had to guess, while the alt
@@ -3234,7 +3258,7 @@ function HomePage() {
             for a fifty-year-old firm — and were doing none of that work. The
             alt text is left alone; it describes the image, which is its job.
             This is the on-screen sentence it was missing. */}
-        <div className="ipc-container mb-6">
+        <div className="ipc-container px-6 mb-6">
           <div
             className="text-xs font-bold tracking-widest uppercase"
             style={{ color: "var(--brand-primary-text)" }}
@@ -3276,7 +3300,7 @@ function HomePage() {
             </PageLink>
           </p>
         </div>
-        <div className="ipc-container grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="ipc-container px-6 grid grid-cols-1 md:grid-cols-3 gap-5">
           {img.bandTeamPhoto ? (
           <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
             <img
@@ -3316,8 +3340,8 @@ function HomePage() {
       ) : null}
 
       {/* Markets section */}
-      <section id="ipc-sec-markets" className="py-20 px-6" style={{ background: "#ffffff" }}>
-        <div className="ipc-container">
+      <section id="ipc-sec-markets" className="py-20" style={{ background: "#ffffff" }}>
+        <div className="ipc-container px-6">
           <SectionHeader
             eyebrow={mk.eyebrow}
             title={mk.title}
@@ -3348,7 +3372,7 @@ function HomePage() {
                 // graceful failure if the owner renames one list and not the
                 // other.
                 hash={marketAnchor(m)}
-                className="group rounded-xl p-6 text-left transition-all duration-200 flex flex-col hover:-translate-y-0.5 hover:shadow-lg hover:border-blue-500 hover:bg-blue-50/30"
+                className="group rounded-xl p-6 text-left transition-all duration-200 flex flex-col hover:-translate-y-0.5 hover:shadow-lg ipc-hover-border ipc-hover-tint"
                 style={{
                   border: "1px solid #e5e9ee",
                   background: "#ffffff",
@@ -3882,7 +3906,7 @@ function AboutPage() {
                   </div>
                   {/* Col 3: content card */}
                   <div
-                    className="bg-white rounded-xl px-5 py-4 transition-colors duration-200 hover:border-blue-400"
+                    className="bg-white rounded-xl px-5 py-4 transition-colors duration-200 ipc-hover-border"
                     style={{
                       border: "1px solid #e5e9ee",
                       marginBottom: isLast ? 0 : 10,
@@ -4125,7 +4149,7 @@ function FaqItem({ question, answer, open, onToggle }) {
           reachable from the control rather than merely adjacent to it. */}
       <button
         id={triggerId}
-        className="w-full flex items-center justify-between px-6 py-5 text-left"
+        className="w-full flex items-center justify-between px-6 py-5 text-left ipc-hover-tint"
         style={{ background: "none", border: "none", cursor: "pointer" }}
         onClick={onToggle}
         aria-expanded={open}
@@ -4162,7 +4186,10 @@ function FaqItem({ question, answer, open, onToggle }) {
         onTransitionEnd={(e) => {
           if (!open && e.propertyName === "max-height") setHidden(true);
         }}
-        className="transition-all duration-300 ease-in-out overflow-hidden"
+        // A10-057 (§1at) — motion-reduce: no collapse animation for visitors
+        // who asked for none. The zero-duration path is already handled (the
+        // timeout fallback above), so `hidden` still gets set on close.
+        className="transition-all duration-300 ease-in-out motion-reduce:transition-none overflow-hidden"
         style={{ maxHeight: expanded ? `${contentHeight + 40}px` : "0px" }}
       >
         <div ref={contentRef} className="px-6 pb-5 border-t border-gray-100">
@@ -4466,7 +4493,7 @@ function FaqPage() {
         {/* The chips keep their own scroller so the bulk control below stays
             pinned instead of scrolling out of reach on a narrow screen. */}
         <div
-          className="flex gap-3 overflow-x-auto"
+          className="ipc-chip-rail flex gap-3 overflow-x-auto"
           style={{ WebkitOverflowScrolling: "touch", flex: 1, minWidth: 0 }}
         >
           {categories.map((cat, i) => (
@@ -4576,9 +4603,12 @@ function FaqPage() {
         <div className="rounded-2xl p-8" style={{ background: "#141414" }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             <div>
-              <h3 className="text-lg font-bold text-white mb-2">
+              {/* A10-051 (§1at) — an h2: it is a sibling section of the FAQ
+                  groups, not a child of the last one, and as an 18px h3 it
+                  sat above 16px h2s, inverting the heading scale. */}
+              <h2 className="text-lg font-bold text-white mb-2">
                 Still have questions?
-              </h3>
+              </h2>
               <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
                 {withBusinessFacts("Our sales team is available Mon–Fri, 8am–5pm CT and responds to email inquiries quickly.", site)}
               </p>
@@ -5584,14 +5614,17 @@ function ContactPage() {
                 >
                   {cf.specialLabel}
                 </label>
-                <input
+                {/* A10-018 (§1at) — a 3-row textarea, like Additional Notes
+                    below it: as a one-line input the example in the hint was
+                    cut by 296px at 390, i.e. the whole example was lost. */}
+                <textarea
                   id="rfq-specialReqs"
-                  type="text"
                   name="specialReqs"
                   value={rfqForm.specialReqs}
                   onChange={onRfqChange}
+                  rows={3}
                   placeholder={cf.specialPlaceholder}
-                  style={inputStyle}
+                  style={{ ...inputStyle, resize: "none" }}
                   onFocus={focusStyle}
                   onBlur={blurStyle}
                 />
@@ -6348,6 +6381,18 @@ function GlobalStyles() {
       .ipc-scroll-sm::-webkit-scrollbar { width: 4px; height: 4px; }
       .ipc-scroll-sm::-webkit-scrollbar-thumb { background: rgba(var(--brand-primary-rgb),0.4); border: none; }
       .ipc-scroll-sm::-webkit-scrollbar-thumb:hover { background: var(--brand-accent); }
+
+      /* A10-017 (§1at) — a horizontal chip rail says there is more. At 390
+         the family rail showed 2 of 11 chips and the FAQ rail 1 of 4, cut at
+         the edge with no scrollbar gutter. The last 28px fade out, and the
+         same 28px of end padding lets the final chip scroll clear of the fade.
+         (Wrapping the FAQ chips instead was measured and rejected: the bar is
+         sticky, and it grew from 55px to 181px of a 844px phone screen.) */
+      .ipc-chip-rail {
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+        padding-right: 28px;
+      }
 
       /* B27 — the catalog sidebar's scroll cue.
          The sidebar is max-height:80vh and its content is taller, but the only
@@ -7199,7 +7244,7 @@ const COPY_DEFAULTS = {
     eyebrow: "Industries Served",
     title: "Trusted Across Demanding Markets",
     subtitle:
-      "IPC stocks specification-grade insulation materials used across every sector that requires reliable, certified wire and component protection.",
+      "IPC stocks spec-grade insulation materials used across every sector that requires reliable, certified wire and component protection.",
   },
   servicesHeader: {
     eyebrow: "Fabrication",
@@ -7363,7 +7408,7 @@ const SEO_DEFAULT = [
   { page: "products", title: "Product Catalog — Insulation Products Corporation", desc: "Browse IPC's full catalog of heat shrink tubing, sleeving, and adhesives. Filter by product family, view specs and datasheets, and request a quote." },
   { page: "dashboard", title: "Product Index — Insulation Products Corporation", desc: "Search and sort all IPC products by part number, material, and temperature rating. Quick access to specs and datasheets for every SKU." },
   { page: "datasheets", title: "Datasheets — Insulation Products Corporation", desc: "Download the published datasheet for every IPC product. Heat shrink tubing, sleeving, adhesives and accessories — grouped by family, no form required." },
-  { page: "industries", title: "Industries Served — Insulation Products Corporation", desc: "IPC supplies specification-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry." },
+  { page: "industries", title: "Industries Served — Insulation Products Corporation", desc: "IPC supplies spec-grade insulation materials to automotive, aerospace, medical, military, marine, and industrial markets. Learn how we serve your industry." },
   { page: "services", title: "Value-Added Services — Insulation Products Corporation", desc: "Custom cut-to-length, hot-stamp marking, bar code printing, spooling, kitting, and JIT delivery programs. Typical lead time one week or less." },
   { page: "about", title: "About — Insulation Products Corporation", desc: "Insulation Products Corporation — a spec-grade stocking distributor in Bolingbrook, IL since July 1, 1974. ISO 9001 registered. $50 minimum order." },
   { page: "faq", title: "FAQ & Resources — Insulation Products Corporation", desc: "Answers to common questions about IPC products, certifications, ordering minimums, custom fabrication, and documentation support." },
@@ -7769,7 +7814,7 @@ function NotFoundPage() {
             className="mt-3 max-w-2xl text-base"
             style={{ color: "rgba(var(--brand-header-ink-rgb), 0.65)" }}
           >
-            That address doesn&rsquo;t exist on this site. It may have been
+            That address doesn't exist on this site. It may have been
             mistyped, or the page may have moved.
           </p>
         </div>
@@ -8553,6 +8598,27 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
     if (!selectedFamily) return;
     setOpenFamilies((prev) => (prev.has(selectedFamily) ? prev : new Set(prev).add(selectedFamily)));
   }, [selectedFamily]);
+
+  // A10-005 (§1at) — and SCROLL the rail to the selected row. The family was
+  // opened, but the 80vh box stayed at scrollTop 0, so on 14 of 42 pages at
+  // 1440 the product on screen was below the rail's fold. The rail's own
+  // scrollTop only — scrollIntoView would move the page as well. Runs after
+  // the accordion has opened (openFamilies is a dependency).
+  const railRef = useRef(null);
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail || !selectedId) return;
+    const id = requestAnimationFrame(() => {
+      const row = rail.querySelector("[data-ipc-rail-active]");
+      if (!row || !rail.clientHeight) return;
+      const head = rail.firstElementChild ? rail.firstElementChild.offsetHeight : 0;
+      const top = row.getBoundingClientRect().top - rail.getBoundingClientRect().top;
+      const bottom = top + row.offsetHeight;
+      if (top >= head && bottom <= rail.clientHeight) return;   // already in view
+      rail.scrollTop += top - head - (rail.clientHeight - head - row.offsetHeight) / 2;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [selectedId, openFamilies]);
   // F1 — this was `mobileFamily`, sidebar-local state that only the <lg chip
   // row could set and only the <lg pill list could see. The desktop grid was
   // structurally incapable of reading it, which is why the desktop counts
@@ -8590,7 +8656,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
       <div className="lg:hidden mb-4">
         {/* Family filter pills — horizontal scroll */}
         <div
-          className="ipc-scroll-sm"
+          className="ipc-scroll-sm ipc-chip-rail"
           style={{
             overflowX: "auto",
             WebkitOverflowScrolling: "touch",
@@ -8718,9 +8784,9 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
                     lineHeight: 1.3,
                   }}
                 >
-                  {p.name && p.name.length > 32
-                    ? p.name.slice(0, 32) + "…"
-                    : p.name || p.sku}
+                  {p.name
+                    ? trimToWord(p.name, 33)   /* A10-038 — was a mid-word .slice() */
+                    : p.sku}
                 </div>
               </PageLink>
             );
@@ -8730,6 +8796,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
 
       {/* ── DESKTOP VIEW: full left sidebar ── */}
       <div
+        ref={railRef}
         className="ipc-scroll-cue hidden lg:block sticky top-20 rounded-xl overflow-hidden"
         style={{
           border: "1px solid #e5e9ee",
@@ -8822,7 +8889,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
                     onClick={() => setFamilyFilter(isFiltered ? null : family)}
                     aria-pressed={isFiltered}
                     aria-label={`${isFiltered ? "Clear filter" : "Show only"} ${family}, ${items.length} product${items.length === 1 ? "" : "s"}`}
-                    className="flex-1 flex items-center justify-between gap-2 px-5 py-2.5 text-left"
+                    className="flex-1 flex items-center justify-between gap-2 px-5 py-2.5 text-left ipc-hover-tint"
                     style={{ background: "none", border: "none", cursor: "pointer", minWidth: 0 }}
                   >
                     <span
@@ -8857,7 +8924,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
                     // the alternative is inferring it from child counts.
                     aria-expanded={isOpen}
                     aria-label={`${isOpen ? "Collapse" : "Expand"} ${family} product list`}
-                    className="flex items-center justify-center flex-shrink-0"
+                    className="flex items-center justify-center flex-shrink-0 ipc-hover-tint"
                     style={{
                       background: "none",
                       border: "none",
@@ -8889,6 +8956,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
                         page="products"
                         params={{ productId: p.id }}
                         onNavigate={onNavigate}
+                        data-ipc-rail-active={active ? "" : undefined}
                         className="w-full text-left px-5 py-3 transition-all duration-150 block"
                         style={{
                           background: active
@@ -8949,9 +9017,9 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
                           className="text-xs font-semibold leading-snug"
                           style={{ color: active ? "#141414" : "#4b5563" }}
                         >
-                          {p.name && p.name.length > 38
-                            ? p.name.slice(0, 38) + "…"
-                            : p.name || p.sku}
+                          {p.name
+                            ? trimToWord(p.name, 39)   /* A10-038 — was a mid-word .slice() */
+                            : p.sku}
                         </div>
                       </PageLink>
                     );
@@ -9027,7 +9095,9 @@ function SpecTable1({ table }) {
   if (!rows.length) return null;
   return (
     <div
-      className="rounded-xl overflow-hidden h-full"
+      // A10-004 (§1at) — no h-full: stretched to the taller sibling, this
+      // panel drew up to 1,392px of empty bordered white under three rows.
+      className="rounded-xl overflow-hidden"
       style={{ border: "1px solid #e5e9ee" }}
     >
       <div
@@ -9091,7 +9161,7 @@ function SpecTable2({ table }) {
 
   return (
     <div
-      className="rounded-xl overflow-hidden h-full"
+      className="rounded-xl overflow-hidden"
       style={{ border: "1px solid #e0e4e8" }}
     >
       <div style={{ overflowX: "auto" }}>
@@ -9540,12 +9610,17 @@ function ProductDetail({ product, allProducts }) {
       </div>
 
       {/* Body — photo + badges/description */}
+      {/* A10-003 (§1at) — md:items-start, and the divider moved to the
+          description cell. Grid cells stretch by default, so the photo cell
+          took the description's height and drew a framed empty column under
+          the photograph — up to 972px at 1440 and 1574px at 1024. The tall
+          cell now carries the divider, so it still runs the full height. */}
       <div
-        className="grid grid-cols-1 md:grid-cols-2 gap-0"
+        className="grid grid-cols-1 md:grid-cols-2 md:items-start gap-0"
         style={{ borderBottom: "1px solid #e5e9ee" }}
       >
         {/* Left — photo */}
-        <div className="p-5 sm:p-8 border-b border-gray-200 md:border-b-0 md:border-r md:border-gray-200">
+        <div className="p-5 sm:p-8 border-b border-gray-200 md:border-b-0">
           {/* Product image — show real photo if available, branded placeholder if placehold.co */}
           {product.photoUrl && !asText(product.photoUrl).includes("placehold.co") && !photoFailed ? (
             <img
@@ -9645,7 +9720,7 @@ function ProductDetail({ product, allProducts }) {
         </div>
 
         {/* Right — approvals, feature badges, description */}
-        <div className="p-5 sm:p-8">
+        <div className="p-5 sm:p-8 md:border-l md:border-gray-200 md:self-stretch">
           {/* Approvals sit ABOVE the free-text badges and are visually distinct:
               these are the structured, filterable facts, and the badges below
               are marketing copy. Rendering them together would suggest the
@@ -9738,10 +9813,14 @@ function ProductDetail({ product, allProducts }) {
           empty panel behind. When just one table survives the grid collapses
           to a single column and the divider is dropped, so the remaining
           specs use the full width instead of sitting beside a blank half. */}
+      {/* A10-006 / A10-016 (§1at) — side by side from xl, not md. From 768
+          to 1279 two columns gave each table 261px (1024, beside the catalog
+          rail) or 326px (834), and 26 / 7 of 42 dimension tables scrolled
+          sideways inside the card. Stacked, each gets the full card width. */}
       {(specHasRows(product.specTable1) || specHasRows(product.specTable2)) && (
-      <div className={`grid grid-cols-1 gap-0${specHasRows(product.specTable1) && specHasRows(product.specTable2) ? " md:grid-cols-2" : ""}`}>
+      <div className={`grid grid-cols-1 gap-0${specHasRows(product.specTable1) && specHasRows(product.specTable2) ? " xl:grid-cols-2" : ""}`}>
         {specHasRows(product.specTable1) && (
-        <div className={`p-5 sm:p-8${specHasRows(product.specTable2) ? " border-b border-gray-200 md:border-b-0 md:border-r md:border-gray-200" : ""}`} style={{ minWidth: 0 }}>
+        <div className={`p-5 sm:p-8${specHasRows(product.specTable2) ? " border-b border-gray-200 xl:border-b-0 xl:border-r xl:border-gray-200" : ""}`} style={{ minWidth: 0 }}>
           <SpecTable1 table={product.specTable1} />
         </div>
         )}
@@ -9794,9 +9873,9 @@ function ProductDetail({ product, allProducts }) {
                   className="text-xs font-semibold leading-snug transition-colors duration-200 group-hover:text-blue-900"
                   style={{ color: "#141414" }}
                 >
-                  {rp.name && rp.name.length > 45
-                    ? rp.name.slice(0, 45) + "…"
-                    : rp.name || rp.sku}
+                  {rp.name
+                    ? trimToWord(rp.name, 46)   /* A10-038 — was a mid-word .slice() */
+                    : rp.sku}
                 </div>
                 <div
                   className="mt-2 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-0.5"
@@ -9849,6 +9928,9 @@ function skuSegmentMatch(sku, needle) {
 // canonical, for the same reason: two constructions is how they drift.
 // Exact, then whole-SKU-ignoring-punctuation, then whole-segment match.
 // No blind fall-through to products[0] — see notFound in ProductPage.
+// A10-059 — when ProductSidebar last started its own scroll to the product.
+let _sidebarScrollAt = 0;
+
 function findProductByParam(products, raw) {
   return raw
     ? products.find((p) => p.id === raw || p.sku === raw) ||
@@ -10218,6 +10300,8 @@ function ProductPage({ products }) {
     return t;
   }, [product, families]);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  // A10-057 (§1at) — the bar's spring ignored prefers-reduced-motion.
+  const reducedMotion = usePrefersReducedMotion();
   const [pulseSkuBadge, setPulseSkuBadge] = useState(false);
   const prevShowRef = useRef(false);
   // The sticky RFQ bar is fixed-position and 72px tall. Pad the document, not
@@ -10414,6 +10498,11 @@ function ProductPage({ products }) {
             // PageLink has already written ?productId= to the URL; this is only
             // the side effect the old onSelect performed alongside it.
             setShowStickyBar(false);
+            // A10-059 (§1at) — App's A-5.23 effect scrolls to the top on every
+            // product change, and it runs AFTER this, cancelling the scroll to
+            // the product: measured, a sidebar pick at 834 / 390 left the new
+            // product's h1 1713 / 2085 px down. Tell it this move scrolls itself.
+            _sidebarScrollAt = Date.now();
             if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
               detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
@@ -10421,7 +10510,9 @@ function ProductPage({ products }) {
             }
           }}
         />
-        <div ref={detailRef} className="flex-1 min-w-0">
+        {/* scroll-margin: the sidebar pick scrolls this into view, and the
+            sticky navbar would otherwise cover the title (A10-059). */}
+        <div ref={detailRef} className="flex-1 min-w-0" style={{ scrollMarginTop: 84 }}>
           {landing || notFound ? (
             <CatalogLanding
               products={visibleProducts}
@@ -10457,7 +10548,11 @@ function ProductPage({ products }) {
           borderTop: "2px solid var(--brand-accent)",
           transform: showStickyBar ? "translateY(0)" : "translateY(110%)",
           /* Spring cubic-bezier: overshoots slightly then settles — more personality than ease */
-          transition: showStickyBar
+          // A10-057 (§1at) — none under prefers-reduced-motion: it overshot
+          // (43 → 7.6 → −7.5 → 0px) for visitors who asked for no motion.
+          transition: reducedMotion
+            ? "none"
+            : showStickyBar
             ? "transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)"
             : "transform 0.25s ease-in",
           boxShadow: "0 -4px 24px rgba(0,0,0,0.35)",
@@ -10814,7 +10909,7 @@ function DashboardPage({ products }) {
             ? p.description.join(" ")
             : String(p.description || "");
           const descShort =
-            descFull.length > 110 ? descFull.slice(0, 110) + "…" : descFull;
+            trimToWord(descFull, 111);   // A10-038 (§1at) — was a mid-word .slice()
           return {
             name: p.name || "",
             partId: p.sku || p.id || "",
@@ -11064,7 +11159,11 @@ function DashboardPage({ products }) {
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  padding: 0,
+                  // A10-013 (§1at) — 16.5px tall with padding 0, under the
+                  // 24px WCAG 2.5.8 target floor on a phone. Same look,
+                  // bigger hit area: vertical padding and a minimum height.
+                  padding: "4px 0",
+                  minHeight: 24,
                 }}
               >
                 ✕ Clear filter
@@ -11093,11 +11192,13 @@ function DashboardPage({ products }) {
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
+              {/* A10-009 (§1at) — the hint was cut 22–60px at every width; the
+                  word "Search" is the icon's job and the aria-label's. */}
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by part ID, type, or description…"
+                placeholder="Part ID, type or description…"
                 aria-label="Search products"
                 className="w-full rounded-lg outline-none transition-all duration-200"
                 style={{
@@ -11248,7 +11349,7 @@ function DashboardPage({ products }) {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by part ID, type, or description…"
+              placeholder="Part ID, type or description…"
               aria-label="Search products"
               className="w-full rounded-lg outline-none transition-all duration-200"
               style={{
@@ -11714,9 +11815,7 @@ function DashboardPage({ products }) {
                         }}
                       >
                         {row.specs
-                          ? row.specs.length > 90
-                            ? row.specs.slice(0, 90) + "…"
-                            : row.specs
+                          ? trimToWord(row.specs, 91)   // A10-038 — was a mid-word .slice()
                           : "—"}
                       </td>
                       {/* Action button */}
@@ -12914,7 +13013,7 @@ function ServicesPage() {
               </PageLink>
               <PageLink
                 page="products"
-                className="w-full py-3 rounded text-sm font-medium transition-colors duration-150 hover:text-white hover:border-white/50"
+                className="w-full py-3 rounded text-sm font-medium transition-colors duration-150 ipc-hover-ondark"
                 style={{
                   display: "block",
                   textAlign: "center",
@@ -13360,7 +13459,10 @@ function Footer() {
   return (
     <footer style={{ background: "#0a2240", borderTop: "3px solid var(--brand-accent)" }}>
       <div className="ipc-container px-6 py-14">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+        {/* A10-014 (§1at) — four tracks from lg, not md: at 834 the two link
+            columns were 166px and half the Quick Links wrapped. From md to lg
+            the brand block (md:col-span-2) takes its own row instead. */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
           {/* Brand column — SVG logo mark */}
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
@@ -13861,8 +13963,14 @@ function App() {
   // still at 1549 — its heading, photo and specs off-screen above. Keying on
   // the product id as well makes a product-to-product move behave like every
   // other navigation.
+  // A10-059 (§1at) — except a product picked from the catalog sidebar, which
+  // scrolls to the product itself (ProductPage's onNavigate). A timestamp, not
+  // a boolean: a pick of the product already shown changes no param, so this
+  // effect never runs to clear it, and a stale flag must not swallow the next
+  // real navigation's scroll.
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash) return;
+    if (Date.now() - _sidebarScrollAt < 1000) return;
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [page, productParam]);
 

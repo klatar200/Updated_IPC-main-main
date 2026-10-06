@@ -404,6 +404,9 @@ svg[stroke="#005da3"] {
   text-transform: inherit;
   cursor: pointer;
 }
+/* A10-061 (§1at) — the sort headers gave no hover feedback while the controls
+   around them did. */
+.ipc-sort-btn:hover { color: var(--brand-primary-text); }
 .ipc-sort-btn:focus-visible {
   outline: 3px solid var(--brand-accent);
   outline-offset: -3px;
@@ -520,3 +523,18 @@ body.ipc-has-sticky-rfq {
   h1, h2, h3 { break-after: avoid; }
 }
 
+
+/* A10-060 / A10-061 (§1at) — hover feedback that actually paints.
+   Four controls declared Tailwind hover: utilities that their own inline
+   style overrode (an inline background beats .hover\:bg-blue-700), so the
+   hover never showed; four more families had none at all. !important is the
+   point, not a shortcut: it is the one way a stylesheet :hover beats an
+   inline declaration (invariant 14's specificity problem, one level up).
+   Brand variables rather than Tailwind's fixed blues, so they repalette. */
+.ipc-hover-primary:hover { background-color: var(--brand-primary-hover) !important; }
+.ipc-hover-border:hover:not([aria-pressed="true"]) { border-color: var(--brand-primary) !important; }
+.ipc-hover-tint:hover { background-color: rgba(var(--brand-primary-rgb), 0.05) !important; }
+.ipc-hover-ondark:hover {
+  color: rgb(var(--brand-dark-ink-rgb)) !important;
+  border-color: rgba(var(--brand-dark-ink-rgb), 0.5) !important;
+}

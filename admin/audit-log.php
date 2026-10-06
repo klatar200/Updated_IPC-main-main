@@ -126,8 +126,8 @@ function action_color(string $a): array {
     .sku  { font-weight: 700; color: #005da3; font-size: 12px; }
     .action-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.04em; }
     .detail { color: #374151; }
-    .ip { color: #9ca3af; font-size: 11px; font-family: monospace; white-space: nowrap; }
-    .empty { padding: 40px; text-align: center; color: #9ca3af; font-size: 14px; }
+    .ip { color: #6b7280; font-size: 11px; font-family: monospace; white-space: nowrap; }
+    .empty { padding: 40px; text-align: center; color: #6b7280; font-size: 14px; }
     /* UX-6 (admin audit 2026-10-05) — at 390 px the 700 px table pushed the
        whole page sideways and hid the Detail column; it scrolls in its own
        box instead, as on the dashboard. */
