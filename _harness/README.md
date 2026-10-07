@@ -11,6 +11,17 @@ item. They were previously gitignored wholesale, so each session rebuilt them
 from nothing; the code is tracked now, and only the generated directories are
 ignored.
 
+**The full sweep is a tracked file: [`sweep-list.txt`](sweep-list.txt)**, 121
+suites in run order (2026-10-07). Run it with
+`node _harness/run.js $(grep -v '^#' _harness/sweep-list.txt)`. A new suite is
+not in the sweep until it is added there. `isowaterfall` existed for weeks
+without running because the list lived in session notes.
+
+**AUDIT-12 instruments** (`audit12-ledger.js`, `audit12-cite.js`,
+`audit12-workflow.js`, `audit12-workflow-dryrun.js`) belong to
+[`plans/PLAN-12-full-project-audit.md`](../plans/PLAN-12-full-project-audit.md)
+(Appendix A). They are not suites and are not in the sweep.
+
 ## Bootstrap
 
 ```sh

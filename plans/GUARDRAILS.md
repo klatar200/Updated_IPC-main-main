@@ -118,6 +118,12 @@ exists; the working directory is not.
 
 The live suite list is `_harness/README.md`.
 
+**Added 2026-10-07:** the sweep itself is now tracked, as
+`_harness/sweep-list.txt` (121 suites, run order). The audit-9 list cited
+below (`_harness/out/audit9/sweep-list-final.txt`) was gitignored and did not
+survive its container. The sweeps after it ran from lists in session notes,
+which is how `isowaterfall` went unrun.
+
 **Refreshed 2026-09-14 (audit 9, A-9.D2).** The 2026-08-11 table listed **64**
 suites against a tree that runs **80**, so sixteen an executor is judged on
 appeared in it nowhere — `adminwidth`, `audit5-blockers`, `audit5-high`,

@@ -50,6 +50,12 @@ list in owner language.
 | TRACE off | A host setting; `.htaccess` cannot do it |
 | `admin/`, `data/`, `pdfs/`, `uploads/` writable by PHP | README "Permissions". The dashboard shows a banner when they are not. |
 
+## Open — ready to run
+
+| Item | Note |
+|---|---|
+| AUDIT-12, the full-project audit | [`plans/PLAN-12-full-project-audit.md`](plans/PLAN-12-full-project-audit.md). For a new session using the Workflow tool; the kickoff prompt is its §14. Read-only: it reports and fixes nothing. Its findings will land in a new section here. |
+
 ## Open — deferred by decision (not to be built without a new decision)
 
 | Item | Decision | Held by |
@@ -115,8 +121,12 @@ the § given.
 | 2026-10-06 | AUDIT-10 C/D: triage of 48 findings and 31 fixes, including the A10-059 sidebar-scroll regression (#77) | 1at |
 
 **State of verification at the snapshot:**
-- 117 sweep suites. The last full sweep was 61/61 + 58/59; the one red is
-  `plan8-polish` C49, the font-metric item above.
+- 121 sweep suites, tracked in `_harness/sweep-list.txt` since 2026-10-07.
+  (This line said 117. That was a miscount of a session note that put several
+  names on one line; the last full sweep ran 120, i.e. 61 + 59.
+  `isowaterfall` had never been in it and was added, 19/19.) The last full
+  sweep was 61/61 + 58/59; the one red is `plan8-polish` C49, the font-metric
+  item above.
 - `lint.php` is green. `npm run build` reproduces the committed `dist/`.
 - Real-Apache suites cover the `.htaccess` behaviour: `lowsE-apache`,
   `dep3-scriptblock` and `prerender-apache`.
@@ -126,3 +136,7 @@ the § given.
 ## Done since 2026-10-07
 
 *(Move items here as they close, newest first, with the PR.)*
+
+| When | What | PR |
+|---|---|---|
+| 2026-10-07 | WHATS_LEFT reduced to what is open, with the history moved verbatim to `audit-runs/WHATS_LEFT-history.md`. The docs truth pass after #75–#77. `_harness/sweep-list.txt` tracked (121 suites). PLAN-12 written, with its four tested instruments. | this branch (`claude/zen-gates-p801fz`) |
