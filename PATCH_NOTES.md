@@ -1304,3 +1304,49 @@ Full record with measurements: `WHATS_LEFT.md` §1af–§1aq.
   black text on white, ruled tables.
 
 **Not yet deployed.** Nothing above is on the live server.
+
+---
+
+# 2026-10-05 → 2026-10-06 — what changed for the owner
+
+Full record with measurements: `audit-runs/WHATS_LEFT-history.md` §1ar–§1at
+(PRs #75–#77).
+
+## Shared links now preview properly
+- A link to any page or product pasted into LinkedIn, Teams, Slack or an
+  email now shows that page's own title and description. A product link
+  shows the product's name and photo. Before, every link showed the
+  homepage card.
+- The title and description come from **Page Content → Search Engine Text
+  (SEO)**. Product pages use the product's own details automatically.
+- Visitors and search engines that do not run JavaScript now get a plain
+  version of each page, with your current contact details.
+
+## Easier to read
+- Small text that used the bright cyan or a faded white is now a slightly
+  lighter or darker shade, so it meets the accessibility standard. This
+  covers the Industries cards, the homepage hero, and the menu labels and
+  descriptions. The logo, buttons and page headers keep their colours.
+- In the dashboard, the hint text under each field and the error messages
+  are darker and easier to read.
+
+## Fixes you may notice
+- Picking a product from the side list on a tablet or phone now takes you to
+  that product. Before, it left you at the top of the page.
+- The side list on a product page scrolls to the product you are viewing.
+- Specification tables no longer scroll sideways on tablets, and the empty
+  framed space under product photos is gone.
+- The footer's links no longer wrap on tablets.
+- The Datasheets page highlights "Products" in the menu.
+- Pressing Escape closes a menu you opened by hovering.
+- Opening and closing the phone menu keeps your place on the page.
+- Buttons and cards that should react to the mouse now do.
+- The quote form's "Special Requirements" box shows its whole example.
+- Help: the admin address is written out, and the example button now says
+  "Delete".
+- The Business Details preview footer now matches the site's.
+
+## Still yours to check
+The facts only you can confirm (ISO year, company claims, FAQ wording,
+certification spellings, privacy date, social links, photos) are listed in
+`WHATS_LEFT.md` and in the handoff email.

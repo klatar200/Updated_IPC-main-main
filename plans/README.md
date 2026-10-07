@@ -14,9 +14,19 @@ which is the host's to fix and is a pre-deploy gate in `GO-LIVE.md` §A.
 The plan is kept rather than deleted because its §3 (the wave/agent shape), §4.3
 (how a sweep denominator is derived) and §13 (the record templates) are the
 reusable parts, and its appended execution note says where it did not survive
-contact. What is still open lives in `WHATS_LEFT.md` §2o, not here.
+contact. What is still open lives in `WHATS_LEFT.md`, not here. (This line said
+`§2o` until 2026-10-07; that section is now in `audit-runs/WHATS_LEFT-history.md`.)
 
-**There is no open plan.**
+**The open plan is [PLAN-12](PLAN-12-full-project-audit.md)**, AUDIT-12. It is
+a read-only audit of every element of the project, for a new session to run
+with the Workflow tool:
+- a ledger generated from the repository (2,247 rows at 8e90dcc);
+- 15 lenses run in five waves;
+- adversarial verification of every finding;
+- loop-until-dry gap hunts and a completeness critic.
+
+Written and tested 2026-10-07; **not yet run**. Its output will be
+`audit-runs/audit12.md` and one PR with no fixes. The kickoff prompt is its §14.
 
 ---
 
@@ -30,9 +40,9 @@ Nothing was lost with them, because a plan was never where the outcome lived:
 
 | What you might have wanted a plan for | Where it actually is |
 |---|---|
-| What shipped, and what it measured | `WHATS_LEFT.md` §1-series (§1b … §1aq) and its §4-series evidence blocks |
-| The owner-facing summary of the release | `PATCH_NOTES.md` (through 2026-09-15; later changes are in `WHATS_LEFT.md` §1am–§1aq) |
-| What is still open | `WHATS_LEFT.md` §2-series |
+| What shipped, and what it measured | `audit-runs/WHATS_LEFT-history.md` §1-series (§1b … §1at) and its §4-series evidence blocks (moved there verbatim 2026-10-07) |
+| The owner-facing summary of the release | `PATCH_NOTES.md` (through 2026-10-06) |
+| What is still open | `WHATS_LEFT.md` (only open items, settled decisions, and a dated summary since 2026-10-07) |
 | Which suite proves which item | `_harness/README.md` |
 | The regression baseline every plan preserved | GUARDRAILS §4.1 — 84 suites, measured 2026-09-14/15; the current sweep lists are in `_harness/README.md` |
 | Settled decisions and refuted findings | GUARDRAILS §7 |
@@ -52,12 +62,15 @@ Two things that lived only in the deleted plans were moved rather than dropped:
 
 ## What is open
 
-1. **The 39 severity-C and 9 severity-D findings from AUDIT-10.** Untouched, and
-   recorded **only** in `_harness/AUDIT10-REPORT.md`. That file is not an audit
-   record to be tidied away — it is the backlog. PLAN-10 §12 names the six
-   clusters the report groups as one fix each; that is the shape of a future plan
-   (PLAN-12 or later).
-2. **What `WHATS_LEFT.md` still lists as open** — its §1aq truth pass
+1. ~~**The 39 severity-C and 9 severity-D findings from AUDIT-10.**~~ Closed
+   2026-10-06: triaged, 31 fixed and 13 declined with reasons (history §1at,
+   PR #77). The line said "untouched" until 2026-10-07. `_harness/AUDIT10-REPORT.md`
+   stays as the record. PLAN-12 is now the next plan, an audit rather than
+   this backlog.
+2. **What `WHATS_LEFT.md` still lists as open** — since 2026-10-07 the file
+   holds only open items. AUDIT-10's C/D tier (item 1 above) was triaged and
+   fixed on 2026-10-06 (history §1at, PR #77). The paragraph below is the
+   2026-10-05 state: its §1aq truth pass
    (2026-10-05) says, item by item, what remains and who it waits on. Of the
    items this line used to name, PLAN-7 item 3b and the `/contact` labels
    shipped and A10-037's contradiction is fixed (§1aa); what remains of it is

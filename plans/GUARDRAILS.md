@@ -33,7 +33,7 @@ scope creep when the suite goes red.
 If you find something genuinely broken that no plan covers:
 
 1. Do **not** fix it.
-2. Append it to `WHATS_LEFT.md` §2 with the date, the evidence, and the file:line.
+2. Add it to `WHATS_LEFT.md`'s "Open" sections with the date, the evidence, and the file:line.
 3. Say so in your handback.
 
 **Do not refactor anything you were not asked to refactor.** Renaming,
@@ -117,6 +117,12 @@ carried over from `main`. `git ls-files _harness/` is the authority on what
 exists; the working directory is not.
 
 The live suite list is `_harness/README.md`.
+
+**Added 2026-10-07:** the sweep itself is now tracked, as
+`_harness/sweep-list.txt` (121 suites, run order). The audit-9 list cited
+below (`_harness/out/audit9/sweep-list-final.txt`) was gitignored and did not
+survive its container. The sweeps after it ran from lists in session notes,
+which is how `isowaterfall` went unrun.
 
 **Refreshed 2026-09-14 (audit 9, A-9.D2).** The 2026-08-11 table listed **64**
 suites against a tree that runs **80**, so sixteen an executor is judged on
@@ -386,19 +392,20 @@ take the form:
 decision-needed | recommended | why | trade-off | blocked
 ```
 
-Log them in `WHATS_LEFT.md` §3 **before** writing dependent code.
+Log them in `WHATS_LEFT.md`'s "Settled" table **before** writing dependent code.
 
 ---
 
 ## 6. Records
 
-`WHATS_LEFT.md` is **append-only**. Supersede, do not silently rewrite. Mark a
-corrected line `SUPERSEDED-BY` with the date and the correction, so the history
-of what was believed stays legible. `AMENDED` is for a claim that was true in
+Since 2026-10-07 the record is two files. `audit-runs/WHATS_LEFT-history.md`
+is the frozen append-only log through PR #77; never edit it. `WHATS_LEFT.md`
+holds only what is open, the settled decisions and a dated "done since"
+list. A newly found open item goes in its "Open" section, a decision in
+"Settled", and a closed item moves to "Done since 2026-10-07" with its PR.
+Supersede, do not silently rewrite: mark a corrected line `SUPERSEDED-BY`
+with the date and the correction. `AMENDED` is for a claim that was true in
 substance but wrong in detail.
-
-Add shipped items to §1b. Add newly-discovered open items to §2. Put the
-evidence in a §4-series block.
 
 ---
 
@@ -414,7 +421,7 @@ cycle:
 - `src/pages` / `src/components` / `src/lib` being dead code — the directories
   are gone as of 2026-08-12, so this can only come back as "we should extract
   `App.jsx`". That is a scope decision, not a finding.
-- The 17 items already listed in `WHATS_LEFT.md` §2 as open
+- The items already listed in `WHATS_LEFT.md` as open, and its "Settled" table
 - The security posture — `require_auth()`, `csrf_check()`, upload validation,
   `basename()`+`realpath()` containment, `h()` on every echo, optimistic
   concurrency. **Re-verify it; do not re-derive it.**

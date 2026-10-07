@@ -42,6 +42,19 @@ Please change it to something of your own the first time you sign in: click **Pa
 - Quote requests from the website land under **Inquiries** as well as in your email, so nothing gets lost if an email goes astray.
 - If a page won't save, or the dashboard shows a red banner about server setup, send me a screenshot — that one's mine to fix, not yours.
 
+**Before we launch — a few things only you can confirm**
+
+These are facts about IPC that the site states. Each one is a box in the dashboard; please check it says what's true, and change it if not:
+
+- **ISO 9001** (Business Details → Certifications): put the revision year from your current certificate, or empty the box if you'd rather the site not claim it.
+- **Company Claims** (Page Content): "RoHS compliant — entire line", "42 Products Stocked" and the AMS claims — keep only what's true for every product.
+- **Search engines** boxes (Page Content → Company Claims): these tell Google the brand and manufacturer of every product. If IPC doesn't make a product, correct or empty them.
+- **FAQ**: question 15, and the answer that says to click the "Data Sheet" button — the button now reads "Datasheet".
+- **Certification spellings** (UL, CSA, MIL-SPEC, AMS, RoHS) as they appear on your certificates.
+- **Privacy policy** effective date (Page Content → Privacy).
+- **Social links** (Business Details): only accounts you actually run.
+- **Photos** (Site Images & Logo): swap in your own wherever you'd like.
+
 I'm happy to hop on a quick call and walk through it together if that would help — otherwise, feel free to reach out anytime with questions.
 
 Best,

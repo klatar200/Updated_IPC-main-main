@@ -7,6 +7,12 @@ in [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md). Re-verified 2026-08-04;
 the `App.jsx` size, the admin I/O surface and Deploy re-verified 2026-09-28;
 whole file re-verified against the code 2026-10-05 (WHATS_LEFT §1aq).
 
+**§-references.** `WHATS_LEFT §…` citations written before 2026-10-07 (here,
+in code comments and in the harness) resolve in
+[`audit-runs/WHATS_LEFT-history.md`](audit-runs/WHATS_LEFT-history.md), the
+frozen append-only log. `WHATS_LEFT.md` itself now holds only what is open,
+the settled decisions and a summary of what was done.
+
 ## Commands
 
 ```bash
@@ -67,11 +73,11 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
 
 ### React side ([src/App.jsx](src/App.jsx))
 
-- **One ~13,900-line file is the entire app** (13,918 on 2026-10-05). Routing
+- **One ~14,100-line file is the entire app** (14,096 on 2026-10-07). Routing
   shims, data fetch, every page, every component, every icon set. Search by
   name; there is no per-page split in use. (Said 8,500 until 2026-08-11, 12,270
-  until 2026-08-13, 12,900 until 2026-09-14, 13,300 until 2026-09-28 and 13,700
-  until 2026-10-05; it
+  until 2026-08-13, 12,900 until 2026-09-14, 13,300 until 2026-09-28, 13,700
+  until 2026-10-05 and 13,900 until 2026-10-07; it
   grows every release without the figure being revisited.
   Re-measure with `wc -l src/App.jsx` rather than trusting this number — it will
   drift again.)
@@ -334,6 +340,10 @@ changes all fail silently — the dashboard shows a banner when it isn't.
 
 ## Open work
 
-[WHATS_LEFT.md](WHATS_LEFT.md) — what is still open, what was deliberately
+[WHATS_LEFT.md](WHATS_LEFT.md) — what is still open (Rick's content, deploy
+day, deferred-by-decision, environment-only), the settled decisions not to
+reopen, and a dated summary of what was done. The full history is
+[audit-runs/WHATS_LEFT-history.md](audit-runs/WHATS_LEFT-history.md).
+Formerly: what is still open, what was deliberately
 deferred, and which decisions are settled. Check it before starting non-trivial
 work.
