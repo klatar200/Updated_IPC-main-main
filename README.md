@@ -352,4 +352,4 @@ until audit-runs/audit8.md A-8.2.)
 | [public/.user.ini](public/.user.ini) | PHP upload and form-field limits |
 | [data/.htaccess](data/.htaccess) | Blocks backups and PHP in the JSON folder |
 | [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) | The audit this release was built against. Its §7 manifest is frozen history — deploy from the tables above and `GO-LIVE.md`, not from §7 |
-| [WHATS_LEFT.md](WHATS_LEFT.md) | Open work, deliberately deferred items, and settled decisions |
+| [WHATS_LEFT.md](WHATS_LEFT.md) | Open work, deliberately deferred items, and settled decisions; the full history (and every pre-2026-10-07 `§` reference) is in [audit-runs/WHATS_LEFT-history.md](audit-runs/WHATS_LEFT-history.md) |

@@ -30,9 +30,9 @@ Nothing was lost with them, because a plan was never where the outcome lived:
 
 | What you might have wanted a plan for | Where it actually is |
 |---|---|
-| What shipped, and what it measured | `WHATS_LEFT.md` §1-series (§1b … §1aq) and its §4-series evidence blocks |
-| The owner-facing summary of the release | `PATCH_NOTES.md` (through 2026-09-15; later changes are in `WHATS_LEFT.md` §1am–§1aq) |
-| What is still open | `WHATS_LEFT.md` §2-series |
+| What shipped, and what it measured | `audit-runs/WHATS_LEFT-history.md` §1-series (§1b … §1at) and its §4-series evidence blocks (moved there verbatim 2026-10-07) |
+| The owner-facing summary of the release | `PATCH_NOTES.md` (through 2026-10-06) |
+| What is still open | `WHATS_LEFT.md` (only open items, settled decisions, and a dated summary since 2026-10-07) |
 | Which suite proves which item | `_harness/README.md` |
 | The regression baseline every plan preserved | GUARDRAILS §4.1 — 84 suites, measured 2026-09-14/15; the current sweep lists are in `_harness/README.md` |
 | Settled decisions and refuted findings | GUARDRAILS §7 |
@@ -57,7 +57,10 @@ Two things that lived only in the deleted plans were moved rather than dropped:
    record to be tidied away — it is the backlog. PLAN-10 §12 names the six
    clusters the report groups as one fix each; that is the shape of a future plan
    (PLAN-12 or later).
-2. **What `WHATS_LEFT.md` still lists as open** — its §1aq truth pass
+2. **What `WHATS_LEFT.md` still lists as open** — since 2026-10-07 the file
+   holds only open items. AUDIT-10's C/D tier (item 1 above) was triaged and
+   fixed on 2026-10-06 (history §1at, PR #77). The paragraph below is the
+   2026-10-05 state: its §1aq truth pass
    (2026-10-05) says, item by item, what remains and who it waits on. Of the
    items this line used to name, PLAN-7 item 3b and the `/contact` labels
    shipped and A10-037's contradiction is fixed (§1aa); what remains of it is

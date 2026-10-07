@@ -6,7 +6,7 @@ ships. (`DEPLOY_READINESS_v2.md` §7, which this line named until 2026-10-05, is
 frozen history — CLAUDE.md "Deploy".)
 
 These suites are the **executable form of this release's acceptance criteria**.
-`WHATS_LEFT.md` §4* cites them by name as the evidence behind every shipped
+`WHATS_LEFT.md` §4* (since 2026-10-07: `audit-runs/WHATS_LEFT-history.md` §4*) cites them by name as the evidence behind every shipped
 item. They were previously gitignored wholesale, so each session rebuilt them
 from nothing; the code is tracked now, and only the generated directories are
 ignored.
