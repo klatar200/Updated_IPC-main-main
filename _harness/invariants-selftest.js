@@ -45,7 +45,7 @@ const MUTATIONS = [
     file: 'admin/config.php',
     apply: (s) => s.replace(
       "define('ADMIN_PASSWORD_SENTINEL', '*not-configured*');",
-      "define('ADMIN_PASSWORD_SENTINEL', '$2y$12$abcdefghijklmnopqrstuv0123456789ABCDEFGHIJKLMNOPQRSTU');"),
+      "define('ADMIN_PASSWORD_SENTINEL', '" + '$2y$12$' + 'x'.repeat(53) + "');"), // bcrypt-SHAPED, built at runtime: no hash literal in the repo (AUDIT-12)
     also: ['INV2b'],
   },
   {
