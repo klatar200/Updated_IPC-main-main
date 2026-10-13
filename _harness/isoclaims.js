@@ -89,7 +89,10 @@ function* strings(node, trail = []) {
 
 const FILES = ['data/content.json', 'data/site-info.json', 'data/products-all.json'];
 // "ISO 9001:2008", "ISO9001:2000", "ISO 9001 : 2015" — and bare "ISO 9001".
-const CLAIM = /ISO\s*-?\s*9001\s*[:\s]?\s*(\d{4})?/gi;
+// Also "ISO 9001-2008", "ISO 9001/2008", "ISO 9001–2008" and "ISO 9001 (2008)":
+// the year was only captured after ':' or whitespace, so a withdrawn revision
+// written any of those ways passed (AUDIT-12 A12-L13-09-4).
+const CLAIM = /ISO\s*-?\s*9001(?:\s*[:\-\/\u2013\u2014(]?\s*(\d{4})\)?)?/gi;
 
 const found = [];   // { file, path, revision|null, text }
 
