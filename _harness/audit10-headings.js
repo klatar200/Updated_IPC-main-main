@@ -38,7 +38,7 @@ const PUBLIC = [
 ];
 const ADMIN = [
   '/admin/index.php', '/admin/content.php', '/admin/settings.php', '/admin/add.php',
-  '/admin/edit.php?id=CC', '/admin/backups.php', '/admin/password.php',
+  '/admin/edit.php?sku=CC', '/admin/backups.php', '/admin/password.php',
   '/admin/inquiries.php', '/admin/audit-log.php', '/admin/help.php',
 ];
 const VIEWPORTS = [

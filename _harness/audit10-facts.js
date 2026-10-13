@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 
 const STATE = path.join(__dirname, '..', 'plans', 'audit10', 'state');
-const DUMP = JSON.parse(fs.readFileSync(path.join(STATE, 'textdump.json'), 'utf8'));
+const DUMP = JSON.parse(require('./audit10state').readState('textdump.json'));
 
 const collapse = (u) => u.replace(/^\/products\?productId=.*/, '/products?productId=<42>');
 
