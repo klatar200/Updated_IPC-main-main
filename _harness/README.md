@@ -175,7 +175,7 @@ UNFIXED tree and watched to fail before the fix went in.
 | File | Item |
 |---|---|
 | `audit5-blockers.js` | A-5.1 the auto-reply mail relay, A-5.2 the robots.txt catalog block. 18 checks. Asserts in BOTH directions: the reply cannot carry composed prose or a link, and the sales notification and inquiry record still store the value exactly as typed. Locates the auto-reply by `^To: <addr>$` — a substring test also matches the sales mail's `Reply-To:`, which pointed every assertion at the wrong message |
-| `audit5-high.js` | The seven High findings. 30 checks. The A-5.5 arm runs PHP under `ulimit -f` with `SIGXFSZ` ignored, so the write returns SHORT instead of killing the process — that is what makes it a real short-write test rather than a simulated one |
+| `audit5-high.js` | The seven High findings. 33 checks. The A-5.4 rotation, A-5.8 banners and A-5.9 limiter arms RUN the behaviour (AUDIT-12 A12-L13-W1-G1-1: as source greps they stayed 30/30 with all of it switched off): rotation through the real `audit_log()` over a sparse 16 MB log; the auto-reply withheld when only the limiter file cannot be written, on its own `php -S` :8750; the three dashboard banners on a copy served by `runuser -u nobody` on :8751 with `admin/` root-owned and no temp dir (needs root); pruning by running the real function. The A-5.5 arm runs PHP under `ulimit -f` with `SIGXFSZ` ignored, so the write returns SHORT instead of killing the process — that is what makes it a real short-write test rather than a simulated one |
 | `audit5-medium.js` | The nineteen Medium findings. 20 checks, spanning PHP helpers, the rendered admin and the public site |
 
 ## Audit-6 and audit-7 acceptance
