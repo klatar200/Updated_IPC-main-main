@@ -389,6 +389,32 @@ svg[stroke="#005da3"] {
   background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%);
 }
 
+/* AUDIT-12 A12-L11-03-1 — the page-header type scale and band padding, moved
+   here from GlobalStyles (App.jsx). There they arrived only after the
+   component mounted, so on a phone the header's H1 first painted at Tailwind's
+   36px with 48px padding and then jumped to 28px / 24px: a layout shift of
+   0.06–0.11 on six routes, /about over the 0.1 "good" line. Invariant 9:
+   first-paint CSS must not depend on any component mounting. The values and
+   the !important are unchanged (they still have to beat Tailwind's utilities,
+   invariant 14). */
+.ipc-page-h1,
+h1.text-4xl { font-size: clamp(1.75rem, 3.5vw, 2.5rem) !important; font-weight: 800 !important; line-height: 1.15 !important; }
+.ipc-section-h2, h2.text-3xl { font-size: clamp(1.4rem, 2.8vw, 1.875rem) !important; font-weight: 800 !important; line-height: 1.2 !important; }
+.ipc-page-header > div {
+  padding-top: 24px !important;
+  padding-bottom: 24px !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+}
+@media (min-width: 768px) {
+  .ipc-page-header > div {
+    padding-top: 36px !important;
+    padding-bottom: 36px !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
 /* Product-index sort controls (4.19). The button has to look exactly like the
    <th> text it replaced, so it inherits everything typographic and drops the
    UA button chrome. `width: 100%` keeps the whole header cell clickable, which
