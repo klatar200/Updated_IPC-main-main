@@ -8,7 +8,8 @@
  *
  * Method: every element that paints its own text is scored against its real
  * composited backdrop (backdrop.js, the same code brandtext.js uses), on 9
- * routes × 2 widths, with the mobile drawer and both desktop menus opened, and
+ * routes × 2 widths, with the mobile drawer opened (and each of its Products
+ * and Company groups expanded), the first desktop menu opened, and
  * after hovering-then-leaving every link and button in the header and main
  * (N1-6 only shows AFTER a hover). Once at the shipped palette, then at each
  * test palette. A PALETTE-INDUCED failure is an element that clears 3:1 at the
@@ -105,6 +106,9 @@ const srcOf = new Map();
 // shell: no keys in either scan) or a palette that never took effect passed
 // 5/5 — "no element got worse" is vacuous over nothing (AUDIT-12 A12-L13-09-2).
 let meta = null;
+// Accordion groups actually expanded (checked below: a selector that stops
+// matching must not quietly drop the arm).
+const drawerGroups = new Set();
 async function scan(browser) {
   const res = new Map();
   meta = { perView: {}, vars: null };
@@ -119,6 +123,12 @@ async function scan(browser) {
       meta.perView[`${route}@${w}`] = (await page.evaluate(PROBE)).length;
       const states = [['base', async () => {}], ['hovered', () => hoverAway(page)]];
       if (w === 390) states.push(['drawer', async () => { const b = page.locator('button[aria-label*="enu" i]').first(); if (await b.count()) { await b.click(); await page.waitForTimeout(300); } }]);
+      // The drawer's accordion groups too: their links use the same
+      // --brand-drawer-ink token NEW-N1-5's fix introduced, and opening the
+      // drawer alone never rendered them, so hardcoded white there passed 5/5
+      // at 1.97:1 (AUDIT-12 A12-L13-22-1). The accordion holds one group open
+      // at a time, so each is its own state.
+      if (w === 390) for (const g of ['Products', 'Company']) states.push([`drawer-${g.toLowerCase()}`, async () => { const t = page.locator('[role="dialog"] button').filter({ hasText: new RegExp(`^\\s*${g}\\s*▼\\s*$`) }).first(); if (await t.count()) { await t.click(); await page.waitForTimeout(300); drawerGroups.add(g); } }]);
       if (w === 1440) states.push(['menus', async () => { const t = page.locator('button[aria-haspopup="true"]').first(); if (await t.count()) { await t.hover(); await page.waitForTimeout(250); } }]);
       for (const [state, act] of states) {
         await act();
@@ -159,10 +169,11 @@ function window_over(fg, bg) {
     const shipped = await scan(browser);
     const MIN_PER_VIEW = 5;
     const thin = Object.entries(meta.perView).filter(([, n]) => n < MIN_PER_VIEW);
-    const covOk = thin.length === 0 && shipped.size > 0;
+    const groupsOk = drawerGroups.size === 2;
+    const covOk = thin.length === 0 && shipped.size > 0 && groupsOk;
     if (!covOk) bad++;
     results.push(covOk);
-    console.log(`${covOk ? 'ok  ' : 'FAIL'} the shipped scan found text on every route and width (${shipped.size} elements; at least ${MIN_PER_VIEW} per view)${covOk ? '' : `\n       → ${thin.map(([k, n]) => `${k}: ${n}`).join(', ') || 'nothing scanned'}`}`);
+    console.log(`${covOk ? 'ok  ' : 'FAIL'} the shipped scan found text on every route and width (${shipped.size} elements; at least ${MIN_PER_VIEW} per view), with the drawer's Products and Company groups expanded${covOk ? '' : `\n       → ${thin.map(([k, n]) => `${k}: ${n}`).join(', ') || (shipped.size ? '' : 'nothing scanned')}${groupsOk ? '' : ` drawer groups expanded: [${[...drawerGroups].join(', ')}]`}`}`);
     for (const p of PALETTES) {
       const info = JSON.parse(fs.readFileSync(PRISTINE, 'utf8'));
       info.theme = { ...info.theme, ...p.theme };
