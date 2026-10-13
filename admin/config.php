@@ -2374,7 +2374,7 @@ function uploaded_image_problem(array $file, ?string &$ext = null): string {
             return 'That file looks like an image on the outside but cannot be opened as one — it is damaged or incomplete. '
                  . 'Re-save it from an image editor and upload it again.';
         }
-        if (function_exists('imagedestroy')) @imagedestroy($im);
+        gd_free($im);
     }
     return '';
 }
@@ -2395,6 +2395,14 @@ function image_resize_note(bool $wasResized, string $reason, string $what = 'thi
                   . 'To keep it fast, resize it to about ' . IMG_MAX_WIDTH . ' pixels wide'
                   . ' and upload it again.'
                 : ''));
+}
+
+/** imagedestroy() only where it does something. Since PHP 8.0 a GdImage is
+ *  freed automatically and 8.5 deprecates the call, so unguarded it printed a
+ *  Deprecated line with the server path on hosts that display errors.
+ *  (A12-L2-W1-G1-1, as finfo_close() above) */
+function gd_free($im): void {
+    if (PHP_VERSION_ID < 80000 && $im && function_exists('imagedestroy')) @imagedestroy($im);
 }
 
 /**
@@ -2452,7 +2460,7 @@ function image_apply_orientation($im, int $o) {
     if ($rotate !== 0) {
         $r = @imagerotate($im, $rotate, 0);
         if (!$r) return null;
-        imagedestroy($im);
+        gd_free($im);
         $im = $r;
     }
     if (in_array($o, [2, 4, 5, 7], true) && !@imageflip($im, IMG_FLIP_HORIZONTAL)) return null;
@@ -2491,13 +2499,13 @@ function image_downscale_in_place(string $path, string $ext, ?string &$reason = 
         $orientation = jpeg_exif_orientation($path);
         if ($orientation > 1) {
             $turned = image_apply_orientation($src, $orientation);
-            if (!$turned) { imagedestroy($src); $reason = 'no-rotate'; return false; }
+            if (!$turned) { gd_free($src); $reason = 'no-rotate'; return false; }
             $src = $turned;
         }
     }
 
     $dst = @imagescale($src, IMG_MAX_WIDTH);
-    if (!$dst) { imagedestroy($src); $reason = 'scale-failed'; return false; }
+    if (!$dst) { gd_free($src); $reason = 'scale-failed'; return false; }
     if ($ext === 'png' || $ext === 'webp') {                // keep transparency
         @imagealphablending($dst, false);
         @imagesavealpha($dst, true);
@@ -2509,8 +2517,8 @@ function image_downscale_in_place(string $path, string $ext, ?string &$reason = 
     if ($ext === 'jpg' || $ext === 'jpeg') $okWrite = @imagejpeg($dst, $tmp, 82);
     elseif ($ext === 'png')                $okWrite = @imagepng($dst, $tmp, 6);
     elseif ($ext === 'webp')               $okWrite = @imagewebp($dst, $tmp, 82);
-    imagedestroy($src);
-    imagedestroy($dst);
+    gd_free($src);
+    gd_free($dst);
     if (!$okWrite || !is_file($tmp) || @filesize($tmp) < 1) { @unlink($tmp); $reason = 'write-failed'; return false; }
     $perms = @fileperms($path);
     if ($perms !== false) @chmod($tmp, $perms & 0777);
