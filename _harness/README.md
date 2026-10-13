@@ -208,7 +208,7 @@ files that both assert and set a failing exit status.
 | `plan8-meta.js` | PLAN-8 — per-route title/description/canonical |
 | `plan8-catalog.js` | PLAN-8 — catalog listing, filters and empty states |
 | `plan8-lead.js` | PLAN-8 B26 — the lead path and where the first field sits |
-| `plan8-motion.js` | PLAN-8 — reduced-motion compliance |
+| `plan8-motion.js` | PLAN-8 — reduced-motion compliance. 12 checks: zero infinite animations on every route, the marquee, and (since AUDIT-12 A12-L13-14-1 / -21-1) the submit spinner and loading skeleton each held in its transient state — request routed and never answered — with a motion-allowed control |
 | `plan8-chrome.js` | PLAN-8 — navbar/footer chrome across viewports |
 | `plan8-keyboard.js` | PLAN-8 — keyboard reachability and focus order |
 | `plan8-mobile.js` | PLAN-8 — mobile layout and tap targets |
