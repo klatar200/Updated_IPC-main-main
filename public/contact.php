@@ -31,11 +31,20 @@ header('Cache-Control: no-store');
 function ipc_site_info(): array {
     foreach ([__DIR__ . '/data/site-info.json', __DIR__ . '/../data/site-info.json'] as $p) {
         if (is_file($p)) {
-            $d = json_decode((string)@file_get_contents($p), true);
+            $d = json_decode(ipc_strip_bom((string)@file_get_contents($p)), true);
             return is_array($d) ? $d : [];
         }
     }
     return [];
+}
+
+/**
+ * A12-L5-W2-G2-1 — a UTF-8 byte-order mark (an FTP editor's) made
+ * json_decode() fail, so every lead went to the hard-coded sales@ address
+ * while the website showed the new one (the browser's res.json() skips it).
+ */
+function ipc_strip_bom(string $raw): string {
+    return strncmp($raw, "\xEF\xBB\xBF", 3) === 0 ? substr($raw, 3) : $raw;
 }
 
 // ── Editable copy (content.json) ───────────────────────────────
@@ -55,7 +64,7 @@ function ipc_site_info(): array {
 function ipc_contact_copy(): array {
     foreach ([__DIR__ . '/data/content.json', __DIR__ . '/../data/content.json'] as $p) {
         if (!is_file($p)) continue;
-        $d = json_decode((string)@file_get_contents($p), true);
+        $d = json_decode(ipc_strip_bom((string)@file_get_contents($p)), true);
         if (!is_array($d)) return [];
         $c = $d['copy']['contactForm'] ?? null;
         return is_array($c) ? $c : [];
