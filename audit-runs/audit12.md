@@ -67,7 +67,7 @@ L15     250   204       41        5    0        0
 pending 0 of 3212
 ```
 
-- Ledger: 3212 rows, of which 890 GAP rows added during the run. Citation gate: `audit12-cite: 343 file(s), 2542 citation(s), 0 failure(s)`.
+- Ledger: 3212 rows, of which 890 GAP rows added during the run. Citation gate: `audit12-cite: 343 file(s), 2542 citation(s), 13 failure(s)`.
 - GAP rows by source (routed by C with `c/route.js` from each wave's ledgerGaps, out-of-brief lines and critic "unexercised" lists; plus 2 added by C by hand, GAP-0658 and GAP-0659):
 
 | Wave · source | GAP rows |
@@ -9095,7 +9095,7 @@ Each finding below was confirmed on what was measured; the bracketed part was no
 - **GAP rows wiped twice** (2026-10-10 20:51Z and 2026-10-11 10:54Z): agents ran `audit12-ledger.js --check`, which regenerates `ledger.jsonl` and drops GAP rows (raised as A12-L12-13-2). C rebuilt them deterministically both times (0 mismatches). Agents that fetched GAP rows inside those windows got nothing for them.
 - **Mirror contamination (W4):** one finder's repro drove another finder's port and emptied the fax number in that finder's private mirror. Its later contact/fax rows were re-checked (GAP-0658, done).
 - **Deleted evidence:** C's server-restart cleanup removed two screenshot artifacts (§8); both were recaptured (GAP-0659) and the citations repointed.
-- **HEAD drift:** from 2026-10-09 the branch head is `f2152f4` (the hash-literal removal). `git diff f9d3089 f2152f4 -- src public admin data` is empty, so measurements taken there apply to `f9d3089`; the §5.6 re-verify ran on a fresh clone at `f9d3089`.
+- **HEAD drift:** from 2026-10-09 the branch head is `f2152f4` (the hash-literal removal). `git diff f9d3089 f2152f4 -- src public admin data` is empty, so measurements taken there apply to `f9d3089`; the §5.6 re-verify ran on a fresh clone at `f9d3089`. On 2026-10-13 that commit was rewritten as `9c0a7e9` (message only; the tree is identical, `git diff f2152f4 9c0a7e9` is empty), so `f2152f4` in agents' evidence means `9c0a7e9`.
 - **Usage limits** interrupted W1, W3, W4 and W5 repeatedly. Every resume replayed finished agents from cache with identical prompts, so no finished work was redone.
 
 ## 7. Proposed fix plan
@@ -9274,6 +9274,7 @@ A proposal only — nothing here is approved. Batches are grouped by class and s
 - **The first hash-removal commit broke a citation** by shifting line numbers in `_harness/invariants-selftest.js`. C rewrote it so the fake value is built on the same line, and amended to `f2152f4`; citations returned to 0 failures.
 - **"CAPPED" was logged for rounds that failed rather than ran** (W3, usage limit). The script cannot tell the two apart; §6.1 says which.
 - **Status messages during the run** gave the confirmed count as 489, then 510, then 523 as waves closed. The figures in this report are the final `--tally`; earlier ones were correct when given but are superseded.
+- **Model name in commit messages.** C's first two commits on this branch carried a model name in their Co-Authored-By trailer, against the run's rule that commits and the PR carry no model identifier. C rewrote both messages on this branch before opening the PR (force-push to its own branch; trees unchanged): `f2152f4` → `9c0a7e9`.
 - **A12-M-1** was raised by step M as High and verified at Medium: the invariants self-test does go red under the mutation, though only as a text-drift tripwire. A12-L3-W5-R2-3-1 was killed as a duplicate of A12-L4-W2-G4-2.
 
 ## 9. Method
