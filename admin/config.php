@@ -2901,6 +2901,35 @@ function uploads_runtime_htaccess(): string {
         . "</FilesMatch>\n";
 }
 
+// A12-L2-01-5 — the pdfs/ twin of uploads_protection_problem(). upload-pdf.php
+// recreates a missing pdfs/ folder, and that folder had no .htaccess: a data
+// sheet replaced in place (same name) lost pdfs/.htaccess's PUB-10 no-cache
+// rule and the GET-only rule. Writes the runtime copy if it is missing;
+// returns the refusal message if it is STILL missing, else ''.
+function pdfs_protection_problem(): string {
+    $ht = rtrim(PDF_DIR, '/') . '/.htaccess';
+    if (is_dir(PDF_DIR) && !file_exists($ht)) {
+        @file_put_contents($ht, pdfs_runtime_htaccess());
+    }
+    if (is_dir(PDF_DIR) && !file_exists($ht)) {
+        return 'The PDF was not saved: the pdfs folder is missing its security file (pdfs/.htaccess) and the server would not let the admin create it. '
+             . 'Upload pdfs/.htaccess from the release over FTP (turn on "show hidden files" to see it), then try again.';
+    }
+    return '';
+}
+
+// The rules of pdfs/.htaccess, for a pdfs/ folder that was created on the
+// server rather than deployed. Mirrors that file; keep the two in step.
+function pdfs_runtime_htaccess(): string {
+    return "# Written at runtime by admin/upload-pdf.php because this folder was\n"
+        . "# created on the server rather than deployed. Mirrors pdfs/.htaccess.\n"
+        . "Options -Indexes\n"
+        . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
+        . "  Order Allow,Deny\n  Deny from all\n</FilesMatch>\n"
+        . "<LimitExcept GET>\n  Order Allow,Deny\n  Deny from all\n</LimitExcept>\n"
+        . "<IfModule mod_headers.c>\n  <FilesMatch \"\\.(?i:pdf)$\">\n    Header set Cache-Control \"no-cache\"\n  </FilesMatch>\n</IfModule>\n";
+}
+
 // Helper: derive the canonical image filename for a SKU. Same sanitization as
 // pdf_filename_for_sku(); the extension comes from the validated upload.
 function image_filename_for_sku(string $sku, string $ext): string {

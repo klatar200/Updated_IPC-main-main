@@ -6,9 +6,15 @@ require_auth();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') data_write_lock('site-info');
 $info   = load_site_info();
 $errors = [];
-$saved  = isset($_GET['saved']);
+// A12-L3-W2-G3-2 — ?saved alone is not evidence of a save: reopening the page
+// from history or the address bar showed "Business details saved" with nothing
+// saved. The banner also needs the one-shot session note the save sets (the
+// SEC-9 flash idea; invariant 18's rule for /contact?sent=1).
+$savedNote = $_SESSION['ipc_settings_saved'] ?? '';
+unset($_SESSION['ipc_settings_saved']);
+$saved  = isset($_GET['saved']) && is_string($savedNote) && $savedNote !== '';
 // F3 — ?saved=nochange is still a successful save; it just wrote nothing.
-$noChange = ($_GET['saved'] ?? '') === 'nochange';
+$noChange = $saved && $savedNote === 'nochange';
 
 // Optimistic-concurrency signature, same mechanism as edit.php:17-31. Without
 // it, two tabs open on this page silently clobbered each other: the stale tab's
@@ -63,7 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $submittedSig = $_POST['orig_sig'] ?? '';
     if ($submittedSig !== '' && $submittedSig !== $storedSig) {
-        $errors[] = 'These business details were changed by another session (or another browser tab) since you opened this page. Your edits were NOT saved. Reload to see the current version, then re-apply your changes — submitting again will overwrite the other change.';
+        // A12-L9-W4-G2-1 — the form is refilled with what was typed ($info =
+        // $updated below), so "reload" threw it away. content.php's wording.
+        $errors[] = 'These business details were changed by another session (or another browser tab) since you opened this page. Your edits were NOT saved — but they are still filled in below, so nothing you typed is lost. Do not reload this page (that would discard them). To see the other change, open the website in another tab. Clicking Save again will keep what is on this page and overwrite that other change.';
     }
 
     $cur  = $info['company'] ?? [];
@@ -183,8 +191,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($logoProblem !== '') $errors[] = $logoProblem;
     }
     $year = $updated['company']['foundedYear'];
-    if ($year !== '' && (!preg_match('/^\d{4}$/', $year) || (int)$year < 1800 || (int)$year > (int)date('Y'))) {
+    if ($year !== '' && !preg_match('/^\d{4}$/', $year)) {
         $errors[] = 'Founded Year must be a four-digit year such as 1974.';
+    } elseif ($year !== '' && ((int)$year < 1800 || (int)$year > (int)date('Y'))) {
+        // A12-L9-11-2 — "must be a four-digit year" for 2099 named a rule the
+        // input already met. Name the one it failed.
+        $errors[] = 'Founded Year must be between 1800 and ' . date('Y') . ' — "' . $year . '" is not.';
     }
     foreach (['opens' => 'Opens', 'closes' => 'Closes'] as $k => $label) {
         $t = $updated['hours'][$k];
@@ -194,21 +206,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     $days = [];
+    $badDay = false;
     foreach ($updated['hours']['days'] as $d) {
         $match = null;
         foreach ($weekdays as $w) { if (strcasecmp($d, $w) === 0) { $match = $w; break; } }
         if ($match === null) {
             $errors[] = 'Open Days must be full day names separated by commas, e.g. Monday, Tuesday — "' . $d . '" is not one.';
+            $badDay = true;
         } else {
             $days[] = $match;
         }
     }
-    $updated['hours']['days'] = $days;
+    // A12-L9-W4-G4-1 — only normalise a list that passed. Replacing it with the
+    // matched days first sent the error page back WITHOUT the misspelt day,
+    // and the next Save published "closed on Wednesday" to search engines.
+    if (!$badDay) $updated['hours']['days'] = $days;
     // The dial number: digits with an optional leading +. Spaces, dots,
     // dashes and brackets are accepted and removed.
     $dial = preg_replace('/[\s.\-()]/', '', $updated['contact']['phoneDial']);
     if ($dial !== '' && !preg_match('/^\+?\d{7,15}$/', $dial)) {
         $errors[] = 'The click-to-call number must be digits, optionally starting with + and the country code, e.g. +16307710700.';
+    }
+    // A12-L9-W4-G4-2 — the same ten-digit North American number typed in both
+    // boxes ("630.771.0800" twice) was refused as "different numbers": the
+    // display side gains +1, the dial side did not. Give it the same +1.
+    if (preg_match('/^\d{10}$/', $dial) && strlen(preg_replace('/\D/', '', $updated['contact']['phone'])) === 10) {
+        $dial = '+1' . $dial;
     }
     // NEW-N1-15 — a blank dial number fell back to the SHIPPED one on the site,
     // so changing only the display phone left every tel: link dialling the old
@@ -253,10 +276,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $updated['contact']['phoneDial'] = $dial;
 
+    // A12-L8-02-2 — name each box the way its label does, not by its key.
+    $socialLabels = ['twitter' => 'Twitter / X', 'facebook' => 'Facebook', 'linkedin' => 'LinkedIn', 'youtube' => 'YouTube',
+                     'pinterest' => 'Pinterest', 'instagram' => 'Instagram', 'tiktok' => 'TikTok'];
     foreach (array_keys($updated['social']) as $s) {
         $u = $updated['social'][$s];
         if ($u !== '' && !preg_match('#^https?://#i', $u)) {
-            $errors[] = 'The ' . $s . ' link should be a full URL starting with http:// or https://';
+            $errors[] = 'The ' . ($socialLabels[$s] ?? $s) . ' link should be a full URL starting with http:// or https://';
         }
     }
 
@@ -270,6 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             audit_log('settings', 'site-info', $noop
                 ? 'Business details submitted — no changes'
                 : 'Business details updated');
+            $_SESSION['ipc_settings_saved'] = $noop ? 'nochange' : '1';   // A12-L3-W2-G3-2
             header('Location: settings.php?saved=' . ($noop ? 'nochange' : '1'));
             exit;
         }
@@ -359,7 +386,9 @@ $navActive = 'settings';
         ], 'site_file_missing'));
         // §1aq — with the ISO box empty, list the stored wording that still
         // claims ISO (iso_mentions() in config.php).
-        $isoLeft = trim((string)($info['certifications']['iso'] ?? 'x')) === ''
+        // A12-L9-02-W5-1 — not while the stored file is damaged: $info is then
+        // the blank form, and the list told Rick to remove nine true ISO lines.
+        $isoLeft = !$siteInfoDamaged && trim((string)($info['certifications']['iso'] ?? 'x')) === ''
             ? iso_mentions(load_content(), $info) : [];
         if ($isoLeft): ?>
     <div class="warn-list" role="status" id="iso-mentions">

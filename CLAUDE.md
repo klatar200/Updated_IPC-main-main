@@ -150,7 +150,9 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   (`BACKUP_KEEP`); create/`flock` `.products-write.lock` (SEC-5) and
   `.content-write.lock` / `.site-info-write.lock` (`data_write_lock()`, §1an).
 - **`pdfs/`** — read/write/delete; `upload-pdf.php` creates the folder if
-  absent. Deleting a product renames its unshared PDFs to `.deleted.<name>`
+  absent, and `pdfs_protection_problem()` (called by `upload-pdf.php` and
+  `marketing-pdfs.php`) writes `pdfs/.htaccess` if that is missing — both
+  refuse the upload if it still is (AUDIT-12 A12-L2-01-5). Deleting a product renames its unshared PDFs to `.deleted.<name>`
   (`file_to_trash()`, ADM-3) and a catalog restore renames them back
   (`restore_trashed_files()`); nothing prunes them. **Remove PDF**, **Remove
   Photo** and a photo replaced by another file type trash the same way (admin

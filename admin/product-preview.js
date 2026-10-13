@@ -153,14 +153,23 @@
     return '<div class="pp-block"><div class="pp-gwrap"><table class="pp-gt"><thead>' + head + sub + "</thead><tbody>" + body + "</tbody></table></div></div>";
   }
 
+  // A12-L5-01-W5-4 — the buttons the product page draws (App.jsx): with a
+  // data sheet, the main button (pdfLabel or "Datasheet") plus one per
+  // Additional PDF (its label or "Datasheet"); without one, only "Request
+  // Datasheet". The preview never knew which, and showed a faded "Data sheet"
+  // sample for both. edit.php marks its form data-ipc-has-pdf="1" when the
+  // product has a data sheet; add.php's new product never has one.
   function realPdfs() {
     var btns = "";
-    var lbl = val("pdfLabel");
-    if (lbl && lbl.trim()) btns += '<span class="pp-pdf">' + esc(lbl.trim()) + "</span>";
+    if (!document.querySelector('form[data-ipc-has-pdf="1"]')) {
+      return '<span class="pp-pdf">Request Datasheet</span>';
+    }
+    var lbl = val("pdfLabel").trim();
+    btns += '<span class="pp-pdf">' + esc(lbl || "Datasheet") + "</span>";
     lines(val("additionalPdfs")).forEach(function (l) {
       var parts = l.split("|");
-      var label = (parts[1] || "").trim() || (parts[0] || "").trim();
-      if (label) btns += '<span class="pp-pdf">' + esc(label) + "</span>";
+      if (!(parts[0] || "").trim()) return;
+      btns += '<span class="pp-pdf">' + esc((parts[1] || "").trim() || "Datasheet") + "</span>";
     });
     return btns;
   }

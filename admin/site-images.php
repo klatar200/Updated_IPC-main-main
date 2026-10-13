@@ -95,6 +95,7 @@ function slot_write(string $slot, string $value, array &$errors): bool {
 }
 
 $errors  = [];
+$notice  = '';
 $flash   = flash_take();
 $success = $flash['type'] === 'success' ? $flash['msg'] : '';
 if ($flash['type'] === 'error' && $flash['msg'] !== '') $errors[] = $flash['msg'];
@@ -115,7 +116,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($damagedMsg !== '') {
         $errors[] = $damagedMsg;
     } elseif ($action === 'remove') {
-        if (slot_write($slot, '', $errors)) {
+        // A12-L4-01-W5-3 — a Remove that finds nothing to remove (an old tab,
+        // or pressed twice) is not a success and not an Activity Log entry.
+        // Read fresh, under the lock taken above.
+        [$curNow, $defNow] = slot_current($slot, load_content(), load_site_info());
+        if ($curNow === '' && ($slot === 'logo' || !$defNow)) {
+            $notice = $slot === 'logo'
+                ? 'Nothing changed — the original logo is already in use.'
+                : 'Nothing changed — ' . $SLOTS[$slot]['label'] . ' already has no photo.';
+        } elseif (slot_write($slot, '', $errors)) {
             audit_log('site-image', $slot, $slot === 'logo' ? 'Logo reset to the original' : $SLOTS[$slot]['label'] . ': photo removed');
             flash_redirect($slot === 'logo'
                 ? 'The original logo is back on the website.'
@@ -124,8 +133,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'choose') {
         $choice  = as_str($_POST['choice'] ?? null);
         $choices = site_image_choices($SITE_SHIPPED_DIR);
+        [$curNow] = slot_current($slot, load_content(), load_site_info());
         if (!isset($choices[$choice])) {
             $errors[] = 'Pick a picture from the list.';
+        } elseif (ltrim($curNow, '/') === $choice) {
+            // A12-L4-01-W5-3 — already the picture in use: say so, log nothing.
+            $notice = 'Nothing changed — ' . $SLOTS[$slot]['label'] . ' already uses ' . $choices[$choice]['name'] . '.';
         } elseif (slot_write($slot, $choice, $errors)) {
             audit_log('site-image', $slot, $SLOTS[$slot]['label'] . ' → ' . $choice);
             flash_redirect($SLOTS[$slot]['label'] . ' now uses ' . $choices[$choice]['name'] . '. The website shows it within about a minute.', 'success', 'site-images.php');
@@ -157,6 +170,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         flash_redirect($SLOTS[$slot]['label'] . ': new picture uploaded and in use. The website shows it within about a minute.'
                             . image_resize_note($wasResized, $reason, 'that page'), 'success', 'site-images.php');
                     }
+                    // A12-L4-03-4 — the data file was not changed, so this new
+                    // picture is used nowhere and was never published: remove
+                    // it (the DI-3 rule upload-image.php follows), or every
+                    // failed try adds another "Your uploads" entry to the list.
+                    // "Never delete" is for pictures a slot has used.
+                    @unlink($dest);
+                    $errors[] = 'The picture was not kept on the server.';
                 }
             }
         }
@@ -193,6 +213,8 @@ $csrf    = csrf_token();
     .btn-secondary { background: #f0f4f8; color: #141414; border: 1px solid #d1d9e0; }
     .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
     .hint { font-size: 11px; color: #6b7280; margin-top: 6px; }
+    .choice-preview { display: block; width: 100%; max-width: 320px; max-height: 200px; object-fit: contain; background: #f0f4f8; border-radius: 6px; margin-top: 10px; }
+    .choice-preview[hidden] { display: none; }
   </style>
 </head>
 <body>
@@ -206,6 +228,9 @@ $csrf    = csrf_token();
   <?php endif; ?>
   <?php if ($success !== ''): ?>
     <div class="alert-success">✅ <?= h($success) ?></div>
+  <?php endif; ?>
+  <?php if ($notice !== ''): ?>
+    <div class="alert-info"><?= h($notice) ?></div>
   <?php endif; ?>
 
   <?php foreach ($SLOTS as $slot => $cfg):
@@ -255,6 +280,11 @@ $csrf    = csrf_token();
         </select>
         <button type="submit" class="btn btn-secondary">Use This One</button>
       </div>
+      <?php /* A12-L9-02-W5-2 — the list is bare file names ("download.png",
+               "Slide1.png"); site-images.js shows the chosen picture here
+               before it goes live, the PLAN-7 3b design ("lists ... as
+               thumbnails"). Hidden until a choice is made, and without JS. */ ?>
+      <img class="choice-preview" data-preview-for="choice-<?= h($slot) ?>" alt="" hidden>
     </form>
     <?php endif; ?>
 
@@ -272,5 +302,6 @@ $csrf    = csrf_token();
   <p class="hint">Nothing on this page deletes a file from the server — an old picture stays available in the list above, and <strong>Backups</strong> can put a previous choice back.</p>
 </main>
 <script src="confirm.js"></script>
+<script src="site-images.js"></script>
 </body>
 </html>

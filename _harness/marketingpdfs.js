@@ -112,7 +112,7 @@ const footerCatalog = async (browser) => {
     // use / stop
     await act(a, [['action', 'use'], ['file', 'IPC-Catalog-2026-2.pdf'], ['target', 'service:0']]);
     const s0 = content().services[0];
-    note(s0.brochure && s0.brochure.url === '/pdfs/marketing/IPC-Catalog-2026-2.pdf' && s0.brochure.label === 'Download brochure',
+    note(s0.brochure && s0.brochure.url === '/pdfs/marketing/IPC-Catalog-2026-2.pdf' && s0.brochure.label === `${s0.title} brochure`,   // A12-L4-01-1: the site prints "Download {label}"
       'use: an existing PDF becomes a service brochure, with the default link text', JSON.stringify(s0.brochure));
     const s2label = content().services[2].brochure.label;
     await act(a, [['action', 'use'], ['file', 'Tubing-Kits.pdf'], ['target', 'service:2']]);
