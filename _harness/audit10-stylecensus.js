@@ -48,7 +48,7 @@ const FAMILY_VIEWS = ['Tape', 'Heat Shrink Tubing', 'Adhesive']
   .map((f) => '/dashboard?family=' + encodeURIComponent(f));
 const ADMIN_PAGES = [
   '/admin/index.php', '/admin/content.php', '/admin/settings.php',
-  '/admin/add.php', '/admin/edit.php?id=CC', '/admin/backups.php',
+  '/admin/add.php', '/admin/edit.php?sku=CC', '/admin/backups.php',
   '/admin/password.php', '/admin/inquiries.php', '/admin/audit-log.php',
   '/admin/help.php',
 ];
@@ -255,6 +255,7 @@ async function settleAndCollect(page) {
     distinctValueCounts: counts,
     census: global,
   };
+  fs.mkdirSync(path.dirname(OUTFILE), { recursive: true });   // deleted in 1d57237 (AUDIT-12 A12-L13-01-5)
   fs.writeFileSync(OUTFILE, JSON.stringify(out, null, 1));
   console.log('\npages captured: ' + out.pagesCaptured + '/' + out.pagesPlanned);
   console.log('distinct values: ' + JSON.stringify(counts));

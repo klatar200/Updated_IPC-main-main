@@ -152,7 +152,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       for (const f of failures) console.log(`  - ${f}`);
     }
     // exitCode, not exit(): process.exit() inside try skipped the finally,
-    // leaking the php -S and leaving both marker files in _harness/site.
+    // leaking the php -S and leaving both marker files in _harness/site
+    // (AUDIT-12 A12-L13-05-3, A12-L13-05-4).
     process.exitCode = failures.length ? 1 : 0;
   } finally {
     try { process.kill(-server.pid); } catch (_) { try { server.kill(); } catch (__) {} }

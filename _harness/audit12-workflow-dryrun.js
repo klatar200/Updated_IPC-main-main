@@ -11,6 +11,9 @@
  *   - the critic's re-dispatch runs through find → verify, then stops
  *   - no Date.now()/Math.random() (they throw in the real tool)
  *   - args.methods (W5's cross-lens seams) reach the gap hunt
+ *   - a verifier that returns nothing leaves the finding UNVERIFIED, not killed
+ *   - a critic entry of more than 15 ids is split, never truncated
+ *   - each agent gets its own port block
  *
  *   node _harness/audit12-workflow-dryrun.js [script]   (default: audit12-workflow.js)
  */
@@ -140,6 +143,29 @@ const verdict = (label, v, sev) => { const [, id, lens] = label.split(':'); retu
     return { coverageOutput: '', spotAudit: [], redispatch: [], unexercised: [] };
   });
   ok(/SEAM: owner edit/.test((c3.find((c) => c.label === 'gap:L6:1') || {}).prompt || ''), 'args.methods (W5 seams) reach gap round 1 without editing the script');
+  // AUDIT-12 A12-L13-04-3: a verifier that returns nothing is not a vote to kill.
+  // AUDIT-12 A12-L13-07-W5-1: a critic entry of 20 ids reaches finders as 15 + 5.
+  // AUDIT-12 A12-L3-03-1: each agent owns a port block, not "the next free one".
+  const twenty = Array.from({ length: 20 }, (_, i) => `ADMIN-${String(i + 1).padStart(4, '0')}`);
+  let cr = 0;
+  const { ret: r4, calls: c4 } = await run({ wave: 'WT', lenses: ['L3'], portBase: 10000, batches: [{ batch: 'L3-01', lens: 'L3', ids: ['ADMIN-0001'] }, { batch: 'L3-02', lens: 'L3', ids: ['ADMIN-0002'] }] }, (label, prompt) => {
+    if (label.startsWith('find:')) {
+      const b = label.slice(5);
+      return { batch: b, rows: idsOf(prompt).map((id) => ({ id, status: 'done', evidence: 'measured ok ok' })), findings: b === 'L3-01' ? [finding('A12-L3-01-9', 'High', 'L3', 'admin/x.php', 'Null verifier')] : [], outOfBrief: [], ledgerGaps: [], citeExit: 0 };
+    }
+    if (label === 'verify:A12-L3-01-9:reproduce') throw new Error('verifier died');
+    if (label.startsWith('verify:')) return verdict(label, 'confirmed', 'High');
+    if (label.startsWith('gap:')) return { findings: [], method: 'm', ledgerGaps: [], citeExit: 0 };
+    cr++;
+    return { coverageOutput: '', spotAudit: [], redispatch: cr === 1 ? [{ lens: 'L3', ids: twenty, why: 'thin' }] : [], unexercised: [] };
+  });
+  ok(!r4.killed.some((f) => f.id === 'A12-L3-01-9') && r4.unverified.some((f) => f.id === 'A12-L3-01-9') && r4.capped.some((c) => /A12-L3-01-9/.test(c)),
+    'a finding whose reproduce verifier returned nothing is UNVERIFIED and the cap recorded — never killed with an empty "by"');
+  const sent = c4.filter((c) => /^find:L3-WT-R1-/.test(c.label)).flatMap((c) => idsOf(c.prompt));
+  ok(sent.length === 20 && twenty.every((id) => sent.includes(id)), `a 20-id critic entry reaches finders in full (${sent.length} of 20 sent)`);
+  const portOf = (l) => +/Your first port: (\d+)/.exec(c4.find((c) => c.label === l).prompt)[1];
+  ok(portOf('find:L3-02') - portOf('find:L3-01') >= 5 && /port block: 10000-10004/.test(c4.find((c) => c.label === 'find:L3-01').prompt) && !/first free port/.test(c4[0].prompt),
+    'neighbouring finders get disjoint port blocks and are never told to take the next free port');
   console.log(`\n${fails ? 'FAILED' : 'ALL PASS'} — ${logs.length} log lines in the main run; last: ${logs[logs.length - 1]}`);
   process.exit(fails ? 1 : 0);
 })().catch((e) => { console.log('FAIL  threw: ' + e.stack); process.exit(1); });

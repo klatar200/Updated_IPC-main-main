@@ -5,9 +5,9 @@
  * C43 logo alt · C44 empty card band · C46 mid-word truncation ·
  * C49 spec-table overflow · C50 marquee name.
  *
- * C30, C31, C33, C37, C39 and C41 have their own concerns and are asserted
- * separately or noted in the handback; C29 is listed at the end of this file
- * as explicitly out of scope with its reason.
+ * C30 and C31 (industry deep links) are asserted in THIS file too. C29, C33,
+ * C39 and C41 are asserted by plan8-landing, plan8-crumbs, plan8-formpolish
+ * and plan8-faq; no suite has an arm labelled C37. (AUDIT-12 A12-L13-04-W5-1)
  *
  * Usage: node _harness/plan8-polish.js       (needs :8123)
  */

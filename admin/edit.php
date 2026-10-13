@@ -267,6 +267,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 : $updated['sku'] . ' saved successfully';
             // DI-6 / UX-2 (admin audit 2026-10-05) — true even on a no-op save.
             foreach (product_save_warnings($updated) as $w) $msg .= '. Note: ' . rtrim($w, '.');
+            // Invariant 17 says the owner is TOLD in the flash message; the note
+            // only ever reached the audit log (AUDIT-12 A12-L13-16-1).
+            if (!empty($sharedKept)) {
+                $msg .= '. Note: the data sheet ' . implode(', ', array_keys($sharedKept))
+                      . ' kept its old name because another product uses the same file';
+            }
             // A12-L4-W2-G1-1 — the main data sheet too. A SKU-rename save cut
             // off between the file rename and the catalog write leaves pdfUrl
             // naming a file that is gone, and the retry said only "saved

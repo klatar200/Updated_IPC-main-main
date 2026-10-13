@@ -18,9 +18,9 @@
  * The context sets hasTouch, because `@media (pointer: coarse)` is what the
  * fix keys on and a desktop-pointer context would measure the unfixed rule.
  *
- * B13 is asserted here as of Phase F. B26 (form-first ordering) is still
- * logged open in WHATS_LEFT §2b and is NOT asserted — a suite that silently
- * covers two of three named items reads like it covers all three.
+ * B13 is asserted here as of Phase F. B26 (form-first ordering) shipped
+ * 2026-08-08 and is asserted by plan8-lead.js, not here (AUDIT-12
+ * A12-L13-04-W5-1: this header used to call it open and unasserted).
  *
  * B13 is driven with real clicks and real Escape presses. A drawer whose
  * close-on-Escape is wired to a handler that never receives the key looks

@@ -1,6 +1,11 @@
 /**
  * Corrective pass for inkpatch3.js's mis-classifications.
  *
+ * NOT reproducible from the files kept: inkpatch3.js was deleted 2026-08-12,
+ * and this pass corrected ITS output (nearest-preceding-anchor), which the
+ * surviving inkpatch.js does not produce. Kept as the record of what the
+ * correction did, not as a step that can be re-run. (AUDIT-12 A12-L13-09-5)
+ *
  * inkpatch3 resolves a call site's surface by nearest-preceding-anchor. That
  * treats anything inside the Navbar's span as sitting on --brand-dark, but
  * several blocks in there (and one on the FAQ page) set a HARDCODED dark

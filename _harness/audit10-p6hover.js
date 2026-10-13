@@ -107,7 +107,7 @@ function diff(a, b) {
   if (!vp) { console.error('unknown viewport ' + vpName); process.exit(2); }
   fs.mkdirSync(OUT, { recursive: true });
 
-  const census = JSON.parse(fs.readFileSync(CENSUS, 'utf8'));
+  const census = JSON.parse(require('./audit10state').readState(path.basename(CENSUS)));
 
   // ── choose up to PER_CLASS instances per signature, spread across pages ───
   const bySig = new Map();

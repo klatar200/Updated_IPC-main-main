@@ -125,9 +125,13 @@ for (const [file, re, label] of present) note(re.test(read(file)), `docs: presen
 
 // ── lint.php: every file CLAUDE.md names exists (catches the .mjs renames) ──
 {
-  const r = spawnSync('php', [path.join(__dirname, 'lint.php')], { cwd: ROOT, encoding: 'utf8' });
-  const failing = (r.stdout || '').split('\n').filter((l) => /failing/.test(l) && !/\b0 failing/.test(l));
-  note(failing.length === 0, 'lint.php: no failing checks (incl. doc file references)', failing.join(' | '));
+  // The tree's OWN lint.php (it reads __DIR__/..), and its exit status plus
+  // every "FAIL" line: only php -l and node --check print the word "failing",
+  // so the old filter passed every other lint check red (AUDIT-12 A12-L13-10-1).
+  const r = spawnSync('php', [path.join(ROOT, '_harness', 'lint.php')], { cwd: ROOT, encoding: 'utf8' });
+  const failing = (r.stdout || '').split('\n').filter((l) => /^FAIL\b/.test(l) || (/failing/.test(l) && !/\b0 failing/.test(l)));
+  note(r.status === 0 && failing.length === 0, 'lint.php: no failing checks (incl. doc file references)',
+    `exit ${r.status}${r.error ? ' ' + r.error.message : ''}; ${failing.join(' | ')}`);
 }
 
 const bad = results.filter((r) => !r.ok).length;

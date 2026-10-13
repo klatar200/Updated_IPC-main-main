@@ -38,6 +38,16 @@ const atBase = (p) => {
 const content = json('data/content.json');
 const site = json('data/site-info.json');
 const products = json('data/products-all.json');
+// The records were measured on BASE, and several of their claims are OPEN
+// OWNER ITEMS in WHATS_LEFT (the FAQ's button name, a catalog PDF, the
+// "Products Stocked" figure, other certifications). Reading them at HEAD made
+// the sweep go red the day Rick resolved one — the A-9.D5 defect the P5a-4
+// arm below already avoids. Record arms read the data AT BASE; arms that are
+// about today say so and never fail on a resolved item (AUDIT-12 A12-L13-06-1).
+const dataAtBase = (p, fallback) => { const t = atBase(p); return t ? JSON.parse(t) : fallback; };
+const baseContent = dataAtBase('data/content.json', content);
+const baseSite = dataAtBase('data/site-info.json', site);
+const baseCatalog = dataAtBase('data/products-all.json', products);
 
 const results = [];
 let section = '';
@@ -59,10 +69,10 @@ sec('A-9.P4-2  "Made in USA" is presented as a certification and is backed by no
     `"Made in USA" renders as one of the ${certs.length} certification chips`,
     `chips: ${JSON.stringify(titles)}${idx >= 0 ? ` — it is chip ${idx}, sub ${JSON.stringify(certs[idx].sub)}` : ''}`);
 
-  const other = (site.certifications && site.certifications.other) || null;
+  const other = (baseSite.certifications && baseSite.certifications.other) || null;
   check(Array.isArray(other) && other.length === 0 ? 'yes' : 'no',
-    'site-info.json certifications.other is empty, so no chip in that row is backed by a stored certification',
-    `certifications = ${JSON.stringify(site.certifications)}`);
+    `site-info.json certifications.other was empty at ${BASE}, so no chip in that row was backed by a stored certification`,
+    `certifications = ${JSON.stringify(baseSite.certifications)}`);
 
   // The record says exactly one of 42 records claims domestic production.
   const domestic = products.filter((p) => /domestic|made in usa/i.test(JSON.stringify(p)));
@@ -99,11 +109,11 @@ sec('A-9.P4-2  "Made in USA" is presented as a certification and is backed by no
 // ── A-9.P4-4 ───────────────────────────────────────────────────────────────
 sec('A-9.P4-4  "42 Products Stocked" is typed by hand and counts a services record');
 {
-  const stat = (content.stats || []).find((s) => /products stocked/i.test(s.label || ''));
+  const stat = (baseContent.stats || []).find((s) => /products stocked/i.test(s.label || ''));
   check(stat ? 'yes' : 'no', 'the homepage stats bar carries a hand-typed "Products Stocked" figure',
     JSON.stringify(stat));
-  check(stat && String(stat.value) === String(products.length) ? 'yes' : 'no',
-    `the figure (${stat && stat.value}) equals the catalog size (${products.length}) TODAY — the finding is the mechanism, not a wrong number`,
+  check(stat && String(stat.value) === String(baseCatalog.length) ? 'yes' : 'no',
+    `the figure (${stat && stat.value}) equalled the catalog size (${baseCatalog.length}) at ${BASE} — the finding is the mechanism, not a wrong number`,
     'nothing links the two: they are edited on different admin screens');
 
   // Does the admin write content.json when a product is added or deleted?
@@ -170,7 +180,7 @@ sec('A-9.P4-8  five of 42 products have no photograph');
 // ── A-9.P5a-2 ──────────────────────────────────────────────────────────────
 sec('A-9.P5a-2  the FAQ names a button that is not there, and a catalog PDF that does not exist');
 {
-  const faq = content.faq || [];
+  const faq = baseContent.faq || [];
   const row = faq.find((f) => /where can i download product data sheets/i.test(f.question || ''));
   check(row ? 'yes' : 'no', 'the FAQ row exists and names a control by name', JSON.stringify(row && row.question));
 
@@ -186,14 +196,20 @@ sec('A-9.P5a-2  the FAQ names a button that is not there, and a catalog PDF that
   check(quoted && baseLabel && quoted !== baseLabel ? 'yes' : 'no',
     `the FAQ quotes "${quoted}"; the product header's control was labelled "${baseLabel}" at ${BASE}`,
     'the record reproduces: the name in the FAQ was not the name on the button');
-  check(quoted && headLabel && quoted !== headLabel ? 'yes' : 'no',
-    `it is STILL not the button's name at HEAD — A-9.P5a-6 unified both PDF controls as "${headLabel}"`,
-    'so the FAQ sentence remains an owner edit, and should now name the new label');
+  // TODAY's FAQ against today's button: an open owner item, so a resolved one
+  // is reported, never failed.
+  const headRow = (content.faq || []).find((f) => /download product data sheets/i.test(f.question || ''));
+  const headQuoted = (headRow && ((headRow.answer || '').match(/'([^']+)' button/) || [])[1]) || null;
+  const stillWrong = !!(headQuoted && headLabel && headQuoted !== headLabel);
+  check(stillWrong ? 'yes' : 'adj',
+    stillWrong ? `it is STILL not the button's name at HEAD — A-9.P5a-6 unified both PDF controls as "${headLabel}"`
+      : `at HEAD the FAQ no longer names a missing button (quotes ${JSON.stringify(headQuoted)}, button "${headLabel}") — the owner edit is done`,
+    stillWrong ? 'so the FAQ sentence remains an owner edit, and should now name the new label' : '');
 
-  const cat = site.catalogPdfUrl;
+  const cat = baseSite.catalogPdfUrl;
   check(cat === '' || cat == null ? 'yes' : 'no',
-    'the promised "full IPC product catalog PDF" has no file behind it',
-    `site-info.json catalogPdfUrl = ${JSON.stringify(cat)}`);
+    `the promised "full IPC product catalog PDF" had no file behind it at ${BASE}`,
+    `site-info.json catalogPdfUrl = ${JSON.stringify(cat)}${site.catalogPdfUrl ? ` (at HEAD: ${JSON.stringify(site.catalogPdfUrl)})` : ''}`);
 
   // The footer link renders only when the field is safe/non-empty.
   const gated = /isSafeLinkUrl\(\s*site\.catalogPdfUrl|catalogPdfUrl[\s\S]{0,80}isSafeLinkUrl/.test(headSrc);

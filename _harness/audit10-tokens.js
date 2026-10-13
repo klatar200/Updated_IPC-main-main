@@ -38,7 +38,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const CENSUS = path.join(ROOT, 'plans', 'audit10', 'state', 'stylecensus.json');
 const OUTDIR = path.join(ROOT, '_harness', 'out', 'audit10', 'pass5');
-const census = JSON.parse(fs.readFileSync(CENSUS, 'utf8')).census;
+const census = JSON.parse(require('./audit10state').readState(path.basename(CENSUS))).census;
 
 /** value -> {sigs} becomes sig -> [{value, n}] */
 function invert(prop) {

@@ -29,21 +29,20 @@ function extract(name) {
   throw new Error(`${name}() unbalanced`);
 }
 // eslint-disable-next-line no-eval
-const { normalizeSku, skuSegmentMatch } = eval(
-  `(() => { ${extract('normalizeSku')} ${extract('skuSegmentMatch')} return { normalizeSku, skuSegmentMatch }; })()`
+// findProductByParam() itself — the ladder the site runs — not a hand-typed
+// copy of it. The copy had already drifted (it lacked tier 2's normalizeSku(p.id))
+// and stayed green when a fourth tier was added to the real function
+// (AUDIT-12 A12-L13-15-1).
+const { findProductByParam } = eval(
+  `(() => { ${extract('normalizeSku')} ${extract('skuSegmentMatch')} ${extract('findProductByParam')} return { findProductByParam }; })()`
 );
 
 const productsRaw = JSON.parse(fs.readFileSync(path.join(__dirname, 'pristine/products-all.json'), 'utf8'));
 const products = productsRaw.products || productsRaw;
 
-/** src/App.jsx:6181-6188. */
 function jsResolves(needle) {
   if (String(needle).trim() === '') return false;
-  return Boolean(
-    products.find((p) => p.id === needle || p.sku === needle) ||
-    products.find((p) => normalizeSku(p.sku) === normalizeSku(needle)) ||
-    products.find((p) => skuSegmentMatch(p.sku, needle) || skuSegmentMatch(p.id, needle))
-  );
+  return Boolean(findProductByParam(products, needle));
 }
 
 // ── the needles ─────────────────────────────────────────────────────────────

@@ -32,8 +32,14 @@ const LIB = 'Liberation Sans';
 const products = JSON.parse(fs.readFileSync(path.join(__dirname, 'pristine', 'products-all.json'), 'utf8'));
 const VPS = [{ n: 'mobile-390', w: 390, h: 844 }, { n: 'tablet-834', w: 834, h: 1112 }, { n: 'desktop-1440', w: 1440, h: 900 }];
 
-const measure = () => {
-  const h1 = document.querySelector('h1.text-xl.font-extrabold.text-white');
+// The product <h1>. It lost `text-white` on 2026-09-28 (2125b09, the ink is now
+// inline from --brand-product-head-ink-rgb), and this probe then matched
+// nothing and printed "0/0" pages with text under a button on every viewport —
+// the very number PLAN-10 cited as the fix (AUDIT-12 A12-L13-02-1). A miss is
+// now reported and fails the run.
+const H1 = 'h1.text-xl.font-extrabold';
+const measure = (H1) => {
+  const h1 = document.querySelector(H1);
   if (!h1) return { found: false };
   const left = h1.parentElement;                       // div.min-w-0.flex-1
   const strip = left.parentElement;                    // the flex row
@@ -123,7 +129,7 @@ const measure = () => {
           if (!ok) await page.addStyleTag({ content: `*,*::before,*::after{font-family:"Liberation Sans"!important}` });
           await page.waitForTimeout(200);
         }
-        const m = await page.evaluate(measure);
+        const m = await page.evaluate(measure, H1);
         rows.push({ id: p.id, url, viewport: vp.n, font: font || 'shipped', ...m });
         process.stdout.write(m.inkOverlapCount ? '!' : '.');
       }
@@ -140,7 +146,8 @@ const measure = () => {
       const bad = sub.filter((r) => r.inkOverlapCount > 0);
       const s = sub[0];
       console.log(`\n[${vp.n}/${font}] strip inner ${s ? s.strip.w : '?'}px; left col ${s ? s.left.w : '?'}px, buttons col ${s ? s.right.w : '?'}px; boxes intersect by ${s ? s.boxesIntersect : '?'}px`);
-      console.log(`   pages with painted text UNDER a button: ${bad.length}/${sub.length}`);
+      const missed = rows.filter((r) => r.font === font && r.viewport === vp.n && !r.found).length;
+      console.log(`   pages with painted text UNDER a button: ${bad.length}/${sub.length}${missed ? `  — the title was NOT FOUND on ${missed} page(s)` : ''}`);
       for (const r of bad.slice(0, 6)) {
         const worst = r.inkHits.reduce((a, b) => (b.overlapW > a.overlapW ? b : a));
         console.log(`     ${r.id}: ${r.inkHits.length} ink hits; worst ${worst.what} x "${worst.button}" ${worst.overlapW}x${worst.overlapH}px`);
@@ -162,10 +169,10 @@ const measure = () => {
       const page = await ctx.newPage();
       await page.goto(BASE + worst.url, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
-      const el = page.locator('h1.text-xl.font-extrabold.text-white').first();
+      const el = page.locator(H1).first();
       await el.scrollIntoViewIfNeeded();
       await page.waitForTimeout(300);
-      const strip = page.locator('h1.text-xl.font-extrabold.text-white').locator('xpath=../..').first();
+      const strip = page.locator(H1).locator('xpath=../..').first();
       await strip.screenshot({ path: path.join(ISSUES, `HEADER__${vpn}__${worst.id.replace(/[^A-Za-z0-9-]/g, '_')}-buttons-over-title.png`) }).catch(async () => {
         await page.screenshot({ path: path.join(ISSUES, `HEADER__${vpn}__${worst.id.replace(/[^A-Za-z0-9-]/g, '_')}-buttons-over-title.png`) });
       });
@@ -175,4 +182,9 @@ const measure = () => {
     await b2.close();
   }
   console.log(`\n-> ${path.join(OUT, 'p2header.json')}`);
+  const notFound = rows.filter((r) => !r.found);
+  if (notFound.length) {
+    console.log(`\nNOT A MEASUREMENT: the product title (${H1}) was not found on ${notFound.length}/${rows.length} page loads, e.g. ${notFound.slice(0, 3).map((r) => `${r.id}@${r.viewport}`).join(', ')}`);
+    process.exitCode = 1;
+  }
 })();

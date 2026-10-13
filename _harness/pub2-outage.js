@@ -13,6 +13,9 @@
  * Intercepts /data/products-all.json in the browser (no mirror change):
  *   outage-503 / outage-abort   no noindex, title is not "Part not found",
  *                               and no canonical pointing at /products
+ *   outage-hang                 a never-answering catalog request, on a phone,
+ *                               ends in Catalog Unavailable + Retry + call link
+ *                               (AUDIT-12 A12-L13-W5-G3-1)
  *   control-normal              the real product: self-canonical, no noindex
  *   control-unknown             a missing id WITH the catalog loaded still
  *                               gets noindex + "Part not found" (A5 / item 3)
@@ -57,6 +60,30 @@ const note = (ok, label, detail) => {
       note(!/Part not found/i.test(h.title), `outage-${mode}: the title does not claim the part is gone`, `title=${h.title}`);
       note(!h.canonical || /productId=IP12GA/.test(h.canonical),
         `outage-${mode}: no canonical pointing the product URL somewhere else`, `canonical=${h.canonical}`);
+    }
+
+    // ── outage-hang: the origin accepts and never answers (DEPLOY_READINESS T2.1)
+    // r.abort('timedout') above rejects the fetch AT ONCE, never through the
+    // 12 s AbortController, so a loader that swallowed AbortError (skeleton
+    // forever) passed every check here (AUDIT-12 A12-L13-W5-G3-1). A phone
+    // visitor whose catalog request simply hangs must, after the abort, get
+    // the Catalog Unavailable panel with Retry and a tap-to-call number.
+    {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const page = await ctx.newPage();
+      await page.route('**/data/products-all.json*', () => {});     // never answered
+      await page.goto(BASE + url, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => /Catalog Unavailable/i.test(document.body.innerText), null, { timeout: 20000 }).catch(() => {});
+      const h = await page.evaluate(() => ({
+        unavailable: /Catalog Unavailable/i.test(document.body.innerText),
+        retry: [...document.querySelectorAll('button')].some((b) => /^\s*Retry\s*$/.test(b.textContent || '')),
+        tel: [...document.querySelectorAll('a[href^="tel:"]')].some((a) => /tel:\+?\d{7,}/.test(a.getAttribute('href') || '')),
+        skeletons: document.querySelectorAll('.ipc-skeleton').length,
+      }));
+      await ctx.close();
+      note(h.unavailable && h.retry && h.tel && h.skeletons === 0,
+        'outage-hang: a never-answering catalog request ends, on a phone, in "Catalog Unavailable" with Retry and a call link — not a skeleton forever',
+        JSON.stringify(h));
     }
 
     const n = await head(url, null);

@@ -11,7 +11,7 @@
  *
  *   BASE     origin to drive              default http://127.0.0.1:8140
  *   SITE     that origin's docroot        default _harness/out/audit9/site-A
- *   PRISTINE dir with pristine-*.json     default _harness/out/audit9/P7
+ *   PRISTINE dir with the reference JSON  default _harness/pristine (real names or pristine-*.json)
  *   OUT      result dir                   default _harness/out/audit9/P7
  *   ONLY     comma-separated row ids
  *   NEGCTL   "1" runs the negative controls instead of the checks
@@ -22,7 +22,13 @@ const path = require('path');
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8140';
 const SITE = process.env.SITE || '_harness/out/audit9/site-A';
-const PRISTINE = process.env.PRISTINE || '_harness/out/audit9/P7';
+// PRISTINE defaults to _harness/pristine (what sync.sh seeds), whose files
+// carry their REAL names; the old default _harness/out/audit9/P7 held
+// pristine-*.json copies that nothing in the repo creates, so a cold run
+// crashed — after mutating the mirror. Either naming is accepted, and a
+// missing reference stops the run BEFORE anything is written
+// (AUDIT-12 A12-L13-05-5).
+const PRISTINE = process.env.PRISTINE || path.join(__dirname, 'pristine');
 const OUT = process.env.OUT || '_harness/out/audit9/P7';
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
 const NEGCTL = process.env.NEGCTL === '1';
@@ -33,7 +39,11 @@ const FILES = {
   'content.json': 'pristine-content.json',
 };
 const live = (f) => path.join(SITE, 'data', f);
-const ref = (f) => path.join(PRISTINE, FILES[f]);
+const ref = (f) => (fs.existsSync(path.join(PRISTINE, FILES[f])) ? path.join(PRISTINE, FILES[f]) : path.join(PRISTINE, f));
+{
+  const missing = Object.keys(FILES).filter((f) => !fs.existsSync(ref(f)));
+  if (missing.length) { console.error(`audit9-logic-data: no reference copy of ${missing.join(', ')} in ${PRISTINE} (run sh _harness/sync.sh, or set PRISTINE) — nothing was changed`); process.exit(2); }
+}
 function restoreAll() {
   for (const f of Object.keys(FILES)) fs.copyFileSync(ref(f), live(f));
 }

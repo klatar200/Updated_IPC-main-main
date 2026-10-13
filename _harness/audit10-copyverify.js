@@ -260,7 +260,7 @@ const out = (label, v) => console.log(`  ${label}: ${typeof v === 'string' ? v :
     return out;
   })));
 
-  await apage.goto(BASE + '/admin/edit.php?id=CC', { waitUntil: 'networkidle' });
+  await apage.goto(BASE + '/admin/edit.php?sku=CC', { waitUntil: 'networkidle' });
   await apage.waitForTimeout(500);
   console.log('  edit.php: ' + JSON.stringify(await apage.evaluate(() => {
     const out = [];

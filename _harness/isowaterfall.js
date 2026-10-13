@@ -146,6 +146,21 @@ const hits = (text, re) => [...new Set(text.match(re) || [])];
         `still showing ${stale.map((s) => JSON.stringify(s)).join(', ')}`);
     }
 
+    // ── 1b. the source actually REACHES every mention ─────────────────────
+    // Checks 1 and 3 are satisfied by a page the rewrite never touched (no
+    // other revision, same count), so the waterfall switched off stayed 19/19
+    // with half the claims never receiving the source (AUDIT-12
+    // A12-L13-09-1). Every ISO 9001 mention on every route must now carry
+    // the sentinel, except the /about historical milestone (check 4).
+    for (const r of ROUTES) {
+      const n = count(after[r], ISO9001);
+      const milestones = r === '/about' ? count(after[r], /Achieved ISO\s*9001(?::\s*\d{4})? registration/gi) : 0;
+      const got = count(after[r], /ISO\s*9001:\s*2031/gi);
+      note(got === n - milestones,
+        `${r}: the site-info revision reaches every ISO 9001 mention (${got} of ${n - milestones})`,
+        `${n - milestones - got} mention(s) never received the source`);
+    }
+
     // ── 2. the withdrawn revision is gone everywhere ───────────────────────
     const all = ROUTES.map((r) => after[r]).join('\n');
     note(!/ISO\s*9001:\s*2008/i.test(all),

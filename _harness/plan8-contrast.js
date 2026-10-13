@@ -25,6 +25,10 @@
  * is not white, and scoring it as white is how 121 failing instances went
  * unnoticed.
  *
+ * CSS `opacity` on the element or any ancestor fades the ink the same way and
+ * is folded into its alpha (AUDIT-12 A12-L13-06-W5-1: the Product Index chip
+ * counts at opacity 0.65 scored 10.31:1 for a real 3.77:1).
+ *
  * Usage:
  *   node _harness/plan8-contrast.js            (needs :8123)
  *   node _harness/plan8-contrast.js --report   full table, no verdict
@@ -91,9 +95,14 @@ const isGradientBacked = (r) => r.back[0].join() !== r.back[1].join();
  * spans 242.
  */
 const chan = (c) => [c[0], c[1], c[2]];
+// 40, not 24: Tailwind's greys are blue-tinted — gray-700 rgb(55,65,81)
+// spans 26 — so at 24 the Product Index chip counts were waved through as a
+// "brand colour" that brandtext.js (which scores brand VARIABLES only) never
+// looks at either (AUDIT-12 A12-L13-06-W5-1). slate-400 spans 36; the
+// darkest brand ink, the navy rgb(10,34,64), spans 54.
 const isChromaticInk = (r) => {
   const [x, y, z] = chan(r.fg);
-  return Math.max(x, y, z) - Math.min(x, y, z) > 24;
+  return Math.max(x, y, z) - Math.min(x, y, z) > 40;
 };
 
 /**
@@ -152,11 +161,19 @@ const collect = () => {
     const weight = parseInt(cs.fontWeight, 10) || 400;
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) continue;
-    const fg = window.__ipcParse(cs.color);
-    if (!fg) continue;
+    const declared = window.__ipcParse(cs.color);
+    if (!declared) continue;
+    // CSS opacity fades the glyphs exactly as an alpha in the colour does, and
+    // it multiplies down the tree. Ignoring it scored the Product Index chip
+    // counts (rgb(55,65,81) at opacity 0.65) at 10.31:1 instead of 3.77:1
+    // (AUDIT-12 A12-L13-06-W5-1).
+    let op = 1;
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) op *= parseFloat(getComputedStyle(n).opacity) || 0;
+    if (op === 0) continue;
+    const fg = op < 1 ? [declared[0], declared[1], declared[2], (declared.length > 3 ? declared[3] : 1) * op] : declared;
     const back = window.__ipcBackdrop(el);
     out.push({
-      color: cs.color,
+      color: op < 1 ? `${cs.color} at opacity ${+op.toFixed(3)}` : cs.color,
       fg,
       back,
       // The INK is the foreground composited over the background it sits on.
@@ -233,8 +250,13 @@ function score(r) {
   // shape brandtext reports, so the two are comparable by eye.
   const combos = new Map();
   for (const r of rows) {
-    const key = `${r.color}|${r.on}|${r.large}|${r.specSub}|${r.inPageHeader}`;
-    const need = r.large ? 3 : 4.5;
+    // A glyph with no letter or digit in it (the ▼ menu caret) is a graphical
+    // object, not text: WCAG 1.4.11's 3:1, not 1.4.3's 4.5. Scored once
+    // opacity was folded in (the caret is rgba(255,255,255,0.6) inside an
+    // opacity-0.7 span: 3.67:1), it would otherwise fail as body text.
+    const glyph = !/[\p{L}\p{N}]/u.test(r.text);
+    const key = `${r.color}|${r.on}|${r.large}|${r.specSub}|${r.inPageHeader}|${glyph}`;
+    const need = r.large || glyph ? 3 : 4.5;
     const prev = combos.get(key);
     if (!prev || r.ratio < prev.ratio) {
       combos.set(key, {

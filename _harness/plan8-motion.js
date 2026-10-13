@@ -7,7 +7,10 @@
  * running.
  *
  * The audit found ONE. This asserts ZERO, over every route, and it found a
- * third the audit never mentioned — the submit-button spinner.
+ * third the audit never mentioned — the submit-button spinner. The spinner and
+ * the loading skeleton exist only in transient states (a submit in flight, a
+ * catalog still loading), so each is held in that state and measured on its
+ * own, with a motion-allowed control.
  *
  * The marquee has a catch that makes the obvious fix wrong. Its track is
  * duplicated 2x so translateX(-50%) can wrap seamlessly, so `animation: none`
@@ -61,6 +64,51 @@ const infiniteAnimations = () => {
   }
   return out;
 };
+
+/**
+ * The two animations that exist only in a TRANSIENT state the route scan never
+ * sees: the submit spinner (mounted only while a quote request is in flight)
+ * and the loading skeleton (only while the catalog is loading). The scan runs
+ * after networkidle, so deleting either one's reduced-motion rule left this
+ * suite 8/8 (AUDIT-12 A12-L13-14-1, A12-L13-21-1). Each is held in its state —
+ * the request is routed and never answered — and its computed animation read.
+ */
+async function transient(browser, reducedMotion) {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion });
+  const out = {};
+  try {
+    const p = await ctx.newPage();
+    await p.route('**/contact.php*', () => {});            // hold the POST: the spinner stays mounted
+    await p.goto(BASE + '/contact', { waitUntil: 'networkidle' });
+    await p.locator('input[name="name"]:visible').first().fill('Motion Probe');
+    await p.locator('input[name="email"]:visible').first().fill('motion@example.com');
+    await p.locator('input[name="company"]:visible').first().fill('Probe Co');
+    const part = p.locator('input[name="partNumber"]:visible').first(); if (await part.count()) await part.fill('IP33PO');
+    const qty = p.locator('input[name="quantity"]:visible').first(); if (await qty.count()) await qty.fill('500 ft');
+    await p.locator('form button[type="submit"]:visible').first().click();
+    await p.waitForSelector('.ipc-btn-spinner', { timeout: 5000 }).catch(() => {});
+    out.spinner = await p.evaluate(() => {
+      const el = document.querySelector('.ipc-btn-spinner');
+      if (!el) return null;
+      const cs = getComputedStyle(el);
+      return { name: cs.animationName, count: cs.animationIterationCount };
+    });
+    const q = await ctx.newPage();
+    await q.route('**/data/products-all.json*', () => {});  // hold the catalog: the skeleton stays up
+    await q.goto(BASE + '/products', { waitUntil: 'domcontentloaded' });
+    await q.waitForSelector('.ipc-skeleton', { timeout: 5000 }).catch(() => {});
+    out.skeleton = await q.evaluate(() => {
+      const els = [...document.querySelectorAll('.ipc-skeleton')];
+      if (!els.length) return null;
+      const cs = getComputedStyle(els[0]);
+      return { n: els.length, name: cs.animationName, count: cs.animationIterationCount,
+        infinite: els.filter((e) => getComputedStyle(e).animationIterationCount === 'infinite').length };
+    });
+  } finally {
+    await ctx.close();
+  }
+  return out;
+}
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -116,6 +164,9 @@ const infiniteAnimations = () => {
     });
     await npage.screenshot({ path: path.join(OUT, 'home-normal.png'), fullPage: false });
     await nctx.close();
+
+    rec.transientReduce = await transient(browser, 'reduce');
+    rec.transientNormal = await transient(browser, 'no-preference');
   } finally {
     await browser.close();
   }
@@ -126,6 +177,22 @@ const infiniteAnimations = () => {
   note(stillRunning.length === 0,
     `zero infinite animations under prefers-reduced-motion, across all ${ROUTES.length} routes`,
     stillRunning.map(([r, v]) => `${r}: ${v.map((x) => `${x.name} on .${x.cls}`).join(', ')}`).join('\n         '));
+
+  // The transient states. The no-preference run is the control that proves
+  // each state was reached and really animates when motion is allowed.
+  const tr = rec.transientReduce || {}, tn = rec.transientNormal || {};
+  note(!!tn.spinner && tn.spinner.count === 'infinite',
+    'control: with motion allowed, the submit spinner is mounted and spinning while a request is in flight',
+    JSON.stringify(tn.spinner));
+  note(!!tr.spinner && tr.spinner.name === 'none' && tr.spinner.count !== 'infinite',
+    'the submit-button spinner does not spin under prefers-reduced-motion',
+    JSON.stringify(tr.spinner));
+  note(!!tn.skeleton && tn.skeleton.infinite > 0,
+    'control: with motion allowed, the catalog loading skeleton is up and shimmering while the catalog loads',
+    JSON.stringify(tn.skeleton));
+  note(!!tr.skeleton && tr.skeleton.infinite === 0 && tr.skeleton.name === 'none',
+    'the loading skeleton does not shimmer under prefers-reduced-motion',
+    JSON.stringify(tr.skeleton));
 
   const rm = rec.reduceMarquee;
   note(rm && rm.animation === 'none',

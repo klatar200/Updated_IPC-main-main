@@ -37,8 +37,9 @@
  *     rewriting the catalogue is exactly the class of thing this codebase has
  *     spent five plans removing.
  *
- * Writes the MIRROR's content.json only, restores from pristine/ and proves
- * byte-identity. products-all.json is read and asserted UNCHANGED.
+ * Writes the MIRROR's content.json only, restores from pristine/ (throwing if
+ * the bytes differ — a cleanup precondition, not a counted check: AUDIT-12
+ * A12-L13-20-1). products-all.json is read and asserted UNCHANGED.
  *
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
@@ -280,9 +281,12 @@ const sidebarState = (page) =>
     await browser.close();
   }
 
-  note(fs.readFileSync(MIRROR).equals(pristineContent) &&
-       fs.readFileSync(PRODUCTS_MIRROR).equals(pristineProducts),
-    'the mirror\'s content.json and products-all.json are byte-identical to pristine');
+  // Cleanup precondition, not a counted check: the writes in the finally land
+  // these bytes or throw, so the compare could never fail (AUDIT-12 A12-L13-20-1).
+  if (!(fs.readFileSync(MIRROR).equals(pristineContent) &&
+        fs.readFileSync(PRODUCTS_MIRROR).equals(pristineProducts))) {
+    throw new Error('cleanup: the mirror\'s content.json / products-all.json were not restored');
+  }
 
   const bad = results.filter((r) => !r.ok).length;
   console.log(`\nplan6-families: ${results.length - bad}/${results.length}`);

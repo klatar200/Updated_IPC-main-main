@@ -55,7 +55,9 @@ if ($path === '/sitemap.xml' && is_file($root . '/sitemap.php')) {
     return true;
 }
 
-// Containment: never let ".." climb out of the mirror.
+// Containment: never let ".." climb out of the mirror. Separator-aware: a bare
+// prefix test let /../site-copy/ (a sibling whose name starts with the
+// docroot's) through (AUDIT-12 A12-L13-03-W5-1).
 // A decoded NUL (/products%00) made PHP 8's realpath() throw a ValueError — a
 // fatal with HTTP 200 and the folder path, so a local probe measured this
 // router, not the site (AUDIT-12 A12-L13-05-W5-4). No file has a NUL in its
@@ -63,7 +65,8 @@ if ($path === '/sitemap.xml' && is_file($root . '/sitemap.php')) {
 $full = strpos($path, "\0") === false ? realpath($root . $path) : false;
 $realRoot = realpath($root);
 
-if ($full !== false && $realRoot !== false && strpos($full, $realRoot) === 0) {
+if ($full !== false && $realRoot !== false
+    && ($full === $realRoot || strpos($full, rtrim($realRoot, '/') . '/') === 0)) {
     if (is_dir($full)) {
         // A directory: serve its index.php / index.html if present, as Apache would.
         foreach (['index.php', 'index.html'] as $idx) {

@@ -19,7 +19,8 @@
  *   1. 1440 + 1024 — every action button's right edge is inside the table's
  *      content box, on all 42 rows. Clipped px 0 (was 52 / 56).
  *   2. 1440 + 1024 — Delete still renders its full label (width >= 60).
- *   3. all four viewports — all five buttons present and hit-testable at their
+ *   3. all four viewports — all five buttons present on every row, and EACH one,
+ *      scrolled into view the way a person can, hit-testable at its
  *      own centre (elementFromPoint returns the button or a descendant). This
  *      is the check that actually encodes "Rick can click it".
  *   4. 834 + 390 — unchanged: the table still scrolls inside its card and the
@@ -93,6 +94,43 @@ const MEASURE = `(() => {
   };
 })()`;
 
+// Check 3, per button: bring it into view the way a PERSON can — scroll the
+// page vertically to its row and, where the table wrapper is user-scrollable
+// (overflow-x auto/scroll), scroll the wrapper sideways to it — then hit-test
+// its centre. Never scrollIntoView(): that also scrolls overflow:hidden boxes,
+// which a person cannot, and would "reach" a clipped Delete. MEASURE alone ran
+// after the page was back at the top, so only the first screen was ever
+// hit-tested (50/24/26/0 of 210 buttons) — AUDIT-12 A12-L13-10-3.
+const HITALL = `(async () => {
+  const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const out = [];
+  for (const tr of document.querySelectorAll('table tbody tr')) {
+    const cell = tr.querySelector('td:nth-child(5)');
+    if (!cell) continue;
+    const sku = ((tr.querySelector('td:nth-child(1)') || {}).textContent || '?').trim().slice(0, 20);
+    const wrap = tr.closest('.table-wrap');
+    const userScrollX = wrap && /auto|scroll/.test(getComputedStyle(wrap).overflowX) && wrap.scrollWidth > wrap.clientWidth;
+    for (const b of cell.querySelectorAll('a,button')) {
+      let r = b.getBoundingClientRect();
+      scrollBy(0, (r.top + r.height / 2) - innerHeight / 2);
+      if (userScrollX) {
+        const wr = wrap.getBoundingClientRect();
+        r = b.getBoundingClientRect();
+        wrap.scrollLeft += (r.left + r.width / 2) - (wr.left + Math.min(wr.width, innerWidth) / 2);
+      }
+      await frame();
+      r = b.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const inView = cx >= 0 && cy >= 0 && cx <= innerWidth && cy <= innerHeight;
+      const el = inView ? document.elementFromPoint(cx, cy) : null;
+      out.push({ sku, text: (b.textContent || '').trim().slice(0, 14), inView, hit: !!(el && (el === b || b.contains(el))) });
+    }
+    if (wrap) wrap.scrollLeft = 0;
+  }
+  scrollTo(0, 0);
+  return out;
+})()`;
+
 const results = [];
 function note(ok, msg, detail) {
   results.push({ ok, msg });
@@ -125,6 +163,7 @@ async function signIn(ctx) {
     })()`);
     await page.waitForTimeout(200);
     data[vp] = await page.evaluate(MEASURE);
+    data[vp].hits = await page.evaluate(HITALL);
     await ctx.close();
     process.stdout.write(`  · ${vp.padEnd(14)} ${data[vp].rows.length} rows, ` +
       `${data[vp].rows[0] ? data[vp].rows[0].btns.length : 0} buttons/row\n`);
@@ -159,19 +198,15 @@ async function signIn(ctx) {
   // ── 3. every button actually clickable, all four viewports ────────────────
   for (const vp of Object.keys(VP)) {
     const rows = data[vp].rows;
-    const miss = [];
-    for (const r of rows) {
-      for (const b of r.btns) {
-        // A button scrolled out of the viewport vertically is not this
-        // finding — only one that is in view and still not hit-testable.
-        if (b.inViewport && b.hit === false) miss.push(`${r.sku} "${b.text}"`);
-      }
-    }
+    const hits = data[vp].hits || [];
+    const present = rows.reduce((n, r) => n + r.btns.length, 0);
+    const notInView = hits.filter((h) => !h.inView);
+    const miss = hits.filter((h) => h.inView && !h.hit).map((h) => `${h.sku} "${h.text}"`);
     const counts = new Set(rows.map((r) => r.btns.length));
-    note(miss.length === 0 && counts.size === 1 && counts.has(5),
-      `${vp}: all 5 action buttons present on every row and hit-testable where visible ` +
-      `(${rows.length} rows, ${[...counts].join('/')} buttons each, ${miss.length} unreachable)`,
-      miss.slice(0, 4).join(', '));
+    note(miss.length === 0 && notInView.length === 0 && hits.length === present && counts.size === 1 && counts.has(5),
+      `${vp}: all 5 action buttons present on every row and each one, brought into view, is hit-testable ` +
+      `(${rows.length} rows, ${[...counts].join('/')} buttons each; ${hits.length - notInView.length}/${present} hit-tested, ${miss.length} unreachable)`,
+      [...miss.slice(0, 4), ...notInView.slice(0, 2).map((h) => `${h.sku} "${h.text}" could not be brought into view`)].join(', '));
   }
 
   // ── 4. the small viewports are UNCHANGED ──────────────────────────────────

@@ -110,7 +110,9 @@ async function setColors(page, s) {
       console.log(`\n── ${s.name}  primary ${s.primary}`);
 
       const live = await setColors(page, s);
-      const savedOk = page.url().includes('saved') || /saved/i.test(await page.innerText('body'));
+      // The success STATE, not the word: /saved/i also matched "Your edits
+      // were NOT saved" on a refused save (AUDIT-12 A12-L13-11-1).
+      const savedOk = /[?&]saved=(1|nochange)\b/.test(page.url()) && (await page.$('.alert-success')) !== null;
       note(savedOk, `${s.name}: the save is NOT blocked`, `landed at ${page.url()}`);
 
       // The admin note must carry a number and the right severity.
@@ -238,9 +240,12 @@ async function setColors(page, s) {
         `${c.name}: ${c.target} is ${c.want}`, `class was "${got.cls}" — "${got.text.slice(0, 90)}"`);
       note(/\d+\.\d+:1/.test(got.text),
         `${c.name}: the note states a ratio`, `text: ${JSON.stringify(got.text.slice(0, 90))}`);
-      if (c.want !== 'cnote-ok') {
-        note(/warning, not a block|still save/i.test(got.text) || c.want === 'cnote-warn',
-          `${c.name}: the note makes clear the save is not blocked`);
+      // Only the hard-to-read note promises "still save"; the borderline note
+      // never says it, and the old `|| c.want === 'cnote-warn'` passed it on
+      // nothing (AUDIT-12 A12-L13-11-1). Emitted for cnote-bad only.
+      if (c.want === 'cnote-bad') {
+        note(/warning, not a block|still save/i.test(got.text),
+          `${c.name}: the note makes clear the save is not blocked`, `text: ${JSON.stringify(got.text.slice(0, 160))}`);
       }
     }
   } catch (e) {

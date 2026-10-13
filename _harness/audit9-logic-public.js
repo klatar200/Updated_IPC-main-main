@@ -6,9 +6,11 @@
  * no timing assertion without a documented settle.
  *
  * BASE   — origin to drive (default http://127.0.0.1:8140)
- * SITE   — docroot of that origin, needed only by the C5 arms, which mutate
- *          data/*.json and restore from PRISTINE in a finally.
- * PRISTINE — directory holding the three reference JSON files.
+ * SITE   — docroot of that origin; read for its catalog and built bundle (the NEGCTL arm
+ *          patches a disposable mirror's copy). This file mutates no data/:
+ *          the C5 arms that did moved to audit9-logic-data.js, and the dead
+ *          restoreAll()/writeData() helpers went with them (AUDIT-12
+ *          A12-L13-05-5).
  * OUT    — where to write the JSON result (default _harness/out/audit9/P7)
  * ONLY   — comma-separated row ids to run (default all)
  * NEGCTL — set to a row id to run that row's negative control instead
@@ -19,23 +21,11 @@ const path = require('path');
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8140';
 const SITE = process.env.SITE || '_harness/out/audit9/site-A';
-const PRISTINE = process.env.PRISTINE || '_harness/out/audit9/P7';
 const OUT = process.env.OUT || '_harness/out/audit9/P7';
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
 const NEGCTL = process.env.NEGCTL || '';
-
-const FILES = {
-  'products-all.json': path.join(PRISTINE, 'pristine-products.json'),
-  'site-info.json': path.join(PRISTINE, 'pristine-siteinfo.json'),
-  'content.json': path.join(PRISTINE, 'pristine-content.json'),
-};
 const dataPath = (f) => path.join(SITE, 'data', f);
-function restoreAll() {
-  for (const [f, src] of Object.entries(FILES)) fs.copyFileSync(src, dataPath(f));
-}
-function writeData(f, body) {
-  fs.writeFileSync(dataPath(f), body);
-}
+
 
 // ── Negative control ───────────────────────────────────────────────────────
 // NEGCTL=1 replaces the DERIVED copyright year in the MIRROR'S built bundle

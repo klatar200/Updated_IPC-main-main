@@ -16,8 +16,7 @@ const path = require('path');
 const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
-const DUMP = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '..', 'plans', 'audit10', 'state', 'textdump.json'), 'utf8'));
+const DUMP = JSON.parse(require('./audit10state').readState('textdump.json'));
 
 /* ---------- (1) dump half: mid-word cuts ---------- */
 const midword = new Map();

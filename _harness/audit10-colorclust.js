@@ -49,7 +49,7 @@ const ROOT = path.join(__dirname, '..');
 const CENSUS = path.join(ROOT, 'plans', 'audit10', 'state', 'stylecensus.json');
 const OUTDIR = path.join(ROOT, '_harness', 'out', 'audit10', 'pass5');
 
-const census = JSON.parse(fs.readFileSync(CENSUS, 'utf8'));
+const census = JSON.parse(require('./audit10state').readState(path.basename(CENSUS)));
 
 const cssText = fs.readFileSync(path.join(ROOT, 'src', 'index.css'), 'utf8');
 const VAR_NAMES = [...new Set([...cssText.matchAll(/(--brand-[a-z0-9-]+)\s*:/gi)].map((m) => m[1]))]

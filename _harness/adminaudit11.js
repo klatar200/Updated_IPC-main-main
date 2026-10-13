@@ -162,11 +162,15 @@ function startServer(port, limited) {
       await upload(a, '/admin/upload-image.php?sku=CC', [], [['image_file', 'red.png', img('png', '200,0,0'), 'image/png']]);
       const was = prod('CC').photoUrl;
       const b = adminHttp(LIMITED);
-      await b.login(PASS);
-      await upload(b, '/admin/upload-image.php?sku=CC', [], [['image_file', 'blue.jpg', img('jpeg', '0,0,200'), 'image/jpeg']]);
+      const limitedIn = await b.login(PASS);
+      const ur = await upload(b, '/admin/upload-image.php?sku=CC', [], [['image_file', 'blue.jpg', img('jpeg', '0,0,200'), 'image/jpeg']]);
       const now = prod('CC').photoUrl;
-      note(was === '/uploads/images/CC.png' && onDisk(now), 'DI-3: when the catalog save fails after a photo replace, the photo the catalog names is still on disk',
-        `was ${was}, catalog now ${now}, on disk ${onDisk(now)}`);
+      // Prove the failure this arm depends on HAPPENED before crediting the
+      // outcome: with the size limit not biting, the save succeeded, the
+      // catalog named CC.jpg and the arm still passed (AUDIT-12 A12-L13-01-1).
+      const failed = limitedIn && /The photo could not be saved: the product catalog/.test(ur.body) && now === was;
+      note(failed && was === '/uploads/images/CC.png' && onDisk(now), 'DI-3: when the catalog save fails after a photo replace, the photo the catalog names is still on disk',
+        `limited sign-in ${limitedIn}; save error shown ${/The photo could not be saved/.test(ur.body)}; was ${was}, catalog now ${now}, on disk ${onDisk(now)}`);
     });
     await arm('DI-4', async () => {
       reset();

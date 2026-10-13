@@ -14,8 +14,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DUMP = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '..', 'plans', 'audit10', 'state', 'textdump.json'), 'utf8'));
+const DUMP = JSON.parse(require('./audit10state').readState('textdump.json'));
 
 const only = process.argv[2];
 const section = (n) => !only || only === n;

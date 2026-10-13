@@ -118,9 +118,13 @@ const footerCatalog = async (browser) => {
     // (AUDIT-12 A12-L13-20-2).
     const lu = lastLog();
     note(lu.action === 'marketing-pdf' && /IPC-Catalog-2026-2\.pdf now used for/.test(lu.detail), 'audit: "use" is logged as marketing-pdf', JSON.stringify(lu));
-    const s2label = content().services[2].brochure.label;
+    const s2before = content().services[2].brochure;
     await act(a, [['action', 'use'], ['file', 'Tubing-Kits.pdf'], ['target', 'service:2']]);
-    note(content().services[2].brochure.label === s2label, 'use: re-pointing a brochure keeps its link text');
+    // The URL must MOVE as well: comparing only the label passed when the
+    // re-point was a silent no-op (AUDIT-12 A12-L13-10-5).
+    const s2after = content().services[2].brochure;
+    note(s2after.url === '/pdfs/marketing/Tubing-Kits.pdf' && s2before.url !== s2after.url && s2after.label === s2before.label,
+      'use: re-pointing a brochure moves it to the chosen PDF and keeps its link text', `${JSON.stringify(s2before)} -> ${JSON.stringify(s2after)}`);
     await act(a, [['action', 'stop'], ['target', 'catalog']]);
     note(info().catalogPdfUrl === '' && fs.existsSync(f1) && await footerCatalog(browser) === null, 'stop: "Stop using" takes the catalog link off the site and keeps the file');
     const ls = lastLog();
