@@ -1294,9 +1294,17 @@ function iso_mentions(array $content, array $info): array {
     $out = [];
     $walk = function ($node, string $where, int $row) use (&$walk, &$out) {
         if (is_string($node)) {
-            if (preg_match('/\bISO\s*9001/i', $node)) {
+            if (preg_match('/\bISO\s*9001/i', $node, $hit, PREG_OFFSET_CAPTURE)) {
                 // No mbstring (A-9.P2-1): cut on characters with a /u regex.
                 $text = preg_match('/^.{91}/us', $node) && preg_match('/^.{0,87}/us', $node, $cut) ? $cut[0] . '…' : $node;
+                // A12-L9-15-1 — when the mention is past that cut, the quote
+                // showed no ISO wording at all and the owner could not see
+                // what to remove. Show an excerpt that starts shortly before it.
+                $before = preg_match_all('/./us', substr($node, 0, $hit[0][1]));
+                if ($before + strlen($hit[0][0]) > 87
+                    && preg_match('/^.{' . ($before - 30) . '}(.{0,87})/us', $node, $win)) {
+                    $text = '…' . $win[1] . (preg_match('/^.{' . ($before - 30 + 88) . '}/us', $node) ? '…' : '');
+                }
                 $out[] = $where . ($row > 0 ? ' (row ' . $row . ')' : '') . ': "' . $text . '"';
             }
         } elseif (is_array($node)) {
@@ -1327,9 +1335,12 @@ function site_file_missing($u): bool {
     if (!is_string($u)) return false;
     $u = trim($u);
     if ($u === '' || preg_match('#^([a-z][a-z0-9+.-]*:|//)#i', $u)) return false;
-    $path = '/' . ltrim((string)preg_replace('/[?#].*$/', '', $u), '/');
-    if (strpos($path, '..') !== false) return true;
-    return !is_file(__DIR__ . '/..' . rawurldecode($path));
+    // A12-L3-04-1 — decode BEFORE the ".." test. Testing the raw text let
+    // "%2e%2e/" through, and the decoded path then stat()ed any file on the
+    // host (/etc/passwd answered "exists"). A NUL is refused for the same reason.
+    $path = rawurldecode('/' . ltrim((string)preg_replace('/[?#].*$/', '', $u), '/'));
+    if (strpos($path, '..') !== false || strpos($path, "\0") !== false) return true;
+    return !is_file(__DIR__ . '/..' . $path);
 }
 
 /**
@@ -2409,7 +2420,11 @@ function image_downscale_in_place(string $path, string $ext, ?string &$reason = 
 }
 
 function spec_table1_problem($rows): string {
-    if (!is_array($rows)) return 'The Specifications table must be a list of rows.';
+    // A12-L3-07-1 — a single {...} object decodes to a string-keyed array, and
+    // `$i + 1` on a string key was an uncaught TypeError (a blank 500 that lost
+    // every other edit in the form). A top level that is not a list gets the
+    // same sentence as one that is not an array.
+    if (!is_array($rows) || array_values($rows) !== $rows) return 'The Specifications table must be a list of rows.';
     foreach ($rows as $i => $r) {
         $n = $i + 1;
         // A row must be an object; a bare list means someone typed ["a","b"].
@@ -2429,7 +2444,7 @@ function spec_table2_problem($st2): string {
     if (!is_array($st2)) return 'The Size / Dimension table must be an object with "columnSpans" and "rows".';
     $spans = $st2['columnSpans'] ?? [];
     $rows  = $st2['rows'] ?? [];
-    if (!is_array($spans)) return 'The Size / Dimension table\'s "columnSpans" must be a list.';
+    if (!is_array($spans) || array_values($spans) !== $spans) return 'The Size / Dimension table\'s "columnSpans" must be a list.';   // A12-L3-07-1
     foreach ($spans as $i => $g) {
         $n = $i + 1;
         if (!is_array($g) || array_values($g) === $g) {
@@ -2438,11 +2453,17 @@ function spec_table2_problem($st2): string {
         if (array_key_exists('sub', $g) && $g['sub'] !== null && !is_array($g['sub'])) {
             return 'Size / Dimension column ' . $n . ' has a "sub" that is neither a list nor null.';
         }
-        if (array_key_exists('colspan', $g) && !is_numeric($g['colspan'])) {
-            return 'Size / Dimension column ' . $n . ' has a "colspan" that is not a number.';
+        // A12-L4-03-3 — a whole number in a sane range. is_numeric() let 1e400
+        // through: as a number it decodes to INF, which json_encode() refuses
+        // (the save then failed as "check file permissions"); as a string the
+        // size-chart editor tried to build an array that long and froze.
+        if (array_key_exists('colspan', $g)
+            && !((is_int($g['colspan']) || (is_string($g['colspan']) && ctype_digit($g['colspan'])))
+                 && (int)$g['colspan'] >= 1 && (int)$g['colspan'] <= 50)) {
+            return 'Size / Dimension column ' . $n . ' has a "colspan" that is not a whole number from 1 to 50.';
         }
     }
-    if (!is_array($rows)) return 'The Size / Dimension table\'s "rows" must be a list.';
+    if (!is_array($rows) || array_values($rows) !== $rows) return 'The Size / Dimension table\'s "rows" must be a list.';   // A12-L3-07-1
     foreach ($rows as $i => $r) {
         $n = $i + 1;
         if (!is_array($r) || array_values($r) !== $r) {
@@ -2471,7 +2492,9 @@ function link_url_problem(string $url, string $what): string {
     }
     if ($u[0] === '/') return '';
     if (preg_match('#^https?://\S+$#i', $u)) return '';
-    return $what . ' is not a valid link — use a path on this site such as /pdfs/catalog.pdf, or a full address starting http:// or https://.';
+    // A12-L9-11-3 — the example fits the box: a PDF path was shown for a logo.
+    $example = stripos($what, 'logo') !== false ? '/logo.svg' : '/pdfs/catalog.pdf';
+    return $what . ' is not a valid link — use a path on this site such as ' . $example . ', or a full address starting http:// or https://.';
 }
 
 /**
