@@ -138,7 +138,7 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `plan2-delete.js` | 4.13 — confirm-on-delete, and the ✕/arrow gap |
 | `plan2-contrast.js` | 4.23 — brand-color contrast across four palettes |
 | `plan2-formlast.js` / `-selftest.js` | `form_complete` is last in the **rendered DOM** |
-| `plan2-trunc.js` | the truncation guard fires on a real `max_input_vars=100` server |
+| `plan2-trunc.js` | the truncation guard fires on a real `max_input_vars=100` server; also (T3.5) an over-`post_max_size` upload gets the "That upload was too large" page on the display_errors=Off :8124 |
 | `plan3-contact.js` | 4.5 — inline form errors, focus, literal spec strings |
 | `plan3-autoreply.js` | 4.15b — the auto-reply cap key, and that the sales notification always fires |
 | `plan4-public.js` | 4.19 sort headers, 4.20 FAQ accessibility tree |
