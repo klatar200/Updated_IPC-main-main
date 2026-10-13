@@ -32,8 +32,14 @@
  *   - the login form and this form share one budget — burning the allowance
  *     here refuses there too
  *
- * Writes only the MIRROR's admin/.login-throttle.json, and reads (never
- * rewrites) the mirror's config.local.php. The repo's data/ is untouched.
+ * Writes the MIRROR's admin/.login-throttle.json, and CHANGES the mirror's
+ * admin password once (the "correct current password" arm, through the real
+ * form): that rewrites the mirror's config.local.php and makes the admin save
+ * a config.local.php.bak.<stamp>. The finally block writes the original
+ * config.local.php bytes back and deletes the backups this run created. So it
+ * must not run alongside another suite that signs in to the same mirror. The
+ * repo's data/ is untouched. (This header said "reads (never rewrites)" until
+ * AUDIT-12 A12-L13-02-W5-1.)
  *
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
@@ -83,6 +89,8 @@ const isWrongPw = (t) => /The current password is incorrect/.test(t);
 (async () => {
   const browser = await launch();
   const configBefore = fs.readFileSync(LOCAL_CONFIG);
+  const baks = () => fs.readdirSync(SITE_ADMIN).filter((f) => f.startsWith('config.local.php.bak.'));
+  const baksBefore = new Set(baks());
 
   try {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -155,8 +163,11 @@ const isWrongPw = (t) => /The current password is incorrect/.test(t);
 
     await ctx.close();
   } finally {
-    // Put the mirror's credential back — the suite deliberately changes it.
+    // Put the mirror's credential back — the suite deliberately changes it —
+    // and remove the config.local.php.bak.<stamp> that change wrote, which
+    // used to pile up in the mirror (AUDIT-12 A12-L13-02-W5-1).
     fs.writeFileSync(LOCAL_CONFIG, configBefore);
+    for (const f of baks()) if (!baksBefore.has(f)) fs.rmSync(path.join(SITE_ADMIN, f), { force: true });
     clearThrottle();
     await browser.close();
   }
