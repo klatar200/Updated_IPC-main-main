@@ -226,7 +226,7 @@ include 'nav.php';
       <div class="hint">
         The file is saved in <code>/uploads/images/</code> named after the SKU and the product's Photo URL is updated automatically.
         <?php if ($isManaged): ?><span style="color:#dc2626;font-weight:600"> ⚠ Uploading replaces the current photo.</span><?php endif; ?>
-        A landscape photo around 1200×900px looks best on the product page.
+        A landscape photo about 3:2 (e.g. 1200×800px) fits the product page's frame; anything taller or wider is trimmed to fit.
       </div>
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
       <button type="submit" class="btn btn-primary"><?= $isManaged ? 'Replace Photo →' : 'Upload Photo →' ?></button>
