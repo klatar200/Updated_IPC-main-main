@@ -283,7 +283,7 @@ $navActive = 'products';
         . 'It closes by itself one hour after the file was uploaded — close it now if you are done.' . $closeBtn;
   } elseif (password_reset_expired()) {
       $healthProblems[] = 'The file <code>admin/ALLOW-PASSWORD-RESET</code> is still in the admin folder. '
-        . 'It is more than an hour old so it no longer does anything, but it should not be left there.' . $closeBtn;
+        . 'It no longer does anything because ' . password_reset_expired_reason() . ', but it should not be left there.' . $closeBtn;
   }
   ?>
   <?php /* A-5.6 — new leads, above everything else on the page. */ ?>

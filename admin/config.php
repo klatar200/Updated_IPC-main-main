@@ -123,6 +123,38 @@ function password_reset_expired(): bool {
     return password_reset_flag_present() && !password_reset_unlocked();
 }
 
+/** Expired because its date is in the FUTURE (SEC-13's upper bound), not
+ *  because it is old. The two need different words: "more than an hour old,
+ *  upload it again" is false here, and re-uploading with an FTP program that
+ *  keeps the file's own wrong date reproduces the same refusal. (A12-L8-08-1) */
+function password_reset_future_dated(): bool {
+    if (!password_reset_flag_present()) return false;
+    $mtime = @filemtime(PASSWORD_RESET_FLAG);
+    return $mtime !== false && $mtime > time() + 300;
+}
+
+/** The sentence that explains an expired flag, for the sign-in page and the
+ *  dashboard. HTML: the caller echoes it as-is. */
+function password_reset_expired_reason(): string {
+    return password_reset_future_dated()
+        ? 'its date is in the future (the computer or FTP program that uploaded it has a wrong clock)'
+        : 'it is more than an hour old';
+}
+
+/**
+ * A12-L3-W2-G2-1 — a POST that the browser marks as sent by ANOTHER website.
+ * The session cookie is SameSite=Lax and the sign-in form has no token, so any
+ * page open in the owner's browser could post wrong passwords to auth.php from
+ * his own address and hold him in the login cool-off indefinitely. Same rule
+ * as SEC-10 on the Inquiries page: `Sec-Fetch-Site` is sent by every current
+ * browser and a page cannot remove it; a browser that sends none is not
+ * refused (an absent header is not evidence, as with the Referer, invariant 11).
+ */
+function request_from_other_site(): bool {
+    $site = $_SERVER['HTTP_SEC_FETCH_SITE'] ?? '';
+    return is_string($site) && ($site === 'cross-site' || $site === 'same-site');
+}
+
 /**
  * Write a new admin password hash into admin/config.local.php.
  *
