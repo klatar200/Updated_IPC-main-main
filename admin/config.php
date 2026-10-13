@@ -2818,8 +2818,19 @@ function restore_trashed_files(array $products): array {
                 if (($renames[$i]['old'] ?? null) === $cur) { $next = (string)($renames[$i]['new'] ?? ''); break; }
             }
             if ($next === null || $next === '' || $next[0] === '.' || $next !== basename($next)) return;
-            if (is_file($realDir . '/' . $next)) {
-                if (!isset($wanted[$next]) && @rename($realDir . '/' . $next, $live)) $back[] = $name;
+            // A12-L4-W2-G3-2 — the file may since have been put in the trash
+            // under its NEW name (the renamed product deleted, or its PDF
+            // removed); the chain stopped there and the restored product kept
+            // a dead Data Sheet button.
+            foreach ([$next, TRASH_PREFIX . $next] as $found) {
+                if (!is_file($realDir . '/' . $found)) continue;
+                if (!isset($wanted[$next]) && @rename($realDir . '/' . $found, $live)) {
+                    $back[] = $name;
+                    // A12-L4-W2-G3-1 — record this move like edit.php records a
+                    // rename, so undoing THIS restore (the "you can undo" the
+                    // page offers) can follow the file back to $next.
+                    pdf_renames_record([[$next, $name]]);
+                }
                 return;
             }
             $cur = $next;
