@@ -94,7 +94,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
     if (!up) {
       console.error(`audit9-router-docroot: php -S never came up on :${PORT}\n${stderr.slice(0, 400)}`);
-      process.exit(2);
+      process.exitCode = 2; return;
     }
 
     console.log(`audit9-router-docroot  docroot=${path.relative(ROOT, DOCROOT)}  port=${PORT}\n`);
@@ -151,7 +151,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       console.log('\nfailing:');
       for (const f of failures) console.log(`  - ${f}`);
     }
-    process.exit(failures.length ? 1 : 0);
+    // exitCode, not exit(): process.exit() inside try skipped the finally,
+    // leaking the php -S and leaving both marker files in _harness/site.
+    process.exitCode = failures.length ? 1 : 0;
   } finally {
     try { process.kill(-server.pid); } catch (_) { try { server.kill(); } catch (__) {} }
     for (const f of [sweepOnly, sweepBoth]) { try { fs.unlinkSync(f); } catch (_) {} }
