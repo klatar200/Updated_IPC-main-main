@@ -152,22 +152,29 @@ const MAKE_PHOTO = `(() => {
   const site = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const sp = await site.newPage();
   const liveSkips = [];
+  // How many text elements each route actually walked: "no skips" over a page
+  // that rendered nothing is not a measurement (AUDIT-12 A12-L13-06-3 — with
+  // the bundle emptied this arm passed 9/9).
+  const walked = {};
   for (const route of ['/', '/about', '/services', '/industries']) {
     await sp.goto('http://127.0.0.1:8123' + route, { waitUntil: 'networkidle' });
     await sp.evaluate(SOURCE);
-    await sp.evaluate(() => {
+    walked[route] = await sp.evaluate(() => {
+      let n = 0;
       for (const el of document.querySelectorAll('h1,h2,h3,p,span,a,div')) {
         if (!el.getClientRects().length) continue;
         const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
-        if (own) window.__ipcBackdrop(el);
+        if (own) { window.__ipcBackdrop(el); n++; }
       }
+      return n;
     });
     const s = await skippedLayers(sp);
     if (s.length) liveSkips.push({ route, count: s.length, first: s[0] });
   }
-  note(liveSkips.length === 0,
-    'the live site currently paints no raster background behind text (4 routes swept)',
-    JSON.stringify(liveSkips.slice(0, 2)));
+  const thin = Object.entries(walked).filter(([, n]) => n < 20);
+  note(liveSkips.length === 0 && thin.length === 0,
+    'the live site currently paints no raster background behind text (4 routes swept, each with 20+ text elements walked)',
+    JSON.stringify({ skips: liveSkips.slice(0, 2), walked }));
   await site.close();
 
   await ctx.close();

@@ -112,6 +112,12 @@ function score(r) {
 (async () => {
   const browser = await launch();
   const seen = new Map();
+  // Elements scored per route × width. A run that scored nothing printed
+  // "0/0 combinations meet WCAG AA" and exited 0 — with the bundle emptied the
+  // site rendered no text at all and this suite passed (AUDIT-12 A12-L13-06-3).
+  // Every route paints brand-coloured text in its navbar and footer at both
+  // widths, so a zero anywhere is a page that did not render.
+  const scored = [];
   for (const route of ROUTES) {
     for (const w of [1440, 375]) {
       const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
@@ -119,7 +125,9 @@ function score(r) {
       await page.goto(BASE + route, { waitUntil: 'networkidle' });
       await page.waitForTimeout(250);
       await page.evaluate(SOURCE);
-      for (const r of await page.evaluate(PROBE, BRAND_VARS)) {
+      const found = await page.evaluate(PROBE, BRAND_VARS);
+      scored.push({ route, w, n: found.length });
+      for (const r of found) {
         const s = score(r);
         const need = r.large ? 3.0 : 4.5;
         const key = `${r.vars.join('/')}|${s.on}|${r.large}`;
@@ -150,6 +158,13 @@ function score(r) {
 
   console.log(`\nscored ${rows.length} distinct (colour × background) combinations`);
   console.log(`brandtext: ${rows.length - failing.length}/${rows.length} combinations meet WCAG AA`);
+
+  const empty = scored.filter((s) => s.n === 0);
+  if (empty.length || rows.length === 0) {
+    console.log(`\nNOTHING SCORED on ${empty.length} route/width pair(s): ${empty.map((s) => `${s.route}@${s.w}`).join(', ') || '(all)'}`);
+    console.log('A page with no brand-coloured text did not render; "every combination passes" over it is not a measurement.');
+    process.exit(1);
+  }
 
   // PLAN-7 item 1a — a background layer this suite could not evaluate means
   // every number above is suspect, not just the one element. Fail loudly and
