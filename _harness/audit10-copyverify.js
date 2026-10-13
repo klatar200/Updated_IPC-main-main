@@ -51,10 +51,25 @@ const out = (label, v) => console.log(`  ${label}: ${typeof v === 'string' ? v :
   /* ---- V3 mid-word slices, /dashboard ---- */
   console.log('== V3 /dashboard hard character slices ==');
   await go('/dashboard');
-  out('desc+spec cells ending in an ellipsis', await page.evaluate(() => {
+  out('desc+spec cells ending in an ellipsis', await page.evaluate(async () => {
     const cells = [...document.querySelectorAll('table tbody td')];
     const cut = cells.filter((c) => c.textContent.trim().endsWith('…'));
-    const midword = cut.filter((c) => /[\p{L}]…$/u.test(c.textContent.trim()));
+    // Mid-word means the SOURCE text continues with a letter where the cut
+    // fell. "Any letter before …" counted trimToWord()'s whole-word cuts
+    // ("Features an…") too, and reported 73 after A10-038 was fixed, when
+    // there were 0 (AUDIT-12 A12-L13-02-2). Compared with the catalog the page
+    // itself loaded.
+    const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
+    const strings = [];
+    const walk = (v) => { if (typeof v === 'string') strings.push(norm(v)); else if (v && typeof v === 'object') Object.values(v).forEach(walk); };
+    walk(await (await fetch('/data/products-all.json')).json());
+    const unknown = [];
+    const midword = cut.filter((c) => {
+      const pre = norm(c.textContent).slice(0, -1).replace(/\s+$/, '');
+      const src = strings.find((s) => s.length > pre.length && s.startsWith(pre));
+      if (!src) { unknown.push(c); return false; }
+      return /\p{L}$/u.test(pre) && /\p{L}/u.test(src[pre.length]);
+    });
     const openParen = cut.filter((c) => {
       const t = c.textContent;
       return (t.match(/\(/g) || []).length !== (t.match(/\)/g) || []).length;
@@ -63,6 +78,7 @@ const out = (label, v) => console.log(`  ${label}: ${typeof v === 'string' ? v :
       totalCells: cells.length,
       truncated: cut.length,
       endInMidWord: midword.length,
+      noSourceFound: unknown.length,
       unclosedParen: openParen.length,
       samples: midword.slice(0, 4).map((c) => c.textContent.trim().slice(-40)),
       parenSample: openParen.slice(0, 2).map((c) => c.textContent.trim().slice(0, 120)),
