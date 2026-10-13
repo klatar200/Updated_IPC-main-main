@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useId, useCallback, Component, createContext, useContext } from "react";
+import { useState, useEffect, useMemo, useRef, useId, useCallback, useLayoutEffect, Component, createContext, useContext } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 
 // ── OverAI global shims ──────────────────────────────────────
@@ -6630,7 +6630,31 @@ function useProducts() {
     };
   }, []);
 
-  return { products, loading, error };
+  // AUDIT-12 A12-L11-W5-G3-1 — a failed catalog fetch made on a page that
+  // never shows the catalog (the homepage, say) was replayed later as
+  // "Catalog Unavailable" on every in-app visit to Products or Data Sheets,
+  // without another attempt. App calls this when a catalog route is entered
+  // with an error stored: back to the skeleton, one fresh try.
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
+  const retry = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    fetchProductsCached()
+      .then((arr) => {
+        if (!mounted.current) return;
+        setProducts(arr);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!mounted.current) return;
+        console.error("Failed to load products-all.json:", err);
+        setError("Failed to load product catalog. Please try refreshing.");
+        setLoading(false);
+      });
+  }, []);
+
+  return { products, loading, error, retry };
 }
 
 /* ─── Business details (site-info.json) ──────────────────────────────────────
@@ -7067,7 +7091,7 @@ function withBusinessFacts(tree, site) {
  * Same shape as the catalog's recheck: only when the document becomes visible
  * or the window regains focus, only past the TTL, and cancelled on unmount.
  */
-function useRefetchOnReturn(url, label, apply, ttlMs = 60000) {
+function useRefetchOnReturn(url, label, apply, ttlMs = 60000, onFail = null) {
   useEffect(() => {
     let cancelled = false;
     let last = 0;
@@ -7097,9 +7121,15 @@ function useRefetchOnReturn(url, label, apply, ttlMs = 60000) {
           done();
           if (!cancelled && data) apply(data);
         })
-        .catch(() => {
+        .catch((err) => {
           done();
           /* keep whatever is already rendered — never blank the chrome */
+          // …but leave a signal, as the catalog path does: a damaged or
+          // half-uploaded file otherwise showed the built-in wording with
+          // nothing in the console to say why. (AUDIT-12 A12-L11-W3-R1-7-5)
+          if (cancelled) return;
+          console.warn(`Failed to load ${url} (${label}); showing the last good or built-in copy:`, err);
+          if (onFail) onFail(err);
         });
     };
     load();
@@ -7796,14 +7826,28 @@ function mergeContent(data) {
 }
 
 const ContentContext = createContext(null);
+const ContentStatusContext = createContext("ok");
+// AUDIT-12 A12-L10-W5-G3-2 — `#ipc-prerender` is written by public/index.php
+// only when it rendered this route's head from the live data files (it fails
+// closed to the bare index.html otherwise), and React clears it on first
+// render, so it is read once, at module evaluation, before that happens.
+const SERVER_RENDERED_HEAD =
+  typeof document !== "undefined" && !!document.getElementById("ipc-prerender");
+const LANDING_URL =
+  typeof window !== "undefined" ? window.location.pathname + window.location.search : "";
 function useContent() {
   return useContext(ContentContext) || contentDefaults();
 }
 
 function ContentProvider({ children }) {
   const [content, setContent] = useState(contentDefaults);
-  const apply = useCallback((data) => setContent(mergeContent(data)), []);
-  useRefetchOnReturn(CONTENT_URL, "page content", apply);
+  // AUDIT-12 A12-L10-W5-G3-2 — whether Rick's content.json has arrived.
+  // PageMeta reads it so the head index.php already rendered from that file
+  // is not replaced by the bundle's defaults while it is pending or failed.
+  const [contentStatus, setContentStatus] = useState("pending");
+  const apply = useCallback((data) => { setContent(mergeContent(data)); setContentStatus("ok"); }, []);
+  const fail = useCallback(() => setContentStatus((s) => (s === "ok" ? s : "failed")), []);
+  useRefetchOnReturn(CONTENT_URL, "page content", apply, 60000, fail);
   // The single chokepoint for the ISO revision. `ContentProvider` is nested
   // inside `SiteInfoProvider` (see the tree at the bottom of this file), so the
   // business details are already available here — and EVERY consumer of page
@@ -7815,7 +7859,11 @@ function ContentProvider({ children }) {
   const iso = site && site.certifications ? site.certifications.iso : "";
   // ADM-7 — the other Business Details facts ride the same chokepoint.
   const value = useMemo(() => withBusinessFacts(withIsoLabel(content, iso), site), [content, iso, site]);
-  return <ContentContext.Provider value={value}>{children}</ContentContext.Provider>;
+  return (
+    <ContentStatusContext.Provider value={contentStatus}>
+      <ContentContext.Provider value={value}>{children}</ContentContext.Provider>
+    </ContentStatusContext.Provider>
+  );
 }
 
 // Schema.org JSON-LD rendered from the live business details (replaces the old
@@ -7992,6 +8040,7 @@ function PageMeta({ products }) {
   const [page] = useSearchParam("page");
   const [productId] = useSearchParam("productId");
   const unknownRoute = useIsUnknownRoute();
+  const contentStatus = useContext(ContentStatusContext);
   useEffect(() => {
     const list = Array.isArray(seo) ? seo : [];
     const key = page || "home";
@@ -8116,7 +8165,19 @@ function PageMeta({ products }) {
       desc = "";
     }
 
-    document.title = title;
+    // AUDIT-12 A12-L10-W5-G3-2 — while content.json has not arrived (pending,
+    // or failed on a bad connection), the title and description computed here
+    // are the bundle's defaults. On the URL index.php just rendered, the head
+    // already carries Rick's wording from that same file, so keep it: the
+    // defaults are a fallback for having nothing, not a replacement for what
+    // the server sent. Product and not-found heads do not read content.json.
+    const keepServerCopy =
+      SERVER_RENDERED_HEAD &&
+      contentStatus !== "ok" &&
+      !matched && !unknownProduct && !unknownRoute &&
+      window.location.pathname + window.location.search === LANDING_URL;
+
+    if (!keepServerCopy) document.title = title;
     // Update <meta name="description"> plus the Open Graph share tags so search
     // engines and social previews reflect the editable copy.
     const setMeta = (attr, key, val) => {
@@ -8134,9 +8195,11 @@ function PageMeta({ products }) {
       }
       el.setAttribute("content", val);
     };
-    setMeta("name", "description", desc);
-    setMeta("property", "og:title", title);
-    setMeta("property", "og:description", desc);
+    if (!keepServerCopy) {
+      setMeta("name", "description", desc);
+      setMeta("property", "og:title", title);
+      setMeta("property", "og:description", desc);
+    }
 
     // Canonical URL + og:url, per route.
     //
@@ -8224,7 +8287,7 @@ function PageMeta({ products }) {
     // to measure it. The per-product photos are all 400x300 source art.
     setMeta("property", "og:image:width", photo ? String(OG_PHOTO.w) : String(OG_CARD.w));
     setMeta("property", "og:image:height", photo ? String(OG_PHOTO.h) : String(OG_CARD.h));
-  }, [page, productId, products, site, seo, copy, unknownRoute]);
+  }, [page, productId, products, site, seo, copy, unknownRoute, contentStatus]);
   return null;
 }
 
@@ -14095,7 +14158,7 @@ function App() {
   // not just when the route did.
   const [productParam] = useSearchParam("productId");
   const unknownRoute = useIsUnknownRoute();
-  const { products, loading, error } = useProducts();
+  const { products, loading, error, retry: retryCatalog } = useProducts();
 
   // ALL hooks must be called before any conditional return (React rules of hooks).
   // Scroll to top on every page navigation. (Title + meta description are handled
@@ -14164,6 +14227,15 @@ function App() {
   // products-all.json is slow or unreachable. (DEPLOY_READINESS_v2 T2.1)
   const needsCatalog =
     page === "products" || page === "dashboard" || page === "datasheets";
+
+  // AUDIT-12 A12-L11-W5-G3-1 — entering a catalog route with a stored error
+  // tries again instead of replaying it. Keyed on the route only, so a failure
+  // ON a catalog route still shows Catalog Unavailable (its Retry reloads).
+  // A layout effect, so the stale panel is never painted before the skeleton.
+  useLayoutEffect(() => {
+    if (needsCatalog && error) retryCatalog();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   const renderPage = () => {
     // A5 — an unrecognised segment is a 404, not the homepage.
