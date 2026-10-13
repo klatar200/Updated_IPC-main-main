@@ -81,6 +81,15 @@ async function submit(fields, headers = {}) {
   return { status: res.status, body: await res.text() };
 }
 
+// RFC 2047 encoded-words (B and Q), adjacent words joined as the RFC says.
+function decodeMimeHeader(v) {
+  return String(v).replace(/\?=\s+=\?/g, '?==?').replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (_, cs, enc, txt) => {
+    const buf = /b/i.test(enc) ? Buffer.from(txt, 'base64')
+      : Buffer.from(txt.replace(/_/g, ' ').replace(/=([0-9A-Fa-f]{2})/g, (__, h) => String.fromCharCode(parseInt(h, 16))), 'latin1');
+    return buf.toString(/utf-?8/i.test(cs) ? 'utf8' : 'latin1');
+  });
+}
+
 // One payload, in every field, carrying everything at once.
 const MARK = 'A9C13';
 const NASTY = `${MARK} –°″µ🔥‏rtl‎`;
@@ -95,11 +104,14 @@ async function main() {
       const mailBefore = readMail().length;
       const r = await submit({
         form_type: 'rfq',
-        name: `${NASTY} name`,
+        // name and partNumber feed the Subject (contact.php), so they carry
+        // the CRLF payload too — without it the "no injected header" check
+        // below could not fail (AUDIT-12 A12-L13-W1-R1-1-3).
+        name: `${NASTY} name\r\nBcc: attacker@example.com\r\nX-Injected: yes`,
         company: `${NASTY} company`,
         email: 'c13rfq@example.com',
         phone: `${NASTY} 630`,
-        partNumber: `${NASTY} part <1/4 inch and >2 inch ID`,
+        partNumber: `${NASTY} part <1/4 inch and >2 inch ID\r\nX-Injected: yes`,
         material: `${NASTY} material`,
         quantity: `${NASTY} 100`,
         requiredDate: `${NASTY} soon`,
@@ -115,11 +127,22 @@ async function main() {
       if (row) {
         const faithful = ['name', 'company', 'phone', 'part', 'material', 'quantity', 'reqDate', 'notes']
           .filter((k) => typeof row[k] === 'string' && row[k].includes('–°″µ🔥'));
-        check('C13', 'every field is byte-faithful in the JSONL', faithful.length >= 7, { faithful, part: row.part }, 'the exact typed bytes, all 8 fields');
+        // === 8: ">= 7" passed with one field mangled (AUDIT-12 A12-L13-W1-R2-4-1).
+        check('C13', 'every field is byte-faithful in the JSONL', faithful.length === 8, { faithful, part: row.part }, 'the exact typed bytes, all 8 fields');
         check('C13', 'the literal `<1/4 inch and >2 inch ID` survives (invariant 10)', (row.part || '').includes('<1/4 inch and >2 inch ID'), { part: row.part }, 'no strip_tags, no double-escape');
       }
       check('C13', 'the sales email body carries the typed bytes', mail.includes('–°″µ🔥'), { present: mail.includes('–°″µ🔥') }, 'body faithful');
-      check('C13', 'no injected header reached the message', !/^X-Injected:/mi.test(mail) && !/^Bcc:/mi.test(mail), { injected: /^X-Injected:/mi.test(mail) }, 'hdr() strips CR/LF');
+      // The HEADER BLOCK of the sales message only: body-bound values keep
+      // their CR/LF on purpose (invariant 10), so the payload is expected in
+      // the body as text.
+      const rfqMsg = mail.split('===MESSAGE===').filter((x) => /To: sales@/.test(x))[0] || '';
+      const rfqHead = rfqMsg.split(/\r?\n\r?\n/)[0] || '';
+      // And the DECODED Subject carries no CR/LF: the Subject is base64-encoded,
+      // so the raw header block cannot show an injection even without hdr();
+      // what hdr() guarantees is that the text it builds has none.
+      const rfqSubj = decodeMimeHeader(((rfqHead.replace(/\r?\n[ \t]+/g, ' ').split('\n').find((l) => /^Subject:/.test(l))) || '').replace(/^Subject:\s*/, '').trim());
+      check('C13', 'no injected header reached the message', !!rfqHead && !/^X-Injected:/mi.test(rfqHead) && !/^Bcc:/mi.test(rfqHead) && !!rfqSubj && !/[\r\n]/.test(rfqSubj),
+        { headerLines: rfqHead.split('\n').map((x) => x.split(':')[0]), subjectHasCRLF: /[\r\n]/.test(rfqSubj) }, 'hdr() strips CR/LF');
     }
 
     // ── C13 — Message form, every field, with CRLF in the header-bound ones ─
@@ -150,8 +173,12 @@ async function main() {
         { n: subjLines.length, subject: (subjLines[0] || '').slice(0, 110) }, 'hdr() collapsed the CR/LF into one line');
       check('C13', 'no Bcc: or X-Injected: header in the header block', !/^Bcc:/mi.test(head) && !/^X-Injected:/mi.test(head),
         { headerLines: head.split('\n').map((x) => x.split(':')[0]) }, 'no header injection');
+      // The Subject is RFC 2047-encoded since PUB-5; decode the encoded words
+      // (after unfolding) before looking for the folded-in text, or a correct
+      // contact.php reads as a FAIL (AUDIT-12 A12-L13-W1-R1-1-1).
+      const subjDecoded = decodeMimeHeader(((head.replace(/\r?\n[ \t]+/g, ' ').split('\n').find((l) => /^Subject:/.test(l))) || '').replace(/^Subject:\s*/, '').trim());
       check('C13', 'the injected text survives as literal SUBJECT text, not as a header',
-        /Bcc: attacker@example\.com/.test(subjLines[0] || ''), { subject: (subjLines[0] || '').slice(0, 110) },
+        /Bcc: attacker@example\.com/.test(subjDecoded), { subject: subjDecoded.slice(0, 110) },
         'folded into the subject, which is the correct disposal');
       let row = null; try { row = JSON.parse(lines[lines.length - 1]); } catch (e) {}
       check('C13', 'the Message row is valid JSON with the body faithful', !!row && (row.message || '').includes('–°″µ🔥'), { message: row && (row.message || '').slice(0, 40) }, 'faithful');
