@@ -38,7 +38,7 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 | `uploads/images/` | read / write / delete (created at runtime if absent); photo resizes go through a `.tmp` beside the target |
 | `uploads/site/` | read / write, never delete (created at runtime if absent by `site-images.php`); page photos and the logo, named `<slot>-<stamp>.<ext>`. `images/site/` is read for its picker, never written |
 | `pdfs/.deleted.*`, `uploads/images/.deleted.*` | Delete Product, Remove PDF, Remove Photo and a photo replaced by another file type rename the unshared file to these; restoring a catalog backup renames them back. A second trash of the same name keeps the older one as `.deleted.<stamp>.<name>`. Never pruned (ADM-3, admin audit 2026-10-05) |
-| `admin/.pdf-renames.json` | read / write; the data sheets a SKU rename moved (last 500), so restoring the catalog from before the rename moves them back (DI-1) |
+| `admin/.pdf-renames.json` | read / write; the data sheets a SKU rename moved (last 500), so restoring the catalog from before the rename moves them back (DI-1) — and the moves a restore makes, so that restore can be undone too |
 | `uploads/.htaccess` | written by `uploads_protection_problem()` (Product photo and Site Images uploads) only if missing; both refuse uploads while it is still missing |
 | `admin/admin-log.jsonl` | append; rotated at 16MB |
 | `admin/admin-log-*.jsonl` | read (rotated archives, never deleted) |
@@ -48,7 +48,7 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 | `admin/.inquiry-log-failed.json` | read (written and cleared by `public/contact.php`; drives a dashboard warning) |
 | `admin/.login-throttle.json` | read / write |
 | `admin/.sessions/` | created (0700, with its own `.htaccess`); PHP's session files live here. Falls back to the server default if `admin/` is not writable |
-| `admin/config.local.php` | read / write (+ `.bak.*`, 5 kept) |
+| `admin/config.local.php` | read / write (+ `.bak.*`, 5 kept); written as `config.local.php.<pid>-<n>.tmp` and renamed in — a leftover `.tmp` means a killed process, and `admin/.htaccess` denies it |
 | `admin/ALLOW-PASSWORD-RESET` | read / delete — you create it over FTP; the admin never does |
 
 `public/contact.php` is a **second** dynamic piece: it ships into `dist/`,
@@ -373,9 +373,10 @@ you are in the admin.
 ## Changing the admin password
 
 **Normal case: use the admin.** Sign in and click **Password** in the top
-navigation. It rewrites `admin/config.local.php` in place, preserving any other
-defines in that file, backs the old one up, and re-verifies the new hash before
-declaring success. `admin/` must be writable by the PHP user for this to work —
+navigation. It rewrites `admin/config.local.php` (through a temporary file
+renamed into place, so an interrupted change leaves the old file whole),
+preserving any other defines in that file, backs the old one up, and re-verifies
+the new hash before declaring success. `admin/` must be writable by the PHP user for this to work —
 the dashboard shows a red banner if it isn't.
 
 The old two-step `_hash.php` FTP flow this file used to document is superseded
