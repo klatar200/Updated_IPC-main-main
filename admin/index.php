@@ -188,6 +188,24 @@ $navActive = 'products';
         . 'the Password page cannot save, and — because both depend on files in this folder — '
         . '<strong>the login cool-off that limits password guessing is switched off and failed sign-ins are not being recorded</strong>. '
         . 'Set admin/ to 755 (or 775) over FTP, then sign out and back in to confirm this warning is gone.' . $permFallback;
+  } else {
+      // A12-L3-01-1 / A12-L3-06-1 — admin_writable() is a bare
+      // is_writable(__DIR__), blind to ONE file in the folder being unwritable
+      // (uploaded with the folder, or left owned by another user after a host
+      // change). Each of these two then fails open in silence: audit_log()
+      // records nothing, and login_throttle_mutate() cannot open its file, so
+      // there is no cool-off at all. Same gap A-7.4 closed for inquiries.jsonl.
+      foreach ([
+          ['admin-log.jsonl', 'the activity log is not recording anything — sign-ins, failed password attempts and every edit go unrecorded'],
+          ['.login-throttle.json', '<strong>the login cool-off that limits password guessing is switched off</strong>'],
+      ] as [$adminFile, $adminEffect]) {
+          $p = __DIR__ . '/' . $adminFile;
+          if (file_exists($p) && (!is_file($p) || !is_writable($p))) {
+              $healthProblems[] = 'The file <code>admin/' . h($adminFile) . '</code> cannot be written by the web server, so '
+                . $adminEffect . '. Over FTP, set that file to 644 (or 664); if that does not clear this warning, '
+                . 'the file belongs to a different user than the web server — ask your host to give it to the same user as the admin folder.';
+          }
+      }
   }
   if (!data_writable()) {
       $healthProblems[] = 'The <code>data</code> folder is not writable by the web server. '
