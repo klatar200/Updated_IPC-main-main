@@ -706,7 +706,11 @@ function Navbar({ products = [], catalogFailed = false }) {
             alt=""
             width={46}
             height={46}
-            style={{ flexShrink: 0, display: "block" }}
+            // A12-L6-03-W5-1 — fitted by HEIGHT. Preflight's height:auto made
+            // the 46px width the only fixed side, so a wide uploaded wordmark
+            // (1200x120) drew as a 46x5 line and a tall one hung 25px out of
+            // the header. The shipped square logo renders exactly as before.
+            style={{ flexShrink: 0, display: "block", height: 46, width: "auto", maxWidth: "min(180px, 40vw)", objectFit: "contain" }}
           />
           {/* Full name — visible on sm+ */}
           <div className="hidden sm:block" style={{ textAlign: "left" }}>
@@ -3387,6 +3391,8 @@ function HomePage() {
   const mk = copy.homeMarkets;
   const img = copy.siteImages;
   const [slot, onSlotError] = useSiteImageSlots(img);
+  // A12-L6-03-W5-2 — both band photos present (see the band below).
+  const bandPair = !!(slot("bandTeamPhoto") && slot("bandBuildingPhoto"));
 
   /**
    * C30 — the fragment for a market card, or undefined if there is no section
@@ -3480,9 +3486,13 @@ function HomePage() {
             </PageLink>
           </p>
         </div>
-        <div className="ipc-container px-6 grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* A12-L6-03-W5-2 — with one of the two photos removed (Site Images
+            & Logo offers Remove Photo for each), the survivor stayed in its
+            own column at the left and the band was up to 69% empty. Alone, a
+            photo is centred at the two-column width the team photo has. */}
+        <div className={`ipc-container px-6 grid grid-cols-1 ${bandPair ? "md:grid-cols-3" : ""} gap-5`}>
           {slot("bandTeamPhoto") ? (
-          <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
+          <figure className={`${bandPair ? "md:col-span-2" : "md:w-2/3 md:justify-self-center"} m-0 rounded-2xl overflow-hidden`} style={{ border: "1px solid #e5e9ee" }}>
             <img
               src={slot("bandTeamPhoto")}
               onError={onSlotError}
@@ -3503,7 +3513,7 @@ function HomePage() {
              card ran 246px past its photo at 1440. Hugging the image beats
              stretching or cropping it: the file is at its resolution ceiling
              (PLAN-7 measured the upscale harm). */
-          <figure className="m-0 rounded-2xl overflow-hidden md:self-start" style={{ border: "1px solid #e5e9ee" }}>
+          <figure className={`${bandPair ? "" : "md:w-2/3 md:justify-self-center "}m-0 rounded-2xl overflow-hidden md:self-start`} style={{ border: "1px solid #e5e9ee" }}>
             <img
               src={slot("bandBuildingPhoto")}
               onError={onSlotError}
@@ -10434,7 +10444,7 @@ function ProductDetail({ product, allProducts }) {
               {/* C43 — decorative. The panel beneath states the SKU and
                   "product image coming soon"; the mark adds nothing a screen
                   reader needs. */}
-              <img src={site.theme?.logoUrl || "/logo.svg"} alt="" width={72} height={72} />
+              <img src={site.theme?.logoUrl || "/logo.svg"} alt="" width={72} height={72} style={{ height: 72, width: "auto", maxWidth: "80%", objectFit: "contain" }} />{/* A12-L6-03-W5-1 */}
               <div style={{ textAlign: "center" }}>
                 <div
                   style={{
@@ -11337,7 +11347,12 @@ function ProductPage({ products }) {
         />
         {/* scroll-margin: the sidebar pick scrolls this into view, and the
             sticky navbar would otherwise cover the title (A10-059). */}
-        <div ref={detailRef} className="flex-1 min-w-0" style={{ scrollMarginTop: 84 }}>
+        {/* A12-L6-11-1 — below lg the sidebar stacks ABOVE this column, so a
+            product link opened on a phone showed the 42-product pill grid
+            first and the product ~2,100px down. With a product open it comes
+            first there; the catalog landing keeps its order. lg:order-none
+            leaves the desktop row exactly as it was. */}
+        <div ref={detailRef} className={`flex-1 min-w-0${product ? " order-first lg:order-none" : ""}`} style={{ scrollMarginTop: 84 }}>
           {landing || notFound ? (
             <CatalogLanding
               products={visibleProducts}
@@ -12322,6 +12337,15 @@ function DashboardPage({ products }) {
                 {row.operatingTemp && (
                   <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 12 }}>
                     Operating temp: <span style={{ color: '#141414', fontWeight: 500 }}>{row.operatingTemp}</span>
+                  </div>
+                )}
+                {/* A12-L6-W5-G5-2 — the page promises "key specifications" and
+                    its search reads them, but below 640px the card had none, so
+                    a "MIL-I-631" search listed three cards with no sign of why.
+                    The same text the table's Specifications column shows. */}
+                {row.specs && (
+                  <div style={{ fontSize: 11, color: '#6b7280', lineHeight: 1.5, marginTop: -6, marginBottom: 12 }}>
+                    Specifications: <span style={{ color: '#141414', fontWeight: 500 }}>{trimToWord(row.specs, 91)}</span>
                   </div>
                 )}
                 <PageLink
@@ -14392,7 +14416,8 @@ function Footer() {
                 loading="lazy"
                 width={44}
                 height={44}
-                style={{ flexShrink: 0, display: "block" }}
+                // A12-L6-03-W5-1 — fitted by height, as in the navbar.
+                style={{ flexShrink: 0, display: "block", height: 44, width: "auto", maxWidth: "min(180px, 40vw)", objectFit: "contain" }}
               />
               <div>
                 <div
@@ -14590,210 +14615,84 @@ function Footer() {
  * blip into a total revenue outage. They are now scoped to the two pages that
  * actually need the catalog. (DEPLOY_READINESS_v2 T2.1)
  */
-function CatalogSkeleton() {
+/**
+ * A12-L6-14-2 — the skeleton previews the route that is loading. It used to be
+ * homepage-shaped (a 424px two-column hero, a stats strip and feature cards)
+ * on all three catalog routes, none of which looks like that, so the page
+ * re-flowed into a different structure the moment the catalog arrived. It is
+ * now the shape every catalog route shares: the breadcrumb row, the gradient
+ * page header (.ipc-page-header, in index.css — invariant 9) and the body —
+ * the sidebar and card grid on /products, a table on /dashboard, a card grid
+ * on /datasheets.
+ */
+function CatalogSkeleton({ page }) {
+  const bar = (w, h, extra = {}) => (
+    <div className="ipc-skeleton" style={{ width: w, height: h, borderRadius: 4, ...extra }} />
+  );
+  const card = (i) => (
+    <div
+      key={i}
+      style={{
+        background: "#fff",
+        border: "1px solid #e5e9ee",
+        borderRadius: 12,
+        padding: 16,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      {page === "products" ? bar("100%", 0, { aspectRatio: "3 / 2", height: "auto", borderRadius: 8 }) : null}
+      {bar("40%", 11)}
+      {bar("85%", 14)}
+      {bar("70%", 11)}
+    </div>
+  );
   return (
     <div style={{ display: "flex", flexDirection: "column" }} aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading the product catalog…</span>
-        {/* Skeleton Hero */}
-        <div
-          className="ipc-container grid grid-cols-1 lg:grid-cols-2"
-          style={{
-            background: "linear-gradient(135deg, var(--brand-primary), var(--brand-accent-2))",
-            padding: "60px 24px",
-            gap: 48,
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div
-              className="ipc-skeleton"
-              style={{
-                width: "40%",
-                height: 12,
-                borderRadius: 4,
-                opacity: 0.4,
-              }}
-            />
-            <div
-              className="ipc-skeleton"
-              style={{
-                width: "90%",
-                height: 36,
-                borderRadius: 6,
-                opacity: 0.4,
-              }}
-            />
-            <div
-              className="ipc-skeleton"
-              style={{
-                width: "80%",
-                height: 36,
-                borderRadius: 6,
-                opacity: 0.35,
-              }}
-            />
-            <div
-              className="ipc-skeleton"
-              style={{
-                width: "60%",
-                height: 36,
-                borderRadius: 6,
-                opacity: 0.3,
-              }}
-            />
-            <div
-              className="ipc-skeleton"
-              style={{
-                width: "85%",
-                height: 14,
-                borderRadius: 4,
-                opacity: 0.3,
-                marginTop: 8,
-              }}
-            />
-            <div
-              className="ipc-skeleton"
-              style={{
-                width: "75%",
-                height: 14,
-                borderRadius: 4,
-                opacity: 0.25,
-              }}
-            />
-            <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-              <div
-                className="ipc-skeleton"
-                style={{
-                  width: 140,
-                  height: 44,
-                  borderRadius: 8,
-                  opacity: 0.4,
-                }}
-              />
-              <div
-                className="ipc-skeleton"
-                style={{
-                  width: 130,
-                  height: 44,
-                  borderRadius: 8,
-                  opacity: 0.3,
-                }}
-              />
-            </div>
-          </div>
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
-          >
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="ipc-skeleton"
-                style={{ height: 90, borderRadius: 12, opacity: 0.3 }}
-              />
+      {/* Breadcrumb row — the same box Breadcrumb draws. */}
+      <div className="ipc-container" style={{ display: "flex", gap: 8, padding: "20px 24px 8px" }}>
+        {bar(40, 12)}
+        {bar(110, 12)}
+      </div>
+      {/* Page header band */}
+      <div className="ipc-page-header">
+        <div className="ipc-container px-6 py-12" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {bar(120, 11, { opacity: 0.4 })}
+          {bar("min(360px, 80%)", 36, { opacity: 0.4, borderRadius: 6 })}
+          {bar("min(560px, 90%)", 14, { opacity: 0.3 })}
+        </div>
+      </div>
+      {/* Body */}
+      <div className="ipc-container px-6 py-10" style={{ display: "flex", gap: 32 }}>
+        {page === "products" ? (
+          <div className="hidden lg:flex" style={{ width: 288, flexShrink: 0, flexDirection: "column", gap: 10 }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i}>{bar(i % 3 ? "75%" : "55%", 14)}</div>
             ))}
           </div>
-        </div>
-
-        {/* Skeleton Stats */}
-        <div
-          className="ipc-container grid grid-cols-2 md:grid-cols-4"
-          style={{
-            background: "#ffffff",
-            borderBottom: "1px solid #e5e9ee",
-            padding: "0 24px",
-          }}
-        >
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              style={{
-                padding: "28px 24px",
-                display: "flex",
-                gap: 16,
-                alignItems: "center",
-                borderRight: "none",
-              }}
-            >
-              <div
-                className="ipc-skeleton"
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 8,
-                  flexShrink: 0,
-                }}
-              />
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div
-                  className="ipc-skeleton"
-                  style={{ width: 48, height: 20, borderRadius: 4 }}
-                />
-                <div
-                  className="ipc-skeleton"
-                  style={{ width: 90, height: 12, borderRadius: 3 }}
-                />
-              </div>
+        ) : null}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
+          {bar("min(420px, 100%)", 40, { borderRadius: 8 })}
+          {page === "dashboard" ? (
+            <div style={{ background: "#fff", border: "1px solid #e5e9ee", borderRadius: 12, overflow: "hidden" }}>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} style={{ display: "flex", gap: 16, padding: "14px 16px", borderTop: i > 1 ? "1px solid #e5e9ee" : "none" }}>
+                  {bar("18%", 12)}
+                  {bar("30%", 12)}
+                  {bar("22%", 12)}
+                  {bar("14%", 12)}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-
-        {/* Skeleton Feature Cards */}
-        <div
-          className="ipc-container grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-          style={{
-            /* The horizontal half of the old `margin: "32px auto"` is now
-               .ipc-container's margin-inline; only the vertical rhythm is
-               this element's own. */
-            marginTop: 32,
-            marginBottom: 32,
-            padding: "0 24px",
-            gap: 20,
-          }}
-        >
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              style={{
-                background: "#fff",
-                border: "1px solid #e5e9ee",
-                borderRadius: 12,
-                padding: 24,
-                display: "flex",
-                gap: 16,
-              }}
-            >
-              <div
-                className="ipc-skeleton"
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 8,
-                  flexShrink: 0,
-                }}
-              />
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                <div
-                  className="ipc-skeleton"
-                  style={{ width: "70%", height: 14, borderRadius: 3 }}
-                />
-                <div
-                  className="ipc-skeleton"
-                  style={{ width: "95%", height: 11, borderRadius: 3 }}
-                />
-                <div
-                  className="ipc-skeleton"
-                  style={{ width: "80%", height: 11, borderRadius: 3 }}
-                />
-              </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map(card)}
             </div>
-          ))}
+          )}
         </div>
+      </div>
     </div>
   );
 }
@@ -14979,7 +14878,8 @@ function App() {
   }, [page]);
 
   // Animation 7 — Shimmer skeleton replaces the spinner.
-  // Previews the actual page layout so users see an almost-real page resolving.
+  // Previews the route's own layout (CatalogSkeleton, A12-L6-14-2) so users see
+  // an almost-real page resolving.
   // Only these three pages read the catalog. Everything else renders even when
   // products-all.json is slow or unreachable. (DEPLOY_READINESS_v2 T2.1)
   const needsCatalog =
@@ -15066,7 +14966,7 @@ function App() {
           <main className="flex-1" id="ipc-main" tabIndex={-1} style={{ outline: "none" }}>
             <ErrorBoundary key={page} resetKey={productParam || ""}>
               {needsCatalog && loading ? (
-                <CatalogSkeleton />
+                <CatalogSkeleton page={page} />
               ) : needsCatalog && error ? (
                 <CatalogError error={error} />
               ) : (
