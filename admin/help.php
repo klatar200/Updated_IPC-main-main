@@ -481,7 +481,7 @@ $navActive = 'help';
               <tr><td>Additional PDF Links</td><td>One per line, formatted as <code>/pdfs/filename.pdf | Button Label</code> (the label is optional). Each line adds an extra download button, for products that ship with more than one document.</td></tr>
             </table>
             <div class="callout callout-warning">
-              <b>Additional PDF files need developer help</b>
+              <b>Adding a second PDF file yourself</b>
               This field only creates the extra download <em>button and link</em> — it does not upload a file. The product's <strong>Manage PDF</strong> page handles its one primary data sheet. To add a second or third PDF yourself: upload it on <a href="#marketingpdfs">Catalog &amp; Brochure PDFs</a> with <em>Just upload it — I will choose later</em>, copy the address it shows (for example <code>/pdfs/marketing/Plugged-Cap.pdf</code>), and put that address on a line here. The save message warns you if an address points at no file.
             </div>
           </li>
@@ -500,7 +500,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-warning">
           <b>"This product was changed by another session" message</b>
-          If a co-worker (or you, in another browser tab) saved a change to this same product while you had this edit page open, your save will be stopped with this message instead of silently overwriting theirs. Reload the page to see the current version, then re-apply your change.
+          If a co-worker (or you, in another browser tab) saved a change to this same product while you had this edit page open, your save will be stopped with this message instead of silently overwriting theirs. What you typed is still filled in on the page — do not reload it, or your typing is lost. To see the other change, open the product in another tab. Clicking <strong>Save Changes</strong> again keeps what is on your page and replaces the other change.
         </div>
         <div class="callout callout-tip">
           <b>Part Type showing "(current — non-standard)"</b>
