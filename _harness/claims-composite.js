@@ -31,6 +31,14 @@ const norm = (s) => String(s)
   .replace(/\s+/g, ' ').trim();
 
 const liveFile = path.join(OUT, 'live', 'index-live.js');
+// No corpus, no provenance. Without this every part read "NO-CORPUS", no part
+// read "no", and all 82 claims came out INHERITED — STAT-2, registered as
+// INTRODUCED-UNSOURCED, included (AUDIT-12 A12-L13-06-2). Stop, as
+// claims-provenance.js does.
+if (!fs.existsSync(liveFile)) {
+  console.error(`missing ${liveFile} — capture it first (read-only GET of /site/assets/index-*.js); without it provenance is unknown, not INHERITED`);
+  process.exit(2);
+}
 const live = fs.existsSync(liveFile)
   ? norm(fs.readFileSync(liveFile, 'utf8')
       .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16))))
