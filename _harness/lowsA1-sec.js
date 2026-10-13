@@ -3,7 +3,7 @@
  * (§2, verified in §6): SEC-6, 8, 9, 10, 11, 12 (= ADM-15), 13, 14, 16.
  *
  * Own `php -S` on :8712 over the mirror (php-mail.ini), a cookie-jar HTTP
- * client, plus PHP CLI calls into the mirror's own config.php. 18 checks:
+ * client, plus PHP CLI calls into the mirror's own config.php. 21 checks:
  *   SEC-6   IPv6 addresses in one /64 share a throttle record (6 free
  *           attempts across ::1..::6, the 7th from ::7 is refused); control:
  *           another /64 is untouched. A throttle file of 20,000 records is cut
@@ -18,10 +18,16 @@
  *   SEC-12  pdf_file[] / image_file[] give a message, never a fatal
  *   SEC-13  a future-dated ALLOW-PASSWORD-RESET does not open the reset form;
  *           control: a fresh one does
+ *   B4      GO-LIVE B4 end to end (AUDIT-12 A12-L13-W5-G4-1): with NO
+ *           config.local.php and a fresh flag, an anonymous Set Admin Password
+ *           submit writes config.local.php as PHP, deletes the flag, signs
+ *           that browser in with no hash on the page, and the new password
+ *           signs in from a fresh browser
  *   SEC-14  a password longer than bcrypt's 72 bytes is refused
  *   SEC-16  admin/.htaccess's CSP carries form-action 'self' (source check —
  *           php -S ignores .htaccess)
- * Restores the catalog, inquiry log, seen mark, throttle file and flag.
+ * Restores the catalog, inquiry log, seen mark, throttle file, flag and the
+ * mirror's config.local.php (deleting any .bak the run caused).
  *
  *   node _harness/lowsA1-sec.js
  */
@@ -110,6 +116,7 @@ const THROTTLE = path.join(ADMIN, '.login-throttle.json');
 const INQ = path.join(ADMIN, 'inquiries.jsonl');
 const SEEN = path.join(ADMIN, '.inquiries-seen.json');
 const FLAG = path.join(ADMIN, 'ALLOW-PASSWORD-RESET');
+const LOCAL = path.join(ADMIN, 'config.local.php');
 const CATALOG = path.join(SITE, 'data', 'products-all.json');
 
 (async () => {
@@ -117,7 +124,8 @@ const CATALOG = path.join(SITE, 'data', 'products-all.json');
     console.log(`lowsA1-sec: port ${PORT} is already in use — stop that server first`);
     process.exit(2);
   }
-  [THROTTLE, INQ, SEEN, FLAG].forEach(saveFile);
+  [THROTTLE, INQ, SEEN, FLAG, LOCAL].forEach(saveFile);
+  const baksBefore = new Set(fs.readdirSync(ADMIN).filter((f) => f.startsWith('config.local.php.bak.')));
   fs.copyFileSync(path.join(PRISTINE, 'products-all.json'), CATALOG);
   const srv = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', SITE, '-c', path.join(__dirname, 'php-mail.ini'),
     path.join(__dirname, 'router.php')], { cwd: SITE, stdio: 'ignore' });
@@ -218,6 +226,35 @@ const CATALOG = path.join(SITE, 'data', 'products-all.json');
     note(/name="set_password"/.test(r13b.body), 'SEC-13: control — a freshly uploaded flag does');
     fs.rmSync(FLAG, { force: true });
 
+    // ── GO-LIVE B4: Set Admin Password, end to end, from day one ──
+    // Nothing submitted this form before: the census found set_password only
+    // as a presence regex above, so the reset handler and the create-file
+    // branch of admin_password_write() (taken only when config.local.php does
+    // not exist yet) could break with every suite green (AUDIT-12
+    // A12-L13-W5-G4-1). No config.local.php, a fresh flag, an anonymous visitor.
+    {
+      const NEWPW = 'day-one-password-4417';
+      fs.rmSync(LOCAL, { force: true });
+      fs.writeFileSync(FLAG, '');
+      jar.clear();
+      const g = await req('GET', '/admin/auth.php');
+      const r = await post('/admin/auth.php', [['new_password', NEWPW], ['confirm_password', NEWPW], ['set_password', '1'], ['csrf_token', csrfOf(g.body)]]);
+      const written = fs.existsSync(LOCAL) ? fs.readFileSync(LOCAL, 'utf8') : '';
+      note(r.status === 302 && /index\.php/.test(r.headers.location || '') && /^<\?php\b/.test(written) && /ADMIN_PASSWORD_HASH/.test(written) && !fs.existsSync(FLAG),
+        'B4: Set Admin Password writes config.local.php as PHP, deletes the flag and redirects to the dashboard',
+        `status ${r.status} ${r.headers.location || ''}; config.local.php ${written ? JSON.stringify(written.slice(0, 12)) : 'MISSING'}; flag ${fs.existsSync(FLAG) ? 'still there' : 'gone'}`);
+      const d = await req('GET', '/admin/index.php');
+      note(d.status === 200 && !/\$2y\$/.test(d.body), 'B4: and the browser that set it is signed in, with no hash printed on the page', `status ${d.status}`);
+      jar.clear();
+      const g2 = await req('GET', '/admin/auth.php');
+      const li = await post('/admin/auth.php', [['password', NEWPW], ['csrf_token', csrfOf(g2.body)]]);
+      note(li.status === 302 && !/\$2y\$/.test(li.body), 'B4: the new password signs in from a fresh browser', `status ${li.status}`);
+      restoreFile(LOCAL);
+      fs.rmSync(FLAG, { force: true });
+      jar.clear();
+      if (!(await login())) throw new Error('could not sign back in with the harness password after B4');
+    }
+
     // ── SEC-14 (CLI) ──
     const long = 'a'.repeat(73);
     const p14 = php(`echo json_encode(admin_password_problems(${JSON.stringify(long)}, ${JSON.stringify(long)}, false));`);
@@ -228,7 +265,8 @@ const CATALOG = path.join(SITE, 'data', 'products-all.json');
     note(/Content-Security-Policy "[^"]*form-action 'self'/.test(ht), "SEC-16: the admin CSP carries form-action 'self'");
   } finally {
     srv.kill();
-    [THROTTLE, INQ, SEEN, FLAG].forEach(restoreFile);
+    [THROTTLE, INQ, SEEN, FLAG, LOCAL].forEach(restoreFile);
+    for (const f of fs.readdirSync(ADMIN)) if (f.startsWith('config.local.php.bak.') && !baksBefore.has(f)) fs.rmSync(path.join(ADMIN, f), { force: true });
     fs.copyFileSync(path.join(PRISTINE, 'products-all.json'), CATALOG);
   }
   const bad = results.filter((r) => !r.ok).length;
