@@ -2323,6 +2323,18 @@ function uploads_protection_problem(): string {
     return '';
 }
 
+/**
+ * A12-L2-W1-G3-2 — PHP received the upload but may not read its temp file
+ * (open_basedir that leaves out upload_tmp_dir). The type checks then failed
+ * and the owner was told his valid PDF or JPG was the wrong kind of file.
+ */
+function upload_tmp_unreadable_problem(string $tmp, string $what): string {
+    if ($tmp === '' || @is_readable($tmp)) return '';
+    return "The server received the {$what} but its PHP settings do not let the dashboard read uploaded files "
+         . '(open_basedir does not include the upload temporary folder). Nothing is wrong with your file. '
+         . 'This is a hosting setting — contact your developer.';
+}
+
 // Everything that decides whether an uploaded file is a usable, safe image:
 // extension AND sniffed MIME agree (A-5.x), no PHP tag anywhere in the bytes
 // (A-9.P3-2 / NEW-V1-1), 8 MB, the pixel ceiling BEFORE any decode (SEC-2),
@@ -2331,12 +2343,13 @@ function uploads_protection_problem(): string {
 function uploaded_image_problem(array $file, ?string &$ext = null): string {
     $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
     $tmp = (string)($file['tmp_name'] ?? '');
+    if (($p = upload_tmp_unreadable_problem($tmp, 'photo')) !== '') return $p;
     $sniffed  = @getimagesize($tmp);
     $mimeType = $sniffed !== false ? (string)($sniffed['mime'] ?? '') : '';
     if ($mimeType !== '' && function_exists('finfo_open')) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $fmime = finfo_file($finfo, $tmp);
-        finfo_close($finfo);
+        if (PHP_VERSION_ID < 80000) finfo_close($finfo);   // A12-L2-W1-G1-1: deprecated in 8.5, a no-op since 8.0
         if ($fmime !== $mimeType) $mimeType = '';
     }
     $raw       = (string)@file_get_contents($tmp, false, null, 0, 8 * 1024 * 1024 + 1);
@@ -2373,19 +2386,91 @@ function image_resize_note(bool $wasResized, string $reason, string $what = 'thi
             ? ' ⚠ This server cannot resize images (its image tools are not installed), so the photo has been'
               . ' saved at its original size and ' . $what . ' may load slowly. Please resize it to about '
               . IMG_MAX_WIDTH . ' pixels wide and upload it again, or ask the host to enable the PHP "gd" extension.'
-            : '');
+            // A12-L4-03-2 — every other reason a large photo was NOT scaled
+            // down (a GIF, which is never flattened; one the server could not
+            // decode, turn or rewrite) was silent, so the owner never learned
+            // the page now carries a full-size picture.
+            : (!$wasResized && !in_array($reason, ['', 'already-small'], true)
+                ? ' ⚠ It was saved at its original size, so ' . $what . ' may load slowly on a phone. '
+                  . 'To keep it fast, resize it to about ' . IMG_MAX_WIDTH . ' pixels wide'
+                  . ' and upload it again.'
+                : ''));
+}
+
+/**
+ * The EXIF Orientation of a JPEG (1-8; 1 when absent or unreadable). Uses the
+ * exif extension where it is installed and otherwise reads the one tag from
+ * the APP1 segment itself, so a host without exif still gets it right.
+ * (A12-L11-W5-G4-1)
+ */
+function jpeg_exif_orientation(string $path): int {
+    if (function_exists('exif_read_data')) {
+        $e = @exif_read_data($path);
+        $o = is_array($e) ? (int)($e['Orientation'] ?? 1) : 1;
+        return ($o >= 1 && $o <= 8) ? $o : 1;
+    }
+    $d = (string)@file_get_contents($path, false, null, 0, 256 * 1024);
+    return jpeg_exif_orientation_from_bytes($d);
+}
+
+function jpeg_exif_orientation_from_bytes(string $d): int {
+    $n = strlen($d);
+    if ($n < 4 || substr($d, 0, 2) !== "\xFF\xD8") return 1;
+    $pos = 2;
+    while ($pos + 4 <= $n && $d[$pos] === "\xFF") {
+        $marker = ord($d[$pos + 1]);
+        if ($marker === 0xDA || $marker === 0xD9) break;               // image data / end
+        $len = unpack('n', substr($d, $pos + 2, 2))[1];
+        if ($len < 2) break;
+        if ($marker === 0xE1 && substr($d, $pos + 4, 6) === "Exif\0\0") {
+            $t  = $pos + 10;                                         // TIFF header
+            $le = substr($d, $t, 2) === 'II';
+            if (!$le && substr($d, $t, 2) !== 'MM') return 1;
+            $u16 = function (int $at) use ($d, $le) { $v = unpack($le ? 'v' : 'n', substr($d, $at, 2)); return $v ? $v[1] : 0; };
+            $u32 = function (int $at) use ($d, $le) { $v = unpack($le ? 'V' : 'N', substr($d, $at, 4)); return $v ? $v[1] : 0; };
+            $ifd = $t + $u32($t + 4);
+            if ($ifd + 2 > $n) return 1;
+            $count = $u16($ifd);
+            for ($i = 0; $i < $count && $ifd + 2 + ($i + 1) * 12 <= $n; $i++) {
+                $e = $ifd + 2 + $i * 12;
+                if ($u16($e) === 0x0112) {
+                    $o = $u16($e + 8);
+                    return ($o >= 1 && $o <= 8) ? $o : 1;
+                }
+            }
+            return 1;
+        }
+        $pos += 2 + $len;
+    }
+    return 1;
+}
+
+/** The gd image turned upright for EXIF orientation 2-8, or null if gd cannot. */
+function image_apply_orientation($im, int $o) {
+    if (!function_exists('imagerotate') || !function_exists('imageflip')) return null;
+    $rotate = [3 => 180, 4 => 180, 5 => -90, 6 => -90, 7 => 90, 8 => 90][$o] ?? 0;
+    if ($rotate !== 0) {
+        $r = @imagerotate($im, $rotate, 0);
+        if (!$r) return null;
+        imagedestroy($im);
+        $im = $r;
+    }
+    if (in_array($o, [2, 4, 5, 7], true) && !@imageflip($im, IMG_FLIP_HORIZONTAL)) return null;
+    return $im;
 }
 
 function image_downscale_in_place(string $path, string $ext, ?string &$reason = null): bool {
     $reason = '';
     if (!extension_loaded('gd') || !function_exists('imagescale')) { $reason = 'no-gd'; return false; }
     $ext = strtolower($ext);
-    if ($ext === 'gif') { $reason = 'animation'; return false; }   // never flatten an animation
     $info = @getimagesize($path);
     if (!is_array($info) || empty($info[0])) { $reason = 'unreadable'; return false; }
     $w = (int)$info[0];
     $h = (int)($info[1] ?? 0);
     if ($w <= IMG_MAX_WIDTH) { $reason = 'already-small'; return false; }
+    // After the width test, so a small GIF reads as small (A12-L4-03-2: the
+    // note for a photo kept at full size must not fire on every GIF).
+    if ($ext === 'gif') { $reason = 'animation'; return false; }   // never flatten an animation
     // Too big to decode safely — keep the upload at its original size. GD
     // allocates outside the Zend allocator, so memory_limit does not bound
     // this; the input is what has to be bounded. (audit-runs/audit6.md A-6.6)
@@ -2396,6 +2481,20 @@ function image_downscale_in_place(string $path, string $ext, ?string &$reason = 
     if (!isset($loaders[$ext]) || !function_exists($loaders[$ext])) { $reason = 'no-loader'; return false; }
     $src = @$loaders[$ext]($path);
     if (!$src) { $reason = 'decode-failed'; return false; }
+
+    // A12-L11-W5-G4-1 — a phone held upright saves the pixels sideways plus an
+    // EXIF "Orientation" tag; browsers turn it on display. The re-encode below
+    // writes no EXIF, so the scaled photo lay on its side on the site. Turn
+    // the pixels first. If they cannot be turned, keep the original (its tag
+    // still displays it upright) rather than publish it sideways.
+    if ($ext === 'jpg' || $ext === 'jpeg') {
+        $orientation = jpeg_exif_orientation($path);
+        if ($orientation > 1) {
+            $turned = image_apply_orientation($src, $orientation);
+            if (!$turned) { imagedestroy($src); $reason = 'no-rotate'; return false; }
+            $src = $turned;
+        }
+    }
 
     $dst = @imagescale($src, IMG_MAX_WIDTH);
     if (!$dst) { imagedestroy($src); $reason = 'scale-failed'; return false; }
@@ -2658,10 +2757,11 @@ function pdf_renames_load(): array {
  */
 function uploaded_pdf_problem(array $file): string {
     $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+    if (($p = upload_tmp_unreadable_problem((string)($file['tmp_name'] ?? ''), 'PDF')) !== '') return $p;
     if (function_exists('finfo_open')) {
         $finfo    = finfo_open(FILEINFO_MIME_TYPE);
         $mimeType = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
+        if (PHP_VERSION_ID < 80000) finfo_close($finfo);   // A12-L2-W1-G1-1: deprecated in 8.5, a no-op since 8.0
     } else {
         $head     = (string)@file_get_contents($file['tmp_name'], false, null, 0, 5);
         $mimeType = $head === '%PDF-' ? 'application/pdf' : '';
@@ -2813,14 +2913,19 @@ function image_in_use(array $products, string $basename): bool {
  * .user.ini would not have moved either one. (AUDIT_v3_FINDINGS D6)
  */
 function min_upload_label(int $ownCapMb): string {
-    $ini   = (string)ini_get('upload_max_filesize');
-    $bytes = 0;
-    if (preg_match('/^\s*(\d+(?:\.\d+)?)\s*([KMG])?/i', $ini, $m)) {
-        $mult  = ['' => 1, 'K' => 1024, 'M' => 1048576, 'G' => 1073741824];
-        $bytes = (int)((float)$m[1] * $mult[strtoupper($m[2] ?? '')]);
+    // A12-L2-02-1 — post_max_size too: the file has to fit in the whole
+    // request, so where it is the smaller figure it is the one that applies.
+    // (0 or unparseable means no limit from that setting.)
+    $mb = $ownCapMb;
+    foreach (['upload_max_filesize', 'post_max_size'] as $key) {
+        $ini   = (string)ini_get($key);
+        $bytes = 0;
+        if (preg_match('/^\s*(\d+(?:\.\d+)?)\s*([KMG])?/i', $ini, $m)) {
+            $mult  = ['' => 1, 'K' => 1024, 'M' => 1048576, 'G' => 1073741824];
+            $bytes = (int)((float)$m[1] * $mult[strtoupper($m[2] ?? '')]);
+        }
+        if ($bytes > 0) $mb = min($mb, $bytes / 1048576);
     }
-    $iniMb = $bytes > 0 ? $bytes / 1048576 : $ownCapMb;
-    $mb    = min($iniMb, $ownCapMb);
     return ($mb >= 1 ? (string)round($mb) : rtrim(rtrim(number_format($mb, 1), '0'), '.')) . 'MB';
 }
 
@@ -2847,6 +2952,13 @@ function upload_error_message(int $code, string $what = 'file'): string {
         case UPLOAD_ERR_PARTIAL:
             return "The upload was interrupted and only part of the {$what} arrived. Please try again.";
         case UPLOAD_ERR_NO_FILE:
+            // A12-L2-W1-G3-2 — with file_uploads off PHP drops every file, so
+            // "please choose one" blamed the owner for the server setting.
+            $fu = ini_get('file_uploads');
+            if ($fu !== false && !filter_var($fu, FILTER_VALIDATE_BOOLEAN)) {
+                return "This server has file uploads switched off (the PHP setting file_uploads), so the {$what} never arrived. "
+                     . 'Nothing is wrong with your file. This is a hosting setting — contact your developer.';
+            }
             // "a image" — pick the article from the word. (AUDIT_v3 NB18)
             return 'Please choose ' . (strpos('aeiou', strtolower($what[0] ?? 'f')) !== false ? 'an' : 'a')
                  . " {$what} to upload.";
