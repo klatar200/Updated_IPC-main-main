@@ -18,7 +18,9 @@
  *               the restore is what ends on disk
  *   no-deadlock a catalog save (edit.php POST, which READS content.json while
  *               holding the catalog lock) does not wait for a held content lock
- *   pages       content.php and settings.php take the lock BEFORE their read
+ *   pages       content.php, settings.php and marketing-pdfs.php take the lock
+ *               BEFORE their read — each real page POSTed inside the slow
+ *               writer's window, and the slow change must survive
  *
  * Own `php -S` on :8727 over the mirror; restores the mirror's data from
  * _harness/pristine/ in a finally.
@@ -136,11 +138,39 @@ const reset = () => { for (const f of ['content.json', 'site-info.json', 'produc
     note(ep.status === 302 && took < 1500, `no-deadlock: an edit.php save does not wait on a held content lock (${took} ms)`, `status ${ep.status}`);
 
     // ── the pages lock before they read ──
-    for (const [file, which, load] of [['content.php', 'content', 'load_content()'], ['settings.php', 'site-info', 'load_site_info()']]) {
-      const src = fs.readFileSync(path.join(ROOT, 'admin', file), 'utf8');
-      const li = src.indexOf(`data_write_lock('${which}')`);
-      const ri = src.indexOf(load);
-      note(li > -1 && li < ri, `pages: ${file} takes the ${which} lock before ${load}`);
+    // Run, not read. This arm was a source search, so a lock commented out or
+    // gated on a never-true condition still passed (AUDIT-12 A12-L13-15-2),
+    // and marketing-pdfs.php — which writes both files — was not in it at all
+    // (A12-L13-02-W5-2). The REAL page's POST lands 0.3 s into the slow
+    // writer's load → save window. A page that locks before its read waits,
+    // then reads the slow writer's change; one that reads first holds a stale
+    // copy, waits only inside save_*(), and writes the change away.
+    //   settings.php / content.php  orig_sig is from BEFORE the slow save, so
+    //       a locked page refuses the save as stale; either way the slow
+    //       writer's change must still be on disk.
+    //   marketing-pdfs.php  no signature: both changes must survive.
+    {
+      const pageArm = async (label, which, getPath, fields, check) => {
+        reset();
+        const g = await a.req('GET', getPath);
+        const pairs = fields(g.body);
+        const sw = run(slow(which, 1500));
+        await wait(300);
+        const pr = await a.post(getPath, pairs);
+        const out = await sw;
+        const r = check(pr);
+        note(out === 'saved' && r.ok, label, `slow=${out} page=${pr.status} ${r.detail}`);
+      };
+      await pageArm('pages: settings.php locks before its read — the slow writer\'s change survives its save', 'site-info',
+        '/admin/settings.php', (html) => a.formFields(html, /orig_sig/),
+        () => { const s = readJ('site-info.json').company.slogan || ''; return { ok: /SEC5B-SLOW/.test(s), detail: `slogan ${JSON.stringify(s.slice(-24))}` }; });
+      await pageArm('pages: content.php locks before its read — the slow writer\'s change survives its save', 'content',
+        '/admin/content.php', (html) => a.formFields(html, /orig_sig/),
+        () => { const q = readJ('content.json').faq[0].question; return { ok: /SEC5B-SLOW/.test(q), detail: `faq0 ${JSON.stringify(q.slice(-24))}` }; });
+      const mk = fs.readdirSync(path.join(SITE, 'pdfs', 'marketing')).filter((n) => /\.pdf$/i.test(n)).sort()[0];
+      await pageArm('pages: marketing-pdfs.php locks before its read — a catalog pick and the slow change both survive', 'site-info',
+        '/admin/marketing-pdfs.php', (html) => [['csrf_token', a.csrfOf(html)], ['action', 'use'], ['file', mk], ['target', 'catalog']],
+        (pr) => { const i = readJ('site-info.json'); return { ok: pr.status === 302 && /SEC5B-SLOW/.test(i.company.slogan || '') && i.catalogPdfUrl === `/pdfs/marketing/${mk}`, detail: `slogan ${JSON.stringify((i.company.slogan || '').slice(-24))} catalog ${JSON.stringify(i.catalogPdfUrl)}` }; });
     }
   } finally {
     srv.kill();
