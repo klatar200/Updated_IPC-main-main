@@ -24,7 +24,8 @@
  * PageMeta in src/App.jsx computes the head the visitor's browser ends up
  * with, and it overwrites whatever this file wrote. Everything below that
  * produces a head value is a PORT of that code — findProductByParam,
- * fitProductTitle, trimToWord, localizeProse, isoRewriter, factsRewriter,
+ * fitProductTitle, nameHasSku, trimToWord, localizeProse, isoRewriter,
+ * factsRewriter, seoDefaultDesc, productImageAbs, PAGE_LABELS,
  * mergeSiteInfo's blank-drop — and the two must agree. `_harness/prerender.js`
  * diffs this file's head against the browser's for every route and every
  * product, under the shipped data and under mutated data. It is the drift
@@ -51,6 +52,7 @@ const IPC_META_TITLE_MAX = 60;
 const IPC_META_DESC_MAX = 160;
 const IPC_OG_CARD = ['/images/og-card.jpg', 1200, 630];
 const IPC_OG_PHOTO = [400, 300];
+const IPC_OG_CARD_ALT = 'Insulation Products Corporation — heat shrink tubing, sleeving and adhesives';
 
 /** SEO_DEFAULT in src/App.jsx — the ten routes and their default head copy. */
 function ipc_seo_default()
@@ -93,7 +95,18 @@ function ipc_site_defaults()
         'hours' => ['text' => 'Mon–Fri, 8am–5pm CT'],
         'certifications' => ['iso' => 'ISO 9001'],
         'stats' => ['feetInStock' => '25 million', 'minimumOrder' => '$50'],
+        'theme' => ['darkColor' => '#0d2d52'],
     ];
+}
+
+/**
+ * PAGE_LABELS — the visible heading of the two routes that have no Page
+ * Content header group. Without it the fallback title-cased the route key and
+ * the no-JS h1 read "Dashboard" / "Products" (A12-L10-W3-G1-1, A12-L6-W5-G1-1).
+ */
+function ipc_page_labels()
+{
+    return ['products' => 'Product Catalog', 'dashboard' => 'Product Index'];
 }
 
 // ── String helpers: JavaScript semantics without mbstring ───────────────────
@@ -103,8 +116,12 @@ function ipc_site_defaults()
 // so every cap below would fire early. preg_split('//u') is PCRE, which every
 // PHP build has.
 
-/** JavaScript's whitespace class (\s), which PCRE's \s alone does not match. */
-const IPC_WS = '\s\x{00A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}';
+/**
+ * JavaScript's whitespace class (\s) and String.prototype.trim(), spelled out.
+ * Not PCRE's \s: under /u that is Unicode White_Space, which also takes U+0085
+ * (and U+180E on older PCRE) — characters JavaScript keeps (A12-L5-W2-G5-2).
+ */
+const IPC_WS = '\x{0009}-\x{000D}\x{0020}\x{00A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}\x{FEFF}';
 
 function ipc_chars($s)
 {
@@ -176,6 +193,20 @@ function ipc_trim_to_word($text, $max)
     return preg_replace('/[' . IPC_WS . ',;:.—–\/·-]+$/u', '', $cut) . '…';
 }
 
+/**
+ * nameHasSku() — the SKU as a whole token of the name, ASCII case-insensitive.
+ * A raw substring test found "CT" inside "Electrical" (A12-L10-01-1), and
+ * JavaScript's toUpperCase() folds "ı" and "ß" to ASCII where strtoupper()
+ * does not (A12-L15-01-W5-1), so only ASCII letters are folded, on both sides.
+ */
+function ipc_name_has_sku($name, $sku)
+{
+    if ($sku === '') {
+        return false;
+    }
+    return (bool)preg_match('/(?<![A-Z0-9])' . preg_quote(strtoupper($sku), '/') . '(?![A-Z0-9])/', strtoupper((string)$name));
+}
+
 /** fitProductTitle() */
 function ipc_fit_product_title($label, $sku, $company, $shortName)
 {
@@ -190,12 +221,24 @@ function ipc_fit_product_title($label, $sku, $company, $shortName)
     if (ipc_len($label) <= IPC_META_TITLE_MAX) {
         return $label;
     }
-    $tail = ($sku !== '' && substr($label, -strlen($sku)) === $sku) ? ' — ' . $sku : '';
+    // A12-L15-10-2 — the SKU survives when it sits inside the name too, not
+    // only when it was appended as " — SKU".
+    $tail = '';
+    $head = $label;
+    if ($sku !== '' && substr($label, -strlen(' — ' . $sku)) === ' — ' . $sku) {
+        $tail = ' — ' . $sku;
+        $head = ipc_slice($label, 0, ipc_len($label) - ipc_len($tail));
+    } elseif ($sku !== '') {
+        $plain = ipc_trim_to_word($label, IPC_META_TITLE_MAX);
+        if (ipc_name_has_sku($plain, $sku)) {
+            return $plain;
+        }
+        $tail = ' — ' . $sku;
+    }
     $budget = IPC_META_TITLE_MAX - ipc_len($tail);
     if ($budget < 12) {
         return $sku !== '' ? $sku : ipc_slice($label, 0, IPC_META_TITLE_MAX);
     }
-    $head = $tail !== '' ? ipc_slice($label, 0, ipc_len($label) - ipc_len($tail)) : $label;
     return ipc_trim_to_word($head, $budget) . $tail;
 }
 
@@ -217,8 +260,12 @@ function ipc_merge_site(array $data)
             if (!is_string($val)) {
                 continue;
             }
-            if (ipc_trim($val) === '' && !isset($clearable[$section . '.' . $key])) {
-                continue;
+            if (ipc_trim($val) === '') {
+                if (!isset($clearable[$section . '.' . $key])) {
+                    continue;
+                }
+                // A12-L5-02-W5-2 — a clearable field holding only spaces is cleared.
+                $val = '';
             }
             $out[$section][$key] = $val;
         }
@@ -272,7 +319,9 @@ function ipc_iso_rewriter($iso)
     if ($src === '') {
         return null;
     }
-    $token = '/\bISO\s*9001(\s*:\s*\d{4})?/iu';
+    // A12-L5-05-3 — a revision written "-2015", "–2015" or " 2015" is part of
+    // the token too, or it survived the rewrite as "ISO 9001:2015-2015".
+    $token = '/\bISO\s*9001(\s*[:\-\x{2013}]\s*\d{4}\b|\s+\d{4}\b)?/iu';
     if (!preg_match('/^\s*ISO\s*9001(?:\s*:\s*(\d{4}))?\s*$/iu', $src, $m)) {
         $to = $src;
     } elseif (isset($m[1]) && $m[1] !== '') {
@@ -330,6 +379,12 @@ function ipc_facts_rewriter(array $site)
     $feet = $val($site['stats']['feetInStock']);
     if ($feet !== '' && $feet !== $D['stats']['feetInStock']) {
         $rules[] = [$lit($D['stats']['feetInStock']), $feet];
+        // A12-L8-W4-G2-1 — the title-case form ("25 Million Feet in Stock."),
+        // as factsRewriter() in App.jsx.
+        $title = function ($x) { return preg_replace_callback('/\b[a-z]/', function ($c) { return strtoupper($c[0]); }, $x); };
+        if ($title($D['stats']['feetInStock']) !== $D['stats']['feetInStock']) {
+            $rules[] = [$lit($title($D['stats']['feetInStock'])), $title($feet)];
+        }
         $short = preg_match('/^(\d+(?:\.\d+)?)\s*(?:million|M)\+?$/i', $feet, $m) ? $m[1] . 'M' : $feet;
         if (preg_match('/^(\d+(?:\.\d+)?)/', $D['stats']['feetInStock'], $dm)) {
             $rules[] = ['/(?<![\d.])' . str_replace('.', '\.', $dm[1]) . 'M(?=\+|\b)/u', $short];
@@ -339,12 +394,36 @@ function ipc_facts_rewriter(array $site)
     if (!$rules) {
         return null;
     }
-    return function ($text) use ($rules) {
+    // AUDIT-12 A12-L15-W2-G3-1 — a rule's OUTPUT is never re-read by a later
+    // rule (factsRewriter() in App.jsx does the same): each replacement is
+    // parked behind a private-use placeholder until every rule has run, or the
+    // bare-city rule rewrote a new street named after the old city.
+    $pua = '/[\x{E000}-\x{F8FF}]/u';
+    return function ($text) use ($rules, $pua) {
+        if (is_string($text) && preg_match($pua, $text)) {
+            foreach ($rules as $r) {
+                $to = $r[1];
+                $text = preg_replace_callback($r[0], function () use ($to) { return $to; }, $text);
+            }
+            return $text;
+        }
+        $parked = [];
         foreach ($rules as $r) {
             $to = $r[1];
-            $text = preg_replace_callback($r[0], function () use ($to) { return $to; }, $text);
+            $text = preg_replace_callback($r[0], function () use ($to, &$parked) {
+                $parked[] = $to;
+                $cp = 0xE000 + count($parked) - 1;
+                return chr(0xE0 | ($cp >> 12)) . chr(0x80 | (($cp >> 6) & 0x3F)) . chr(0x80 | ($cp & 0x3F));
+            }, $text);
         }
-        return $text;
+        if (!$parked || !is_string($text)) {
+            return $text;
+        }
+        return preg_replace_callback($pua, function ($m) use ($parked) {
+            $b = $m[0];
+            $cp = ((ord($b[0]) & 0x0F) << 12) | ((ord($b[1]) & 0x3F) << 6) | (ord($b[2]) & 0x3F);
+            return $parked[$cp - 0xE000];
+        }, $text);
     };
 }
 
@@ -363,10 +442,10 @@ function ipc_rewrite_copy($text, $iso, $facts)
     return $text;
 }
 
-/** normalizeSku() */
+/** normalizeSku() — ASCII only on both sides (A12-L15-17-2). */
 function ipc_normalize_sku($v)
 {
-    return preg_replace('/[^A-Z0-9]/', '', strtoupper(ipc_str($v)));
+    return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', ipc_str($v)));
 }
 
 /** skuSegmentMatch() */
@@ -409,8 +488,15 @@ function ipc_find_product(array $products, $raw)
  */
 function ipc_load_products($file)
 {
-    $raw = is_file($file) ? @file_get_contents($file) : false;
-    $data = $raw === false ? null : json_decode($raw, true);
+    // A12-L15-17-3 — `@` does not stop the error handler below from throwing,
+    // so an unreadable (mode 000) catalog threw out of the whole page and the
+    // product URL was served the homepage's head. Unreadable means null.
+    try {
+        $raw = is_file($file) ? @file_get_contents($file) : false;
+    } catch (Throwable $e) {
+        $raw = false;
+    }
+    $data = $raw === false ? null : json_decode(ipc_strip_bom($raw), true);
     if (is_array($data) && isset($data['products'])) {
         $data = is_array($data['products']) ? $data['products'] : null;
     }
@@ -423,8 +509,20 @@ function ipc_load_products($file)
             continue;
         }
         $row = [];
-        foreach (['id', 'sku', 'name', 'partType', 'specificationsSummary', 'photoUrl', 'pdfUrl'] as $k) {
+        foreach (['id', 'sku', 'name', 'partType', 'specificationsSummary', 'photoUrl', 'pdfUrl', 'pdfLabel'] as $k) {
             $row[$k] = isset($p[$k]) ? ipc_str($p[$k]) : '';
+        }
+        // productExtraPdfs(): object rows only.
+        $row['additionalPdfs'] = [];
+        if (isset($p['additionalPdfs']) && is_array($p['additionalPdfs'])) {
+            foreach ($p['additionalPdfs'] as $x) {
+                if (is_array($x) && !(array_keys($x) === range(0, count($x) - 1) && $x)) {
+                    $row['additionalPdfs'][] = [
+                        'url' => isset($x['url']) && is_string($x['url']) ? $x['url'] : '',
+                        'label' => isset($x['label']) ? ipc_str($x['label']) : '',
+                    ];
+                }
+            }
         }
         $row['description'] = [];
         if (isset($p['description'])) {
@@ -442,13 +540,46 @@ function ipc_load_products($file)
     return $out ? $out : null;
 }
 
+/**
+ * A12-L5-W2-G2-1 — a UTF-8 byte-order mark (an FTP editor's) made every PHP
+ * reader's json_decode() fail while the browser's res.json() skips it.
+ */
+function ipc_strip_bom($raw)
+{
+    return (is_string($raw) && strncmp($raw, "\xEF\xBB\xBF", 3) === 0) ? substr($raw, 3) : $raw;
+}
+
+/** A JSON list (Array.isArray), not an object decoded to a keyed array. */
+function ipc_is_list($v)
+{
+    return is_array($v) && ($v === [] || array_keys($v) === range(0, count($v) - 1));
+}
+
+/**
+ * URLSearchParams.get(): the FIRST value of a repeated key. $_GET keeps the
+ * last, so ?productId=A&productId=B showed A in the browser and B to every
+ * unfurler (A12-L15-01-1). Null when absent.
+ */
+function ipc_query_param($uri, $name)
+{
+    $q = (string)parse_url($uri, PHP_URL_QUERY);
+    foreach (explode('&', $q) as $pair) {
+        if ($pair === '') continue;
+        $kv = explode('=', $pair, 2);
+        if (urldecode($kv[0]) === $name) {
+            return isset($kv[1]) ? urldecode($kv[1]) : '';
+        }
+    }
+    return null;
+}
+
 function ipc_load_json($file)
 {
     $raw = is_file($file) ? @file_get_contents($file) : false;
     if ($raw === false || $raw === '') {
         throw new RuntimeException('unreadable: ' . basename($file));
     }
-    $data = json_decode($raw, true);
+    $data = json_decode(ipc_strip_bom($raw), true);
     if (!is_array($data)) {
         throw new RuntimeException('unparseable: ' . basename($file));
     }
@@ -463,6 +594,37 @@ function ipc_safe_link($v)
     if ($v === '' || substr($v, 0, 2) === '//') return false;
     if ($v[0] === '/') return true;
     return (bool)preg_match('#^https?://[^/\s]#i', $v);
+}
+
+/**
+ * productImageAbs(): a product photo as an absolute URL, or ''. The scheme
+ * test is case-insensitive (A12-L10-03-1) and a protocol-relative "//host/x"
+ * is resolved the way the browser resolves it on this https site, not glued
+ * onto the origin (A12-L10-W3-R1-6-1).
+ */
+function ipc_product_image_abs($src)
+{
+    if ($src === '' || strpos($src, 'placehold.co') !== false) return '';
+    if (preg_match('#^https?://#i', $src)) return $src;
+    if (substr($src, 0, 2) === '//') return 'https:' . $src;
+    return IPC_ORIGIN . ($src[0] === '/' ? '' : '/') . $src;
+}
+
+/**
+ * The default SEO description of a route (SEO_DEFAULT) as a fallback, put
+ * through the same ISO and business-facts rewrite as the stored rows, and
+ * without its ISO sentence when the ISO box is empty (A12-L5-W2-G3-1).
+ * seoDefaultDesc() in src/App.jsx.
+ */
+function ipc_seo_default_desc($text, $isoRw, $factsRw)
+{
+    if (!is_string($text) || $text === '') {
+        return $text;
+    }
+    if (!$isoRw) {
+        $text = preg_replace('/\s*\bISO 9001 registered\.(?=\s|$)/u', '', $text);
+    }
+    return ipc_rewrite_copy($text, $isoRw, $factsRw);
 }
 
 /** pageToPath() + canonicalFor(). rawurlencode() = encodeURIComponent() for every id in this catalog (see sitemap.php). */
@@ -495,7 +657,8 @@ function ipc_route_state($uri, $dataDir)
     $factsRw = ipc_facts_rewriter($site);
 
     // mergeContent: an `seo` array is used as stored, even empty (invariant 3).
-    $list = isset($content['seo']) && is_array($content['seo']) ? array_values($content['seo']) : $seoDefault;
+    // A JSON object is not an array to Array.isArray (A12-L5-04-1).
+    $list = isset($content['seo']) && ipc_is_list($content['seo']) ? $content['seo'] : $seoDefault;
     $find = function ($k) use ($list) {
         foreach ($list as $s) {
             if (is_array($s) && isset($s['page']) && $s['page'] === $k) return $s;
@@ -513,9 +676,11 @@ function ipc_route_state($uri, $dataDir)
         foreach ($seoDefault as $s) if ($s['page'] === $key) $dflt = $s;
     }
 
-    $productId = isset($_GET['productId']) && is_string($_GET['productId']) ? $_GET['productId'] : '';
+    $productId = (string)ipc_query_param($uri, 'productId');
     $productAxis = $key === 'products';
-    $products = $productAxis ? ipc_load_products($dataDir . 'products-all.json') : null;
+    // The catalog is also listed in the no-JS body of the Product Index and
+    // Datasheets pages (A12-L6-03-2, A12-L6-04-2); only /products matches on it.
+    $products = ($productAxis || $key === 'dashboard' || $key === 'datasheets') ? ipc_load_products($dataDir . 'products-all.json') : null;
     $catalogLoaded = $products !== null;
     $matched = ($productAxis && $productId !== '' && $catalogLoaded) ? ipc_find_product($products, $productId) : null;
     $pendingProduct = $productAxis && $productId !== '' && !$catalogLoaded;
@@ -529,9 +694,10 @@ function ipc_route_state($uri, $dataDir)
         $heading = (is_string($stored) && $stored !== '') ? $stored : $headers[$key . 'Header'];
         $heading = ipc_rewrite_copy($heading, $isoRw, $factsRw);
     }
-    $label = $heading !== '' ? $heading : preg_replace_callback('/(^|-)([a-z])/', function ($m) {
+    $pageLabels = ipc_page_labels();
+    $label = $heading !== '' ? $heading : (isset($pageLabels[$key]) ? $pageLabels[$key] : preg_replace_callback('/(^|-)([a-z])/', function ($m) {
         return ($m[1] !== '' ? ' ' : '') . strtoupper($m[2]);
-    }, $key);
+    }, $key));
     $company = $site['company']['name'];
     $computed = $key === 'home' ? $company : $label . ' — ' . $company;
 
@@ -539,19 +705,22 @@ function ipc_route_state($uri, $dataDir)
     if ($title === '' && $key === 'home') $title = $field($home, 'title');
     if ($title === '') $title = $computed;
     $desc = $field($entry, 'desc');
-    if ($desc === '') $desc = isset($dflt['desc']) ? $dflt['desc'] : '';
+    if ($desc === '') $desc = isset($dflt['desc']) ? ipc_seo_default_desc($dflt['desc'], $isoRw, $factsRw) : '';
     if ($desc === '') $desc = $field($home, 'desc');
     $desc = ipc_localize_prose($desc, $site);
 
     if ($matched) {
         $sku = ipc_trim($matched['sku']);
-        $name = ipc_trim($matched['name']);
-        $plabel = ($sku !== '' && strpos(strtoupper($name), strtoupper($sku)) === false) ? $name . ' — ' . $sku : $name;
+        // A12-L5-02-W5-1 — a nameless row (FTP hand edit) is named by its SKU.
+        $name = ipc_trim($matched['name']) !== '' ? ipc_trim($matched['name']) : $sku;
+        $hasSku = ipc_name_has_sku($name, $sku);
+        $plabel = ($sku !== '' && !$hasSku) ? $name . ' — ' . $sku : $name;
         $title = ipc_fit_product_title($plabel, $sku, $company, $site['company']['shortName']);
         $summary = ipc_trim($matched['specificationsSummary']);
         $kind = ipc_trim($matched['partType']);
         $joined = implode(' ', [
-            $sku !== '' ? "$name ($sku)" : $name,
+            // A12-L8-W5-G1-2 — "(SKU)" only when the name does not already say it.
+            ($sku !== '' && !$hasSku) ? "$name ($sku)" : $name,
             $kind !== '' ? "— $kind." : '—',
             $summary !== '' ? $summary : 'Specifications, datasheet and quote request.',
         ]);
@@ -567,10 +736,10 @@ function ipc_route_state($uri, $dataDir)
         $desc = '';
     }
 
-    $photo = '';
-    if ($matched && $matched['photoUrl'] !== '' && strpos($matched['photoUrl'], 'placehold.co') === false) {
-        $src = $matched['photoUrl'];
-        $photo = preg_match('#^https?://#', $src) ? $src : IPC_ORIGIN . ($src[0] === '/' ? '' : '/') . $src;
+    $photo = $matched ? ipc_product_image_abs($matched['photoUrl']) : '';
+    $photoAlt = '';
+    if ($photo !== '') {
+        $photoAlt = ipc_trim($matched['name']) !== '' ? ipc_trim($matched['name']) : ipc_trim($matched['sku']);
     }
 
     return [
@@ -583,7 +752,7 @@ function ipc_route_state($uri, $dataDir)
         // null = no canonical and no og:url; '' never happens
         'canonical' => ($unknownRoute || $unknownProduct || $pendingProduct) ? null : ipc_canonical($key, $matched ? $matched['id'] : null),
         'noindex' => $unknownRoute || $unknownProduct,
-        'ogImage' => $photo !== '' ? [$photo, IPC_OG_PHOTO[0], IPC_OG_PHOTO[1]] : [IPC_ORIGIN . IPC_OG_CARD[0], IPC_OG_CARD[1], IPC_OG_CARD[2]],
+        'ogImage' => $photo !== '' ? [$photo, IPC_OG_PHOTO[0], IPC_OG_PHOTO[1], $photoAlt] : [IPC_ORIGIN . IPC_OG_CARD[0], IPC_OG_CARD[1], IPC_OG_CARD[2], IPC_OG_CARD_ALT],
         'unknown' => $unknownRoute || $unknownProduct,
         'products' => $products,
         'matched' => $unknownRoute ? null : $matched,
@@ -615,6 +784,13 @@ function ipc_render_head($html, array $st)
     $html = ipc_replace_one(ipc_meta_re('property', 'og:image'), '<meta property="og:image" content="' . ipc_h($st['ogImage'][0]) . '" />', $html);
     $html = ipc_replace_one(ipc_meta_re('property', 'og:image:width'), '<meta property="og:image:width" content="' . $st['ogImage'][1] . '" />', $html);
     $html = ipc_replace_one(ipc_meta_re('property', 'og:image:height'), '<meta property="og:image:height" content="' . $st['ogImage'][2] . '" />', $html);
+    // A12-L10-01-2 — the alt describes the image actually declared.
+    $html = ipc_replace_one(ipc_meta_re('property', 'og:image:alt'), '<meta property="og:image:alt" content="' . ipc_h($st['ogImage'][3]) . '" />', $html);
+    // A12-L10-01-3 — the browser-bar colour follows Business Details' Dark colour.
+    $dark = $st['site']['theme']['darkColor'];
+    if (preg_match('/^#[0-9a-f]{6}$/i', $dark)) {
+        $html = ipc_replace_one(ipc_meta_re('name', 'theme-color'), '<meta name="theme-color" content="' . ipc_h($dark) . '" />', $html);
+    }
     $html = ipc_replace_one(ipc_meta_re('property', 'og:url'),
         $st['canonical'] === null ? '' : '<meta property="og:url" content="' . ipc_h($st['canonical']) . '" />', $html);
     $extra = '';
@@ -654,8 +830,8 @@ function ipc_render_body(array $st)
 
     $p = $st['matched'];
     if ($p) {
-        $o .= '<p><a href="/products">' . ipc_h(isset($navCopy['products']) && is_string($navCopy['products']) && $navCopy['products'] !== '' ? $navCopy['products'] : 'Products') . '</a></p>';
-        $o .= '<h1>' . ipc_h($p['name'] !== '' ? $p['name'] : $p['sku']) . '</h1><dl>';
+        $o .= '<p><a href="/products">' . ipc_h(isset($navCopy['products']) && is_string($navCopy['products']) && ipc_trim($navCopy['products']) !== '' ? $navCopy['products'] : 'Products') . '</a></p>';
+        $o .= '<h1>' . ipc_h(ipc_trim($p['name']) !== '' ? $p['name'] : $p['sku']) . '</h1><dl>';
         if ($p['sku'] !== '') $o .= '<dt>Part number</dt><dd>' . ipc_h($p['sku']) . '</dd>';
         if ($p['partType'] !== '') $o .= '<dt>Type</dt><dd>' . ipc_h($p['partType']) . '</dd>';
         if ($p['specificationsSummary'] !== '') $o .= '<dt>Specifications</dt><dd>' . ipc_h($p['specificationsSummary']) . '</dd>';
@@ -663,19 +839,38 @@ function ipc_render_body(array $st)
         foreach ($p['description'] as $para) {
             $o .= '<p>' . ipc_h($para) . '</p>';
         }
-        if ($p['pdfUrl'] !== '' && ipc_safe_link($p['pdfUrl'])) {
-            $o .= '<p><a href="' . ipc_h($p['pdfUrl']) . '">Datasheet (PDF)</a></p>';
+        // A12-L10-W3-G3-2 — every data sheet the product page lists, with its
+        // label (pdfLabel, additionalPdfs), as the rendered page shows them.
+        if ($p['pdfUrl'] !== '') {
+            $sheets = array_merge([['url' => $p['pdfUrl'], 'label' => $p['pdfLabel']]], $p['additionalPdfs']);
+            foreach ($sheets as $sheet) {
+                if (!ipc_safe_link($sheet['url'])) continue;
+                $o .= '<p><a href="' . ipc_h($sheet['url']) . '">' . ipc_h($sheet['label'] !== '' ? $sheet['label'] : 'Datasheet') . ' (PDF)</a></p>';
+            }
         }
-        $o .= '<p><a href="/contact?productId=' . ipc_h(rawurlencode($p['id'] !== '' ? $p['id'] : $p['sku'])) . '">Request a quote</a></p>';
+        // A12-L15-18-1 — ?part=, the parameter the contact form pre-fills from,
+        // with the same SKU-first value as the rendered page's quote button.
+        $o .= '<p><a href="/contact?part=' . ipc_h(rawurlencode($p['sku'] !== '' ? $p['sku'] : $p['id'])) . '">Request a quote</a></p>';
     } else {
         $o .= '<h1>' . ipc_h($st['unknown'] ? 'Page not found' : ($st['key'] === 'home' ? $st['title'] : $st['heading'])) . '</h1>';
         if ($st['desc'] !== '') $o .= '<p>' . ipc_h($st['desc']) . '</p>';
-        if ($st['key'] === 'products' && is_array($st['products']) && !$st['unknown']) {
+        // The Product Index lists the same catalog links as /products
+        // (A12-L6-03-2); Datasheets lists every published data sheet (A12-L6-04-2).
+        if (($st['key'] === 'products' || $st['key'] === 'dashboard') && is_array($st['products']) && !$st['unknown']) {
             $o .= '<ul>';
             foreach ($st['products'] as $row) {
                 $id = $row['id'] !== '' ? $row['id'] : $row['sku'];
                 $o .= '<li><a href="/products?productId=' . ipc_h(rawurlencode($id)) . '">'
                     . ipc_h($row['name'] !== '' ? $row['name'] : $row['sku']) . ($row['sku'] !== '' ? ' (' . ipc_h($row['sku']) . ')' : '') . '</a></li>';
+            }
+            $o .= '</ul>';
+        }
+        if ($st['key'] === 'datasheets' && is_array($st['products']) && !$st['unknown']) {
+            $o .= '<ul>';
+            foreach ($st['products'] as $row) {
+                if ($row['pdfUrl'] === '' || !ipc_safe_link($row['pdfUrl'])) continue;
+                $o .= '<li><a href="' . ipc_h($row['pdfUrl']) . '">' . ($row['sku'] !== '' ? ipc_h($row['sku']) . ' — ' : '')
+                    . ipc_h($row['name'] !== '' ? $row['name'] : $row['sku']) . ' (PDF)</a></li>';
             }
             $o .= '</ul>';
         }
@@ -713,7 +908,17 @@ if ($shell === false || $shell === '') {
     // Not an empty 200: a missing shell is a broken deploy and must look like one.
     http_response_code(500);
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "The site is being updated. Please try again in a minute.\n";
+    // A12-L6-W5-G2-1 — still a way to reach IPC: the live Business Details if
+    // data/ is up, else the shipped ones.
+    $site = ipc_site_defaults();
+    try {
+        $site = ipc_merge_site(ipc_load_json(__DIR__ . '/data/site-info.json'));
+    } catch (Throwable $e) {
+    }
+    echo "The site is being updated. Please try again in a minute.\n\n"
+        . $site['company']['name'] . "\n"
+        . 'Phone: ' . $site['contact']['phone'] . "\n"
+        . 'Email: ' . $site['contact']['email'] . "\n";
     exit;
 }
 

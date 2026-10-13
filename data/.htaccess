@@ -1,7 +1,10 @@
 # /data/ — server-only storage for the live product catalog.
-# The React frontend reads /data/products-all.json over HTTP, so that single
-# file must be public. Everything else in this directory (backups, logs,
-# anything starting with a dot) must be blocked.
+# The React frontend reads products-all.json, site-info.json and content.json
+# over HTTP, so those three files must be public. What this file blocks is a
+# LIST, not deny-by-default: script-named files, the admin's timestamped
+# backups, *.bak/*.old/*.tmp/*.swp leftovers and dotfiles (the admin's lock
+# files among them). Anything else dropped here — a .txt, a .log, the contents
+# of a .git FOLDER — IS served; nothing the admin writes is. (A12-L2-01-4)
 
 # The React app asserts the Content-Type on all three of these files
 # (jsonOrThrow in src/App.jsx) — deliberately, because Vite's dev server and the
@@ -43,7 +46,8 @@ AddDefaultCharset UTF-8
   Deny from all
 </FilesMatch>
 
-# Block timestamped backups written by save_products() / save_site_info().
+# Block timestamped backups written by save_products() / save_site_info() /
+# save_content().
 <FilesMatch "^products-all\.backup\.">
   Order Allow,Deny
   Deny from all
@@ -63,7 +67,9 @@ AddDefaultCharset UTF-8
   Deny from all
 </FilesMatch>
 
-# Block dotfiles (.htaccess, .git, etc.)
+# Block dotfiles (.htaccess, a .git FILE, the admin's .*-write.lock files).
+# <FilesMatch> tests only the last path component, so files INSIDE a .git
+# folder (.git/config) are not dotfiles to it and are not blocked here.
 <FilesMatch "^\.">
   Order Allow,Deny
   Deny from all

@@ -186,6 +186,12 @@ const scrape = (page) =>
   } finally {
     restoreMirror();
     await browser.close();
+    // A-9.D6's bar (as plan5-keys): a suite that rewrites the shared mirror
+    // proves its restore in its own run. This one restored with a bare copy
+    // and said nothing (AUDIT-12 A12-L13-12-2).
+    const now = fs.readFileSync(path.join(MIRROR_DATA, 'products-all.json'));
+    const ref = fs.readFileSync(path.join(PRISTINE, 'products-all.json'));
+    note(now.equals(ref), 'restore: products-all.json is byte-equal to _harness/pristine after the run', `${now.length} bytes vs ${ref.length}`);
   }
 
   const bad = results.filter((r) => !r.ok).length;

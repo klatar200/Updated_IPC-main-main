@@ -307,7 +307,9 @@ sec('A-9.P5a-4  six misspellings in the catalog');
 
 // ── summary ────────────────────────────────────────────────────────────────
 const n = (v) => results.filter((r) => r.verdict === v).length;
-console.log(`\naudit9-verify6: ${results.length} claims — ${n('yes')} reproduced, ${n('adj')} reproduced with an adjustment, ${n('no')} NOT reproduced`);
+// Leads with an N/M score so run.js's SCORE pattern picks THIS line, not the
+// last arm that happens to contain "N of N" (AUDIT-12 A12-L13-06-4).
+console.log(`\naudit9-verify6 ${results.length - n('no')}/${results.length} claims reproduced — ${n('yes')} exactly, ${n('adj')} with an adjustment, ${n('no')} NOT reproduced`);
 fs.mkdirSync(path.join(__dirname, 'out', 'audit9', 'C'), { recursive: true });
 fs.writeFileSync(path.join(__dirname, 'out', 'audit9', 'C', 'verify6.json'), JSON.stringify(results, null, 2));
 process.exit(n('no') === 0 ? 0 : 1);

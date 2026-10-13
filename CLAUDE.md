@@ -19,11 +19,17 @@ the settled decisions and a summary of what was done.
 npm install
 npm run dev       # Vite dev server on http://localhost:5173
 npm run build     # → /dist  (FTP contents to public_html/ on Network Solutions)
-npm run preview   # serve the built bundle locally
+npm run preview   # serve the built bundle locally — WITHOUT data/ (see below)
 ```
 
+`npm run preview` does not serve `data/`: the `/data/` middleware below is
+dev-only, so every `/data/*.json` answers with `index.html` and `/products`
+shows "Catalog Unavailable". That is the preview, not the build. To look at a
+production build with its data, use the `php -S` mirror (`_harness/README.md`).
+
 **While a harness sweep runs, do not edit `src/`, `public/` or `admin/`** —
-three suites rebuild and re-sync the mirror themselves, so a mid-sweep edit
+three suites refresh the mirror themselves (`plan5-keys` and `plan5b-sidebar`
+rebuild and install the bundle; `audit9-fixes` runs `sync.sh`), so a mid-sweep edit
 is silently tested by half the sweep (`_harness/README.md`, "Things that have
 bitten before").
 
@@ -103,9 +109,12 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
   `localizeProse`, `isoRewriter`, `factsRewriter`, `SEO_DEFAULT`, the
   page-header title defaults) so crawlers and link unfurlers that never run
   the bundle get the same head. Change either side and run
-  `node _harness/prerender.js` (parity on every route and product, under
-  mutated data too) and `node _harness/prerender-apache.js` (the `.htaccess`
-  routing on real Apache). `index.php` fails closed: any error, or a damaged
+  `npm run build && sh _harness/sync.sh`, then `node _harness/prerender.js`
+  (parity on every route and product, under mutated data too) and
+  `node _harness/prerender-apache.js` (the `.htaccess` routing on real
+  Apache). The build and re-sync are not optional: `prerender.js` tests the
+  copy in `_harness/site/` and `prerender-apache.js` the one in `dist/`, so
+  without them both pass on the old code. `index.php` fails closed: any error, or a damaged
   `site-info.json` / `content.json`, serves `index.html` unmodified.
 - **Data fetch.** Three files, per-minute cache-buster, 12 s abort timeout,
   60 s in-memory TTL. `data/.htaccess` caches ~60 s.
@@ -141,13 +150,17 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   (`BACKUP_KEEP`); create/`flock` `.products-write.lock` (SEC-5) and
   `.content-write.lock` / `.site-info-write.lock` (`data_write_lock()`, §1an).
 - **`pdfs/`** — read/write/delete; `upload-pdf.php` creates the folder if
-  absent. Deleting a product renames its unshared PDFs to `.deleted.<name>`
+  absent, and `pdfs_protection_problem()` (called by `upload-pdf.php` and
+  `marketing-pdfs.php`) writes `pdfs/.htaccess` if that is missing — both
+  refuse the upload if it still is (AUDIT-12 A12-L2-01-5). Deleting a product renames its unshared PDFs to `.deleted.<name>`
   (`file_to_trash()`, ADM-3) and a catalog restore renames them back
   (`restore_trashed_files()`); nothing prunes them. **Remove PDF**, **Remove
   Photo** and a photo replaced by another file type trash the same way (admin
   audit 2026-10-05), and a second trash of one name keeps the older file as
   `.deleted.<stamp>.<name>`. A SKU rename's data-sheet moves are recorded in
-  `admin/.pdf-renames.json` so a restore can move them back (DI-1).
+  `admin/.pdf-renames.json` so a restore can move them back (DI-1); a restore
+  records the moves it makes there too, so the restore can itself be undone
+  (A12-L4-W2-G3-1).
 - **`pdfs/marketing/`** — read/write, **never delete**; created at runtime if
   absent by `marketing-pdfs.php` (2026-10-05, G1), which stores catalog and
   brochure PDFs under a name made from the uploaded file's own name, never
@@ -169,7 +182,8 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   `inquiries.jsonl` and its `inquiries-<stamp>.jsonl` archives (both written by
   `public/contact.php`); read/write `.inquiries-seen.json`; read
   `.inquiry-log-failed.json` (written and cleared by `contact.php`); read/write
-  `.login-throttle.json`; read/write `config.local.php`, backing it up to
+  `.login-throttle.json`; read/write `config.local.php` (written as
+  `config.local.php.<pid>-<rand>.tmp` and renamed in, A12-L4-W2-G4-2), backing it up to
   `config.local.php.bak.<stamp>` (5 kept); read and **delete** — never create —
   `ALLOW-PASSWORD-RESET` (the operator creates it over FTP); create
   `.sessions/` (0700) plus its `.htaccess`, and PHP writes the session files

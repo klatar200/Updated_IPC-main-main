@@ -49,7 +49,9 @@ const OUT = path.join(__dirname, 'out', 'plan5-images', TAG);
 const MAX_TOTAL = 3 * 1024 * 1024;
 const MAX_FILE = 300 * 1024;
 // 61 since PLAN-8 A4 added public/images/og-card.jpg (1200x630, 33 KiB, built
-// by _harness/ogcard.js). This constant is a tripwire for an image being
+// by _harness/ogcard.js, deleted in 1d57237 — recover it with
+// `git show 1d57237^:_harness/ogcard.js`; it needs `npm i --no-save sharp`).
+// This constant is a tripwire for an image being
 // renamed or deleted by accident, so a deliberate addition moves it here in
 // the same commit rather than being allowed to pass silently.
 const EXPECTED_FILES = 61;

@@ -1,6 +1,6 @@
 # Patch Notes
 
-Changes since the work began, **2026-07-08 → 2026-10-05**. The first block below
+Changes since the work began, **2026-07-08 → 2026-10-06**. The first block below
 covers 2026-07-08 → 2026-08-07 (`8902180` → `2253874`); later blocks are dated.
 191 files, 12 merged PRs. Full record with measurements: `WHATS_LEFT.md` §1, §1b, §4*.
 
@@ -137,7 +137,7 @@ the product's photo link set automatically; data sheets replace in place in
 `/pdfs/` so existing links keep working, and the upload refuses to overwrite
 another product's sheet.
 
-**Read-only tabs** → Inquiries, Audit Log, Backups (restore any of the last 30),
+**Read-only tabs** → Inquiries, Audit Log, Backups (restore any of the last 90 per file; 30 until 2026-09-28),
 Change Password, Help.
 
 Two behaviors worth knowing. Changing a brand color re-skins the whole site and
@@ -360,6 +360,15 @@ Not fixed. A reader of this file should not conclude otherwise.
 These live in `data/*.json`, which is live customer state and is not editable
 from this repo. Each is done in the admin dashboard; none needs a developer.
 
+> **Status 2026-10-13:** the site is not live yet, and these edits were made
+> in the repo's own `data/`, which ships on the first deploy (the ISO strings
+> on 2026-09-15, the rest on 2026-10-02 — history §1aa, §1an). Rows 1–4 are
+> already done there: no "ISO 9001:2008" string remains
+> (which revision to claim is still open — see `WHATS_LEFT.md`), the
+> "6/30/2025" placeholder is gone, the five products carry no `photoUrl`, and
+> the Footer Links have a "Datasheets" row. The current list of what is
+> waiting on you is `WHATS_LEFT.md` "Open — waits on Rick".
+
 | # | Admin page | What to change |
 |---|---|---|
 | 1 | Page Content | Three "ISO 9001:2008" strings to the confirmed revision (A2) |
@@ -489,6 +498,13 @@ closed except B26.
   beside the pointer to the cards. The owner's wording is not rewritten — he is
   entitled to add "(JIT by agreement)", and normalizing it away would delete
   the thing he took the trouble to say. (B21)
+
+  **Superseded 2026-08-12 (UX audit F12, at the owner's instruction):** the
+  exception note was removed. With the shipped data the banner shows only the
+  common lead time ("≤ 1 week"), the cards carry no lead-time line, and
+  Kitting & Bagging's "(JIT by agreement)" appears nowhere on the Services
+  page. A lead time typed on any one service that differs from the majority is
+  not shown.
 - **The product photograph reserved no space, so the page moved under the
   reader as it loaded.** It is the largest image on every product page. Both it
   and the "image coming soon" panel that stands in for it now hold the same
@@ -573,7 +589,8 @@ commits — two of which shipped on 2026-08-08 without their notes and are
 recorded here.
 
 **All 50 audit IDs are now resolved: 46 shipped, 4 deferred with a stated
-reason, 10 owner actions.**
+reason, 8 owner actions** (listed at the end of this block; this said 10 until
+2026-10-13).
 
 ## Catalog browsing
 
@@ -637,9 +654,10 @@ This collapsed a latent bug on the way. The trail's last item has to equal the
 page's own canonical, and the canonical was built inline in one place and would
 have been built again in another. They would not have matched: the router
 encodes a query with `URLSearchParams`, which writes a space as `+`, while the
-canonical uses `encodeURIComponent`, which writes `%20`. **Nine product ids
-contain a space, a `/` or an `&`** — `IP12GA - IP1274`, `IP41NE / IP43VT`,
-`IP44A2 & IP45A3` — and a canonical is compared as a string by everything that
+canonical uses `encodeURIComponent`, which writes `%20`. **Five product ids
+contained a space, a `/` or an `&`** — `IP12GA - IP1274`, `IP41NE / IP43VT`,
+`IP44A2 & IP45A3`, `IP61ES & IP62EF`, `IP71NS - IP72PS - IP73PP` (this said
+nine until 2026-10-13; all five became plain ids on 2026-09-28, #63) — and a canonical is compared as a string by everything that
 reads one. There is one definition now. (C33)
 
 ## Chrome, assets and copy
@@ -665,7 +683,7 @@ of the editable string, so retyping the note cannot break the link. (C39)
 **The phone placeholder said "Optional".** Every other placeholder on the form
 is a worked example; this one repeated what the unstarred label already said
 and taught nothing about the format. The default is now a real number. The live
-value is saved in `content.json` and is **owner action 10** — this release does
+value is saved in `content.json` and is **owner action 8** — this release does
 not edit live customer data. (C39)
 
 **The page-header band was 48 px of padding top and bottom around three short
@@ -678,6 +696,12 @@ A `<noscript>` block now carries the company name, phone, fax, email, address
 and hours, styled inline because the CSS bundle may be the thing that failed.
 Its values are a second copy of `site-info.json` and will not follow an admin
 edit; the comment beside them says so. (C38)
+
+**Superseded 2026-10-05 (A-5.10):** every page is now served through
+`index.php`, which replaces that block with one built from the live Business
+Details on each request — company name, phone and email — so it **does**
+follow an edit. The fixed copy with fax, address and hours shows only when
+`index.php` has fallen back to the plain shell.
 
 **Both contact forms had no `method` and no `action`,** so they defaulted to
 GET against the current address. If the bundle ever failed to load, submitting
@@ -705,7 +729,7 @@ proposed naming the destination because the logo links home. The navbar `<a>`
 already carries `aria-label="Insulation Products Corporation — Home"`, which
 overrides the image's `alt` for the accessible name, so naming it again reads
 the same phrase twice. All three logos are decorative in context. `alt=""` is
-correct. The artwork itself remains owner action 9. (C43)
+correct. The artwork itself remains owner action 7. (C43)
 
 ## Deferred — these are still live defects
 
@@ -716,7 +740,8 @@ correct. The artwork itself remains owner action 9. (C43)
 - **The no-JS form response is JSON, not a styled page** (C40). Giving it HTML
   means changing the response contract of a file that deliberately does not
   HTML-escape. The enquiry arriving matters more than what the fallback looks
-  like.
+  like. **Fixed since (audit 7, A-7.2):** a form posted without JavaScript now
+  gets an HTML page; the `fetch()` path still gets JSON.
 - **The industry catalog link is not scoped to its industry** (C31). The
   Product Index filters by product *family*, and the data carries no
   industry-to-family mapping — industries carry individual SKUs. Inventing one
@@ -739,6 +764,11 @@ correct. The artwork itself remains owner action 9. (C43)
 **Eight** — the seven carried from the A/B tiers, plus one new from C39.
 Nothing in this release edits `data/*.json`; all eight are admin edits the
 owner makes himself, and none needs a developer.
+
+> **Status 2026-10-13:** items 1–4 and 8 are already made in the repo's own
+> `data/`, which ships on the first deploy (history §1aa, §1an); the ISO
+> revision itself is still yours to confirm. The current list is
+> `WHATS_LEFT.md` "Open — waits on Rick".
 
 1. **A2** — the real ISO 9001 revision, three strings in Page Content. The
    2008 revision was withdrawn in 2018; confirm with the registrar before
@@ -813,7 +843,8 @@ the headline is illegible exactly where the highlight is.
 
 Proven rather than asserted: over a test photograph that is black with one
 white corner, the old method reports **21.00:1** (a comfortable pass), the
-average reports **19.42:1**, and the real worst pixel under the text reports
+average reports **19.80:1** (re-measured by `backdrop-selftest.js`; this said
+19.42:1 until 2026-10-13), and the real worst pixel under the text reports
 **1.00:1**.
 
 ## Deferred
@@ -832,6 +863,11 @@ average reports **19.42:1**, and the real worst pixel under the text reports
 **Not yet deployed.** `public/images/site/` joins `data/`, `pdfs/` and
 `uploads/` on the do-not-re-upload list from the first deploy onward, because
 four of its files are now referenced by rendered pages.
+
+**Superseded 2026-09-29:** the owner's own page photos and logo are now stored
+in `uploads/site/` (Site Images & Logo), and the admin never writes
+`images/site/`. `images/` is uploaded with every frontend deploy — follow
+`README.md`'s deploy manifest and `GO-LIVE.md`, not this paragraph.
 
 # 2026-08-09c — PLAN-9, remediating the same-day audit
 
@@ -1132,7 +1168,7 @@ pixel-for-pixel.
 
   **The numbers were right; the heading was wrong.** The third column is the
   *recovered* diameter — what the tubing shrinks down to — which the real
-  catalog confirms: four products already use "Expanded Diameter" and
+  catalog confirms: eleven products already use "Expanded Diameter" and
   "Recovered Diameter" as two plain side-by-side columns, with the same 2:1
   shape. So the header is now four plain columns using the catalog's own
   words, and **all three rows of numbers are untouched**. Changing the numbers
@@ -1179,8 +1215,10 @@ is only what you would notice.
   Images labels — you were reading `&lt;br&gt;&lt;small style=…` where a line
   break should have been.
 - **The Inquiries page showed a link on inquiries that carry no email address.**
-  Clicking it opened a blank message to nobody. Four of your recorded inquiries
-  are like that; they now show a plain dash.
+  Clicking it opened a blank message to nobody. Such inquiries now show a plain
+  dash. (This said four of *your* inquiries were like that; the four were test
+  records in the developer's copy — your inquiry log only starts once the site
+  is live.)
 - **The Help page described a header bar with four tabs.** It has ten. It also
   said the audit log explains every action it can record (three were missing),
   and that "three things can go wrong" with the server when the dashboard can
@@ -1197,8 +1235,9 @@ is only what you would notice.
   two destinations — "Download PDF" and "Data Sheet" for the same file,
   "Request Quote" and "Request a Quote" for the same form. The PDF control is
   **Datasheet** everywhere now, which is what the Datasheets page and the menu
-  already call it. ⚠ **FAQ answer 14 still says "Data Sheet" and is yours to
-  edit** — it is your text, on Page Content.
+  already call it. ⚠ **FAQ row #15, "Where can I download product data
+  sheets?", still says "Data Sheet" and is yours to edit** — it is your text,
+  on Page Content → FAQ.
 - **Your product photographs are now part of the structured data** search
   engines read, on the 37 products that have one. The five on the placeholder
   correctly claim no photograph rather than claiming the placeholder.
@@ -1326,7 +1365,7 @@ Full record with measurements: `audit-runs/WHATS_LEFT-history.md` §1ar–§1at
 - Small text that used the bright cyan or a faded white is now a slightly
   lighter or darker shade, so it meets the accessibility standard. This
   covers the Industries cards, the homepage hero, and the menu labels and
-  descriptions. The logo, buttons and page headers keep their colours.
+  descriptions. The logo, buttons and page headers keep their colors.
 - In the dashboard, the hint text under each field and the error messages
   are darker and easier to read.
 

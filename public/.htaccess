@@ -9,8 +9,13 @@
 Options -MultiViews +FollowSymLinks
 
 # A-5.10 — `/` goes through the front controller too, so the homepage gets the
-# same server-filled head as every other route. index.html stays second, so a
-# host that cannot run PHP here still serves the static shell.
+# same server-filled head as every other route. index.html stays second, but
+# that is NOT a fallback for a host that cannot run PHP: DirectoryIndex picks
+# the first name that EXISTS, not the first that runs, and the catch-all below
+# rewrites every route to index.php. Measured with PHP not loaded: every page
+# and /sitemap.xml answered 200 with the raw PHP source and no Content-Type;
+# only /index.html itself was the shell. Without working PHP the public site is
+# down, not degraded. (A12-L2-W1-G2-2)
 DirectoryIndex index.php index.html
 RewriteEngine On
 RewriteBase /
@@ -68,14 +73,26 @@ RewriteBase /
   # ON PURPOSE no includeSubDomains: a year-long pin over subdomains nobody has
   # checked for TLS (mail, webmail, a host panel) can lock a browser out of
   # them. Add it only once every subdomain is known to serve a valid certificate.
-  SetEnvIf X-Forwarded-Proto "^https$" IPC_TLS=1
+  # SetEnvIf is mod_setenvif's, not mod_headers': unguarded, a host without
+  # mod_setenvif answered 500 on every page instead of losing one header.
+  # (A12-L2-05-1)
+  <IfModule mod_setenvif.c>
+    SetEnvIf X-Forwarded-Proto "^https$" IPC_TLS=1
+  </IfModule>
   Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
   Header always set Strict-Transport-Security "max-age=31536000" env=IPC_TLS
 </IfModule>
 
 # Suppress version disclosure and directory listings, as the admin already does.
+# X-Powered-By too: every public route runs PHP now (index.php, A-5.10), and
+# with the host's expose_php On each page announced the exact PHP version.
+# (A12-L2-01-3)
 ServerSignature Off
 Options -Indexes
+<IfModule mod_headers.c>
+  Header unset X-Powered-By
+  Header always unset X-Powered-By
+</IfModule>
 
 # The sitemap is generated from the live catalog (see sitemap.php) but keeps its
 # conventional address, so robots.txt, Search Console and any existing
@@ -136,7 +153,9 @@ RewriteRule ^ index.php [QSA,L]
   SetEnvIf Request_URI "^/assets/" IPC_IMMUTABLE=1
 </IfModule>
 <IfModule mod_headers.c>
-  <FilesMatch "\.(?:js|css|woff2?|ttf|otf|eot|svg|png|jpg|jpeg|gif|webp|ico)$">
+  # (?i:) — a photo FTP'd as IMG_0412.JPG got no Cache-Control at all, so a
+  # same-name replacement could stay stale for days. (A12-L11-03-2)
+  <FilesMatch "\.(?i:js|css|woff2?|ttf|otf|eot|svg|png|jpg|jpeg|gif|webp|ico)$">
     Header set Cache-Control "public, max-age=31536000, immutable" env=IPC_IMMUTABLE
     # Owner-editable images and the logo: cached, but revalidated within the
     # hour so an FTP'd or admin-uploaded replacement actually lands.
@@ -162,10 +181,15 @@ RewriteRule ^ index.php [QSA,L]
 # Apache version, which is not knowable from here — and naming a type the
 # server never emits costs nothing. application/xml is sitemap.php.
 # (audit-runs/audit6.md A-6.4)
+# AddOutputFilterByType is mod_filter's directive in Apache 2.4, so it needs
+# that guard too: mod_deflate without mod_filter was a 500 on every page.
+# (A12-L2-05-1)
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml
-  AddOutputFilterByType DEFLATE text/javascript application/javascript application/x-javascript
-  AddOutputFilterByType DEFLATE application/json application/xml image/svg+xml
+  <IfModule mod_filter.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml
+    AddOutputFilterByType DEFLATE text/javascript application/javascript application/x-javascript
+    AddOutputFilterByType DEFLATE application/json application/xml image/svg+xml
+  </IfModule>
 </IfModule>
 
 # Dotfiles. Apache's stock <Files ".ht*"> does not cover .user.ini, which this

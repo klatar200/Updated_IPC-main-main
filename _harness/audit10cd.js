@@ -14,7 +14,7 @@ const { launch } = require('./browser');
 
 const H = __dirname;
 const ROOT = path.join(H, '..');
-const BASE = 'http://127.0.0.1:8123';
+const BASE = process.env.AUDIT10CD_BASE || 'http://127.0.0.1:8123';
 const LIB = 'Liberation Sans';
 const ONLY = process.argv[2] || '';
 const results = [];
@@ -148,6 +148,25 @@ async function publicArms(browser) {
     const container = await page.evaluate(() => Math.round(document.querySelector('main .ipc-container').getBoundingClientRect().left + parseFloat(getComputedStyle(document.querySelector('main .ipc-container')).paddingLeft)));
     const off = lefts.filter((x) => Math.abs(x.left - container) > 2);
     note(off.length === 0, `A10-007: every left-aligned homepage h2 starts at the content edge (${container}px)`, JSON.stringify(off));
+    await ctx.close();
+  }
+
+  // ── CLAUDE.md invariants 13 and 14 — the wide page width and the 4th catalog column.
+  // .ipc-container is 80vw (not 80%) above 1600, and .ipc-catalog-grid's doubled
+  // selector is what lets the 4-column rule beat Tailwind's hoisted
+  // xl:grid-cols-3. "Simplifying" either gives 1280px / 3 columns at 2560 and
+  // nothing else noticed (AUDIT-12 A12-L13-01-2: adminwidth only measures admin).
+  {
+    const ctx = await ctxFor(browser, 2560, 1200);
+    const page = await ctx.newPage();
+    await go(page, '/products');
+    const m = await page.evaluate(() => {
+      const c = document.querySelector('main .ipc-container');
+      const g = document.querySelector('.ipc-catalog-grid');
+      return { container: c ? Math.round(c.getBoundingClientRect().width) : null, cols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').length : null };
+    });
+    note(m.container === 2048, `invariant 13: .ipc-container is 80vw at 2560 (${m.container}px)`, JSON.stringify(m));
+    note(m.cols === 4, `invariant 14: the catalog grid has 4 columns at 2560 (${m.cols})`, JSON.stringify(m));
     await ctx.close();
   }
 
@@ -287,8 +306,14 @@ async function publicArms(browser) {
       samples.push(await page.evaluate(() => { const b = [...document.querySelectorAll('div')].find((d) => getComputedStyle(d).position === 'fixed' && /Request a Quote/i.test(d.textContent) && d.getBoundingClientRect().height < 200); return b ? Math.round(b.getBoundingClientRect().top) : null; }));
       await page.waitForTimeout(60);
     }
-    const tops = samples.filter((x) => x !== null);
-    note(new Set(tops).size <= 1, `A10-057: under reduced motion the RFQ bar appears without a spring (${JSON.stringify(tops)})`);
+    // Only samples with the bar IN VIEW count. The first sample can land before
+    // React applies showStickyBar, at the hidden translateY(110%) position
+    // (907 at 1440x900), and one jump from there to the resting 830 is exactly
+    // what reduced motion should look like — it went red about one run in
+    // twenty for that (AUDIT-12 A12-L13-05-W5-2). A spring still shows as more
+    // than one in-view position (the A10-057 report measured 43 → 7.6 → -7.5 → 0).
+    const tops = samples.filter((x) => x !== null && x < 900);
+    note(tops.length >= 4 && new Set(tops).size <= 1, `A10-057: under reduced motion the RFQ bar appears without a spring (${JSON.stringify(samples)})`);
     await go(page, '/faq');
     const tr = await page.evaluate(() => {
       const btn = [...document.querySelectorAll('main button[aria-expanded]')].find((b) => b.getBoundingClientRect().width > 0);
@@ -353,6 +378,26 @@ async function publicArms(browser) {
     await probe('/dashboard', 'A10-061 /dashboard approval chip', () => [...document.querySelectorAll('main button')].find((b) => /^(UL|CSA|MIL|RoHS|AMS)/.test(b.textContent.trim()) && b.getBoundingClientRect().width > 0) || null);
     note(dead.filter((d) => /A10-060/.test(d)).length === 0, 'A10-060: the four CTAs/cards whose hover never painted now respond', dead.filter((d) => /A10-060/.test(d)).join('; '));
     note(dead.filter((d) => /A10-061/.test(d)).length === 0, 'A10-061: sort headers, FAQ rows, sidebar heads and approval chips give hover feedback', dead.filter((d) => /A10-061/.test(d)).join('; '));
+    // AUDIT-12 A12-L14-W1-G5-1 — "something changes on hover" passed while the
+    // sort titles turned #005da3 on the navy bar (2.04:1). The hover state
+    // must stay READABLE on the surface it sits on.
+    await go(page, '/dashboard');
+    const sortBtns = page.locator('main .ipc-sort-btn');
+    const nSort = await sortBtns.count();
+    const lowHover = [];
+    for (let i = 0; i < nSort; i++) {
+      await sortBtns.nth(i).hover();
+      await page.waitForTimeout(250);
+      const r = await sortBtns.nth(i).evaluate((el) => {
+        const L = (c) => { const v = c.match(/[\d.]+/g).slice(0, 3).map(Number).map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+        const fg = getComputedStyle(el).color;
+        const bg = getComputedStyle(el.closest('tr')).backgroundColor;
+        const [hi, lo] = [L(fg), L(bg)].sort((x, y) => y - x);
+        return { t: el.textContent.trim(), fg, bg, cr: (hi + 0.05) / (lo + 0.05) };
+      });
+      if (r.cr < 4.5) lowHover.push(`${r.t} ${r.fg} on ${r.bg} ${r.cr.toFixed(2)}:1`);
+    }
+    note(nSort > 0 && lowHover.length === 0, `A12-L14-W1-G5-1: all ${nSort} Product Index sort titles stay >= 4.5:1 on the header bar while hovered`, lowHover.join('; '));
     await ctx.close();
   }
 

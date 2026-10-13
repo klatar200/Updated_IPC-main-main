@@ -44,13 +44,21 @@ AddDefaultCharset UTF-8
   # (audit-runs/audit6.md A-6.5)
   # PUB-1 — see public/.htaccess for why env=HTTPS, two lines, and no
   # includeSubDomains. The two files must stay in step.
-  SetEnvIf X-Forwarded-Proto "^https$" IPC_TLS=1
+  # Guarded: SetEnvIf is mod_setenvif's (A12-L2-05-1, as public/.htaccess).
+  <IfModule mod_setenvif.c>
+    SetEnvIf X-Forwarded-Proto "^https$" IPC_TLS=1
+  </IfModule>
   Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
   Header always set Strict-Transport-Security "max-age=31536000" env=IPC_TLS
   # Conservative CSP — the admin uses inline <style> blocks but no external JS.
   # form-action: SEC-16 (audit 2026-09-27) — it does NOT fall back to
   # default-src, so without it an injected <form> could post anywhere.
-  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: https://placehold.co; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+  # img-src https: — A12-L2-W1-G2-1. Business Details' Logo URL and Edit
+  # Product's Photo URL both accept (and their hints suggest) a full https://
+  # address, and the public site shows it; with only 'self' and placehold.co
+  # here, the dashboard's "Now showing" logo and "Live preview" photo were
+  # broken for exactly those pictures. Images only: scripts stay 'self'.
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 </IfModule>
 
 # Block direct access to sensitive files in this directory.
@@ -59,7 +67,11 @@ AddDefaultCharset UTF-8
 # extension patterns: Apache served the reset flag as an empty 200, which gives
 # a scanner a one-byte probe for "is the password-reset window open right now".
 # (AUDIT_v3_FINDINGS NB14)
-<FilesMatch "(^|/)(config\.php|config\.local\.php|\.htaccess|ALLOW-PASSWORD-RESET|README\.md|admin-log\.jsonl|\.login-throttle\.json|.*\.json|.*\.jsonl|.*\.bak|.*\.bak\..*|.*\.backup\..*)$">
+# .tmp — A12-L4-W2-G4-2: config.local.php is now written as
+# config.local.php.<pid>-<rand>.tmp and renamed in. A request killed between
+# the two leaves that temp file, which holds the password hash, and nothing
+# else here denies the .tmp extension.
+<FilesMatch "(^|/)(config\.php|config\.local\.php|\.htaccess|ALLOW-PASSWORD-RESET|README\.md|admin-log\.jsonl|\.login-throttle\.json|.*\.json|.*\.jsonl|.*\.bak|.*\.bak\..*|.*\.backup\..*|.*\.tmp)$">
   Order Allow,Deny
   Deny from all
 </FilesMatch>

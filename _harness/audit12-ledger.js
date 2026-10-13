@@ -204,7 +204,14 @@ else problems.push('FIELD: $SECTIONS not found');
 // ── DOC: every heading of every live document is a block of claims ───────────
 const frozen = /^audit-runs\/|^_harness\/AUDIT1[01]-REPORT\.md$|^DEPLOY_READINESS_v2\.md$|^UX_AUDIT_PREPROD/;
 for (const f of files.filter((x) => /\.md$/.test(x) && !frozen.test(x))) {
+  // A '#' line inside a ``` / ~~~ fence is a bash comment or a template line,
+  // not a heading: counting them made 45 of 368 DOC rows non-headings and cut
+  // real sections (GO-LIVE C1) into fragments (AUDIT-12 A12-L12-01-6).
+  let fence = null;
   read(f).split('\n').forEach((l, i) => {
+    const fm = l.match(/^\s{0,3}(`{3,}|~{3,})/);
+    if (fm) { if (!fence) fence = fm[1][0]; else if (fm[1][0] === fence) fence = null; return; }
+    if (fence) return;
     if (/^#{1,3} /.test(l)) add('DOC', 'L12', `${f}: ${l.replace(/^#+\s*/, '').slice(0, 90)}`, `${f}:${i + 1}`, 'every claim under this heading checked against code or a command');
   });
 }

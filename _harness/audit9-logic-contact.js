@@ -37,12 +37,11 @@ function clearLimiter() {
   }
 }
 // ── Negative control ───────────────────────────────────────────────────────
-// NEGCTL=1 removes `hdr()`'s CR/LF collapse from the MIRROR'S contact.php (a
-// disposable copy; the repo is never touched) and restores it in a `finally`.
-// Under it the "Subject header is a single line" and "no Bcc: in the header
-// block" checks must fail.
-// The guard removed is `h()` on the render boundary in inquiries.php, NOT
-// `hdr()`. Measured on PHP 8.4.19: neutering `hdr()` changes nothing, because
+// NEGCTL=1 removes `h()` from the Part-number render site in the MIRROR'S
+// admin/inquiries.php (a disposable copy; the repo is never touched) and
+// restores it in a `finally`. Under it "the literal < and > are escaped once"
+// must fail. (This paragraph said it removed `hdr()` from contact.php; the
+// code never did — AUDIT-12 A12-L13-W1-R1-1-2.) Why not `hdr()`: Measured on PHP 8.4.19: neutering `hdr()` changes nothing, because
 // `mail()` ITSELF collapses CR/LF in $subject to spaces —
 //   mail('x@e.com', "SUBJ\r\nBcc: evil@e.com", 'body', "From: a@b.c\r\n")
 //   -> "Subject: SUBJ  Bcc: evil@e.com"  (one line)
@@ -203,8 +202,14 @@ async function main() {
       const page = await req('/admin/inquiries.php');
       const html = page.body;
       check('C13', 'inquiries.php renders the unicode payload', html.includes('–°″µ🔥'), { present: html.includes('–°″µ🔥') }, 'shown as typed');
-      check('C13', 'the literal < and > are escaped once at the render boundary', html.includes('&lt;1/4 inch and &gt;2 inch ID'), { found: html.includes('&lt;1/4 inch and &gt;2 inch ID') }, 'h() once');
-      check('C13', 'and NOT double-escaped', !html.includes('&amp;lt;1/4 inch'), { doubled: html.includes('&amp;lt;1/4 inch') }, 'no &amp;amp;');
+      // Read THIS run's Part-number cell, not the whole page: other suites'
+      // leftover rows (contactflow's spec, one stored pre-escaped) decided
+      // both arms and kept the negative control green (AUDIT-12
+      // A12-L13-W1-R1-1-2).
+      const cells = [...html.matchAll(/<tr><th>Part number<\/th><td>((?:(?!<\/td>)[\s\S])*?)<\/td><\/tr>/g)].map((m) => m[1]).filter((x) => x.includes(MARK));
+      const cell = cells[0] || '';
+      check('C13', 'the literal < and > are escaped once at the render boundary', cell.includes('&lt;1/4 inch and &gt;2 inch ID'), { cells: cells.length, cell: cell.slice(-60) }, 'h() once');
+      check('C13', 'and NOT double-escaped', !!cell && !cell.includes('&amp;'), { doubled: cell.includes('&amp;') }, 'no &amp;amp;');
     }
 
     // ── C18 — double-click submit, and Back then resubmit ──────────────────

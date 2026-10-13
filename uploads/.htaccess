@@ -5,7 +5,7 @@
 # No directory listings
 Options -Indexes
 
-# DENY BY DEFAULT (WHATS_LEFT §4917 item, done 2026-09-29, measured on real
+# DENY BY DEFAULT (WHATS_LEFT §1al item 8, done 2026-09-29, measured on real
 # Apache 2.4 by _harness/dep3-scriptblock.js under both PHP handler models).
 # This folder holds pictures and nothing else, so it serves pictures and
 # nothing else: anything that is not a known image type answers 403 — an
@@ -17,6 +17,7 @@ Options -Indexes
 #   2. re-allow the image types (and SVG only with its sandbox header);
 #   3. deny script-named files AGAIN, after the allow, so `x.php.jpg` stays
 #      denied even though it ends in .jpg. Move 3 above 2 and it is served.
+#   (Between 2 and 3, dot-names — the admin's trash — are denied too.)
 <FilesMatch ".">
   Order Allow,Deny
   Deny from all
@@ -38,6 +39,18 @@ Options -Indexes
     Header set X-Content-Type-Options "nosniff"
   </FilesMatch>
 </IfModule>
+
+# Trashed files stay off the web (A12-L2-01-1). Deleting a product, Remove
+# Photo, and replacing a photo with another file type rename the old picture
+# to `.deleted.<name>` (admin/config.php file_to_trash(), ADM-3) so a Backups
+# restore can bring it back. The root .htaccess denies dot-names, but the
+# image allow above matched `.deleted.CC.png` too and, merged later, won: the
+# removed photo answered 200. Deny dot-names here, after the allows. (The
+# script deny below still comes last — invariant 19.)
+<FilesMatch "^\.">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
 
 # Never execute scripts from this folder, even if one somehow lands here.
 #

@@ -7,7 +7,7 @@
  *   admin/content.php form  ->  POST  ->  data/content.json  ->  mergeContent()
  *   ->  rendered DOM on the public page
  *
- * If any link in that chain were broken, copydrift's "96 matched" would be
+ * If any link in that chain were broken, copydrift's "N matched" (121 on 2026-10-13) would be
  * worthless — which is exactly the NB-copy failure mode: a green "Content
  * saved" over an edit that never renders.
  *

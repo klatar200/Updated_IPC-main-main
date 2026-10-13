@@ -98,7 +98,7 @@ const MUTATIONS = [
   {
     name: 'the auto-reply is suppressed — the visitor gets no confirmation',
     file: () => PHP,
-    find: 'if ($autoReplyOk) {',
+    find: "if ($autoReplyOk && function_exists('mail')) {",
     repl: 'if (false) {',
     tag: 'rfq',
     expect: 'exactly two messages left',

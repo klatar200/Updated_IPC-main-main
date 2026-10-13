@@ -45,8 +45,15 @@ const MUTATIONS = [
     file: 'admin/config.php',
     apply: (s) => s.replace(
       "define('ADMIN_PASSWORD_SENTINEL', '*not-configured*');",
-      "define('ADMIN_PASSWORD_SENTINEL', '$2y$12$abcdefghijklmnopqrstuv0123456789ABCDEFGHIJKLMNOPQRSTU');"),
+      "define('ADMIN_PASSWORD_SENTINEL', '" + '$2y$12$' + 'x'.repeat(53) + "');"), // bcrypt-SHAPED, built at runtime: no hash literal in the repo (AUDIT-12)
     also: ['INV2b'],
+  },
+  {
+    id: 'INV2c', why: 'a default password written as code, not as a hash literal',
+    file: 'admin/config.php',
+    apply: (s) => s.replace(
+      "    define('ADMIN_PASSWORD_HASH', ADMIN_PASSWORD_SENTINEL);",
+      "    define('ADMIN_PASSWORD_HASH', password_hash('changeme', PASSWORD_BCRYPT));"),
   },
   {
     id: 'INV3', why: 'the "&& v.length" re-seed — stale legal text republishing itself',
@@ -67,6 +74,15 @@ const MUTATIONS = [
     id: 'INV5a', why: 'first-free sequence allocation, which scrambles backup ordering',
     file: 'admin/config.php',
     apply: (s) => s.replace('$next = $used + 1;', '$next = 1;'),
+    // INV5c also fires: first-free reuses sequence 1, which exists.
+    also: ['INV5c'],
+  },
+  {
+    id: 'INV5c', why: 'a one-word break in the max-used loop — a save overwrites a backup',
+    file: 'admin/config.php',
+    apply: (s) => s.replace(
+      'if ($k[1] > $used) $used = $k[1];\n    }',
+      'if ($k[1] > $used) $used = $k[1];\n        break;\n    }'),
   },
   {
     id: 'INV5b', why: 'ordering backups by filemtime() — 1-second resolution ties',
@@ -90,10 +106,16 @@ const MUTATIONS = [
     apply: (s) => s.replace('<ErrorBoundary key={page}', '<ErrorBoundary'),
   },
   {
-    id: 'INV8', why: 'Footer moved above the catalog gate (chrome behind the gate)',
+    id: 'INV8', why: 'Footer moved into the catalog gate (chrome behind the gate)',
     file: 'src/App.jsx',
-    // Removing the Footer entirely models "the chrome is not outside the gate".
-    apply: (s) => s.replace('<Footer />', '<FooterMoved />'),
+    // MOVES the Footer into the gate's render branch — the regression the
+    // invariant exists for. Renaming it away (the old mutation) only proved
+    // indexOf() can return -1; a check comparing against the gate's start
+    // passed this one (AUDIT-12 A12-L13-17-2).
+    apply: (s) => {
+      const t = s.replace(/\n[ \t]*<Footer \/>\n/, '\n').replace(/(\n[ \t]*)renderPage\(\)\n/, '$1<>{renderPage()}<Footer /></>\n');
+      return (t.match(/<Footer \/>/g) || []).length === 1 && t.includes('<>{renderPage()}<Footer /></>') ? t : s;
+    },
   },
   {
     id: 'INV9', why: 'the skeleton defined only in GlobalStyles — styleless while loading',

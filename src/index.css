@@ -111,9 +111,13 @@
 
   /* The brand colors used as TEXT rather than as a background
      (brand-color-as-foreground). ThemeInjector darkens or lightens these only
-     as far as legibility requires, and only when the owner's own color fails —
-     for the shipped palette below they are the brand colors unchanged, which is
-     why the default site looks exactly as it did. */
+     as far as legibility requires, and only when the owner's own color fails.
+     These values are the pre-JS fallbacks, NOT what the shipped palette
+     paints: ThemeInjector moves --brand-accent-text to #0d7594 (#119ec8 is
+     3.11:1 on white and fails AA; decided 2026-08-06, WHATS_LEFT "Settled")
+     and --brand-accent-on-dark to #11a2cd; the other three stay as written.
+     The fallback is never painted on an element in practice (measured,
+     AUDIT-12 A12-L15-20-1). */
   --brand-primary-text: #005da3;
   --brand-accent-text: #119ec8;
   --brand-accent-on-dark: #119ec8;
@@ -140,9 +144,11 @@ svg[stroke="#005da3"] {
 }
 
 /* ── First-paint critical ────────────────────────────────────────────────────
-   These must exist BEFORE React mounts. GlobalStyles (App.jsx) injects its
-   <style> from inside the tree that only renders after the catalog fetch
-   resolves, so anything the loading skeleton needs cannot live there.
+   These must exist BEFORE React mounts. GlobalStyles (App.jsx) USED TO inject
+   its <style> from inside the tree that only rendered after the catalog fetch
+   resolved; it now mounts beside Navbar, above the loading gate, but the rule
+   stands (invariant 9): first-paint CSS must not depend on any component
+   mounting, so anything the loading skeleton needs lives here.
    Measured before this move: 53 .ipc-skeleton elements on screen with
    background-color rgba(0,0,0,0) and animation "none" — a blank white page on
    a slow connection. (DEPLOY_READINESS_v2 T2.10) */
@@ -170,10 +176,11 @@ svg[stroke="#005da3"] {
  *
  * HERE AND NOT IN GlobalStyles — invariant 9, and this one is load-bearing in
  * two separate ways. The <Navbar> renders ABOVE the catalog loading gate
- * (invariant 8) and CatalogSkeleton IS the loading state, while GlobalStyles
- * mounts inside the tree that only renders once the fetch has resolved. Putting
- * this rule there would leave the header and the whole skeleton uncontained for
- * exactly as long as the page is loading, then snap them into place. Do not
+ * (invariant 8) and CatalogSkeleton IS the loading state. GlobalStyles once
+ * mounted inside the tree that only rendered once the fetch had resolved (it
+ * now mounts above the gate, but no first-paint rule may depend on a component
+ * mounting — invariant 9). Putting this rule there left the header and the
+ * whole skeleton uncontained while the page loaded, then snapped them into place. Do not
  * "tidy" it into GlobalStyles with the rest of the layout CSS.
  *
  * The breakpoint, so it does not get simplified into a flat `width: 80%`:
@@ -382,6 +389,32 @@ svg[stroke="#005da3"] {
   background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent-2) 100%);
 }
 
+/* AUDIT-12 A12-L11-03-1 — the page-header type scale and band padding, moved
+   here from GlobalStyles (App.jsx). There they arrived only after the
+   component mounted, so on a phone the header's H1 first painted at Tailwind's
+   36px with 48px padding and then jumped to 28px / 24px: a layout shift of
+   0.06–0.11 on six routes, /about over the 0.1 "good" line. Invariant 9:
+   first-paint CSS must not depend on any component mounting. The values and
+   the !important are unchanged (they still have to beat Tailwind's utilities,
+   invariant 14). */
+.ipc-page-h1,
+h1.text-4xl { font-size: clamp(1.75rem, 3.5vw, 2.5rem) !important; font-weight: 800 !important; line-height: 1.15 !important; }
+.ipc-section-h2, h2.text-3xl { font-size: clamp(1.4rem, 2.8vw, 1.875rem) !important; font-weight: 800 !important; line-height: 1.2 !important; }
+.ipc-page-header > div {
+  padding-top: 24px !important;
+  padding-bottom: 24px !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+}
+@media (min-width: 768px) {
+  .ipc-page-header > div {
+    padding-top: 36px !important;
+    padding-bottom: 36px !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
 /* Product-index sort controls (4.19). The button has to look exactly like the
    <th> text it replaced, so it inherits everything typographic and drops the
    UA button chrome. `width: 100%` keeps the whole header cell clickable, which
@@ -405,8 +438,11 @@ svg[stroke="#005da3"] {
   cursor: pointer;
 }
 /* A10-061 (§1at) — the sort headers gave no hover feedback while the controls
-   around them did. */
-.ipc-sort-btn:hover { color: var(--brand-primary-text); }
+   around them did. They sit on the --brand-dark header bar, so the hover is
+   the bar's own full ink (rest is that ink at 0.65). It was
+   --brand-primary-text, the primary made safe on WHITE: 2.04:1 on the navy bar,
+   the label all but vanished under the pointer. (A12-L14-W1-G5-1) */
+.ipc-sort-btn:hover { color: rgb(var(--brand-dark-ink-rgb)); }
 .ipc-sort-btn:focus-visible {
   outline: 3px solid var(--brand-accent);
   outline-offset: -3px;
@@ -474,14 +510,27 @@ svg[stroke="#005da3"] {
    second was measured for PLAN-10 item 3 and reproduces identically (46.0 of
    46.0px hidden at 390, 45.5 at 1440).
 
-   Here and not in GlobalStyles: invariant 9 — GlobalStyles mounts inside the
-   tree that only renders AFTER the catalog load resolves.
+   Here and not in GlobalStyles: invariant 9 — first-paint CSS must not depend
+   on a component mounting (GlobalStyles once rendered only AFTER the catalog
+   load resolved).
 
    Scoped to these two forms on purpose. The site-wide version of this rule
    would also hit the search and filter inputs, which sit in their own scroll
    contexts. */
 .ipc-validated-form :is(input, select, textarea) {
   scroll-margin-top: 96px;
+}
+/* A12-L7-W3-G4-3 — scroll-margin only applies when the browser decides to
+   scroll. Tab to Submit and press Enter at 1440x900 and the page is scrolled
+   just far enough to show Submit, leaving Full Name PARTLY on screen under the
+   65 px header; Chrome counts a partly visible field as in view and does not
+   scroll, so the margin never applied (39.5 of 46 px hidden, label covered).
+   scroll-padding on the scroller moves the edge of "in view" itself. It
+   replaces the margin where :has() exists (the two would add up to 192 px);
+   older browsers keep the margin above. Scoped to pages carrying the form. */
+@supports selector(:has(a)) {
+  html:has(.ipc-validated-form) { scroll-padding-top: 96px; }
+  .ipc-validated-form :is(input, select, textarea) { scroll-margin-top: 0; }
 }
 
 /* The sticky RFQ bar is position:fixed and 72px tall. Padding only ProductPage
@@ -499,7 +548,11 @@ body.ipc-has-sticky-rfq {
    On paper: no site chrome, no buttons, black text on white, tables ruled,
    rows and images kept whole. `!important` throughout because most of what it
    overrides is inline style and Tailwind utilities, which load after this
-   file (invariant 14). Marked-up exceptions carry data-print="hide". */
+   file (invariant 14). Marked-up exceptions carry data-print="hide".
+   A <button> that IS content — an FAQ question, a sortable column title —
+   carries data-print="keep": hiding every button printed the FAQ with no
+   questions and the Product Index with six blank column headers.
+   (A12-L14-W1-G1-1) */
 @media print {
   @page { margin: 12mm; }
   html, body { background: #fff !important; }
@@ -513,7 +566,7 @@ body.ipc-has-sticky-rfq {
   /* GlobalStyles (App.jsx) re-declares the banner gradient with !important;
      a class selector there outranks `*` here, so name it with more weight. */
   html body .ipc-page-header { background: none !important; }
-  header, footer, .ipc-skip, button, [data-print="hide"] { display: none !important; }
+  header, footer, .ipc-skip, button:not([data-print="keep"]), [data-print="hide"] { display: none !important; }
   main, .ipc-container { max-width: none !important; width: auto !important; padding-left: 0 !important; padding-right: 0 !important; }
   a { text-decoration: none !important; }
   img { max-width: 100% !important; break-inside: avoid; }

@@ -18,7 +18,7 @@
  * that must pass in both the broken and the fixed tree — without it a suite
  * that merely 404s everything would score full marks.
  *
- *   node _harness/audit9-router-docroot.js        # PORT=8153 by default
+ *   node _harness/audit9-router-docroot.js        # PORT=8153 by default (arm E: PORT+1)
  *
  * Needs no mirror and no running server: it builds a two-file docroot under
  * `_harness/out/audit9/router-docroot/` and starts its own `php -S`.
@@ -43,9 +43,9 @@ function ok(name, cond, detail) {
   else { failures.push(`${name} — ${detail}`); console.log(`  FAIL  ${name} — ${detail}`); }
 }
 
-function get(p) {
+function get(p, port = PORT) {
   return new Promise((resolve) => {
-    http.get({ host: '127.0.0.1', port: PORT, path: p, timeout: 8000 }, (res) => {
+    http.get({ host: '127.0.0.1', port, path: p, timeout: 8000 }, (res) => {
       let body = '';
       res.setEncoding('utf8');
       res.on('data', (c) => (body += c));
@@ -94,7 +94,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
     if (!up) {
       console.error(`audit9-router-docroot: php -S never came up on :${PORT}\n${stderr.slice(0, 400)}`);
-      process.exit(2);
+      process.exitCode = 2; return;
     }
 
     console.log(`audit9-router-docroot  docroot=${path.relative(ROOT, DOCROOT)}  port=${PORT}\n`);
@@ -126,9 +126,24 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       `body began ${JSON.stringify(d.body.slice(0, 60))}`);
 
     // Arm E — the shipped invocation must keep working: docroot IS _harness/site.
-    const e = await get('/data/site-info.json');
-    ok('E/compat  a real path still resolves (no regression for the sweep shape)',
-      e.status === 200 || e.body.includes('DOCROOT-SHELL'), `status ${e.status}`);
+    // Its own server, -t _harness/site, on PORT+1. It used to GET from the
+    // private-docroot server above and accept that docroot's shell, so it
+    // passed whatever the sweep shape did (AUDIT-12 A12-L13-05-4).
+    const sweepSrv = spawn('php', ['-S', `127.0.0.1:${PORT + 1}`, '-t', SWEEP, path.join(ROOT, '_harness', 'router.php')], {
+      cwd: SWEEP, stdio: 'ignore', detached: true,
+    });
+    try {
+      let e = { status: 0, body: '' };
+      for (let i = 0; i < 40 && !e.status; i++) { await sleep(250); e = await get('/data/site-info.json', PORT + 1); }
+      let info = null; try { info = JSON.parse(e.body); } catch (_) { /* stays null */ }
+      ok('E/compat  -t _harness/site serves the real data/site-info.json (no regression for the sweep shape)',
+        e.status === 200 && !!info && !!info.company, `status ${e.status}, body began ${JSON.stringify(e.body.slice(0, 40))}`);
+      const e2 = await get(`/${BOTH}`, PORT + 1);
+      ok('E/control and a file in both trees comes from _harness/site there', e2.body.includes('FROM-SWEEP'),
+        `body began ${JSON.stringify(e2.body.slice(0, 40))}`);
+    } finally {
+      try { process.kill(-sweepSrv.pid); } catch (_) { try { sweepSrv.kill(); } catch (__) {} }
+    }
 
     const total = pass + failures.length;
     console.log(`\naudit9-router-docroot ${pass}/${total}`);
@@ -136,9 +151,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       console.log('\nfailing:');
       for (const f of failures) console.log(`  - ${f}`);
     }
-    // exitCode, not process.exit(): exit() inside a try skips the finally,
-    // which left the php -S running and two marker files in the sweep mirror
-    // after every run (AUDIT-12 A12-L13-05-3).
+    // exitCode, not exit(): process.exit() inside try skipped the finally,
+    // leaking the php -S and leaving both marker files in _harness/site
+    // (AUDIT-12 A12-L13-05-3, A12-L13-05-4).
     process.exitCode = failures.length ? 1 : 0;
   } finally {
     try { process.kill(-server.pid); } catch (_) { try { server.kill(); } catch (__) {} }

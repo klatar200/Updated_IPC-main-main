@@ -283,7 +283,7 @@ const readBanner = () => {
   note(b.fivePlusQualified.headline && !/·/.test(b.fivePlusQualified.headline),
     `five plus one qualified -> "${b.fivePlusQualified.headline}" (no joined duplicate)`,
     JSON.stringify(b.fivePlusQualified));
-  // SUPERSEDED BY UX-audit F12, updated 2026-08-13 (audit-runs/audit3.md C-01).
+  // SUPERSEDED BY UX-audit F12, updated 2026-08-13 (audit 3 C-02, audit-runs/build-plan-run3.md).
   //
   // This used to require the block to say "differ|except|vary|varies" — B21's
   // original behaviour, where a minority lead time raised "1 service differs —

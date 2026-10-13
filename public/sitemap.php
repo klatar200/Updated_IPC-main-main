@@ -85,6 +85,12 @@ function sitemap_product_ids($file)
     if ($raw === false || $raw === '') {
         return [];
     }
+    // A12-L5-W2-G2-1 — a UTF-8 byte-order mark (an FTP editor's) made this
+    // json_decode() fail and the sitemap drop every product under a 200,
+    // while the browser's res.json() skips the mark and shows all of them.
+    if (strncmp($raw, "\xEF\xBB\xBF", 3) === 0) {
+        $raw = substr($raw, 3);
+    }
     $data = json_decode($raw, true);
     if (!is_array($data)) {
         return [];
@@ -115,8 +121,11 @@ function sitemap_product_ids($file)
         if (!is_string($id) && !is_int($id)) {
             continue;
         }
-        $id = trim((string)$id);
-        if ($id === '') {
+        // The id as stored, not trimmed: the page builds its canonical from
+        // the stored id, and a trimmed <loc> for " IP33PO " pointed at a URL
+        // the page disowns (A12-L5-W2-G4-1). Blank is still skipped.
+        $id = (string)$id;
+        if (trim($id) === '') {
             continue;
         }
         $ids[$id] = true;   // keyed, so a duplicate id cannot emit a duplicate <loc>

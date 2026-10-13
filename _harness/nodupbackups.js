@@ -10,6 +10,8 @@
  * The damage is not disk space, it is EVICTION. BACKUP_KEEP is 30, so thirty
  * duplicate copies of the current state push the one pre-mistake copy off the
  * end of the list — which is precisely the recovery help.php promises.
+ * (BACKUP_KEEP was 30 when this was written; it is 90 since, in
+ * admin/config.php — the eviction is the same, just ninety saves away.)
  *
  * What this asserts, end to end through the real admin rather than by calling
  * the PHP directly, because the thing being fixed is what happens when the

@@ -2,7 +2,8 @@
  * The truncation guard, exercised against a REAL truncating server.
  *
  * :8124 runs max_input_vars=100 with display_errors=Off — the production shape
- * (public/.user.ini). The content form posts 439 variables, so PHP genuinely
+ * (public/.user.ini). The content form posts ~460 variables (458 on
+ * 2026-10-02; plan4-admin.js POSTED_BEFORE holds the count), so PHP genuinely
  * drops everything past the 100th and `form_complete` never arrives. This is
  * not a simulation: the field is not removed by the test, PHP discards it.
  *
