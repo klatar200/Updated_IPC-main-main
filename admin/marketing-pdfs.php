@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!upload_field_is_single('pdf_file')) {
             $errors[] = 'Please choose one PDF at a time.';
         } elseif (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
-            $errors[] = upload_error_message($_FILES['pdf_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'PDF');
+            $errors[] = upload_error_message($_FILES['pdf_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'PDF', 20);
         } elseif (!is_dir(MARKETING_PDF_DIR) && !@mkdir(MARKETING_PDF_DIR, 0755, true) && !is_dir(MARKETING_PDF_DIR)) {
             $errors[] = 'Could not create the pdfs/marketing folder on the server. Create public_html/pdfs/marketing/ over FTP and make it writable (755).';
         } elseif (($p = uploaded_pdf_problem($_FILES['pdf_file'])) !== '') {

@@ -443,7 +443,12 @@ function csrf_fail_page(string $reason): void {
         $lead  = 'The whole request was rejected before it reached the admin, so <strong>nothing was saved</strong>. '
                . 'This server accepts up to <strong>' . h(ini_get('post_max_size') ?: '?') . '</strong> per request and '
                . '<strong>' . h(ini_get('upload_max_filesize') ?: '?') . '</strong> per file. '
-               . 'Use a smaller file, or ask your developer to raise the limits in <code>.user.ini</code>.';
+               // A12-L9-W4-G2-2 — the dashboard's own caps sit under the
+               // shipped server figures, so .user.ini is worth raising only
+               // while post_max_size is below the 20MB PDF cap.
+               . 'Use a smaller file (the dashboard itself accepts at most 20MB for a PDF and 8MB for a picture)'
+               . (ini_size_mb('post_max_size', 20) < 20
+                   ? ', or ask your developer to raise the limits in <code>.user.ini</code>.' : '.');
     } else {
         $title = $expired ? 'Your sign-in session expired' : 'This form could not be verified';
         $lead  = $expired
@@ -1123,12 +1128,14 @@ function load_content(): array {
  * One copy across two languages is not achievable without a build step, and
  * this codebase already has an answer for exactly this shape of problem:
  * `$COPY_GROUPS` here and `COPY_DEFAULTS` in App.jsx are two copies kept honest
- * by `_harness/copydrift.js`, which FAILS the build when they diverge. The same
- * check now covers this list (`lint.php` -> "family drift"), so the pair cannot
- * drift silently the way the three `$partTypes`/FAMILY_ORDER literals could.
+ * by `_harness/copydrift.js`, which FAILS `php _harness/lint.php` when they
+ * diverge (not `npm run build`, which is plain `vite build` — the check runs
+ * only when the lint is run). The same check now covers this list (`lint.php`
+ * -> "family drift"), so the pair cannot drift silently the way the three
+ * `$partTypes`/FAMILY_ORDER literals could.
  *
  * What changed is not the number of copies — it is that a copy which disagrees
- * is now a build failure instead of an invisible defect.
+ * is now a lint failure instead of an invisible defect.
  */
 /**
  * The approval vocabulary, and how a product's approvals are read.
@@ -2659,7 +2666,14 @@ function uploads_runtime_htaccess(): string {
         . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
         . "  Order Allow,Deny\n"
         . "  Deny from all\n"
-        . "</FilesMatch>\n";
+        . "</FilesMatch>\n"
+        // PUB-10's revalidation, as uploads/.htaccess carries it: a replaced
+        // photo keeps its <SKU>.<ext> name, and without this the root rule's
+        // max-age=3600 applied, so "on the site within about a minute" was an
+        // hour here. Headers only, no access rules, so after the deny is safe
+        // (invariant 19 is about access). (A12-L2-W1-G5-1)
+        . "<IfModule mod_headers.c>\n  <FilesMatch \"\\.(?i:jpe?g|png|webp|gif)$\">\n"
+        . "    Header set Cache-Control \"no-cache\"\n  </FilesMatch>\n</IfModule>\n";
 }
 
 // Helper: derive the canonical image filename for a SKU. Same sanitization as
@@ -2696,15 +2710,20 @@ function image_in_use(array $products, string $basename): bool {
  * .user.ini would not have moved either one. (AUDIT_v3_FINDINGS D6)
  */
 function min_upload_label(int $ownCapMb): string {
-    $ini   = (string)ini_get('upload_max_filesize');
+    $iniMb = ini_size_mb('upload_max_filesize', $ownCapMb);
+    $mb    = min($iniMb, $ownCapMb);
+    return ($mb >= 1 ? (string)round($mb) : rtrim(rtrim(number_format($mb, 1), '0'), '.')) . 'MB';
+}
+
+/** An ini size setting ("24M") in MB; $fallback when it cannot be read. */
+function ini_size_mb(string $key, float $fallback): float {
+    $ini   = (string)ini_get($key);
     $bytes = 0;
     if (preg_match('/^\s*(\d+(?:\.\d+)?)\s*([KMG])?/i', $ini, $m)) {
         $mult  = ['' => 1, 'K' => 1024, 'M' => 1048576, 'G' => 1073741824];
         $bytes = (int)((float)$m[1] * $mult[strtoupper($m[2] ?? '')]);
     }
-    $iniMb = $bytes > 0 ? $bytes / 1048576 : $ownCapMb;
-    $mb    = min($iniMb, $ownCapMb);
-    return ($mb >= 1 ? (string)round($mb) : rtrim(rtrim(number_format($mb, 1), '0'), '.')) . 'MB';
+    return $bytes > 0 ? $bytes / 1048576 : $fallback;
 }
 
 /**
@@ -2718,13 +2737,24 @@ function upload_field_is_single(string $field): bool {
     return !isset($_FILES[$field]) || !is_array($_FILES[$field]['error'] ?? null);
 }
 
-function upload_error_message(int $code, string $what = 'file'): string {
+function upload_error_message(int $code, string $what = 'file', int $ownCapMb = 0): string {
     $iniMax = ini_get('upload_max_filesize') ?: '?';
     $postMax = ini_get('post_max_size') ?: '?';
     switch ($code) {
         case UPLOAD_ERR_INI_SIZE:
+            // A12-L9-W4-G2-2 — the page's own cap (20MB PDFs, 8MB pictures)
+            // can be LOWER than the server's figure. Then raising .user.ini
+            // changes nothing (Help #server-limits says so), and a file shrunk
+            // to just under the server figure was refused again with another
+            // number. Name the limit that actually applies, and send him to
+            // his developer only when the server's figure is the lower one.
+            if ($ownCapMb > 0 && ini_size_mb('upload_max_filesize', $ownCapMb) >= $ownCapMb) {
+                return "That {$what} is larger than this page accepts. The most it takes is "
+                     . min_upload_label($ownCapMb) . ". Shrink the {$what} to that size or less and try again.";
+            }
             return "That {$what} is larger than this server accepts ({$iniMax} per file, {$postMax} per request). "
-                 . "Shrink the {$what} and try again, or ask your developer to raise the limit in .user.ini.";
+                 . "Shrink the {$what} and try again, or ask your developer to raise the limit in .user.ini"
+                 . ($ownCapMb > 0 ? " (this page's own limit is {$ownCapMb}MB, so raising it past that will not help)." : '.');
         case UPLOAD_ERR_FORM_SIZE:
             return "That {$what} is larger than this form accepts. Please use a smaller file.";
         case UPLOAD_ERR_PARTIAL:

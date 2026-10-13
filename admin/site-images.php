@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!upload_field_is_single('image_file')) {
             $errors[] = 'Please choose one image file at a time.';
         } elseif (!isset($_FILES['image_file']) || $_FILES['image_file']['error'] !== UPLOAD_ERR_OK) {
-            $errors[] = upload_error_message($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'image');
+            $errors[] = upload_error_message($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'image', 8);
         } elseif (!is_dir(SITE_IMG_DIR) && !@mkdir(SITE_IMG_DIR, 0755, true) && !is_dir(SITE_IMG_DIR)) {
             $errors[] = 'Could not create the uploads/site folder on the server. Create public_html/uploads/site/ over FTP and make it writable (755).';
         } else {
