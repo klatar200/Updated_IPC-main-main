@@ -232,8 +232,9 @@ function PageLink({ page = null, params, hash, onNavigate, onClick, children, ..
     if (e.button !== 0) return;
     e.preventDefault();
     // ONE batched setSearchParams call, exactly as Navbar's nav() did. Two
-    // separate calls lose updates, because react-router v6 reads `prev` from
-    // the current URL each time. (DEPLOY_READINESS_v2 — see useSearchParam)
+    // separate calls lose updates, because react-router v6 (6.30) hands the
+    // functional updater the searchParams of the last RENDER, not the URL the
+    // previous call just wrote. (DEPLOY_READINESS_v2 — see useSearchParam)
     setSearchParams({ ...(params || {}), page });
     // C30 — the fragment is written into the URL AFTER the route change, with
     // replaceState rather than by assigning location.hash. Assigning it would
@@ -4154,6 +4155,7 @@ function FaqItem({ question, answer, open, onToggle }) {
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={panelId}
+        data-print="keep"
       >
         <span
           className="text-sm font-semibold pr-4"
@@ -4163,6 +4165,7 @@ function FaqItem({ question, answer, open, onToggle }) {
         </span>
         {/* Plus/×: Tailwind rotate-45 transition on open */}
         <span
+          data-print="hide"
           className={`flex-shrink-0 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-250 ${open ? "rotate-45" : "rotate-0"}`}
           style={{
             width: 28,
@@ -6056,8 +6059,9 @@ function productImageAbs(p) {
  * built it inline before this existed.
  *
  * `encodeURIComponent`, not URLSearchParams, and the difference is real rather
- * than cosmetic: nine product ids contain a space, a "/" or an "&"
- * ("IP12GA - IP1274", "IP41NE / IP43VT", "IP44A2 & IP45A3"). URLSearchParams
+ * than cosmetic: product ids have contained a space, a "/" or an "&" (nine
+ * did once, e.g. "IP12GA - IP1274"; none does in today's catalog, but an id is
+ * owner-editable). URLSearchParams
  * writes a space as "+", which resolves to the same page but is a DIFFERENT
  * STRING, and a canonical is compared as a string by everything that consumes
  * it. pageHref() still uses URLSearchParams for rendered hrefs — that is the
@@ -6336,11 +6340,12 @@ function GlobalStyles() {
       }
 
       /* .ipc-skeleton and .ipc-page-header now live in src/index.css — they are
-         needed BEFORE this component mounts. GlobalStyles renders inside the
-         tree that only mounts after loading finishes, so defining the skeleton
-         here meant it was styleless in the exact situation it exists for: on a
-         throttled connection the visitor saw 53 invisible skeleton elements,
-         i.e. a blank page. (DEPLOY_READINESS_v2 T2.10) */
+         needed BEFORE this component mounts. GlobalStyles used to render inside
+         the tree that only mounted after loading finished, so defining the
+         skeleton here meant it was styleless in the exact situation it exists
+         for: on a throttled connection the visitor saw 53 invisible skeleton
+         elements, i.e. a blank page. (DEPLOY_READINESS_v2 T2.10) It now mounts
+         above the gate; the rule stands (invariant 9). */
 
       /* Contact success fade-in */
       @keyframes ipc-fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
@@ -6966,6 +6971,12 @@ function factsRewriter(site) {
   const feet = val(site.stats && site.stats.feetInStock);
   if (feet && feet !== D.stats.feetInStock) {
     add(lit(D.stats.feetInStock), feet);
+    // A12-L8-W4-G2-1 — the hero headline says it in title case, "25 Million
+    // Feet in Stock.", which the case-sensitive rule above never matched, so
+    // the biggest text on the homepage kept the old figure. Same swap, with
+    // the new value in the same case. (index.php's port does the same.)
+    const title = (x) => x.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+    if (title(D.stats.feetInStock) !== D.stats.feetInStock) add(lit(title(D.stats.feetInStock)), title(feet));
     // The stats strip and the hero use the short form "25M+". Say the same
     // thing short when the new value can be read as N million; otherwise the
     // owner's own words, which are right if not as short.
@@ -8338,7 +8349,10 @@ function ThemeInjector() {
     // brand-color-as-foreground: the brand colors used as TEXT rather than as a
     // background. Page copy sits on white or a near-white tint, so that is the
     // background to clear; the accent is used as text on --brand-dark instead.
-    // Both are no-ops for the shipped palette.
+    // NOT no-ops for the shipped palette: primary stays #005da3, but accent-2
+    // becomes #0d7594 on white (#119ec8 is 3.11:1, an AA fail — the shade
+    // decided 2026-08-06, WHATS_LEFT "Settled") and #11a2cd on --brand-dark.
+    // Do not remove the derivation as a no-op. (A12-L15-20-1)
     // TEXT_TARGET, not a bare 4.5: page copy does not sit only on pure white.
     // It also sits on #f5f7fa, #f8fafc and on rgba(brand, 0.08) tints, all of
     // which are slightly DARKER than white and therefore give slightly LESS
@@ -9635,10 +9649,12 @@ function ProductDetail({ product, allProducts }) {
               // below the fold — a fair trade now the photos are ~3x smaller
               // (the whole folder went 9.1 MB -> 2.7 MB).
               loading="eager"
-              // The SPA rewrite makes a missing image return 200 + index.html,
-              // so nothing in the stack can tell "missing" from "served" — the
-              // browser just renders a broken image. Fall back to the branded
-              // placeholder that already exists two lines below.
+              // A missing photo renders as a broken image, so fall back to the
+              // branded placeholder that already exists two lines below. (Since
+              // PUB-11 a missing file under /images, /uploads, /pdfs or /data
+              // is a real 404 — 403 under /uploads/site — which fires onError
+              // too; only a photo address outside those folders still gets the
+              // 200 site shell, which is why this was first written.)
               // (DEPLOY_READINESS_v2 T2.7)
               onError={() => setPhotoFailed(true)}
               // Both this and the branded panel below carry the marker, so a
@@ -11540,6 +11556,7 @@ function DashboardPage({ products }) {
                       <button
                         type="button"
                         className="ipc-sort-btn"
+                        data-print="keep"
                         data-sort-key={col.key}
                         onClick={() => handleSort(col.key)}
                         style={{ padding: "13px 18px" }}
@@ -14000,7 +14017,7 @@ function App() {
 
   // Animation 7 — Shimmer skeleton replaces the spinner.
   // Previews the actual page layout so users see an almost-real page resolving.
-  // Only these two pages read the catalog. Everything else renders even when
+  // Only these three pages read the catalog. Everything else renders even when
   // products-all.json is slow or unreachable. (DEPLOY_READINESS_v2 T2.1)
   const needsCatalog =
     page === "products" || page === "dashboard" || page === "datasheets";

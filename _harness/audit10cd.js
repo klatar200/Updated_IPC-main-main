@@ -14,7 +14,7 @@ const { launch } = require('./browser');
 
 const H = __dirname;
 const ROOT = path.join(H, '..');
-const BASE = 'http://127.0.0.1:8123';
+const BASE = process.env.AUDIT10CD_BASE || 'http://127.0.0.1:8123';
 const LIB = 'Liberation Sans';
 const ONLY = process.argv[2] || '';
 const results = [];
@@ -353,6 +353,26 @@ async function publicArms(browser) {
     await probe('/dashboard', 'A10-061 /dashboard approval chip', () => [...document.querySelectorAll('main button')].find((b) => /^(UL|CSA|MIL|RoHS|AMS)/.test(b.textContent.trim()) && b.getBoundingClientRect().width > 0) || null);
     note(dead.filter((d) => /A10-060/.test(d)).length === 0, 'A10-060: the four CTAs/cards whose hover never painted now respond', dead.filter((d) => /A10-060/.test(d)).join('; '));
     note(dead.filter((d) => /A10-061/.test(d)).length === 0, 'A10-061: sort headers, FAQ rows, sidebar heads and approval chips give hover feedback', dead.filter((d) => /A10-061/.test(d)).join('; '));
+    // AUDIT-12 A12-L14-W1-G5-1 — "something changes on hover" passed while the
+    // sort titles turned #005da3 on the navy bar (2.04:1). The hover state
+    // must stay READABLE on the surface it sits on.
+    await go(page, '/dashboard');
+    const sortBtns = page.locator('main .ipc-sort-btn');
+    const nSort = await sortBtns.count();
+    const lowHover = [];
+    for (let i = 0; i < nSort; i++) {
+      await sortBtns.nth(i).hover();
+      await page.waitForTimeout(250);
+      const r = await sortBtns.nth(i).evaluate((el) => {
+        const L = (c) => { const v = c.match(/[\d.]+/g).slice(0, 3).map(Number).map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+        const fg = getComputedStyle(el).color;
+        const bg = getComputedStyle(el.closest('tr')).backgroundColor;
+        const [hi, lo] = [L(fg), L(bg)].sort((x, y) => y - x);
+        return { t: el.textContent.trim(), fg, bg, cr: (hi + 0.05) / (lo + 0.05) };
+      });
+      if (r.cr < 4.5) lowHover.push(`${r.t} ${r.fg} on ${r.bg} ${r.cr.toFixed(2)}:1`);
+    }
+    note(nSort > 0 && lowHover.length === 0, `A12-L14-W1-G5-1: all ${nSort} Product Index sort titles stay >= 4.5:1 on the header bar while hovered`, lowHover.join('; '));
     await ctx.close();
   }
 

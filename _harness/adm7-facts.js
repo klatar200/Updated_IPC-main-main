@@ -26,7 +26,7 @@ const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
 const INFO = path.join(SITE, 'data', 'site-info.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'site-info.json');
-const PORT = 8708;
+const PORT = Number(process.env.ADM7_PORT) || 8708;
 const BASE = `http://127.0.0.1:${PORT}`;
 const PAGES = ['/', '/about', '/faq', '/contact', '/services', '/industries', '/privacy', '/products', '/datasheets'];
 
@@ -36,7 +36,9 @@ const FACTS = [
   { name: 'founded year', set: (s) => { s.company.foundedYear = '1975'; }, old: /(?<!\d)1974(?!\d)/, now: /(?<!\d)1975(?!\d)/ },
   { name: 'city', set: (s) => { s.address.city = 'Naperville'; }, old: /Bolingbrook/, now: /Naperville/ },
   { name: 'minimum order', set: (s) => { s.stats.minimumOrder = '$75'; }, old: /\$50(?![\d,]|\.\d)/, now: /\$75(?![\d,]|\.\d)/ },
-  { name: 'feet in stock', set: (s) => { s.stats.feetInStock = '30 million'; }, old: /25\s*M\b|25M\+|25 million/, now: /30\s*M\b|30M\+|30 million/ },
+  { name: 'feet in stock', set: (s) => { s.stats.feetInStock = '30 million'; }, old: /25\s*M\b|25M\+|25 million/i, now: /30\s*M\b|30M\+|30 million/i },
+  // /i — A12-L8-W4-G2-1: the hero's "25 Million Feet in Stock." stayed stale
+  // and this check could not see it.
 ];
 
 const results = [];
