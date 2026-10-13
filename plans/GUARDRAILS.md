@@ -197,11 +197,21 @@ plan9-band                      4/4      plan9-firstsave                 8/8
 plan9-meta                    18/18      plan9-notfound                  8/8
 plan9-slots-slash               9/9      skuparity                     33/33
 
-brandtext                     36/47  <- EXPECTED RED (11 failing; ceiling 13)
-isoclaims                       2/4  <- EXPECTED RED (the open ISO revision question — GO-LIVE.md §A)
+brandtext                     36/47  <- SUPERSEDED: 31/31 green since §1as (2026-10-05) — see below
+isoclaims                       2/4  <- SUPERSEDED: 4/4 green since §1aa (2026-09-15) — see below
 plan8-contrast                34/35  <- EXPECTED RED (EXEMPT_BRAND_SURFACE) — 34/35 IS its passing state, exit 0
 plan8-polish                  16/17  <- EXPECTED RED (DejaVu width artifact, Linux)
 ```
+
+**SUPERSEDED-BY 2026-10-13 (AUDIT-12).** The table above is the 2026-09-14
+measurement. Since then `brandtext` (31/31 since §1as) and `isoclaims` (4/4
+since §1aa) are **green, with no allowance**: any failure in either is a
+regression, not an expected red. The only expected reds today are
+`plan8-polish` 16/17 on Linux and `plan8-contrast` 34/35 (its passing state).
+Three denominators have legitimately changed since the table was taken —
+`adminwidth` 45 (the Site Images and Catalog PDFs pages), `plan10-adminnav` 27
+(`upload-image.php` added) and `brandtext` 31 — so for those three a changed
+total is not "bailing". The current run order is `_harness/sweep-list.txt`.
 
 `fgpatch` was a CRASH in audit 9's before-sweep and is green here: it is a
 one-shot codemod the classifier swept in because it calls `ok()` and exits
@@ -238,19 +248,23 @@ Three of these need saying out loud:
   is the most likely reason a suite gets quietly dropped from a sweep and then
   from the baseline.
 
-- **`brandtext` is expected red.** It is the logged open item
-  `brand-text-on-brand-surface` in `WHATS_LEFT.md` §2. Judge it by the FAILING
-  count, not the ratio: the number of scored combinations wobbles by one between
-  runs of identical code (the hero animates and a small ink extent is
-  position-sensitive), so 37/50 and 37/51 can be the same result. It must not
-  get worse than **13 failing**.
+- ~~**`brandtext` is expected red.**~~ **SUPERSEDED-BY 2026-10-13:**
+  `brandtext` has been 31/31 since §1as (2026-10-05) and exits 1 on any
+  failure; there is **no** failing allowance any more — one failing
+  combination is a regression. (This bullet called it the open item
+  `brand-text-on-brand-surface` in `WHATS_LEFT.md` §2, with a ceiling of 13
+  failing; that item closed in §1as and §2 no longer exists.) The number of
+  scored combinations can still wobble by one between runs of identical code
+  (the hero animates and a small ink extent is position-sensitive), so judge it
+  by the failing count, not the ratio.
 - **`plan3-autoreply` is `[UNVERIFIED]` on Windows.** It runs, but every mail
   assertion fails: `php-mail.ini` points `sendmail_path` at `../fakemail.sh`, a
   POSIX shell script Windows PHP cannot exec, so no mail log is written.
 
-`php -l` counts the PHP files under `admin/` and `public/` — 21 on a clean
-checkout on 2026-10-05, one more where a local gitignored
-`admin/config.local.php` exists. 0 failing either way.
+`php -l` counts the PHP files under `admin/` and `public/` — 22 on a clean
+checkout on 2026-10-13 (AMENDED: this said 21 on 2026-10-05; it was already 22
+then), one more where a local gitignored `admin/config.local.php` exists.
+0 failing either way.
 
 **Run the full set before you start**, so you know which failures you inherited
 and which you caused. A plan that starts from red must say so.
@@ -293,7 +307,7 @@ Sets the admin password to `audit-pass-123` **in the mirror only**, using
 
 | Port | ini | Purpose |
 |---|---|---|
-| 8123 | **`php-mail.ini`** | Main. `display_errors=On`, default `max_input_vars`, **and `sendmail_path`** |
+| 8123 | **`php-mail.ini`** | Main. `display_errors=On`, `max_input_vars=10000` (AMENDED 2026-10-13: this said "default"), **and `sendmail_path`** |
 | 8124 | `php-trunc.ini` | `display_errors=Off`, `max_input_vars=100` — forces a genuine truncation |
 | 8125 | `php-nb2-off.ini` | `display_errors=On`, `max_input_vars=100` — the NB2 negative control |
 
@@ -351,7 +365,8 @@ decoration. The live one is **`_harness/plan2-trunc.js`**, which needs `:8123`,
 | 8124 | `php-trunc.ini` | the production shape — `max_input_vars=100`, `display_errors=Off` |
 | 8125 | `php-nb2-off.ini` | **the negative control** — same truncation, `display_errors=On` |
 
-The content form posts 439 variables, so PHP genuinely discards everything past
+The content form posts several hundred variables (439 when this was written;
+509 named controls on 2026-10-12, AUDIT-12), so PHP genuinely discards everything past
 the 100th on both. `:8125` then asserts the PHP warning **does** surface there —
 which is what proves the `:8124` assertion ("no raw warning leaks") is measuring
 something rather than passing by default. It also asserts the guard refuses the
@@ -478,7 +493,12 @@ false finding already:
 - **`COPY_CLEARABLE`'s `.*Photo` regex over-matching.** Refuted by enumerating
   all 113 leaf keys in `COPY_DEFAULTS`: the clearable set is exactly
   `heroPhoto, bandTeamPhoto, bandBuildingPhoto, aboutPhoto, servicesPhoto,
-  subhead`. The change was strictly widening.
+  subhead`. The change was strictly widening. **AMENDED 2026-10-13
+  (AUDIT-12):** still true of `.*Photo` (it matches only those five keys), but
+  since ADM-8 (§1ao) `COPY_CLEARABLE` also has a `.*Claim` alternative, so the
+  clearable set is now 17 of 121 leaf keys: those six plus the eleven Company
+  Claims (`aboutStructureClaim` … `productManufacturerClaim`). Clearing a
+  Company Claim **removes** it from the site; it does not restore a default.
 - **`BreadcrumbList` validity (C33).** Valid on exact-id URLs and the three
   catalog views — every `ListItem` carries an absolute `item` and the trailing
   item equals the page canonical. Only alias/unknown ids break the contract, and

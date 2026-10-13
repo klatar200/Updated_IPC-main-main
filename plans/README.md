@@ -6,8 +6,10 @@ plan may add constraints; it may never relax one from there.
 **The last completed plan is [PLAN-11](PLAN-11-audit9-go-live.md)** — Audit 9,
 the full go-live audit (bugs, logic gaps, verbiage, page structure), executed
 2026-09-14. Its output is [`audit-runs/audit9.md`](../audit-runs/audit9.md):
-54 findings — 0 Blocker, 3 High, 21 Medium, 30 Low — of which 41 were fixed,
-7 are owner actions and 6 are escalated decisions. Verdict
+54 findings — 0 Blocker, 3 High, 21 Medium, 30 Low — of which 40 were fixed,
+5 partly fixed, 4 are owner actions and 5 are escalated decisions (the
+generated totals, `node _harness/audit9-totals.js`; this line said 41 / 7 / 6
+until 2026-10-13, a figure PLAN-11's own closing note also carries). Verdict
 **GO-WITH-OWNER-ACTIONS**, gated on the expired TLS certificate (A-9.P5a-1),
 which is the host's to fix and is a pre-deploy gate in `GO-LIVE.md` §A.
 
@@ -56,7 +58,11 @@ Two things that lived only in the deleted plans were moved rather than dropped:
 - **PLAN-10 §12's out-of-scope list** — the six severity-C clusters that would make
   the next AUDIT-10 plan — is still in PLAN-10, which stays. (That plan is **not**
   PLAN-11: the number went to the audit-9 go-live plan. This line and item 1
-  below called it "PLAN-11" until 2026-09-29.)
+  below called it "PLAN-11" until 2026-09-29.) **That backlog is closed:** the
+  C/D tier was triaged and closed on 2026-10-06 (history §1at, PR #77; item 1
+  below). PLAN-10 §12 and PLAN-11's header are frozen and still read as if it
+  were open, and §12's `plans/audit10/guardrails.json` no longer exists — its
+  `known_issues` block moved to GUARDRAILS §7.1/§7.3.
 
 ---
 

@@ -856,7 +856,7 @@ $navActive = 'help';
           <tr><td>After someone sends the form: the title, "Thank you!", the message and the "For urgent inquiries" line</td><td>Page Content → <strong>Contact Page — Form</strong>, the <em>Success</em> boxes.</td></tr>
           <tr><td>The message shown if sending fails</td><td>Page Content → <strong>Contact Page — Form</strong>, the <em>Error</em> boxes.</td></tr>
           <tr><td><strong>Where quote requests are emailed</strong></td><td>Business Details → <strong>Email</strong>. The same address is shown on the site — change it and new leads go to the new address.</td></tr>
-          <tr><td>The automatic reply the customer receives</td><td>Page Content → <strong>Contact Page — Form</strong>, the three <em>Auto-reply</em> boxes: the response promise for quotes, the one for messages, and an optional notice (e.g. a holiday closure — empty it again afterwards). The rest of that email is fixed.</td></tr>
+          <tr><td>The automatic reply the customer receives</td><td>Page Content → <strong>Contact Page — Form</strong>, the three <em>Auto-reply</em> boxes: the response promise for quotes, the one for messages, and an optional notice (e.g. a holiday closure — empty it again afterwards). The two promise boxes are <strong>empty as shipped</strong>, and an empty promise box sends the built-in promise — for quotes "Our sales team will review your request and respond within one business day — often the same day for in-stock items.", for messages "Our team will respond within one business day." Emptying a box cannot remove the promise; type your own wording to replace it. The rest of that email is fixed.</td></tr>
         </table>
 
         <h3>Privacy Policy page</h3>
@@ -983,7 +983,7 @@ $navActive = 'help';
                src/App.jsx), the same trap ADM-9(g) fixed for Business Details. -->
           Clearing a heading or a button label and saving puts back the website's <strong>built-in original wording</strong> — not whatever you had there before — rather than leaving an empty space, because a button with no text is one you can never find again to fix. To change one, type over it. The homepage sub-headline, the <strong>Site Images</strong> and the <strong>Company Claims</strong> can be cleared, since those are genuinely optional.
           <br><br>
-          This is also why a few boxes are <strong>empty as shipped</strong> — the Datasheets page banner, the header's "Datasheets" link, and the form's "required fields" and privacy lines: an empty box means the site is showing its built-in wording. Type in one to replace it.
+          This is also why a few boxes are <strong>empty as shipped</strong> — the Datasheets page banner, the header's "Datasheets" link, the form's "required fields" and privacy lines, and the two auto-reply response promises: an empty box means the site is showing its built-in wording. Type in one to replace it.
         </div>
         <div class="callout callout-warning">
           <b>If the page says it didn't submit completely</b>
