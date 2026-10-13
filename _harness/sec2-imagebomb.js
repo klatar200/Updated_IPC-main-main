@@ -164,7 +164,9 @@ const imgFiles = () => (fs.existsSync(IMGDIR) ? fs.readdirSync(IMGDIR).filter((f
     for (const f of imgFiles()) if (!before.files.includes(f)) fs.unlinkSync(path.join(IMGDIR, f));
     fs.rmSync(TMP, { recursive: true, force: true });
   }
-  note(fs.readFileSync(CATALOG).equals(fs.readFileSync(PRISTINE)), 'mirror catalog restored byte-for-byte');
+  // Cleanup precondition, not a counted check: the copy in the finally lands
+  // pristine's bytes or throws (AUDIT-12 A12-L13-15-3).
+  if (!fs.readFileSync(CATALOG).equals(fs.readFileSync(PRISTINE))) throw new Error('cleanup: mirror catalog not restored');
 
   const bad = results.filter((r) => !r.ok).length;
   console.log(`\nsec2-imagebomb ${results.length - bad}/${results.length}`);

@@ -23,7 +23,8 @@
  * associated with anything, which is exactly this defect.
  *
  * Needs the mirror on :8123. 4.30's round-trip SAVES; the caller restores
- * data/ from _harness/pristine and the suite proves byte-identity itself.
+ * data/ from _harness/pristine (a cleanup step that throws if it fails; not a
+ * counted check — AUDIT-12 A12-L13-12-3).
  *
  * Usage: node _harness/plan4-admin.js
  */
@@ -356,17 +357,16 @@ async function specTableEditor(browser) {
 
   await ctx.close();
 
-  // ── restore the mirror and PROVE it ──
+  // ── restore the mirror ──
+  // Copying pristine over the mirror and then cmp'ing the same pairs could
+  // never fail, so it is a cleanup precondition, not a counted check
+  // (AUDIT-12 A12-L13-12-3).
   for (const f of ['products-all.json', 'content.json', 'site-info.json']) {
     fs.copyFileSync(path.join(PRISTINE, f), path.join(MIRROR_DATA, f));
   }
-  let restored = true;
   for (const f of ['products-all.json', 'content.json', 'site-info.json']) {
-    try {
-      execFileSync('cmp', ['-s', path.join(PRISTINE, f), path.join(MIRROR_DATA, f)]);
-    } catch { restored = false; }
+    execFileSync('cmp', ['-s', path.join(PRISTINE, f), path.join(MIRROR_DATA, f)]);   // throws if not identical
   }
-  note(restored, '4.30: the mirror data/ is byte-identical to pristine again');
 }
 
 (async () => {

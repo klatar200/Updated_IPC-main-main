@@ -116,7 +116,9 @@ const stub = (sku, extra = {}) => ({ id: sku, sku, name: `SEC-1 ${sku}`, partTyp
     for (const f of fs.readdirSync(path.join(SITE, 'data'))) if (/\.backup\./.test(f)) fs.rmSync(path.join(SITE, 'data', f));
     fs.rmSync(TMP, { recursive: true, force: true });
   }
-  note(fs.readFileSync(CATALOG).equals(fs.readFileSync(PRISTINE)), 'mirror catalog restored byte-for-byte');
+  // Cleanup precondition, not a counted check: the copy in the finally lands
+  // pristine's bytes or throws (AUDIT-12 A12-L13-15-3).
+  if (!fs.readFileSync(CATALOG).equals(fs.readFileSync(PRISTINE))) throw new Error('cleanup: mirror catalog not restored');
 
   const bad = results.filter((r) => !r.ok).length;
   console.log(`\nsec1-photoclobber ${results.length - bad}/${results.length}`);

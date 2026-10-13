@@ -211,8 +211,9 @@ const login = async (page) => {
     // ── restore ──────────────────────────────────────────────────────────────
     fs.copyFileSync(PRISTINE, MIRROR);
     restored = true;
-    const same = fs.readFileSync(PRISTINE).equals(fs.readFileSync(MIRROR));
-    note(same, 'mirror catalogue restored from pristine, byte-identical');
+    // Cleanup precondition, not a counted check: copyFileSync lands these
+    // bytes or throws (AUDIT-12 A12-L13-20-1).
+    if (!fs.readFileSync(PRISTINE).equals(fs.readFileSync(MIRROR))) throw new Error('cleanup: mirror catalogue not restored');
   } finally {
     if (!restored) { try { fs.copyFileSync(PRISTINE, MIRROR); } catch (_) {} }
     await browser.close();

@@ -97,7 +97,9 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   } finally {
     fs.copyFileSync(PRISTINE, CATALOG);
   }
-  note(fs.readFileSync(CATALOG).equals(fs.readFileSync(PRISTINE)), 'mirror catalog restored byte-for-byte');
+  // Cleanup precondition, not a counted check: the copy in the finally lands
+  // pristine's bytes or throws (AUDIT-12 A12-L13-15-3).
+  if (!fs.readFileSync(CATALOG).equals(fs.readFileSync(PRISTINE))) throw new Error('cleanup: mirror catalog not restored');
   const bad = results.filter((x) => !x.ok).length;
   console.log(`\nsec5-lostupdate ${results.length - bad}/${results.length}`);
   process.exit(bad === 0 ? 0 : 1);
