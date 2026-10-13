@@ -98,7 +98,8 @@ const STATES = [
     // Put the first row's action cell in view rather than shooting the page
     // top, which is a stats bar.
     act: async (page) => {
-      await page.locator('table tbody tr').first().scrollIntoViewIfNeeded();
+      if (!(await page.locator('table tbody tr').count())) return false;   // same scroll-before-check shape (A12-L13-05-W5-1)
+      await page.locator('table tbody tr').first().scrollIntoViewIfNeeded({ timeout: 5000 });
       await page.waitForTimeout(250);
       return (await page.locator('table tbody tr td:nth-child(5) a, table tbody tr td:nth-child(5) button').count()) >= 5;
     },
@@ -107,7 +108,8 @@ const STATES = [
     slug: 'index-actions', vp: T1024, url: '/admin/index.php', full: false,
     note: 'item 5 — the width where widening the column would still have clipped Delete',
     act: async (page) => {
-      await page.locator('table tbody tr').first().scrollIntoViewIfNeeded();
+      if (!(await page.locator('table tbody tr').count())) return false;
+      await page.locator('table tbody tr').first().scrollIntoViewIfNeeded({ timeout: 5000 });
       await page.waitForTimeout(250);
       return true;
     },
@@ -125,7 +127,12 @@ const STATES = [
     slug: 'help-tables', vp: M, url: '/admin/help.php', full: false,
     note: 'item 7 — a reference table with both columns readable at 390',
     act: async (page) => {
-      await page.locator('table.field-ref').nth(1).scrollIntoViewIfNeeded();
+      // Count BEFORE scrolling: scrollIntoViewIfNeeded on a missing nth(1)
+      // waits its 30 s default and throws, crashing the run instead of the
+      // soft "STATE NOT REACHED" the comment below promises (AUDIT-12
+      // A12-L13-05-W5-1).
+      if ((await page.locator('table.field-ref').count()) < 2) return false;
+      await page.locator('table.field-ref').nth(1).scrollIntoViewIfNeeded({ timeout: 5000 });
       await page.waitForTimeout(250);
       // >= 2, not === 11. This asserted an exact census of help.php's reference
       // tables, and the page has carried 12 since at least 40cc51b — so the
@@ -234,7 +241,11 @@ let shot = 0;
       const { ctx, page } = await signedIn(browser, s.vp);
       await go(page, s.url);
       let ok = true;
-      if (s.act) ok = await s.act(page);
+      // A throwing act() is a missed state, not a crashed run: the remaining
+      // states still get shot (AUDIT-12 A12-L13-05-W5-1).
+      if (s.act) {
+        try { ok = await s.act(page); } catch (e) { ok = false; console.log(`  states/${s.slug}: act() threw — ${String(e.message).split('\n')[0]}`); }
+      }
       const file = path.join(dir, `${s.slug}__${s.vp.width}.png`);
       await page.screenshot({ path: file, fullPage: !!s.full });
       console.log(`  states/${s.slug.padEnd(20)} ${String(s.vp.width).padStart(4)}  ` +
