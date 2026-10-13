@@ -608,3 +608,13 @@ body.ipc-has-sticky-rfq {
   color: rgb(var(--brand-dark-ink-rgb)) !important;
   border-color: rgba(var(--brand-dark-ink-rgb), 0.5) !important;
 }
+
+/* AUDIT-12 L6 (A12-L6-01-2, A12-L6-05-1, A12-L6-07-2, A12-L6-08-2 and the
+   other 200%-zoom rows) — a phone zoomed to 200% is a 195 CSS px page, where
+   single words ("cyanoacrylate", "Applications" in a 28px page title, an
+   email address) are wider than their box and pushed the page sideways. Below
+   300px only — no real device is that narrow unzoomed — a word may break
+   where it must. Every width the site is designed at is untouched. */
+@media (max-width: 299px) {
+  main, footer { overflow-wrap: anywhere; }
+}

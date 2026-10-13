@@ -2539,6 +2539,11 @@ function Features() {
             className="text-sm font-semibold px-5 py-2.5 rounded transition-all duration-150 hover:brightness-110 flex-shrink-0"
             style={{
               display: "inline-block",
+              // A12-L6-01-2 — at 200% zoom on a phone this unbreakable button
+              // ran 80px past the screen (the same banner pattern as /services,
+              // A12-L6-06-1); it may now be no wider than the box and wraps.
+              maxWidth: "100%",
+              textAlign: "center",
               background: "var(--brand-primary)",
               color: "var(--brand-primary-ink)",
               border: "none",
@@ -10243,7 +10248,8 @@ function ProductDetail({ product, allProducts }) {
                     textDecoration: "none",
                   }}
                 >
-                  <svg
+                  {/* A12-L7-W3-G5-1 — the link text names it; the icon is decoration. */}
+                  <svg aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="12"
                     height="12"
@@ -10279,7 +10285,7 @@ function ProductDetail({ product, allProducts }) {
                 }}
                 title="Data sheet not yet uploaded — contact us to request one"
               >
-                <svg
+                <svg aria-hidden="true"
                   xmlns="http://www.w3.org/2000/svg"
                   width="12"
                   height="12"
@@ -10319,7 +10325,7 @@ function ProductDetail({ product, allProducts }) {
                         textDecoration: "none",
                       }}
                     >
-                      <svg
+                      <svg aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         width="12"
                         height="12"
@@ -11479,7 +11485,7 @@ function ProductPage({ products }) {
                     e.currentTarget.style.background = "rgba(255,255,255,0.1)";
                   }}
                 >
-                  <svg
+                  <svg aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="12"
                     height="12"
@@ -11535,7 +11541,7 @@ function ProductPage({ products }) {
                         e.currentTarget.style.background = "rgba(255,255,255,0.1)";
                       }}
                     >
-                      <svg
+                      <svg aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         width="12"
                         height="12"
@@ -11995,7 +12001,7 @@ function DashboardPage({ products }) {
                 ))}
               </select>
               {/* Custom chevron */}
-              <svg
+              <svg aria-hidden="true"
                 width="14"
                 height="14"
                 viewBox="0 0 24 24"
@@ -12038,7 +12044,7 @@ function DashboardPage({ products }) {
             )}
             {/* Mobile search input — inside the collapsible panel */}
             <div style={{ position: "relative", marginTop: 12 }}>
-              <svg
+              <svg aria-hidden="true"
                 width="15"
                 height="15"
                 viewBox="0 0 24 24"
@@ -12198,7 +12204,7 @@ function DashboardPage({ products }) {
             )}
           </div>
           <div className="hidden sm:block relative sm:w-80">
-            <svg
+            <svg aria-hidden="true"
               width="15"
               height="15"
               viewBox="0 0 24 24"
@@ -12518,7 +12524,7 @@ function DashboardPage({ products }) {
                             justifyContent: "center",
                           }}
                         >
-                          <svg
+                          <svg aria-hidden="true"
                             width="26"
                             height="26"
                             viewBox="0 0 24 24"
@@ -13696,7 +13702,7 @@ function ServicesPage() {
                 flexShrink: 0,
               }}
             >
-              <svg
+              <svg aria-hidden="true"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -13804,7 +13810,7 @@ function ServicesPage() {
                     border: "1px solid rgba(var(--brand-primary-rgb),0.15)",
                   }}
                 >
-                  {SvcIcons[svc.iconKey]}
+                  <span aria-hidden="true" style={{ display: "contents" }}>{SvcIcons[svc.iconKey]}</span>{/* A12-L7-W3-G5-1 */}
                 </div>
                 {/* B28 — h2, not h3. /services was the only page on the site
                     with a skipped heading level: h1 straight to h3, no h2. The
@@ -13841,6 +13847,7 @@ function ServicesPage() {
                       style={{ color: "#4b5563" }}
                     >
                       <span
+                        aria-hidden="true"   // A12-L7-W3-G5-1 — a bullet glyph
                         style={{
                           // On white — see the note on the → bullets in the
                           // Industries detail panel.
@@ -13879,7 +13886,7 @@ function ServicesPage() {
                     e.currentTarget.style.background = "#f8fafc";
                   }}
                 >
-                  <svg
+                  <svg aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     width="14"
                     height="14"
