@@ -68,6 +68,8 @@ public_html/
 ├── index.php               ← front controller: every page's head + plain-HTML body from data/ (A-5.10)
 ├── assets/                 ← Hashed JS/CSS from Vite
 ├── contact.php             ← Contact/RFQ mail handler (ships inside dist/)
+├── sitemap.php             ← Live sitemap, served at /sitemap.xml (there is no sitemap.xml file)
+├── robots.txt, favicon.svg, logo.svg, manifest.json ← Small root files (ship inside dist/)
 ├── .htaccess               ← rewrite to index.php + cache headers + dotfile block
 ├── .user.ini               ← PHP limits for public_html/ and everything under it
 ├── images/                 ← Static site imagery
@@ -79,7 +81,8 @@ public_html/
 │   └── *.backup.*.json     ← Auto-written before every save, 90 kept per prefix
 ├── pdfs/
 │   ├── .htaccess           ← Blocks PHP execution in this folder
-│   └── *.pdf               ← Uploaded data sheets (+ .deleted.* after a Delete Product)
+│   ├── *.pdf               ← Uploaded data sheets (+ .deleted.* after a Delete Product)
+│   └── marketing/          ← Catalog & brochure PDFs (created by the admin when first used)
 ├── uploads/
 │   ├── .htaccess           ← Blocks PHP execution in this folder — must be deployed
 │   ├── images/             ← Uploaded product photos (ships empty)
@@ -148,7 +151,10 @@ root [README.md](../README.md) deploy tables. In short:
 2. **Turn on "show hidden files" in your FTP client first.** `.htaccess` and
    `.user.ini` start with a dot, most FTP clients hide them, and several of them
    are what stop the server running scripts in the upload folders.
-3. FTP into `public_html/`, **in this order**:
+3. **Remove the old site's `/` → `/site/` redirect first, in this same
+   session** ([`GO-LIVE.md`](../GO-LIVE.md) STEP 0b and §B2 step 0). While it
+   stands, every visitor is still sent to the old copy under `/site/`, so a
+   correct upload is invisible. Then FTP into `public_html/`, **in this order**:
    1. `dist/assets/`, then everything else in `dist/` **except `index.html`**
       (including `dist/.htaccess` and `dist/.user.ini`) — `dist/index.php`
       **before** `dist/.htaccess`, which sends every page to it (A-5.10)
@@ -168,7 +174,7 @@ root [README.md](../README.md) deploy tables. In short:
    | Path | Permissions |
    |---|---|
    | `public_html/data/` | 755 |
-   | `public_html/data/*.json` | 644 (or 666 if 644 doesn't write) |
+   | `public_html/data/*.json` | 644 — never 666 (see "Failed to save" under Troubleshooting) |
    | `public_html/pdfs/` | 755 |
    | `public_html/uploads/images/` | 755 |
    | `public_html/uploads/site/` | 755 |
@@ -183,7 +189,10 @@ root [README.md](../README.md) deploy tables. In short:
    Do not upload a `config.local.php` from your machine. (This step used to claim
    "the shipped default is documented in this README", contradicting both
    `config.php:69-77` and this file's own bottom section — AUDIT_v3 D3.)
-6. Visit `https://yourdomain.com/` — the site should load.
+6. Visit `https://yourdomain.com/` — the site should load **and the address
+   bar must not end in `/site/`**. The old site's homepage also loads, so
+   "it loads" alone does not prove the new one is live.
+   [`GO-LIVE.md`](../GO-LIVE.md) §C has the full checks.
 7. Visit `https://yourdomain.com/admin/` — log in with the new password.
 
 ### Subsequent deploys
@@ -230,7 +239,9 @@ here — A-9.B2-12.)
    - **Part Type** — pick the category from the dropdown.
    - **Product Name** — full name as shown on the site.
 4. Fill in optional fields (Operating Temp, Image Caption, Specifications
-   Summary, Photo URL, badges, description paragraphs).
+   Summary, badges, description paragraphs). There is no photo box on this
+   form: once the product is added, click **Photo** on its dashboard row to
+   upload one.
 5. Spec tables (Specifications + Size/Dimension) are filled in with a
    **visual builder** — a grid of rows and columns with *+ Add row* and
    *+ Add column* buttons, and a *Split into sub-columns* control for a
@@ -352,9 +363,12 @@ you are in the admin.
 
 > **`sub` must be an ARRAY, one entry per sub-column — never a string.**
 > Earlier revisions of this file showed `"sub": "Min / Max"`. React requires an
-> array, and the visual editor TRUNCATES EVERY ROW when it sees a non-array
-> `sub`: following the old example turned `["3/64","0.046","0.062"]` into
-> `["3/64","0.046"]`. The documentation was the trigger for a data-loss bug.
+> array. A string `sub` is now refused on save with the message
+> *Size / Dimension column N has a "sub" that is neither a list nor null*, and
+> the visual editor no longer drops cells when it meets one (fixed 2026-09-28,
+> NEW-N2-5). Until then, following the old example truncated every row —
+> `["3/64","0.046","0.062"]` became `["3/64","0.046"]` — so the documentation
+> was the trigger for a data-loss bug.
 > `colspan` must equal `count(sub)`. For a plain column use
 > `"colspan": 1, "sub": null`.
 
@@ -390,13 +404,20 @@ previous "shipped default" was printed in plaintext in four committed documents.
 
 1. Over FTP, upload an **empty file named `ALLOW-PASSWORD-RESET`** into
    `public_html/admin/`.
-2. Open `https://yourdomain.com/admin/` in a browser. A one-time
-   **"Set Admin Password"** screen appears instead of the login box.
+   Upload it only when you are ready to type the new password: **until it is
+   used, anyone who opens `/admin/` can set the password.**
+2. Open `https://yourdomain.com/admin/` in a browser **within one hour** of
+   the upload. A one-time **"Set Admin Password"** screen appears instead of
+   the login box. After an hour the screen closes (`PASSWORD_RESET_WINDOW` in
+   `config.php`) and the login page says the file is too old — delete it over
+   FTP and upload it again to reopen the window.
 3. Set a new password. You are signed straight in, and the flag file is
    deleted automatically.
 
 Creating that file requires FTP or file-manager access — a stronger credential
-than the admin password itself — so this is not a login bypass.
+than the admin password itself. Using the screen it opens needs nothing, which
+is why the window is short and the file should go up only when you are ready
+(the same warning as [`GO-LIVE.md`](../GO-LIVE.md) §B4).
 
 **Deleting `config.local.php` on its own does NOT reset anything.** It leaves an
 admin no password can open. Earlier revisions of this file, and the on-screen
@@ -422,10 +443,10 @@ admin's own Password page calls `opcache_invalidate()` so it applies at once.
 | Symptom | Cause / fix |
 |---|---|
 | Login loops back to the login page | Cookies blocked, or password wrong. Six tries in a row are checked; after the sixth wrong one the page pauses before the next try: 15 seconds, doubling each time, up to a 5-minute ceiling (`LOGIN_FREE_ATTEMPTS` / `LOGIN_COOLOFF_BASE` / `LOGIN_COOLOFF_MAX`). This row said "1-8 second delay" until 2026-09-14 — A-9.B2-14 — and "after 5" until 2026-09-28 — NEW-N3-10. |
-| "Failed to save" on Add or Edit | `data/products-all.json` is not writable. Set `data/` to 755 (or 775) and the file to 644 — try 666 only if 644 still will not write, which is what the permissions table above says. |
+| "Failed to save" on Add or Edit | The `data/` **folder** is not writable by PHP. A save writes a temporary file in `data/` and renames it over `products-all.json`, so the file's own mode does not matter: set `data/` to 755, or 775. If it still fails, the host runs PHP as a different user from your FTP account — ask them to run PHP as your account user ([`GO-LIVE.md`](../GO-LIVE.md) §B3). Leave the JSON files at 644: 666 does not fix this, and every later save keeps it, leaving the catalog writable by other accounts on a shared server. |
 | PDF upload errors with "Upload failed" | `pdfs/` is not writable — chmod 755 (or 775) |
 | Public site doesn't show my edit | Wait 60 seconds, then hard-refresh (Ctrl+Shift+R) |
-| Public site says "Catalog Unavailable" | `data/products-all.json` is missing on the server, or the JSON is malformed (open it directly to check) |
+| Public site says "Catalog Unavailable" | Open `/data/products-all.json` directly. If it is missing, will not open as a catalog, or is not served as `application/json` (`data/.htaccess` missing), that is the server fault to fix — a damaged catalog can be restored from **Backups**. If it opens fine and the site loads for you, nothing on the server is wrong: the visitor's own connection dropped, or did not finish loading the catalog within 12 seconds, and that shows the same screen. Ask them to tap **Retry** on a better signal. |
 | "Another product already uses SKU X" | You tried to rename an SKU to one that already exists — pick a different SKU |
 | Spec table change won't save | The JSON has a syntax error — the message shows what's wrong (missing comma, bad bracket, etc.) |
 
