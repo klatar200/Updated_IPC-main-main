@@ -134,7 +134,9 @@ note(!!publicLabel && staleQuotes.length === 0,
 
 // ── b2-08 (g) — the hours fallback matches the default it replaces ─────────
 const siteDefaultHours = (read('src/App.jsx').match(/hours: \{ text: "([^"]+)"/) || [])[1] || '';
-const phpFallback = (read('public/contact.php').match(/\?\?\s*''\)\s*!==\s*''[\s\S]{0,120}?:\s*'([^']*Fri[^']*)'/) || [])[1] || '';
+// Two shapes: the ternary it shipped as, and the ipc_si_text() fallback
+// AUDIT-12 A12-L5-01-1 rewrote it to ("if ($bizHours === '') $bizHours = '…'").
+const phpFallback = (read('public/contact.php').match(/\?\?\s*''\)\s*!==\s*''[\s\S]{0,120}?:\s*'([^']*Fri[^']*)'|\$bizHours\s*===\s*''\)\s*\$bizHours\s*=\s*'([^']*Fri[^']*)'/) || []).slice(1).find(Boolean) || '';
 note(!!siteDefaultHours && phpFallback === siteDefaultHours,
   'b2-08g: contact.php\'s hours fallback is byte-identical to the site default it stands in for',
   JSON.stringify({ php: phpFallback, js: siteDefaultHours }));

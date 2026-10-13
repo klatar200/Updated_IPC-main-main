@@ -126,6 +126,12 @@ async function crawl(browser) {
     for (const route of ROUTES) {
       const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
       const page = await ctx.newPage();
+      // A photo-slot marker is not a loadable image, and since AUDIT-12
+      // A12-L11-W3-G2-2 a slot whose photo fails to load renders nothing, so
+      // its <img src> is gone from the DOM. The request it made still shows the
+      // field reached the page: record requested URLs as their own part.
+      const requested = [];
+      page.on('request', (rq) => requested.push(rq.url()));
       await page.goto(BASE + route, { waitUntil: 'networkidle' });
       await page.waitForTimeout(250);
       await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
@@ -139,6 +145,7 @@ async function crawl(browser) {
         const b = page.locator('button[aria-label*="enu" i]').first();
         if (await b.count()) { try { await b.click(); await page.waitForTimeout(300); record(route, await page.evaluate(COLLECT)); } catch { /* none */ } }
       }
+      record(route, { requests: requested.join('\n') });
       if (route === '/contact' && w === 1440) {
         const tab = page.locator('button', { hasText: /message/i }).first();
         if (await tab.count()) { await tab.click(); await page.waitForTimeout(250); record(route, await page.evaluate(COLLECT)); }

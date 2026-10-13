@@ -75,11 +75,15 @@ async function measure(browser, route) {
     json.copy.siteImages = { ...(json.copy.siteImages || {}), bandTeamPhoto: ABS };
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(json) });
   });
-  await page.route('**example.invalid**', (r) => r.abort());
+  // Serve a 1x1 PNG rather than abort: since AUDIT-12 A12-L11-W3-G2-2 a slot
+  // whose photo fails to load renders nothing, so an aborted request would
+  // remove the <img> before its src could be read.
+  const PNG1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+  await page.route('**example.invalid**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG1 }));
   await page.goto(BASE + '/', { waitUntil: 'networkidle' });
   await page.evaluate(() => window.scrollTo(0, 1600));
   await page.waitForTimeout(600);
-  // Assert the ATTRIBUTE, not the paint — the URL deliberately cannot load.
+  // Assert the ATTRIBUTE: the src must be the typed URL, byte for byte.
   const src = await page.evaluate(() => {
     const img = [...document.querySelectorAll('figure img')].find((i) => /example\.invalid/.test(i.getAttribute('src') || ''));
     return img ? img.getAttribute('src') : null;
