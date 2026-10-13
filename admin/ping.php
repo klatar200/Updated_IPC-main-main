@@ -26,4 +26,11 @@ header('Content-Type: application/json; charset=UTF-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, private');
 header('X-Content-Type-Options: nosniff');
 
-echo json_encode(['ok' => is_authenticated()]);
+// A12-L9-01-1 — a signed-in caller also gets the session's CSRF token, so an
+// editing page opened before a sign-out and sign-in can save again (unsaved.js
+// copies it into its forms). Same-origin only: no CORS header is sent, so
+// another site's fetch cannot read this body. Signed-in callers only, so the
+// A-7.3 rule above (no session minted for a stranger) is untouched.
+$out = ['ok' => is_authenticated()];
+if ($out['ok']) $out['csrf'] = csrf_token();
+echo json_encode($out);
