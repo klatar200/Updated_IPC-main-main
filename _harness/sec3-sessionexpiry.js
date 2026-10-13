@@ -17,6 +17,9 @@
  *   password    a password change keeps the original sign-in time
  *   legacy      a validly signed session with no timestamps (signed in before
  *               this shipped) stays signed in and is stamped
+ *   signed out  every admin page (15 + nav.php): a GET redirects to sign-in
+ *               with nothing of the page, a POST is refused (AUDIT-12
+ *               A12-L13-W5-G5-1 — only three pages were ever checked)
  *
  * Throwaway copy of the mirror, own `php -S` on :8724.
  *
@@ -99,6 +102,34 @@ const note = (ok, label, detail) => {
     a = await fresh();
     fs.writeFileSync(file(a), read(a).replace(/ipc_auth_at\|i:\d+;/, '').replace(/ipc_active_at\|i:\d+;/, ''));
     note(await signedIn(a) && stamp(a, 'ipc_auth_at') > 0, 'legacy: a signed session with no timestamps stays signed in and is stamped');
+
+    // ── signed out: EVERY admin entry point turns the visitor away ──────────
+    // Only Dashboard, Site Images and Catalog PDFs were ever requested signed
+    // out; with require_auth() removed from Inquiries and nav.php every quote
+    // request was readable and every suite stayed green (AUDIT-12
+    // A12-L13-W5-G5-1). A GET must 302 to auth.php without a byte of the page;
+    // a POST must get the session-expired page (invariant 12), never a 200.
+    fs.appendFileSync(path.join(SITE, 'admin', 'inquiries.jsonl'),
+      JSON.stringify({ ts: '2026-10-13 09:00:00', type: 'message', form: 'message', name: 'Signedout Probebuyer', email: 'probe.buyer@example.com', phone: '555-0199', message: 'x', sent: true, ip: '127.0.0.1' }) + '\n');
+    const PAGES = ['index.php', 'add.php', 'edit.php?sku=CC', 'delete.php?sku=CC', 'upload-pdf.php?sku=CC', 'upload-image.php?sku=CC',
+      'settings.php', 'content.php', 'inquiries.php', 'backups.php', 'audit-log.php', 'help.php', 'password.php', 'site-images.php',
+      'marketing-pdfs.php', 'nav.php'];
+    const anon = adminHttp(PORT);
+    const getLeaks = [], postLeaks = [];
+    for (const pgName of PAGES) {
+      anon.jar.clear();
+      const r = await anon.req('GET', `/admin/${pgName}`);
+      if (!(r.status === 302 && /auth\.php/.test(r.headers.location || '')) || /Probebuyer|555-0199|<table|<form[^>]*method="post"/i.test(r.body)) {
+        getLeaks.push(`${pgName} → ${r.status} ${r.headers.location || ''} (${r.body.length} bytes)`);
+      }
+      anon.jar.clear();
+      const pr = await anon.post(`/admin/${pgName}`, [['csrf_token', 'x'], ['company_name', 'x']]);
+      if (pr.status === 200 || pr.status === 302 && !/auth\.php/.test(pr.headers.location || '') || /Probebuyer|555-0199/.test(pr.body)) {
+        postLeaks.push(`${pgName} → ${pr.status} ${pr.headers.location || ''}`);
+      }
+    }
+    note(getLeaks.length === 0, `signed out: a GET of each of the ${PAGES.length} admin pages redirects to sign-in and shows nothing`, getLeaks.join(' | '));
+    note(postLeaks.length === 0, `signed out: a POST to each of the ${PAGES.length} admin pages is refused, never processed`, postLeaks.join(' | '));
   } finally {
     srv.kill();
     fs.rmSync(TMP, { recursive: true, force: true });
