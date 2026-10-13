@@ -4408,24 +4408,39 @@ function FaqPage() {
   // Note this is built from useContent() data, NOT from the DOM, so collapsing a
   // FAQ answer in the UI has no effect on what is emitted here.
   useEffect(() => {
+    // A Question is emitted only with a non-blank question AND a non-blank
+    // answer, and the whole FAQPage block only when at least one survives.
+    // Page Content saves a row with only one of the two filled in, and an
+    // emptied FAQ list is a real deletion (invariant 3); either way an empty
+    // `name`, an empty `acceptedAnswer.text` or an empty `mainEntity` is a
+    // claim with nothing true in it — omit it, as NB4 does for every other
+    // empty JSON-LD value. (AUDIT-12 A12-L10-03-2, A12-L10-W3-G4-1)
+    const mainEntity = categories.flatMap((cat) =>
+      cat.items
+        .map((item) => ({
+          name: typeof item.question === "string" ? item.question.trim() : "",
+          text: typeof item.answer === "string" ? localizeProse(item.answer, site).trim() : "",
+        }))
+        .filter((q) => q.name && q.text)
+        .map((q) => ({
+          "@type": "Question",
+          "name": q.name,
+          "acceptedAnswer": { "@type": "Answer", "text": q.text },
+        }))
+    );
+    // Remove any existing node before appending, so a re-run cannot leave two
+    // #faq-ld scripts behind — duplicate structured data is a worse error than
+    // stale structured data.
+    document.getElementById("faq-ld")?.remove();
+    if (!mainEntity.length) return undefined;
     const el = document.createElement("script");
     el.id = "faq-ld";
     el.type = "application/ld+json";
     el.text = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      "mainEntity": categories.flatMap((cat) =>
-        cat.items.map((item) => ({
-          "@type": "Question",
-          "name": item.question,
-          "acceptedAnswer": { "@type": "Answer", "text": localizeProse(item.answer, site) },
-        }))
-      ),
+      mainEntity,
     });
-    // Remove any existing node before appending, so a re-run cannot leave two
-    // #faq-ld scripts behind — duplicate structured data is a worse error than
-    // stale structured data.
-    document.getElementById("faq-ld")?.remove();
     document.head.appendChild(el);
     return () => { document.getElementById("faq-ld")?.remove(); };
   }, [categories, site]);
@@ -6717,6 +6732,12 @@ const SITE_CLEARABLE = new Set([
   // homepage band); stored Page Content wording is left as typed and
   // settings.php lists the entries that still mention ISO.
   "certifications.iso",
+  // AUDIT-12 A12-L10-W3-G2-1 — read only by the JSON-LD opening hours (help.php
+  // tells Rick these boxes ARE what search engines read). An emptied box used
+  // to re-seed 08:00/17:00, so a business gone "by appointment" kept
+  // advertising Mon–Fri 8–5. Blank now withdraws the hours from StructuredData.
+  "hours.opens",
+  "hours.closes",
 ]);
 
 function mergeSiteInfo(data) {
@@ -6754,6 +6775,12 @@ function mergeSiteInfo(data) {
           ) {
             continue;
           }
+          // A whitespace-only value is blank by the test above, so a
+          // clearable field that reaches here stores it AS cleared: "   " in
+          // the ISO box rendered a dangling footer separator and a
+          // "Registered" row with no certificate in front of it. (AUDIT-12
+          // A12-L5-02-2)
+          if (typeof val === "string" && val.trim() === "") val = "";
           overrides[key] = val;
         }
       }
@@ -7739,7 +7766,10 @@ function StructuredData() {
       // in JSON-LD is not resolvable by a consumer that only has the feed.
       logo: (() => {
         const l = (site.theme && site.theme.logoUrl) || "/logo.svg";
-        return /^https?:\/\//.test(l) ? l : SITE_ORIGIN + (l.startsWith("/") ? "" : "/") + l;
+        // Case-insensitive, as URL schemes are (RFC 3986 §3.1) and as the
+        // settings.php write gate already is (`#i`): "HTTPS://…" was glued on
+        // to SITE_ORIGIN as a path. (AUDIT-12 A12-L15-11-1)
+        return /^https?:\/\//i.test(l) ? l : SITE_ORIGIN + (l.startsWith("/") ? "" : "/") + l;
       })(),
       description: site.company.description,
       // A-8.9 — year only, not `-01-01`. schema.org/foundingDate is an ISO 8601
@@ -7761,15 +7791,30 @@ function StructuredData() {
         postalCode: site.address.zip,
         addressCountry: site.address.country,
       },
-      openingHoursSpecification: {
-        "@type": "OpeningHoursSpecification",
-        dayOfWeek: site.hours.days,
-        opens: site.hours.opens,
-        closes: site.hours.closes,
-      },
-      sameAs: Object.values(site.social || {}).filter(Boolean).length
-        ? Object.values(site.social || {}).filter(Boolean)
-        : undefined,
+      // Only a complete opening-hours claim is made. Opens and Closes are
+      // clearable (SITE_CLEARABLE) and Open Days may be emptied; any one of
+      // them blank withdraws the claim rather than filling it from the
+      // shipped 8–5 or emitting an empty dayOfWeek. (AUDIT-12 A12-L10-W3-G2-1)
+      openingHoursSpecification:
+        site.hours.opens && site.hours.closes && Array.isArray(site.hours.days) && site.hours.days.length
+          ? {
+              "@type": "OpeningHoursSpecification",
+              dayOfWeek: site.hours.days,
+              opens: site.hours.opens,
+              closes: site.hours.closes,
+            }
+          : undefined,
+      // The same rule FooterSocial links by: a known channel whose value is a
+      // safe absolute http(s) URL. Anything the footer refuses to link
+      // (javascript:, a number, blanks, junk, an unknown key) is not a social
+      // profile for search engines either. (AUDIT-12 A12-L5-02-1)
+      sameAs: (() => {
+        const social = site.social || {};
+        const urls = SOCIAL_CHANNELS
+          .filter((c) => isSafeExternalUrl(social[c.key]))
+          .map((c) => social[c.key].trim());
+        return urls.length ? urls : undefined;
+      })(),
     };
     const id = "ipc-structured-data";
     let el = document.getElementById(id);
@@ -9372,9 +9417,11 @@ function ProductDetail({ product, allProducts }) {
       // schema.org/description must be Text. All 42 products store description
       // as an ARRAY of paragraphs, so this emitted an array and Google dropped
       // the whole node. (DEPLOY_READINESS_v2 4.2)
-      "description": Array.isArray(product.description)
-        ? product.description.filter(Boolean).join(" ")
-        : product.description || product.name,
+      // An empty array (a product saved with the box empty) falls back to the
+      // name exactly as an empty string already did. (AUDIT-12 A12-L10-03-3)
+      "description": (Array.isArray(product.description)
+        ? product.description.filter(Boolean).join(" ").trim()
+        : product.description) || product.name,
       // NEW-V2-3 (audit 2026-09-27) — Page Content → Company Claims. IPC is
       // a distributor, and this said IPC made all 42 products, a UL-listed
       // heat gun included. Now the owner's call: a cleared field omits the
