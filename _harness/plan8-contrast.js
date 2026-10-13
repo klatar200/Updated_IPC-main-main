@@ -110,10 +110,35 @@ const isChromaticInk = (r) => {
  *
  * Held as a named exemption with a count rather than a blanket rule, so a
  * SECOND brand-surface failure cannot hide behind it. Logged in WHATS_LEFT §2b.
+ *
+ * NAMED by what it is, measured in the page: a <th> whose computed ink is
+ * --brand-header-ink and whose computed background is --brand-accent-2 (the
+ * spec-table sub-header). It was only a count, so with that header fixed any
+ * other failing neutral text took the free slot and the sweep stayed green,
+ * labelled as "brand ink on a brand surface" (AUDIT-12 A12-L13-13-2).
  */
 const EXEMPT_BRAND_SURFACE = 1;
 
+/**
+ * Gradient-backed NEUTRAL ink outside `.ipc-page-header`. The note above says
+ * brandtext / plan5c-eyebrow / plan5c-brandink own all gradient-backed text;
+ * they own brand-coloured ink and the page header only. The homepage quote
+ * band and the Services lead-time banner fell between all of them (AUDIT-12
+ * A12-L13-06-W5-2). Not judged at AA here (same reason as above: it is the
+ * gradient item), but held as a RATCHET so the count cannot grow unnoticed.
+ * Lower it when one is fixed; never raise it.
+ */
+const UNOWNED_GRADIENT_MAX = 8;
+
 const collect = () => {
+  // The two computed brand values the named exemption is defined by.
+  const probe = document.createElement('i');
+  document.body.appendChild(probe);
+  probe.style.color = 'var(--brand-header-ink)';
+  const headerInk = getComputedStyle(probe).color;
+  probe.style.color = 'var(--brand-accent-2)';
+  const accent2 = getComputedStyle(probe).color;
+  probe.remove();
   const paintsOwnText = (el) => {
     for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) return true;
     return false;
@@ -153,6 +178,8 @@ const collect = () => {
       large: size >= 24 || (weight >= 700 && size >= 18.66),
       size, weight,
       tag: el.tagName.toLowerCase(),
+      specSub: el.tagName === 'TH' && cs.color === headerInk && cs.backgroundColor === accent2,
+      inPageHeader: !!el.closest('.ipc-page-header'),
       cls: (typeof el.className === 'string' ? el.className : '').slice(0, 40),
       text: (el.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40),
     });
@@ -206,7 +233,7 @@ function score(r) {
   // shape brandtext reports, so the two are comparable by eye.
   const combos = new Map();
   for (const r of rows) {
-    const key = `${r.color}|${r.on}|${r.large}`;
+    const key = `${r.color}|${r.on}|${r.large}|${r.specSub}|${r.inPageHeader}`;
     const need = r.large ? 3 : 4.5;
     const prev = combos.get(key);
     if (!prev || r.ratio < prev.ratio) {
@@ -222,6 +249,9 @@ function score(r) {
   const all = [...combos.values()].sort((a, b) => a.ratio - b.ratio);
   const judged = all.filter((c) => !c.gradient && !isChromaticInk(c));
   const failing = judged.filter((c) => !c.pass);
+  const exempt = failing.filter((c) => c.specSub);
+  const unexempt = failing.filter((c) => !c.specSub);
+  const unownedGradient = all.filter((c) => c.gradient && !isChromaticInk(c) && !c.inPageHeader && !c.pass);
 
   fs.writeFileSync(path.join(OUT, 'contrast.json'), JSON.stringify({ combos: all, rows: rows.length }, null, 2));
 
@@ -245,16 +275,20 @@ function score(r) {
   console.log(`${all.length} distinct (colour x background x size) combinations; ` +
     `${all.length - judged.length} belong to brandtext's open item and are not judged here\n`);
 
-  for (const c of failing) {
+  for (const c of unexempt) {
     console.log(`FAIL ${c.ratio.toFixed(2)}:1 (needs ${c.need}) ${c.color} on ${c.on}` +
       `\n       ${c.size}px/${c.weight} <${c.tag}> x${c.count} — ${JSON.stringify(c.text)}`);
   }
-
-  const ok = failing.length <= EXEMPT_BRAND_SURFACE;
-  if (failing.length && ok) {
-    console.log(`\n(${failing.length} of ${EXEMPT_BRAND_SURFACE} allowed: computed brand ink on a ` +
-      `computed brand surface — 4.23's item, not this one. See EXEMPT_BRAND_SURFACE.)`);
+  for (const c of exempt) {
+    console.log(`exempt ${c.ratio.toFixed(2)}:1 (needs ${c.need}) ${c.color} on ${c.on} <${c.tag}> x${c.count} — ` +
+      `the spec-table sub-header: computed brand ink on a computed brand surface, 4.23's item (EXEMPT_BRAND_SURFACE)`);
   }
+  const unownedOk = unownedGradient.length <= UNOWNED_GRADIENT_MAX;
+  console.log(`${unownedOk ? 'ok  ' : 'FAIL'} ${unownedGradient.length} gradient-backed neutral combination(s) outside the page header below AA ` +
+    `(ratchet: must not exceed ${UNOWNED_GRADIENT_MAX})` +
+    (unownedOk ? '' : unownedGradient.map((c) => `\n       ${c.ratio.toFixed(2)}:1 ${c.color} <${c.tag}> ${c.url}@${c.width} — ${JSON.stringify(c.text)}`).join('')));
+
+  const ok = unexempt.length === 0 && exempt.length <= EXEMPT_BRAND_SURFACE && unownedOk;
   console.log(`\nplan8-contrast ${judged.length - failing.length}/${judged.length} neutral combinations meet WCAG AA`);
   console.log(`record -> ${path.join(OUT, 'contrast.json')}`);
   process.exit(ok ? 0 : 1);
