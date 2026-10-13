@@ -143,7 +143,7 @@ const MUTATIONS = [
   },
   // ── AUDIT-12 additions: each of these left invariants.js green before. ──
   {
-    id: 'INV4a', why: 'the blank-drop condition neutralised (`… && false`) — blank phone/email wipe the defaults (A12-L13-M-1)',
+    id: 'INV4a', why: 'the blank-drop condition neutralised (`… && false`) — blank phone/email wipe the defaults (A12-M-1)',
     file: 'src/App.jsx',
     apply: (s) => s.replace('!SITE_CLEARABLE.has(`${k}.${key}`)\n', '!SITE_CLEARABLE.has(`${k}.${key}`) && false\n'),
   },

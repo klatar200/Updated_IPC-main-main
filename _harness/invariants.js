@@ -167,7 +167,7 @@ check('INV4a', 'mergeSiteInfo skips blank-string overrides', () => {
   const drops = /typeof\s+val\s*===\s*"string"[\s\S]{0,120}?val\.trim\(\)\s*===\s*""[\s\S]{0,200}?continue;/.test(body);
   if (!drops) return { ok: false, detail: 'no blank-string continue found in mergeSiteInfo' };
   // The shape alone passed with the condition neutralised (`… && false`), so
-  // RUN the real function too (AUDIT-12 A12-L13-M-1): the declaration of
+  // RUN the real function too (AUDIT-12 A12-M-1): the declaration of
   // SITE_CLEARABLE and mergeSiteInfo are read out of App.jsx and executed over
   // stub defaults, with its two prose post-passes stubbed to identity. A blank
   // phone must keep the default; a blank clearable field (fax) must clear.
