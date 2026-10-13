@@ -56,7 +56,7 @@ const BASE = process.env.CRAWL_BASE || 'http://127.0.0.1:8123';
 // old name. Measured 2026-08-13: one run dirtied 40 tracked screenshots.
 //
 // Set CRAWL_OUT explicitly when the intent really is to regenerate the record.
-// (audit-runs/audit3.md C-06)
+// (audit 3 C-05; IDs as numbered in audit-runs/build-plan-run3.md)
 const OUT = process.env.CRAWL_OUT ||
   path.join(__dirname, 'out', 'plan10-crawl', 'admin');
 const PW = 'audit-pass-123';
@@ -133,7 +133,7 @@ const STATES = [
       // rather than reporting a soft miss, taking the whole run with it.
       // What this state actually needs is that a second table exists to scroll
       // to; the count of the others is help.php's business, not this shot's.
-      // (audit-runs/audit3.md C-05)
+      // (audit 3 C-04; IDs as numbered in audit-runs/build-plan-run3.md)
       return (await page.locator('table.field-ref').count()) >= 2;
     },
   },
