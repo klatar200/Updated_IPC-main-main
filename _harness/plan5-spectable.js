@@ -14,7 +14,8 @@
  *   - across ALL 42 product pages, zero `<tr>` with no `td`/`th` child
  *   - across ALL 42 product pages, zero `<table>` with no data rows
  *   - on the three named products, the right-hand spec panel is gone entirely:
- *     no `<table>`, and no empty bordered box left behind by its wrapper
+ *     no `<table>`, and no empty bordered box and no empty grid cell beside the specs left
+ *     behind by its wrapper (the 4.29 panel is borderless; AUDIT-12 A12-L13-19-1)
  *   - a product WITH rows is untouched (cell counts unchanged)
  *   - the neighbouring case: a table with a TITLE but no rows emits no heading
  *     either — driven by writing that state into the mirror's catalog
