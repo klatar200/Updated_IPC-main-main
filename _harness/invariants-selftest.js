@@ -119,6 +119,38 @@ const MUTATIONS = [
       "$sameSite = $refHost === '' || (",
       '$sameSite = ('),
   },
+  // ── AUDIT-12 additions: each of these left invariants.js green before. ──
+  {
+    id: 'INV4a', why: 'the blank-drop condition neutralised (`… && false`) — blank phone/email wipe the defaults (A12-L13-M-1)',
+    file: 'src/App.jsx',
+    apply: (s) => s.replace('!SITE_CLEARABLE.has(`${k}.${key}`)\n', '!SITE_CLEARABLE.has(`${k}.${key}`) && false\n'),
+  },
+  {
+    id: 'INV7', why: 'resetKey dropped — Back inside /products stays on "Something went wrong" (A12-L13-17-1)',
+    file: 'src/App.jsx',
+    apply: (s) => s.replace('<ErrorBoundary key={page} resetKey={productParam || ""}>', '<ErrorBoundary key={page}>'),
+  },
+  {
+    id: 'INV7', why: 'the live boundary unkeyed with the old text left in a JSX comment (A12-L13-17-1)',
+    file: 'src/App.jsx',
+    apply: (s) => s.replace('<ErrorBoundary key={page} resetKey={productParam || ""}>',
+      '{/* old: <ErrorBoundary key={page} resetKey={productParam || ""}> */}\n<ErrorBoundary resetKey={productParam || ""}>'),
+  },
+  {
+    id: 'INV9', why: 'the skeleton rule commented out of index.css — empty white boxes while loading (A12-L13-W1-G4-1)',
+    file: 'src/index.css',
+    apply: (s) => s.replace(/^(\.ipc-skeleton\s*\{[^}]*\})/m, '/*\n$1\n*/'),
+  },
+  {
+    id: 'INV11', why: 'the non-http scheme filter deleted — Gmail for Android quote requests refused (A12-L13-W1-G5-1)',
+    file: 'public/contact.php',
+    apply: (s) => s.replace("    if ($refScheme !== '' && $refScheme !== 'http' && $refScheme !== 'https') $refHost = '';\n", ''),
+  },
+  {
+    id: 'INV11', why: 'the cross-site refusal deleted — any site can post leads (A12-L13-W1-G5-1)',
+    file: 'public/contact.php',
+    apply: (s) => s.replace(/    if \(!\$sameSite\) \{[\s\S]*?\n    \}\n/, ''),
+  },
   {
     id: 'INV12', why: 'require_auth() redirecting on POST — turns it into a GET, discards typing',
     file: 'admin/config.php',

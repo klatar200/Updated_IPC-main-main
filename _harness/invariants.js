@@ -131,7 +131,28 @@ check('INV3', 'mergeContent keeps an empty array (no && v.length re-seed)', () =
 check('INV4a', 'mergeSiteInfo skips blank-string overrides', () => {
   const body = stripJsComments(jsFunctionBody(appJsx, 'mergeSiteInfo'));
   const drops = /typeof\s+val\s*===\s*"string"[\s\S]{0,120}?val\.trim\(\)\s*===\s*""[\s\S]{0,200}?continue;/.test(body);
-  return { ok: drops, detail: 'no blank-string continue found in mergeSiteInfo' };
+  if (!drops) return { ok: false, detail: 'no blank-string continue found in mergeSiteInfo' };
+  // The shape alone passed with the condition neutralised (`… && false`), so
+  // RUN the real function too (AUDIT-12 A12-L13-M-1): the declaration of
+  // SITE_CLEARABLE and mergeSiteInfo are read out of App.jsx and executed over
+  // stub defaults, with its two prose post-passes stubbed to identity. A blank
+  // phone must keep the default; a blank clearable field (fax) must clear.
+  const decl = /const SITE_CLEARABLE = new Set\(\[[\s\S]*?\]\);/.exec(stripJsComments(appJsx));
+  if (!decl) return { ok: false, detail: 'SITE_CLEARABLE declaration not found' };
+  const header = /function\s+mergeSiteInfo\s*\([^)]*\)/.exec(appJsx)[0];
+  const SITE_DEFAULTS = {
+    contact: { phone: 'DEFAULT-PHONE', phoneDial: 'DEFAULT-DIAL', email: 'default@example.com', fax: 'DEFAULT-FAX' },
+    company: { name: 'DEFAULT-NAME', shortName: 'DEFAULT-SHORT', description: '' },
+    certifications: { iso: 'ISO 9001', other: [] },
+    about: {},
+  };
+  const merge = new Function('SITE_DEFAULTS', 'withIsoLabel', 'withBusinessFacts',
+    `${decl[0]}\n${header} ${jsFunctionBody(appJsx, 'mergeSiteInfo')}\nreturn mergeSiteInfo;`)(SITE_DEFAULTS, (x) => x, (x) => x);
+  const out = merge({ contact: { phone: '', phoneDial: ' ', email: '', fax: '' }, company: { name: '', shortName: '' } });
+  const kept = out.contact.phone === 'DEFAULT-PHONE' && out.contact.phoneDial === 'DEFAULT-DIAL'
+    && out.contact.email === 'default@example.com' && out.company.name === 'DEFAULT-NAME';
+  const cleared = out.contact.fax === '' && out.company.shortName === '';
+  return { ok: kept && cleared, detail: `run over blank fields: phone "${out.contact.phone}" email "${out.contact.email}" name "${out.company.name}" (must stay default); fax "${out.contact.fax}" shortName "${out.company.shortName}" (must clear)` };
 });
 
 check('INV4b', 'mergeSiteInfo consults the SITE_CLEARABLE allow-list', () => {
@@ -179,8 +200,15 @@ check('INV6', 'form_complete is the last named control in content.php', () => {
 // ── Invariant 7 — ErrorBoundary is keyed on page ────────────────────────────
 // Without the key nothing resets `caught`, so one bad product bricked every
 // page until a manual reload.
-check('INV7', 'ErrorBoundary is keyed on page', () => {
-  return { ok: /<ErrorBoundary\s+key=\{page\}/.test(appJsx), detail: '<ErrorBoundary key={page}> not found' };
+// It also takes resetKey={productParam} (NEW-N1-1: Back/Forward/"Browse All"
+// inside /products are one route, so only resetKey clears it there). Comments
+// are stripped first: a JSX comment quoting the old text used to satisfy the
+// check while the live boundary was unkeyed (AUDIT-12 A12-L13-17-1).
+check('INV7', 'ErrorBoundary is keyed on page and reset on productParam', () => {
+  const live = stripJsComments(appJsx);
+  const keyed = /<ErrorBoundary\s+key=\{page\}/.test(live);
+  const reset = /<ErrorBoundary\s+key=\{page\}\s+resetKey=\{productParam\b/.test(live);
+  return { ok: keyed && reset, detail: `key={page}:${keyed} resetKey={productParam…}:${reset} (comments stripped)` };
 });
 
 // ── Invariant 8 — providers/chrome render ABOVE the catalog gate ────────────
@@ -204,9 +232,12 @@ check('INV8', 'SiteInfoProvider/ContentProvider/Navbar/Footer sit above the load
 // GlobalStyles mounts inside the tree that only renders AFTER loading finishes,
 // so defining the skeleton only there made it styleless in the exact situation
 // it exists for. .ipc-page-header is deliberately in BOTH files.
+// CSS comments are stripped first: a rule commented out with /* */ still
+// started its line and passed (AUDIT-12 A12-L13-W1-G4-1).
 check('INV9', '.ipc-skeleton and .ipc-page-header are defined in src/index.css', () => {
-  const skeleton = /^\.ipc-skeleton\s*\{/m.test(indexCss);
-  const header   = /^\.ipc-page-header\s*\{/m.test(indexCss);
+  const css = indexCss.replace(/\/\*[\s\S]*?\*\//g, '');
+  const skeleton = /^\.ipc-skeleton\s*\{/m.test(css);
+  const header   = /^\.ipc-page-header\s*\{/m.test(css);
   return { ok: skeleton && header, detail: `skeleton:${skeleton} page-header:${header}` };
 });
 
@@ -234,7 +265,28 @@ check('INV11', 'contact.php treats an absent/non-http Referer as same-site', () 
   const gated = /\$referer\s*!==\s*''/.test(src) && /is_string\(\$referer\)/.test(src);
   // And an empty parsed host must satisfy the same-site test.
   const emptyHostOk = /\$sameSite\s*=\s*\$refHost\s*===\s*''\s*\|\|/.test(src);
-  return { ok: gated && emptyHostOk, detail: `gated:${gated} emptyHostPasses:${emptyHostOk}` };
+  if (!gated || !emptyHostOk) return { ok: false, detail: `gated:${gated} emptyHostPasses:${emptyHostOk}` };
+  // The text alone stayed green with the non-http scheme filter deleted
+  // (Gmail for Android refused) and with the cross-site refusal deleted
+  // (AUDIT-12 A12-L13-W1-G5-1). So RUN contact.php's own referer block under
+  // PHP CLI with its two side effects stubbed, for four referrers.
+  const start = src.search(/if\s*\(\s*is_string\(\$referer\)/);
+  let depth = 0, end = -1;
+  for (let i = src.indexOf('{', start); i < src.length; i++) {
+    if (src[i] === '{') depth++;
+    else if (src[i] === '}') { depth--; if (depth === 0) { end = i + 1; break; } }
+  }
+  if (start < 0 || end < 0) return { ok: false, detail: 'referer block not found' };
+  const tmp = path.join(require('os').tmpdir(), `ipc-inv11-${process.pid}.php`);
+  fs.writeFileSync(tmp, '<?php\nfunction s($v) { return (string)$v; }\nfunction ipc_partial_entry(...$a) { return $a; }\n'
+    + 'function ipc_log_inquiry($e) {}\nfunction respond($code, $body) { echo $code; exit; }\n'
+    + "$bizName = 'IPC'; $bizPhone = '0'; $ip = '127.0.0.1'; $host = 'www.example.com'; $referer = $argv[1];\n"
+    + src.slice(start, end) + '\necho 200;\n');
+  const cases = [['', '200'], ['android-app://com.google.android.gm', '200'], ['https://example.com/contact', '200'], ['https://evil.example/?x=www.example.com', '403']];
+  const got = cases.map(([ref]) => (require('child_process').spawnSync('php', [tmp, ref], { encoding: 'utf8' }).stdout || '').trim());
+  fs.rmSync(tmp, { force: true });
+  const okRun = cases.every(([, want], i) => got[i] === want);
+  return { ok: okRun, detail: `absent / android-app / same-site / foreign referrer answered ${got.join(' / ')} (want 200 / 200 / 200 / 403)` };
 });
 
 // ── Invariant 12 — require_auth() renders on POST, never redirects ──────────
