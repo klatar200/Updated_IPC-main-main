@@ -25,8 +25,8 @@ with the Workflow tool:
 - adversarial verification of every finding;
 - loop-until-dry gap hunts and a completeness critic.
 
-Written and tested 2026-10-07; **not yet run**. Its output will be
-`audit-runs/audit12.md` and one PR with no fixes. The kickoff prompt is its §14.
+Written and tested 2026-10-07; **run 2026-10-07 → 2026-10-13** — report in
+[`audit-runs/audit12.md`](../audit-runs/audit12.md) (no fixes). The kickoff prompt is its §14.
 
 ---
 
