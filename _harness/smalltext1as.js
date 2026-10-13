@@ -12,7 +12,8 @@
  *             trust ticker (brand-accent-on-dark-surfaces, NEW-R3-m2-2)
  *   industry  /industries card headers: chip and sub-line on the deep→primary
  *             gradient (brand-accent-on-dark-surfaces)
- *   drawer    the 375 px menu drawer, "By Category" label (NEW-R3-m2-2)
+ *   drawer    the 375 px menu drawer with its Products group expanded,
+ *             "By Category" label (NEW-R3-m2-2)
  *   panel     the 1440 px Products mega-menu, its category label (NEW-R3-m2-2)
  *
  * Contrast is measured with backdrop.js (gradients sampled at the glyphs,
@@ -78,6 +79,7 @@ const SCORE = function (sel) {
   const browser = await launch();
   const bad = {};
   const seen = {};
+  const seenText = {};
   const surface = {};
   try {
     for (const [pal, palette] of Object.entries(PALETTES)) {
@@ -94,6 +96,7 @@ const SCORE = function (sel) {
       const score = async (region, page, sel, where) => {
         const rows = await page.evaluate(SCORE, sel);
         seen[region] = (seen[region] || 0) + rows.length;
+        for (const r of rows) (seenText[region] = seenText[region] || new Set()).add(r.text.toLowerCase());
         // A failing element is SURFACE-LIMITED when no single plain ink
         // (white, or the site's #141414) passes for every element that shares
         // its colour in this view — then no value that colour's variable could
@@ -128,6 +131,11 @@ const SCORE = function (sel) {
       let { ctx, page } = await open('/', 375);
       await page.click('button[aria-label="Open menu"]');
       await page.waitForTimeout(400);
+      // "By Category" renders only inside the expanded Products group: opening
+      // the drawer alone scored 14 elements and never that label, so it could
+      // fall to 1.20:1 with this arm green (AUDIT-12 A12-L13-24-1).
+      await page.locator('[role="dialog"] button').filter({ hasText: /^\s*Products\s*▼\s*$/ }).first().click();
+      await page.waitForTimeout(400);
       await score('drawer', page, '[role="dialog"], nav[aria-label*="obile"], #mobile-menu', ' drawer@375');
       await ctx.close();
       ({ ctx, page } = await open('/', 1440));
@@ -144,6 +152,8 @@ const SCORE = function (sel) {
   note(surf.length <= SURFACE_RATCHET, `${surf.length} surface-limited elements (ratchet: must not exceed ${SURFACE_RATCHET})`);
   for (const region of ['hero', 'industry', 'drawer', 'panel']) {
     note(seen[region] > 0, `${region}: the region was found and scored (${seen[region] || 0} text elements, both palettes)`);
+    if (region === 'drawer') note(!!seenText.drawer && [...seenText.drawer].some((t) => t.includes('by category')),
+      'drawer: the Products group was expanded and its "By Category" label scored');
     const list = bad[region] || [];
     note(list.length === 0, `${region}: every small text element meets WCAG AA on navy and on a pale palette`, list.slice(0, 8).join('\n         '));
   }
