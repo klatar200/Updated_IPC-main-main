@@ -202,9 +202,13 @@ async function armP71() {
     meHead.status === 200 && /pdf/i.test(meHead.headers['content-type'] || ''),
     `GET ${meUrl} -> ${meHead.status} ${meHead.headers['content-type'] || '(no type)'}`);
 
-  ok('p7-1  the owner is told the sheet was kept because it is shared',
-    /shared|also used|kept/i.test(r.body) || r.status === 302,
-    'no note in the response body');
+  // Read the page the owner LANDS on: a 302 was accepted as proof by itself,
+  // and the note only ever reached the audit log (AUDIT-12 A12-L13-16-1).
+  const loc = String(r.headers.location || '');
+  const landed = r.status === 302 && loc ? await req('GET', loc.startsWith('/') ? loc : `/admin/${loc}`) : r;
+  const told = new RegExp(`${file.replace(/[.]/g, '\\.')} kept its old name because another product uses the same file`).test(landed.body);
+  ok('p7-1  the owner is told the sheet was kept because it is shared', told,
+    `flash: ${JSON.stringify(((/[^<>]*saved successfully[^<>]*/.exec(landed.body)) || ['(none)'])[0].trim().slice(0, 200))}`);
   console.log(`  note  shared file ${file}: ${[...new Set(skus)].join(' + ')}; renamed ${renameMe} -> ${tmpSku}`);
 }
 
