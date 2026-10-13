@@ -7,7 +7,8 @@
  * One Apache instance, two listeners: plain HTTP on :8731 and HTTPS on :8732
  * with a throwaway self-signed certificate. The docroot is dist/ plus the
  * repo's admin/, uploads/, pdfs/ and data/ .htaccess files, built under
- * /var/tmp (the Apache user cannot traverse /tmp/claude-0). 14 checks:
+ * /var/tmp (the Apache user cannot traverse /tmp/claude-0). 13 checks (the
+ * suite prints its own count — trust that over this line):
  *   PUB-1   HSTS is sent over HTTPS on /, on a rewritten SPA route and on
  *           /admin/; not over plain HTTP; sent over HTTP when a TLS-terminating
  *           proxy says X-Forwarded-Proto: https; never with includeSubDomains
