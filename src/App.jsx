@@ -4809,6 +4809,17 @@ const CONTACT_CARDS = [
  *   Tab 1: "Request a Quote" — structured RFQ form (Part #, Material, Qty, Req Date, Specs)
  *   Tab 2: "Send a Message" — general inquiry form
  */
+/**
+ * AUDIT-12 A12-L9-08-1 — the required marker follows the field's `required`
+ * state, not the owner's typing. The star lives in the editable label text
+ * ("Quantity Required *"), so tidying it away left a field the form still
+ * demands, unmarked, under a legend that says "Fields marked * are required."
+ * A label that already ends in "*" is left exactly as written.
+ */
+function requiredLabel(label) {
+  return typeof label === "string" && label.trim() && !/\*\s*$/.test(label) ? `${label} *` : label;
+}
+
 function ContactPage() {
   const site = useSiteInfo();
   // ?part=SKU set by the product page's "Request Quote" button. (4.6)
@@ -4855,9 +4866,12 @@ function ContactPage() {
    *
    * Reloading ?sent=1 re-renders "thank you" for what is now a bookmarkable
    * URL. That is the standard answer and it sends no request — nothing is
-   * posted on render. The tab is not carried in the URL, so a reload shows the
-   * RFQ wording; that is a deliberate simplification rather than a second
-   * param, and the two success bodies differ only in phrasing.
+   * posted on render. The tab is not carried in the URL (deliberately not a
+   * second param). SUPERSEDED 2026-10-13: "a reload shows the RFQ wording; the
+   * two bodies differ only in phrasing" — they differ in what they promise
+   * ("review the details … same day for in-stock items"), so a general message
+   * re-displayed as a quote request was a false confirmation. The tab now rides
+   * in sessionStorage beside the A-9.P7-2 flag below. (AUDIT-12 A12-L14-W5-G3-1)
    */
   const [sentParam, setSentParam] = useSearchParam("sent");
   /*
@@ -4882,12 +4896,27 @@ function ContactPage() {
   const [sentThisSession, setSentThisSession] = useState(() => {
     try { return sessionStorage.getItem("ipc-contact-sent") === "1"; } catch (_) { return false; }
   });
-  const markSent = () => {
+  const markSent = (tab) => {
     setSentThisSession(true);
-    try { sessionStorage.setItem("ipc-contact-sent", "1"); } catch (_) { /* storage blocked */ }
+    try {
+      sessionStorage.setItem("ipc-contact-sent", "1");
+      sessionStorage.setItem("ipc-contact-sent-tab", tab);
+    } catch (_) { /* storage blocked */ }
   };
   const submitted = sentParam === "1" && sentThisSession;
-  const [submittedTab, setSubmittedTab] = useState("rfq");
+  // AUDIT-12 A12-L14-W5-G3-1 — which form was sent, restored on a reload or a
+  // Back to ?sent=1, so a general message is never re-confirmed as a quote.
+  const [submittedTab, setSubmittedTab] = useState(() => {
+    try { return sessionStorage.getItem("ipc-contact-sent-tab") === "message" ? "message" : "rfq"; } catch (_) { return "rfq"; }
+  });
+  // AUDIT-12 A12-L15-W2-G4-1 — the POST is awaited; a visitor who clicks to
+  // another page meanwhile has left, and the late answer must not pull them
+  // back to ?sent=1. Their own click is the last word on where they are.
+  const contactMounted = useRef(true);
+  useEffect(() => {
+    contactMounted.current = true;
+    return () => { contactMounted.current = false; };
+  }, []);
 
   // B16 — the success panel takes focus and is announced.
   //
@@ -5012,10 +5041,11 @@ function ContactPage() {
       // reach anyone. Leaving error unset lets the real fallback through. (F9)
       const json = await res.json().catch(() => ({ ok: false }));
       if (json.ok) {
+        markSent("message");   // A-9.P7-2 — and from a submit that really happened
+        if (!contactMounted.current) return;
         setSubmittedTab("message");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
         // from this param; see the note where sentParam is declared.
-        markSent();   // A-9.P7-2 — and from a submit that really happened
         setSentParam("1");
       } else {
         // The server's message is specific — which field, or which guard was
@@ -5061,10 +5091,11 @@ function ContactPage() {
       // reach anyone. Leaving error unset lets the real fallback through. (F9)
       const json = await res.json().catch(() => ({ ok: false }));
       if (json.ok) {
+        markSent("rfq");   // A-9.P7-2 — and from a submit that really happened
+        if (!contactMounted.current) return;
         setSubmittedTab("rfq");
         // B17 — pushed, so Back returns to the form. `submitted` is derived
         // from this param; see the note where sentParam is declared.
-        markSent();   // A-9.P7-2 — and from a submit that really happened
         setSentParam("1");
       } else {
         setFormError({ kind: "validation", message: json.error || localizeProse(cf.submitError, site) });
@@ -5538,7 +5569,7 @@ function ContactPage() {
                       className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                       style={{ color: "#6b7280" }}
                     >
-                      {f.label}
+                      {f.required ? requiredLabel(f.label) : f.label}
                     </label>
                     <input
                       type={f.type}
@@ -5614,7 +5645,7 @@ function ContactPage() {
                     className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                     style={{ color: "#6b7280" }}
                   >
-                    {cf.quantityLabel}
+                    {requiredLabel(cf.quantityLabel)}
                   </label>
                   <input
                     id="rfq-quantity"
@@ -5848,7 +5879,7 @@ function ContactPage() {
                       className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                       style={{ color: "#6b7280" }}
                     >
-                      {f.label}
+                      {f.required ? requiredLabel(f.label) : f.label}
                     </label>
                     <input
                       type={f.type}
@@ -5875,7 +5906,7 @@ function ContactPage() {
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
-                  {cf.subjectLabel}
+                  {requiredLabel(cf.subjectLabel)}
                 </label>
                 <input
                   id="msg-subject"
@@ -5896,7 +5927,7 @@ function ContactPage() {
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wide"
                   style={{ color: "#6b7280" }}
                 >
-                  {cf.messageLabel}
+                  {requiredLabel(cf.messageLabel)}
                 </label>
                 <textarea
                   id="msg-message"
