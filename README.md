@@ -172,7 +172,7 @@ on they are owned by the customer, and re-uploading them destroys his edits.
 | Path | Permission | Why |
 |---|---|---|
 | `public_html/data/` | 755, **writable by PHP** | every admin save writes here |
-| `public_html/data/*.json` | 644 (666 if PHP can't write) | |
+| `public_html/data/*.json` | 644 — never 666 | a save writes a new file in `data/` and renames it in, so only the folder's permission matters; 666 does not fix "Failed to save" and leaves the catalog writable by other accounts |
 | `public_html/pdfs/` | 755, **writable by PHP** | data-sheet uploads |
 | `public_html/uploads/images/` | 755, **writable by PHP** | product photo uploads |
 | `public_html/uploads/site/` | 755, **writable by PHP** | page photos and logo (Site Images & Logo page) |
@@ -216,7 +216,10 @@ reset anything — it locks the admin completely.
 
 ### Verify after deploying
 
-1. `https://yourdomain.com/` loads and the catalog populates within a second.
+1. `https://yourdomain.com/` loads and the catalog populates within a second,
+   and the address bar does not end in `/site/` — on a first deploy the old
+   site's homepage also loads until its `/` → `/site/` redirect is removed
+   (GO-LIVE STEP 0b and §B2 step 0).
 2. `https://yourdomain.com/admin/` — sign in, and check for a red "Server setup
    problem" banner on the dashboard.
 3. Admin → Help → **What your server allows** — confirms the live PHP limits. If
@@ -332,7 +335,7 @@ until audit-runs/audit8.md A-8.2.)
 | Refresh on a deep path 404s | `.htaccess` missing from `public_html/` — it ships in `dist/` (from `public/`) |
 | Every page 404s or 500s | `.htaccess` is there but `index.php` is not — upload `dist/index.php` |
 | A shared link previews as the homepage | `index.php` not reached (missing, or `.htaccess` old) — GO-LIVE C1's product-title check |
-| Products don't load | `data/products-all.json` not uploaded, or not readable (644) |
+| Products don't load | `data/products-all.json` not uploaded, not readable (644), malformed, or not served as `application/json` (`data/.htaccess` missing). If the file opens fine and the site loads for you, the visitor's connection dropped or took over 12 s — the screen is the same; ask them to tap Retry |
 | "Failed to save" in admin | `data/` not writable by PHP |
 | Inquiries page always empty | `admin/` not writable by PHP — leads are being dropped. The dashboard banner says so |
 | Upload rejected as "too large" | Admin → Help → What your server allows. The effective ceiling is `min(upload_max_filesize, 20MB)` for PDFs and `min(…, 8MB)` for photos — the second figure is hardcoded in `uploaded_pdf_problem()` / `uploaded_image_problem()` in `admin/config.php` (shared by every upload page), so raising `public/.user.ini` alone will not lift it (AUDIT_v3 D6) |

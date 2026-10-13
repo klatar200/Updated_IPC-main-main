@@ -242,6 +242,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'The phone number (' . $updated['contact']['phone'] . ') and the click-to-call number (' . $dial . ') are different numbers, so visitors would see one and dial the other. Make them the same number, or empty the click-to-call box and it will be worked out from the phone number.';
         }
     }
+    // AUDIT-12 A12-L9-14-2 — clearing the display phone puts the SHIPPED
+    // number back on the site (mergeSiteInfo drops blanks, invariant 4), but a
+    // dial number left in its box kept every tel: link and the JSON-LD dialling
+    // the number just cleared. When the phone is emptied and the dial box was
+    // not changed, empty it too, so both fall back to the shipped pair.
+    if ($updated['contact']['phone'] === '' && $dial !== ''
+        && $dial === preg_replace('/[\s.\-()]/', '', (string)($curT['phoneDial'] ?? ''))) {
+        $dial = '';
+    }
     $updated['contact']['phoneDial'] = $dial;
 
     foreach (array_keys($updated['social']) as $s) {

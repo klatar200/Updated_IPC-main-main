@@ -22,7 +22,7 @@ Use **View Live Site** (top right) any time to open your public site in a new ta
 
 **Inquiries** — every quote request and contact-form message the website has received, newest first. These arrive by email too; this page is the backup copy, so a lost email doesn't mean a lost lead.
 
-**Backups** — a saved copy of your catalog, business details and page content from before each save. One click rolls any of them back. Each entry shows what's in it (how many products, how many content rows) so you're not picking blind.
+**Backups** — a saved copy of your catalog, business details and page content from before each save. One click rolls any of them back. Each entry is stamped with the time of the save that replaced it, and shows what's in it (how many products, how many content rows).
 
 **Audit Log** — every change made through the dashboard, newest first, with what changed and when; use it to see who did what or to find the moment something changed before restoring a backup.
 
@@ -76,9 +76,10 @@ Then click **Save Content** at the bottom. That's it — your changes go live wi
 - The seven **social links** (Twitter/X, Facebook, LinkedIn, YouTube, Instagram, TikTok, Pinterest)
 - **Short name**
 - **Slogan**
-- **ISO certification** — emptying it stops the footer, the About fact box and the homepage band claiming ISO; Business Details then lists any wording of yours that still mentions ISO 9001 so you can edit it
+- **ISO certification** — emptying it stops the footer, the About fact box and the homepage band claiming ISO; Business Details then lists any wording of yours that still mentions ISO 9001 so you can edit it. To claim a revision, type it in full (`ISO 9001:2015`), never just the year.
+- **About story** — the About page then keeps its "Our Story" heading and photo with nothing under them, so type over the story rather than clearing it.
 
-Clear one of those and it disappears from the site properly — the fax line vanishes from the footer, the Contact page and the About page rather than leaving an empty label.
+Clear one of those and it disappears from the site properly — the fax line vanishes from the footer, the Contact page and the About page rather than leaving an empty label. Sentences of your own that mention the fax do not: after clearing it, edit the two FAQ answers that give the fax number and the Contact page's Search Engine Text description, or they will read "fax , email".
 
 **Your catalog and brochure PDFs have an upload page too.** Open **Catalog & Brochure PDFs** (linked from the Catalog PDF URL box on Business Details and the Value-Added Services card on Page Content). Upload a PDF and choose where it is used — the "Full product catalog (PDF)" link in the footer, or a Services brochure — or upload it now and choose later. An upload never replaces a file already there, and nothing on that page deletes a file. It is also how to put a second PDF on a product: upload it there, copy the address it shows, and add it under Additional PDF Links when you edit the product.
 
@@ -100,6 +101,6 @@ Clear one of those and it disappears from the site properly — the fax line van
 
 Double-check you clicked **Save Content** (or **Save Business Details** on Business Details) and give it a full minute plus a hard refresh.
 
-If a section still looks wrong, click **Backups** in the top navigation and restore the version from just before your change. You can do this yourself — and restoring is itself backed up first, so it can be undone. Backups are kept for the 90 most recent saves of each file. Note that photo uploads, PDF uploads, adding a product and deleting a product all count as saves, so they fill up faster than you'd expect: if you need to roll something back, do it sooner rather than later.
+If a section still looks wrong, click **Backups** in the top navigation and restore the entry stamped with the time you saved that change — it holds the version from just before it. (Picking an earlier entry undoes more: every change saved from that time on.) You can do this yourself — and restoring is itself backed up first, so it can be undone. Backups are kept for the 90 most recent saves of each file. Note that photo uploads, PDF uploads, adding a product and deleting a product all count as saves, so they fill up faster than you'd expect: if you need to roll something back, do it sooner rather than later. Backups hold your catalog, details and page content, not the files themselves: uploading a new data sheet over an existing one, or a photo over one you uploaded earlier of the same file type, replaces the old file for good, so keep a copy first.
 
 If the dashboard shows a red **"Server setup problem"** banner, that one is for your developer, not you — send them a screenshot.

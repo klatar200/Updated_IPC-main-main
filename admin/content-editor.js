@@ -172,8 +172,8 @@
       if (!orphaned.length) return;
       var msg = 'Renaming a product family does not rename the products in it.\n\n' +
                 orphaned.join('\n') + '\n\n' +
-                'Those products keep their old category until you re-save each one, ' +
-                'so they will appear under the old name on the site.\n\n' +
+                'Those products keep their old category, and appear under the old name on the site, ' +
+                'until you open each one with Edit, pick the new name in Part Type, and save.\n\n' +
                 'Save anyway?';
       if (!window.confirm(msg)) e.preventDefault();
     });

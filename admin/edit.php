@@ -408,9 +408,9 @@ include 'nav.php';
           <div class="hint">Leave blank to use the IPC branded placeholder — or <a href="upload-image.php?sku=<?= urlencode($sku) ?>">upload a photo</a> and this field is filled in automatically.</div>
         </div>
         <div class="form-group full">
-          <label for="specificationsSummary">Specifications Summary <small style="text-transform:none;font-weight:400">(shown in Product Index table)</small></label>
+          <label for="specificationsSummary">Specifications Summary <small style="text-transform:none;font-weight:400">(Product Index table, and the product's Google description)</small></label>
           <input type="text" id="specificationsSummary" name="specificationsSummary" value="<?= h($product['specificationsSummary'] ?? '') ?>" placeholder="e.g. U/L 224 VW-1 · RoHS · -55°C to 135°C · 600V" />
-          <div class="hint">Comma/bullet-separated summary. Keep under 120 characters.</div>
+          <div class="hint">Comma/bullet-separated summary, most important first. It also ends the product's Google description and shared-link card, after the name, SKU and Part Type, and that whole description is cut off with "…" at about 160 characters.</div>
         </div>
       </div>
     </div>
