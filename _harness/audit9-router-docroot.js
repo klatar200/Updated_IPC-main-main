@@ -136,7 +136,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       console.log('\nfailing:');
       for (const f of failures) console.log(`  - ${f}`);
     }
-    process.exit(failures.length ? 1 : 0);
+    // exitCode, not process.exit(): exit() inside a try skips the finally,
+    // which left the php -S running and two marker files in the sweep mirror
+    // after every run (AUDIT-12 A12-L13-05-3).
+    process.exitCode = failures.length ? 1 : 0;
   } finally {
     try { process.kill(-server.pid); } catch (_) { try { server.kill(); } catch (__) {} }
     for (const f of [sweepOnly, sweepBoth]) { try { fs.unlinkSync(f); } catch (_) {} }
