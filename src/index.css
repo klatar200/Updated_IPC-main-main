@@ -104,6 +104,8 @@
   --brand-panel-muted-45: #8794a3;
   --brand-panel-muted-60: #9fa9b5;
   --brand-panel-muted-75: #c3c9d1;
+  /* A12-L7-W3-G3-5 — rgba(255,255,255,0.6) over the shipped #0d2d52. */
+  --brand-dark-muted-60: #9eabba;
   --brand-drawer-muted-30: #8592a2;
   --brand-drawer-muted-40: #8592a2;
   --brand-drawer-muted-65: #a9b2be;
@@ -340,6 +342,21 @@ svg[stroke="#005da3"] {
     padding-bottom: 13px;
     margin-top: -13px;
     margin-bottom: -13px;
+  }
+
+  /* A12-L6-07-1 / A12-L6-09-1 / A12-L6-W3-R1-1-1 — where a phone number and
+     an email address share a block (About's call-us box, the Contact strip,
+     the quote thank-you line) and the email wraps to the next line, the two
+     44px boxes overlapped by ~22-26px, and the later link in the DOM — the
+     email — won the hit test over the lower half of the phone number: a tap
+     on the number opened the mail app. The email no longer grows UPWARD
+     when a phone link precedes it, so its box starts at its own text and
+     cannot cover the number; it still grows 13px downward (31px tall, over
+     the 24px of WCAG 2.5.8). Nothing moves: the margin goes with the padding. */
+  a[href^="tel:"] ~ a[href^="mailto:"] {
+    padding-top: 0;
+    margin-top: 0;
+    min-height: 0;
   }
 
   /* The conversion buttons: "Download PDF", "Request Quote", "Request Data

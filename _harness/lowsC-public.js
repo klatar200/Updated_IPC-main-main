@@ -72,7 +72,7 @@ const restore = () => { for (const n of ['products-all.json', 'content.json', 's
 
     // ── N1-2 ──
     await go('/dashboard');
-    const chips = page.locator('button[aria-pressed]');
+    const chips = page.locator('button[data-ipc-approval]');   // A12-L7-W3-G2-3: the family pills say aria-pressed too now
     const nChips = await chips.count();
     let emptied = false;
     for (let i = 0; i < nChips && !emptied; i++) {
@@ -83,7 +83,7 @@ const restore = () => { for (const n of ['products-all.json', 'content.json', 's
     const clearBtn = page.getByRole('button', { name: 'Clear all filters' });
     const hasClear = emptied && (await clearBtn.count()) > 0;
     if (hasClear) { await clearBtn.first().click(); await page.waitForTimeout(200); }
-    const pressedAfter = await page.locator('button[aria-pressed="true"]').count();
+    const pressedAfter = await page.locator('button[data-ipc-approval][aria-pressed="true"]').count();
     note(emptied && hasClear && pressedAfter === 0 && (await dashNames()).length > 10,
       'N1-2: when approval chips alone empty the index, "Clear all filters" is offered and clears them too',
       `emptied ${emptied}, button ${hasClear}, chips still on ${pressedAfter}`);

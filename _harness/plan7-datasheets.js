@@ -43,6 +43,12 @@ const BASE = 'http://127.0.0.1:8123';
 const raw = JSON.parse(fs.readFileSync(path.join(__dirname, 'pristine', 'products-all.json'), 'utf8'));
 const products = raw.products || raw;
 const withPdf = products.filter((p) => p.pdfUrl);
+// A12-L6-W3-G4-1 — the page lists every SHEET: a product's Additional PDF
+// Links get their own cards (IP52EC's Plugged Cap), so the card count is the
+// products' pdfUrls plus their extras.
+const extraPdfs = withPdf.flatMap((p) => (Array.isArray(p.additionalPdfs) ? p.additionalPdfs : [])
+  .filter((x) => x && typeof x === 'object' && x.url).map((x) => ({ sku: p.sku, url: x.url })));
+const expectedCards = withPdf.length + extraPdfs.length;
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -74,11 +80,12 @@ const note = (ok, what, detail = '') => {
     // distinct-links === products would fail on correct data, and relaxing it
     // to <= would stop noticing a card that vanished.
     const listed = new Set(shape.links);
-    const missing = withPdf.filter((p) => !listed.has(p.pdfUrl)).map((p) => p.sku);
+    const missing = [...withPdf.map((p) => ({ sku: p.sku, url: p.pdfUrl })), ...extraPdfs]
+      .filter((s) => !listed.has(s.url)).map((s) => `${s.sku} ${s.url}`);
     const sharedExpected = withPdf.length - new Set(withPdf.map((p) => p.pdfUrl)).size;
-    note(missing.length === 0 && shape.links.length === withPdf.length,
-      `all ${withPdf.length} products are listed as cards (${listed.size} distinct files — ${sharedExpected} shared)`,
-      missing.length ? `missing: ${missing.join(', ')}` : `${shape.links.length} cards vs ${withPdf.length} products`);
+    note(missing.length === 0 && shape.links.length === expectedCards,
+      `all ${withPdf.length} products are listed as cards, plus ${extraPdfs.length} additional sheet(s) (${listed.size} distinct files — ${sharedExpected} shared)`,
+      missing.length ? `missing: ${missing.join(', ')}` : `${shape.links.length} cards vs ${expectedCards} sheets`);
 
     const wantFamilies = [...new Set(withPdf.map((p) => p.partType || 'Other'))].sort();
     const gotFamilies = [...new Set(shape.families)].sort();

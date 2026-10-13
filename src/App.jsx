@@ -358,14 +358,16 @@ class ErrorBoundary extends Component {
     if (this.state.caught) {
       return (
         <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px", textAlign: "center", background: "#f5f7fa" }}>
-          <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+          <div aria-hidden="true" style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: "#141414", marginBottom: 8 }}>Something went wrong</h2>
           <p style={{ fontSize: 14, color: "#6b7280", maxWidth: 400, marginBottom: 24 }}>
             An unexpected error occurred. Please refresh the page, or contact us directly.
           </p>
           <div style={{ fontSize: 14, color: "var(--brand-primary-text)" }}>
-            <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary-text)", display: "block", marginBottom: 6 }}>📞 {site.contact.phone}</a>
-            <a href={`mailto:${site.contact.email}`} style={{ color: "var(--brand-primary-text)" }}>📧 {site.contact.email}</a>
+            {/* A12-L7-02-4 — the pictographs B18 removed elsewhere were still
+                here, read as "telephone receiver 630…"; kept for the eye only. */}
+            <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary-text)", display: "block", marginBottom: 6 }}><span aria-hidden="true">📞 </span>{site.contact.phone}</a>
+            <a href={`mailto:${site.contact.email}`} style={{ color: "var(--brand-primary-text)" }}><span aria-hidden="true">📧 </span>{site.contact.email}</a>
           </div>
           <button
             onClick={() => window.location.reload()}
@@ -539,12 +541,20 @@ function Navbar({ products = [], catalogFailed = false }) {
         return;
       }
       if (e.key !== "Tab") return;
-      const items = focusables();
+      // A12-L7-W3-G4-2 — the visible X (the burger, now "Close menu") is
+      // part of the cycle. Tab and Shift+Tab went round the drawer's links
+      // only, so the one on-screen way out was unreachable by keyboard and
+      // the only exit was an Escape nothing mentions. First in the cycle,
+      // because it sits above the drawer.
+      const burger = burgerRef.current;
+      const items = burger && burger.getClientRects().length
+        ? [burger, ...focusables()]
+        : focusables();
       if (!items.length) return;
       const first = items[0];
       const last = items[items.length - 1];
       const root = drawerRef.current;
-      if (root && !root.contains(document.activeElement)) {
+      if (root && !root.contains(document.activeElement) && document.activeElement !== burger) {
         e.preventDefault();
         first.focus({ preventScroll: true });
       } else if (e.shiftKey && document.activeElement === first) {
@@ -742,7 +752,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               display: "flex",
               alignItems: "center",
               color:
-                currentPage === "home" ? "var(--brand-dark-ink)" : "rgba(var(--brand-dark-ink-rgb), 0.6)",
+                currentPage === "home" ? "var(--brand-dark-ink)" : "var(--brand-dark-muted-60)",
               borderBottom:
                 currentPage === "home"
                   ? "2px solid var(--brand-accent)"
@@ -759,7 +769,7 @@ function Navbar({ products = [], catalogFailed = false }) {
             }}
             onMouseLeave={(e) => {
               if (currentPage !== "home")
-                e.currentTarget.style.color = "rgba(var(--brand-dark-ink-rgb), 0.6)";
+                e.currentTarget.style.color = "var(--brand-dark-muted-60)";
             }}
           >
             {nc.home}
@@ -787,6 +797,15 @@ function Navbar({ products = [], catalogFailed = false }) {
                   e.stopPropagation();
                   setOpenDropdown(null);
                   e.currentTarget.querySelector("button")?.focus();
+                }}
+                // A12-L7-W3-G1-3 — a menu opened from the keyboard stayed open
+                // over the page after Tab left it, covering the cards focus
+                // moved to. It closes when focus lands outside it. Only when
+                // focus actually went somewhere (relatedTarget): a mouse click
+                // on the panel's own blank area blurs the trigger with no
+                // target and must not shut the menu under the pointer.
+                onBlur={(e) => {
+                  if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget)) setOpenDropdown(null);
                 }}
                 style={{
                   position: "relative",
@@ -826,7 +845,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                     display: "flex",
                     alignItems: "center",
                     gap: 5,
-                    color: active || open ? "var(--brand-dark-ink)" : "rgba(var(--brand-dark-ink-rgb), 0.6)",
+                    color: active || open ? "var(--brand-dark-ink)" : "var(--brand-dark-muted-60)",
                     borderBottom: active
                       ? "2px solid var(--brand-accent)"
                       : open
@@ -947,7 +966,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                             key={item.p}
                             page={item.p}
                             params={item.params}
-                            onNavigate={closeMenus}
+                            onNavigate={() => { closeMenus(); if (item.p === "products") announceBrowseAll(); }}
                             style={{
                               display: "flex",
                               flexDirection: "column",
@@ -1101,6 +1120,8 @@ function Navbar({ products = [], catalogFailed = false }) {
 
           {/* ── Company dropdown trigger ── */}
           {(() => {
+            // A12-L6-13-1 — no trigger for an emptied Company menu.
+            if (!companyNav.length) return null;
             const compPages = ["industries", "services", "about", "faq"];
             const active = groupActive(compPages);
             const open = openDropdown === "company";
@@ -1113,6 +1134,10 @@ function Navbar({ products = [], catalogFailed = false }) {
                   e.stopPropagation();
                   setOpenDropdown(null);
                   e.currentTarget.querySelector("button")?.focus();
+                }}
+                // A12-L7-W3-G1-3 — see the Products menu.
+                onBlur={(e) => {
+                  if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget)) setOpenDropdown(null);
                 }}
                 style={{
                   position: "relative",
@@ -1152,7 +1177,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                     display: "flex",
                     alignItems: "center",
                     gap: 5,
-                    color: active || open ? "var(--brand-dark-ink)" : "rgba(var(--brand-dark-ink-rgb), 0.6)",
+                    color: active || open ? "var(--brand-dark-ink)" : "var(--brand-dark-muted-60)",
                     borderBottom: active
                       ? "2px solid var(--brand-accent)"
                       : open
@@ -1427,6 +1452,11 @@ function Navbar({ products = [], catalogFailed = false }) {
                 onClick={() =>
                   setMobileOpen(mobileOpen === "products" ? null : "products")
                 }
+                // A12-L7-W3-G1-2 — these two accordions never said they open a
+                // list, or whether it is open: a press silently added 13 links.
+                // The desktop triggers and the catalog toggles already say it.
+                aria-expanded={mobileOpen === "products"}
+                aria-controls="ipc-drawer-products"
                 style={{
                   display: "flex",
                   width: "100%",
@@ -1453,6 +1483,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               >
                 <span>{nc.products}</span>
                 <span
+                  aria-hidden="true"
                   style={{
                     fontSize: 10,
                     opacity: 0.6,
@@ -1468,6 +1499,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               </button>
               {mobileOpen === "products" && (
                 <div
+                  id="ipc-drawer-products"
                   style={{
                     paddingBottom: 6,
                     borderBottom: "1px solid rgba(255,255,255,0.06)",
@@ -1483,7 +1515,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                       key={item.p}
                       page={item.p}
                       params={item.params}
-                      onNavigate={closeMenus}
+                      onNavigate={() => { closeMenus(); if (item.p === "products") announceBrowseAll(); }}
                       className="ipc-tap"
                       style={{
                         display: "flex",
@@ -1571,12 +1603,16 @@ function Navbar({ products = [], catalogFailed = false }) {
               )}
             </div>
 
-            {/* Company accordion */}
-            <div>
+            {/* Company accordion.
+                A12-L6-13-1 — hidden when the owner has emptied the Company
+                menu in Page Content (invariant 3): it opened an empty panel. */}
+            <div hidden={!companyNav.length}>
               <button
                 onClick={() =>
                   setMobileOpen(mobileOpen === "company" ? null : "company")
                 }
+                aria-expanded={mobileOpen === "company"}
+                aria-controls="ipc-drawer-company"
                 style={{
                   display: "flex",
                   width: "100%",
@@ -1608,6 +1644,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               >
                 <span>{nc.company}</span>
                 <span
+                  aria-hidden="true"
                   style={{
                     fontSize: 10,
                     opacity: 0.6,
@@ -1623,6 +1660,7 @@ function Navbar({ products = [], catalogFailed = false }) {
               </button>
               {mobileOpen === "company" && (
                 <div
+                  id="ipc-drawer-company"
                   style={{
                     paddingBottom: 6,
                     borderBottom: "1px solid rgba(255,255,255,0.06)",
@@ -2080,6 +2118,11 @@ function Hero() {
             {(reducedMotion ? trustItems : [...trustItems, ...trustItems]).map((item, idx) => (
               <span
                 key={idx}
+                // A12-L7-W3-G2-4 — the second copy exists only so the
+                // translateX(-50%) loop is seamless; a screen reader read all
+                // nine claims twice. Hidden from assistive technology, and the
+                // ✓ with it (decoration beside each claim).
+                aria-hidden={idx >= trustItems.length ? "true" : undefined}
                 className="flex items-center gap-1.5 flex-shrink-0"
                 style={{
                   color: "var(--brand-hero-muted-60)",
@@ -2088,7 +2131,7 @@ function Hero() {
                   paddingRight: 48,
                 }}
               >
-                <span style={{ color: "var(--brand-accent)", fontSize: 14, flexShrink: 0 }}>
+                <span aria-hidden="true" style={{ color: "var(--brand-accent)", fontSize: 14, flexShrink: 0 }}>
                   ✓
                 </span>
                 {item}
@@ -2157,7 +2200,7 @@ function FeatureCard({ icon, title, description, page }) {
           transition: "background 0.2s, border-color 0.2s",
         }}
       >
-        {icon}
+        <span aria-hidden="true" style={{ display: "contents" }}>{icon}</span>{/* A12-L7-W3-G5-1 */}
       </div>
       <div className="min-w-0">
         <h3
@@ -2415,6 +2458,10 @@ function Features() {
     // logo, hero and footer at 1440 (the container is capped at 1280).
     <section id="ipc-sec-features" className="py-20" style={{ background: "#f5f7fa" }}>
       <div className="ipc-container px-6">
+        {/* A12-L6-13-1 — an emptied card list (invariant 3: [] is a
+            deletion) takes its heading and "View Full Catalog" with it; the
+            closing ribbon below is its own Page Content copy and stays. */}
+        {features.length > 0 && (<>
         <SectionHeader
           eyebrow={c.eyebrow}
           title={c.title}
@@ -2426,7 +2473,7 @@ function Features() {
               key={`${i}-${f.title}`}
               icon={
                 <div style={{ color: "var(--brand-primary-text)" }}>
-                  {FEATURES_ICONS[f.iconKey]}
+                  <span aria-hidden="true" style={{ display: "contents" }}>{FEATURES_ICONS[f.iconKey]}</span>
                 </div>
               }
               title={f.title}
@@ -2435,6 +2482,7 @@ function Features() {
             />
           ))}
         </div>
+        </>)}
         <div
           className="mt-12 rounded-xl px-8 py-6 flex flex-wrap gap-6 items-center justify-between"
           style={{ background: "var(--brand-dark)" }}
@@ -2590,7 +2638,7 @@ function StatsBar() {
   const { stats } = useContent();
   return (
     <section id="ipc-sec-stats" className="bg-white border-b border-gray-200">
-      <div className="ipc-container px-6 grid grid-cols-2 md:grid-cols-4">
+      <div className="ipc-container px-6 grid grid-cols-2 md:grid-cols-4 ipc-stats-grid">
         {stats.map((s, i) => (
           <div
             key={`${i}-${s.label}`}
@@ -2605,9 +2653,9 @@ function StatsBar() {
               className="flex-shrink-0 flex items-center justify-center rounded-lg bg-blue-50"
               style={{ width: 44, height: 44 }}
             >
-              {STATS_ICONS[s.iconKey]}
+              <span aria-hidden="true" style={{ display: "contents" }}>{STATS_ICONS[s.iconKey]}</span>{/* A12-L7-W3-G5-1 */}
             </div>
-            <div>
+            <div className="min-w-0" style={{ overflowWrap: "anywhere" }}>
               <div
                 className="font-extrabold leading-tight"
                 style={{ fontSize: 20, color: "var(--brand-primary-text)" }}
@@ -2919,20 +2967,29 @@ function ApprovalMarks({ product, tone = "#4b5563" }) {
  * This is the first control that answers a REQUIREMENT. Chips intersect,
  * because a buyer who needs UL *and* MIL-SPEC needs both.
  */
-function ApprovalFilter({ products, selected, onToggle, onClear }) {
-  const { counts, covered } = useMemo(() => {
+function ApprovalFilter({ products, scope, selected, onToggle, onClear }) {
+  // A12-L6-W3-G2-1 — `scope` is the approval list of every row the family and
+  // search leave. The chips themselves are still the whole catalog's (so the
+  // panel does not reshuffle as you type), but each count, and the "N of M"
+  // line, now describes what clicking will actually show: with Tape chosen,
+  // all twelve chips promised products and every one led to "No products
+  // found". A chip that would show nothing is marked unavailable instead.
+  const { counts, covered, total } = useMemo(() => {
+    const all = new Set();
+    for (const p of products) for (const n of productApprovals(p)) all.add(n);
+    const lists = scope || products.map((p) => productApprovals(p));
     const t = {};
     let c = 0;
-    for (const p of products) {
-      const list = productApprovals(p);
+    for (const list of lists) {
       if (list.length) c++;
       for (const n of list) t[n] = (t[n] || 0) + 1;
     }
     return {
-      counts: APPROVAL_NAMES.map((n) => ({ label: n, count: t[n] || 0 })).filter((x) => x.count > 0),
+      counts: APPROVAL_NAMES.filter((n) => all.has(n)).map((n) => ({ label: n, count: t[n] || 0 })),
       covered: c,
+      total: lists.length,
     };
-  }, [products]);
+  }, [products, scope]);
 
   if (!counts.length) return null;
 
@@ -2953,32 +3010,45 @@ function ApprovalFilter({ products, selected, onToggle, onClear }) {
           Filter by approval
         </span>
         <span style={{ fontSize: 11, color: "#6b7280" }}>
-          {covered} of {products.length} products carry at least one
+          {covered} of {total} products carry at least one
         </span>
       </div>
       <div className="flex flex-wrap gap-2">
         {counts.map((c) => {
           const active = selected.includes(c.label);
+          // Unavailable only while it is off: a selected chip must stay
+          // clickable so the buyer can turn it back off.
+          const empty = c.count === 0 && !active;
           return (
             <button
               key={c.label}
               type="button"
               data-ipc-approval={c.label}
-              onClick={() => onToggle(c.label)}
+              onClick={() => { if (!empty) onToggle(c.label); }}
               aria-pressed={active}
+              aria-disabled={empty || undefined}
               className="rounded transition-colors duration-150 ipc-hover-border"
               style={{
                 font: "600 11px ui-monospace, SFMono-Regular, Menlo, monospace",
                 letterSpacing: "0.04em",
                 padding: "5px 10px",
-                cursor: "pointer",
+                cursor: empty ? "default" : "pointer",
                 border: active ? "1px solid var(--brand-primary)" : "1px solid #d1d9e0",
                 background: active ? "var(--brand-primary)" : "#ffffff",
                 color: active ? "var(--brand-primary-ink)" : "#374151",
+                opacity: empty ? 0.5 : undefined,
               }}
             >
               {c.label}
-              <span style={{ opacity: 0.65, marginLeft: 6 }}>{c.count}</span>
+              {/* A12-L7-01-2 — the count was dimmed with opacity 0.65, which
+                  put it at 3.77:1 (3.80:1 on the selected chip) against the
+                  4.5:1 that 11px text needs. Full ink, lighter weight instead.
+                  A12-L7-W3-G2-6 — a screen reader ran the count into the
+                  standard's name ("ISO 10993-51", "CSA11"); the hidden comma and
+                  unit make it "ISO 10993-5, 1 product". */}
+              <span className="sr-only">,</span>
+              <span style={{ fontWeight: 400, marginLeft: 6 }}>{c.count}</span>
+              <span className="sr-only">{c.count === 1 ? " product" : " products"}</span>
             </button>
           );
         })}
@@ -3003,6 +3073,35 @@ function ApprovalFilter({ products, selected, onToggle, onClear }) {
   );
 }
 
+/**
+ * A12-L6-01-W5-1 — the three catalog searches (/products, /dashboard,
+ * /datasheets) matched the whole query as ONE substring, so "heat shrink
+ * kynar" found nothing although every word is in IP35KY's own name, and on
+ * Datasheets "teflon tubing" missed "FEP Teflon Heat Shrink Tubing". A product
+ * now matches when EVERY word of the query appears somewhere in its fields, in
+ * any order. A one-word query behaves exactly as before.
+ */
+function matchesAllWords(fields, query) {
+  const words = String(query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const hay = fields.map((v) => String(v || "").toLowerCase()).join("\n");
+  return words.every((w) => hay.includes(w));
+}
+
+/**
+ * A12-L6-W5-G5-1 — does the query look like a size ("1/4", "3/8 in", ".5",
+ * "12 mm", "2 AWG")? The searches do not read the size charts (F15), and a size
+ * that happens to appear in one description returned that one product as if it
+ * were the whole answer, while the "sizes are listed on each product page" note
+ * showed only when nothing matched at all.
+ */
+function looksLikeSize(query) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return false;
+  return /\d+\s*\/\s*\d+/.test(q) || /(^|\s)\d*\.\d+/.test(q) ||
+    /\d\s*(mm|in|inch|inches|awg|ga|gauge|ft)\b/.test(q) || /\d\s*"/.test(q);
+}
+
 function DatasheetsPage({ products }) {
   const [q, setQ] = useState("");
   const site = useSiteInfo();
@@ -3014,16 +3113,30 @@ function DatasheetsPage({ products }) {
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const g = {};
+    // A12-L6-W3-G4-1 — one card per SHEET, not per product. The page bills
+    // itself as "Every product's PDF", but a product's Additional PDF Links
+    // (the End Caps' "Plugged Cap") were not on it: "plugged" found nothing,
+    // and IP52EC's one card, labelled only with the product name, downloaded
+    // the Molded Cap. Each card now carries its own label, and the filter
+    // reads the labels. productExtraPdfs is the helper the product page uses.
     for (const p of products) {
       if (!p.pdfUrl) continue;
-      if (needle) {
-        const hay = `${p.sku || ""} ${p.name || ""} ${p.partType || ""} ${asList(p.badges).map(asText).join(" ")}`.toLowerCase();
-        if (!hay.includes(needle)) continue;
-      }
-      (g[p.partType || "Other"] ||= []).push(p);
+      const sheets = [
+        { url: p.pdfUrl, label: asText(p.pdfLabel) },
+        ...productExtraPdfs(p)
+          .filter((x) => asText(x.url))
+          .map((x) => ({ url: x.url, label: asText(x.label) })),
+      ];
+      sheets.forEach((s, i) => {
+        if (needle && !matchesAllWords(
+          [p.sku, p.name, p.partType, asList(p.badges).map(asText).join(" "), s.label],
+          needle,
+        )) return;
+        (g[p.partType || "Other"] ||= []).push({ p, url: s.url, label: s.label, key: `${p.sku || p.id}-${i}` });
+      });
     }
     for (const k of Object.keys(g)) {
-      g[k].sort((a, b) => String(a.sku || "").localeCompare(String(b.sku || "")));
+      g[k].sort((a, b) => String(a.p.sku || "").localeCompare(String(b.p.sku || "")));
     }
     // NEW-N1-9 (audit 2026-09-27) — groups in the owner's Product Families
     // order (familyOrder), like the navbar and /products; they sorted by size.
@@ -3031,7 +3144,11 @@ function DatasheetsPage({ products }) {
     return Object.entries(g).sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]));
   }, [products, q, famOrder]);
 
-  const total = useMemo(() => products.filter((p) => p.pdfUrl).length, [products]);
+  const total = useMemo(
+    () => products.filter((p) => p.pdfUrl)
+      .reduce((n, p) => n + 1 + productExtraPdfs(p).filter((x) => asText(x.url)).length, 0),
+    [products],
+  );
 
   // Published for _harness/plan7-approvals.js, which diffs this against what
   // admin/config.php derives for the same 42 products. Two implementations of
@@ -3107,7 +3224,19 @@ function DatasheetsPage({ products }) {
           </div>
         </div>
 
-        {groups.length === 0 ? (
+        {groups.length === 0 && !q.trim() ? (
+          /* A12-L6-13-5 — nothing to list and nothing typed: an empty or
+             malformed catalog. This said Nothing matches "" over a "Clear
+             filter" button that did nothing. */
+          <div className="bg-white rounded-xl p-8 text-center" style={{ border: "1px solid #e5e9ee" }}>
+            <div className="text-base font-bold" style={{ color: "#141414" }}>
+              No datasheets are listed right now
+            </div>
+            <p className="mt-2 text-sm" style={{ color: "#4b5563" }}>
+              Call {site.contact.phone} and we will help you directly.
+            </p>
+          </div>
+        ) : groups.length === 0 ? (
           /* F11 — this was one sentence and no way out, while the Product
              Index's equivalent state explains itself and offers "Clear all
              filters". Two search surfaces, two standards, and this was the one
@@ -3155,10 +3284,10 @@ function DatasheetsPage({ products }) {
                   <span aria-hidden="true" style={{ flex: 1, borderBottom: "1px solid #e5e9ee" }} />
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {rows.map((p) => (
+                  {rows.map(({ p, url, label, key }) => (
                     <a
-                      key={p.sku || p.id}
-                      href={safeHref(p.pdfUrl)}
+                      key={key}
+                      href={safeHref(url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-lg flex items-start gap-3 transition-all duration-150 hover:shadow-md"
@@ -3189,6 +3318,14 @@ function DatasheetsPage({ products }) {
                         }}>
                           {p.name}
                         </span>
+                        {label && (
+                          <span style={{
+                            display: "block", fontSize: 12, fontWeight: 600,
+                            color: "#141414", marginTop: 2,
+                          }}>
+                            {label}
+                          </span>
+                        )}
                         <ApprovalMarks product={p} />
                         <span className="sr-only"> — PDF datasheet, opens in a new tab</span>
                       </span>
@@ -3340,6 +3477,9 @@ function HomePage() {
       ) : null}
 
       {/* Markets section */}
+      {/* A12-L6-13-1 — an emptied markets list (invariant 3) takes the whole
+          section, heading and "View All Industries" included. */}
+      {markets.length > 0 && (
       <section id="ipc-sec-markets" className="py-20" style={{ background: "#ffffff" }}>
         <div className="ipc-container px-6">
           <SectionHeader
@@ -3394,7 +3534,7 @@ function HomePage() {
                     flexShrink: 0,
                   }}
                 >
-                  {MktIcons[m.iconKey]}
+                  <span aria-hidden="true" style={{ display: "contents" }}>{MktIcons[m.iconKey]}</span>{/* A12-L7-W3-G5-1 */}
                 </div>
                 <div
                   className="group-hover:text-blue-700 transition-colors duration-200"
@@ -3433,6 +3573,7 @@ function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Quote CTA band */}
       <section
@@ -3508,6 +3649,10 @@ function TeamCard({ name, role, avatar }) {
         border: "1px solid #e5e9ee",
         background: "#ffffff",
         cursor: "default",
+        // A12-L6-07-2 — "Fabrication Shop" ran the About page off the right
+        // edge at 200% zoom on a phone; the long word breaks instead.
+        overflowWrap: "anywhere",
+        minWidth: 0,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = "var(--brand-primary)";
@@ -3522,6 +3667,9 @@ function TeamCard({ name, role, avatar }) {
     >
       {/* Styled icon circle */}
       <div
+        // A12-L7-03-1 — the avatar emoji is decoration: a screen reader read
+        // "handshake Inside Sales Team".
+        aria-hidden="true"
         className="mx-auto mb-4 flex items-center justify-center rounded-full"
         style={{
           width: 56,
@@ -3832,12 +3980,16 @@ function AboutPage() {
 
         {/* 4.3 — Milestone timeline */}
         <div>
-          <div
+          {/* A12-L7-W3-G2-2 — the three About section titles below look like
+              headings and now are (h2 under the page h1), so heading
+              navigation reaches them. Preflight resets h2 size and weight, so
+              the classes render exactly as the div did. */}
+          <h2
             className="text-xs font-bold tracking-widest uppercase mb-8"
             style={{ color: "var(--brand-primary-text)" }}
           >
             Company Timeline
-          </div>
+          </h2>
           {/* CSS Grid timeline — 3 columns: [year badge] [dot+line] [content card].
               The line is a flex column in the middle grid cell — no pixel positioning needed. */}
           <div id="ipc-sec-milestones">
@@ -3846,15 +3998,18 @@ function AboutPage() {
               return (
                 <div
                   key={`${i}-${m.year}`}
+                  // A12-L6-07-2 — minmax(0, 1fr), and a year column that may
+                  // shrink below 80px: at 200% zoom on a phone (195 CSS px)
+                  // the three fixed columns ran the page off the right edge.
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "auto 24px 1fr",
+                    gridTemplateColumns: "auto 24px minmax(0, 1fr)",
                     columnGap: 16,
                   }}
                 >
                   {/* Col 1: year badge */}
                   <div
-                    style={{ textAlign: "right", paddingTop: 6, minWidth: 80 }}
+                    style={{ textAlign: "right", paddingTop: 6, minWidth: "min(80px, 18vw)" }}
                   >
                     <span
                       style={{
@@ -3910,6 +4065,7 @@ function AboutPage() {
                     style={{
                       border: "1px solid #e5e9ee",
                       marginBottom: isLast ? 0 : 10,
+                      overflowWrap: "anywhere",
                     }}
                   >
                     <div
@@ -3940,12 +4096,12 @@ function AboutPage() {
 
         {/* Certifications */}
         <div>
-          <div
+          <h2
             className="text-xs font-bold tracking-widest uppercase mb-6"
             style={{ color: "var(--brand-primary-text)" }}
           >
             {c.certsTitle}
-          </div>
+          </h2>
           <div id="ipc-sec-certs" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {certs.map((c, i) => (
               <div
@@ -3963,6 +4119,8 @@ function AboutPage() {
                 }}
               >
                 <div
+                  // A12-L7-03-1 — decoration beside the certification's name.
+                  aria-hidden="true"
                   className="flex-shrink-0 flex items-center justify-center rounded-lg"
                   style={{
                     width: 38,
@@ -3991,12 +4149,12 @@ function AboutPage() {
 
         {/* 4.2 — Capability cards */}
         <div>
-          <div
+          <h2
             className="text-xs font-bold tracking-widest uppercase mb-6"
             style={{ color: "var(--brand-primary-text)" }}
           >
             {c.teamTitle}
-          </div>
+          </h2>
           <div id="ipc-sec-capabilities" className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {capabilities.map((c, i) => (
               <TeamCard
@@ -4014,17 +4172,20 @@ function AboutPage() {
           className="rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6"
           style={{ background: "var(--brand-dark)" }}
         >
-          <div>
+          {/* A12-L6-07-2 — max-width + overflowWrap: centred in a column, the
+              unbroken email made this block wider than the box at 200% zoom,
+              so it spilled out on both sides and lost its first letters. */}
+          <div style={{ maxWidth: "100%", overflowWrap: "anywhere" }}>
             <div className="text-lg font-extrabold ipc-ink-dark mb-1">
               {c.ctaTitle}
             </div>
-            <p className="text-sm" style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.6)" }}>
+            <p className="text-sm" style={{ color: "var(--brand-dark-muted-60)" }}>
               Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.9)", fontWeight: 600 }}>{site.contact.phone}</a>,
               email <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.9)", fontWeight: 600 }}>{site.contact.email}</a>,
               or use our contact form — our team responds quickly and accurately.
             </p>
           </div>
-          <div className="flex gap-3 flex-shrink-0">
+          <div className="flex flex-wrap justify-center gap-3 flex-shrink-0" style={{ maxWidth: "100%" }}>{/* A12-L6-07-2 — wraps at 200% zoom */}
             <PageLink
               page="contact"
               className="text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
@@ -4155,14 +4316,19 @@ function FaqItem({ question, answer, open, onToggle }) {
         aria-expanded={open}
         aria-controls={panelId}
       >
+        {/* A12-L6-08-2 — min-width:0 + overflowWrap: a long word pushed the
+            +/× control off the card at 200% zoom on a phone. */}
         <span
-          className="text-sm font-semibold pr-4"
-          style={{ color: "#141414" }}
+          className="text-sm font-semibold pr-4 min-w-0"
+          style={{ color: "#141414", overflowWrap: "anywhere" }}
         >
           {question}
         </span>
-        {/* Plus/×: Tailwind rotate-45 transition on open */}
+        {/* Plus/×: Tailwind rotate-45 transition on open.
+            A12-L7-W3-G5-1 — aria-hidden: the button already says
+            aria-expanded, and a screen reader read "plus" after every question. */}
         <span
+          aria-hidden="true"
           className={`flex-shrink-0 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-250 ${open ? "rotate-45" : "rotate-0"}`}
           style={{
             width: 28,
@@ -4478,7 +4644,10 @@ function FaqPage() {
         </div>
       </div>
 
-      {/* Sticky category jump-nav */}
+      {/* Sticky category jump-nav.
+          A12-L6-13-1 — not drawn when every FAQ has been deleted (invariant
+          3): it was an "Expand all" button over nothing. */}
+      {categories.length > 0 && (
       <div
         style={{
           position: "sticky",
@@ -4489,12 +4658,17 @@ function FaqPage() {
           borderBottom: "1px solid #d1ddef",
         }}
       >
-        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center gap-3">
+        {/* A12-L6-08-1 — flex-wrap, and the rail asks for at least 140px:
+            at 200% zoom on a phone (195 CSS px) the rail shrank to a 32px
+            window showing only "Pro". Now the bulk control drops to a second
+            row there instead. At 390 and up nothing wraps, so the sticky bar
+            keeps the single-row height A10-017 settled on. */}
+        <div className="max-w-4xl mx-auto px-6 py-3 flex flex-wrap items-center gap-3">
         {/* The chips keep their own scroller so the bulk control below stays
             pinned instead of scrolling out of reach on a narrow screen. */}
         <div
           className="ipc-chip-rail flex gap-3 overflow-x-auto"
-          style={{ WebkitOverflowScrolling: "touch", flex: 1, minWidth: 0 }}
+          style={{ WebkitOverflowScrolling: "touch", flex: "1 1 140px", minWidth: 0 }}
         >
           {categories.map((cat, i) => (
             <button
@@ -4503,6 +4677,11 @@ function FaqPage() {
                 const el = document.getElementById(`faq-cat-${i}`);
                 if (el)
                   el.scrollIntoView({ behavior: "smooth", block: "start" });
+                // A12-L7-W3-G2-1 — move focus with the view, as the skip link
+                // does: the page scrolled but focus stayed in the bar, so the
+                // next Tab jumped back to the first question at the top.
+                const h = el && el.querySelector("h2");
+                if (h) h.focus({ preventScroll: true });
               }}
               style={{
                 flexShrink: 0,
@@ -4566,6 +4745,7 @@ function FaqPage() {
         </button>
         </div>
       </div>
+      )}
 
       <div id="ipc-sec-faq" className="max-w-4xl mx-auto px-6 py-16 space-y-12">
         {categories.map((cat, catIdx) => (
@@ -4579,7 +4759,7 @@ function FaqPage() {
                 className="w-1 h-6 rounded-full"
                 style={{ background: "var(--brand-primary)" }}
               />
-              <h2 className="text-base font-bold" style={{ color: "var(--brand-primary-text)" }}>
+              <h2 tabIndex={-1} className="text-base font-bold" style={{ color: "var(--brand-primary-text)", outline: "none" }}>
                 {cat.name}
               </h2>
             </div>
@@ -4612,15 +4792,18 @@ function FaqPage() {
               <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
                 {withBusinessFacts("Our sales team is available Mon–Fri, 8am–5pm CT and responds to email inquiries quickly.", site)}
               </p>
+              {/* A12-L6-08-2 — overflowWrap: the address ran 48px past the dark
+                  box at 200% zoom on a phone. A12-L7-W3-G5-1 — the pictographs
+                  are decoration beside the number and address. */}
               <div
                 className="mt-3 space-y-1.5 text-xs"
-                style={{ color: "rgba(255,255,255,0.5)" }}
+                style={{ color: "rgba(255,255,255,0.5)", overflowWrap: "anywhere" }}
               >
-                <div>📞 <a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.phone}</a></div>
+                <div><span aria-hidden="true">📞 </span><a href={`tel:${site.contact.phoneDial}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.phone}</a></div>
                 {site.contact.fax ? (
-                  <div style={{ color: "rgba(255,255,255,0.5)" }}>📠 {site.contact.fax} (Fax)</div>
+                  <div style={{ color: "rgba(255,255,255,0.5)" }}><span aria-hidden="true">📠 </span>{site.contact.fax} (Fax)</div>
                 ) : null}
-                <div>📧 <a href={`mailto:${site.contact.email}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.email}</a></div>
+                <div><span aria-hidden="true">📧 </span><a href={`mailto:${site.contact.email}`} style={{ color: "rgba(255,255,255,0.5)" }}>{site.contact.email}</a></div>
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -4854,6 +5037,17 @@ function ContactPage() {
   const successRef = useRef(null);
   useEffect(() => {
     if (submitted && successRef.current) successRef.current.focus();
+  }, [submitted]);
+  // A12-L7-01-W5-3 — Submit Another dropped focus on the document, so the
+  // reappearing form was not announced and the next Tab went to the phone
+  // number. Same B16 rule as the success panel: focus moves to what replaced
+  // the control.
+  const refocusForm = useRef(false);
+  useEffect(() => {
+    if (submitted || !refocusForm.current) return;
+    refocusForm.current = false;
+    const h = document.getElementById(activeTab === "message" ? "ipc-msg-heading" : "ipc-rfq-heading");
+    if (h) h.focus();
   }, [submitted]);
   const [submitting, setSubmitting] = useState(false); // Animation 8: button loading state
 
@@ -5160,7 +5354,9 @@ function ContactPage() {
             <span>Email </span>
             <a href={`mailto:${site.contact.email}`} style={{ color: "#4b5563" }}>{site.contact.email}</a>
           </p>
-          <div className="ipc-fade-up-3 flex gap-3 justify-center">
+          {/* A12-L6-02-W5-2 — flex-wrap: at 200% zoom on a phone the two
+              buttons ran past both screen edges and the page scrolled. */}
+          <div className="ipc-fade-up-3 flex flex-wrap gap-3 justify-center">
             <button
               className="text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
               style={{
@@ -5175,6 +5371,9 @@ function ContactPage() {
                 // — this is the "strip the param" pattern T2.3 is about, and
                 // pushing would make Back re-enter the confirmation.
                 setSentParam(null, { replace: true });
+                // A12-L7-01-W5-3 — the button removes itself; focus goes to
+                // the heading of the form that replaces it (effect below).
+                refocusForm.current = true;
                 // A-9.P7-2 — leaving the confirmation also clears the session
                 // flag, or a later reload of a stale ?sent=1 would resurrect it.
                 setSentThisSession(false);
@@ -5298,7 +5497,8 @@ function ContactPage() {
               <a
                 href={`mailto:${site.contact.email}`}
                 className="text-sm"
-                style={{ color: "#4b5563", textDecoration: "none" }}
+                // A12-L6-09-2 — an unbroken address ran off the strip at 200% zoom.
+                style={{ color: "#4b5563", textDecoration: "none", overflowWrap: "anywhere", minWidth: 0 }}
               >
                 {site.contact.email}
               </a>
@@ -5359,7 +5559,16 @@ function ContactPage() {
                       color: active ? "var(--brand-primary-ink)" : "#141414",
                     }}
                   >
-                    {tab.label}
+                    {/* A12-L7-W3-G5-1 — the stored labels open with an emoji
+                        ("📋  Request a Quote"), read aloud as "clipboard". The
+                        label is Page Content, so the glyph is not removed —
+                        only hidden from assistive technology at render. */}
+                    {(() => {
+                      const m = /^([\p{Extended_Pictographic}️‍\s]+)(\S[\s\S]*)$/u.exec(String(tab.label || ""));
+                      return m && /\p{Extended_Pictographic}/u.test(m[1])
+                        ? <><span aria-hidden="true">{m[1]}</span>{m[2]}</>
+                        : tab.label;
+                    })()}
                   </div>
                   <div
                     style={{
@@ -5438,12 +5647,17 @@ function ContactPage() {
                 <input type="text" id="rfq-website" name="website" tabIndex={-1} autoComplete="off" />
               </div>
               <div>
-                <div
+                {/* A12-L7-W3-G2-2 — the form's title is a heading (h2 under
+                    the page h1). A12-L7-01-W5-3 — and the place Submit Another
+                    returns focus to, hence the id and tabIndex -1. */}
+                <h2
+                  id="ipc-rfq-heading"
+                  tabIndex={-1}
                   className="text-base font-bold mb-1"
-                  style={{ color: "#141414" }}
+                  style={{ color: "#141414", outline: "none" }}
                 >
                   {cf.rfqHeading}
-                </div>
+                </h2>
                 <div className="text-xs" style={{ color: "#4b5563" }}>
                   {cf.rfqIntro}
                 </div>
@@ -5659,8 +5873,14 @@ function ContactPage() {
                   or point it somewhere else. */}
               <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
                 {cf.privacyNote}{" "}
-                <PageLink
-                  page="privacy"
+                {/* A12-L6-W3-G3-2 — a plain link that opens a new tab, not a
+                    PageLink: this sits right above Submit, it is meant to be
+                    read mid-form, and following it in the same tab and coming
+                    Back emptied every field but the part number. */}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{
                     color: "var(--brand-primary-text)",
                     textDecoration: "underline",
@@ -5674,16 +5894,29 @@ function ContactPage() {
                   }}
                 >
                   Privacy Policy
-                </PageLink>
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
                 .
               </p>
+              {/* A12-L7-W5-G3-1 — the in-flight state is announced. The button
+                  goes disabled, which drops focus, and nothing said the request
+                  was on its way for as long as the network took. */}
+              <span className="sr-only" role="status" aria-live="polite">
+                {submitting ? cf.sendingLabel : ""}
+              </span>
               <button
                 type="submit"
                 disabled={submitting}
                 className="w-full py-3.5 rounded-lg font-semibold text-sm ipc-ink-primary transition-all hover:brightness-110"
                 style={{
                   background: "var(--brand-primary)",
-                  border: "none",
+                  // A12-L7-01-W5-2 — a transparent border, not none: forced
+                  // colours (Windows High Contrast) paints it, so the button
+                  // keeps its outline there. 1px off the padding keeps the
+                  // size; the border shows the same background otherwise.
+                  border: "1px solid transparent",
+                  paddingTop: 13,
+                  paddingBottom: 13,
                   cursor: submitting ? "not-allowed" : "pointer",
                   opacity: submitting ? 0.85 : 1,
                 }}
@@ -5739,12 +5972,14 @@ function ContactPage() {
                 <input type="text" id="msg-website" name="website" tabIndex={-1} autoComplete="off" />
               </div>
               <div>
-                <div
+                <h2
+                  id="ipc-msg-heading"
+                  tabIndex={-1}
                   className="text-base font-bold mb-1"
-                  style={{ color: "#141414" }}
+                  style={{ color: "#141414", outline: "none" }}
                 >
                   {cf.msgHeading}
-                </div>
+                </h2>
                 <div className="text-xs" style={{ color: "#4b5563" }}>
                   {cf.msgIntro}
                 </div>
@@ -5872,31 +6107,37 @@ function ContactPage() {
                   collect the same personal details, so both say so. */}
               <p className="text-xs" style={{ color: "#4b5563", margin: 0 }}>
                 {cf.privacyNote}{" "}
-                <PageLink
-                  page="privacy"
+                {/* A12-L6-W3-G3-2 — see the quote tab. */}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{
                     color: "var(--brand-primary-text)",
                     textDecoration: "underline",
                     textUnderlineOffset: 2,
-                    // 24px tall, not 14. WCAG 2.5.8 wants a 24x24 target and
-                    // plan8-mobile measures it; a 12px inline link in a
-                    // paragraph is 14px without this. inline-block so the
-                    // vertical padding actually applies.
                     display: "inline-block",
                     padding: "5px 0",
                   }}
                 >
                   Privacy Policy
-                </PageLink>
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
                 .
               </p>
+              {/* A12-L7-W5-G3-1 — see the quote tab. */}
+              <span className="sr-only" role="status" aria-live="polite">
+                {submitting ? cf.sendingLabel : ""}
+              </span>
               <button
                 type="submit"
                 disabled={submitting}
                 className="w-full py-3.5 rounded-lg font-semibold text-sm ipc-ink-primary transition-all hover:brightness-110"
                 style={{
                   background: "var(--brand-primary)",
-                  border: "none",
+                  border: "1px solid transparent",   // A12-L7-01-W5-2
+                  paddingTop: 13,
+                  paddingBottom: 13,
                   cursor: submitting ? "not-allowed" : "pointer",
                   opacity: submitting ? 0.85 : 1,
                 }}
@@ -5931,6 +6172,7 @@ function ContactPage() {
               style={{ border: "1px solid #e5e9ee" }}
             >
               <span
+                aria-hidden="true"
                 className="flex items-center justify-center rounded-lg text-sm flex-shrink-0"
                 style={{
                   width: 36,
@@ -5941,7 +6183,9 @@ function ContactPage() {
               >
                 {item.icon}
               </span>
-              <div>
+              {/* A12-L6-09-2 — min-width:0 + overflowWrap: the address in the
+                  Email card ran out of the card at 200% zoom on a phone. */}
+              <div className="min-w-0" style={{ overflowWrap: "anywhere" }}>
                 <div
                   className="text-xs font-bold uppercase tracking-wide mb-0.5"
                   style={{ color: "#6b7280" }}
@@ -5968,6 +6212,10 @@ function ContactPage() {
               </div>
             </div>
           ))}
+          {/* A12-L6-13-1 — invariant 3 makes an emptied list a real deletion,
+              so an emptied tips list takes its "For fastest response, include:"
+              heading and the dark box with it. */}
+          {contactTips.length > 0 && (
           <div id="ipc-sec-contactTips" className="rounded-xl p-5" style={{ background: "var(--brand-dark)" }}>
             <div className="text-xs font-bold ipc-ink-dark mb-3 uppercase tracking-wide">
               {cf.tipsTitle}
@@ -5977,9 +6225,10 @@ function ContactPage() {
                 <li
                   key={`${i}-${tip}`}
                   className="flex items-start gap-2 text-xs"
-                  style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.60)" }}
+                  style={{ color: "var(--brand-dark-muted-60)" }}
                 >
                   <span
+                    aria-hidden="true"
                     style={{ color: "var(--brand-accent1-on-dark)", marginTop: 1, flexShrink: 0 }}
                   >
                     →
@@ -5989,6 +6238,7 @@ function ContactPage() {
               ))}
             </ul>
           </div>
+          )}
         </div>
       </div>
     </div>
@@ -6301,6 +6551,17 @@ function GlobalStyles() {
       /* StatsBar responsive dividers — only bottom border needed (right uses Tailwind divide-x) */
       .ipc-stat-bottom-border { border-bottom: 1px solid #e5e9ee; }
       @media (min-width: 768px) { .ipc-stat-bottom-border { border-bottom: none !important; } }
+      /* A12-L6-01-2 — a 44px icon, a 16px gap and the text do not fit two to a
+         row below ~280px (a phone at 200% zoom is 195px): the left tiles' text
+         ran under the right tiles' icons and the right ones spilled off. One
+         column there. Doubled class: grid-cols-2 is a utility and the utility
+         layer is emitted last (invariant 14). */
+      @media (max-width: 299px) {
+        .ipc-idx-head { flex-wrap: wrap; }
+        .ipc-idx-head > div { flex: 1 1 120px; overflow-wrap: anywhere; }
+        .ipc-stats-grid.ipc-stats-grid { grid-template-columns: minmax(0, 1fr); }
+        .ipc-stats-grid > div { border-right: none !important; border-bottom: 1px solid #e5e9ee; }
+      }
       /* Dropdown entrance — scale + fade from top */
       @keyframes ipc-dropdown-in {
         from { opacity: 0; transform: scale(0.97) translateY(-4px); }
@@ -6392,6 +6653,10 @@ function GlobalStyles() {
         -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
         mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
         padding-right: 28px;
+        /* A12-L7-02-1 — a chip reached by Tab was scrolled only just into the
+           box, so it sat inside the 28px fade (6 of 207px visible at 390).
+           scroll-padding keeps focus scrolling clear of the fade. */
+        scroll-padding-inline-end: 28px;
       }
 
       /* B27 — the catalog sidebar's scroll cue.
@@ -8453,6 +8718,13 @@ function ThemeInjector() {
       }
     };
     for (const a of [30, 40, 45, 60, 75]) root.style.setProperty(`--brand-panel-muted-${a}`, mutedOn(panelHex, panelInk, a / 100));
+    // A12-L7-W3-G3-5 — the same §1as rule for faded text straight on
+    // --brand-dark: the navbar's non-current links, the Contact tips, the About
+    // call-us line and the Services custom-solutions line were a bare 60% of the
+    // ink, 4.29–4.48:1 on a pale navigation colour the Branding page calls
+    // "Readable". On the shipped navy 60% already passes (5.94:1), so this is
+    // the same colour there, composited.
+    root.style.setProperty("--brand-dark-muted-60", mutedOn(dark, darkInk, 0.6));
     root.style.setProperty("--brand-drawer-ink-rgb", inkRgb(inkFor(hexOf(darkDrawer))));
     const drawerHex = hexOf(darkDrawer);
     for (const a of [30, 40, 65, 70]) root.style.setProperty(`--brand-drawer-muted-${a}`, mutedOn(drawerHex, inkFor(drawerHex), a / 100));
@@ -8673,6 +8945,9 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
           >
             <button
               onClick={() => setFamilyFilter(null)}
+              // A12-L7-W3-G2-3 — selected state by colour only; the desktop
+              // rail's same buttons already say aria-pressed.
+              aria-pressed={!activeFamily}
               className="ipc-tap"
               style={{
                 padding: "6px 14px",
@@ -8700,6 +8975,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
                 <button
                   key={fam}
                   onClick={() => setFamilyFilter(active ? null : fam)}
+                  aria-pressed={active}
                   className="ipc-tap"
                   style={{
                     padding: "6px 14px",
@@ -8724,7 +9000,10 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            // A12-L6-02-2 — `1fr` has an automatic minimum of the longest
+            // word, so at 200% zoom on a phone the two columns grew past the
+            // screen. minmax(0, 1fr) lets them shrink; the pill text breaks.
+            gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
             gap: 6,
             marginTop: 10,
           }}
@@ -8739,6 +9018,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
                 onNavigate={onNavigate}
                 style={{
                   display: "block",
+                  overflowWrap: "anywhere",
                   textAlign: "left",
                   padding: "10px 12px",
                   minHeight: 44,
@@ -9098,14 +9378,17 @@ function SpecTable1({ table }) {
       // A10-004 (§1at) — no h-full: stretched to the taller sibling, this
       // panel drew up to 1,392px of empty bordered white under three rows.
       className="rounded-xl overflow-hidden"
-      style={{ border: "1px solid #e5e9ee" }}
+      // A12-L6-W3-R1-1-2 — the values below already broke anywhere; the title
+      // bar and the labels did not, so at 200% zoom on a phone "SPECIFICATIONS:"
+      // and "Threadlockers/Anaerobics:" were cut by overflow-hidden.
+      style={{ border: "1px solid #e5e9ee", overflowWrap: "anywhere" }}
     >
-      <div
+      <h2
         className="px-4 py-3 text-center text-sm font-bold uppercase tracking-wide"
         style={{ background: "var(--brand-dark)", color: "var(--brand-dark-ink)", borderBottom: "2px solid var(--brand-accent)" }}
       >
         {title}
-      </div>
+      </h2>
       <div className="bg-white divide-y" style={{ borderColor: "#e5e9ee" }}>
         {rows.map((row, i) => (
           // A-7.8 — asText() on both slots. A label or value that arrives as an
@@ -9157,14 +9440,40 @@ function SpecTable2({ table }) {
   // IP75AD at 1440 — an empty panel next to the real specs on a page a buyer
   // is using to evaluate a part. Header cells without data rows are not a
   // table, so this bails before any of the chrome is drawn.
+  // A12-L6-11-2 — on a touch phone no scrollbar is painted, so a chart wider
+  // than the screen just stopped at the edge: a buyer read "1" for a 100-ft
+  // package and "80 /" for 80/105 psi. The settled answer for a hidden
+  // horizontal overflow at 390 is an edge fade (A10-017, "FAQ chips at 390"):
+  // the right edge fades while there is more to scroll to, and only then.
+  const scrollRef = useRef(null);
+  const [moreRight, setMoreRight] = useState(false);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    const check = () => setMoreRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    window.addEventListener("resize", check);
+    return () => {
+      el.removeEventListener("scroll", check);
+      window.removeEventListener("resize", check);
+    };
+  }, [table, rows.length]);
   if (!rows.length) return null;
 
+  const fade = moreRight
+    ? "linear-gradient(to right, #000 calc(100% - 28px), transparent)"
+    : undefined;
   return (
     <div
       className="rounded-xl overflow-hidden"
       style={{ border: "1px solid #e0e4e8" }}
     >
-      <div style={{ overflowX: "auto" }}>
+      <div
+        ref={scrollRef}
+        data-ipc-spec-scroll={moreRight ? "more" : ""}
+        style={{ overflowX: "auto", WebkitMaskImage: fade, maskImage: fade }}
+      >
       <table className="w-full text-sm border-collapse" style={{ minWidth: 240 }}>
         <thead>
           {/* Top header row */}
@@ -9450,7 +9759,9 @@ function ProductDetail({ product, allProducts }) {
             {/* A3 — the <h1> of a product page is the product's name. It was an
                 <h2> under a "Product Catalog" <h1>, so all 42 pages announced
                 the same top-level heading. */}
-            <h1 className="text-xl font-extrabold leading-tight" style={{ color: "rgb(var(--brand-product-head-ink-rgb))" }}>
+            {/* A12-L6-02-W5-1 — overflowWrap: at 200% zoom on a phone one long
+                word ("Polyvinylidene") was wider than the card and was cut. */}
+            <h1 className="text-xl font-extrabold leading-tight" style={{ color: "rgb(var(--brand-product-head-ink-rgb))", overflowWrap: "anywhere" }}>
               {product.name}
             </h1>
             {/* C45 — the SKU used to be a filled pill in the action row to the
@@ -9552,6 +9863,10 @@ function ProductDetail({ product, allProducts }) {
             ) : (
               <PageLink
                 page="contact"
+                // A12-L6-W3-R1-1-3 — carried no part, so the buyer landed on a
+                // blank form; the same ?part= the neighbouring Request a Quote
+                // sends (F8: same page, same outcome).
+                params={{ part: product.sku || product.id || "" }}
                 className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
                 style={{
                   background: "var(--brand-accent)",
@@ -9698,7 +10013,9 @@ function ProductDetail({ product, allProducts }) {
                 <div
                   style={{
                     fontSize: 10,
-                    color: "rgba(255,255,255,0.35)",
+                    // A12-L7-W5-G3-2 — was 0.35 (3.11:1 on #0a2240), chosen
+                    // when the panel was decorative-only; 10px text needs 4.5:1.
+                    color: "rgba(255,255,255,0.6)",
                     marginTop: 4,
                     letterSpacing: "0.06em",
                     textTransform: "uppercase",
@@ -9728,14 +10045,19 @@ function ProductDetail({ product, allProducts }) {
               item exists to remove. */}
           {productApprovals(product).length > 0 && (
             <div className="mb-5">
-              <div
+              {/* A12-L7-W3-G2-2 — this, "Product Features", the spec box title
+                  and "Related Products" are the product page's section titles,
+                  and now h2s under the product-name h1: the page had no heading
+                  below its name. Preflight resets h2 size/weight/margin, so
+                  the inline style renders exactly as the div did. */}
+              <h2
                 style={{
                   fontSize: 10, fontWeight: 700, letterSpacing: "0.1em",
                   textTransform: "uppercase", color: "#4b5563", marginBottom: 8,
                 }}
               >
                 Approvals &amp; Certifications
-              </div>
+              </h2>
               <div className="flex flex-wrap gap-2">
                 {productApprovals(product).map((a) => (
                   <span
@@ -9758,7 +10080,7 @@ function ProductDetail({ product, allProducts }) {
           )}
           {featureBadges.length > 0 && (
             <div className="mb-5">
-              <div
+              <h2
                 style={{
                   fontSize: 10,
                   fontWeight: 700,
@@ -9769,7 +10091,7 @@ function ProductDetail({ product, allProducts }) {
                 }}
               >
                 Product Features
-              </div>
+              </h2>
               <div className="flex flex-wrap gap-2">
                 {featureBadges.map((b, i) => (
                   <span
@@ -9839,22 +10161,28 @@ function ProductDetail({ product, allProducts }) {
           data-print="hide"
           style={{ borderTop: "1px solid #e5e9ee", background: "#f8fafc" }}
         >
-          <div
+          <h2
             className="text-xs font-bold uppercase tracking-widest mb-4"
             style={{ color: "var(--brand-primary-text)" }}
           >
             Related Products — {product.partType}
-          </div>
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {related.map((rp) => (
-              <button
+              // A12-L6-13-4 — a PageLink, not a <button>: the one product card
+              // on the site that Ctrl/middle-click could not open in a new tab
+              // (PLAN-1 4.21). Same destination as before.
+              <PageLink
                 key={rp.id}
-                onClick={() => setSearchParam("productId", rp.id)}
+                page="products"
+                params={{ productId: rp.id }}
                 className="group text-left rounded-xl p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                 style={{
+                  display: "block",
                   background: "#ffffff",
                   border: "1px solid #e5e9ee",
                   cursor: "pointer",
+                  textDecoration: "none",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = "var(--brand-primary)";
@@ -9883,7 +10211,7 @@ function ProductDetail({ product, allProducts }) {
                 >
                   View <RelatedArrow />
                 </div>
-              </button>
+              </PageLink>
             ))}
           </div>
         </div>
@@ -10040,6 +10368,19 @@ function CatalogLanding({
         )}
       </div>
 
+      {/* A12-L6-W5-G5-1 — a size that happens to appear in one description
+          ("1/4" hit only the conduit tubing) was presented as the whole answer.
+          The scope note below the empty state now also shows whenever the
+          query looks like a size and something did match. */}
+      {products.length > 0 && looksLikeSize(query) && (
+        <p className="mb-4 text-sm" style={{ color: "#4b5563" }} data-ipc-size-note="">
+          This search reads part numbers, names, types and descriptions, not the
+          size charts — sizes are listed on each product page. If you know the
+          size but not the part number, call {site.contact.phone} and we will
+          point you at it.
+        </p>
+      )}
+
       {/* The Product Index answers an empty result with a reason and a way
           out; this grid used to be able to render nothing at all only because
           it never filtered. Now that it can, it needs the same courtesy. */}
@@ -10132,7 +10473,7 @@ function CatalogCard({ product: p }) {
       {photo ? (
         <img
           src={photo}
-          alt={p.name}
+          alt=""   // A12-L7-01-3 — the card's own text names the product; the name was read twice
           loading="lazy"
           width="400"
           height="267"
@@ -10142,6 +10483,7 @@ function CatalogCard({ product: p }) {
         />
       ) : (
         <div
+          aria-hidden="true"   // A12-L7-01-3 — visual-only; it opened five cards' accessible names
           className="w-full flex items-center justify-center"
           style={{
             aspectRatio: "3 / 2",
@@ -10184,10 +10526,22 @@ function CatalogCard({ product: p }) {
   );
 }
 
+/**
+ * A12-L6-14-1 — "Browse All Products" after a search showed only what matched
+ * the old search: the catalog's query is component state (deliberately not in
+ * the URL, see ProductPage), and a link to the same route does not remount
+ * the page. The menu's Browse All announces itself; ProductPage clears its
+ * query. Only that link: Back from a product to a searched list must keep it.
+ */
+function announceBrowseAll() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("ipc:browse-all"));
+}
+
 function ProductPage({ products }) {
   // Read-only now: the sidebar's <PageLink>s write ?productId= themselves, so
   // nothing in this component sets it. (PLAN-1 4.21)
   const [selectedId] = useSearchParam("productId");
+  const site = useSiteInfo();   // A12-L6-13-5 — the empty-catalog state's phone
   // The match ladder is findProductByParam — one definition, shared with
   // PageMeta (PLAN-9 item 3).
   const matched = selectedId ? findProductByParam(products, selectedId) : null;
@@ -10240,6 +10594,11 @@ function ProductPage({ products }) {
   const [, setSearchParamsRaw] = useSearchParams();
   const [query, setQuery] = useState("");
   const activeFamily = familyParam || null;
+  useEffect(() => {
+    const clear = () => setQuery("");
+    window.addEventListener("ipc:browse-all", clear);
+    return () => window.removeEventListener("ipc:browse-all", clear);
+  }, []);
 
   // Selecting a family means "show me this family's catalog", so it also
   // clears any open product — otherwise the filter applies to a grid that
@@ -10272,9 +10631,14 @@ function ProductPage({ products }) {
       if (activeFamily && String(p.partType || "") !== activeFamily) return false;
       if (!q) return true;
       // Same haystack the Product Index searches on, so the two surfaces agree
-      // about what "no results" means.
-      return [p.sku, p.id, p.name, p.partType, p.description]
-        .some((v) => String(v || "").toLowerCase().includes(q));
+      // about what "no results" means. A12-L6-W3-G1-1 — it was NOT the same:
+      // the Index also reads the temperature and the specifications summary,
+      // so "M23053", "MIL-", "175°C" or "RoHS" found products there and "No
+      // products found" here. A12-L6-01-W5-1 — every word, any order.
+      return matchesAllWords(
+        [p.sku, p.id, p.name, p.partType, p.description, p.operatingTemp, p.specificationsSummary],
+        q,
+      );
     });
   }, [products, activeFamily, query]);
 
@@ -10351,11 +10715,17 @@ function ProductPage({ products }) {
             </h1>
           </div>
         </div>
+        {/* A12-L6-13-5 — a bare sentence with no way forward, on the page
+            every shared product link opens. The Product Index's wording. */}
         <div
           className="ipc-container px-6 py-16 text-center"
-          style={{ color: "#6b7280" }}
+          style={{ color: "#4b5563" }}
         >
-          No products found in catalog.
+          No products are listed right now. Call{" "}
+          <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary-text)", fontWeight: 600 }}>
+            {site.contact.phone}
+          </a>{" "}
+          and we will help you directly.
         </div>
       </div>
     );
@@ -10414,7 +10784,12 @@ function ProductPage({ products }) {
                this is a visual-hierarchy fix, not a semantic one: the div now
                names the product it is sitting above. It stays a div — the
                product-name <h1> in the detail header is still the only h1. */
-            <div className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)" }}>
+            /* A12-L6-03-W5-3 — overflowWrap: the mobile clamp targets
+               h1.text-4xl only, so this div stays 36px on a phone, and a name
+               with one long word ("Polytetrafluoroethylene") scrolled the page
+               sideways. Breaking the word is the minimal fix; the size is
+               left as F6 set it. */
+            <div className="text-4xl font-extrabold" style={{ color: "var(--brand-header-ink)", overflowWrap: "anywhere" }}>
               {product.name}
             </div>
           )}
@@ -10538,6 +10913,7 @@ function ProductPage({ products }) {
       {product && (
       <div
         data-print="hide"
+        data-ipc-sticky-rfq=""
         style={{
           position: "fixed",
           bottom: 0,
@@ -10874,9 +11250,18 @@ function DashboardPage({ products }) {
   const [sortDir, setSortDir] = useState("asc");
 
   // Read ?family= URL param so clicking a category in the navbar pre-selects the filter pill.
-  // Clear the param from the URL after reading so it doesn't persist on manual filter changes.
+  // A12-L6-W3-G3-1 — the param is now KEPT, and the page's own family choice
+  // is written back to it, as /products does ("family is a URL param, not
+  // component state, so a filtered catalog is shareable and survives Back").
+  // It used to be stripped after reading, so Back from a product, a refresh or
+  // a shared link always came back to all 42. Every write here is a REPLACE,
+  // never a push (T2.3): pushing from this effect is what once trapped Back.
   const [familyParam, setFamilyParam] = useSearchParam("family");
   const [activeFamily, setActiveFamily] = useState(() => familyParam || "All");
+  const chooseFamily = (label) => {
+    setActiveFamily(label);
+    setFamilyParam(label === "All" ? null : label, { replace: true });
+  };
   // Re-run whenever familyParam changes so navbar category clicks work on subsequent navigations
   useEffect(() => {
     if (familyParam) {
@@ -10890,10 +11275,12 @@ function DashboardPage({ products }) {
       // NEW-N1-12 — the same reset the page's own pills do: a family picked
       // from the navbar kept the previous search and showed nothing.
       setSearch("");
-      // REPLACE, never push: this cleanup runs on every render where the param
-      // is present, so pushing made every Back press re-enter it and push
-      // again — the visitor could never leave the Product Index.
-      setFamilyParam(null, { replace: true });
+      // Canonicalise an unknown or differently-cased family; REPLACE (T2.3).
+      if (!hit) setFamilyParam(null, { replace: true });
+      else if (hit !== familyParam) setFamilyParam(hit, { replace: true });
+    } else {
+      // Bare /dashboard (the navbar's "Product Index", or "All" chosen here).
+      setActiveFamily("All");
     }
   }, [familyParam]);
 
@@ -10946,23 +11333,26 @@ function DashboardPage({ products }) {
     ];
   }, [tableRows, famOrder]);
 
+  // A12-L6-W3-G2-1 — the rows the family and search leave, before the
+  // approval chips narrow them: what the chip counts are computed over.
+  const approvalScope = tableRows
+    .filter((row) => (activeFamily === "All" || row.partType === activeFamily)
+      && matchesAllWords([row.name, row.partId, row.partType, row.descFull, row.operatingTemp, row.specs], search))
+    .map((row) => row.approvals);
+
   const filtered = tableRows
     .filter((row) => {
       if (activeFamily !== "All" && row.partType !== activeFamily) return false;
       // AND, not OR: selecting UL and MIL-SPEC means a product must hold both.
       if (approvals.length && !approvals.every((a) => row.approvals.includes(a))) return false;
       // NEW-N1-3 — trimmed, as /products does: a pasted "ip35ky " found nothing.
-      const q = search.trim().toLowerCase();
-      return (
-        // PUB-4 (audit 2026-09-27) — the NAME is column 1 and was not
-        // searched: 28 of 42 products could not be found by their own name
-        // ("VT-1100 Heat Gun" found nothing).
-        row.name.toLowerCase().includes(q) ||
-        row.partId.toLowerCase().includes(q) ||
-        row.partType.toLowerCase().includes(q) ||
-        row.descFull.toLowerCase().includes(q) ||
-        row.operatingTemp.toLowerCase().includes(q) ||
-        row.specs.toLowerCase().includes(q)
+      // PUB-4 (audit 2026-09-27) — the NAME is column 1 and was not
+      // searched: 28 of 42 products could not be found by their own name
+      // ("VT-1100 Heat Gun" found nothing). A12-L6-01-W5-1 — every word of
+      // the query, in any order (matchesAllWords); still trimmed (NEW-N1-3).
+      return matchesAllWords(
+        [row.name, row.partId, row.partType, row.descFull, row.operatingTemp, row.specs],
+        search,
       );
     })
     .sort((a, b) => {
@@ -11098,7 +11488,7 @@ function DashboardPage({ products }) {
                 id="ipc-dashboard-family"
                 value={activeFamily}
                 onChange={(e) => {
-                  setActiveFamily(e.target.value);
+                  chooseFamily(e.target.value);
                   setSearch("");
                 }}
                 style={{
@@ -11150,7 +11540,7 @@ function DashboardPage({ products }) {
             </div>
             {activeFamily !== "All" && (
               <button
-                onClick={() => setActiveFamily("All")}
+                onClick={() => chooseFamily("All")}
                 style={{
                   marginTop: 8,
                   fontSize: 11,
@@ -11237,9 +11627,12 @@ function DashboardPage({ products }) {
               <button
                 key={label}
                 onClick={() => {
-                  setActiveFamily(label);
+                  chooseFamily(label);
                   setSearch("");
                 }}
+                // A12-L7-W3-G2-3 — the selected pill was told apart by colour
+                // only; the /products rail already says aria-pressed.
+                aria-pressed={active}
                 className="ipc-tap"
                 style={{
                   flexShrink: 0,
@@ -11302,9 +11695,13 @@ function DashboardPage({ products }) {
         {/* Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
+            {/* A12-L7-W3-G1-4 — a live region, as on /products and
+                /datasheets: a blind buyer typing a part number heard nothing
+                back, not even that nothing matched. */}
             <span
               className="text-sm font-semibold"
               style={{ color: "#141414" }}
+              aria-live="polite"
             >
               {filtered.length} of {tableRows.length} products
             </span>
@@ -11371,8 +11768,19 @@ function DashboardPage({ products }) {
           </div>
         </div>
 
+        {/* A12-L6-W5-G5-1 — see looksLikeSize. */}
+        {filtered.length > 0 && looksLikeSize(search) && (
+          <p className="mb-4 text-sm" style={{ color: "#4b5563" }} data-ipc-size-note="">
+            This search reads part IDs, types, descriptions and specifications,
+            not the size charts — sizes are listed on each product page. If you
+            know the size but not the part number, call {site.contact.phone} and
+            we will point you at it.
+          </p>
+        )}
+
         <ApprovalFilter
           products={products}
+          scope={approvalScope}
           selected={approvals}
           onToggle={(a) =>
             setApprovals((cur) => (cur.includes(a) ? cur.filter((x) => x !== a) : [...cur, a]))
@@ -11388,8 +11796,9 @@ function DashboardPage({ products }) {
                    rows means the catalog is EMPTY, not still arriving. This said
                    "Loading catalog…" forever, where /products says honestly that
                    the catalog is empty. (audit-runs/audit5.md, Low tier) */}
+              {/* A12-L6-13-5 — the same words the desktop table uses. */}
               {tableRows.length === 0
-                ? 'No products in the catalog yet.'
+                ? `No products are listed right now. Call ${site.contact.phone} and we will help you directly.`
                 : `No results${search ? ` for "${search}"` : ''}${activeFamily !== 'All' ? ` in ${activeFamily}` : ''}.`}
             </div>
           ) : (
@@ -11403,7 +11812,12 @@ function DashboardPage({ products }) {
                   padding: 16,
                 }}
               >
-                <div className="flex items-start justify-between gap-2 mb-2">
+                {/* A12-L6-03-1 — at 200% zoom on a phone the type chip was
+                    painted over the part number (34 of 42 cards) and ran off
+                    the screen. Below 300px (.ipc-idx-head in GlobalStyles) the
+                    row wraps and the chip drops under the part number; at 390
+                    and up the card is exactly as it was (plan10-dashboard). */}
+                <div className="flex items-start justify-between gap-2 mb-2 ipc-idx-head">
                   <div className="min-w-0">
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary-text)', letterSpacing: '0.04em' }}>
                       {row.partId}
@@ -11416,6 +11830,8 @@ function DashboardPage({ products }) {
                     <span
                       style={{
                         flexShrink: 0,
+                        maxWidth: '100%',
+                        overflowWrap: 'anywhere',
                         padding: '3px 8px',
                         borderRadius: 4,
                         fontSize: 10,
@@ -11454,7 +11870,10 @@ function DashboardPage({ products }) {
                   // "View Product". The row supplies the context visually, but
                   // a link list reads as the same four words 84 times. The
                   // name is already in scope at both call sites.
-                  aria-label={`View ${row.name || row.partId}`}
+                  // A12-L7-W3-G2-5 — and it starts with the visible words (WCAG
+                  // 2.5.3 Label in Name): a voice user saying "Click View
+                  // Product" got nothing while the name was "View <product>".
+                  aria-label={`View Product: ${row.name || row.partId}`}
                   style={{
                     display: 'block',
                     // <a> is left-aligned where <button> centres. Full-width
@@ -11667,7 +12086,7 @@ function DashboardPage({ products }) {
                           <button
                             onClick={() => {
                               setSearch("");
-                              setActiveFamily("All");
+                              chooseFamily("All");
                               setApprovals([]);
                             }}
                             style={{
@@ -11831,7 +12250,7 @@ function DashboardPage({ products }) {
                           params={{ productId: row.productId }}
                           // A-9.P5a-10 — the desktop twin of the mobile card's
                           // link; see the note there.
-                          aria-label={`View ${row.name || row.partId}`}
+                          aria-label={`View Product: ${row.name || row.partId}`}
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
@@ -12168,6 +12587,9 @@ function IndustriesPage() {
             id={industryAnchor(industries, i)}
             className="bg-white rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
             style={{
+              // A12-L6-05-1 — the card clips (overflow-hidden), so a long word
+              // in any of its text must break rather than be cut at 200% zoom.
+              overflowWrap: "anywhere",
               // scroll-margin, or the sticky navbar covers the heading the
               // fragment just scrolled to. This was a SECOND `style` prop when
               // C30 shipped; JSX keeps the last one, so esbuild warned
@@ -12196,9 +12618,13 @@ function IndustriesPage() {
                   border: "1px solid rgba(var(--brand-accent-rgb),0.3)",
                 }}
               >
-                {IndIcons[ind.iconKey] || IndIcons.industrial}
+                <span aria-hidden="true" style={{ display: "contents" }}>{IndIcons[ind.iconKey] || IndIcons.industrial}</span>{/* A12-L7-W3-G5-1 */}
               </div>
-              <div>
+              {/* A12-L6-05-1 — min-width:0 + overflowWrap: this column's
+                  min-content width was its longest word at text-xl, wider than
+                  the card at 200% zoom on a phone, so overflow-hidden cut
+                  "Automotive" to "Autom". */}
+              <div className="min-w-0" style={{ overflowWrap: "anywhere" }}>
                 {/* Stays white. This used to read "the gradient starts at a
                     HARDCODED #003d7a, and only its far end is owner-controlled"
                     — A10-046 removed that hardcode, so the near end is now
@@ -12241,6 +12667,7 @@ function IndustriesPage() {
                       style={{ color: "#4b5563" }}
                     >
                       <span
+                        aria-hidden="true"   // A12-L7-W3-G5-1 — a bullet glyph
                         style={{
                           // Bright accent as ink on WHITE is 2.18:1.
                           // --brand-accent-text is the darkened-for-text variant
@@ -12287,6 +12714,7 @@ function IndustriesPage() {
                         }}
                       >
                         <span
+                          aria-hidden="true"   // A12-L7-W3-G5-1 — a bullet, read as "black diamond"
                           style={{
                             color: "var(--brand-accent-text)",
                             marginTop: 3,
@@ -12442,6 +12870,8 @@ function IndustriesPage() {
             className="flex-shrink-0 text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
             style={{
               display: "inline-block",
+              maxWidth: "100%",   // A12-L6-06-1 — same banner pattern as /services
+              textAlign: "center",
               background: "var(--brand-primary)",
               color: "var(--brand-primary-ink)",
               border: "none",
@@ -12810,6 +13240,11 @@ function ServicesPage() {
             className="flex-shrink-0 text-sm font-semibold px-5 py-2.5 rounded hover:brightness-110 transition-all"
             style={{
               display: "inline-block",
+              // A12-L6-06-1 — at 200% zoom on a phone the unbreakable button
+              // hung off the banner and the page scrolled sideways. It may now
+              // be no wider than the banner, and its words wrap there.
+              maxWidth: "100%",
+              textAlign: "center",
               background: "#ffffff",
               color: "var(--brand-primary-text)",
               border: "none",
@@ -12988,7 +13423,7 @@ function ServicesPage() {
               </h2>
               <p
                 className="text-sm leading-relaxed"
-                style={{ color: "rgba(var(--brand-dark-ink-rgb), 0.60)" }}
+                style={{ color: "var(--brand-dark-muted-60)" }}
               >
                 Our engineering team can create custom solutions. Whether it's a
                 unique marking specification, a non-standard cut tolerance, or a
@@ -13129,10 +13564,11 @@ function PrivacyPage() {
                   }}
                 />
               )}
+              {/* A12-L7-02-2 — the wrapper also said role="heading"
+                  aria-level 2, so every section heading was announced twice
+                  (15 headings for 8). The h2 inside is the heading. */}
               <div
                 className="flex items-center gap-3 mb-3"
-                role="heading"
-                aria-level={2}
               >
                 <div
                   style={{
@@ -13365,6 +13801,7 @@ function Footer() {
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{ flexShrink: 0 }}
+      aria-hidden="true"   // A12-L7-W3-G5-1 — decoration beside the text it labels
     >
       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.54 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
     </svg>
@@ -13380,6 +13817,7 @@ function Footer() {
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{ flexShrink: 0 }}
+      aria-hidden="true"   // A12-L7-W3-G5-1 — decoration beside the text it labels
     >
       <polyline points="22 17 17 17 17 22" />
       <polyline points="2 7 7 7 7 2" />
@@ -13418,6 +13856,7 @@ function Footer() {
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{ flexShrink: 0 }}
+      aria-hidden="true"   // A12-L7-W3-G5-1 — decoration beside the text it labels
     >
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
       <polyline points="22,6 12,13 2,6" />
@@ -13434,6 +13873,7 @@ function Footer() {
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{ flexShrink: 0 }}
+      aria-hidden="true"   // A12-L7-W3-G5-1 — decoration beside the text it labels
     >
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
       <circle cx="12" cy="10" r="3" />
@@ -13450,6 +13890,7 @@ function Footer() {
       strokeLinecap="round"
       strokeLinejoin="round"
       style={{ flexShrink: 0 }}
+      aria-hidden="true"   // A12-L7-W3-G5-1 — decoration beside the text it labels
     >
       <circle cx="12" cy="12" r="10" />
       <polyline points="12 6 12 12 16 14" />
@@ -13574,7 +14015,7 @@ function Footer() {
               ) : null}
               <div className="flex items-center gap-2">
                 <MailIcon />
-                <a href={`mailto:${site.contact.email}`} style={{ color: "#cbd5e1", textDecoration: "none" }}>{site.contact.email}</a>
+                <a href={`mailto:${site.contact.email}`} style={{ color: "#cbd5e1", textDecoration: "none", overflowWrap: "anywhere", minWidth: 0 }}>{site.contact.email}</a>{/* A12-L6-04-1 — the address ran past the right edge at 200% zoom */}
               </div>
               <div className="flex items-start gap-2">
                 <PinIcon />{" "}
@@ -13888,13 +14329,19 @@ function CatalogError({ error }) {
     <div style={{ display: "flex", flexDirection: "column", minHeight: "50vh" }}>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-md px-6">
-            <div className="text-5xl mb-4">⚠️</div>
-            <h2 className="text-xl font-bold mb-2" style={{ color: "#141414" }}>
-              Catalog Unavailable
-            </h2>
-            <p className="text-sm mb-6" style={{ color: "#6b7280" }}>
-              {error}
-            </p>
+            <div className="text-5xl mb-4" aria-hidden="true">⚠️</div>
+            {/* A12-L7-W3-R1-4-1 — role="alert", so "loading" turning into
+                "failed" is announced (the loading message already was), and
+                an h1: the page had no main heading in this state, where every
+                route has exactly one when the catalog loads. */}
+            <div role="alert">
+              <h1 className="text-xl font-bold mb-2" style={{ color: "#141414" }}>
+                Catalog Unavailable
+              </h1>
+              <p className="text-sm mb-6" style={{ color: "#6b7280" }}>
+                {error}
+              </p>
+            </div>
             <button
               onClick={() => window.location.reload()}
               className="text-sm font-semibold px-6 py-3 rounded hover:brightness-110 transition-all"
@@ -13913,11 +14360,12 @@ function CatalogError({ error }) {
         <p style={{ color: "#6b7280", marginBottom: 8 }}>
           The rest of the site still works — or reach us directly:
         </p>
+        {/* A12-L7-02-4 — see ErrorBoundary. */}
         <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-primary-text)", fontWeight: 700, marginRight: 16 }}>
-          📞 {site.contact.phone}
+          <span aria-hidden="true">📞 </span>{site.contact.phone}
         </a>
         <a href={`mailto:${site.contact.email}`} style={{ color: "var(--brand-primary-text)", fontWeight: 700 }}>
-          📧 {site.contact.email}
+          <span aria-hidden="true">📧 </span>{site.contact.email}
         </a>
       </div>
     </div>
@@ -13972,6 +14420,63 @@ function App() {
     if (typeof window !== "undefined" && window.location.hash) return;
     if (Date.now() - _sidebarScrollAt < 1000) return;
     window.scrollTo({ top: 0, behavior: "instant" });
+  }, [page, productParam]);
+
+  // A12-L7-W3-G4-1 / A12-L6-W3-R1-2-2 — after an in-app navigation, keyboard
+  // focus stayed where the click happened: on a footer link now off-screen at
+  // the bottom (8 to 17 Tabs back to the page asked for), or on a removed
+  // Related Products card, so the next Tab threw the view back down past the
+  // new product's Datasheet and Request a Quote. Focus now moves to <main> —
+  // the skip link's target, already tabIndex -1 — whenever it is left outside
+  // main or on nothing. A control still inside main (the catalog sidebar, a
+  // family filter) keeps it, so working through a list is not interrupted.
+  // Not on the first render: a cold load leaves focus to the browser.
+  // A12-L7-W3-G1-1 — WCAG 2.4.11 Focus Not Obscured. The browser scrolls a
+  // focused control into the VIEWPORT, not into the part of it the sticky
+  // navbar (top) and the product page's fixed quote bar (bottom) leave
+  // visible, so on 11 route/width pairs the control just tabbed to sat wholly
+  // under one of them (Shift+Tab under the navbar, Tab under the bar). After
+  // keyboard focus lands, nudge the page by the covered amount. Keyboard only
+  // (:focus-visible): a mouse click must never scroll the page.
+  // Deliberately not html { scroll-padding }: that also shifts every anchor
+  // and the forms' scroll-margin offsets, which are tuned to land where they do.
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const onFocusIn = (e) => {
+      const el = e.target;
+      if (!(el instanceof Element)) return;
+      try { if (!el.matches(":focus-visible")) return; } catch (_) { return; }
+      window.requestAnimationFrame(() => {
+        if (document.activeElement !== el) return;
+        const header = document.querySelector("header");
+        const bar = document.querySelector("[data-ipc-sticky-rfq]");
+        if ((header && header.contains(el)) || (bar && bar.contains(el))) return;
+        const r = el.getBoundingClientRect();
+        const top = header ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+        const barOn = bar && document.body.classList.contains("ipc-has-sticky-rfq");
+        const bottom = barOn ? bar.getBoundingClientRect().top : window.innerHeight;
+        // A control, not a region: <main> (focused after a navigation) or a
+        // tall panel is taller than the visible band, and "scrolling it clear"
+        // would throw the page to its far end.
+        if (r.height > (bottom - top) / 2) return;
+        if (r.top < top) window.scrollBy(0, r.top - top - 8);
+        else if (r.bottom > bottom) window.scrollBy(0, r.bottom - bottom + 8);
+      });
+    };
+    document.addEventListener("focusin", onFocusIn);
+    return () => document.removeEventListener("focusin", onFocusIn);
+  }, []);
+
+  const navFocusReady = useRef(false);
+  useEffect(() => {
+    if (!navFocusReady.current) { navFocusReady.current = true; return; }
+    if (typeof document === "undefined") return;
+    const main = document.getElementById("ipc-main");
+    if (!main) return;
+    const a = document.activeElement;
+    if (!a || a === document.body || !a.isConnected || !main.contains(a)) {
+      main.focus({ preventScroll: true });
+    }
   }, [page, productParam]);
 
   // C30, generalised to every page. The effect above deliberately steps aside
