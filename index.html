@@ -10,8 +10,31 @@
          createRoot() then clears #root on its first render. Inline, in the
          head, on purpose: it must run before the body paints, and the CSS
          bundle may be the thing that failed. -->
-    <script>document.documentElement.className += " ipc-js";</script>
-    <style>.ipc-js #ipc-prerender { display: none; }</style>
+    <!-- A12-L11-W3-G1-1 — but only while the bundle can still replace it. If
+         the script fails to load (a dropped connection, the deploy window, a
+         blocker), or nothing has replaced the copy after 10 s, the class comes
+         off and the readable page and its contact details show instead of a
+         blank white screen. -->
+    <script>(function (d) {
+      var e = d.documentElement, show = function () { e.className = e.className.replace(/(^|\s)ipc-js(?!\S)/g, ""); };
+      e.className += " ipc-js";
+      addEventListener("error", function (v) { var t = v.target; if (t && t.tagName === "SCRIPT" && t.src) show(); }, true);
+      setTimeout(function () { if (d.getElementById("ipc-prerender")) show(); }, 10000);
+    })(document);</script>
+    <!-- A12-L6-01-1 — the plain-HTML copy is styled here, inline, for the same
+         reason: it is what shows when the bundle did not run, and the CSS
+         bundle's reset (Tailwind preflight) otherwise strips it to flush-left
+         16px black text with links that do not look like links. -->
+    <style>.ipc-js #ipc-prerender { display: none; }
+      #ipc-prerender { max-width: 60rem; margin: 0 auto; padding: 1rem 1rem 2rem; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #141414; line-height: 1.55; }
+      #ipc-prerender h1 { font-size: 1.6rem; font-weight: 700; line-height: 1.25; margin: 1rem 0 .75rem; }
+      #ipc-prerender p, #ipc-prerender dl { margin: 0 0 .75rem; }
+      #ipc-prerender dt { font-weight: 700; }
+      #ipc-prerender dd { margin: 0 0 .5rem; }
+      #ipc-prerender a { color: #0a2240; text-decoration: underline; }
+      #ipc-prerender ul { list-style: disc; margin: 0 0 1rem; padding-left: 1.25rem; }
+      #ipc-prerender nav ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+      #ipc-prerender header, #ipc-prerender footer { margin: .75rem 0; }</style>
     <title>Insulation Products Corporation — Heat Shrink Tubing, Sleeving &amp; Adhesives</title>
     <meta
       name="description"
@@ -42,7 +65,9 @@
          crawler fetching the file to measure it.
          Built by _harness/ogcard.js, deleted in 1d57237; recover it with
          `git show 1d57237^:_harness/ogcard.js` (needs `npm i --no-save sharp`).
-         1200x630, 33 KiB. -->
+         1200x630. A12-L11-01-1 (2026-10-13): its third line, "Ships same day",
+         was painted out over the background gradient — the same-day shipping
+         claim was removed from the site on 2026-09-15 (§1aa). -->
     <meta property="og:image"        content="https://www.insulationproducts.com/images/og-card.jpg" />
     <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />

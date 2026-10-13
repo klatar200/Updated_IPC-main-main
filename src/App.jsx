@@ -6048,7 +6048,10 @@ const SITE_ORIGIN = "https://www.insulationproducts.com";
 function productImageAbs(p) {
   const src = p && p.photoUrl ? String(p.photoUrl) : "";
   if (!src || src.includes("placehold.co")) return undefined;
-  if (/^https?:\/\//.test(src)) return src;
+  // A12-L10-03-1 — schemes are case-insensitive; A12-L10-W3-R1-6-1 — "//host/x"
+  // is resolved as the browser resolves it on this https site.
+  if (/^https?:\/\//i.test(src)) return src;
+  if (src.startsWith("//")) return "https:" + src;
   return SITE_ORIGIN + (src.startsWith("/") ? "" : "/") + src;
 }
 
@@ -6759,6 +6762,9 @@ function mergeSiteInfo(data) {
           ) {
             continue;
           }
+          // A12-L5-02-W5-2 — a clearable field holding only spaces is cleared,
+          // not published as "   " (a fax line, a " —    " title suffix).
+          if (typeof val === "string" && val.trim() === "") val = "";
           overrides[key] = val;
         }
       }
@@ -6860,7 +6866,9 @@ function localizeProse(text, site) {
  * `ISO 10993-5` (medical, /industries) must survive untouched: the pattern is
  * anchored on `9001`, and `_harness/isowaterfall.js` asserts it as a control.
  */
-const ISO_9001_TOKEN = /\bISO\s*9001(\s*:\s*\d{4})?/gi;
+// A12-L5-05-3 — a revision written "-2015", "–2015" or " 2015" is part of the
+// token too, or it survived the rewrite as "ISO 9001:2015-2015".
+const ISO_9001_TOKEN = /\bISO\s*9001(\s*[:\-\u2013]\s*\d{4}\b|\s+\d{4}\b)?/gi;
 const ISO_9001_SOURCE = /^\s*ISO\s*9001(?:\s*:\s*(\d{4}))?\s*$/i;
 
 function isoRewriter(iso) {
@@ -6868,8 +6876,9 @@ function isoRewriter(iso) {
   if (!src) return null;                       // nothing to say — leave copy alone
   const m = src.match(ISO_9001_SOURCE);
   if (!m) {
-    // A different certification entirely: replace the whole token.
-    return (text) => text.replace(ISO_9001_TOKEN, src);
+    // A different certification entirely: replace the whole token. Through a
+    // function: a typed "$&" is otherwise a replacement pattern (A12-L5-01-W5-1).
+    return (text) => text.replace(ISO_9001_TOKEN, () => src);
   }
   // §1aq (2026-10-05) — SUPERSEDES "only a token that carries a revision is
   // touched". Since §1aa every shipped mention is a bare `ISO 9001`, so under
@@ -7450,8 +7459,22 @@ function useIsUnknownRoute() {
 }
 
 /** A4 — the share card, and the intrinsic size of the product photography. */
-const OG_CARD = { src: "/images/og-card.jpg", w: 1200, h: 630 };
+const OG_CARD = {
+  src: "/images/og-card.jpg", w: 1200, h: 630,
+  alt: "Insulation Products Corporation — heat shrink tubing, sleeving and adhesives",
+};
+// The size DECLARED for a product photo. A12-L15-10-1: the photos are not
+// one size (286x276 to 800x634; owner uploads up to 1600 wide) and none is
+// 400x300 — whether to keep declaring this, measure, or omit it is open.
 const OG_PHOTO = { w: 400, h: 300 };
+
+/**
+ * PAGE_LABELS — the visible heading of the two routes with no Page Content
+ * header group, for the title fallback. It title-cased the route key, so a
+ * cleared title read "Dashboard — …" (A12-L6-W5-G1-1). index.php's
+ * ipc_page_labels() is the same table.
+ */
+const PAGE_LABELS = { products: "Product Catalog", dashboard: "Product Index" };
 
 /**
  * A-9.P6-1 / A-9.P6-2 — length caps for the GENERATED product head only.
@@ -7468,6 +7491,12 @@ const OG_PHOTO = { w: 400, h: 300 };
 const META_TITLE_MAX = 60;
 const META_DESC_MAX = 160;
 
+// A12-L5-01-W5-2 — lengths and cuts in code points, not UTF-16 units: an
+// emoji near the cap was cut in half ("\ud83d…"), and index.php counts code
+// points, so the two heads differed.
+const cpLen = (s) => Array.from(String(s)).length;
+const cpSlice = (s, a, b) => Array.from(String(s)).slice(a, b).join("");
+
 /**
  * Trim to a word boundary and mark the cut.
  *
@@ -7478,10 +7507,11 @@ const META_DESC_MAX = 160;
  */
 function trimToWord(text, max) {
   const s = String(text || "");
-  if (s.length <= max) return s;
-  let cut = s.slice(0, max - 1);
-  const sp = cut.lastIndexOf(" ");
-  if (sp > max * 0.6) cut = cut.slice(0, sp);
+  if (cpLen(s) <= max) return s;
+  let chars = Array.from(s).slice(0, max - 1);
+  const sp = chars.lastIndexOf(" ");
+  if (sp > max * 0.6) chars = chars.slice(0, sp);
+  let cut = chars.join("");
   // A cut inside a parenthetical leaves the bracket hanging — the longest
   // product name broke as "Fiberglass Sleeving (Heat…", which reads as a
   // truncation fault rather than a summary. Drop the opened clause instead.
@@ -7504,18 +7534,60 @@ function trimToWord(text, max) {
  */
 function fitProductTitle(label, sku, company, shortName) {
   const full = `${label} — ${company}`;
-  if (full.length <= META_TITLE_MAX) return full;
+  if (cpLen(full) <= META_TITLE_MAX) return full;
   // Before dropping the brand entirely, try the short form the owner already
   // maintains on Business Details ("IPC"). A title with no company at all is
   // the last resort, not the first.
   const short = shortName && shortName !== company ? `${label} — ${shortName}` : "";
-  if (short && short.length <= META_TITLE_MAX) return short;
-  if (label.length <= META_TITLE_MAX) return label;
-  const tail = sku && label.endsWith(sku) ? ` — ${sku}` : "";
-  const budget = META_TITLE_MAX - tail.length;
-  if (budget < 12) return sku || label.slice(0, META_TITLE_MAX);
-  const head = tail ? label.slice(0, label.length - tail.length) : label;
+  if (short && cpLen(short) <= META_TITLE_MAX) return short;
+  if (cpLen(label) <= META_TITLE_MAX) return label;
+  // A12-L15-10-2 — the SKU survives when it sits inside the name too, not
+  // only when it was appended as " — SKU".
+  let tail = "";
+  let head = label;
+  if (sku && label.endsWith(` — ${sku}`)) {
+    tail = ` — ${sku}`;
+    head = cpSlice(label, 0, cpLen(label) - cpLen(tail));
+  } else if (sku) {
+    const plain = trimToWord(label, META_TITLE_MAX);
+    if (nameHasSku(plain, sku)) return plain;
+    tail = ` — ${sku}`;
+  }
+  const budget = META_TITLE_MAX - cpLen(tail);
+  if (budget < 12) return sku || cpSlice(label, 0, META_TITLE_MAX);
   return trimToWord(head, budget) + tail;
+}
+
+/**
+ * Is the SKU a whole token of the name? ASCII letters folded only. A raw
+ * substring test found "CT" inside "Electrical" (A12-L10-01-1), and
+ * toUpperCase() folds "ı"/"ß" to ASCII where PHP's strtoupper() does not
+ * (A12-L15-01-W5-1). index.php's ipc_name_has_sku() is the same test.
+ */
+function nameHasSku(name, sku) {
+  if (!sku) return false;
+  const up = (s) => String(s).replace(/[a-z]+/g, (m) => m.toUpperCase());
+  const k = up(sku).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![A-Z0-9])${k}(?![A-Z0-9])`).test(up(name));
+}
+
+/**
+ * The default SEO description of a route, used as a fallback, put through the
+ * same ISO and business-facts rewrite ContentProvider gives the stored rows —
+ * and without its ISO sentence when the ISO box is empty. It skipped both, so
+ * a cleared description brought back "ISO 9001 registered" and "$50 minimum
+ * order" from built-in text (A12-L5-W2-G3-1). ipc_seo_default_desc() in
+ * public/index.php is the port.
+ */
+function seoDefaultDesc(text, site) {
+  if (!text) return text;
+  const iso = isoRewriter(site && site.certifications && site.certifications.iso);
+  const facts = factsRewriter(site);
+  let t = text;
+  if (!iso) t = t.replace(/\s*\bISO 9001 registered\.(?=\s|$)/g, "");
+  if (iso) t = iso(t);
+  if (facts) t = facts(t);
+  return t;
 }
 
 // Contact-page sidebar "for fastest response" tips.
@@ -7681,7 +7753,14 @@ function mergeContent(data) {
             for (const key of Object.keys(vg)) {
               const val = vg[key];
               if (val == null) continue;
-              if (val === "" && !COPY_CLEARABLE.test(key)) continue;
+              // A12-L5-05-1 — a non-string where the default is text (an FTP
+              // hand edit) is not an override: an object in a nav label threw
+              // in Navbar, outside the ErrorBoundary, and blanked every page.
+              // index.php already ignores it (is_string).
+              if (typeof dg[key] === "string" && typeof val !== "string") continue;
+              // A12-L5-W2-G1-1 — only spaces (or a pasted NBSP) is blank too,
+              // as index.php's ipc_trim() already treats it.
+              if (typeof val === "string" && val.trim() === "" && !COPY_CLEARABLE.test(key)) continue;
               overrides[key] = val;
             }
           }
@@ -7934,9 +8013,13 @@ function PageMeta({ products }) {
     //
     // Both now fall back to the page's own visible heading plus the company
     // name, so every route stays titled, distinct, and owner-controlled.
-    const heading = ((copy && copy[`${key}Header`]) || {}).title || "";
+    // A12-L5-04-1 — text only, as index.php reads it (is_string): a number or
+    // a list hand-edited into content.json became the title "5" or "A,B".
+    const str = (v) => (typeof v === "string" ? v : "");
+    const heading = str(((copy && copy[`${key}Header`]) || {}).title);
     const label =
       heading ||
+      PAGE_LABELS[key] ||
       key.replace(/(^|-)([a-z])/g, (_, sep, ch) => (sep ? " " : "") + ch.toUpperCase());
     const computed =
       key === "home" ? site.company.name : `${label} — ${site.company.name}`;
@@ -7953,8 +8036,8 @@ function PageMeta({ products }) {
     // titles fall back to the page's own visible heading instead.
     const dflt = list.length ? SEO_DEFAULT.find((s) => s.page === key) || {} : {};
 
-    let title = entry.title || (key === "home" ? home.title : "") || computed;
-    let desc = localizeProse(entry.desc || dflt.desc || home.desc || "", site);
+    let title = str(entry.title) || (key === "home" ? str(home.title) : "") || computed;
+    let desc = localizeProse(str(entry.desc) || seoDefaultDesc(dflt.desc, site) || str(home.desc) || "", site);
 
     // A3 — 42 product URLs described themselves identically: the same <title>,
     // the same description and the same og:title, all inherited from the
@@ -7963,9 +8046,10 @@ function PageMeta({ products }) {
     // buyer scanning search results sees the part number they searched for.
     if (matched) {
       const sku = (matched.sku || "").trim();
-      const name = (matched.name || "").trim();
-      const label = sku && !name.toUpperCase().includes(sku.toUpperCase())
-        ? `${name} — ${sku}` : name;
+      // A12-L5-02-W5-1 — a nameless row (FTP hand edit) is named by its SKU.
+      const name = (matched.name || "").trim() || sku;
+      const hasSku = nameHasSku(name, sku);
+      const label = sku && !hasSku ? `${name} — ${sku}` : name;
       // A-9.P6-1 — was `${label} — ${site.company.name}` unconditionally.
       title = fitProductTitle(label, sku, site.company.name, site.company.shortName);
       const summary = String(matched.specificationsSummary || "").trim();
@@ -7977,7 +8061,8 @@ function PageMeta({ products }) {
       desc = trimToWord(
         localizeProse(
           [
-            sku ? `${name} (${sku})` : name,
+            // A12-L8-W5-G1-2 — "(SKU)" only when the name does not already say it.
+            sku && !hasSku ? `${name} (${sku})` : name,
             kind ? `— ${kind}.` : "—",
             summary || "Specifications, datasheet and quote request.",
           ].join(" ").replace(/\s+/g, " "),
@@ -8105,9 +8190,12 @@ function PageMeta({ products }) {
     const ogImage = photo || SITE_ORIGIN + OG_CARD.src;
     setMeta("property", "og:image", ogImage);
     // Declared so the first share renders without the crawler fetching the file
-    // to measure it. The per-product photos are all 400x300 source art.
+    // to measure it. (This said the per-product photos are all 400x300 source
+    // art; none is — see OG_PHOTO, A12-L15-10-1.)
     setMeta("property", "og:image:width", photo ? String(OG_PHOTO.w) : String(OG_CARD.w));
     setMeta("property", "og:image:height", photo ? String(OG_PHOTO.h) : String(OG_CARD.h));
+    // A12-L10-01-2 — the alt describes the image actually declared.
+    setMeta("property", "og:image:alt", photo ? (String(matched.name || "").trim() || String(matched.sku || "").trim()) : OG_CARD.alt);
   }, [page, productId, products, site, seo, copy, unknownRoute]);
   return null;
 }
@@ -8284,6 +8372,10 @@ function ThemeInjector() {
       "--brand-accent-2": t.accent2Color,
     };
     for (const k in map) if (map[k]) root.style.setProperty(k, map[k]);
+    // A12-L10-01-3 — the browser-bar colour follows the Dark colour, as
+    // index.php writes it into the served head (same 6-digit hex test).
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute("content", /^#[0-9a-f]{6}$/i.test(t.darkColor || "") ? t.darkColor : "#0d2d52");
     // Derive the translucent-tint RGB and a darker hover shade from the primary
     // so tints (rgba) and hover states re-theme along with the solid colors.
     //
@@ -9456,7 +9548,9 @@ function ProductDetail({ product, allProducts }) {
                 <h2> under a "Product Catalog" <h1>, so all 42 pages announced
                 the same top-level heading. */}
             <h1 className="text-xl font-extrabold leading-tight" style={{ color: "rgb(var(--brand-product-head-ink-rgb))" }}>
-              {product.name}
+              {/* A12-L5-02-W5-1 — a nameless row (FTP hand edit) rendered an
+                  empty h1; named by its SKU, as index.php's copy is. */}
+              {asText(product.name).trim() || product.sku}
             </h1>
             {/* C45 — the SKU used to be a filled pill in the action row to the
                 right, at button height, immediately left of "Download PDF" and
@@ -9906,7 +10000,9 @@ function ProductDetail({ product, allProducts }) {
 // spaced form in content.json silently rendered a conduit coupling instead.
 // (DEPLOY_READINESS_v2 T2.8)
 function normalizeSku(v) {
-  return String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  // A12-L15-17-2 — ASCII only, as index.php's port: toUpperCase() first folded
+  // "ı" to "I", so ?productId=ıp12ga matched here and nowhere else.
+  return String(v || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 }
 
 // Is `needle` one of the hyphen-separated segments of a compound SKU?
