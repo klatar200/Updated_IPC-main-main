@@ -1828,6 +1828,7 @@ function Hero() {
   const { copy, heroProofPoints, heroTrust } = useContent();
   const c = copy.hero;
   const img = copy.siteImages;
+  const [slot, onSlotError] = useSiteImageSlots(img);
   const proofPoints = heroProofPoints;
   const trustItems = heroTrust.map((t) => t.text);
   const reducedMotion = usePrefersReducedMotion();
@@ -1981,11 +1982,12 @@ function Hero() {
             this adds no contrast debt — asserted by plan7-imagery.
             lg:block, and the <picture> below is why: a hidden <img> is still
             downloaded, which was the one defect in the mockup. */}
-        {img.heroPhoto ? (
+        {slot("heroPhoto") ? (
         <picture className="hidden lg:block mt-6">
-          <source media="(min-width: 1024px)" srcSet={slotSrc(img.heroPhoto)} />
+          <source media="(min-width: 1024px)" srcSet={slot("heroPhoto")} />
           <img
-            src={slotSrc(img.heroPhoto)}
+            src={slot("heroPhoto")}
+            onError={onSlotError}
             alt="Custom-printed heat shrink sleeves and wire markers produced by IPC"
             loading="lazy"
             decoding="async"
@@ -2008,6 +2010,11 @@ function Hero() {
       {/* id — E2. On the RAIL, not on the .ipc-marquee-track inside it: the
           track sits under an `overflow: hidden` ancestor and is 5,012px wide,
           so scrollIntoView on it landed at top=0, under the navbar. */}
+      {/* AUDIT-12 A12-L15-03-1 — with every ticker item deleted (invariant 3
+          makes [] a deletion) the rail is not rendered at all: an empty dark
+          strip and a focusable, labelled group with nothing in it is the
+          furniture C50/B14 removed. Same as a cleared hero photo. */}
+      {trustItems.length ? (
       <div
         id="ipc-sec-heroTrust"
         style={{
@@ -2097,6 +2104,7 @@ function Hero() {
           </div>
         </div>
       </div>
+      ) : null}
     </section>
   );
 }
@@ -3209,6 +3217,7 @@ function HomePage() {
   const { markets, copy, industryDetail } = useContent();
   const mk = copy.homeMarkets;
   const img = copy.siteImages;
+  const [slot, onSlotError] = useSiteImageSlots(img);
 
   /**
    * C30 — the fragment for a market card, or undefined if there is no section
@@ -3245,9 +3254,11 @@ function HomePage() {
           The 2:1 split is forced by the source files, not chosen.
           IPC-Building.jpg has a white border baked into its pixels; at half
           width it upscaled and the frame showed, at one third it lands near
-          1:1 and the crop removes it. Both files are at their resolution
+          1:1. (CORRECTED 2026-10-13, AUDIT-12 A12-L11-02-1: "and the crop
+          removes it" was false — a 16:9 crop trims only top and bottom, and
+          the 12/13px side border still shows.) Both files are at their resolution
           ceiling and cannot go larger or retina — measured in the amendment. */}
-      {(img.bandTeamPhoto || img.bandBuildingPhoto) ? (
+      {(slot("bandTeamPhoto") || slot("bandBuildingPhoto")) ? (
       <section className="py-14" style={{ background: "#f5f7fa" }}>
         {/* F14 — these two photographs sat between "Talk to Our Sales Team"
             and "Industries Served" with no heading, caption or link: a sighted
@@ -3301,10 +3312,11 @@ function HomePage() {
           </p>
         </div>
         <div className="ipc-container px-6 grid grid-cols-1 md:grid-cols-3 gap-5">
-          {img.bandTeamPhoto ? (
+          {slot("bandTeamPhoto") ? (
           <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
             <img
-              src={slotSrc(img.bandTeamPhoto)}
+              src={slot("bandTeamPhoto")}
+              onError={onSlotError}
               alt={withBusinessFacts("The Insulation Products Corporation team outside the Bolingbrook facility", site)}
               loading="lazy"
               decoding="async"
@@ -3315,7 +3327,7 @@ function HomePage() {
             />
           </figure>
           ) : null}
-          {img.bandBuildingPhoto ? (
+          {slot("bandBuildingPhoto") ? (
           /* PLAN-9 item 4 — md:self-start: grid items stretch to the row
              height by default, and the team figure (two columns of 16:9)
              sets a taller row than one column of 16:9 fills — the bordered
@@ -3324,7 +3336,8 @@ function HomePage() {
              (PLAN-7 measured the upscale harm). */
           <figure className="m-0 rounded-2xl overflow-hidden md:self-start" style={{ border: "1px solid #e5e9ee" }}>
             <img
-              src={slotSrc(img.bandBuildingPhoto)}
+              src={slot("bandBuildingPhoto")}
+              onError={onSlotError}
               alt={withBusinessFacts(`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`, site)}
               loading="lazy"
               decoding="async"
@@ -3725,6 +3738,7 @@ function AboutPage() {
   const { milestones, capabilities, certs, copy } = useContent();
   const c = copy.aboutHeader;
   const img = copy.siteImages;
+  const [slot, onSlotError] = useSiteImageSlots(img);
   const claims = copy.claims;
 
   return (
@@ -3765,12 +3779,17 @@ function AboutPage() {
 
             {/* PLAN-7 item 2, slot 3 — the facility, on the page that is
                 about the company. Reuses the file the homepage band already
-                ships, so this costs no new bytes. The 3:2 crop trims the
-                white border baked into the source pixels.
+                ships, so this costs no new bytes.
+                CORRECTED 2026-10-13 (AUDIT-12 A12-L11-02-1): this said "the 3:2
+                crop trims the white border baked into the source pixels". It
+                does not — a 3:2 cover crop of the 1.51:1 file removes ~2px — and
+                this slot paints the 425px file at 745px (1440) to 1257px (2560),
+                so the border shows and the photo is soft. Open with the owner.
                 Owner-editable since item 3a; cleared removes it entirely. */}
-            {img.aboutPhoto ? (
+            {slot("aboutPhoto") ? (
             <img
-              src={slotSrc(img.aboutPhoto)}
+              src={slot("aboutPhoto")}
+              onError={onSlotError}
               alt={withBusinessFacts(`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`, site)}
               loading="lazy"
               decoding="async"
@@ -3831,6 +3850,11 @@ function AboutPage() {
         </div>
 
         {/* 4.3 — Milestone timeline */}
+        {/* AUDIT-12 A12-L15-05-1 — this section and the two below render only
+            with at least one row: deleting every row is the owner's only
+            control over them (invariant 3), and their headings used to stay
+            behind over empty space. */}
+        {milestones.length ? (
         <div>
           <div
             className="text-xs font-bold tracking-widest uppercase mb-8"
@@ -3937,8 +3961,10 @@ function AboutPage() {
             })}
           </div>
         </div>
+        ) : null}
 
         {/* Certifications */}
+        {certs.length ? (
         <div>
           <div
             className="text-xs font-bold tracking-widest uppercase mb-6"
@@ -3988,8 +4014,10 @@ function AboutPage() {
             ))}
           </div>
         </div>
+        ) : null}
 
         {/* 4.2 — Capability cards */}
+        {capabilities.length ? (
         <div>
           <div
             className="text-xs font-bold tracking-widest uppercase mb-6"
@@ -4008,6 +4036,7 @@ function AboutPage() {
             ))}
           </div>
         </div>
+        ) : null}
 
         {/* CTA strip */}
         <div
@@ -7260,8 +7289,31 @@ function asText(v) {
 }
 
 function slotSrc(p) {
+  // A truthy non-string (a number, `true`, an object — a hand edit or an old
+  // backup) reached `.startsWith` and took the page down. Degrade it like a
+  // missing photo instead: "" renders no picture. (AUDIT-12 A12-L15-09-1)
+  if (typeof p !== "string") return "";
   if (!p || p.startsWith("/") || /^[a-z]+:/i.test(p)) return p;
   return "/" + p;
+}
+
+// AUDIT-12 A12-L11-W3-G2-2 — a page-photo slot whose file is missing (or did
+// not arrive) rendered a broken-picture box with its alt text spilling inside
+// it. A missing image is indistinguishable from a served one except through
+// onError (the T2.7 rule the product photo already follows), so a slot that
+// fails is treated exactly as a cleared one: it renders nothing. Keyed on the
+// resolved src, so a later edit pointing the slot at another file tries again.
+function useSiteImageSlots(img) {
+  const [broken, setBroken] = useState(() => new Set());
+  const onError = useCallback((e) => {
+    const s = e.currentTarget.getAttribute("src");
+    if (s) setBroken((prev) => (prev.has(s) ? prev : new Set(prev).add(s)));
+  }, []);
+  const src = (key) => {
+    const s = slotSrc(img ? img[key] : "");
+    return s && !broken.has(s) ? s : "";
+  };
+  return [src, onError];
 }
 
 // Built lazily (this is a hoisted function declaration) so it can reference
@@ -9726,6 +9778,42 @@ function ProductDetail({ product, allProducts }) {
                   {asText(product.pdfLabel) || "Datasheet"}
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
+              </>
+            ) : (
+              <PageLink
+                page="contact"
+                className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
+                style={{
+                  background: "var(--brand-accent)",
+                  color: "#141414",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+                title="Data sheet not yet uploaded — contact us to request one"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+                {/* A-9.P5a-7 — "Data Sheet" here made a third spelling of the
+                    same noun on one page. One word, like the route. */}
+                Request Datasheet
+              </PageLink>
+            )}
+            {/* AUDIT-12 A12-L4-06-1 — the extra data sheets render whether or not
+                the primary one exists. They sat inside the primary's branch, so
+                Remove PDF on IP52EC's "Molded Cap" also hid "Plugged Cap", which
+                the Edit page still listed and the server still held. */}
                 {/* Additional PDF variants (e.g. IP52EC plugged-cap) — same styling */}
                 {/* A-7.8 — a null entry here is `extra.url` on null, which throws
                     in the key expression before any guard downstream runs. Same
@@ -9763,38 +9851,6 @@ function ProductDetail({ product, allProducts }) {
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
-              </>
-            ) : (
-              <PageLink
-                page="contact"
-                className="ipc-touch flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 hover:brightness-110"
-                style={{
-                  background: "var(--brand-accent)",
-                  color: "#141414",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-                title="Data sheet not yet uploaded — contact us to request one"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
-                {/* A-9.P5a-7 — "Data Sheet" here made a third spelling of the
-                    same noun on one page. One word, like the route. */}
-                Request Datasheet
-              </PageLink>
-            )}
             <PageLink
               // Carry the SKU across, so the RFQ arrives as "— IP35KY —"
               // instead of "General RFQ" and sales knows what was being
@@ -9910,6 +9966,11 @@ function ProductDetail({ product, allProducts }) {
                 >
                   {product.sku}
                 </div>
+                {/* AUDIT-12 A12-L8-W5-G3-1 — "coming soon" is a statement
+                    about the catalog (no photograph yet). For a photograph
+                    that exists but did not load it is false, so a load failure
+                    shows the SKU and the mark only. */}
+                {!photoFailed ? (
                 <div
                   style={{
                     fontSize: 10,
@@ -9921,6 +9982,7 @@ function ProductDetail({ product, allProducts }) {
                 >
                   Product Image Coming Soon
                 </div>
+                ) : null}
               </div>
             </div>
           )}
@@ -10368,7 +10430,9 @@ function CatalogCard({ product: p }) {
             letterSpacing: "0.08em",
           }}
         >
-          IMAGE COMING SOON
+          {/* AUDIT-12 A12-L8-W5-G3-1 — only when there is no photograph;
+              a photograph that failed to load is not "coming soon". */}
+          {photoFailed ? null : "IMAGE COMING SOON"}
         </div>
       )}
       <div className="px-4 py-3 flex flex-col gap-1.5">
@@ -10872,6 +10936,12 @@ function ProductPage({ products }) {
                   {asText(product.pdfLabel) || "Datasheet"}
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
+              </>
+            ) : null}
+            {/* AUDIT-12 A12-L4-06-1 — the sticky bar's extra data sheets render whether or not
+                the primary one exists. They sat inside the primary's branch, so
+                Remove PDF on IP52EC's "Molded Cap" also hid "Plugged Cap", which
+                the Edit page still listed and the server still held. */}
                 {/* Additional PDF variants — same styling */}
                 {/* A-7.8 — a null entry here is `extra.url` on null, which throws
                     in the key expression before any guard downstream runs. Same
@@ -10923,8 +10993,6 @@ function ProductPage({ products }) {
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   ))}
-              </>
-            ) : null}
             <PageLink
               page="contact"
               // F8 — this carried no params, so the sticky bar's "Request a
@@ -12901,6 +12969,7 @@ function ServicesPage() {
   const { services, copy } = useContent();
   const c = copy.servicesHeader;
   const img = copy.siteImages;
+  const [slot, onSlotError] = useSiteImageSlots(img);
   // Summarise the (previously dead) per-service leadTime values. Falls back to
   // the old hardcoded string only when nothing is set. (DEPLOY_READINESS_v2 4.11)
   /**
@@ -12928,7 +12997,11 @@ function ServicesPage() {
    */
   const leadTimeSummary = useMemo(() => {
     const vals = asList(services).map((s) => asText(s && s.leadTime).trim()).filter(Boolean);
-    if (vals.length === 0) return { headline: "\u2264 1 Week", note: "" };
+    // AUDIT-12 A12-L15-15-1 — with no lead time on any service there is no
+    // lead-time claim. This returned a hardcoded "≤ 1 Week" that survived the
+    // owner clearing every one (ADM-8: a claim removed because it is not true
+    // stays removed); the headline line is now omitted instead.
+    if (vals.length === 0) return { headline: "", note: "" };
 
     const counts = new Map();
     for (const v of vals) counts.set(v, (counts.get(v) || 0) + 1);
@@ -13007,12 +13080,14 @@ function ServicesPage() {
               </svg>
             </div>
             <div>
+              {leadTimeSummary.headline ? (
               <div className="text-base font-extrabold ipc-ink-header">
                 {/* Was hardcoded "≤ 1 Week" while content.json's services[].leadTime
                     was editable and rendered nowhere. (DEPLOY_READINESS_v2 4.11)
                     B21: the headline is one value now, never a joined list. */}
                 Standard Lead Time: {leadTimeSummary.headline}
               </div>
+              ) : null}
               <div
                 className="text-xs font-medium mt-0.5"
                 style={{ color: "rgba(var(--brand-header-ink-rgb), 0.75)" }}
@@ -13052,10 +13127,11 @@ function ServicesPage() {
             already paid for on the homepage.
             21:9 rather than the file's 3:2: this is a band under a banner, not
             a feature image, and object-fit does the crop. */}
-        {img.servicesPhoto ? (
+        {slot("servicesPhoto") ? (
         <figure className="m-0 mb-12 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
           <img
-            src={slotSrc(img.servicesPhoto)}
+            src={slot("servicesPhoto")}
+            onError={onSlotError}
             alt="Custom hot-stamp printed heat shrink sleeves and wire markers produced by IPC"
             loading="lazy"
             decoding="async"
