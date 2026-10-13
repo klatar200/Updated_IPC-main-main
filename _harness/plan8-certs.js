@@ -69,7 +69,7 @@ const note = (ok, what, detail = '') => {
  */
 const READ_BLOCKS = () => {
   const byHeading = (label) => {
-    const head = [...document.querySelectorAll('div')].find(
+    const head = [...document.querySelectorAll('div, h2')].find(   // A12-L7-W3-G2-2: the section titles are h2s now
       (d) => d.textContent.trim() === label && d.children.length === 0
     );
     return head && head.parentElement ? head.parentElement : null;
