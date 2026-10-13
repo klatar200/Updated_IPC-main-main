@@ -6,7 +6,8 @@
  * CLAUDE.md's invariant list and the code each one guards — it is NOT the
  * original file, and its check count (16) is its own, not the 15 the earlier
  * sessions reported. Treat a green run here as "the twelve invariants hold",
- * not as "the historical suite passed". Current count: 17.
+ * not as "the historical suite passed". Current count: 19 (INV2c and
+ * INV5c, 2026-10-13, run PHP rather than read it).
  *
  * Every check is proved capable of failing by _harness/invariants-selftest.js,
  * which mutates COPIES of the five source files in a temp tree and asserts the
@@ -21,7 +22,9 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 // IPC_ROOT lets invariants-selftest.js point the same checks at a mutated copy
 // of the tree. Unset (the normal case) it is the repo itself.
@@ -79,6 +82,28 @@ function stripPhpComments(s) {
           .replace(/^[ \t]*#.*$/gm, '');
 }
 
+/**
+ * Run PHP against a COPY of the tree's admin/config.php, alone in a temp dir —
+ * i.e. a fresh deploy with no config.local.php beside it. For the invariants
+ * whose break can be re-worded past any textual check (AUDIT-12
+ * A12-L13-W1-R2-1-2 / -4): these assert what the code DOES.
+ */
+function phpWithConfig(code) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipc-invphp-'));
+  try {
+    fs.copyFileSync(path.join(root, 'admin', 'config.php'), path.join(dir, 'config.php'));
+    const r = spawnSync('php', ['-d', 'display_errors=stderr', '-r',
+      `$_SERVER['REQUEST_METHOD'] = 'GET'; require ${JSON.stringify(path.join(dir, 'config.php'))}; ${code}`,
+      dir], { encoding: 'utf8', timeout: 20000 });
+    if (r.error) throw r.error;
+    const out = (r.stdout || '').trim().split('\n').pop();
+    if (r.status !== 0 || !out) throw new Error(`php exited ${r.status}: ${(r.stderr || '').trim().slice(0, 200)}`);
+    return out;
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 const configPhp   = read('admin/config.php');
 const contentPhp  = read('admin/content.php');
 const contactPhp  = read('public/contact.php');
@@ -112,6 +137,15 @@ check('INV2b', 'the sentinel is unsatisfiable (fails password_verify for every i
   if (!m) return { ok: false, detail: 'ADMIN_PASSWORD_SENTINEL not defined' };
   const isBcrypt = /^\$2[aby]\$\d{2}\$.{53}$/.test(m[1]);
   return { ok: !isBcrypt, detail: `sentinel "${m[1]}" parses as a valid bcrypt digest` };
+});
+
+// INV2a/b read the text; this one asks PHP. A default written any other way
+// (e.g. define('ADMIN_PASSWORD_HASH', password_hash('changeme', …))) passed
+// both while 'changeme' signed in to a fresh install (A12-L13-W1-R2-1-2).
+check('INV2c', 'with no config.local.php the admin has no usable password', () => {
+  const out = phpWithConfig(`echo json_encode([ADMIN_PASSWORD_HASH === ADMIN_PASSWORD_SENTINEL, ADMIN_PASSWORD_CONFIGURED]);`);
+  const [isSentinel, configured] = JSON.parse(out);
+  return { ok: isSentinel === true && configured === false, detail: `hash is sentinel: ${isSentinel}, ADMIN_PASSWORD_CONFIGURED: ${configured}` };
 });
 
 // ── Invariant 3 — mergeContent treats an empty array as a DELETION ───────────
@@ -160,6 +194,18 @@ check('INV5b', 'backup_list() sorts on the parsed (timestamp, sequence)', () => 
   return { ok: usesKey && noMtime && noNameSort, detail: 'backup_list() does not sort on backup_sort_key()' };
 });
 
+// INV5a reads the text; this one runs backup_path() over three backups that
+// share one second (sequences 0, 1, 2) and asserts it allocates a NEW name,
+// sequence 3. A one-word `break;` in the max loop left INV5a and lowsA2 green
+// while a save overwrote an existing backup (A12-L13-W1-R2-1-4).
+check('INV5c', 'backup_path() never returns an existing backup name', () => {
+  const out = phpWithConfig(`$d = $argv[1] . '/b'; @mkdir($d);
+    foreach (['', '-01', '-02'] as $n) file_put_contents("$d/p.backup.20990101-000000$n.json", 'x');
+    $p = backup_path($d, 'p'); echo json_encode([basename($p), file_exists($p)]);`);
+  const [name, exists] = JSON.parse(out);
+  return { ok: name === 'p.backup.20990101-000000-03.json' && exists === false, detail: `allocated ${name}${exists ? ' (ALREADY EXISTS)' : ''}` };
+});
+
 // ── Invariant 6 — form_complete stays LAST in content.php's form ────────────
 // It is the max_input_vars truncation sentinel, enforced positionally.
 check('INV6', 'form_complete is the last named control in content.php', () => {
@@ -195,9 +241,21 @@ check('INV8', 'SiteInfoProvider/ContentProvider/Navbar/Footer sit above the load
   if ([iProvider, iContent, iNavbar, iFooter, iGate].some((x) => x < 0)) {
     return { ok: false, detail: 'one of the four chrome elements or the gate was not found' };
   }
+  // The gate is the whole `{needsCatalog && loading ? … : … : renderPage()}`
+  // expression: brace-match it. Comparing against the gate's START let a Footer
+  // moved INTO the render branch pass, since that is textually after the start
+  // too (AUDIT-12 A12-L13-17-2).
+  const gStart = appJsx.lastIndexOf('{', iGate);
+  let depth = 0, gEnd = -1;
+  for (let i = gStart; i < appJsx.length; i++) {
+    if (appJsx[i] === '{') depth++;
+    else if (appJsx[i] === '}') { depth--; if (depth === 0) { gEnd = i; break; } }
+  }
+  if (gEnd < 0) return { ok: false, detail: 'the gate expression is unbalanced' };
+  const footerInGate = appJsx.slice(gStart, gEnd).includes('<Footer');
   // All four must be OUTSIDE (before, and for Footer after) the gate expression.
-  const ok = iProvider < iGate && iContent < iGate && iNavbar < iGate && iFooter > iGate;
-  return { ok, detail: `provider ${iProvider} content ${iContent} navbar ${iNavbar} gate ${iGate} footer ${iFooter}` };
+  const ok = iProvider < gStart && iContent < gStart && iNavbar < gStart && iFooter > gEnd && !footerInGate;
+  return { ok, detail: `provider ${iProvider} content ${iContent} navbar ${iNavbar} gate ${gStart}-${gEnd} footer ${iFooter}${footerInGate ? ' (a <Footer is inside the gate)' : ''}` };
 });
 
 // ── Invariant 9 — skeleton styles live in index.css ─────────────────────────

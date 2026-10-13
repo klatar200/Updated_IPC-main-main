@@ -74,6 +74,34 @@ $entries = array_reverse($entries); // newest first
 // the older leads still exist and where.
 $archives = glob(dirname(INQUIRIES_FILE) . '/inquiries-*.jsonl') ?: [];
 
+// A12-L4-W5-R2-4-1 — the day the log rotated, this page went from 200 leads
+// to 1, yesterday's included, while Help calls it the place a lead "is still
+// on" when email breaks. Fill the window from the newest archives, as the
+// Activity Log does with its own (NEW-N2-11). Archive names are
+// inquiries-<Y-m-d-His>[-<n>].jsonl; sort on (stamp, n), not the name — "-2"
+// sorts before ".jsonl" (the invariant-5 lesson).
+$fromArchive = 0;
+if (count($entries) < $MAX_SHOW && $archives) {
+    $byAge = $archives;
+    usort($byAge, static function ($a, $b) {
+        $k = static function ($f) {
+            return preg_match('/inquiries-(\d{4}-\d{2}-\d{2}-\d{6})(?:-(\d+))?\.jsonl$/', basename($f), $m)
+                ? [$m[1], (int)($m[2] ?? 1)] : ['', 0];
+        };
+        return $k($b) <=> $k($a);   // newest first
+    });
+    foreach ($byAge as $a) {
+        $need = $MAX_SHOW - count($entries);
+        if ($need <= 0) break;
+        $more = [];
+        foreach (inq_tail_lines($a, $need) as $line) {
+            $e = json_decode($line, true);
+            if (is_array($e)) $more[] = $e;
+        }
+        foreach (array_reverse($more) as $e) { $entries[] = $e; $fromArchive++; }
+    }
+}
+
 /* Submissions that were REFUSED by a guard are not delivery failures.
    They were rendered as ordinary messages carrying a red "Email failed" badge,
    their `note` was never displayed, and they counted towards $failed — the
@@ -152,13 +180,15 @@ $navActive = 'inquiries';
 
   <div class="stats">
     <div class="stat"><div class="stat-num"><?= $total ?></div><div class="stat-lbl">Total received</div></div>
-    <div class="stat"><div class="stat-num <?= $failed > 0 ? 'bad' : '' ?>"><?= $failed ?></div><div class="stat-lbl">Mail server refused<?= $total > $MAX_SHOW ? ' (last ' . $MAX_SHOW . ')' : '' ?></div></div>
+    <div class="stat"><div class="stat-num <?= $failed > 0 ? 'bad' : '' ?>"><?= $failed ?></div><div class="stat-lbl">Mail server refused<?= ($total > $MAX_SHOW || $fromArchive > 0) ? ' (last ' . count($entries) . ')' : '' ?></div></div>
     <?php if ($rejected > 0): ?>
-      <div class="stat"><div class="stat-num"><?= $rejected ?></div><div class="stat-lbl">Refused by the form<?= $total > $MAX_SHOW ? ' (last ' . $MAX_SHOW . ')' : '' ?></div></div>
+      <div class="stat"><div class="stat-num"><?= $rejected ?></div><div class="stat-lbl">Refused by the form<?= ($total > $MAX_SHOW || $fromArchive > 0) ? ' (last ' . count($entries) . ')' : '' ?></div></div>
     <?php endif; ?>
   </div>
   <?php if ($failed > 0): ?>
-    <p class="sub" style="margin:-8px 0 20px">"Email delivery failed" counts only genuine send failures. Submissions the website blocked as spam are listed separately and are not a mail problem.</p>
+    <?php /* A12-L9-W5-G4-1 — name the tile on screen (A-5.6 renamed it from
+             "Email delivery failed") and say what to do, as Help does. */ ?>
+    <p class="sub" style="margin:-8px 0 20px">"Mail server refused" counts only genuine send failures: the notification email for those requests did not go out. Each one is still listed below, so the lead is safe — reply to it from your own email. If this number keeps growing, tell your developer; the website's mail setup needs fixing. Submissions the website blocked as spam are listed separately and are not a mail problem.</p>
   <?php endif; ?>
 
   <?php if (empty($entries)): ?>
@@ -217,6 +247,9 @@ $navActive = 'inquiries';
 
   <?php if ($total > $MAX_SHOW): ?>
     <p class="note">Showing the <?= $MAX_SHOW ?> most recent of <?= $total ?> inquiries. The full history is kept in <code>admin/inquiries.jsonl</code>.</p>
+  <?php endif; ?>
+  <?php if ($fromArchive > 0): ?>
+    <p class="note">The last <?= $fromArchive ?> shown come from the newest archive file, because the live log was started afresh when it reached its size limit.</p>
   <?php endif; ?>
   <?php if ($archives): ?>
     <p class="note">Older inquiries have been moved into <?= count($archives) ?> archive file<?= count($archives) === 1 ? '' : 's' ?>

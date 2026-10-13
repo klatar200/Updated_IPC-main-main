@@ -227,7 +227,8 @@ async function main() {
       const g2 = await req('/admin/backups.php');
       const r2 = await POST('/admin/backups.php', { csrf_token: tokenOf(g2.body), backup: bad, action: 'restore' });
       const liveNow = readLive('site-info.json');
-      check('C22', 'restoring a malformed backup is refused', /not valid JSON/i.test(r2.body), { msg: (r2.body.match(/[^>]*not valid JSON[^<]*/) || [''])[0].trim().slice(0, 90) }, '"not valid JSON — restore aborted, nothing was changed"');
+      // Wording: A12-L9-02-W5-3 (was "not valid JSON — restore aborted").
+      check('C22', 'restoring a malformed backup is refused', /damaged and cannot be used/i.test(r2.body), { msg: (r2.body.match(/[^>]*damaged and cannot be used[^<]*/) || [''])[0].trim().slice(0, 90) }, '"That saved version is damaged and cannot be used. Nothing was changed."');
       check('C22', 'and the live file was not touched', liveNow.includes('BACKUP-ALLOC-PROBE'), { untouched: liveNow.includes('BACKUP-ALLOC-PROBE') }, 'live file unchanged');
       // backup_list() ordering — the newest must be first, sorted on (ts, seq)
       const listPage = (await req('/admin/backups.php')).body;

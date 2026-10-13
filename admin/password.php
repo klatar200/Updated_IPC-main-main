@@ -25,9 +25,9 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
 
-    $current = (string)($_POST['current_password'] ?? '');
-    $new     = (string)($_POST['new_password'] ?? '');
-    $confirm = (string)($_POST['confirm_password'] ?? '');
+    $current = raw_str($_POST['current_password'] ?? '');   // A12-L2-01-2 — never cast an array
+    $new     = raw_str($_POST['new_password'] ?? '');
+    $confirm = raw_str($_POST['confirm_password'] ?? '');
 
     // Throttle current-password guesses exactly like the login form — an
     // attacker who hijacks a session shouldn't get free brute-force attempts.

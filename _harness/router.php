@@ -56,7 +56,11 @@ if ($path === '/sitemap.xml' && is_file($root . '/sitemap.php')) {
 }
 
 // Containment: never let ".." climb out of the mirror.
-$full = realpath($root . $path);
+// A decoded NUL (/products%00) made PHP 8's realpath() throw a ValueError — a
+// fatal with HTTP 200 and the folder path, so a local probe measured this
+// router, not the site (AUDIT-12 A12-L13-05-W5-4). No file has a NUL in its
+// name: take the not-a-file branch, as the catch-all would.
+$full = strpos($path, "\0") === false ? realpath($root . $path) : false;
 $realRoot = realpath($root);
 
 if ($full !== false && $realRoot !== false && strpos($full, $realRoot) === 0) {

@@ -100,8 +100,14 @@ async function hoverAway(page) {
 }
 
 const srcOf = new Map();
+// Per scan: text elements found per route@width, and the brand variables the
+// page actually applied. Without them a site that never rendered (an empty
+// shell: no keys in either scan) or a palette that never took effect passed
+// 5/5 — "no element got worse" is vacuous over nothing (AUDIT-12 A12-L13-09-2).
+let meta = null;
 async function scan(browser) {
   const res = new Map();
+  meta = { perView: {}, vars: null };
   for (const route of ROUTES) {
     for (const w of [1440, 390]) {
       const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
@@ -109,6 +115,8 @@ async function scan(browser) {
       await page.goto(BASE + route, { waitUntil: 'networkidle' });
       await page.waitForTimeout(250);
       await page.evaluate(SOURCE);
+      if (!meta.vars) meta.vars = await page.evaluate(() => { const cs = getComputedStyle(document.documentElement); return { primaryColor: cs.getPropertyValue('--brand-primary').trim().toLowerCase(), darkColor: cs.getPropertyValue('--brand-dark').trim().toLowerCase() }; });
+      meta.perView[`${route}@${w}`] = (await page.evaluate(PROBE)).length;
       const states = [['base', async () => {}], ['hovered', () => hoverAway(page)]];
       if (w === 390) states.push(['drawer', async () => { const b = page.locator('button[aria-label*="enu" i]').first(); if (await b.count()) { await b.click(); await page.waitForTimeout(300); } }]);
       if (w === 1440) states.push(['menus', async () => { const t = page.locator('button[aria-haspopup="true"]').first(); if (await t.count()) { await t.hover(); await page.waitForTimeout(250); } }]);
@@ -149,21 +157,28 @@ function window_over(fg, bg) {
     browser = await launch();
     await new Promise((r) => setTimeout(r, 800));
     const shipped = await scan(browser);
+    const MIN_PER_VIEW = 5;
+    const thin = Object.entries(meta.perView).filter(([, n]) => n < MIN_PER_VIEW);
+    const covOk = thin.length === 0 && shipped.size > 0;
+    if (!covOk) bad++;
+    results.push(covOk);
+    console.log(`${covOk ? 'ok  ' : 'FAIL'} the shipped scan found text on every route and width (${shipped.size} elements; at least ${MIN_PER_VIEW} per view)${covOk ? '' : `\n       → ${thin.map(([k, n]) => `${k}: ${n}`).join(', ') || 'nothing scanned'}`}`);
     for (const p of PALETTES) {
       const info = JSON.parse(fs.readFileSync(PRISTINE, 'utf8'));
       info.theme = { ...info.theme, ...p.theme };
       fs.writeFileSync(INFO, JSON.stringify(info, null, 4));
       const now = await scan(browser);
+      const notApplied = Object.entries(p.theme).filter(([k, v]) => (meta.vars || {})[k] !== v.toLowerCase());
       const induced = [];
       for (const [k, v] of now) {
         const was = shipped.get(k);
         if (was !== undefined && was >= 3 && v < 3) induced.push([k, was, v]);
       }
       induced.sort((x, y) => x[2] - y[2]);
-      const ok = induced.length === 0;
+      const ok = induced.length === 0 && notApplied.length === 0 && now.size > 0;
       if (!ok) bad++;
       results.push(ok);
-      console.log(`${ok ? 'ok  ' : 'FAIL'} ${p.name}: ${induced.length} text element(s) readable at the shipped palette fall below 3:1`);
+      console.log(`${ok ? 'ok  ' : 'FAIL'} ${p.name}: ${induced.length} text element(s) readable at the shipped palette fall below 3:1${notApplied.length ? ` — and the palette was NOT applied (page has ${JSON.stringify(meta.vars)})` : ''}${now.size ? '' : ' — and nothing was scanned'}`);
       for (const [k, was, v] of induced.slice(0, LIST ? 400 : 8)) console.log(`       ${v.toFixed(2)} (was ${was.toFixed(2)})  ${k}${LIST ? `\n              ${srcOf.get(k)}` : ''}`);
     }
   } finally {

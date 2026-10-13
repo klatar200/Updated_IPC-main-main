@@ -1,6 +1,6 @@
 /**
  * DEP-2 = PUB-3 — contact.php's envelope sender (sendmail -f).
- * audit-runs/audit-2026-09-27.md §3 (DEP-2), measured in §9.
+ * audit-runs/audit-2026-09-27.md §1 (DEP-2), measured in §6, outcome in §11.
  *
  * mail() was called with no 5th argument, so the envelope sender (the address
  * SPF is checked against, and the one DMARC aligns with the From:) was

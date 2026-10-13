@@ -40,6 +40,7 @@ async function ph(browser) {
       const p = el.getAttribute('placeholder');
       if (!p || el.type === 'hidden') continue;
       const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) continue;   // not rendered at this width (it read avail=-58)
       const cs = getComputedStyle(el);
       const avail = r.width - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0)
         - (parseFloat(cs.borderLeftWidth) || 0) - (parseFloat(cs.borderRightWidth) || 0);
@@ -48,13 +49,21 @@ async function ph(browser) {
       span.style.font = cs.font || `${cs.fontStyle} ${cs.fontVariant} ${cs.fontWeight} ${cs.fontSize}/${cs.lineHeight} ${cs.fontFamily}`;
       span.style.letterSpacing = cs.letterSpacing;
       span.textContent = p;
+      // A <textarea> WRAPS its placeholder, so one unwrapped line against its
+      // width described nothing: the 3-row Special Requirements hint shows in
+      // full and read "cut by 368px" (AUDIT-12 A12-L13-02-2). Wrap it at the
+      // field's inner width and compare HEIGHTS instead.
+      const isArea = el.tagName === 'TEXTAREA';
+      if (isArea) { span.style.whiteSpace = 'pre-wrap'; span.style.overflowWrap = 'break-word'; span.style.display = 'block'; span.style.width = `${avail}px`; span.style.lineHeight = cs.lineHeight; }
       document.body.appendChild(span);
-      const need = span.getBoundingClientRect().width;
+      const need = isArea ? span.getBoundingClientRect().height : span.getBoundingClientRect().width;
       span.remove();
+      const availH = el.clientHeight - (parseFloat(cs.paddingTop) || 0) - (parseFloat(cs.paddingBottom) || 0);
+      const room = isArea ? availH : avail;
       out.push({
-        name: el.name || el.id, placeholder: p,
-        fieldW: +r.width.toFixed(1), avail: +avail.toFixed(1),
-        need: +need.toFixed(1), cut: +Math.max(0, need - avail).toFixed(1),
+        name: el.name || el.id, placeholder: p, axis: isArea ? 'height' : 'width',
+        fieldW: +r.width.toFixed(1), avail: +room.toFixed(1),
+        need: +need.toFixed(1), cut: +Math.max(0, need - room).toFixed(1),
         fontSize: cs.fontSize,
       });
     }

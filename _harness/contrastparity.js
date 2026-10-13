@@ -36,18 +36,34 @@ function loadFns(relPath, names, extraPrelude = '') {
   return eval(`(() => { ${extraPrelude} ${bodies.join('\n')} return { ${names.join(', ')} }; })()`);
 }
 
+/**
+ * The INK_* constants each file SHIPS, read from its source. They were
+ * hardcoded here, so the site and the admin could pick different text colours
+ * and this check stayed green (AUDIT-12 A12-L13-17-4). The inks are compared
+ * across all three implementations below, like the ratios.
+ */
+function inkPrelude(relPath, kw) {
+  const src = fs.readFileSync(path.join(root, relPath), 'utf8');
+  const get = (name) => {
+    const m = src.match(new RegExp(`\\b${kw}\\s+${name}\\s*=\\s*"(#[0-9a-fA-F]{3,6})"`));
+    if (!m) throw new Error(`${name} not found in ${relPath}`);
+    return m[1];
+  };
+  return `${kw} INK_DARK = "${get('INK_DARK')}"; ${kw} INK_LIGHT = "${get('INK_LIGHT')}";`;
+}
+
 // src/App.jsx — needs its INK_* constants in scope.
 const app = loadFns(
   'src/App.jsx',
   ['parseHexColor', 'relativeLuminance', 'contrastRatio', 'inkFor'],
-  'const INK_DARK = "#141414"; const INK_LIGHT = "#ffffff";'
+  inkPrelude('src/App.jsx', 'const')
 );
 
 // admin/contrast-guard.js — its helpers are named differently.
 const guard = loadFns(
   'admin/contrast-guard.js',
   ['parseHex', 'luminance', 'ratio', 'worst', 'inkFor'],
-  'var INK_DARK = "#141414"; var INK_LIGHT = "#ffffff";'
+  inkPrelude('admin/contrast-guard.js', 'var')
 );
 
 // A spread of colors: the shipped palette, the plan's pale example, pure

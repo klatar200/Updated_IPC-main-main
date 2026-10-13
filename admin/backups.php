@@ -62,11 +62,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $key  = $m[1];
         $path = $dataDir . '/' . $file;
         if (!file_exists($path)) {
-            $errors[] = 'That backup no longer exists (it may have been rotated out).';
+            // A12-L9-02-W5-3 — say what to do, in the owner's words.
+            $errors[] = 'That saved version is no longer kept (only the most recent ' . (int)BACKUP_KEEP . ' of each item are). '
+                      . 'Nothing was changed. Reload this page and pick another version.';
         } else {
             $data = json_decode((string)file_get_contents($path), true);
             if (!is_array($data)) {
-                $errors[] = 'The backup file is not valid JSON — restore aborted, nothing was changed.';
+                $errors[] = 'That saved version is damaged and cannot be used. Nothing was changed. '
+                          . 'Pick the next-older version of the same item.';
             } elseif (($TARGETS[$key]['restore'])($data)) {
                 // ADM-3 — a catalog restore also brings back the data sheets
                 // and photos a delete moved aside (config.php file_to_trash()).

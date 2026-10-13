@@ -529,10 +529,16 @@ $errors = [];
 // the product exists. Keep the two arrays separate.
 $warnings = [];
 
-$saved  = isset($_GET['saved']);
+// A12-L3-10-1 — ?saved alone is not evidence of a save: reopening the page
+// from history or the address bar showed "Content saved" with nothing saved.
+// The banner also needs the one-shot session note the save sets (the SEC-9
+// flash idea; invariant 18's rule for /contact?sent=1).
+$savedNote = $_SESSION['ipc_content_saved'] ?? '';
+unset($_SESSION['ipc_content_saved']);
+$saved  = isset($_GET['saved']) && is_string($savedNote) && $savedNote !== '';
 // F3 — ?saved=nochange is still a successful save; it just wrote nothing. It
 // must keep $saved true, or the warnings flash read just below is swallowed.
-$noChange = ($_GET['saved'] ?? '') === 'nochange';
+$noChange = $saved && $savedNote === 'nochange';
 
 // A successful save redirects to ?saved=1, which would swallow any warning that
 // save produced — the one message this feature exists to show. Carry them over
@@ -637,7 +643,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $bu = trim((string)($r['brochure_url'] ?? ''));
                     $bl = trim((string)($r['brochure_label'] ?? ''));
                     unset($r['brochure_url'], $r['brochure_label']);
-                    if ($bu !== '') $r['brochure'] = ['url' => $bu, 'label' => ($bl !== '' ? $bl : 'Download brochure')];
+                    // A12-L4-01-1 — the site prints "Download {label}", so the
+                    // default "Download brochure" read "Download Download
+                    // brochure". A noun phrase, like the shipped ones.
+                    $bt = trim((string)($r['title'] ?? ''));
+                    if ($bu !== '') $r['brochure'] = ['url' => $bu, 'label' => ($bl !== '' ? $bl : ($bt !== '' ? $bt . ' brochure' : 'brochure'))];
                 }
                 if ($hasText) $clean[] = $r; // drop fully-blank rows
             }
@@ -650,6 +660,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // absent unless he actually added rows. Emptying a section that IS
         // saved still deletes it, exactly as before.
         if ($clean === [] && !array_key_exists($sec, $storedContent)) continue;
+        // A12-L4-01-W5-2 — the product families cannot be emptied: the site
+        // falls back to the built-in eleven (App.jsx familyOrder(), plan6-
+        // families), so saving [] was reported "Content saved" while nothing
+        // changed on the site, and the next untouched save logged a change.
+        if ($sec === 'productFamilies' && $clean === [] && !$truncated) {
+            $errors[] = 'Product Families cannot be left empty — with no families listed, the website shows its eleven built-in ones instead. Nothing was saved. Keep at least one family (rename or remove the others as you need).';
+        }
         $out[$sec] = $clean;
     }
 
@@ -790,6 +807,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 . (!empty($warnings) ? ' — ' . count($warnings) . ' unmatched product code(s)' : ''));
             // 4.12: survive the redirect. See the flash read near $saved.
             if (!empty($warnings)) $_SESSION['content_warnings'] = $warnings;
+            $_SESSION['ipc_content_saved'] = $noop ? 'nochange' : '1';   // A12-L3-10-1
             header('Location: content.php?saved=' . ($noop ? 'nochange' : '1'));
             exit;
         }
@@ -934,6 +952,20 @@ function prep_row(string $section, array $row): array {
     return $row;
 }
 
+/**
+ * A12-L9-01-2 — which box names a row in the ✕ prompt. The first text box was
+ * the FAQ's Category ("Remove "Products"?" for every Products question), a
+ * stat's value ("50+"), a milestone's year, a person's emoji. Prefer the field
+ * that IS the row's name; fall back to the first text box as before.
+ */
+function confirm_name_selector(array $cfg): string {
+    $keys = array_column($cfg['fields'], 'key');
+    foreach (['question', 'title', 'name', 'label', 'text'] as $k) {
+        if (in_array($k, $keys, true)) return '[data-field="' . $k . '"]';
+    }
+    return 'input.ci[type=text], textarea.ci';
+}
+
 /** Render one editable row (used for existing rows and the clone template). */
 function render_row(string $section, int $i, array $cfg, array $row): string {
     // Inject icon options into each icon field so render_field can see them.
@@ -981,7 +1013,7 @@ function render_row(string $section, int $i, array $cfg, array $row): string {
           . ' aria-label="Remove row ' . ($i + 1) . ' of ' . h($title) . '"'
           . ' data-confirm="Remove {it} from this page?&#10;&#10;The row disappears now and is deleted for good when you click &quot;Save Content&quot;. If you save by mistake, you can put it back from Backups."'
           . ' data-confirm-scope=".content-row"'
-          . ' data-confirm-from="input.ci[type=text], textarea.ci">✕</button>'
+          . ' data-confirm-from="' . h(confirm_name_selector($cfg)) . '">✕</button>'
           . '</span></div>';
     $out .= '<div class="grid-2">';
     foreach ($fields as $f) $out .= render_field($section, $i, $f, $row, $title);
@@ -1073,6 +1105,10 @@ $navActive = 'content';
     .vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
           overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     .card > .sub { margin-top: -8px; margin-bottom: 18px; }
+    /* A12-L9-02-3 — guidance inside a label inherited the label's 11px
+       capitals, so "uploads/site/" read "UPLOADS/SITE/" in 9px type: a path
+       Rick must type exactly, on a case-sensitive server. */
+    label small { text-transform: none; letter-spacing: normal; font-size: 12px; }
     /* E1/E2 — the "where does this appear" line under each section's prose. */
     .where { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: -10px 0 18px; }
     .where-link { flex-shrink: 0; font-size: 12px; font-weight: 700; color: #005da3; text-decoration: none; background: rgba(0,93,163,0.08); border-radius: 6px; padding: 5px 10px; }
@@ -1150,8 +1186,14 @@ $navActive = 'content';
            "page not found" screen. Checked on every visit from what is STORED,
            so it stays until fixed. */
         $missingFiles = [];
+        // A12-L9-02-4 — name the box by its label ("Homepage hero — photo"),
+        // not its key ("heroPhoto").
+        $siteImgLabels = [];
+        foreach ($COPY_GROUPS['siteImages']['fields'] as $f) {
+            $siteImgLabels[$f['key']] = trim((string)preg_replace('/\s*\([^)]*\)\s*$/', '', strip_tags(explode('<br>', $f['label'])[0])));
+        }
         foreach ((array)($content['copy']['siteImages'] ?? []) as $k => $u) {
-            if (site_file_missing($u)) $missingFiles[] = 'Site Images → ' . $k . ': ' . $u;
+            if (site_file_missing($u)) $missingFiles[] = 'Site Images → ' . ($siteImgLabels[$k] ?? $k) . ': ' . $u;
         }
         foreach ((array)($content['services'] ?? []) as $sv) {
             $bu = is_array($sv) ? ($sv['brochure']['url'] ?? '') : '';

@@ -1,12 +1,11 @@
 /**
  * PLAN-10 — the public-site screenshot crawl.
  *
- * Produces the committed set in `site-screenshots/<date>-after-plan10/`, which
- * exists to be diffed against the owner's own "before" set from the previous
- * version of the site. Unlike `plan10-shot.js` — whose output lives in the
- * gitignored `_harness/out/` and dies with the container — this set is a
- * tracked artifact, so the crawl that made it has to be re-runnable rather than
- * reconstructed from a shell history six months from now.
+ * Writes to `_harness/out/plan10-crawl/` (gitignored). It once produced the
+ * committed set `site-screenshots/<date>-after-plan10/`, diffed against the
+ * owner's "before" set; that folder was deleted 2026-10-02 (WHATS_LEFT §1an —
+ * the PNGs remain in git history, e.g. at 43c25dd), so there is no tracked
+ * output any more. The crawl is kept re-runnable so the set can be re-made.
  *
  * CAPTURES, in two groups:
  *
@@ -20,7 +19,7 @@
  *                   the top of the tall image, which would erase the very thing
  *                   the frame is evidence of. `full: false` marks those.
  *
- * Public routes only. The admin is not crawled here — see the set's README.
+ * Public routes only. The admin is crawled by `plan10-admincrawl.js`.
  *
  * Usage:
  *   node _harness/plan10-crawl.js                 # everything
@@ -29,7 +28,7 @@
  *
  * Env:
  *   CRAWL_BASE=http://127.0.0.1:8123   server to crawl
- *   CRAWL_OUT=<dir>                    output root (default: the committed set)
+ *   CRAWL_OUT=<dir>                    output root (default: _harness/out/plan10-crawl)
  *   CRAWL_FONT=liberation              force the metric-standard face. `fc-match
  *                                      system-ui` resolves to DejaVu Sans on
  *                                      this image, ~21% wider than the real
@@ -56,7 +55,7 @@ const BASE = process.env.CRAWL_BASE || 'http://127.0.0.1:8123';
 // old name. Measured 2026-08-13: one run dirtied 40 tracked screenshots.
 //
 // Set CRAWL_OUT explicitly when the intent really is to regenerate the record.
-// (audit-runs/audit3.md C-06)
+// (audit 3 C-05; IDs as numbered in audit-runs/build-plan-run3.md)
 const OUT = process.env.CRAWL_OUT ||
   path.join(__dirname, 'out', 'plan10-crawl');
 

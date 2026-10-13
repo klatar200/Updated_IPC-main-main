@@ -201,7 +201,13 @@ const sidebarState = (page) =>
     // first save. An unseeded editor showed ZERO rows there while the site
     // rendered eleven families, and invited the owner to retype a list he
     // already had. Measured; now seeded from what is in effect.
-    fs.writeFileSync(MIRROR, pristineContent);
+    // pristine/ is seeded from data/, which HAS carried productFamilies (11
+    // rows) since 081962b — so writing pristine back no longer produced the
+    // day-one state and the seeding arm passed with seeding removed (AUDIT-12
+    // A12-L13-13-4). Delete the key, as plan8-formpolish does for its default.
+    const dayOne = JSON.parse(pristineContent);
+    delete dayOne.productFamilies;
+    fs.writeFileSync(MIRROR, JSON.stringify(dayOne, null, 4));
     const actx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const apage = await actx.newPage();
     await apage.goto(`${BASE}/admin/auth.php`, { waitUntil: 'domcontentloaded' });
@@ -229,7 +235,8 @@ const sidebarState = (page) =>
 
     // Renaming a family that products use must warn BEFORE the save commits.
     const dialogs = [];
-    apage.on('dialog', (d) => { dialogs.push(d.message()); d.dismiss(); });
+    let acceptDialogs = false;
+    apage.on('dialog', (d) => { dialogs.push(d.message()); if (acceptDialogs) d.accept(); else d.dismiss(); });
     await apage.evaluate(() => {
       const row = [...document.querySelectorAll('[data-ipc-family-count]')]
         .find((e) => (e.querySelector('input') || {}).value === 'Tape');
@@ -248,6 +255,20 @@ const sidebarState = (page) =>
       'renaming a family that products use warns before saving, naming the count',
       JSON.stringify(dialogs));
 
+    // The check below ran after the save above was CANCELLED (the dialog was
+    // dismissed, so nothing was posted) and so could not fail. Now confirm the
+    // warning and let the save happen, then compare (AUDIT-12 A12-L13-13-4).
+    acceptDialogs = true;
+    let posted = false;
+    apage.on('request', (r) => { if (r.method() === 'POST' && /\/admin\/content\.php/.test(r.url())) posted = true; });
+    await Promise.all([
+      apage.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+      apage.evaluate(() => document.querySelector('[name="form_complete"]').closest('form').requestSubmit()),
+    ]);
+    const savedFams = JSON.stringify((JSON.parse(fs.readFileSync(MIRROR, 'utf8')).productFamilies) || []);
+    note(posted && /"Tapes"/.test(savedFams),
+      'setup: the confirmed content save really reached the server and stored the renamed family',
+      `posted ${posted}, productFamilies ${savedFams.slice(0, 120)}`);
     note(fs.readFileSync(PRODUCTS_MIRROR).equals(pristineProducts),
       'no content save writes to products-all.json — the catalogue is never ' +
       'bulk-migrated behind the owner',

@@ -38,15 +38,15 @@ Please change it to something of your own the first time you sign in: click **Pa
 
 - Bookmark the admin address above for quick access.
 - Any change you make appears on the live website automatically, usually within about a minute. If you don't see it, hold Ctrl and press Shift+R to force a refresh.
-- Every save keeps a backup. If something ever saves wrong, click **Backups** in the top navigation and restore the version from just before — you can do this yourself, and restoring can itself be undone.
+- Every save keeps a backup. If something ever saves wrong, click **Backups** in the top navigation and restore the entry stamped with the time you saved the change you want to undo (each entry holds the version from just before that save) — you can do this yourself, and restoring can itself be undone. One exception: uploading a new data sheet over an existing one (or a new photo over one you uploaded earlier) replaces the old file for good, so keep a copy of the old one first.
 - Quote requests from the website land under **Inquiries** as well as in your email, so nothing gets lost if an email goes astray.
 - If a page won't save, or the dashboard shows a red banner about server setup, send me a screenshot — that one's mine to fix, not yours.
 
-**Before we launch — a few things only you can confirm**
+**Please check these first — a few things only you can confirm**
 
-These are facts about IPC that the site states. Each one is a box in the dashboard; please check it says what's true, and change it if not:
+These are facts about IPC that the site states. The dashboard can't be signed into until the site is live, so they will already be on the website as they are now when you first sign in — if you can, send me your answers before launch and I'll put them in, or check them first thing after you sign in. Each one is a box in the dashboard; please check it says what's true, and change it if not:
 
-- **ISO 9001** (Business Details → Certifications): put the revision year from your current certificate, or empty the box if you'd rather the site not claim it.
+- **ISO 9001** (Business Details → Certifications): type it the way your current certificate shows it, including the revision year — for example **ISO 9001:2015**, not just "2015" (whatever is in the box replaces the words "ISO 9001" across the site) — or empty the box if you'd rather the site not claim it.
 - **Company Claims** (Page Content): "RoHS compliant — entire line", "42 Products Stocked" and the AMS claims — keep only what's true for every product.
 - **Search engines** boxes (Page Content → Company Claims): these tell Google the brand and manufacturer of every product. If IPC doesn't make a product, correct or empty them.
 - **FAQ**: question 15, and the answer that says to click the "Data Sheet" button — the button now reads "Datasheet".

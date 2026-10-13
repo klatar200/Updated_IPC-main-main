@@ -93,6 +93,14 @@
     if (first) first.focus();
   }
 
+  // Focus the moved row's own arrow; when that arrow has just become disabled
+  // (the row reached the top or bottom), its other arrow.
+  function keepFocus(row, same, other) {
+    var b = row.querySelector('[data-action="' + same + '"]');
+    if (!b || b.disabled) b = row.querySelector('[data-action="' + other + '"]');
+    if (b && !b.disabled) b.focus();
+  }
+
   document.addEventListener('click', function (e) {
     var t = e.target.closest('[data-action]');
     if (!t) return;
@@ -105,22 +113,35 @@
     var row = t.closest('.content-row');
     if (!row) return;
     var section = sectionOf(row);
+    // A12-L7-W3-G1-5 — keep the keyboard user's place, as spectable-editor.js
+    // does (4.30). Moving a focused node blurs it in the browser, and a
+    // removed row takes focus with it, so focus landed on <body> and the next
+    // Tab-then-Enter acted on a different row.
     if (action === 'remove') {
       e.preventDefault();
       var rowParent = row.parentNode;
+      var survivor = row.nextElementSibling || row.previousElementSibling;
       row.remove();
       reindex(section);
       structural(rowParent);
+      var next = survivor && survivor.querySelector('[data-action="remove"]');
+      if (!next) {
+        var host = rowParent.closest('[data-section]');
+        next = host && host.querySelector('[data-action="add"]');
+      }
+      if (next) next.focus();
     } else if (action === 'up') {
       e.preventDefault();
       if (row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
       reindex(section);
       structural(row);
+      keepFocus(row, 'up', 'down');
     } else if (action === 'down') {
       e.preventDefault();
       if (row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
       reindex(section);
       structural(row);
+      keepFocus(row, 'down', 'up');
     }
   });
 
@@ -172,8 +193,8 @@
       if (!orphaned.length) return;
       var msg = 'Renaming a product family does not rename the products in it.\n\n' +
                 orphaned.join('\n') + '\n\n' +
-                'Those products keep their old category until you re-save each one, ' +
-                'so they will appear under the old name on the site.\n\n' +
+                'Those products keep their old category, and appear under the old name on the site, ' +
+                'until you open each one with Edit, pick the new name in Part Type, and save.\n\n' +
                 'Save anyway?';
       if (!window.confirm(msg)) e.preventDefault();
     });

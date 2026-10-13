@@ -17,8 +17,11 @@
  *
  * CAPTURES, in two groups:
  *
- *   the page set    twelve authenticated pages at 390x844 / 834x1112 /
+ *   the page set    fourteen authenticated pages at 390x844 / 834x1112 /
  *                   1440x900, full-page, plus the signed-out login form.
+ *                   Each is also CHECKED: PHP Warning/Notice/Deprecated/Fatal
+ *                   text in the page, or a console error / uncaught exception,
+ *                   fails the run.
  *   the states set  the frames where a phase D change is actually visible.
  *                   `delete.php` and `upload-*.php` need a `?sku=`, and
  *                   `upload-image.php` is the page that carries the MOST nav
@@ -56,7 +59,7 @@ const BASE = process.env.CRAWL_BASE || 'http://127.0.0.1:8123';
 // old name. Measured 2026-08-13: one run dirtied 40 tracked screenshots.
 //
 // Set CRAWL_OUT explicitly when the intent really is to regenerate the record.
-// (audit-runs/audit3.md C-06)
+// (audit 3 C-05; IDs as numbered in audit-runs/build-plan-run3.md)
 const OUT = process.env.CRAWL_OUT ||
   path.join(__dirname, 'out', 'plan10-crawl', 'admin');
 const PW = 'audit-pass-123';
@@ -73,7 +76,9 @@ const T1024 = { width: 1024, height: 768 };
 // plan10-crawl.js and plan10-repalette.js both drive, so every set agrees.
 const SKU = 'IP38FE';
 
-// All twelve authenticated pages. `nav.php` is a partial, not a page.
+// All fourteen authenticated pages. `nav.php` is a partial, not a page.
+// site-images.php and marketing-pdfs.php (2026-09-29, 2026-10-05) were missing
+// while the README said "every admin page" (AUDIT-12 A12-L13-10-2).
 const PAGES = [
   { slug: 'index',        url: '/admin/index.php',  note: 'item 5 (A10-020) — the Delete button used to be clipped to a 17px sliver on all 42 rows' },
   { slug: 'add',          url: '/admin/add.php' },
@@ -87,7 +92,20 @@ const PAGES = [
   { slug: 'help',         url: '/admin/help.php', note: 'item 7 (A10-022) — this page used to render 689px wide in a 390px viewport' },
   { slug: 'upload-pdf',   url: `/admin/upload-pdf.php?sku=${SKU}` },
   { slug: 'upload-image', url: `/admin/upload-image.php?sku=${SKU}`, note: 'item 6 (A10-021) — 13 nav items, the most of any page and the real worst case' },
+  { slug: 'site-images',  url: '/admin/site-images.php' },
+  { slug: 'marketing-pdfs', url: '/admin/marketing-pdfs.php' },
 ];
+
+// The README and the sweep describe this crawl as checking every admin page
+// for PHP notices and console errors; it checked neither — a page printing a
+// Warning, a Notice and a console.error was shot and the run exited 0
+// (AUDIT-12 A12-L13-10-2). Now each authenticated page is read for PHP's
+// diagnostic text and listened to for console errors and uncaught exceptions,
+// and any hit fails the run.
+const PHP_DIAG = /<b>(?:Warning|Notice|Deprecated|Fatal error)<\/b>|\b(?:Warning|Notice|Deprecated|Fatal error): .{0,200}? in \/\S+ on line \d+/;
+let pageErrs = [];
+let dirty = 0;
+let checked = 0;
 
 const PAGE_VPS = [D, T, M];
 
@@ -133,7 +151,7 @@ const STATES = [
       // rather than reporting a soft miss, taking the whole run with it.
       // What this state actually needs is that a second table exists to scroll
       // to; the count of the others is help.php's business, not this shot's.
-      // (audit-runs/audit3.md C-05)
+      // (audit 3 C-04; IDs as numbered in audit-runs/build-plan-run3.md)
       return (await page.locator('table.field-ref').count()) >= 2;
     },
   },
@@ -162,6 +180,8 @@ async function signedIn(browser, vp) {
     ...(vp.mobile ? { hasTouch: true, isMobile: true } : {}),
   });
   const page = await ctx.newPage();
+  page.on('console', (m) => { if (m.type() === 'error') pageErrs.push(`console.error: ${m.text().slice(0, 160)}`); });
+  page.on('pageerror', (e) => pageErrs.push(`uncaught: ${String(e.message).slice(0, 160)}`));
   await page.goto(`${BASE}/admin/auth.php`, { waitUntil: 'domcontentloaded' });
   await page.fill('input[type="password"]', PW);
   await page.click('button[type="submit"]');
@@ -196,8 +216,13 @@ let shot = 0;
     for (const vp of PAGE_VPS) {
       const { ctx, page } = await signedIn(browser, vp);
       for (const p of PAGES) {
+        pageErrs = [];
         await go(page, p.url);
         const stillAuthed = await page.evaluate(`!!document.querySelector('.ipc-admin-header')`);
+        const diag = (await page.content()).match(PHP_DIAG);
+        const errs = [...(diag ? [`PHP: ${diag[0].replace(/<[^>]+>/g, '').slice(0, 160)}`] : []), ...pageErrs];
+        checked++;
+        if (errs.length) { dirty++; process.exitCode = 1; console.log(`  FAIL ${p.slug} @${vp.width}: ${errs.join(' | ')}`); }
         const file = path.join(OUT, `${p.slug}__${vp.width}.png`);
         await page.screenshot({ path: file, fullPage: true });
         const h = await page.evaluate('document.body.scrollHeight');
@@ -247,4 +272,5 @@ let shot = 0;
 
   await browser.close();
   console.log(`\n${shot} shots -> ${OUT}${FORCE_FONT ? '  [Liberation Sans forced]' : ''}`);
+  if (checked) console.log(`plan10-admincrawl ${checked - dirty}/${checked} page views with no PHP notice and no console error`);
 })();

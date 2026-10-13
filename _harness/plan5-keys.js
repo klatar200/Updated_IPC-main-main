@@ -298,8 +298,16 @@ async function signIn(ctx) {
       note(total === 0,
         `A: zero React duplicate-key console messages across ${ROUTES.length} routes + ${PRODUCT_PAGES.length} product pages`,
         `${total} seen ${JSON.stringify(byType)}\n         ${samples.join('\n         ')}`);
-      note(true, `A: (recorded) React emits these as console.ERROR, not console.warn — ` +
-                 `a zero-console-errors sweep catches them on a dev bundle and never on the shipped one`);
+      // Was note(true, …) — a counted pass that could not fail — while nothing
+      // checked that Phase A really ran on development React, i.e. that "zero
+      // messages" meant no duplicates rather than "the warning cannot print"
+      // (AUDIT-12 A12-L13-12-4). Production strips the string; dev React has it.
+      const installed = fs.readdirSync(path.join(SITE, 'assets')).filter((f) => f.endsWith('.js'));
+      const hasWarning = installed.some((f) => fs.readFileSync(path.join(SITE, 'assets', f), 'utf8').includes('Encountered two children with the same key'));
+      note(hasWarning,
+        `A: the bundle Phase A ran on is development React (it carries the duplicate-key warning), so zero means zero`,
+        `none of ${installed.join(', ')} contains React's "Encountered two children with the same key" — the warning could not have printed`);
+      console.log('    (recorded) React emits these as console.ERROR, not console.warn — a zero-console-errors sweep catches them on a dev bundle and never on the shipped one');
     }
   } finally {
     // Put the mirror back the way the rest of the harness expects it.

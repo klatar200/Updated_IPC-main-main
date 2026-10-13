@@ -83,8 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Whitelisted against the vocabulary. A NEW product always gets an
             // explicit list — even an empty one — so it is never re-derived
             // from its own prose later.
+            // A12-L3-09-1 — string members only (approvals[a][]= warned).
             'approvals' => is_array($_POST['approvals'] ?? null)
-                ? array_values(array_intersect(IPC_APPROVALS, $_POST['approvals']))
+                ? array_values(array_intersect(IPC_APPROVALS, array_filter($_POST['approvals'], 'is_string')))
                 : [],
             'badges'  => array_values(array_filter(array_map('trim', explode("\n", post_str('badges'))), 'strlen')),
             'description' => array_values(array_filter(array_map('trim', explode("\n", post_str('description'))), 'strlen')),

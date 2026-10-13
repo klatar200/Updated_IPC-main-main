@@ -28,12 +28,13 @@
  * the shape the renderer cannot survive — through the admin UI, by the owner,
  * with a success message.
  *
- * ── The four shapes, and why each one ───────────────────────────────────────
+ * ── The five shapes, and why each one ───────────────────────────────────────
  *
  *   T2-FLAT    specTable2.rows = ["8.0","9.0"]       — A-5.12's own repro.
  *                                                      `row.map` is not a
  *                                                      function on a string.
  *   T2-NULLROW specTable2.rows = [null]              — `row.map` on null.
+ *   T2-NULLCOL specTable2.columnSpans = [null]       — a null column span.
  *   T1-NULLROW specTable1.rows = [null]              — `row.label` on null.
  *   T1-OBJVAL  specTable1.rows = [{label:{},value:1}] — an object as a React
  *                                                      child. React throws

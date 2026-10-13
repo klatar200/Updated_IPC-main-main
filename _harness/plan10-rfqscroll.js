@@ -30,13 +30,21 @@
  *      "what not to do") — this check is what proves the mechanism did not
  *      change.
  *
- * Usage: node _harness/plan10-rfqscroll.js       (needs :8123)
+ * TWO WAYS TO SUBMIT (AUDIT-12 A12-L7-W3-G4-3). The click path below centres
+ * Submit first, which always puts Full Name off-screen, so the browser had to
+ * scroll and scroll-margin applied. A keyboard user who TABS to Submit and
+ * presses Enter leaves Full Name partly on screen under the header at
+ * 1440x900; Chrome counts that as in view and does not scroll, and this suite
+ * passed while 39.5 of 46px of the field and its whole label were hidden.
+ * Every viewport and tab now runs both paths.
+ *
+ * Usage: node _harness/plan10-rfqscroll.js       (needs :8123; RFQSCROLL_BASE overrides)
  */
 const fs = require('fs');
 const path = require('path');
 const { launch } = require('./browser');
 
-const BASE = 'http://127.0.0.1:8123';
+const BASE = process.env.RFQSCROLL_BASE || 'http://127.0.0.1:8123';
 const OUT = path.join(__dirname, 'out', 'plan10');
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -50,6 +58,7 @@ const TABS = [
   { id: 'rfq', label: 'the RFQ tab', index: 0 },
   { id: 'message', label: 'the message tab', index: 1 },
 ];
+const PATHS = ['click', 'keyboard'];
 
 const READ = () => {
   const a = document.activeElement;
@@ -110,7 +119,7 @@ function note(ok, msg, detail) {
       ...(vp.mobile ? { hasTouch: true, isMobile: true } : {}),
     });
     rows[vp.n] = {};
-    for (const tab of TABS) {
+    for (const tab of TABS) for (const via of PATHS) {
       const page = await ctx.newPage();
       await page.goto(BASE + '/contact', { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
@@ -125,12 +134,26 @@ function note(ok, msg, detail) {
       // Scroll the form into view first, exactly as a visitor reaches it, so
       // the measurement is of the browser's own validation scroll and not of
       // an artificial starting offset (the Refuted §1 lesson from A10-056).
-      await page.locator('form button[type="submit"]').first().scrollIntoViewIfNeeded();
-      await page.waitForTimeout(200);
-      await page.locator('form button[type="submit"]').first().click().catch(() => {});
+      if (via === 'click') {
+        await page.locator('form button[type="submit"]').first().scrollIntoViewIfNeeded();
+        await page.waitForTimeout(200);
+        await page.locator('form button[type="submit"]').first().click().catch(() => {});
+      } else {
+        // Real Tab presses from the top of the page until Submit has focus,
+        // then Enter — the browser scrolls only as far as each focus needs.
+        let reached = false;
+        for (let i = 0; i < 250 && !reached; i++) {
+          await page.keyboard.press('Tab');
+          reached = await page.evaluate(() => {
+            const a = document.activeElement;
+            return !!a && a.matches('form button[type="submit"]');
+          });
+        }
+        if (reached) await page.keyboard.press('Enter');
+      }
       await page.waitForTimeout(900);
       const r = await page.evaluate(READ);
-      rows[vp.n][tab.id] = r;
+      rows[vp.n][`${tab.id}-${via}`] = r;
       await page.close();
     }
     await ctx.close();
@@ -139,10 +162,10 @@ function note(ok, msg, detail) {
 
   fs.writeFileSync(path.join(OUT, 'rfqscroll.json'), JSON.stringify(rows, null, 1));
 
-  for (const tab of TABS) {
+  for (const tab of TABS) for (const via of PATHS) {
     for (const vp of VPS) {
-      const r = rows[vp.n][tab.id];
-      const where = `${vp.n} / ${tab.label}`;
+      const r = rows[vp.n][`${tab.id}-${via}`];
+      const where = `${vp.n} / ${tab.label} / ${via}`;
 
       // ── 3 first: if native validation is not what fired, the other two
       //    assertions are measuring the wrong thing entirely.

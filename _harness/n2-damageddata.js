@@ -12,7 +12,7 @@
  *         release adds a section, data/ is never re-uploaded) lost that
  *         section's built-in text on the next ordinary save
  *
- * Own `php -S` on :8707 over the mirror, real pages, 11 checks:
+ * Own `php -S` on :8707 over the mirror, real pages, 12 checks:
  *   catalog   damaged -> dashboard banner; Add Product refused and the file's
  *             bytes are untouched; a Backups restore still repairs it
  *   content   damaged -> error on arrival; Save refused, bytes untouched
@@ -122,13 +122,23 @@ const restoreAll = () => {
     delete c.contactTips;
     fs.writeFileSync(f('content.json'), JSON.stringify(c, null, 4));
     await page.goto(`${BASE}/admin/content.php`);
+    // One real edit, so the control can tell a correct save from NO save: with
+    // every Page Content POST thrown away this arm read 11/11, because an
+    // untouched file satisfies "absent stays absent" and "sections come back
+    // as they were" alike (AUDIT-12 A12-L13-10-4).
+    const MARK = ' N2-SAVED';
+    await page.fill('[name="faq[0][question]"]', c.faq[0].question + MARK);
     await saveContent();
     const after = JSON.parse(fs.readFileSync(f('content.json'), 'utf8'));
+    const faqWant = JSON.parse(JSON.stringify(c.faq));
+    faqWant[0].question += MARK;
     note(Array.isArray(tipsBefore) && tipsBefore.length > 0, 'missing: setup — the shipped contactTips has rows');
+    note(after.faq[0].question === c.faq[0].question + MARK, 'missing: setup — the Save really wrote (the one edited FAQ question is on disk)',
+      `faq[0].question is ${JSON.stringify(after.faq[0].question)}`);
     note(!('contactTips' in after), 'missing: an ordinary Save leaves the absent section absent (the website keeps its built-in text)',
       `saved as ${JSON.stringify(after.contactTips)}`);
-    note(JSON.stringify(after.faq) === JSON.stringify(c.faq) && JSON.stringify(after.privacySections) === JSON.stringify(c.privacySections),
-      'missing: control — the sections that ARE saved come back exactly as they were');
+    note(JSON.stringify(after.faq) === JSON.stringify(faqWant) && JSON.stringify(after.privacySections) === JSON.stringify(c.privacySections),
+      'missing: control — the sections that ARE saved come back exactly as they were, plus the one edit');
   } finally {
     if (browser) await browser.close();
     srv.kill();
