@@ -6,7 +6,8 @@
  * port of it. This suite is the drift guard between the two:
  *
  *   parity    for every route, every product, alias and unknown URLs, the RAW
- *             HTML's title, description, canonical, robots and og:* (what an
+ *             HTML's title, description, canonical, robots, every og:* and
+ *             twitter:card (what an
  *             unfurler or a non-rendering crawler reads) equal what the
  *             browser's DOM holds after the app has rendered
  *   mutated   the same parity after Business Details and Page Content edits
@@ -76,6 +77,12 @@ function rawHead(html) {
     ogImage: meta('property', 'og:image'),
     ogImageW: meta('property', 'og:image:width'),
     ogImageH: meta('property', 'og:image:height'),
+    // Every unfurler-visible tag index.html declares, not ten of them: a fix
+    // to og:image:alt in PageMeta alone passed while LinkedIn/Slack kept the
+    // old text (AUDIT-12 A12-L13-W5-G1-1).
+    ogImageAlt: meta('property', 'og:image:alt'),
+    ogType: meta('property', 'og:type'),
+    twitterCard: meta('name', 'twitter:card'),
   };
 }
 
@@ -109,6 +116,9 @@ function rawHead(html) {
         ogImage: m('meta[property="og:image"]'),
         ogImageW: m('meta[property="og:image:width"]'),
         ogImageH: m('meta[property="og:image:height"]'),
+        ogImageAlt: m('meta[property="og:image:alt"]'),
+        ogType: m('meta[property="og:type"]'),
+        twitterCard: m('meta[name="twitter:card"]'),
       };
     });
   };
