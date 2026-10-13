@@ -33,7 +33,7 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 | `data/*.backup.*.json` | write / prune (90 kept per prefix, `BACKUP_KEEP`) |
 | `data/.products-write.lock` | create / `flock` around every catalog save (SEC-5) |
 | `data/.content-write.lock`, `data/.site-info-write.lock` | create / `flock` around every Page Content / Business Details write (`data_write_lock()`, WHATS_LEFT §1an) |
-| `pdfs/` | read / write (created if absent); removed and replaced-by-rename data sheets go to `.deleted.*`, not deleted |
+| `pdfs/` | read / write (created if absent, with `pdfs/.htaccess` written if missing — `pdfs_protection_problem()`); removed and replaced-by-rename data sheets go to `.deleted.*`, not deleted |
 | `pdfs/marketing/` | read / write, never delete (created at runtime if absent by `marketing-pdfs.php`); catalog and brochure PDFs, named from the uploaded file's own name, never overwritten (`-2`, `-3` …) |
 | `uploads/images/` | read / write / delete (created at runtime if absent); photo resizes go through a `.tmp` beside the target |
 | `uploads/site/` | read / write, never delete (created at runtime if absent by `site-images.php`); page photos and the logo, named `<slot>-<stamp>.<ext>`. `images/site/` is read for its picker, never written |

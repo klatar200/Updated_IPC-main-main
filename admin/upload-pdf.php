@@ -45,6 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Could not save the catalog. Check file permissions on products-all.json.';
         }
     }
+    // A12-L3-14-1 — a second Remove (another tab, or Back) used to fall
+    // through to the upload branch and say "Please choose a PDF to upload".
+    elseif (($_POST['action'] ?? '') === 'remove') {
+        $errors[] = 'This product has no data sheet any more, so there is nothing to remove. Nothing was changed.';
+    }
     // Branch B — upload / replace flow (the original behavior).
     // SEC-12 — `pdf_file[]` makes every key an array; say so instead of a TypeError.
     elseif (!upload_field_is_single('pdf_file')) {
@@ -59,13 +64,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Ensure PDF dir exists for the upload path.
         if (!is_dir(PDF_DIR)) {
-            mkdir(PDF_DIR, 0755, true);
+            @mkdir(PDF_DIR, 0755, true);
         }
         $file    = $_FILES['pdf_file'];
         // Extension AND sniffed content, 20 MB — uploaded_pdf_problem() in
         // config.php, shared with the Marketing PDFs page (G1). Messages and
         // order unchanged.
-        $pdfProblem = uploaded_pdf_problem($file);
+        // A12-L2-01-5 — pdfs/.htaccess first, the way upload-image.php treats
+        // uploads/.htaccess (NEW-N3-3): a folder recreated here used to have
+        // no security file, so a replaced sheet lost its no-cache rule.
+        $pdfProblem = pdfs_protection_problem();
+        if ($pdfProblem === '') $pdfProblem = uploaded_pdf_problem($file);
         if ($pdfProblem !== '') {
             $errors[] = $pdfProblem;
         } else {
@@ -115,7 +124,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $currentPdf = $destUrl;
                     $product    = $products[$idx];
                 } else {
-                    $errors[] = 'PDF was saved but could not update products-all.json.';
+                    // A12-L4-04-1 — the DI-3 rule upload-image.php follows: the
+                    // catalog did not change, so a NEW file this upload created
+                    // is an orphan (and publicly downloadable); a same-name
+                    // replacement has already overwritten the old bytes and stays.
+                    if (!$isReplacement) @unlink($destPath);
+                    $products[$idx]['pdfUrl'] = $currentPdf;
+                    if ($currentPdf === '') unset($products[$idx]['pdfUrl']);
+                    $errors[] = 'The PDF could not be saved: the product catalog (products-all.json) could not be updated, so nothing was changed and the website still shows what it showed before. The server may be out of space — try again, or check the data/ folder.';
                 }
             } else {
                 $errors[] = 'Upload failed. Check write permissions on the /pdfs/ directory.';
@@ -144,7 +160,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .btn { display: inline-flex; align-items: center; padding: 10px 22px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
     .btn-primary { background: #005da3; color: #fff; width: 100%; justify-content: center; margin-top: 16px; }
     .btn-secondary { background: #f0f4f8; color: #141414; font-size: 13px; padding: 8px 16px; }
-    .current-pdf { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f0f4f8; border-radius: 8px; font-size: 13px; }
+    /* A12-L6-03-W5-4 — wrap, or Remove PDF sticks out of the box on a phone. */
+    .current-pdf { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: #f0f4f8; border-radius: 8px; font-size: 13px; }
+    .current-pdf > span { min-width: 0; overflow-wrap: anywhere; }
   </style>
 </head>
 <body>
@@ -215,7 +233,13 @@ include 'nav.php';
       ?>
       <div class="hint">
         The file will be saved as <code><?= h($pdfName2) ?></code> in the <code>/pdfs/</code> directory.
-        <?php if ($willOverwrite && $otherOwner !== ''): ?>
+        <?php if ($willOverwrite && $otherOwner !== '' && $pdfName2 === $existingName2): ?>
+          <?php /* A12-L9-14-1 — this product's OWN sheet, shared with another
+                   product: the upload is not refused (upload's refusal needs
+                   $filename !== $existingName); it replaces the one file both
+                   use, as Help #pdfs says. The hint said "will be refused". */ ?>
+          <span style="color:#dc2626;font-weight:600"> ⚠ This data sheet is shared with <?= h($otherOwner) ?>. Uploading here replaces it for both products, and the old version is not kept.</span>
+        <?php elseif ($willOverwrite && $otherOwner !== ''): ?>
           <span style="color:#dc2626;font-weight:600"> ⚠ That filename is <?= h($otherOwner) ?>'s data sheet. This upload will be refused — remove the PDF from <?= h($otherOwner) ?> first, or change this product's SKU.</span>
         <?php elseif ($willOverwrite): ?>
           <span style="color:#dc2626;font-weight:600"> ⚠ This will replace the existing PDF for this product.</span>
