@@ -55,11 +55,14 @@ if ($path === '/sitemap.xml' && is_file($root . '/sitemap.php')) {
     return true;
 }
 
-// Containment: never let ".." climb out of the mirror.
+// Containment: never let ".." climb out of the mirror. Separator-aware: a bare
+// prefix test let /../site-copy/ (a sibling whose name starts with the
+// docroot's) through (AUDIT-12 A12-L13-03-W5-1).
 $full = realpath($root . $path);
 $realRoot = realpath($root);
 
-if ($full !== false && $realRoot !== false && strpos($full, $realRoot) === 0) {
+if ($full !== false && $realRoot !== false
+    && ($full === $realRoot || strpos($full, rtrim($realRoot, '/') . '/') === 0)) {
     if (is_dir($full)) {
         // A directory: serve its index.php / index.html if present, as Apache would.
         foreach (['index.php', 'index.html'] as $idx) {

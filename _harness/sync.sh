@@ -81,14 +81,15 @@ echo "built  bundle: $(grep -o 'index-[A-Za-z0-9_-]*\.js' dist/index.html)"
 # against a stale mirror and reported the old behaviour as still live.
 # Compare the two trees instead of trusting the bundle hash.
 # (audit-runs/audit2.md B-03)
-stale=''
-for f in public/*; do
-  [ -f "$f" ] || continue
-  b=$(basename "$f")
-  if [ ! -f "dist/$b" ] || ! cmp -s "$f" "dist/$b"; then
-    stale="$stale $b"
+# The whole tree, dotfiles and subfolders included: the old `public/*` glob
+# compared only the top level, so a changed public/images/ file (61 of them)
+# or .htaccess/.user.ini reported "in sync" while the mirror served the old
+# one (AUDIT-12 A12-L13-16-3).
+stale=$(cd public && find . -type f | sed 's#^\./##' | while IFS= read -r f; do
+  if [ ! -f "../dist/$f" ] || ! cmp -s "$f" "../dist/$f"; then
+    printf ' %s' "$f"
   fi
-done
+done)
 if [ -n "$stale" ]; then
   echo "STALE:        dist/ does not match public/ for:$stale"
   echo "              The mirror is serving the OLD copies. Run: npm run build && sh _harness/sync.sh"
