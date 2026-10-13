@@ -31,6 +31,9 @@
  * Builds its docroot under /var/tmp (the Apache user cannot traverse a 0700
  * scratch dir) on ports 8691-8692, and removes it on exit.
  *
+ * Trash (A12-L2-01-1, 2026-10-13): a `.deleted.<name>` photo in uploads/ (and
+ * the runtime copy) answers 403 although it ends in an image extension.
+ *
  * Deny-by-default (2026-09-29): in uploads/ (and the runtime copy) every
  * NON-image file must also answer 403 — an uploaded page, script, text, JSON or
  * extension-less file — while JPG/PNG/WEBP/GIF (any case) and an SVG logo
@@ -71,6 +74,10 @@ const PAYLOADS = ['x.php', 'x.php.jpg', 'x.pHp.png', 'x.phtml.gif', 'x.php5', 'x
 const NONIMAGE = [['page.html', '<script>alert(1)</script>\n'], ['x.js', 'alert(1)\n'], ['notes.txt', 'hi\n'],
   ['data.json', '{}\n'], ['noext', 'hi\n'], ['x.svgz', 'hi\n']];
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>\n';
+// A12-L2-01-1 — the admin's trash: a removed photo is renamed `.deleted.<name>`
+// and must answer 403 like a trashed data sheet, although it ends in an image
+// extension the allow-list re-admits.
+const TRASH = [['.deleted.CC.png', PNG], ['.deleted.IP12-GA.JPG', PNG]];
 const isUploads = (dir) => /^(rt\/)?uploads(\/|$)/.test(dir);
 
 // Directory -> .htaccess source, and the legitimate files that must still serve.
@@ -106,7 +113,7 @@ function build(model, port) {
     if (spec.ht) fs.writeFileSync(path.join(d, '.htaccess'), spec.ht);
     for (const p of PAYLOADS) fs.writeFileSync(path.join(d, p), PAYLOAD);
     for (const [name, body] of spec.legit) fs.writeFileSync(path.join(d, name), body);
-    if (isUploads(dir)) for (const [name, body] of NONIMAGE) fs.writeFileSync(path.join(d, name), body);
+    if (isUploads(dir)) for (const [name, body] of [...NONIMAGE, ...TRASH]) fs.writeFileSync(path.join(d, name), body);
   }
   fs.mkdirSync(path.join(base, 'logs'), { recursive: true });
   const mods = ['mpm_prefork', 'authz_core', 'authz_host', 'access_compat', 'mime', 'headers', 'setenvif', 'dir', 'alias']
@@ -172,6 +179,8 @@ try {
       if (isUploads(dir)) {
         const open = NONIMAGE.map(([n]) => [n, get(port, `${dir}/${n}`).code]).filter(([, c]) => c !== 403).map(([n, c]) => `${n} ${c}`);
         note(open.length === 0, `${model}: ${dir}/ denies every non-image file (deny-by-default)`, open.join(', '));
+        const trashOpen = TRASH.map(([n]) => [n, get(port, `${dir}/${n}`).code]).filter(([, c]) => c !== 403).map(([n, c]) => `${n} ${c}`);
+        note(trashOpen.length === 0, `${model}: ${dir}/ denies trashed .deleted.* photos (A12-L2-01-1)`, trashOpen.join(', '));
         const svg = spec.legit.find(([n]) => n.endsWith('.svg'));
         if (svg) {
           const h = spawnSync('curl', ['-s', '--noproxy', '*', '--max-time', '10', '-o', '/dev/null', '-D', '-', `http://127.0.0.1:${port}/${dir}/${svg[0]}`], { encoding: 'latin1' }).stdout || '';

@@ -2873,6 +2873,9 @@ function uploads_runtime_htaccess(): string {
         . "<IfModule mod_headers.c>\n  <FilesMatch \"\\.(?i:svg)$\">\n    Order Deny,Allow\n    Allow from all\n"
         . "    Header set Content-Security-Policy \"default-src 'none'; style-src 'unsafe-inline'; sandbox\"\n"
         . "    Header set X-Content-Type-Options \"nosniff\"\n  </FilesMatch>\n</IfModule>\n"
+        // A12-L2-01-1 — trashed `.deleted.<name>` photos: denied after the
+        // image allow, as in uploads/.htaccess.
+        . "<FilesMatch \"^\\.\">\n  Order Allow,Deny\n  Deny from all\n</FilesMatch>\n"
         . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
         . "  Order Allow,Deny\n"
         . "  Deny from all\n"
