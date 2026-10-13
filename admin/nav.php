@@ -54,6 +54,15 @@ $navExtra  = $navExtra  ?? '';
   .ipc-admin-header .logout { color: rgba(255,255,255,0.5) !important; }
   .ipc-admin-header nav a .nav-badge { display: inline-block; min-width: 18px; margin-left: 6px; padding: 1px 6px;
     border-radius: 9px; background: #d92d20; color: #fff; font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; }
+  /* A12-L7-01-W5-4 — on a touch screen the 13px links were 15px tall in three
+     tight rows, under WCAG 2.5.8's 24px, so a tap opened the neighbouring page.
+     Touch only, the way the public site does it (src/index.css, pointer: coarse);
+     mouse layouts are unchanged. min-height, not padding: Sign Out's inline
+     style sets its padding. */
+  @media (pointer: coarse) {
+    .ipc-admin-header nav a { display: inline-block; min-height: 24px; line-height: 24px; }
+    .ipc-admin-header nav button.logout { min-height: 24px; }
+  }
 </style>
 <header class="ipc-admin-header">
   <a class="logo" href="index.php">

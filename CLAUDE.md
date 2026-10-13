@@ -156,7 +156,9 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   Photo** and a photo replaced by another file type trash the same way (admin
   audit 2026-10-05), and a second trash of one name keeps the older file as
   `.deleted.<stamp>.<name>`. A SKU rename's data-sheet moves are recorded in
-  `admin/.pdf-renames.json` so a restore can move them back (DI-1).
+  `admin/.pdf-renames.json` so a restore can move them back (DI-1); a restore
+  records the moves it makes there too, so the restore can itself be undone
+  (A12-L4-W2-G3-1).
 - **`pdfs/marketing/`** — read/write, **never delete**; created at runtime if
   absent by `marketing-pdfs.php` (2026-10-05, G1), which stores catalog and
   brochure PDFs under a name made from the uploaded file's own name, never
@@ -178,7 +180,8 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   `inquiries.jsonl` and its `inquiries-<stamp>.jsonl` archives (both written by
   `public/contact.php`); read/write `.inquiries-seen.json`; read
   `.inquiry-log-failed.json` (written and cleared by `contact.php`); read/write
-  `.login-throttle.json`; read/write `config.local.php`, backing it up to
+  `.login-throttle.json`; read/write `config.local.php` (written as
+  `config.local.php.<pid>-<rand>.tmp` and renamed in, A12-L4-W2-G4-2), backing it up to
   `config.local.php.bak.<stamp>` (5 kept); read and **delete** — never create —
   `ALLOW-PASSWORD-RESET` (the operator creates it over FTP); create
   `.sessions/` (0700) plus its `.htaccess`, and PHP writes the session files

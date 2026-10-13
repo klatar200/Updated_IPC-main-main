@@ -158,7 +158,9 @@ $navActive = 'inquiries';
     <?php endif; ?>
   </div>
   <?php if ($failed > 0): ?>
-    <p class="sub" style="margin:-8px 0 20px">"Email delivery failed" counts only genuine send failures. Submissions the website blocked as spam are listed separately and are not a mail problem.</p>
+    <?php /* A12-L9-W5-G4-1 — name the tile on screen (A-5.6 renamed it from
+             "Email delivery failed") and say what to do, as Help does. */ ?>
+    <p class="sub" style="margin:-8px 0 20px">"Mail server refused" counts only genuine send failures: the notification email for those requests did not go out. Each one is still listed below, so the lead is safe — reply to it from your own email. If this number keeps growing, tell your developer; the website's mail setup needs fixing. Submissions the website blocked as spam are listed separately and are not a mail problem.</p>
   <?php endif; ?>
 
   <?php if (empty($entries)): ?>
