@@ -279,7 +279,15 @@ async function crawl(browser) {
     };
     // Case-sensitive on purpose: "Feet In Stock" is the field, "feet in stock"
     // is prose that mentions it (a lower-cased match passed with the row deleted).
-    const undocumented = settingNames.filter((k) => !/^(csrf_token|orig_sig)$/.test(k)).filter((k) => !DOC_TERMS[k] || !help.includes(DOC_TERMS[k]));
+    // Matched inside the Business Details field table only (#business), where
+    // each term sits in exactly ONE row. Page-wide, "Phone", "fax" and "email"
+    // occur all over Help, so deleting their row left them "documented"
+    // (AUDIT-12 A12-L13-07-4).
+    const helpSrc = fs.readFileSync(path.join(ROOT, 'admin', 'help.php'), 'utf8');
+    const iBiz = helpSrc.indexOf('<section class="help-section" id="business">');
+    const bizSec = iBiz < 0 ? '' : helpSrc.slice(iBiz);
+    const bizTable = dec(bizSec.slice(0, bizSec.indexOf('</table>')).replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
+    const undocumented = settingNames.filter((k) => !/^(csrf_token|orig_sig)$/.test(k)).filter((k) => !DOC_TERMS[k] || !bizTable.includes(DOC_TERMS[k]));
     note(undocumented.length === 0, `help.php covers all ${settingNames.length - 2} Business Details fields`, undocumented.join(', '));
 
     // ── 4. §2t: empty states follow the Business Details phone ──
