@@ -13,6 +13,11 @@
  *     body text prints black
  *   - IP33PO prints on 3 Letter pages or fewer (was 4)
  *   - and the SCREEN view is untouched: header and footer still show
+ *   - CONTENT that is a <button> still prints (AUDIT-12 A12-L14-W1-G1-1): every
+ *     FAQ question on /faq and every column title of the Product Index on
+ *     /dashboard. Hiding every button printed the FAQ with no questions and
+ *     the index with six blank headers, and the four routes above could not
+ *     see it.
  *
  * Read-only against the mirror on :8123.
  *
@@ -55,6 +60,19 @@ const note = (ok, label, detail) => { results.push({ ok }); console.log(`${ok ? 
       note(pages <= 3, `${route}: prints on ${pages} Letter page(s) (was 4)`);
     }
   }
+  // Buttons that ARE content (data-print="keep").
+  await p.emulateMedia({ media: 'screen' });
+  await p.goto(BASE + '/faq', { waitUntil: 'networkidle' });
+  const qs = await p.$$eval('main button[aria-controls]', (bs) => bs.map((x) => x.innerText.replace(/\+\s*$/, '').trim()).filter(Boolean));
+  await p.emulateMedia({ media: 'print' });
+  const faqText = await p.evaluate(() => document.querySelector('main').innerText);
+  const faqMissing = qs.filter((q) => !faqText.includes(q));
+  note(qs.length > 0 && faqMissing.length === 0, `/faq: all ${qs.length} questions print`, `missing ${faqMissing.length}: ${faqMissing.slice(0, 3).join(' | ')}`);
+  await p.emulateMedia({ media: 'screen' });
+  await p.goto(BASE + '/dashboard', { waitUntil: 'networkidle' });
+  await p.emulateMedia({ media: 'print' });
+  const ths = await p.$$eval('main thead th', (t) => t.map((x) => x.innerText.trim()));
+  note(ths.length > 0 && ths.every(Boolean), `/dashboard: every Product Index column title prints`, JSON.stringify(ths));
   await b.close();
   const bad = results.filter((x) => !x.ok).length;
   console.log(`\nprintcss ${results.length - bad}/${results.length}`);

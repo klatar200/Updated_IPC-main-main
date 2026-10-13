@@ -379,6 +379,12 @@ function ipc_facts_rewriter(array $site)
     $feet = $val($site['stats']['feetInStock']);
     if ($feet !== '' && $feet !== $D['stats']['feetInStock']) {
         $rules[] = [$lit($D['stats']['feetInStock']), $feet];
+        // A12-L8-W4-G2-1 — the title-case form ("25 Million Feet in Stock."),
+        // as factsRewriter() in App.jsx.
+        $title = function ($x) { return preg_replace_callback('/\b[a-z]/', function ($c) { return strtoupper($c[0]); }, $x); };
+        if ($title($D['stats']['feetInStock']) !== $D['stats']['feetInStock']) {
+            $rules[] = [$lit($title($D['stats']['feetInStock'])), $title($feet)];
+        }
         $short = preg_match('/^(\d+(?:\.\d+)?)\s*(?:million|M)\+?$/i', $feet, $m) ? $m[1] . 'M' : $feet;
         if (preg_match('/^(\d+(?:\.\d+)?)/', $D['stats']['feetInStock'], $dm)) {
             $rules[] = ['/(?<![\d.])' . str_replace('.', '\.', $dm[1]) . 'M(?=\+|\b)/u', $short];

@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // file over upload_max_filesize reported "Please select a PDF file to
         // upload" on a page that simultaneously promised "20MB or smaller", so
         // he re-selected the same file and looped. (DEPLOY_READINESS_v2 T3.5)
-        $errors[] = upload_error_message($_FILES['pdf_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'PDF');
+        $errors[] = upload_error_message($_FILES['pdf_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'PDF', 20);
     } else {
         // Ensure PDF dir exists for the upload path.
         if (!is_dir(PDF_DIR)) {

@@ -91,7 +91,11 @@ hold invariants 3 and 4) are exercised locally.
 
 There is no `import.meta.env.DEV` branch, and the old `npx serve .` workaround is
 obsolete — it predates that middleware and would now also expose `admin/` and the
-logs on localhost. A missing file under `/data/` returns a real 404 rather than
+logs on localhost. Vite's own dev server serves the repository root too; a second
+dev-only middleware in `vite.config.mjs` (`denyRepoInternals`) answers 404 for
+`admin/`, `_harness/`, `audit-runs/`, `plans/`, dot-folders such as `.git/`, and
+any `*.php`, `*.jsonl`, `*.md`, `*.ini`, `*.log`, `*.bak` or `*.sh` path, so do
+not take it out before running `npm run dev -- --host`. A missing file under `/data/` returns a real 404 rather than
 the SPA shell, because a 200 carrying `index.html` is precisely the failure that
 hid a deleted catalog once already.
 

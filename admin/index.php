@@ -191,7 +191,7 @@ $navActive = 'products';
       // Failing open is deliberate (it must not lock the owner out) — which is
       // exactly why it has to be said out loud here.
       $healthProblems[] = 'The <code>admin</code> folder is not writable by the web server. '
-        . 'Sales leads from the contact form are being DISCARDED, the activity log cannot record anything, '
+        . 'Contact-form leads are still emailed to sales but are NOT being saved to the Inquiries page, the activity log cannot record anything, '
         . 'the Password page cannot save, and — because both depend on files in this folder — '
         . '<strong>the login cool-off that limits password guessing is switched off and failed sign-ins are not being recorded</strong>. '
         . 'Set admin/ to 755 (or 775) over FTP, then sign out and back in to confirm this warning is gone.' . $permFallback;
@@ -365,12 +365,27 @@ $navActive = 'products';
   <div class="stats">
     <div class="stat"><div class="stat-val"><?= count($products) ?></div><div class="stat-lbl">Total Products</div></div>
     <div class="stat"><div class="stat-val"><?= count($grouped) ?></div><div class="stat-lbl">Categories</div></div>
+    <?php
+      // A12-L11-01-W5-1 — "With PDF" tested the FIELD (!empty), so a data
+      // sheet deleted over FTP, lost in a partial upload or a host restore
+      // still counted, and the buyer's Datasheet click got the server's bare
+      // 404 with nobody told (the ADM-3 record's note, audit-2026-09-27:191).
+      // A /pdfs/ link now counts only when its file is on disk.
+      $pdfPresent = static function (array $p): bool {
+          $u = (string)($p['pdfUrl'] ?? '');
+          if ($u === '') return false;
+          $path = (string)parse_url($u, PHP_URL_PATH);
+          if (strpos($path, '/pdfs/') !== 0) return true;   // an outside link: not ours to check
+          return is_file(PDF_DIR . basename(rawurldecode($path)));
+      };
+      $withPdf = count(array_filter($products, $pdfPresent));
+    ?>
     <div class="stat">
-      <div class="stat-val"><?= count(array_filter($products, fn($p) => !empty($p['pdfUrl']))) ?></div>
+      <div class="stat-val"><?= $withPdf ?></div>
       <div class="stat-lbl">With PDF</div>
     </div>
     <div class="stat">
-      <div class="stat-val"><?= count(array_filter($products, fn($p) => empty($p['pdfUrl']))) ?></div>
+      <div class="stat-val"><?= count($products) - $withPdf ?></div>
       <div class="stat-lbl">Missing PDF</div>
     </div>
   </div>

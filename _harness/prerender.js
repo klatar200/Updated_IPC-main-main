@@ -37,7 +37,7 @@ const { launch } = require('./browser');
 
 const H = __dirname;
 const SITE = path.join(H, 'out', 'prerender-site');
-const PORT = 8747;
+const PORT = Number(process.env.PRERENDER_PORT) || 8747;
 const BASE = `http://127.0.0.1:${PORT}`;
 const DATA = path.join(SITE, 'data');
 const results = [];
@@ -218,6 +218,7 @@ function rawHead(html) {
     info.contact.phone = '630.555.0100';
     info.address.city = 'Naperville';
     info.stats.minimumOrder = '$75';
+    info.stats.feetInStock = '30 million';   // A12-L8-W4-G2-1: both rewriters, both cases
     info.company.name = 'IPC Test Co';
     writeData('site-info.json', info);
     const content = readJson('content.json');
