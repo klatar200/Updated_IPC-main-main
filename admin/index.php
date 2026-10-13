@@ -9,6 +9,13 @@ require_auth();
 // (AUDIT_v3_FINDINGS B2)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['close_reset_window'])) {
     csrf_check();
+    // A12-L3-11-1 — a second Close (stale tab, double submit, or a reset that
+    // already deleted the flag) found no file, and unlink() of a missing file
+    // fails exactly like a permissions failure: Rick was told admin/ is not
+    // writable and to delete over FTP a file that was not there.
+    if (!file_exists(PASSWORD_RESET_FLAG)) {
+        flash_redirect('The password-reset window is already closed — the file is gone.', 'success');
+    }
     $removed = @unlink(PASSWORD_RESET_FLAG);
     audit_log('password', 'admin', $removed
         ? 'Password-reset window closed from the dashboard'
@@ -216,9 +223,27 @@ $navActive = 'products';
         . 'The contact form still works and still records every lead, but its spam rate limit is not counting, '
         . 'and confirmation emails to senders are being held back as a precaution. Ask the host to fix permissions on it.';
   }
-  if (!is_dir(PDF_DIR) || !is_writable(PDF_DIR)) {
-      $healthProblems[] = 'The <code>pdfs</code> folder is missing or not writable. '
+  // A12-L8-03-W5-2 — "missing" and "not writable" are different problems.
+  // A missing pdfs/ is a first deploy that skipped it: uploads still work
+  // (upload-pdf.php creates the folder), but every Datasheet link is dead —
+  // and one upload used to silence this warning while the rest stayed dead.
+  $pdfsMissing = [];
+  foreach ($products as $p) {
+      $pu = $p['pdfUrl'] ?? '';
+      if (is_string($pu) && strpos($pu, PDF_URL) === 0 && site_file_missing($pu)) $pdfsMissing[] = (string)($p['sku'] ?? '?');
+  }
+  if (!is_dir(PDF_DIR)) {
+      $healthProblems[] = 'The <code>pdfs</code> folder is missing on the server, so every product\'s Datasheet link on the website leads nowhere. '
+        . 'Upload the <code>pdfs/</code> folder from the release over FTP (it ships on the first deploy), including its hidden <code>.htaccess</code> file.';
+  } elseif (!is_writable(PDF_DIR)) {
+      $healthProblems[] = 'The <code>pdfs</code> folder is not writable. '
         . 'Data sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.' . $permFallback;
+  }
+  if (is_dir(PDF_DIR) && $pdfsMissing) {
+      $healthProblems[] = '<strong>' . count($pdfsMissing) . ' product' . (count($pdfsMissing) === 1 ? '' : 's')
+        . ' point at a data sheet that is not on the server</strong>, so the Datasheet button gives buyers a "not found" page: '
+        . h(implode(', ', array_slice($pdfsMissing, 0, 8))) . (count($pdfsMissing) > 8 ? ' and ' . (count($pdfsMissing) - 8) . ' more' : '') . '. '
+        . 'Upload the missing files with <strong>Manage PDF</strong>, or upload the <code>pdfs/</code> folder from the release over FTP.';
   }
   // §1aq (doc verification 2026-10-05) — the two folders the newer upload
   // pages write were in the permissions tables but not checked here, so a
@@ -314,7 +339,7 @@ $navActive = 'products';
   <!-- Search -->
   <div class="search-bar">
     <input type="search" id="productSearch" placeholder="Search by SKU / part number or product name…" autocomplete="off" aria-label="Search products" />
-    <span id="searchCount" style="display:flex;align-items:center;font-size:13px;color:#6b7280;white-space:nowrap;"></span>
+    <span id="searchCount" role="status" aria-live="polite" style="display:flex;align-items:center;font-size:13px;color:#6b7280;white-space:nowrap;"></span>
   </div>
   <p id="searchEmpty" style="display:none;color:#4b5563;font-size:13px;margin:0 0 24px;">No products match your search.</p>
 
