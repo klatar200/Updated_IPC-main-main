@@ -84,8 +84,8 @@ $resetErrors   = [];
 
 if ($resetUnlocked && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set_password'])) {
     csrf_check(false);   // recovery happens before any login exists
-    $new     = (string)($_POST['new_password'] ?? '');
-    $confirm = (string)($_POST['confirm_password'] ?? '');
+    $new     = raw_str($_POST['new_password'] ?? '');
+    $confirm = raw_str($_POST['confirm_password'] ?? '');
     $resetErrors = admin_password_problems($new, $confirm, false);
     if (empty($resetErrors)) {
         $res = admin_password_write($new);   // deletes the flag file on success
