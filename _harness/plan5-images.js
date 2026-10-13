@@ -147,13 +147,13 @@ function walk(dir) {
     note(unexpected.length === 0,
       'every /images/ response is a 2xx with an image/* content type — no exceptions',
       unexpected.join('\n         '));
-    // Only the five products whose photoUrl legitimately points at placehold.co
-    // fall back now. The four case-mismatched ones were fixed in
-    // products-all.json; if this ever reads more than 5 again, a photoUrl has
-    // stopped resolving.
+    // Only the five products with NO photoUrl fall back now (they were
+    // placehold.co URLs until the 2026-10-02 data fix, 71a0991, emptied them).
+    // The four case-mismatched ones were fixed in products-all.json; if this
+    // ever reads more than 5 again, a photoUrl has stopped resolving.
     note(noPhoto.length === 5,
       `${products.length - noPhoto.length} of ${products.length} product pages paint a real photo ` +
-      `(${noPhoto.length} on the branded placeholder, all of them placehold.co URLs in the catalog)`,
+      `(${noPhoto.length} on the branded placeholder, all of them products with no photoUrl in the catalog)`,
       noPhoto.join(', '));
     note(PAINTED.every((rel) => painted.has(rel)),
       `all ${PAINTED.length} product images that were painted before are still painted`,

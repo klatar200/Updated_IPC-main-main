@@ -321,7 +321,9 @@ A green control is not evidence until you know why it is green.
 migrations. They are cited in `WHATS_LEFT.md` §4h/§4i and are how the numbers
 there were produced. (Their `2`/`3` follow-up passes were deleted 2026-08-12;
 the numbered variants were incremental re-runs of the same codemod, and the
-first of each is the readable one.)
+first of each is the readable one — except `inkfix`, which corrected
+`inkpatch3`'s output and so cannot be re-derived from the files kept; its
+header says so.)
 
 ## `audit10-*.js` — kept for the findings that are still open
 

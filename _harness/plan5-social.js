@@ -202,7 +202,7 @@ const sameAs = (page) =>
 
       const overflow1 = await page.evaluate(() =>
         document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      note(overflow1 <= 0, `${w}px: no horizontal overflow with five icons`, `${overflow1}px`);
+      note(overflow1 <= 0, `${w}px: no horizontal overflow with all seven icons`, `${overflow1}px`);
 
       // Focus ring — REAL Tab presses. Chromium does not match :focus-visible
       // for programmatic focus, so el.focus() would report a working indicator

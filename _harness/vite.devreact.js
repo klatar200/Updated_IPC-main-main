@@ -1,7 +1,7 @@
 /**
  * A production-shaped build that links DEVELOPMENT React.
  *
- * `plan5-keys.js` needs this and nothing else does. React's duplicate-key
+ * `plan5-keys.js` and `plan5b-sidebar.js` build with this. React's duplicate-key
  * message ("Encountered two children with the same key") only exists in the
  * development build; Vite hardcodes `process.env.NODE_ENV = "production"` for
  * `vite build` regardless of `--mode`, so the shipped bundle strips it and a
