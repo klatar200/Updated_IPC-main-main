@@ -460,7 +460,20 @@ if ($missingRefs) {
 // excusing a third and a fourth -- caught by this check's own mutation test,
 // which appended one and stayed green.
 $knownDupes = [];
-$wl = (string)@file_get_contents(__DIR__ . '/../WHATS_LEFT.md');
+// Since #78 (2026-10-07) WHATS_LEFT.md holds no numbered sections: the
+// numbered log moved to audit-runs/WHATS_LEFT-history.md, and every
+// "WHATS_LEFT §…" citation written before then resolves THERE. Both files are
+// read as one namespace, so a new numbered section in WHATS_LEFT.md cannot
+// reuse a number the history already owns. Reading only WHATS_LEFT.md counted
+// zero sections and passed on nothing, and the @-suppressed read turned a
+// missing file into a pass too (AUDIT-12 A12-L13-09-3).
+$wlFiles = ['WHATS_LEFT.md', 'audit-runs/WHATS_LEFT-history.md'];
+$wl = '';
+$wlMissing = [];
+foreach ($wlFiles as $wf) {
+    $t = is_file(__DIR__ . '/../' . $wf) ? file_get_contents(__DIR__ . '/../' . $wf) : false;
+    if ($t === false) $wlMissing[] = $wf; else $wl .= "\n" . $t;
+}
 $counts = [];
 $headings = [];
 if (preg_match_all('/^(##+)\s+(\d+[a-z]?)\.\s/m', $wl, $hm, PREG_SET_ORDER)) {
@@ -468,6 +481,11 @@ if (preg_match_all('/^(##+)\s+(\d+[a-z]?)\.\s/m', $wl, $hm, PREG_SET_ORDER)) {
         $counts[$h[2]] = ($counts[$h[2]] ?? 0) + 1;
         $headings[$h[1] . ' ' . $h[2]] = true;
     }
+}
+if ($wlMissing || !$counts) {
+    $fail++;
+    echo "FAIL  section drift\n      " . ($wlMissing ? 'cannot read ' . implode(', ', $wlMissing) : 'found 0 numbered sections')
+       . " — the check would pass on nothing\n";
 }
 $dupes = [];
 foreach ($counts as $n => $c) {
@@ -493,8 +511,8 @@ if ($dupes) {
            . implode(' §', $stale) . "\n"
            . "      the collision was fixed — drop it from \$knownDupes, or it will\n"
            . "      license the next reuse of that number\n";
-    } else {
-        echo "section drift             " . count($headings) . " WHATS_LEFT sections, no number reused"
+    } elseif (!$wlMissing && $counts) {
+        echo "section drift             " . count($headings) . " WHATS_LEFT + history sections, no number reused"
            . ($knownDupes ? " (unresolved, allowed: §" . implode(' §', array_keys($knownDupes)) . ")" : "")
            . "\n";
     }
