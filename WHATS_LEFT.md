@@ -678,6 +678,8 @@ is in the history file at the § given.
 | Product-page footer layout shift | Accepted (CLS 0.007–0.024, under 0.1) | 2b |
 | Unknown routes | 200 + `noindex`, no canonical | A5, 1ar |
 | `--brand-accent-text` `#0d7594`; `brand-gradient-mixed-ends` unchanged | Decided 2026-08-06 | 3 |
+| "Made in USA Since 1974" (homepage, About) | Correct — Keagan 2026-10-13: no change. Closes AUDIT-12 A12-L8-01-1. | AUDIT-12 |
+| Old site admin at `/site/admin/` | Keagan 2026-10-13: keep it running and skip its password change for now. AUDIT-12 A12-L3-W5-G2-2 stays open as a risk, not a task. | AUDIT-12 |
 
 ---
 
