@@ -669,6 +669,15 @@ function missingFields(body, values) {
     clearGuards();
     clearMail();
     const marker = `VERIFY-${Date.now()}`;
+    // TAG-SHAPED text in every free-text field the viewer prints. SPEC and
+    // COMPANY alone cannot tell escaped from unescaped output (`<` before a
+    // digit is not a tag, so the browser shows the same text either way), and
+    // this arm stayed green with h() removed from the Special-reqs cell and the
+    // company name (AUDIT-12 A12-L13-07-1). A parsed probe becomes an element
+    // carrying data-ipc-probe; an escaped one stays visible text.
+    const TAG = (where) => `<b data-ipc-probe="${where}">${where}</b>`;
+    const PROBED = { name: `Lead ${marker} ${TAG('name')}`, company: `${COMPANY} ${TAG('company')}`,
+      material: `Glass ${TAG('material')}`, specialReqs: `${SPEC} ${TAG('special')}`, additionalNotes: `Notes ${TAG('notes')}` };
     const body = new FormData();
     // A-04 (audit-runs/audit1.md): contact.php now enforces the two fields
     // the rendered form already marks required. This fixture predates that
@@ -676,12 +685,14 @@ function missingFields(body, values) {
     // submission that never happened. The real form always sends it.
     // (audit-runs/audit3.md C-04)
     body.append('form_type', 'rfq');
-    body.append('name', `Lead ${marker}`);
+    body.append('name', PROBED.name);
     body.append('email', 'viewer@example-read.test');
-    body.append('company', COMPANY);
+    body.append('company', PROBED.company);
     body.append('partNumber', 'IP30HS');
+    body.append('material', PROBED.material);
     body.append('quantity', '500 ft');
-    body.append('specialReqs', SPEC);
+    body.append('specialReqs', PROBED.specialReqs);
+    body.append('additionalNotes', PROBED.additionalNotes);
     await fetch(`${BASE}/contact.php`, { method: 'POST', body });
 
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -698,18 +709,21 @@ function missingFields(body, values) {
       if (!row) return null;
       row.open = true;
       const cells = [...row.querySelectorAll('td')].map((td) => td.textContent.trim());
-      return { text: row.textContent, cells, html: row.innerHTML };
+      const parsed = [...row.querySelectorAll('[data-ipc-probe]')].map((el) => el.getAttribute('data-ipc-probe'));
+      return { text: row.textContent, cells, html: row.innerHTML, parsed };
     }, marker);
 
     note(!!seen, 'viewer: the lead appears in admin/inquiries.php', 'the entry was not found on the page');
-    note(!!seen && seen.cells.includes(SPEC),
+    note(!!seen && seen.cells.includes(PROBED.specialReqs),
       'viewer: the spec string renders LITERALLY — nothing stripped, nothing double-escaped (invariant 10)',
       `cells: ${JSON.stringify(seen && seen.cells)}`);
-    note(!!seen && seen.text.includes(COMPANY) && !seen.text.includes('&#039;') && !seen.text.includes('&amp;'),
+    note(!!seen && seen.text.includes(PROBED.company) && !seen.text.includes('&#039;') && !seen.text.includes('&amp;'),
       'viewer: the company name is not double-escaped',
       `text had &#039;=${!!seen && seen.text.includes('&#039;')} &amp;=${!!seen && seen.text.includes('&amp;')}`);
-    note(!!seen && !/<script|<b>|<i>/i.test(seen.html.replace(/<\/?(details|summary|div|table|tbody|tr|th|td|p|a|span|small)\b[^>]*>/gi, '')),
-      'viewer: nothing in the lead was parsed as markup');
+    const shown = !!seen && Object.values(PROBED).every((v) => seen.text.includes(v));
+    note(!!seen && seen.parsed.length === 0 && shown,
+      'viewer: nothing in the lead was parsed as markup — every tag-shaped value shows as its own text (invariant 10)',
+      seen ? `parsed as elements: [${seen.parsed.join(', ')}]; all five shown literally: ${shown}` : '');
     await page.screenshot({ path: path.join(OUT, 'inquiry-viewer.png'), fullPage: false });
     await ctx.close();
     clearGuards();
