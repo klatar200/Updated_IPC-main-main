@@ -119,17 +119,22 @@ const scrape = (page) =>
         `${sku}: no <table> element at all (specTable2 has rows: [])`,
         `found ${s.tableCount}`);
       await p1440.goto(`${BASE}/products?productId=${sku}`, { waitUntil: 'networkidle' });
-      const box = await p1440.evaluate(() =>
-        [...document.querySelectorAll('div')].filter((d) => {
-          const cs = getComputedStyle(d);
-          const r = d.getBoundingClientRect();
-          return d.textContent.trim() === '' &&
-                 r.width > 40 && r.height > 40 &&
-                 cs.borderTopWidth !== '0px' &&
-                 d.querySelectorAll('svg,img').length === 0;
-        }).map((d) => `${Math.round(d.getBoundingClientRect().width)}x${Math.round(d.getBoundingClientRect().height)}`));
+      const box = await p1440.evaluate(() => {
+        const size = (d) => `${Math.round(d.getBoundingClientRect().width)}x${Math.round(d.getBoundingClientRect().height)}`;
+        const empty = (d) => d.textContent.trim() === '' && d.querySelectorAll('svg,img,table,canvas,video').length === 0;
+        const big = (d) => { const r = d.getBoundingClientRect(); return r.width > 40 && r.height > 40; };
+        // (a) an empty BORDERED box anywhere, as before;
+        const bordered = [...document.querySelectorAll('div')].filter((d) => empty(d) && big(d) && getComputedStyle(d).borderTopWidth !== '0px')
+          .map((d) => `bordered ${size(d)}`);
+        // (b) an empty CELL beside a filled one in the same grid, bordered or
+        // not: the 4.29 panel is a padded, borderless half-width cell next to
+        // the specs, which (a) alone could never see (AUDIT-12 A12-L13-19-1).
+        const cells = [...document.querySelectorAll('div')].filter((g) => getComputedStyle(g).display === 'grid' && [...g.children].some((c) => !empty(c)))
+          .flatMap((g) => [...g.children].filter((c) => empty(c) && big(c)).map((c) => `empty grid cell ${size(c)} beside "${(g.textContent || '').trim().slice(0, 30)}"`));
+        return [...bordered, ...cells];
+      });
       note(box.length === 0,
-        `${sku}: no empty bordered box left where the table was (1440px)`,
+        `${sku}: no empty box or empty grid cell left where the table was (1440px)`,
         `${box.length} found: ${box.join(', ')}`);
     }
     await ctx1440.close();
