@@ -44,7 +44,10 @@ AddDefaultCharset UTF-8
   # (audit-runs/audit6.md A-6.5)
   # PUB-1 — see public/.htaccess for why env=HTTPS, two lines, and no
   # includeSubDomains. The two files must stay in step.
-  SetEnvIf X-Forwarded-Proto "^https$" IPC_TLS=1
+  # Guarded: SetEnvIf is mod_setenvif's (A12-L2-05-1, as public/.htaccess).
+  <IfModule mod_setenvif.c>
+    SetEnvIf X-Forwarded-Proto "^https$" IPC_TLS=1
+  </IfModule>
   Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
   Header always set Strict-Transport-Security "max-age=31536000" env=IPC_TLS
   # Conservative CSP — the admin uses inline <style> blocks but no external JS.
