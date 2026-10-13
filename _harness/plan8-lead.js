@@ -178,8 +178,12 @@ async function submitRfq(page) {
         // Emoji = any astral-plane pictograph in the panel.
         const panel = document.querySelector('[role="status"]') || document.body;
         const emoji = (panel.textContent.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu) || []);
-        const tel = [...document.querySelectorAll('a[href^="tel:"]')].map((a) => a.textContent.trim());
-        const mail = [...document.querySelectorAll('a[href^="mailto:"]')].map((a) => a.textContent.trim());
+        // Inside the confirmation panel only: page-wide, the footer's own
+        // tel:/mailto: links satisfied this with the panel's removed
+        // (AUDIT-12 A12-L13-14-2).
+        const statusPanel = document.querySelector('[role="status"]');
+        const tel = statusPanel ? [...statusPanel.querySelectorAll('a[href^="tel:"]')].map((a) => a.textContent.trim()) : [];
+        const mail = statusPanel ? [...statusPanel.querySelectorAll('a[href^="mailto:"]')].map((a) => a.textContent.trim()) : [];
         // Gap between the last control and the footer.
         const btns = [...document.querySelectorAll('main button, main a')];
         const last = btns.length ? btns[btns.length - 1].getBoundingClientRect().bottom + window.scrollY : null;
@@ -242,10 +246,14 @@ async function submitRfq(page) {
   // suite a reminder rather than a test. Asserting "no more than the one known
   // owner-owned string" holds the line against a NEW hardcoded date arriving
   // in code, which is the part this plan controls.
-  const OWNER_OWNED = 1;
+  //
+  // That owner string has since been replaced in data/ ("e.g. ASAP, end of
+  // month, or a specific date"), so the allowance of one covered nothing and
+  // let a NEW dated placeholder in any field pass under the Required-date
+  // label (AUDIT-12 A12-L13-21-2). The ceiling is now 0.
+  const OWNER_OWNED = 0;
   note(dated.length <= OWNER_OWNED,
-    `at most ${OWNER_OWNED} placeholder carries a literal date, and it is the owner-editable ` +
-    `Required-date example whose code default is already dateless ` +
+    `no placeholder carries a literal date ` +
     `(${dated.length} of ${rec.placeholders.length} placeholders)`,
     dated.join(' | '));
 

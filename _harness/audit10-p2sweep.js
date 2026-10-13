@@ -224,8 +224,18 @@ const measureAtBottom = () => {
         });
         await page.waitForTimeout(400);
         const top = await page.evaluate(measure);
-        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-        await page.waitForTimeout(400);
+        // Scroll to the bottom until scrollY stops moving. The first scroll
+        // shows the product page's quote bar, which adds 76px of body padding
+        // (T2.9) — one scroll measured BEFORE that space and reported the bar
+        // covering the footer on every product page, which a visitor who keeps
+        // scrolling never sees (AUDIT-12 A12-L13-05-W5-6).
+        for (let i = 0, prev = -1; i < 6; i++) {
+          await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+          await page.waitForTimeout(400);
+          const y = await page.evaluate(() => Math.round(window.scrollY));
+          if (y === prev) break;
+          prev = y;
+        }
         const bottom = await page.evaluate(measureAtBottom);
         rows.push({ url, viewport: vp.name, ...top, bottom });
       } catch (e) {

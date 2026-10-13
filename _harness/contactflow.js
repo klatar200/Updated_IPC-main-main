@@ -74,6 +74,14 @@ const note = (ok, what, detail = '') => {
 // per mutation is ~90 s and the selftest makes eight of them.
 const ONLY = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7);
 const want = (tag) => !ONLY || tag === ONLY;
+// A typo'd tag selected nothing and printed "contactflow: 0/0", exit 0 — a
+// green run that tested nothing (AUDIT-12 A12-L13-17-6). Keep in step with
+// the want('…') calls below.
+const TAGS = ['rfq', 'message', 'prefill', 'honeypot', 'validation', 'ratelimit', 'double', 'reset', 'drift', 'truncation', 'labels', 'viewer'];
+if (ONLY && !TAGS.includes(ONLY)) {
+  console.log(`contactflow: unknown --only=${ONLY} (one of: ${TAGS.join(', ')})`);
+  process.exit(2);
+}
 
 // ── Captured mail ──────────────────────────────────────────────────────────
 // fakemail.sh appends the FULL message — headers included, because PHP invokes
@@ -720,5 +728,5 @@ function missingFields(body, values) {
   const pass = results.filter((r) => r.ok).length;
   console.log(`\ncontactflow: ${pass}/${results.length}`);
   console.log(`screenshots -> ${OUT}`);
-  process.exit(pass === results.length ? 0 : 1);
+  process.exit(results.length && pass === results.length ? 0 : 1);
 })();

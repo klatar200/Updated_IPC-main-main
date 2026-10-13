@@ -12,7 +12,8 @@
  *   mutated   the same parity after Business Details and Page Content edits
  *             (ISO revision, phone, city, minimum order, company name, an SEO
  *             row deleted, every SEO row deleted, the seo key absent, a
- *             header title changed) and with a hostile product name
+ *             header title changed), with a blank company name and a
+ *             whitespace-only phone (invariant 4), and with a hostile product name
  *   body      without JavaScript: the product page names the part, its SKU,
  *             description and data sheet; /products links every product;
  *             every route has an h1 and the site nav
@@ -87,7 +88,10 @@ function rawHead(html) {
   fs.rmSync(SITE, { recursive: true, force: true });
   execFileSync('cp', ['-r', path.join(H, 'site'), SITE]);
   pristine();
-  const srv = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', SITE, path.join(H, 'router.php')], { cwd: SITE, stdio: 'ignore' });
+  // -c php-mail.ini: display_errors=On, as on the :8123 sweep server. Without
+  // it the CLI ini's display_errors=Off hid every warning and the "no PHP
+  // warning text" arm below could not fail (AUDIT-12 A12-L13-24-2).
+  const srv = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', SITE, '-c', path.join(H, 'php-mail.ini'), path.join(H, 'router.php')], { cwd: SITE, stdio: 'ignore' });
   await new Promise((r) => setTimeout(r, 700));
   const browser = await launch();
   const jsCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -230,6 +234,23 @@ function rawHead(html) {
     const home = rawHead((await get('/')).body);
     note(/ISO 9001:2015/.test(home.description || '') && /\$75/.test(home.description || ''),
       'mutated: the homepage description carries the new ISO revision and minimum order', home.description);
+
+    // Invariant 4's server half: index.php's port of mergeSiteInfo's blank-drop.
+    // settings.php saves an emptied box as "", and nothing here used a blank
+    // field, so deleting the server's blank-drop left this suite 24/24 while
+    // every crawler-facing page read "Phone:" with no number (AUDIT-12
+    // A12-L13-W5-G1-2). One blank and one whitespace-only field.
+    {
+      const blank = readJson('site-info.json');
+      blank.company.name = '';
+      blank.contact.phone = '   ';
+      writeData('site-info.json', blank);
+      await parity([...ROUTES, '/products?productId=CC', '/products?productId=zzz-nope'], 'parity: a blank company name and a whitespace-only phone are ignored (invariant 4)');
+      const cb = (await get('/contact')).body;
+      note(!/Phone:\s*<\/p>/.test(cb) && /630\.771\.0700/.test(cb),
+        'blank phone: the served page keeps the default number, never "Phone:" alone', (cb.match(/<p>Phone:[^<]*<\/p>/) || ['(no Phone line)'])[0]);
+      pristine();
+    }
 
     const c2 = readJson('content.json');
     c2.seo = [];

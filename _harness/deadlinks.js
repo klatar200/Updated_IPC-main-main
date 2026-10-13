@@ -6,8 +6,12 @@
  * rather than guessing at rendered error copy — the product page renders the
  * same shell either way, so a DOM heuristic could not tell the two apart.
  *
- * The two helpers below are copied verbatim from src/App.jsx:6155-6172. If the
- * originals change this file is stale — it is a one-shot audit, not a suite.
+ * The two helpers below are copied verbatim from src/App.jsx (normalizeSku,
+ * skuSegmentMatch), and resolve() mirrors findProductByParam(). If the
+ * originals change this file is stale. It began as a one-shot audit; it is in
+ * the sweep (sweep-list.txt) and the README calls it a suite, so it EXITS 1 on
+ * any dead reference — it used to print the count and exit 0, so run.js
+ * showed "ok" over a dead link (AUDIT-12 A12-L13-07-2).
  */
 const fs = require('fs');
 const path = require('path');
@@ -30,11 +34,11 @@ const content = raw('pristine/content.json');
 const productsRaw = raw('pristine/products-all.json');
 const products = productsRaw.products || productsRaw;
 
-/** src/App.jsx:6181-6188, the selected-product lookup. */
+/** src/App.jsx findProductByParam(), the selected-product lookup. */
 function resolve(selectedId) {
   return (
     products.find((p) => p.id === selectedId || p.sku === selectedId) ||
-    products.find((p) => normalizeSku(p.sku) === normalizeSku(selectedId)) ||
+    products.find((p) => normalizeSku(p.sku) === normalizeSku(selectedId) || normalizeSku(p.id) === normalizeSku(selectedId)) ||
     products.find((p) => skuSegmentMatch(p.sku, selectedId) || skuSegmentMatch(p.id, selectedId)) ||
     null
   );
@@ -56,3 +60,4 @@ for (const r of refs) {
   console.log(`  ${hit ? 'ok   ' : 'DEAD '} ${r.sku.padEnd(26)} ${hit ? '-> ' + hit.sku : '-> nothing in the catalog'}`);
 }
 console.log(`\n${dead} of ${refs.length} resolve to nothing`);
+process.exit(dead === 0 && refs.length > 0 ? 0 : 1);

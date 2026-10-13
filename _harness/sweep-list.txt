@@ -4,6 +4,9 @@
 #   node _harness/run.js $(grep -v '^#' _harness/sweep-list.txt)
 # Expected red: plan8-polish 16/17 (C49, Linux font metrics — WHATS_LEFT 'cannot be verified').
 # Needs :8123 (php-mail.ini), :8124 (php-trunc.ini), :8125 (php-nb2-off.ini) and :8130–8139.
+# Also needs apache2 + libapache2-mod-php (+ mod_ssl) for lowsE-apache, dep3-scriptblock and
+# prerender-apache (each starts its own Apache). Without them those three print SKIPPED, exit 3
+# and show as CRASHED — expected, not a regression, on a host without Apache.
 adminwidth
 audit5-blockers
 audit5-high
@@ -12,6 +15,7 @@ audit6
 audit7
 audit7-lead
 audit9-admin-text
+audit9-catalog-text
 audit9-fixes
 audit9-public-fixes
 audit9-router-docroot

@@ -151,6 +151,25 @@ async function publicArms(browser) {
     await ctx.close();
   }
 
+  // ── CLAUDE.md invariants 13 and 14 — the wide page width and the 4th catalog column.
+  // .ipc-container is 80vw (not 80%) above 1600, and .ipc-catalog-grid's doubled
+  // selector is what lets the 4-column rule beat Tailwind's hoisted
+  // xl:grid-cols-3. "Simplifying" either gives 1280px / 3 columns at 2560 and
+  // nothing else noticed (AUDIT-12 A12-L13-01-2: adminwidth only measures admin).
+  {
+    const ctx = await ctxFor(browser, 2560, 1200);
+    const page = await ctx.newPage();
+    await go(page, '/products');
+    const m = await page.evaluate(() => {
+      const c = document.querySelector('main .ipc-container');
+      const g = document.querySelector('.ipc-catalog-grid');
+      return { container: c ? Math.round(c.getBoundingClientRect().width) : null, cols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').length : null };
+    });
+    note(m.container === 2048, `invariant 13: .ipc-container is 80vw at 2560 (${m.container}px)`, JSON.stringify(m));
+    note(m.cols === 4, `invariant 14: the catalog grid has 4 columns at 2560 (${m.cols})`, JSON.stringify(m));
+    await ctx.close();
+  }
+
   // ── A10-008 — /datasheets lights the Products nav item
   {
     const ctx = await ctxFor(browser, 1440, 900);
@@ -287,8 +306,14 @@ async function publicArms(browser) {
       samples.push(await page.evaluate(() => { const b = [...document.querySelectorAll('div')].find((d) => getComputedStyle(d).position === 'fixed' && /Request a Quote/i.test(d.textContent) && d.getBoundingClientRect().height < 200); return b ? Math.round(b.getBoundingClientRect().top) : null; }));
       await page.waitForTimeout(60);
     }
-    const tops = samples.filter((x) => x !== null);
-    note(new Set(tops).size <= 1, `A10-057: under reduced motion the RFQ bar appears without a spring (${JSON.stringify(tops)})`);
+    // Only samples with the bar IN VIEW count. The first sample can land before
+    // React applies showStickyBar, at the hidden translateY(110%) position
+    // (907 at 1440x900), and one jump from there to the resting 830 is exactly
+    // what reduced motion should look like — it went red about one run in
+    // twenty for that (AUDIT-12 A12-L13-05-W5-2). A spring still shows as more
+    // than one in-view position (the A10-057 report measured 43 → 7.6 → -7.5 → 0).
+    const tops = samples.filter((x) => x !== null && x < 900);
+    note(tops.length >= 4 && new Set(tops).size <= 1, `A10-057: under reduced motion the RFQ bar appears without a spring (${JSON.stringify(samples)})`);
     await go(page, '/faq');
     const tr = await page.evaluate(() => {
       const btn = [...document.querySelectorAll('main button[aria-expanded]')].find((b) => b.getBoundingClientRect().width > 0);
