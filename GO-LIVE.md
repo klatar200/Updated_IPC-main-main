@@ -554,7 +554,7 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
 | Blank page, console error about a missing `assets/…js` | `index.html` went up before `assets/`. Upload `assets/` and it resolves. |
 | Deep links 404 on refresh | `.htaccess` is missing from `public_html/` — it is a hidden dotfile |
 | Every page 404s (or every page but `/`) right after uploading `.htaccess` | `index.php` is not in `public_html/` yet — upload it (B2 step 3). `.htaccess` sends every page to it |
-| "Catalog Unavailable" | `data/products-all.json` missing, unreadable, or served without `Content-Type: application/json` (that is `data/.htaccess`, step B2.8) |
+| "Catalog Unavailable" | `data/products-all.json` missing, unreadable, malformed, or served without `Content-Type: application/json` (that is `data/.htaccess`, step B2.8). If the file opens fine and the site loads for you, the visitor's connection dropped or took over 12 s — the screen is the same; ask them to tap Retry |
 | Admin rejects a known-good password | `config.local.php` missing or overwritten (never with a local copy — B2.6). Recovery: FTP an empty file named `ALLOW-PASSWORD-RESET` into `public_html/admin/`, open `/admin/`, set a new password. Deleting `config.local.php` on its own **locks the admin**, it does not reset it |
 | Form says "mail server could not send" | The `noreply@` mailbox does not exist on the account (step A) |
 | Leads in email but not in Inquiries | `admin/` is not writable by PHP. The dashboard banner says so |
