@@ -137,13 +137,55 @@ define('IPC_INQUIRY_ROTATE_BYTES', 16 * 1024 * 1024);
  */
 define('IPC_LOG_FAIL_MARKER', '.inquiry-log-failed.json');
 
+/**
+ * The live log, opened for append and LOCKED, rotated first if it is full.
+ *
+ * A12-L4-05-W5-2 — the size check and rename ran before, and outside, the
+ * lock. Two submissions in the same second at the 16 MB mark both saw a full
+ * file: the first archived it and started a fresh log, the second renamed THAT
+ * fresh file onto the same second-granular archive name, and rename() replaced
+ * the archive holding every earlier lead. Now the check runs under the lock,
+ * a handle whose file was renamed away while it waited is reopened, and an
+ * archive name already taken gets a suffix instead of being overwritten.
+ * Returns null when the file cannot be opened or locked.
+ *
+ * @return resource|null
+ */
+function ipc_inquiry_log_open(string $dir, string $path) {
+    for ($try = 0; $try < 4; $try++) {
+        $fh = @fopen($path, 'a+b');
+        if (!$fh) return null;
+        if (!flock($fh, LOCK_EX)) { fclose($fh); return null; }
+        clearstatcache(true, $path);
+        $st  = fstat($fh);
+        $cur = @stat($path);
+        if (!$st || !$cur || $st['ino'] !== $cur['ino'] || $st['dev'] !== $cur['dev']) {
+            // Rotated (renamed away) by another request while this one waited.
+            flock($fh, LOCK_UN);
+            fclose($fh);
+            continue;
+        }
+        if ($st['size'] >= IPC_INQUIRY_ROTATE_BYTES) {
+            $base = $dir . '/inquiries-' . date('Y-m-d-His');
+            $arch = $base . '.jsonl';
+            for ($n = 2; file_exists($arch) && $n < 100; $n++) $arch = $base . '-' . $n . '.jsonl';
+            $moved = !file_exists($arch) && @rename($path, $arch);
+            flock($fh, LOCK_UN);
+            fclose($fh);
+            if ($moved) continue;      // start the fresh log
+            $fh = @fopen($path, 'a+b'); // could not rotate: keep appending
+            if (!$fh) return null;
+            if (!flock($fh, LOCK_EX)) { fclose($fh); return null; }
+        }
+        return $fh;
+    }
+    return null;
+}
+
 function ipc_log_inquiry(array $entry): bool {
     foreach ([__DIR__ . '/admin', __DIR__ . '/../admin'] as $dir) {
         if (is_dir($dir)) {
             $path = $dir . '/inquiries.jsonl';
-            if (is_file($path) && @filesize($path) >= IPC_INQUIRY_ROTATE_BYTES) {
-                @rename($path, $dir . '/inquiries-' . date('Y-m-d-His') . '.jsonl');
-            }
             $line  = json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
             // json_encode() can still return false; "false . \n" is a bare
             // newline, which inquiries.php skips as empty — a lost lead that
@@ -156,8 +198,8 @@ function ipc_log_inquiry(array $entry): bool {
             $bytes = false;
             $repaired = false;
             if ($line !== false) {
-                $fh = @fopen($path, 'a+b');
-                if ($fh && flock($fh, LOCK_EX)) {
+                $fh = ipc_inquiry_log_open($dir, $path);
+                if ($fh) {
                     $st = fstat($fh);
                     if ($st && $st['size'] > 0 && fseek($fh, -1, SEEK_END) === 0 && fread($fh, 1) !== "\n") {
                         $repaired = true;
@@ -184,24 +226,60 @@ function ipc_log_inquiry(array $entry): bool {
     return false;
 }
 
+/**
+ * AUDIT-12 (A12-L5-01-1, A12-L5-02-W5-3) — one text field of site-info.json,
+ * read with mergeSiteInfo's type rule (NEW-N1-16): a string, or a number taken
+ * as text; anything else (an object, a list, true) is NOT an override and the
+ * caller uses the shipped value, as the website does. trim() on an array was a
+ * TypeError before the lead was mailed or logged, so one hand-edited field
+ * cost every quote request while the site looked normal; `true` and a list
+ * signed every auto-reply "1" / "Array". Returns null for "not usable".
+ */
+function ipc_si_text(array $si, string $section, string $key): ?string {
+    $sec = $si[$section] ?? null;
+    if (!is_array($sec) || !array_key_exists($key, $sec)) return null;
+    $v = $sec[$key];
+    if (is_int($v) || is_float($v)) $v = (string)$v;
+    return is_string($v) ? trim($v) : null;
+}
+
 $si        = ipc_site_info();
-$toRaw     = trim($si['contact']['email'] ?? '');
+$toRaw     = ipc_si_text($si, 'contact', 'email') ?? '';
 $to        = filter_var($toRaw, FILTER_VALIDATE_EMAIL) ? $toRaw : 'sales@insulationproducts.com';
-$bizPhone  = trim($si['contact']['phone'] ?? '') !== '' ? trim($si['contact']['phone']) : '630.771.0700';
-$bizFax    = trim($si['contact']['fax'] ?? '')   !== '' ? trim($si['contact']['fax'])   : '630.771.0701';
+$bizPhone  = ipc_si_text($si, 'contact', 'phone') ?? '';
+if ($bizPhone === '') $bizPhone = '630.771.0700';
+// The tel: target. Same rule as mergeSiteInfo / index.php: the owner's
+// "Phone (dial link)", and when only the display phone moved off the shipped
+// number, a North American dial string derived from it. Stripping the display
+// phone to digits dialled "630771070012" for "630.771.0700 ext. 12".
+// (A12-L15-18-2)
+$bizDial   = ipc_si_text($si, 'contact', 'phoneDial') ?? '';
+if ($bizDial === '') $bizDial = '+16307710700';
+if ($bizPhone !== '630.771.0700' && $bizDial === '+16307710700') {
+    $digits = preg_replace('/\D/', '', $bizPhone);
+    $derived = strlen($digits) === 10 ? '+1' . $digits : ((strlen($digits) === 11 && $digits[0] === '1') ? '+' . $digits : '');
+    if ($derived !== '') $bizDial = $derived;
+}
+// contact.fax is in SITE_CLEARABLE: a blank stored value means "no fax line"
+// and the auto-reply leaves the Fax line out, as the site does. Only an
+// absent or unusable value falls back to the shipped number. (A12-L15-07-1)
+$bizFax    = ipc_si_text($si, 'contact', 'fax') ?? '630.771.0701';
 // CRLF-strip: company_name comes from admin/settings.php (only trim()ed there)
 // and is interpolated into the auto-reply's From: header. A newline in it is
 // header injection — verified producing a real Bcc:, which would then silently
 // BCC every future auto-reply. Post-auth, but the blast radius is every lead.
 // (DEPLOY_READINESS_v2 4.16)
-$bizName   = trim(preg_replace('/[\r\n]+/', ' ', (string)($si['company']['name'] ?? '')));
+$bizName   = trim(preg_replace('/[\r\n]+/', ' ', ipc_si_text($si, 'company', 'name') ?? ''));
 if ($bizName === '') $bizName = 'Insulation Products Corporation';
-$bizHours  = trim($si['hours']['text'] ?? '')    !== '' ? trim($si['hours']['text'])    : 'Mon–Fri, 8am–5pm CT';
-$ad        = $si['address'] ?? [];
+$bizHours  = ipc_si_text($si, 'hours', 'text') ?? '';
+if ($bizHours === '') $bizHours = 'Mon–Fri, 8am–5pm CT';
+$ad        = is_array($si['address'] ?? null) ? $si['address'] : [];
 // PUB-8 (audit 2026-09-27) — `??` does not catch "", and settings.php writes a
 // cleared field as "" (invariant 4). A blank street signed every auto-reply
-// ", Bolingbrook, IL". Same rule as the site's mergeSiteInfo: blank = default.
+// ", Bolingbrook, IL". Same rule as the site's mergeSiteInfo: blank = default,
+// and a number is text (a street number of 1975 prints as the site prints it).
 $adPart    = static function ($v, string $dflt): string {
+    if (is_int($v) || is_float($v)) $v = (string)$v;
     $v = is_string($v) ? trim($v) : '';
     return $v !== '' ? $v : $dflt;
 };
@@ -255,7 +333,7 @@ function ipc_wants_html(): bool {
  * situation it exists for is the one where JavaScript did not run.
  */
 function respond(int $code, array $payload): void {
-    global $bizPhone, $bizName, $to;
+    global $bizPhone, $bizDial, $bizName, $to;
     if ($code !== 200) http_response_code($code);
 
     if (!ipc_wants_html()) {
@@ -272,14 +350,16 @@ function respond(int $code, array $payload): void {
     $isRfq = (is_string($_POST['form_type'] ?? null) ? $_POST['form_type'] : '') === 'rfq';
     $cfCopy = ipc_contact_copy();
     $title = $ok ? ($isRfq ? 'Quote request sent' : 'Message sent') : 'We could not send that';
+    $dfltBody = $isRfq
+        ? 'Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.'
+        : 'Your message has been received. Our sales team will respond within one business day.';
     $msg   = $ok
-        ? ($isRfq
-            ? ipc_copy_line($cfCopy, 'rfqSuccessBody', 'Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.')
-            : ipc_copy_line($cfCopy, 'msgSuccessBody', 'Your message has been received. Our sales team will respond within one business day.'))
+        ? ipc_copy_line($cfCopy, $isRfq ? 'rfqSuccessBody' : 'msgSuccessBody', $dfltBody)
         : (string)($payload['error'] ?? 'Something went wrong. Please call us and we will help you directly.');
-    if ($ok && $msg === '') {
-        $msg = $isRfq ? 'Your quote request has been received.' : 'Your message has been received.';
-    }
+    // A cleared confirmation falls back to the SAME default the JS form shows
+    // (mergeContent drops "" for these keys). A shorter sentence here left the
+    // no-JS buyer without the response promise. (A12-L5-05-2)
+    if ($ok && $msg === '') $msg = $dfltBody;
 
     header('Content-Type: text/html; charset=utf-8');
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -291,7 +371,7 @@ function respond(int $code, array $payload): void {
        . '<h1 style="font-size:1.4rem;margin:0 0 .75rem">' . hesc($title) . '</h1>'
        . '<p style="margin:0 0 1.25rem;padding:.75rem 1rem;background:#fff;border:1px solid #e5e9ee;border-radius:6px">'
        . hesc($msg) . '</p>'
-       . '<p style="margin:0 0 .4rem"><strong>Phone</strong> <a href="tel:' . hesc(preg_replace('/[^0-9+]/', '', $bizPhone))
+       . '<p style="margin:0 0 .4rem"><strong>Phone</strong> <a href="tel:' . hesc($bizDial)
        . '" style="color:#0a2240">' . hesc($bizPhone) . '</a></p>'
        . '<p style="margin:0 0 1.25rem"><strong>Email</strong> <a href="mailto:' . hesc($to)
        . '" style="color:#0a2240">' . hesc($to) . '</a></p>'
@@ -327,7 +407,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // on any subject that is not valid UTF-8 — so a single malformed byte turned
 // this into an unauthenticated HTTP 500 with an empty body and nothing logged.
 // The character class here is pure ASCII, so byte-wise is not just safe, it is
-// what we actually mean. The ?: '' is belt and braces. (AUDIT_v3_FINDINGS NB6)
+// what we actually mean. The ?? '' is belt and braces for that null. It was
+// `?: ''`, which ALSO replaced the string "0" — PHP's falsy string — so a
+// quantity of 0 was refused as missing and a company or part number of 0 was
+// dropped from the email and the log. (AUDIT_v3_FINDINGS NB6; A12-L4-06-2)
 //
 // LENGTH CAPS. .user.ini allows a 32MB POST and nothing here bounded a field:
 // a single 1MB message produced a 1,049,617-byte email and a 1,048,735-byte
@@ -376,16 +459,83 @@ function ipc_missing_message(array $missing): string {
     return 'Please add ' . implode(', ', $missing) . ' and ' . $last . '.';
 }
 
+/**
+ * The first $max BYTES of $v, never ending inside a multi-byte UTF-8 character.
+ * A bare substr() split "ó" at the cap, and the resulting invalid UTF-8 made
+ * mime_header() return '' — the sales notification went out with an EMPTY
+ * Subject for a long Spanish subject line. (A12-L3-15-1) mbstring is not
+ * assumed (A-9.P2-1), so this walks the bytes itself.
+ */
+function ipc_utf8_cut(string $v, int $max): string {
+    if (strlen($v) <= $max) return $v;
+    $cut = substr($v, 0, $max);
+    $i = strlen($cut) - 1;
+    $cont = 0;
+    while ($i >= 0 && $cont < 3 && (ord($cut[$i]) & 0xC0) === 0x80) { $i--; $cont++; }
+    if ($i >= 0) {
+        $b = ord($cut[$i]);
+        $need = $b >= 0xF0 ? 4 : ($b >= 0xE0 ? 3 : ($b >= 0xC0 ? 2 : 1));
+        if ($need > 1 && $need !== $cont + 1) $cut = substr($cut, 0, $i);
+    }
+    return $cut;
+}
+
+/**
+ * The Inquiries note for a submission refused for missing fields. The
+ * "mistyped email" explanation is given only when the email address is what
+ * was refused; a quote request missing only its quantity used to tell Rick to
+ * doubt a perfectly good address, and that the customer "thinks they
+ * submitted" although they were shown the error. (A12-L8-09-4)
+ */
+function ipc_incomplete_note(array $missing): string {
+    $note = 'Refused because required fields were missing or unusable (' . implode('; ', $missing) . '). ';
+    if (in_array('a valid email address', $missing, true)) {
+        $note .= 'Often a mistyped email address that the browser accepted and the server did not — '
+               . 'a real customer who thinks they submitted. ';
+    } else {
+        $note .= 'The visitor was shown which field to fill in, so a complete request may follow. ';
+    }
+    return $note . 'No email was sent. Worth a call back.';
+}
+
 function s($val, int $max = IPC_MAX_LINE): string {
     if (is_array($val)) return '';           // 4.17: an array here used to be a fatal
     if (is_object($val)) return '';
     $v = trim((string)$val);
-    $v = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $v) ?: '';
+    $v = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $v) ?? '';
     if ($max > 0 && strlen($v) > $max) {
-        $v = rtrim(substr($v, 0, $max)) . ' … [truncated — the visitor sent more than '
+        $v = rtrim(ipc_utf8_cut($v, $max)) . ' … [truncated — the visitor sent more than '
            . $max . ' characters; please reply and ask for the rest]';
     }
     return $v;
+}
+
+/**
+ * A visitor value shortened to fit inside a mail Subject, WITHOUT the
+ * "[truncated — the visitor sent more than 200 characters …]" note. hdr() runs
+ * s() over the WHOLE assembled Subject, so a 150-character subject plus a name
+ * crossed the 200 cap and the note told sales to ask for "the rest" of a
+ * message whose body was complete — and cut the sender's name off. Each part
+ * is capped here so the assembled line stays under the cap. (A12-L8-08-3)
+ */
+function ipc_subject_part(string $v, int $max): string {
+    $v = trim(preg_replace('/[\r\n]+/', ' ', $v) ?? '');
+    return strlen($v) > $max ? rtrim(ipc_utf8_cut($v, $max - 3)) . '…' : $v;
+}
+
+/**
+ * Invalid UTF-8 bytes replaced by "?", valid sequences kept. Byte-wise, no /u
+ * (NB6). Used by mime_header() so one stray byte cannot empty a Subject.
+ * (A12-L3-15-1)
+ */
+function ipc_utf8_scrub(string $v): string {
+    $r = preg_replace_callback(
+        '/([\x00-\x7F]|[\xC2-\xDF][\x80-\xBF]|\xE0[\xA0-\xBF][\x80-\xBF]|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}'
+        . '|\xED[\x80-\x9F][\x80-\xBF]|\xF0[\x90-\xBF][\x80-\xBF]{2}|[\xF1-\xF3][\x80-\xBF]{3}|\xF4[\x80-\x8F][\x80-\xBF]{2})|./s',
+        static function ($m) { return ($m[1] ?? '') !== '' ? $m[1] : '?'; },
+        $v
+    );
+    return $r ?? '';
 }
 
 // Single-line variant for anything that reaches a mail header (Subject,
@@ -404,7 +554,13 @@ function hdr($val): string {
  */
 function mime_header(string $v): string {
     if (!preg_match('/[^\x20-\x7E]/', $v)) return $v;
-    preg_match_all('/./us', $v, $m);
+    // On invalid UTF-8 preg_match_all(/u) fails and the Subject came out
+    // EMPTY. Scrub, then split. (A12-L3-15-1)
+    if (!preg_match_all('/./us', $v, $m)) {
+        $v = ipc_utf8_scrub($v);
+        if (!preg_match('/[^\x20-\x7E]/', $v)) return $v;
+        if (!preg_match_all('/./us', $v, $m)) return $v;
+    }
     $words = [];
     $cur = '';
     foreach ($m[0] as $ch) {
@@ -500,11 +656,20 @@ function ipc_ar_cap_key(string $email): string {
     if ($at === false) return $email;          // not an address shape; key on it as-is
     $local  = substr($email, 0, $at);
     $domain = substr($email, $at + 1);
+    // A12-L3-W2-G3-1 — RFC 5322 quoting is spelling, not a different mailbox:
+    // "joe"@x, "\joe"@x and joe@x are one inbox, and FILTER_VALIDATE_EMAIL
+    // accepts all of them, so each new quoting was a fresh cap of 3. Unquote,
+    // resolving backslash escapes, before keying.
+    if (strlen($local) >= 2 && $local[0] === '"' && substr($local, -1) === '"') {
+        $local = preg_replace('/\\\\(.)/s', '$1', substr($local, 1, -1)) ?? $local;
+    }
     // Everything from the first "+" to the "@" is a sub-address tag.
     $plus = strpos($local, '+');
     if ($plus !== false) $local = substr($local, 0, $plus);
     if ($domain === 'gmail.com' || $domain === 'googlemail.com') {
         $local = str_replace('.', '', $local);
+        // A12-L3-02-2 — the two spellings of the domain are one inbox too.
+        $domain = 'gmail.com';
     }
     return $local . '@' . $domain;
 }
@@ -561,8 +726,25 @@ function ipc_partial_entry(string $type, string $note, string $ip): array {
 // "log every rejection" is the flood the rate limiter exists to stop, so the
 // number of rejections logged per IP per window is itself capped.
 // (AUDIT_v3_FINDINGS NB8)
+/**
+ * The limiter's KEY for an address — the same rule as the admin sign-in
+ * throttle's login_throttle_key() (SEC-6, SEC-A1 in admin/config.php, which
+ * this file does not include): IPv4 as-is, a v4-mapped IPv6 address as its
+ * IPv4, any other IPv6 address as its /64. A single customer is routinely
+ * handed a whole /64, so keying the full address gave one connection 2^64
+ * fresh allowances of 5. The inquiry record still carries the real address.
+ * (A12-L3-W2-G1-1)
+ */
+function ipc_rl_key(string $ip): string {
+    if (strpos($ip, ':') === false || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) return $ip;
+    $bin = @inet_pton($ip);
+    if ($bin === false || strlen($bin) !== 16) return $ip;
+    if (substr($bin, 0, 12) === str_repeat("\0", 10) . "\xff\xff") return inet_ntop(substr($bin, 12));
+    return inet_ntop(substr($bin, 0, 8) . str_repeat("\0", 8)) . '/64';
+}
+
 $ip       = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-$safeIp   = preg_replace('/[^a-fA-F0-9:.]/', '', $ip);
+$safeIp   = preg_replace('/[^a-fA-F0-9:.\/]/', '', ipc_rl_key(is_string($ip) ? $ip : 'unknown'));
 $rateFile = sys_get_temp_dir() . '/ipc_rl_' . md5($safeIp) . '.json';
 $now      = time();
 $window   = 600; // seconds
@@ -577,8 +759,15 @@ $maxLogged = 10; // rejected submissions logged per IP per window
 // Lock files carry their own prefix (ipc_lk_), NOT ipc_rl_/ipc_ar_: those
 // prefixes mean "one limiter record" to anything counting them, and
 // plan3-autoreply counts cap files to prove its key normalisation.
-$rlLock = @fopen(dirname($rateFile) . '/ipc_lk_' . basename($rateFile), 'c');
+$rlLockPath = dirname($rateFile) . '/ipc_lk_' . basename($rateFile);
+$rlLock = @fopen($rlLockPath, 'c');
 if ($rlLock) @flock($rlLock, LOCK_EX);
+// A12-L3-04-W5-1 — fopen('c') + flock() do not change the file's mtime, so a
+// lock first made two days ago looked stale to ipc_prune_limiter_files() WHILE
+// IN USE; it was unlinked mid-burst, later requests locked a fresh file, and
+// one address got 10-23 submissions through a cap of 5. Taking the lock now
+// marks it as live.
+if ($rlLock) @touch($rlLockPath);
 $state = ['hits' => [], 'blocked' => 0];
 if (file_exists($rateFile)) {
     $raw = json_decode((string)@file_get_contents($rateFile), true);
@@ -629,9 +818,16 @@ function ipc_prune_limiter_files(int $now): void {
     $h   = @opendir($dir);
     if (!$h) return;
     $cutoff = 86400 * 2;          // both windows (10 min, 24 h) are well inside this
-    $budget = 500;                 // never let a sweep run away on a huge temp dir
-    while ($budget-- > 0 && ($f = readdir($h)) !== false) {
+    // A12-L15-19-1 — the budget used to count EVERY directory entry, and
+    // readdir() order is stable, so on a temp dir with 500+ unrelated files
+    // (other sites' sessions) ahead of ours every sweep re-read the same
+    // slice and no limiter file was ever examined. The budget now counts only
+    // limiter files; the scan itself has a far larger bound of its own.
+    $budget = 500;                 // limiter files examined per sweep
+    $scan   = 50000;               // never let a sweep run away on a huge temp dir
+    while ($budget > 0 && $scan-- > 0 && ($f = readdir($h)) !== false) {
         if (strncmp($f, 'ipc_rl_', 7) !== 0 && strncmp($f, 'ipc_ar_', 7) !== 0 && strncmp($f, 'ipc_lk_', 7) !== 0) continue;
+        $budget--;
         $full = $dir . '/' . $f;
         $mt   = @filemtime($full);
         if ($mt !== false && ($now - $mt) > $cutoff) @unlink($full);
@@ -787,15 +983,15 @@ if ($formType === 'rfq') {
         // dropped ".com" is an ordinary typo.
         ipc_log_inquiry(ipc_partial_entry(
             'rfq-incomplete',
-            'Refused because required fields were missing or unusable (' . implode('; ', $missing) . '). '
-            . 'Often a mistyped email address that the browser accepted and the server did not — '
-            . 'a real customer who thinks they submitted. No email was sent. Worth a call back.',
+            ipc_incomplete_note($missing),
             $ip
         ));
         respond(422, ['ok' => false, 'error' => ipc_missing_message($missing)]);
     }
 
-    $subject = mime_header(hdr('IPC Quote Request — ' . ($partNumber !== '' ? $partNumber : 'General RFQ') . ' — ' . $name));
+    // Parts capped so the assembled Subject stays under hdr()'s 200-byte cap
+    // (22 + 100 + 5 + 70). The body carries both values in full. (A12-L8-08-3)
+    $subject = mime_header(hdr('IPC Quote Request — ' . ($partNumber !== '' ? ipc_subject_part($partNumber, 100) : 'General RFQ') . ' — ' . ipc_subject_part($name, 70)));
     $body    = "IPC QUOTE REQUEST\n"
              . "=================\n\n"
              . "Name:            {$name}\n"
@@ -868,15 +1064,14 @@ if ($formType === 'rfq') {
         // dropped ".com" is an ordinary typo.
         ipc_log_inquiry(ipc_partial_entry(
             'message-incomplete',
-            'Refused because required fields were missing or unusable (' . implode('; ', $missing) . '). '
-            . 'Often a mistyped email address that the browser accepted and the server did not — '
-            . 'a real customer who thinks they submitted. No email was sent. Worth a call back.',
+            ipc_incomplete_note($missing),
             $ip
         ));
         respond(422, ['ok' => false, 'error' => ipc_missing_message($missing)]);
     }
 
-    $subject = mime_header(hdr('IPC Contact Form — ' . ($subj !== '' ? $subj : 'General Inquiry') . ' — ' . $name));
+    // Parts capped as for the RFQ above (21 + 100 + 5 + 70). (A12-L8-08-3)
+    $subject = mime_header(hdr('IPC Contact Form — ' . ($subj !== '' ? ipc_subject_part($subj, 100) : 'General Inquiry') . ' — ' . ipc_subject_part($name, 70)));
     $body    = "IPC CONTACT FORM\n"
              . "================\n\n"
              . "Name:    {$name}\n"
@@ -922,7 +1117,13 @@ $headers .= "Content-Transfer-Encoding: 8bit\r\n"; // NEW-V3-2 — the body is 8
 // posture. (audit-runs/audit5.md, Low tier)
 
 
-$sent = @mail($to, $subject, $body, $headers, $mailParams); // @ — a mail warning must never corrupt the JSON response
+// A12-L2-W1-G3-1 — on PHP 8 a host that lists mail() in disable_functions
+// removes it outright, and calling it was a fatal error BEFORE the inquiry
+// log below: no email, no Inquiries row, no marker. Treat it as a failed send
+// so the record is written and the visitor gets the call-us answer.
+$sent = function_exists('mail')
+    ? @mail($to, $subject, $body, $headers, $mailParams) // @ — a mail warning must never corrupt the JSON response
+    : false;
 
 // Log the inquiry whether or not the mail went through — a failed send is
 // exactly the case where the log is the only surviving copy of the lead.
@@ -957,8 +1158,10 @@ if ($replyTo !== '') {
     $arMax    = 3;
     // PUB-13 — the same for the per-recipient auto-reply cap (7 sent against a
     // cap of 3, measured on prefork).
-    $arLock = @fopen(dirname($arFile) . '/ipc_lk_' . basename($arFile), 'c');
+    $arLockPath = dirname($arFile) . '/ipc_lk_' . basename($arFile);
+    $arLock = @fopen($arLockPath, 'c');
     if ($arLock) @flock($arLock, LOCK_EX);
+    if ($arLock) @touch($arLockPath);   // live, not stale — see the per-IP lock above
     $ar = [];
     if (file_exists($arFile)) {
         $ar = json_decode((string)@file_get_contents($arFile), true);
@@ -1009,6 +1212,9 @@ if ($msgPromise === '') $msgPromise = 'Our team will respond within one business
 // A-5.1 — every visitor-supplied value that reaches THIS body is neutralised
 // first. The sales notification built above still carries the raw text, and so
 // does the JSONL record, so nothing IPC needs is lost.
+// A fax cleared in Business Details leaves the line out (A12-L15-07-1).
+$faxLine = $bizFax === '' ? '' : "  Fax:   {$bizFax}\n";
+
 $rName = reply_slot($name, 60);
 if ($rName === '') $rName = 'there';
 
@@ -1026,7 +1232,7 @@ if ($formType === 'rfq') {
                   . "Required By:   " . reply_slot($reqDate, 40) . "\n\n"
                   . "For urgent needs, reach us directly:\n"
                   . "  Phone: {$bizPhone} ({$bizHours})\n"
-                  . "  Fax:   {$bizFax}\n"
+                  . $faxLine
                   . "  Email: {$to}\n\n"
                   . "{$bizName}\n"
                   . "{$bizAddr}\n";
@@ -1038,7 +1244,7 @@ if ($formType === 'rfq') {
                   . $noticePara
                   . "For urgent needs, reach us directly:\n"
                   . "  Phone: {$bizPhone} ({$bizHours})\n"
-                  . "  Fax:   {$bizFax}\n"
+                  . $faxLine
                   . "  Email: {$to}\n\n"
                   . "{$bizName}\n"
                   . "{$bizAddr}\n";
@@ -1063,7 +1269,7 @@ $replyHeaders .= "Content-Type: text/plain; charset=UTF-8\r\n";
 $replyHeaders .= "Content-Transfer-Encoding: 8bit\r\n"; // NEW-V3-2
 
 
-if ($autoReplyOk) {
+if ($autoReplyOk && function_exists('mail')) {
     @mail($replyTo, $replySubject, $replyBody, $replyHeaders, $mailParams); // best-effort, no error check
 }
 
