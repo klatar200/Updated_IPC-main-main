@@ -27,6 +27,14 @@ Open https://www.insulationproducts.com/data/products-all.json in a browser.
 | 404, or nothing there | **the first deploy** | Do **A** first (before deploy day), then **B**. The three data folders go up exactly once, in B2.7. |
 | A certificate / "not secure" warning before any page | **nothing yet** | Stop: that is the §A **certificate GATE** (apex/`www` item) — no deploy until the host fixes it. To answer this step meanwhile, `curl -sk -o /dev/null -w '%{http_code}\n' https://www.insulationproducts.com/data/products-all.json` (`-k` skips the certificate check for this one read-only request) and use the 200 / 404 rows. |
 
+**A catalog here does not always mean a re-deploy.** If an earlier first-deploy
+attempt stopped part-way (after B2.7 but before B4) or was backed out with the
+first-deploy rollback, the catalog is on the server but the site never went
+live. If `/admin/` shows **"Admin Not Configured"**, or `/` still redirects to
+`/site/` (STEP 0b), this is **still the first deploy**: do B2.0 and B4. B2.7
+can be skipped only if nobody has edited anything since — the `data/` on the
+server is the repo's own.
+
 A redirect is not expected here: re-measured 2026-09-27, this URL answers 404
 directly and only `/` redirects — STEP 0b handles that
 (`audit-runs/audit-2026-09-27.md`, NEW-V4-4). If it does redirect, stop and read
@@ -42,12 +50,17 @@ A 404 above answers "is *this* project live". It does not answer "is anything
 live", and on 2026-09-15 those had different answers.
 
 ```
-curl -sI http://www.insulationproducts.com/
+curl -sIL http://www.insulationproducts.com/ | grep -iE '^HTTP|^location'
 ```
 
-**If it answers `301 → https://www.…`**, that is what the code expects; carry on.
+`-L` follows every hop. Asking only the `http://` address is not enough: once
+the host forces HTTPS, that answers `301 → https://www.…` whether or not a
+`/site/` redirect sits behind it on the `https://` side.
 
-**If it answers anything else — a `302` or `301` into a subfolder — stop and
+**If every hop ends on `https://www.insulationproducts.com/` with no subfolder
+in any `location:`**, that is what the code expects; carry on.
+
+**If any hop points into a subfolder — a `302` or `301` to `/site/` — stop and
 read [`audit-runs/live-triage-2026-09-15.md`](audit-runs/live-triage-2026-09-15.md).**
 As measured on 2026-09-15 this line answers `302 → /site/`, and
 `public_html/site/` holds a live predecessor of this site, uploaded 2026-09-04,
@@ -147,6 +160,14 @@ the last minute.
       which is yours to do, not the auditor's.
 - [ ] **Find** the `/` → `/site/` redirect — in the Network Solutions panel or a
       root `.htaccess` above `public_html/` — and confirm you can change it.
+      **Note how it is written.** If it is a `RewriteRule` in a `.htaccess`
+      above `public_html/`, the new `public_html/.htaccess` (B2 step 4) turns
+      it off the moment it lands — Apache does not apply a parent folder's
+      `mod_rewrite` rules below a folder whose own `.htaccess` has
+      `RewriteEngine On` — so step 4, not B2.0, is when the root switches, and
+      putting that rule back as it was is not a rollback (see "Rolling back
+      the frontend"). A redirect in the panel, or written as `RedirectMatch`,
+      keeps working beside the new `.htaccess` (measured, AUDIT-12).
       **Do not remove it yet.** Removing it is step B2.0, in the same session as
       the upload: done days early, the domain root serves no working site (this
       project is not in `public_html/` yet) and the old copy's one working page,
@@ -208,10 +229,14 @@ All of these render from `data/content.json` or `data/products-all.json`.
       you add a product. Worse, it is already ambiguous: **42 is the catalog's
       page count, but those pages list 52 orderable part numbers** (eight records
       cover 2-4 parts each), and one of the 42 is the Value-Added *services*
-      page, not a stocked product. Recommended: **52, relabelled "Part Numbers
-      Stocked", derived from the catalog** rather than typed. Nothing should
-      change on the homepage until you have chosen the number — every candidate
-      is defensible and only one is what IPC means.
+      page, not a stocked product. The earlier recommendation here — 52,
+      relabelled "Part Numbers Stocked" — was **withdrawn** on 2026-09-15
+      (CLAIM-2, `audit-runs/claims-register-2026-09-15.md`): "Stocked" is an
+      inventory claim the catalog cannot back. The recommendation on record is
+      to relabel the slot **"42 — Datasheets Published"** (every catalog record
+      carries a datasheet), or to restore the old site's own figure if IPC
+      stands behind it. Nothing should change on the homepage until you have
+      chosen — only one is what IPC means.
 - [ ] **Rewrite FAQ row #15** — *"Where can I download product data sheets?"*
       (**A-9.P5a-2**), at **Admin → Page Content → FAQ**; in the repo it is
       `faq[14]` of `data/content.json`, which is where the old "answer 14"
@@ -279,19 +304,26 @@ pointing at a file that does not exist.
 
 0. [ ] **First deploy only — in this same session, immediately before step 1:**
        remove the `/` → `/site/` redirect you located in §A, and confirm
-       `curl -sI http://www.insulationproducts.com/` no longer points into a
-       subfolder. Left in place, a correct deploy is invisible; removed days
-       early, the root is dark until this upload lands. If the deploy has to be
-       backed out, putting this redirect back is the rollback. (NEW-V4-1)
+       `curl -sIL http://www.insulationproducts.com/ | grep -iE '^HTTP|^location'`
+       shows no hop into a subfolder (`-L` follows the `https://` hop too: the
+       `http://` answer alone is a `301 → https` either way). Left in place, a
+       correct deploy is invisible; removed days early, the root is dark until
+       this upload lands. If the deploy has to be backed out, putting this
+       redirect back is the rollback — with the two conditions in "Rolling
+       back the frontend". (NEW-V4-1)
 1. [ ] `dist/assets/` → `public_html/assets/`
 2. [ ] `dist/images/` → `public_html/images/`
 3. [ ] `dist/index.php`, `contact.php`, `sitemap.php`, `favicon.svg`,
        `logo.svg`, `manifest.json`, `robots.txt` → `public_html/`.
        `index.php` **before step 4**: the new `.htaccess` sends every page,
-       `/` included, to it (A-5.10, WHATS_LEFT §1ar).
+       `/` included, to it (A-5.10, WHATS_LEFT §1ar). On a first deploy,
+       from step 4 until step 9 every page answers 500 "The site is being
+       updated" — `index.php` is there but `index.html` is not yet. That is
+       expected; keep going.
 4. [ ] `dist/.htaccess`, `dist/.user.ini` → `public_html/`
 5. [ ] `admin/` → `public_html/admin/` — **mandatory on a first deploy**; on a
-       re-deploy, only if the admin code changed. Upload the tracked files only
+       re-deploy, only if the admin code changed since the last deploy (if you
+       cannot tell, upload it). Upload the tracked files only
        (`git ls-files admin/`, including the dotfile `admin/.htaccess`). Skip
        everything `.gitignore` lists under `admin/` — `config.local.php*`,
        `*.jsonl`, `.login-throttle.json`, `.inquiries-seen.json`,
@@ -306,7 +338,11 @@ pointing at a file that does not exist.
        server's own file is live state — never overwrite it. (DEP-6, NEW-V4-2)
 7. [ ] **first deploy only:** `data/`, `pdfs/`, `uploads/` → `public_html/`
 8. [ ] **`data/.htaccess`, `pdfs/.htaccess`, `uploads/.htaccess`** — upload the
-       **file**, never the folder, whenever it has changed. These are the only
+       **file**, never the folder, whenever it has changed since the last
+       deploy. Nothing on the server records which release is live, so if you
+       cannot tell, upload it: an unchanged file costs nothing, a skipped
+       changed one (a security block in `uploads/.htaccess`, say) fails
+       silently. These are the only
        files in the tree Vite never copies into `dist/`, so nothing downstream
        carries them. `data/.htaccess` alone holds the
        `AddType application/json` that the site's `jsonOrThrow()` requires and
@@ -403,6 +439,10 @@ curl -sI https://www.insulationproducts.com/data/products-all.json
 
 curl -sI https://www.insulationproducts.com/.user.ini            # expect 403
 curl -sI https://www.insulationproducts.com/admin/config.php     # expect 403
+#  a 200 here (even an empty one) means admin/.htaccess did not arrive — it is
+#  a hidden dotfile. Until it is uploaded, the inquiry log (every buyer's
+#  name, email and phone), the activity log and the password-file backups in
+#  admin/ can be downloaded by anyone. Upload it now (B2 step 5).
 curl -s  https://www.insulationproducts.com/sitemap.xml | head -3
 #  expect XML, not the SPA shell
 
@@ -414,9 +454,12 @@ curl -sI -H 'Accept-Encoding: gzip' "https://www.insulationproducts.com/$JS"
 
 curl -s 'https://www.insulationproducts.com/products?productId=CC' | grep -E '<title>|rel="canonical"'
 #  expect the product's own title and a canonical ending ?productId=CC — not
-#  the homepage title. The homepage title means index.php is not being reached
-#  (missing, or .htaccess did not arrive); the page still works, but every
-#  shared link previews as the homepage (A-5.10, §1ar)
+#  the homepage title. The homepage title means index.php ran and fell back
+#  to the plain shell: a PHP error on this host's PHP, or data/site-info.json
+#  or data/content.json missing or unparseable — look in data/ and the PHP
+#  error log, not at the upload. The page still works, but every shared link
+#  previews as the homepage (A-5.10, §1ar). A 404 here instead means
+#  index.php or .htaccess is missing.
 
 curl -sI http://www.insulationproducts.com/                      # expect 301 → https
 curl -sI https://insulationproducts.com/                         # expect 301 → www
@@ -470,6 +513,12 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
       settings. A clean result is necessary, not sufficient — it proves only
       that startup warnings are hidden. (NEW-N3-12)
 
+      ⚠ The test only works while 5,001 is **more** than the server's
+      `max_input_vars` (the shipped `.user.ini` sets 5000). If Help → **What
+      your server allows** reads higher — for example because the host raised it at your request —
+      replace `5001` with that number + 1, or the warning never fires and the
+      check passes even with errors shown.
+
 ### C4. The one journey the site exists for
 
 - [ ] Submit the contact form once, for real.
@@ -498,12 +547,13 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
 
 | Symptom | First thing to check |
 |---|---|
-| Blank page | Did you upload `dist/` itself instead of its **contents**? |
-| Every URL, including `http://` → `https://`, answers 500 | `mod_access_compat` is absent: `public/.htaccess` uses `Order`/`Deny` (C1, NEW-N3-7). Host action |
+| First deploy: every page, the homepage included, is Apache's "404 Not Found". Re-deploy: the old site keeps serving, nothing new appears | Did you upload `dist/` itself instead of its **contents**? Look for a `public_html/dist/` folder |
+| Every URL, including `http://` → `https://`, answers 500 | Either `mod_access_compat` is absent: `public/.htaccess` uses `Order`/`Deny` (C1, NEW-N3-7) — host action. Or the host refuses `Options +FollowSymLinks` (its error log says "Option FollowSymLinks not allowed here"): change line 9 of `public/.htaccess` to `Options -MultiViews +SymLinksIfOwnerMatch`, rebuild and upload `.htaccess` (measured, AUDIT-12; edit the repo copy — a hand edit on the server is lost at the next deploy, NEW-N3-8). On a first deploy, while the host acts, see "Rolling back the frontend" |
+| Every page 500s with "The site is being updated. Please try again in a minute." | `index.html` is not in `public_html/` yet. Expected on a first deploy from B2 step 4 until step 9 |
 | Every admin page is a 500 (often blank), public site fine | PHP older than 7.4 (§A), or `config.local.php` not readable by PHP (B3) |
 | Blank page, console error about a missing `assets/…js` | `index.html` went up before `assets/`. Upload `assets/` and it resolves. |
 | Deep links 404 on refresh | `.htaccess` is missing from `public_html/` — it is a hidden dotfile |
-| Every page 404s or 500s right after uploading `.htaccess` | `index.php` is not in `public_html/` yet — upload it (B2 step 3). `.htaccess` sends every page to it |
+| Every page 404s (or every page but `/`) right after uploading `.htaccess` | `index.php` is not in `public_html/` yet — upload it (B2 step 3). `.htaccess` sends every page to it |
 | "Catalog Unavailable" | `data/products-all.json` missing, unreadable, or served without `Content-Type: application/json` (that is `data/.htaccess`, step B2.8) |
 | Admin rejects a known-good password | `config.local.php` missing or overwritten (never with a local copy — B2.6). Recovery: FTP an empty file named `ALLOW-PASSWORD-RESET` into `public_html/admin/`, open `/admin/`, set a new password. Deleting `config.local.php` on its own **locks the admin**, it does not reset it |
 | Form says "mail server could not send" | The `noreply@` mailbox does not exist on the account (step A) |
@@ -511,16 +561,30 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
 
 ### Rolling back the frontend
 
-Re-upload the **previous `index.html`**. Content-hashed filenames mean the
-previous `assets/index-<hash>.js` and `.css` are still on the server unless
-someone deleted them, so the old shell finds its old bundle. Keep the `dist/`
-you deployed last time, or download `index.html` before overwriting it — that
-one file is the entire rollback.
+Re-upload the **previous release's top-level files** — `index.php`,
+`contact.php`, `sitemap.php`, `.htaccess`, `.user.ini`, then `index.html`
+last — in B2 order. Content-hashed filenames mean the previous
+`assets/index-<hash>.js` and `.css` are still on the server unless someone
+deleted them, so the old shell finds its old bundle. `index.html` alone is not
+the rollback: since A-5.10 every page is served through `index.php` and the
+quote form is `contact.php`, so a fault in either survives it. Keep the whole
+`dist/` you deployed last time, or download those files before B2 steps 3–4
+overwrite them (`dist/` is also committed, so an earlier release can be taken
+from git).
 
 **First deploy:** there is no previous `index.html` to go back to. The rollback
 is restoring the `/` → `/site/` redirect removed in B2.0, which sends visitors
 back to the predecessor — the reason B2.10 waits until C has passed.
-(NEW-V4-8)
+(NEW-V4-8) Two conditions, both measured on Apache (AUDIT-12):
+
+- **If the deploy failed with a whole-site 500** (the `mod_access_compat` or
+  `FollowSymLinks` rows above), also rename or delete the new
+  `public_html/.htaccess`. It governs `public_html/site/` too, so with it in
+  place the redirect only sends visitors into the same 500.
+- **If the redirect was a `RewriteRule` in a `.htaccess` above
+  `public_html/`** (§A), putting it back as it was does nothing while the new
+  `public_html/.htaccess` is there. Restore it in the panel, or as
+  `RedirectMatch 302 ^/$ /site/`, instead.
 
 This is the **frontend only**. `data/` rolls back through **Admin → Backups**,
 which keeps the 90 most recent saves per file and backs up the current state

@@ -87,7 +87,7 @@ public_html/
 └── admin/
     ├── .htaccess           ← HTTPS, security headers, file blocks
     ├── config.php          ← Shared config, helpers, password hashing, backups
-    ├── config.local.php    ← Admin password hash (hand-deployed, gitignored)
+    ├── config.local.php    ← Admin password hash (written on the server by the reset flow — never uploaded; gitignored)
     ├── nav.php             ← Shared header/nav, included on every page
     ├── auth.php            ← Login / logout / FTP-unlocked password recovery
     ├── index.php           ← Product dashboard + server-health banner
@@ -432,7 +432,8 @@ admin's own Password page calls `opcache_invalidate()` so it applies at once.
 ## Security notes
 
 - **There is no shipped default password.** `config.php` holds an unsatisfiable
-  sentinel; the real hash lives only in the hand-deployed `config.local.php`.
+  sentinel; the real hash lives only in `config.local.php`, which the
+  `ALLOW-PASSWORD-RESET` flow writes on the server (it is never uploaded).
 - Auth is PHP-session-only, over forced HTTPS (`admin/.htaccess`). Session
   cookies are `HttpOnly`, `Secure`, and `SameSite=Lax`.
 - Every attempt is counted as it arrives (`login_attempt_gate()`). The first
