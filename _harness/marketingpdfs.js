@@ -114,9 +114,13 @@ const footerCatalog = async (browser) => {
     const s0 = content().services[0];
     note(s0.brochure && s0.brochure.url === '/pdfs/marketing/IPC-Catalog-2026-2.pdf' && s0.brochure.label === 'Download brochure',
       'use: an existing PDF becomes a service brochure, with the default link text', JSON.stringify(s0.brochure));
-    const s2label = content().services[2].brochure.label;
+    const s2before = content().services[2].brochure;
     await act(a, [['action', 'use'], ['file', 'Tubing-Kits.pdf'], ['target', 'service:2']]);
-    note(content().services[2].brochure.label === s2label, 'use: re-pointing a brochure keeps its link text');
+    // The URL must MOVE as well: comparing only the label passed when the
+    // re-point was a silent no-op (AUDIT-12 A12-L13-10-5).
+    const s2after = content().services[2].brochure;
+    note(s2after.url === '/pdfs/marketing/Tubing-Kits.pdf' && s2before.url !== s2after.url && s2after.label === s2before.label,
+      'use: re-pointing a brochure moves it to the chosen PDF and keeps its link text', `${JSON.stringify(s2before)} -> ${JSON.stringify(s2after)}`);
     await act(a, [['action', 'stop'], ['target', 'catalog']]);
     note(info().catalogPdfUrl === '' && fs.existsSync(f1) && await footerCatalog(browser) === null, 'stop: "Stop using" takes the catalog link off the site and keeps the file');
 
