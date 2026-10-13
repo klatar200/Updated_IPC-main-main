@@ -10047,7 +10047,8 @@ function RelatedArrow() {
   const glyphRef = useRef(null);
   useEffect(() => {
     const el = glyphRef.current;
-    const card = el && el.closest("button");
+    // The card is a PageLink (<a>) since AUDIT-12 A12-L6-13-4; it was a <button>.
+    const card = el && el.closest("a, button");
     if (!card) return undefined;
     const enter = () => {
       el.style.transform = "translateX(4px)";
