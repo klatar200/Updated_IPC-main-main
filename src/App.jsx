@@ -99,7 +99,13 @@ function useSetSearchParamRef() {
           Object.entries(rest).filter(([, v]) => v !== null && v !== undefined && v !== "")
         );
         const qs = new URLSearchParams(nonEmpty).toString();
-        navigate(path + (qs ? `?${qs}` : ""), { replace: false });
+        const target = path + (qs ? `?${qs}` : "");
+        // AUDIT-12 A12-L15-02-2 — a link to the URL already shown replaces the
+        // entry, as a native <a href> to the current URL does; pushing it made
+        // Back appear to do nothing.
+        const same = typeof window !== "undefined" &&
+          target === window.location.pathname + window.location.search;
+        navigate(target, { replace: same });
       } else {
         setSearchParamsFn(
           (prev) => {
@@ -500,11 +506,25 @@ function Navbar({ products = [], catalogFailed = false }) {
   // so a visitor at 600 came back to 876 every time (390 and 834, measured).
   const openScrollY = useRef(null);
 
+  // AUDIT-12 A12-L15-W2-G1-1 — a route change the drawer did not make
+  // (browser / Android Back, Forward) closes it too, as every drawer link
+  // already does through closeMenus. It used to stay open over the new page.
+  const routerLocation = useLocation();
+  const locationKey = routerLocation.pathname + routerLocation.search;
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [locationKey]);
+
   useEffect(() => {
     if (!menuOpen) return undefined;
 
     const y = openScrollY.current ?? window.scrollY;
     openScrollY.current = null;
+    // The page the offset belongs to. Restored only onto that page: after a
+    // Back with the drawer open, the old page's offset (1500 on /about) was
+    // applied to the homepage. A changed URL is left to the browser and App's
+    // scroll-to-top. (AUDIT-12 A12-L15-W2-G1-1)
+    const openedOn = window.location.pathname + window.location.search;
     const body = document.body;
     const prev = {
       position: body.style.position,
@@ -578,7 +598,7 @@ function Navbar({ products = [], catalogFailed = false }) {
       body.style.right = prev.right;
       body.style.width = prev.width;
       body.style.overflow = prev.overflow;
-      window.scrollTo(0, y);
+      if (window.location.pathname + window.location.search === openedOn) window.scrollTo(0, y);
     };
   }, [menuOpen]);
 
@@ -1523,7 +1543,10 @@ function Navbar({ products = [], catalogFailed = false }) {
                           padding: "10px 20px 4px",
                         }}
                       >
-                        By Category
+                        {/* AUDIT-12 A12-L15-02-1 — the same owner-editable
+                            heading the desktop mega-menu reads; this one was
+                            a literal Page Content could not reach. */}
+                        {nc.browseByCategory}
                       </div>
                       {categories.map((cat) => (
                         <PageLink
@@ -3131,7 +3154,9 @@ function DatasheetsPage({ products }) {
               {/* A-9.P5a-9(a) — the one curly-quoted string on the public
                   surface; the other eleven quoted strings are straight. */}
               Nothing matches "{q}". This filter covers part numbers, product
-              names and families — sizes are listed inside each datasheet, so
+              names and families — sizes are listed inside each datasheet, so{" "}
+              {/* AUDIT-12 A12-L15-04-1 — the {" "} above: JSX drops the line
+                  break before a comment, which printed "sotry". */}
               {/* Owner-docs audit 2026-09-29 (WHATS_LEFT §2t) — this was a
                   typed 630.771.0700 that a Business Details phone change never
                   reached. */}
@@ -4191,8 +4216,11 @@ function FaqItem({ question, answer, open, onToggle }) {
           {question}
         </span>
         {/* Plus/×: Tailwind rotate-45 transition on open */}
+        {/* AUDIT-12 A12-L1-05-1 — 250ms as an arbitrary value: 250 is not on
+            Tailwind's default duration scale, so the named class generated no
+            rule and the icon animated at transition-all's 150ms. */}
         <span
-          className={`flex-shrink-0 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-250 ${open ? "rotate-45" : "rotate-0"}`}
+          className={`flex-shrink-0 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-[250ms] ${open ? "rotate-45" : "rotate-0"}`}
           style={{
             width: 28,
             height: 28,
@@ -6307,11 +6335,9 @@ function GlobalStyles() {
     el.textContent = `
       /* Tap-target utility — ensures interactive controls meet WCAG 2.5.5 44x44 */
       .ipc-tap { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; }
-      /* Page dark-header h1 — responsive clamp scale (overrides Tailwind text-4xl) */
-      .ipc-page-h1,
-      h1.text-4xl { font-size: clamp(1.75rem, 3.5vw, 2.5rem) !important; font-weight: 800 !important; line-height: 1.15 !important; }
-      /* Section h2 — one size down */
-      .ipc-section-h2, h2.text-3xl { font-size: clamp(1.4rem, 2.8vw, 1.875rem) !important; font-weight: 800 !important; line-height: 1.2 !important; }
+      /* The page-header h1 / section h2 clamp scale and the header band
+         padding now live in src/index.css: defined here they arrived after
+         first paint and the header jumped (AUDIT-12 A12-L11-03-1). */
       /* Hero h1 stays larger — uses clamp() directly so leave alone */
       /* Marquee animation */
       @keyframes ipc-marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
@@ -6358,21 +6384,8 @@ function GlobalStyles() {
          C37 note in WHATS_LEFT §4. It measures 32-71% empty at 1440 (47-52%
          typical) and the answer to it is photography, which is PLAN-7's
          subject. Widening the sub-line into it would make a 1232px measure,
-         which is worse typography, not better. */
-      .ipc-page-header > div {
-        padding-top: 24px !important;
-        padding-bottom: 24px !important;
-        padding-left: 20px !important;
-        padding-right: 20px !important;
-      }
-      @media (min-width: 768px) {
-        .ipc-page-header > div {
-          padding-top: 36px !important;
-          padding-bottom: 36px !important;
-          padding-left: 24px !important;
-          padding-right: 24px !important;
-        }
-      }
+         which is worse typography, not better.
+         (The rule itself moved to src/index.css — AUDIT-12 A12-L11-03-1.) */
       /* StatsBar responsive dividers — only bottom border needed (right uses Tailwind divide-x) */
       .ipc-stat-bottom-border { border-bottom: 1px solid #e5e9ee; }
       @media (min-width: 768px) { .ipc-stat-bottom-border { border-bottom: none !important; } }
@@ -8900,7 +8913,13 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
   // 1440 the product on screen was below the rail's fold. The rail's own
   // scrollTop only — scrollIntoView would move the page as well. Runs after
   // the accordion has opened (openFamilies is a dependency).
+  //
+  // AUDIT-12 A12-L14-W1-G1-2 — keyed on whether the SELECTED product's family
+  // is open, not on the whole open set: with `openFamilies` itself as the
+  // dependency, expanding any other family re-centred the selected row and
+  // threw the family the visitor had just opened out of sight.
   const railRef = useRef(null);
+  const selectedFamilyOpen = !!selectedFamily && openFamilies.has(selectedFamily);
   useEffect(() => {
     const rail = railRef.current;
     if (!rail || !selectedId) return;
@@ -8914,7 +8933,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
       rail.scrollTop += top - head - (rail.clientHeight - head - row.offsetHeight) / 2;
     });
     return () => cancelAnimationFrame(id);
-  }, [selectedId, openFamilies]);
+  }, [selectedId, selectedFamilyOpen]);
   // F1 — this was `mobileFamily`, sidebar-local state that only the <lg chip
   // row could set and only the <lg pill list could see. The desktop grid was
   // structurally incapable of reading it, which is why the desktop counts
@@ -8967,9 +8986,12 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
               minWidth: "max-content",
             }}
           >
+            {/* AUDIT-12 A12-L14-01-W5-1 — ipc-hover-border on both chip
+                kinds: A10-061 (§1at) named these family chips and the fix
+                reached only the /dashboard approval chips. */}
             <button
               onClick={() => setFamilyFilter(null)}
-              className="ipc-tap"
+              className="ipc-tap ipc-hover-border"
               style={{
                 padding: "6px 14px",
                 borderRadius: 20,
@@ -8996,7 +9018,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
                 <button
                   key={fam}
                   onClick={() => setFamilyFilter(active ? null : fam)}
-                  className="ipc-tap"
+                  className="ipc-tap ipc-hover-border"
                   style={{
                     padding: "6px 14px",
                     borderRadius: 20,
@@ -10619,11 +10641,15 @@ function ProductPage({ products }) {
   // ProductPage left the bar sitting on top of the copyright and address on
   // every product page. Toggled on <body> rather than via CSS :has() so it
   // does not depend on selector support. (DEPLOY_READINESS_v2 T2.9)
+  // AUDIT-12 A12-L15-14-1 — only while the bar is actually rendered, which
+  // is only with a product selected: the catalog landing and the part-not-found
+  // view scrolled 76px of padding under the footer for a bar never shown.
+  const stickyBarShown = showStickyBar && !!product;
   useEffect(() => {
     if (typeof document === "undefined") return;
-    document.body.classList.toggle("ipc-has-sticky-rfq", showStickyBar);
+    document.body.classList.toggle("ipc-has-sticky-rfq", stickyBarShown);
     return () => document.body.classList.remove("ipc-has-sticky-rfq");
-  }, [showStickyBar]);
+  }, [stickyBarShown]);
   const headerRef = useRef(null);
   const detailRef = useRef(null);
 
@@ -12780,10 +12806,12 @@ function IndustriesPage() {
 }
 
 /**
- * Reusable Badge component — semantic label chip used across the app.
+ * Badge — a semantic label chip.
  * variant: "primary" (blue, default) | "success" (green) | "neutral" (gray)
- * Currently used: ServicesPage lead-time chips (primary).
- * Available for: admin panel status indicators, compliance labels, form feedback.
+ * UNUSED: nothing renders <Badge> (AUDIT-12 A12-L15-14-2). The comment here
+ * said it was "used across the app" and by the ServicesPage lead-time chips;
+ * neither is true. Kept, not deleted, only because removal belongs to a
+ * cleanup pass with its own CSS diff — do not read it as live.
  */
 function Badge({ children, variant = "primary" }) {
   const styles = {
