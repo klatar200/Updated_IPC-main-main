@@ -53,6 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Could not save the catalog. Check file permissions on products-all.json.';
         }
     }
+    // A12-L3-14-1 — a second Remove (another tab, or Back) used to fall
+    // through to the upload branch and say "Please choose an image to upload".
+    elseif (($_POST['action'] ?? '') === 'remove') {
+        $errors[] = 'This product has no photo any more, so there is nothing to remove. Nothing was changed.';
+    }
     // Branch B — upload / replace.
     // SEC-12 — `image_file[]` makes every key an array; say so instead of a TypeError.
     elseif (!upload_field_is_single('image_file')) {
@@ -75,17 +80,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // uploaded_image_problem()) so the Site Images page runs the same ones.
         // Order and messages are unchanged.
         $file    = $_FILES['image_file'];
-        $problem = uploads_protection_problem();
-        if ($problem === '') $problem = uploaded_image_problem($file, $ext);
-        if ($problem !== '') {
+        // A12-L4-03-5 — stop at a missing folder (as site-images.php does); the
+        // upload below used to run anyway and add a contradictory
+        // "check write permissions" error for a folder that is not there.
+        $problem = $errors ? '' : uploads_protection_problem();
+        if ($problem === '' && !$errors) $problem = uploaded_image_problem($file, $ext);
+        if ($errors) {
+            // the folder message above is the whole story
+        } elseif ($problem !== '') {
             $errors[] = $problem;
         } else {
             // Filename strategy (mirrors the PDF manager): replace in place if
             // this product already has a managed photo with the same extension;
             // otherwise derive a fresh name from the SKU.
+            // A12-L3-W2-G5-1 — the reused name must be one this page could have
+            // chosen itself: the SKU-derived name, or it with the SEC-1 "-N"
+            // suffix. photoUrl is free text on Edit Product, so reusing any
+            // well-formed name let a typed "/uploads/images/shell.php.jpg" (or
+            // another product's file) name the stored upload.
             $existingName = $isManaged ? basename($currentPhoto) : '';
+            $skuStem = pathinfo(image_filename_for_sku($sku, $ext), PATHINFO_FILENAME);
             if ($existingName !== ''
-                && preg_match('/^[A-Za-z0-9._-]+\.(jpg|jpeg|png|webp|gif)$/i', $existingName)
+                && preg_match('/^' . preg_quote($skuStem, '/') . '(-\d+)?\.(jpg|jpeg|png|webp|gif)$/i', $existingName)
                 && strtolower(pathinfo($existingName, PATHINFO_EXTENSION)) === $ext) {
                 $filename = $existingName;
             } else {
