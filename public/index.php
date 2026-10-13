@@ -339,12 +339,36 @@ function ipc_facts_rewriter(array $site)
     if (!$rules) {
         return null;
     }
-    return function ($text) use ($rules) {
+    // AUDIT-12 A12-L15-W2-G3-1 — a rule's OUTPUT is never re-read by a later
+    // rule (factsRewriter() in App.jsx does the same): each replacement is
+    // parked behind a private-use placeholder until every rule has run, or the
+    // bare-city rule rewrote a new street named after the old city.
+    $pua = '/[\x{E000}-\x{F8FF}]/u';
+    return function ($text) use ($rules, $pua) {
+        if (is_string($text) && preg_match($pua, $text)) {
+            foreach ($rules as $r) {
+                $to = $r[1];
+                $text = preg_replace_callback($r[0], function () use ($to) { return $to; }, $text);
+            }
+            return $text;
+        }
+        $parked = [];
         foreach ($rules as $r) {
             $to = $r[1];
-            $text = preg_replace_callback($r[0], function () use ($to) { return $to; }, $text);
+            $text = preg_replace_callback($r[0], function () use ($to, &$parked) {
+                $parked[] = $to;
+                $cp = 0xE000 + count($parked) - 1;
+                return chr(0xE0 | ($cp >> 12)) . chr(0x80 | (($cp >> 6) & 0x3F)) . chr(0x80 | ($cp & 0x3F));
+            }, $text);
         }
-        return $text;
+        if (!$parked || !is_string($text)) {
+            return $text;
+        }
+        return preg_replace_callback($pua, function ($m) use ($parked) {
+            $b = $m[0];
+            $cp = ((ord($b[0]) & 0x0F) << 12) | ((ord($b[1]) & 0x3F) << 6) | (ord($b[2]) & 0x3F);
+            return $parked[$cp - 0xE000];
+        }, $text);
     };
 }
 

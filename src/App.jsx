@@ -6911,12 +6911,20 @@ function isoRewriter(iso) {
 
 /** Deep-map every string in a plain JSON tree. Arrays and objects are rebuilt;
  *  anything else is returned untouched. */
+// AUDIT-12 A12-L15-08-1 — the ISO and Business-Details waterfalls rewrite
+// CLAIMS in prose. A value under one of these keys is an address, not prose
+// (services[].brochure.url, the copy.siteImages photo slots): a brochure
+// uploaded as "ISO9001-Certificate.pdf" was linked as "ISO 9001-Certificate.pdf"
+// and 404'd, and after a move "Bolingbrook-Plant-Tour.pdf" became a file that
+// does not exist. Left exactly as the owner stored it.
+const MAP_STRINGS_SKIP_KEY = /^(url|href|.*Url|.*Photo)$/;
+
 function mapStrings(node, fn) {
   if (typeof node === "string") return fn(node);
   if (Array.isArray(node)) return node.map((v) => mapStrings(v, fn));
   if (node && typeof node === "object") {
     const out = {};
-    for (const k of Object.keys(node)) out[k] = mapStrings(node[k], fn);
+    for (const k of Object.keys(node)) out[k] = MAP_STRINGS_SKIP_KEY.test(k) ? node[k] : mapStrings(node[k], fn);
     return out;
   }
   return node;
@@ -6958,7 +6966,9 @@ function factsRewriter(site) {
   const D = SITE_DEFAULTS;
   const val = (v) => (typeof v === "string" ? v.trim() : v != null ? String(v).trim() : "");
   const rules = [];
-  const add = (re, to) => rules.push([re, () => to]);
+  // `withPrefix`: the pattern's first group is ONE context character
+  // matched in place of a lookbehind, and is put back in front of the value.
+  const add = (re, to, withPrefix = false) => rules.push([re, to, withPrefix]);
   const lit = (s) => new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
 
   const hours = val(site.hours && site.hours.text);
@@ -6985,7 +6995,12 @@ function factsRewriter(site) {
   }
 
   const year = val(site.company && site.company.foundedYear);
-  if (year && year !== D.company.foundedYear) add(new RegExp(`(?<!\\d)${D.company.foundedYear}(?!\\d)`, "g"), year);
+  // AUDIT-12 A12-L1-W5-G3-1 — no lookbehind. `(?<!…)` is a syntax error
+  // in Safari before 16.4, below the safari14 floor this build declares, so the
+  // moment Rick changed this fact (or Feet In Stock) those phones threw here
+  // and lost ALL his Business Details. A captured context character does the
+  // same job everywhere. (public/index.php keeps PCRE's lookbehind; same result.)
+  if (year && year !== D.company.foundedYear) add(new RegExp(`(^|\\D)${D.company.foundedYear}(?!\\d)`, "g"), year, true);
 
   const moq = val(site.stats && site.stats.minimumOrder);
   if (moq && moq !== D.stats.minimumOrder) add(new RegExp(`${lit(D.stats.minimumOrder).source}(?![\\d,]|\\.\\d)`, "g"), moq);
@@ -6998,11 +7013,37 @@ function factsRewriter(site) {
     // owner's own words, which are right if not as short.
     const m = /^(\d+(?:\.\d+)?)\s*(?:million|M)\+?$/i.exec(feet);
     const dm = /^(\d+(?:\.\d+)?)/.exec(D.stats.feetInStock);
-    if (dm) add(new RegExp(`(?<![\\d.])${dm[1].replace(".", "\\.")}M(?=\\+|\\b)`, "g"), m ? `${m[1]}M` : feet);
+    if (dm) add(new RegExp(`(^|[^\\d.])${dm[1].replace(".", "\\.")}M(?=\\+|\\b)`, "g"), m ? `${m[1]}M` : feet, true);
   }
 
   if (!rules.length) return null;
-  return (text) => rules.reduce((t, [re, to]) => t.replace(re, to), text);
+  // AUDIT-12 A12-L15-W2-G3-1 — a rule's OUTPUT is never re-read by a later
+  // rule. Applied in sequence over one string, the full-address rule wrote
+  // "600 Bolingbrook Dr, Romeoville…" and the bare-city rule then turned the
+  // new street into "600 Romeoville Dr". Each replacement is parked behind a
+  // private-use placeholder until every rule has run. Replacements are still
+  // plain values, never replacement strings (a typed "$75" stays literal).
+  // public/index.php's ipc_facts_rewriter() does the same.
+  const PUA = /[\uE000-\uF8FF]/g;
+  return (text) => {
+    if (PUA.test(text)) {
+      PUA.lastIndex = 0;
+      // Text that already holds a private-use character cannot be parked
+      // safely; fall back to the plain sequence.
+      return rules.reduce((t, [re, to, pre]) => t.replace(re, (_m, g1) => (pre ? g1 : "") + to), text);
+    }
+    PUA.lastIndex = 0;
+    const parked = [];
+    const held = rules.reduce(
+      (t, [re, to, pre]) =>
+        t.replace(re, (_m, g1) => {
+          parked.push(to);
+          return (pre ? g1 : "") + String.fromCharCode(0xe000 + parked.length - 1);
+        }),
+      text
+    );
+    return parked.length ? held.replace(PUA, (ch) => parked[ch.charCodeAt(0) - 0xe000]) : held;
+  };
 }
 
 function withBusinessFacts(tree, site) {
@@ -7114,7 +7155,12 @@ function flattenFaq(categories) {
 }
 function groupFaq(flat) {
   const order = [];
-  const byName = {};
+  // No prototype: with a plain `{}`, a category named "constructor" (or
+  // "toString", …) found Object's own function, skipped the new-group branch
+  // and threw on `.items.push`, so the whole FAQ page showed "Something went
+  // wrong". Any category text the admin accepts must group. (AUDIT-12
+  // A12-L15-06-1)
+  const byName = Object.create(null);
   (flat || []).forEach((row) => {
     const name = row.category || "General";
     if (!byName[name]) {
@@ -7604,7 +7650,10 @@ function familyOrder(content) {
   const rows = content && Array.isArray(content.productFamilies) ? content.productFamilies : null;
   const names = (rows || [])
     .map((r) => (r && typeof r.name === "string" ? r.name.trim() : ""))
-    .filter(Boolean);
+    // De-duplicated, as the admin's ipc_product_families() already is: a
+    // family entered twice in Page Content was listed twice in the navbar's
+    // Products menu. (AUDIT-12 A12-L4-05-W5-3)
+    .filter((n, i, all) => n && all.indexOf(n) === i);
   return names.length ? names : FAMILY_ORDER;
 }
 
@@ -7681,6 +7730,33 @@ function mergeContent(data) {
       // a separate question asked afterwards, and writing it that way keeps
       // the guarded expression byte-identical.
       if (Array.isArray(out[k])) out[k] = out[k].filter((x) => x !== null && x !== undefined);
+      // AUDIT-12 A12-L15-W2-G2-1 — and a row field of the wrong TYPE is not
+      // text. `footerLinks[0].label = {text: …}` reached Footer (outside the
+      // ErrorBoundary) as a React child and blanked every page, phone number
+      // included; `companyNav[i].label` did the same once the menu opened.
+      // Where the shipped rows hold a string, a number is kept as text and any
+      // other non-string becomes "" — the row degrades, the chrome survives.
+      if (Array.isArray(out[k]) && out[k] !== dv) {
+        const textKeys = new Set();
+        for (const row of dv) {
+          if (row && typeof row === "object") {
+            for (const f of Object.keys(row)) if (typeof row[f] === "string") textKeys.add(f);
+          }
+        }
+        if (textKeys.size) {
+          out[k] = out[k].map((row) => {
+            if (!row || typeof row !== "object" || Array.isArray(row)) return row;
+            let fixed = null;
+            for (const f of textKeys) {
+              const x = row[f];
+              if (x == null || typeof x === "string") continue;
+              fixed = fixed || { ...row };
+              fixed[f] = typeof x === "number" ? String(x) : "";
+            }
+            return fixed || row;
+          });
+        }
+      }
     } else if (dv && typeof dv === "object") {
       out[k] = {};
       for (const g of Object.keys(dv)) {
@@ -8278,10 +8354,21 @@ function textSafeOn(color, bg, target = 4.5) {
     const cand = hslToHex({ h, s, l: nl });
     if (contrastRatio(cand, bg) >= target) return cand;
   }
+  // AUDIT-12 A12-L15-12-1 — on a mid-tone surface (a #3b82f6 Dark colour)
+  // the luminance rule picks "lighten", which can never pass, and the fixed
+  // fallback was white at 3.7:1 while Business Details promised 5.0:1 with
+  // dark text. Try the other direction, as textSafeOnEach() does, and then
+  // the ink that actually reads best on this background.
+  for (let step = 1; step <= 100; step++) {
+    const nl = darken ? l + step / 100 : l - step / 100;
+    if (nl < 0 || nl > 1) break;
+    const cand = hslToHex({ h, s, l: nl });
+    if (contrastRatio(cand, bg) >= target) return cand;
+  }
   // Nothing in the hue works (a fully saturated yellow on white cannot reach
   // 4.5:1 without going brown). Fall back to the plain ink rather than ship
   // something unreadable.
-  return darken ? INK_DARK : INK_LIGHT;
+  return inkFor([bg]);
 }
 
 /**
@@ -8315,7 +8402,25 @@ function textSafeOnEach(color, bgs, target = 4.5) {
 function ThemeInjector() {
   const site = useSiteInfo();
   useEffect(() => {
-    const t = site.theme || {};
+    // AUDIT-12 A12-L15-W2-G5-1 — one rule for what a brand colour is. The
+    // admin's gate (ipc_parse_hex_color) and parseHexColor() both accept
+    // "aa0000" and "#a00", but those were written into --brand-* verbatim and
+    // "aa0000" is not CSS: the navbar, banners and Request a Quote lost their
+    // backgrounds under white text. Normalise to "#rrggbb" first; a value
+    // that is not a hex colour at all is passed through as before.
+    const norm = (v) => {
+      if (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v)) return v; // already CSS: byte-identical
+      const c = parseHexColor(v);
+      return c ? "#" + [c.r, c.g, c.b].map((x) => x.toString(16).padStart(2, "0")).join("") : v;
+    };
+    const t0 = site.theme || {};
+    const t = {
+      ...t0,
+      primaryColor: norm(t0.primaryColor),
+      darkColor: norm(t0.darkColor),
+      accentColor: norm(t0.accentColor),
+      accent2Color: norm(t0.accent2Color),
+    };
     const root = document.documentElement;
     const map = {
       "--brand-primary": t.primaryColor,
@@ -10890,7 +10995,15 @@ function tempCeilingC(raw) {
   // the number) and a Unicode minus as no sign at all, so VT-1100 set to
   // "250°F – 1,100°F" sorted 21st of 42 instead of 2nd. Thousands separators
   // go, U+2212 becomes "-"; the en dash of a RANGE is left alone.
-  const s = String(raw || "").replace(/(\d),(?=\d{3}(?!\d))/g, "$1").replace(/\u2212/g, "-");
+  // AUDIT-12 A12-L15-W2-G3-2 — and the degree look-alikes keyboards and PDFs
+  // produce (\u00ba U+00BA, \u02da U+02DA) read as "\u00b0", and \u2103 / \u2109 (U+2103 / U+2109) as
+  // "\u00b0C" / "\u00b0F": "1200\u00baF" sorted with the unrated products.
+  const s = String(raw || "")
+    .replace(/(\d),(?=\d{3}(?!\d))/g, "$1")
+    .replace(/\u2212/g, "-")
+    .replace(/[\u00ba\u02da]/g, "\u00b0")
+    .replace(/\u2103/g, "\u00b0C")
+    .replace(/\u2109/g, "\u00b0F");
   let max = null;
   for (const m of s.matchAll(/([+-]?\d+(?:\.\d+)?)\s*°?\s*([CF])\b/gi)) {
     const n = parseFloat(m[1]);
