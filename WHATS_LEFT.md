@@ -6,8 +6,9 @@ work is done. Everything still open waits on **Rick** (content and facts),
 
 - The full append-only history moved, verbatim, to
   [`audit-runs/WHATS_LEFT-history.md`](audit-runs/WHATS_LEFT-history.md).
-  That is 7,800 lines and 76 sections of what was shipped, decided and
-  measured, and why.
+  That is 7,800 lines and 90 sections of what was shipped, decided and
+  measured, and why. (This said 76 sections until 2026-10-13; recount with
+  `grep -c '^## ' audit-runs/WHATS_LEFT-history.md`.)
 - Every `WHATS_LEFT §…` reference in code comments, the harness and the docs
   written before 2026-10-07 (§1ar, §1at, §2b …) points into that file.
 - 2026-10-13: AUDIT-12 ran (read-only). Its findings are open in "Open — AUDIT-12 findings" below; until they are owned, "engineering work is done" above no longer holds.
@@ -23,13 +24,15 @@ in the box, and nothing here is a code change. History: §2r, §1ao and §1aq.
 
 | Item | Where Rick edits it | What to check |
 |---|---|---|
-| ISO 9001 revision year | Business Details → Certifications → ISO | Use the year printed on the current certificate. Leave the box blank to stop claiming ISO (§1aq). `node _harness/isoclaims.js` lists every place it shows. |
-| "RoHS compliant — entire line" (CLAIM-1) | Page Content → Company Claims | Is it true for every SKU? |
-| "42 Products Stocked" (CLAIM-2) | Page Content → Company Claims / stats | Should it follow the catalog count, or be a fixed claim? |
-| AMS claims (CLAIM-3) | Page Content → Company Claims | Which AMS specs IPC actually holds |
-| FAQ #15 | Page Content → FAQ | Accuracy of the answer |
-| FAQ answer "click the 'Data Sheet' button" | Page Content → FAQ | The button reads **"Datasheet"** (AUDIT-10 A10-043) |
-| Certification spellings | Business Details / Page Content | UL, CSA, MIL-SPEC, AMS, RoHS spelled as on the certificates |
+| ISO 9001 revision year | Business Details → Certifications → ISO | Use the year printed on the current certificate. Leaving the box blank removes the claim from the footer, the About fact box and the homepage band **only** (the decided §1aq scope, as Business Details says). Every other wording that says ISO 9001 — Page Content (Products & Services Cards, Company Timeline, Team & Capabilities, Certifications & Standards, Hero Proof Points, Hero Trust Ticker, SEO rows), the About story, and the VALUE-ADDED product (Products → Edit) — stays until edited; Business Details lists the Page Content and About ones after a save, not the product. `node _harness/isoclaims.js` counts the claims (it names places only for a withdrawn revision). |
+| "RoHS compliant — entire line" (CLAIM-1) | Page Content → About — Certifications & Standards (2nd row), Homepage — Hero Trust Ticker, FAQ / Resources (the RoHS question), Products & Services Cards; Business Details → About Page (4th paragraph) | Is it true for every SKU? (Not in Company Claims, which holds other claims.) |
+| "42 Products Stocked" (CLAIM-2) | Page Content → Trust Bar Stats (2nd stat) | Should it follow the catalog count, or be a fixed claim? The recommendation on record is "42 — Datasheets Published" (GO-LIVE §A) |
+| AMS claims (CLAIM-3) | Page Content → Homepage — Hero Trust Ticker, About — Certifications & Standards, Industries Grid, Industries Page — Detail Sections, FAQ / Resources; Business Details → About Page | Which AMS specs IPC actually holds |
+| FAQ #15, "Where can I download product data sheets?" (A-9.P5a-2) | Page Content → FAQ | Two errors in one answer: it says to click the "Data Sheet" button, which reads **"Datasheet"** (A10-043); and it promises a catalog PDF "on the Products page header and in the site footer" — there is no Products-page-header link at all, and the footer link appears only once a catalog PDF is set (Catalog & Brochure PDFs). The sentence has to change either way (GO-LIVE §A) |
+| Certification marks, then spellings (A-9.P4-3, then A-9.P5a-5) | Products → Edit (nearly all: e.g. `U/L` ×65 in the catalog); Page Content for one `USFDA` | First settle A-9.P4-3: the catalog cites categories no body issues (`U/L Approved`, `UL Approved`, `CSA Approved`, `FDA Approved`, `GFR 21`). Then spell UL, CSA, MIL-SPEC, AMS, RoHS as on the certificates — in that order, or the spelling pass is done twice (GO-LIVE §A) |
+| Two badge pairs (A-9.P5a-8 remainder) | Products → Edit | `Low Temperature Flexibility` vs `Low-Temperature Flexibility`, `125°C Rated` vs `Rated 125°C` — one product each, no majority; pick one (GO-LIVE §A) |
+| Five products without a photograph (A-9.P4-8) | Products → Edit → Photo | `IP12GA-IP1274`, `IP13SP`, `IP25PU`, `IP30UV`, `IP47HV` show the branded "image coming soon" panel. Photograph them, or confirm the panel is what they should show |
+| Commercial promises (claims register: inherited, unsourced) | Business Details (Minimum Order, Feet In Stock) / Page Content | 25M+ feet in stock, $50 minimum, same- or next-business-day shipping, custom work in a week or less, JIT programs, PPAP and IMDS packages, certificates of conformance — came from IPC's old site and nothing in this repo backs them. Still true? |
 | Privacy policy effective date | Page Content → Privacy | The date the policy takes effect |
 | Five site photos | Site Images & Logo | Replace the shipped placeholders where wanted |
 | Social links | Business Details → Social | Only accounts IPC actually runs |
@@ -66,7 +69,10 @@ in the box, and nothing here is a code change. History: §2r, §1ao and §1aq.
 | AUDIT-12 [A12-L10-W3-G5-1](audit-runs/audit12.md#a12-l10-w3-g5-1): Google's snippet, the breadcrumb and the no-JavaScript product page call IPC's whole extruded tubing line (the vinyl, PTFE spaghetti and polyurethane tubing, seven products) an 'Accessory', the same bucket as the heat g… | Products → Edit | L10 charter (PLAN-12 §6 L10): crawler-facing head and JSON-LD are true. The family label Google shows in the snippet and the breadcrumb should describe what th… |
 
 The handoff email (`Email to Rick - Admin Dashboard Handoff.md`) carries this
-list in owner language.
+list in owner language. (2026-10-13: the rows for certification marks, badge
+pairs, the five photo-less products and the commercial promises, and the
+corrected screens for RoHS / AMS / "42", were added here from AUDIT-12 and are
+not yet in the email.)
 
 ## Open — deploy day / the host ([GO-LIVE.md](GO-LIVE.md) §A–§C)
 
@@ -91,10 +97,11 @@ list in owner language.
 
 | Item | Decision | Held by |
 |---|---|---|
-| Page-header sub-lines on the gradient (18) and the spec-table sub-header (1) | Keagan 2026-10-05: keep the header as it is for now. No text colour reaches AA on the `#119EC8` end. The proposal on file is to darken that end to `#0e80a2` and make the sub-lines full ink; the before/after image is in §1as. | `plan5c-eyebrow` ratchet 18; `plan8-contrast` `EXEMPT_BRAND_SURFACE = 1` |
+| Page-header sub-lines on the gradient (18) and the spec-table sub-header (1) | Keagan 2026-10-05: keep the header as it is for now. No text colour reaches AA on the `#119EC8` end. The proposal on file is to darken that end to `#0e80a2` and make the sub-lines full ink (§1as). A before/after was rendered for the decision but never committed, so no image is on file (2026-10-13; this said "the image is in §1as"). The nearest regenerable picture is `node _harness/mockup-brandtext.js`'s `eyebrow-D-darker-gradient.png` (needs :8123), which darkens to `#0b4c66`, not to the proposed `#0e80a2`. | `plan5c-eyebrow` ratchet 18; `plan8-contrast` `EXEMPT_BRAND_SURFACE = 1` |
 | Pale-palette hero (13 surface-limited elements) | Applies only if the owner picks a very pale palette; it is 0 on navy | `smalltext1as` ratchet 13 |
 | PLAN-7 slot 5 — catalog cover in the footer | Optional design addition, not a defect. Unblocked because a catalog PDF can now be uploaded (G1). | — |
 | Real HTTP 404 for unknown routes | Not proposed. Unknown routes answer 200 + `noindex` by design (A5); changing that is a separate decision. | `prerender`, `prerender-apache` |
+| Product `offers` (stock availability) in the search-engine data (A-9.P4-9, its `offers` half) | Added 2026-10-13 from AUDIT-12; undecided since audit 9 (`audit-runs/audit9.md` §5.2). Does IPC publish availability without a price? Recommended there: not until Rick says so — an `offers` block with no price is itself a Search Console warning, and publishing availability is a commercial commitment. | — |
 
 ## Open — cannot be verified in this environment
 
@@ -103,6 +110,7 @@ list in owner language.
 | `plan8-polish` C49 (16/17 on Linux) | Font metrics: DejaVu is ~21% wider than the Windows/macOS stack. Passes there. |
 | `plan3-autoreply` on Windows | Needs a Windows host with an SMTP sink |
 | `index.php` under PHP-FPM / CGI | Only mod_php is installed here; nothing in it is handler-specific |
+| The `.htaccess` files and `public/.user.ini` under PHP-FPM / CGI | Added 2026-10-13 (AUDIT-12). Every real-Apache suite (`lowsE-apache`, `dep3-scriptblock`, `prerender-apache`) runs mod_php; `.user.ini` is read only under CGI/FastCGI/FPM (README "Verify after deploying"), so its limits and the handler-dependent `.htaccess` behaviour are measured on the host only, by GO-LIVE C1/C3 |
 | How long each link unfurler caches a share card | Help says only "for a while" |
 
 ---
@@ -680,6 +688,20 @@ is in the history file at the § given.
 | `--brand-accent-text` `#0d7594`; `brand-gradient-mixed-ends` unchanged | Decided 2026-08-06 | 3 |
 | "Made in USA Since 1974" (homepage, About) | Correct — Keagan 2026-10-13: no change. Closes AUDIT-12 A12-L8-01-1. | AUDIT-12 |
 | Old site admin at `/site/admin/` | Keagan 2026-10-13: keep it running and skip its password change for now. AUDIT-12 A12-L3-W5-G2-2 stays open as a risk, not a task. | AUDIT-12 |
+
+Corrections to the table above (rows left as written; dated here):
+
+- **2026-10-13 (AUDIT-12 A12-L14-03-1):** "Product-page footer layout shift"
+  — its record is history §2d, and the "Accepted" decision is in §1aq; §2b,
+  as cited, does not mention it. Re-measured at AUDIT-12: CLS 0.022–0.024 on
+  `IP12GA` / `IP33PO`, still under 0.1, so the decision stands.
+- **2026-10-13 (AUDIT-12 A12-L14-W1-G2-1):** the `brand-gradient-mixed-ends`
+  half of the last row is **superseded**: both strips it covered were changed —
+  the Industries strip on 2026-09-28 (history §1ai) and the product-page header
+  on 2026-09-29 (§1al) — and now derive their ink from the gradient, because the
+  hard-coded navy the 2026-08-06 reason rested on was removed. On the shipped
+  palette the ink is still white; on a pale palette it turns dark (`r3-shades`
+  holds it). `--brand-accent-text` `#0d7594` stands as decided.
 
 ---
 

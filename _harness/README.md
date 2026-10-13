@@ -22,6 +22,12 @@ without running because the list lived in session notes.
 [`plans/PLAN-12-full-project-audit.md`](../plans/PLAN-12-full-project-audit.md)
 (Appendix A). They are not suites and are not in the sweep.
 
+**Audit 1–3 issue IDs in comments.** Citations such as `audit-runs/audit1.md
+A-04`, `audit2.md B-NN` or `audit3 C-01` use IDs that are **not written in
+those audit files**: they are assigned in the "Issue IDs" table of
+`audit-runs/build-plan-run1.md`, `-run2.md` and `-run3.md` (audit 1's follow
+its row order). Look an ID up there first.
+
 ## Bootstrap
 
 ```sh
@@ -73,7 +79,9 @@ and the whole admin are unaffected.
 
 Line endings are governed by [`.gitattributes`](../.gitattributes); if `bash`
 reports `set: -` as an invalid option or `cd: $'...\r'`, the checkout predates
-that file — see its comment for the one-line repair.
+that file (its comment explains the cause). The repair is to check the two
+scripts out again under the current rules, from the repo root in Git Bash:
+`rm _harness/sync.sh _harness/fakemail.sh && git checkout -- _harness/sync.sh _harness/fakemail.sh`.
 
 `plan5-throttle.js` additionally needs a **fleet** of ten servers, because one
 `php -S` answers one request at a time and neither of 4.14's faults — a lost
@@ -128,7 +136,7 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `isoclaims.js` | **4/4 green since §1aa (d922525)** — it held the A-8.5 finding red at 2/4 until the withdrawn revisions were removed; it now holds the no-withdrawn-revision state. Every ISO 9001 revision string in the three live JSON files, grouped, with the admin screen each is edited on. FAILS while a *withdrawn* revision is present: `data/content.json` has three `ISO 9001:2008` (withdrawn Sept 2018) and `data/products-all.json` three `ISO9001:2000` (superseded Nov 2008) on VALUE-ADDED — and three of the six are under Products → Edit, **not** Page Content, which is where every prior owner-action line pointed. It has a real pass state and goes green when the six are resolved. It deliberately does **not** rewrite a claim: writing `:2015` because it is current would invent a certification for a supplier to aerospace, medical and automotive. Also asserts `site-info.json` still holds the bare unversioned form — that field reaches every page. Needs no server. (audit-runs/audit8.md A-8.5) |
 | `nodupbackups.js` | a save that changes nothing writes nothing (10 checks) — no backup, no touched bytes, and it still succeeds with a "No changes to save" notice rather than an error, with the optimistic-concurrency signature still round-tripping. Note the deliberate settle-first step: the **first** save against a pristine `site-info.json` is a real change, because `settings.php` rebuilds the file from a form carrying two fields the shipped file lacks. Taking the pre-settle state as the baseline made this suite report 2/9 against a working implementation |
 | `backdrop.js` | the shared measurement core: gradient sampling **under the glyphs**, alpha compositing to the first opaque paint, WCAG luminance. A source string, not a function — Playwright serialises a function without its closure. Used by `brandtext.js`, `plan5c-eyebrow.js` and `plan5c-brandink.js`; it is one implementation on purpose, because `contrastparity.js` exists to catch two contrast implementations drifting apart |
-| `brandtext.js` | every element painting its own text in a brand colour, scored against the background it really sits on — gradients sampled **under the text's own ink**, translucent layers composited, WCAG large-text honoured. Supersedes `fgsurfaces.js`'s reporting. **31/31 since §1as (2026-10-05, Keagan's brand-colour decision): no longer an expected red. It was 38/49, the 11 failures fixed by the derived `--brand-accent-on-deep` / `-on-hero` / `-on-hero-lg` shades; the combination count fell because those shades are no longer brand colours. It exits 1 on any failure, there is no ratchet in the code.** This line read `35/51` until 2026-08-12 and was stale by six combinations: PLAN-10 items 11 + 12 moved brand colour onto surfaces that had been hardcoded, which changes the set of distinct (colour × background) pairs there are to score. `WHATS_LEFT.md` §9 already carried the current figure; **this table did not, and the gap cost a full A/B against the base commit to establish that a "regression" was the documented baseline.** Re-read §9 before treating a number here as a target. ⚠️ Two homepage `✓` rows wobble ±1 in the reported background between runs of the same code — the hero animates and a small ink extent is position-sensitive. Verdicts are unaffected; the count of distinct combinations can move by one |
+| `brandtext.js` | every element painting its own text in a brand colour, scored against the background it really sits on — gradients sampled **under the text's own ink**, translucent layers composited, WCAG large-text honoured. Supersedes `fgsurfaces.js`'s reporting. **31/31 since §1as (2026-10-05, Keagan's brand-colour decision): no longer an expected red. It was 38/49, the 11 failures fixed by the derived `--brand-accent-on-deep` / `-on-hero` / `-on-hero-lg` shades; the combination count fell because those shades are no longer brand colours. It exits 1 on any failure, there is no ratchet in the code.** This line read `35/51` until 2026-08-12 and was stale by six combinations: PLAN-10 items 11 + 12 moved brand colour onto surfaces that had been hardcoded, which changes the set of distinct (colour × background) pairs there are to score. `WHATS_LEFT.md` already carried the current figure; **this table did not, and the gap cost a full A/B against the base commit to establish that a "regression" was the documented baseline.** Re-read the current record (`WHATS_LEFT.md`, and `audit-runs/WHATS_LEFT-history.md` for anything before 2026-10-07) before treating a number here as a target. ⚠️ Two homepage `✓` rows wobble ±1 in the reported background between runs of the same code — the hero animates and a small ink extent is position-sensitive. Verdicts are unaffected; the count of distinct combinations can move by one |
 
 ## Per-plan acceptance
 
@@ -158,7 +166,7 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `plan5c-sitemap.js` | `product detail URLs are in no sitemap` — adds and deletes a product **in a live catalog** and requires the served document to track it, compares all 42 product `<loc>`s against the canonical each page declares, and checks the degraded responses are still clean XML |
 | `plan10-header.js` | PLAN-10 item 1 / AUDIT-10 **A10-011** — the product-detail header strip gives the product's name a column of its own, on all 42 products at 390 / 834 / 1440. Asserts the title column is not starved, that no title ink paints over an action button, and that the h1 does not wrap pathologically. Every measurement is taken with the document forced to **Liberation Sans** (the C49 control), because the defect must survive the font to be real — it does. The "unchanged" half compares 834 and 1440 **per product** against `plan10-header-baseline.json`, captured from the unmodified tree: a global band is wrong here because the title column's width depends on whether the product has a PDF button |
 | `plan10-dashboard.js` | PLAN-10 item 2 / AUDIT-10 **A10-001 + A10-002** (and the C-severity **A10-015**) — `/dashboard`'s Description track stops being the only elastic column under `table-layout: fixed`. 25 checks at 390 / 834 / 1024 / 1440, each overlap count taken under the shipped face **and** Liberation Sans (the C49 control). Asserts 0 painted-text overlap pairs, a Description track ≥ 220 px, no header overprint, ≤ 4 line boxes in the first description cell, a document under 7,000 px, the table scrolling **inside its card** while `documentElement` gains no horizontal scroll, and the three `?family=` views clean too. The "unchanged" half compares 1440's column widths and all 42 mobile cards **per item** against `plan10-dashboard-baseline.json`, captured from the unmodified tree. Note the `?family=` URLs are not the audit's three: `?family=` filters on `partType`, and the audit's `Heat Shrink Tubing` matches nothing, so its table held 0 rows and proved nothing |
-| `plan10-rfqscroll.js` | PLAN-10 item 3 / AUDIT-10 **A10-012** — native constraint validation must not scroll the invalid field behind the 65 px sticky header. 24 checks: **both** `/contact` forms (the RFQ tab and the message tab, which the audit never measured) × 4 viewports × (the field is below the header, its label is too, and native validation is still what fires — `noValidate` false, `valueMissing` true, `validationMessage` intact). That last one is the mechanism check: item 3's fix is a `scroll-margin-top`, not a JS validation takeover. The message tab's label is found via the field's wrapper rather than `.labels`, because its four labels all carry `htmlFor="rfq-subject"` — a separate, unfixed defect logged in `WHATS_LEFT.md` §2 |
+| `plan10-rfqscroll.js` | PLAN-10 item 3 / AUDIT-10 **A10-012** — native constraint validation must not scroll the invalid field behind the 65 px sticky header. 24 checks: **both** `/contact` forms (the RFQ tab and the message tab, which the audit never measured) × 4 viewports × (the field is below the header, its label is too, and native validation is still what fires — `noValidate` false, `valueMissing` true, `validationMessage` intact). That last one is the mechanism check: item 3's fix is a `scroll-margin-top`, not a JS validation takeover. Labels are resolved through `.labels` on both tabs. The message tab's four labels once all carried `htmlFor="rfq-subject"`; that defect was fixed 2026-08-12 (see the suite's own comment), and the wrapper fallback is kept only as a regression detector — a run that reports `via wrapper` means it has come back |
 | `plan10-repalette.js` | PLAN-10 items 11 + 12 / AUDIT-10 **A10-045 + A10-046** — the owner's brand colours must reach the translucent accent tints and the four hardcoded navies. 33 checks over 8 page-states in **three arms**. `owner` is the real path: `/data/site-info.json` is intercepted and its `theme` rewritten, exactly as saving Business Details → Branding does, so ThemeInjector's derivation is exercised and not bypassed. `vars` is the audit's own `:root !important` drill, extended with the variables the two items create — necessary because `audit10-repalette.js`'s injection map predates them, and a custom property that is not injected cannot move. `default` asserts the shipped site does **not** change: every brand-painting element and every gradient byte-identical, **per element**, against `plan10-repalette-baseline.json` captured from the unmodified tree. Run `--save-baseline` on an unmodified tree to recapture. The named-surface probes locate the header hairline, the hero badge and the `/dashboard` chips **structurally** (class shape plus "has a tint at all"), never by the cyan value, or they would stop finding them the moment the fix worked and pass vacuously |
 | `plan10-adminrows.js` | PLAN-10 item 5 / AUDIT-10 **A10-020** — the Delete button on `/admin/index.php` must be readable and reachable. 15 checks over 4 viewports × 42 rows: clipped px against the table's **content** box (not its border box — `overflow: hidden` clips at the padding edge), the Delete label's rendered width, and `elementFromPoint` at every button's centre. Geometry alone is not enough — a button can sit inside the content box and still be covered, and "Rick can click it" is what the finding is about. 834 and 390 are asserted **unchanged** (they always scrolled in-card; the defect was specific to 1440/1024) |
 | `plan10-adminnav.js` | PLAN-10 item 6 / AUDIT-10 **A10-021** — the admin header must contain its own nav at 390. 27 checks over 4 viewports × 4 signed-in pages, `upload-image.php?sku=IP38FE` included since 2026-09-29 (nav.php is shared, and `$navExtra` means a header that fits on one page can overflow on another). Contrast is computed against the **painted** backdrop via `elementsFromPoint`, skipping only the link and its own descendants: ancestors stay eligible because hit-testing is geometric, so the header appears in the stack exactly when it really covers the point. That is the difference between a link on the bar (7.53:1) and one that has escaped below it (1.07:1) — an ancestor walk reports this finding as already fixed. Row counting clusters y-centres with an 8px tolerance, because same-row items differ in height. Also asserts the Sign Out form still carries its `csrf_token`. `upload-image.php` is the page with the most nav items (13); the count check allows each page's own `$navExtra` |
@@ -204,12 +212,12 @@ files that both assert and set a failing exit status.
 
 | File | Item |
 |---|---|
-| `plan8-certs.js` | PLAN-8 — certification claims render from site-info |
+| `plan8-certs.js` | PLAN-8 A1 + C32 — one derivation of a product's certifications: every UL category in the page-header chips is also claimed by the Approvals block, and every badge lands in exactly one of the two blocks. It reads the catalog, not `site-info.json` (this row said "render from site-info" until 2026-10-13) |
 | `plan8-meta.js` | PLAN-8 — per-route title/description/canonical |
-| `plan8-catalog.js` | PLAN-8 — catalog listing, filters and empty states |
+| `plan8-catalog.js` | PLAN-8 Phase C (A6, B19, B20, B27, B12) — Product Index column widths and the clipped View Product buttons, the no-results cell's colspan, the sidebar's first-paint height, and 42 counted the same way on every surface. No filter checks |
 | `plan8-lead.js` | PLAN-8 B26 — the lead path and where the first field sits |
 | `plan8-motion.js` | PLAN-8 — reduced-motion compliance |
-| `plan8-chrome.js` | PLAN-8 — navbar/footer chrome across viewports |
+| `plan8-chrome.js` | PLAN-8 Phase F (B11, B21, B23, A7) — the footer's `$50` sentence spacing, the Services lead-time banner, product-photo layout shift, and no external placeholder-photo requests. It never looks at the navbar |
 | `plan8-keyboard.js` | PLAN-8 — keyboard reachability and focus order |
 | `plan8-mobile.js` | PLAN-8 — mobile layout and tap targets |
 | `plan8-polish.js` | PLAN-8 — copy and layout polish. **Expected red at 16/17 on Linux**: `fc-match system-ui` resolves to DejaVu Sans, which is wider than Arial (GUARDRAILS §7.1) |
@@ -232,7 +240,7 @@ run it after adding a suite.
 | `plan7-approvals.js` | PLAN-7 item 2 — approvals became a real field instead of free text: the field, its counts, and the filter |
 | `plan7-datasheets.js` | PLAN-7 item 3 — the datasheet library: all 42 products carry a published PDF and the page that lists them |
 | `plan7-imagery.js` | PLAN-7 item 2 — the marketing photographs actually reach the page (the app once held four `<img>` elements, three of them the logo) |
-| `plan8-faq.js` | PLAN-8 C41 — the FAQ opens fully collapsed, with no bulk control and no category chip that jumps past a closed row |
+| `plan8-faq.js` | PLAN-8 C41 — the FAQ's bulk expand/collapse control: it exists, and a bulk collapse takes every answer out of the accessibility tree and find-in-page (PLAN-4 4.20), under reduced motion with transitions off too |
 | `plan8-formpolish.js` | PLAN-8 C39 — contact-form polish: the privacy note near Submit, the legend, and the required-field marking |
 | `plan8-landing.js` | PLAN-8 C29 — `/products` renders a catalog landing state instead of auto-selecting one product's detail page |
 
@@ -247,7 +255,7 @@ are in the sweep and they should stay green.
 
 | File | Kind | Item |
 |---|---|---|
-| `audit9-crawl.js` | instrument | 67-page crawl at three viewports — the DOM, links, JSON-LD, meta and aria snapshot every P4/P5a/P6/P9/P10 record is measured against |
+| `audit9-crawl.js` | instrument | 67-page crawl — public pages at five viewports (390, 834, 1440, 1920, 2560), admin pages at two (390, 1440) — the DOM, links, JSON-LD, meta and aria snapshot every P4/P5a/P6/P9/P10 record is measured against |
 | `audit9-adminflows.js` | instrument | the signed-in admin flows: every page fetched and parsed as the owner sees it |
 | `audit9-strings.js` | instrument | the 1,498-record string inventory behind all three verbiage passes |
 | `audit9-logic-admin.js` · `audit9-logic-public.js` · `audit9-logic-contact.js` · `audit9-logic-data.js` | instrument | P7's edge-case probes over the admin, the routing shim, the contact path and the catalog loader |
@@ -310,7 +318,7 @@ A green control is not evidence until you know why it is green.
 | `isowaterfall.js` | Keagan 2026-09-15 — the ISO field reaches every place the claim renders (sentinel revision written into the mirror; no other revision shows; ISO count unchanged; milestone and ISO 10993-5 controls). 19 checks, needs :8123. Partly superseded by §1aq (a revision now reaches bare mentions too) — every assertion still holds |
 | `plan7-slots.js`, `plan9-firstsave.js`, `plan9-band.js`, `plan9-meta.js`, `plan9-notfound.js`, `plan9-slots-slash.js`, `plan8-crumbs.js`, `plan8-contrast.js` | PLAN-7/8/9 acceptance suites (Site Images slots and clearing; the first Page Content save not deleting photos; the homepage band; page meta; the not-found page; slot paths with/without a leading slash; breadcrumbs; neutral-surface contrast — `plan8-contrast` is an expected 34/35 with its named `EXEMPT_BRAND_SURFACE`). Each needs :8123 and sets a failing exit status. Listed here 2026-10-05; each file's header comment is its specification |
 
-**Tools, not suites:** `browser.js` (the one Chromium launcher), `run.js` (the sweep runner: `node _harness/run.js <suite> …`), `adminhttp.js` (cookie-jar admin HTTP client), `backdrop.js` (the shared contrast core), `cssdiff.js` (Tailwind-extractor guard), `plan10-crawl.js` / `plan10-admincrawl.js` (regenerate the screenshot set into `out/`; `site-screenshots/` was deleted in §1an), `claims-{extract,composite,catalog,pdfs,provenance}.js` and `approvaldump.php` (claims-register instruments), `dump-copy-groups.php` (the PHP side of copydrift; emits each field's `default` too).
+**Tools, not suites:** `browser.js` (the one Chromium launcher), `run.js` (the sweep runner: `node _harness/run.js <suite> …`), `adminhttp.js` (cookie-jar admin HTTP client), `backdrop.js` (the shared contrast core), `cssdiff.js` (Tailwind-extractor guard), `plan10-crawl.js` / `plan10-admincrawl.js` (regenerate the screenshot set into `out/`; `site-screenshots/` was deleted in §1an), `claims-{extract,composite,catalog,pdfs,provenance}.js` (claims-register instruments), `approvaldump.php` (the PHP side of `plan7-approvals.js`, which runs it — a sweep helper), `dump-copy-groups.php` (the PHP side of copydrift; emits each field's `default` too).
 
 ## Investigative tools (one-shot, kept as evidence)
 
@@ -318,18 +326,23 @@ A green control is not evidence until you know why it is green.
 `findwarn`, `classifywhite`, `probeink`, `checkskus`, `derived`, `navyshot`,
 `accentaudit`, `accentshot`, `gradientshot` — measurement. `inkpatch`,
 `inkfix`, `inkclass`, `fgpatch` — the codemods that did the brand-color
-migrations. They are cited in `WHATS_LEFT.md` §4h/§4i and are how the numbers
-there were produced. (Their `2`/`3` follow-up passes were deleted 2026-08-12;
+migrations. The numbers they produced are recorded in
+`audit-runs/WHATS_LEFT-history.md` §4h/§4i; only `inkaudit`, `whitesurfaces`,
+`fgsurfaces` and `fgpatch` are named there (this line said all of them were
+cited, in `WHATS_LEFT.md`, until 2026-10-13). (Their `2`/`3` follow-up passes were deleted 2026-08-12;
 the numbered variants were incremental re-runs of the same codemod, and the
 first of each is the readable one.)
 
 ## `audit10-*.js` — kept for the findings that are still open
 
 Thirty-five of these survive, and **the rule that selects them is not
-chronology.** `_harness/AUDIT10-REPORT.md` still carries 39 severity-C and 9
-severity-D findings that nothing has actioned, and each one names the probe that
-measured it under **Probe:** and again in its **Reproduce** block. A probe the
-report cites is the only executable form of a live finding's reproduce steps.
+chronology.** `_harness/AUDIT10-REPORT.md` carries 39 severity-C and 9
+severity-D findings, each naming the probe that measured it under **Probe:** and
+again in its **Reproduce** block. All 48 were triaged on 2026-10-06 (§1at, PR
+#77: 31 fixed, 13 declined with reasons, 4 already fixed), so none is open now;
+the probes stay as the executable form of each finding's reproduce steps — the
+evidence behind those fixes and declines. (This paragraph said "nothing has
+actioned" them until 2026-10-13.)
 
 So: **an `audit10-*.js` file may be deleted only once no finding in that report
 cites it.** Twenty-five were deleted on 2026-08-12 under exactly that test —
@@ -367,22 +380,31 @@ text's ink extent — the page eyebrow's box is 1232 px wide and its text is
 
 **That fix landed the same day** and lives in `backdrop.js`; the earlier warning
 to re-measure gradient-backed failures by hand is obsolete. Two of the mockups
-were acted on (white eyebrow, teal arrows) and `eyebrow-D-darker-gradient.png`
-is still live evidence for the one decision this left open,
-`page-header-sublines-on-gradient`.
+were acted on (white eyebrow, teal arrows). The one decision this left open,
+`page-header-sublines-on-gradient`, was **deferred** by Keagan on 2026-10-05
+(§1as; `WHATS_LEFT.md` "deferred by decision"). Its mockup,
+`eyebrow-D-darker-gradient.png`, was never committed: `out/` is gitignored. To
+see it again, run `node _harness/mockup-brandtext.js` (needs :8123); it writes
+to `_harness/out/mockups/`.
 
 ## Things that have bitten before
 
 - **`sync.sh` after every build and every `admin/` edit.** Otherwise the suites
   test stale code and pass for the wrong reason.
 - **While a full sweep runs, touch NOTHING it can read: not the mirror, and not
-  `src/`, `public/` or `admin/` either.** `plan5-keys`, `plan5b-sidebar` and
-  `contactflow-selftest` run `npm run build` + `sync.sh` themselves, so a source
-  edit made mid-sweep is built into the mirror and every later suite tests a
-  tree the earlier ones never saw. Measured twice: 2026-09-28 SEC-2's sweep
-  (a manual sync) and sweep8 (source edits picked up by those suites' own
-  build). For side work during a sweep, copy `_harness/` to a private
-  directory, build with `npx vite build --outDir <elsewhere>`, and test there.
+  `src/`, `public/` or `admin/` either.** `plan5-keys` and `plan5b-sidebar` run
+  `npm run build` and install the new bundle into the mirror, and
+  `audit9-fixes` runs `sync.sh`, so a source edit made mid-sweep is built or
+  synced into the mirror and every later suite tests a tree the earlier ones
+  never saw. (`contactflow-selftest`, named here until 2026-10-13, does
+  neither; it mutates the mirror's `contact.php` and bundle in place and
+  restores them.) Measured twice: 2026-09-28 SEC-2's sweep (a manual sync) and
+  sweep8 (source edits picked up by those suites' own build). **Side work has
+  to wait for the sweep.** A private copy of `_harness/` alone does not work:
+  the suites read the source through the checkout around them, and most of
+  them (72 of the 121 in the sweep, measured 2026-10-12) dial
+  `http://127.0.0.1:8123` with no override — they would test, and write
+  into, the sweep's own mirror.
 - **Measure in the browser, not in the source.** A backward scan for a
   background both misses one declared after the `className` in the same element
   and attributes one from 12,000 characters away. Six real mis-classifications

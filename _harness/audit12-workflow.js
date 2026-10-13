@@ -14,7 +14,7 @@ export const meta = {
 // args = { wave: 'W1', head: '<short sha>', lenses: ['L1', ...],
 //          batches: [{ batch, lens, ids: [...] }, ...],      // from --batches, filtered to `lenses`
 //          prior: { L3: ['title', ...], ... },              // titles already raised in earlier waves
-//          portBase: 10000,                                  // above every port a suite binds (8123–9481)
+//          portBase: 10000,                                  // above every port a suite binds (8123–8749)
 //          methods: { L6: ['...'], ... } }                 // optional: extra gap-hunt methods (W5's
 //                                                           //   cross-lens seams) — no script edit needed
 // Tested without spending a token by _harness/audit12-workflow-dryrun.js.

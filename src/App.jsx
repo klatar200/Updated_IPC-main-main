@@ -1798,8 +1798,13 @@ const HERO_TRUST = [
  */
 // These are the dimensions of the files ON DISK, and no file was re-encoded
 // for this item. The plan expected the tree to get bigger; measured, it does
-// not need to. Paint boxes at 1440, the widest any of them gets, versus what
-// the shipped file already carries (_harness/imgopt-plan7.js prints this).
+// not need to. Paint boxes at 1440 versus what the shipped file already
+// carries (_harness/imgopt-plan7.js prints this). 1440 is NOT the widest
+// paint any more: since the page width became 80vw above 1600 (invariant 13)
+// these boxes keep widening with the screen. Measured 2026-10-12 (AUDIT-12),
+// at 1440 / 1920 / 2560: staff 813 / 983 / 1325 px (up to 1.83x its file),
+// IPC-Building 395 / 481 / 651, Marker-Sample-2 584 / 712 / 968. The figures
+// below are the original 1440 measurements.
 //
 // (The verb above is "get bigger" on purpose. The word you would reach for is
 // a Tailwind utility name, and the extractor scans raw source text with
@@ -12209,9 +12214,11 @@ function IndustriesPage() {
                     left-aligned, i.e. over the dark end, where white is correct
                     for the shipped palette.
                     C2 (audit 2026-09-27 NEW-N1-5): now the gradient's own ink,
-                    --brand-deep-ink-rgb — WHITE on the shipped palette, so the
-                    open brand-gradient-mixed-ends item is untouched; on a pale
-                    primary the white heading measured 1.0:1. */}
+                    --brand-deep-ink-rgb — WHITE on the shipped palette; on a pale
+                    primary the white heading measured 1.0:1. That closed
+                    brand-gradient-mixed-ends for this strip (WHATS_LEFT §1ai;
+                    the product-page half closed 2026-09-29, §1al), so it is no
+                    longer an open item. */}
                 <h2 className="text-xl font-extrabold" style={{ color: "rgb(var(--brand-deep-ink-rgb))" }}>
                   {ind.name}
                 </h2>

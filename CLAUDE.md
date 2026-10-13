@@ -19,11 +19,17 @@ the settled decisions and a summary of what was done.
 npm install
 npm run dev       # Vite dev server on http://localhost:5173
 npm run build     # → /dist  (FTP contents to public_html/ on Network Solutions)
-npm run preview   # serve the built bundle locally
+npm run preview   # serve the built bundle locally — WITHOUT data/ (see below)
 ```
 
+`npm run preview` does not serve `data/`: the `/data/` middleware below is
+dev-only, so every `/data/*.json` answers with `index.html` and `/products`
+shows "Catalog Unavailable". That is the preview, not the build. To look at a
+production build with its data, use the `php -S` mirror (`_harness/README.md`).
+
 **While a harness sweep runs, do not edit `src/`, `public/` or `admin/`** —
-three suites rebuild and re-sync the mirror themselves, so a mid-sweep edit
+three suites refresh the mirror themselves (`plan5-keys` and `plan5b-sidebar`
+rebuild and install the bundle; `audit9-fixes` runs `sync.sh`), so a mid-sweep edit
 is silently tested by half the sweep (`_harness/README.md`, "Things that have
 bitten before").
 
@@ -103,9 +109,12 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
   `localizeProse`, `isoRewriter`, `factsRewriter`, `SEO_DEFAULT`, the
   page-header title defaults) so crawlers and link unfurlers that never run
   the bundle get the same head. Change either side and run
-  `node _harness/prerender.js` (parity on every route and product, under
-  mutated data too) and `node _harness/prerender-apache.js` (the `.htaccess`
-  routing on real Apache). `index.php` fails closed: any error, or a damaged
+  `npm run build && sh _harness/sync.sh`, then `node _harness/prerender.js`
+  (parity on every route and product, under mutated data too) and
+  `node _harness/prerender-apache.js` (the `.htaccess` routing on real
+  Apache). The build and re-sync are not optional: `prerender.js` tests the
+  copy in `_harness/site/` and `prerender-apache.js` the one in `dist/`, so
+  without them both pass on the old code. `index.php` fails closed: any error, or a damaged
   `site-info.json` / `content.json`, serves `index.html` unmodified.
 - **Data fetch.** Three files, per-minute cache-buster, 12 s abort timeout,
   60 s in-memory TTL. `data/.htaccess` caches ~60 s.

@@ -5,7 +5,7 @@
 # No directory listings
 Options -Indexes
 
-# DENY BY DEFAULT (WHATS_LEFT §4917 item, done 2026-09-29, measured on real
+# DENY BY DEFAULT (WHATS_LEFT §1al item 8, done 2026-09-29, measured on real
 # Apache 2.4 by _harness/dep3-scriptblock.js under both PHP handler models).
 # This folder holds pictures and nothing else, so it serves pictures and
 # nothing else: anything that is not a known image type answers 403 — an

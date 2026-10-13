@@ -56,7 +56,7 @@ const BASE = process.env.CRAWL_BASE || 'http://127.0.0.1:8123';
 // old name. Measured 2026-08-13: one run dirtied 40 tracked screenshots.
 //
 // Set CRAWL_OUT explicitly when the intent really is to regenerate the record.
-// (audit-runs/audit3.md C-06)
+// (audit 3 C-05; IDs as numbered in audit-runs/build-plan-run3.md)
 const OUT = process.env.CRAWL_OUT ||
   path.join(__dirname, 'out', 'plan10-crawl');
 

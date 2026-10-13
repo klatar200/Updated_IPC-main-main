@@ -1,6 +1,6 @@
 /**
  * ADM-7 — a fact edited in Business Details must not stay live anywhere else.
- * audit-runs/audit-2026-09-27.md §3 (ADM-7), extended in §9.
+ * audit-runs/audit-2026-09-27.md §1 (ADM-7; also §3), extended in §6, outcome in §11.
  *
  * Five facts had one Business Details field each and were also typed
  * separately into JSX and into content.json: the hours, the founded year, the

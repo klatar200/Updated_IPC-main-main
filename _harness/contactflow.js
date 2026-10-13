@@ -452,7 +452,7 @@ function missingFields(body, values) {
       // the rendered form already marks required. This fixture predates that
       // and omitted subject, so the POST 422s and the assertions below measure a
       // submission that never happened. The real form always sends it.
-      // (audit-runs/audit3.md C-04)
+      // (audit 3 C-01; IDs as numbered in audit-runs/build-plan-run3.md)
       b.append('form_type', 'message');
       b.append('name', 'Window Filler');
       b.append('email', `filler${i}@example-rl.test`);
@@ -674,7 +674,7 @@ function missingFields(body, values) {
     // the rendered form already marks required. This fixture predates that
     // and omitted quantity, so the POST 422s and the assertions below measure a
     // submission that never happened. The real form always sends it.
-    // (audit-runs/audit3.md C-04)
+    // (audit 3 C-01; IDs as numbered in audit-runs/build-plan-run3.md)
     body.append('form_type', 'rfq');
     body.append('name', `Lead ${marker}`);
     body.append('email', 'viewer@example-read.test');
