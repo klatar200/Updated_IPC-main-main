@@ -16,8 +16,10 @@
  *   body      without JavaScript: the product page names the part, its SKU,
  *             description and data sheet; /products links every product;
  *             every route has an h1 and the site nav
- *   hidden    with JavaScript: the plain-HTML copy is gone after render, and
- *             is display:none even when the bundle never loads
+ *   hidden    with JavaScript: the plain-HTML copy is gone after render, is
+ *             display:none while the bundle is still on its way, and shows
+ *             (with its contact block) once the bundle has failed to load
+ *             (A12-L11-W3-G1-1 — that used to be a blank white page)
  *   fallback  a damaged content.json or site-info.json → index.html byte for
  *             byte; a damaged catalog → the "pending" product head the
  *             browser also shows (PUB-2); no PHP warning text in any response
@@ -76,6 +78,7 @@ function rawHead(html) {
     ogImage: meta('property', 'og:image'),
     ogImageW: meta('property', 'og:image:width'),
     ogImageH: meta('property', 'og:image:height'),
+    ogImageAlt: meta('property', 'og:image:alt'),
   };
 }
 
@@ -109,6 +112,7 @@ function rawHead(html) {
         ogImage: m('meta[property="og:image"]'),
         ogImageW: m('meta[property="og:image:width"]'),
         ogImageH: m('meta[property="og:image:height"]'),
+        ogImageAlt: m('meta[property="og:image:alt"]'),
       };
     });
   };
@@ -142,7 +146,8 @@ function rawHead(html) {
     await parity(productUrls, 'parity: every product, shipped data');
     await parity(ODD, 'parity: alias, unknown-product, unknown-route and stray-param URLs');
     const cc = rawHead((await get('/products?productId=CC')).body);
-    note(cc.ogImage === 'https://www.insulationproducts.com/images/products/CC.jpg' && cc.ogImageW === '400' && /Conduit Coupling/.test(cc.ogTitle || ''),
+    note(cc.ogImage === 'https://www.insulationproducts.com/images/products/CC.jpg' && cc.ogImageW === '400' && /Conduit Coupling/.test(cc.ogTitle || '')
+      && /Conduit Coupling/.test(cc.ogImageAlt || ''),
       'a product link previews as that product (its title and photo, not the homepage card)', JSON.stringify(cc));
 
     // ── headers ────────────────────────────────────────────────────────────
@@ -189,11 +194,22 @@ function rawHead(html) {
     await page.goto(BASE + '/products?productId=CC', { waitUntil: 'networkidle' });
     const after = await page.evaluate(() => ({ pre: !!document.getElementById('ipc-prerender'), h1: document.querySelectorAll('h1').length }));
     note(!after.pre && after.h1 === 1, 'with JS: React replaced the plain-HTML copy (no #ipc-prerender, one h1)', JSON.stringify(after));
+    const slow = await jsCtx.newPage();
+    await slow.route(/\/assets\/.*\.js$/, () => {});   // never answered: the bundle is "on its way"
+    await slow.goto(BASE + '/products?productId=CC', { waitUntil: 'commit' });
+    await slow.waitForTimeout(1500);
+    const dispSlow = await slow.evaluate(() => { const e = document.getElementById('ipc-prerender'); return e ? getComputedStyle(e).display : 'absent'; });
+    note(dispSlow === 'none', 'with JS and the bundle still loading: the copy is hidden before paint, never flashed', dispSlow);
+    await slow.close();
     const blocked = await jsCtx.newPage();
     await blocked.route(/\/assets\/.*\.js$/, (r) => r.abort());
     await blocked.goto(BASE + '/products?productId=CC', { waitUntil: 'load' });
-    const disp = await blocked.evaluate(() => { const e = document.getElementById('ipc-prerender'); return e ? getComputedStyle(e).display : 'absent'; });
-    note(disp === 'none', 'with JS but no bundle: the copy is hidden before paint, never flashed', disp);
+    const shown = await blocked.evaluate(() => {
+      const e = document.getElementById('ipc-prerender');
+      return e ? { display: getComputedStyle(e).display, text: e.innerText } : { display: 'absent', text: '' };
+    });
+    note(shown.display !== 'none' && /Conduit Coupling/.test(shown.text) && /630\.771\.0700/.test(shown.text),
+      'with JS but the bundle failed to load: the copy and its phone number show — not a blank page (A12-L11-W3-G1-1)', JSON.stringify(shown).slice(0, 200));
     await blocked.close();
 
     // ── mutated data ───────────────────────────────────────────────────────
