@@ -209,8 +209,14 @@ serve it and the rewrite would look like it worked while a stale file shipped.
 It reads only; it starts no session and does not include `admin/config.php`.
 
 `public/index.php` is a **fourth**: every page route is served through it
-(A-5.10). It reads `index.html` and the three `data/*.json` files, writes
-nothing, starts no session, and does not include `admin/config.php`.
+(A-5.10). It reads `index.html` and the three `data/*.json` files (and, to
+declare `og:image` width/height, the product photo itself via
+`getimagesize()`, contained to the document root), writes nothing, starts no
+session, and does not include `admin/config.php`. It embeds what it read as a
+non-executing JSON block, `#ipc-boot`, which `SiteInfoProvider`,
+`ContentProvider` and the product page start from, so a failed or slow
+`/data/*.json` fetch in the browser cannot show older text than the server
+sent (AUDIT-12 decisions 9–11).
 
 ## Invariants — each of these caused a real defect
 
