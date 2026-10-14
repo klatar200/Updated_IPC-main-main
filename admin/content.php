@@ -75,7 +75,7 @@ $PAGE_OPTIONS = [
 $SECTIONS = [
     'features' => [
         'title'    => 'Products & Services Cards',
-        'sub'      => 'The card grid under "A Complete Insulation Supply Source" on the homepage. Any number of cards works.',
+        'sub'      => 'The card grid under "A Complete Insulation Supply Source" on the homepage. Any number of cards works. Each card opens the page in its <strong>Links to</strong> box: a page of this website, such as <code>/services</code>, <code>/about</code>, or <code>/products?family=Adhesive</code> for the catalog showing one product family (spelled exactly as in Product Families below). Left empty, a card opens the usual page for its icon.',
         'page'     => '/',
         'anchor'   => 'ipc-sec-features',
         'addLabel' => 'Card',
@@ -84,6 +84,9 @@ $SECTIONS = [
             ['key' => 'iconKey',     'type' => 'icon',     'label' => 'Icon'],
             ['key' => 'title',       'type' => 'text',     'label' => 'Title'],
             ['key' => 'description', 'type' => 'textarea', 'label' => 'Description', 'full' => true],
+            // AUDIT-12 decision 48 (A12-L6-W3-G5-1) — all six cards opened the
+            // same unfiltered catalog. Checked on save below.
+            ['key' => 'link',        'type' => 'text',     'label' => 'Links to (a page of this website, e.g. /services)', 'full' => true],
         ],
     ],
     'stats' => [
@@ -687,6 +690,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($card === '') $card = 'a service card';
         $p = link_url_problem((string)$row['brochure']['url'], 'The brochure link on "' . $card . '"');
         if ($p !== '') $errors[] = $p;
+    }
+
+    // ── AUDIT-12 decision 48: a card's "Links to" box ───────────────────────
+    // The site follows only a path on this website to one of its pages (it
+    // falls back to the icon's usual page otherwise), so a link it would
+    // ignore is refused here, naming the card, rather than saved under a
+    // green banner. A family no product is filed under WARNS and still
+    // saves (the 4.12 rule below: a card may be written before its products).
+    $familyNames = [];
+    foreach (load_products() as $p) {
+        $t = is_array($p) ? trim((string)($p['partType'] ?? '')) : '';
+        if ($t !== '') $familyNames[$t] = true;
+    }
+    foreach (($out['features'] ?? []) as $fi => $row) {
+        $link = trim((string)($row['link'] ?? ''));
+        $out['features'][$fi]['link'] = $link;
+        if ($link === '') continue;
+        $card = trim((string)($row['title'] ?? ''));
+        if ($card === '') $card = 'card ' . ($fi + 1);
+        $path = (string)parse_url($link, PHP_URL_PATH);
+        $segs = array_values(array_filter(explode('/', $path), 'strlen'));
+        $ok = preg_match('#^/(?!/)[^\\\\\x00-\x1f]*$#', $link)
+            && count($segs) <= 1
+            && ($segs === [] || isset($PAGE_OPTIONS[$segs[0]]));
+        if (!$ok) {
+            $errors[] = 'The "Links to" box on the "' . $card . '" card must be a page of this website, such as /services, /about or /products?family=Adhesive. Nothing was saved.';
+            continue;
+        }
+        parse_str((string)parse_url($link, PHP_URL_QUERY), $q);
+        $fam = isset($q['family']) && is_string($q['family']) ? trim($q['family']) : '';
+        if ($fam !== '' && $familyNames && !isset($familyNames[$fam])) {
+            $warnings[] = 'The "' . $card . '" card links to the product family "' . $fam . '", but no product is filed under that family, so the card opens an empty catalog. Check the spelling against Product Families. If you are adding the card before its products, you can ignore this.';
+        }
     }
 
     // ── 4.12: the Industries product codes are checked against the catalog ───

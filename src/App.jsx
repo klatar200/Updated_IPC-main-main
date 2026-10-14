@@ -2194,10 +2194,12 @@ function Hero() {
 // The whole card is one navigational control, so the card itself is the anchor
 // — a nested <a> would be invalid and only the inner text would be crawlable.
 // `flex` in the className supplies the display an <a> lacks. (PLAN-1 4.21)
-function FeatureCard({ icon, title, description, page }) {
+function FeatureCard({ icon, title, description, page, params, hash }) {
   return (
     <PageLink
       page={page}
+      params={params}
+      hash={hash}
       className="flex gap-5 p-6 rounded-xl cursor-pointer transition-all duration-200"
       style={{
         background: "#ffffff",
@@ -2445,39 +2447,89 @@ const FEATURES_ICONS = {
   ),
 };
 
+/**
+ * AUDIT-12 decision 48 (A12-L6-W3-G5-1) — where each "Products & Services"
+ * card goes. All six opened the same unfiltered /products, so "Custom
+ * Cut-to-Length", "Marking & Kitting" and "ISO 9001 Quality" landed on a
+ * product grid that says nothing about cutting, marking or quality. Each card
+ * now has a link box in Page Content (`link`, a path on this site); an empty
+ * or unusable one falls back to the card's icon below, and then to /products.
+ * The catalog filter takes ONE family, so a product-line card opens the family
+ * its description leads with.
+ */
+const FEATURE_LINK_DEFAULTS = {
+  heatshrink: "/products?family=Polyolefin Heat Shrink",
+  sleeving: "/products?family=Fiberglass Sleeving",
+  adhesives: "/products?family=Adhesive",
+  cut: "/services",
+  marking: "/services",
+  quality: "/about",
+};
+const FEATURE_LINK_PAGES = new Set(["home", "products", "dashboard", "datasheets", "industries",
+  "services", "about", "faq", "contact", "privacy"]);
+function featureLinkTarget(f) {
+  const parse = (raw) => {
+    if (typeof raw !== "string") return null;
+    const s = raw.trim();
+    // A path on this site only: "/x", never "//host" or a scheme. Spaces
+    // are fine ("?family=Polyolefin Heat Shrink"); a backslash or a control
+    // character is not (a browser reads "/\\host" as another site).
+    if (!/^\/(?!\/)/.test(s) || /[\\\x00-\x1f]/.test(s)) return null;
+    let u;
+    try { u = new URL(s, "https://site.invalid"); } catch { return null; }
+    if (u.origin !== "https://site.invalid") return null;
+    const segs = u.pathname.split("/").filter(Boolean);
+    if (segs.length > 1) return null;
+    const page = segs.length ? segs[0] : "home";
+    if (!FEATURE_LINK_PAGES.has(page)) return null;
+    return {
+      page: page === "home" ? null : page,
+      params: Object.fromEntries(u.searchParams),
+      hash: u.hash ? decodeURIComponent(u.hash.slice(1)) : undefined,
+    };
+  };
+  return parse(f && f.link) || parse(FEATURE_LINK_DEFAULTS[f && f.iconKey]) || { page: "products", params: {} };
+}
+
 const FEATURES_DATA = [
   {
     iconKey: "heatshrink",
+    link: FEATURE_LINK_DEFAULTS.heatshrink,
     title: "Heat Shrink Tubing",
     description:
       "Polyolefin (2:1 & 3:1), dual-wall adhesive-lined, PVDF/Kynar, neoprene, fluoroelastomer, and medical-grade. All RoHS compliant.",
   },
   {
     iconKey: "sleeving",
+    link: FEATURE_LINK_DEFAULTS.sleeving,
     title: "Electrical Sleeving",
     description:
       "Fiberglass sleeving — heat-treated, vinyl-coated (Class C), acrylic-coated (Class F), silicone-coated (Class H). Expandable polyester also stocked.",
   },
   {
     iconKey: "adhesives",
+    link: FEATURE_LINK_DEFAULTS.adhesives,
     title: "Adhesives & Accessories",
     description:
       "Industrial & cyanoacrylate adhesives, cable ties, insulating tape, heat guns, and heat-shrinkable end caps.",
   },
   {
     iconKey: "cut",
+    link: FEATURE_LINK_DEFAULTS.cut,
     title: "Custom Cut-to-Length",
     description:
       "Small or large volume precision cutting and spooling. Tight tolerances, clean environment. Typical turnaround: one week or less.",
   },
   {
     iconKey: "marking",
+    link: FEATURE_LINK_DEFAULTS.marking,
     title: "Marking & Kitting",
     description:
       "Custom labeling, bar code printing, wire & cable markers, slit lengthwise, perforations, bagging per spec, JIT services.",
   },
   {
     iconKey: "quality",
+    link: FEATURE_LINK_DEFAULTS.quality,
     title: "ISO 9001 Quality",
     description:
       // A2 — revision deliberately absent; see the homepage trust-bar default.
@@ -2509,7 +2561,9 @@ function Features() {
           action={{ label: "View Full Catalog →", page: "products" }}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((f, i) => (
+          {features.map((f, i) => {
+            const to = featureLinkTarget(f);
+            return (
             <FeatureCard
               key={`${i}-${f.title}`}
               icon={
@@ -2519,9 +2573,12 @@ function Features() {
               }
               title={f.title}
               description={f.description}
-              page="products"
+              page={to.page}
+              params={to.params}
+              hash={to.hash}
             />
-          ))}
+            );
+          })}
         </div>
         </>)}
         <div
