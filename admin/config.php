@@ -73,8 +73,8 @@ define('ADMIN_PASSWORD_SENTINEL', '*not-configured*');
 if (!defined('ADMIN_PASSWORD_HASH')) {
     define('ADMIN_PASSWORD_HASH', ADMIN_PASSWORD_SENTINEL);
 }
-define('ADMIN_PASSWORD_CONFIGURED', ADMIN_PASSWORD_HASH !== ADMIN_PASSWORD_SENTINEL
-    && preg_match('/^\$2[aby]\$\d{2}\$.{53}$/', ADMIN_PASSWORD_HASH) === 1);
+define('ADMIN_PASSWORD_CONFIGURED', admin_password_hash_at_start() !== ADMIN_PASSWORD_SENTINEL
+    && preg_match('/^\$2[aby]\$\d{2}\$.{53}$/', admin_password_hash_at_start()) === 1);
 
 // Proof-of-FTP flag that unlocks the one-time password-reset screen.
 define('PASSWORD_RESET_FLAG', __DIR__ . '/ALLOW-PASSWORD-RESET');
@@ -96,6 +96,43 @@ define('LOCAL_CONFIG_PATH', __DIR__ . '/config.local.php');
 // An hour is plenty to upload a file over FTP and type a password. Re-uploading
 // or touching the file opens a fresh window. (AUDIT_v3_FINDINGS B2)
 define('PASSWORD_RESET_WINDOW', 3600);
+
+/**
+ * AUDIT-12 decision 28 (A12-L2-W5-G4-1) — the password hash this request
+ * starts with. Normally the ADMIN_PASSWORD_HASH that config.local.php defined.
+ * But that file is PHP, so an opcode cache can keep serving an OLD compiled
+ * copy, and admin_password_write() clears it with opcache_invalidate() — which
+ * a host that sets opcache.restrict_api refuses (silently). There the Password
+ * page said "changed", the new password was refused, the old one kept working,
+ * and the FTP reset did not take either. When the cache is on and cannot be
+ * cleared from here, the hash is read from the file on disk instead, parsed
+ * the same way admin_password_write() reads it back. No hash is ever written
+ * into this file (invariant 2): a missing or unreadable file still leaves the
+ * sentinel in force.
+ */
+function local_config_cache_uncleared(): bool {
+    if (!function_exists('opcache_invalidate')) return false;            // no opcode cache loaded
+    $on = in_array(PHP_SAPI, ['cli', 'phpdbg'], true) ? ini_get('opcache.enable_cli') : ini_get('opcache.enable');
+    if (!filter_var($on, FILTER_VALIDATE_BOOLEAN)) return false;          // loaded but off
+    // The same test PHP applies before it lets opcache_invalidate() run.
+    $restrict = (string)ini_get('opcache.restrict_api');
+    if ($restrict === '') return false;
+    $script = (string)($_SERVER['SCRIPT_FILENAME'] ?? '');
+    return strncmp($script, $restrict, strlen($restrict)) !== 0;
+}
+function admin_password_hash_at_start(): string {
+    static $h = null;
+    if ($h !== null) return $h;
+    $h = ADMIN_PASSWORD_HASH;
+    $path = __DIR__ . '/config.local.php';     // LOCAL_CONFIG_PATH is defined further down
+    if (local_config_cache_uncleared() && is_file($path)) {
+        $body = (string)@file_get_contents($path);
+        [$reDef, $reConst] = admin_password_patterns();
+        $first = preg_match('/^\s*<\?php/i', $body) ? admin_password_first_definition($body, $reDef, $reConst) : null;
+        if ($first !== null) $h = $first['hash'];
+    }
+    return $h;
+}
 
 function password_reset_unlocked(): bool {
     if (!file_exists(PASSWORD_RESET_FLAG)) return false;
@@ -187,8 +224,7 @@ function admin_password_write(string $newPlain): array {
     // in the file (the one PHP uses) is the one replaced and the one read back,
     // and a file that names the constant in a way neither pattern can parse is
     // refused rather than appended to.
-    $reDef   = "/\\b(?i:define)\\s*\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)*)\\2\\s*\\)\\s*;/";
-    $reConst = "/\\b(?i:const)\\s+ADMIN_PASSWORD_HASH\\s*=\\s*(['\"])((?:(?!\\1).)*)\\1\\s*;/";
+    [$reDef, $reConst] = admin_password_patterns();
     $template = "<?php\n"
              . "/**\n"
              . " * IPC Admin — LOCAL password override (gitignored).\n"
@@ -298,6 +334,14 @@ function admin_password_write(string $newPlain): array {
     return ['ok' => true, 'error' => '', 'hash' => $hash];
 }
 
+/** The two spellings of the password line admin_password_write() understands. */
+function admin_password_patterns(): array {
+    return [
+        "/\\b(?i:define)\\s*\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)*)\\2\\s*\\)\\s*;/",
+        "/\\b(?i:const)\\s+ADMIN_PASSWORD_HASH\\s*=\\s*(['\"])((?:(?!\\1).)*)\\1\\s*;/",
+    ];
+}
+
 /**
  * The first definition of ADMIN_PASSWORD_HASH in a config.local.php body — the
  * one PHP keeps — as ['re' => the pattern that matched it, 'hash' => its value],
@@ -335,7 +379,7 @@ function admin_password_problems(string $new, string $confirm, bool $compareToCu
         $errors[] = 'The new password is too long (72 characters max; an accented letter counts as two).';
     } elseif ($new !== $confirm) {
         $errors[] = 'The two new-password fields do not match.';
-    } elseif ($compareToCurrent && ADMIN_PASSWORD_CONFIGURED && password_verify($new, ADMIN_PASSWORD_HASH)) {
+    } elseif ($compareToCurrent && ADMIN_PASSWORD_CONFIGURED && password_verify($new, current_password_hash())) {
         $errors[] = 'The new password must be different from the current one.';
     }
     return $errors;
@@ -705,7 +749,7 @@ if (session_status() === PHP_SESSION_NONE
 function current_password_hash(?string $set = null): string {
     static $h = null;
     if ($set !== null) $h = $set;
-    return $h ?? ADMIN_PASSWORD_HASH;
+    return $h ?? admin_password_hash_at_start();
 }
 function session_auth_token(?string $passwordHash = null): string {
     return hash_hmac('sha256', 'ipc-admin-session|' . session_id(), $passwordHash ?? current_password_hash());

@@ -141,7 +141,7 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
         // password_verify() is deliberately not reached, so a correct password
         // is refused too and the response cannot be used as an oracle.
         $error = login_cooloff_message($cooloff);
-    } elseif (password_verify($password, ADMIN_PASSWORD_HASH)) {
+    } elseif (password_verify($password, current_password_hash())) {
         // Defeat session fixation: rotate the session id the moment auth
         // succeeds so any pre-set IPCADMIN cookie is invalidated.
         regenerate_session_id();

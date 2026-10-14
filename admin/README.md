@@ -438,6 +438,11 @@ php -r "echo password_hash('your-new-password', PASSWORD_BCRYPT, ['cost'=>12]);"
 Paste the result between the single quotes in `config.local.php`. Note that if
 an opcode cache is enabled, a hand-edit can take a few seconds to apply; the
 admin's own Password page calls `opcache_invalidate()` so it applies at once.
+On a host whose `opcache.restrict_api` refuses that call, `config.php` reads
+the hash from the file on disk on every request instead of trusting the cached
+copy (`admin_password_hash_at_start()`, AUDIT-12 decision 28), so a new
+password — from the Password page, the reset flow or a hand-edit — takes effect
+at once there too.
 
 ## Troubleshooting
 
