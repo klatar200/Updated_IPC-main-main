@@ -34,6 +34,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { leads } = require('./inqrows');
 
 const BASE = 'http://127.0.0.1:8123';
 // os.tmpdir(), not '/tmp'. contact.php writes the rate-limit files through
@@ -145,7 +146,8 @@ async function run(addresses) {
 
 (async () => {
   if (!fs.existsSync(INQUIRIES)) fs.writeFileSync(INQUIRIES, '');
-  const inqBefore = fs.readFileSync(INQUIRIES, 'utf8').split('\n').filter(Boolean).length;
+  // AUDIT-12 decision 42 — leads, not lines: a lead is its row plus a send-result line.
+  const inqBefore = leads(INQUIRIES).length;
 
   // ── Gmail family: four spellings of one mailbox ───────────────────────────
   clearTmp('ipc_ar_');
@@ -188,8 +190,7 @@ async function run(addresses) {
     `distinct cap files: ${otherKeys}`);
 
   // ── The lead record is untouched ──────────────────────────────────────────
-  const lines = fs.readFileSync(INQUIRIES, 'utf8').split('\n').filter(Boolean);
-  const added = lines.slice(inqBefore).map((l) => { try { return JSON.parse(l); } catch { return {}; } });
+  const added = leads(INQUIRIES).slice(inqBefore);
   const loggedEmails = added.map((e) => e.email);
   const wanted = [...GMAIL, ...OTHER];
   note(JSON.stringify(loggedEmails) === JSON.stringify(wanted),

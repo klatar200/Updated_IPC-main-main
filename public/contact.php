@@ -191,7 +191,13 @@ function ipc_inquiry_log_open(string $dir, string $path) {
     return null;
 }
 
-function ipc_log_inquiry(array $entry): bool {
+/**
+ * $mayClearMarker — AUDIT-12 decision 42: a lead is now TWO appends (the row,
+ * then its send result). The second passes false: a successful result append
+ * must not clear a marker the row's own write set, or the lost (or repaired)
+ * row would be hidden.
+ */
+function ipc_log_inquiry(array $entry, bool $mayClearMarker = true): bool {
     foreach ([__DIR__ . '/admin', __DIR__ . '/../admin'] as $dir) {
         if (is_dir($dir)) {
             $path = $dir . '/inquiries.jsonl';
@@ -222,7 +228,7 @@ function ipc_log_inquiry(array $entry): bool {
             }
             $ok = ($bytes !== false && $bytes === strlen((string)$line) + 1);
             if ($ok && !$repaired) {
-                @unlink($dir . '/' . IPC_LOG_FAIL_MARKER);
+                if ($mayClearMarker) @unlink($dir . '/' . IPC_LOG_FAIL_MARKER);
             } else {
                 @file_put_contents($dir . '/' . IPC_LOG_FAIL_MARKER, json_encode([
                     'ts'   => date('c'),
@@ -681,6 +687,15 @@ function ipc_ar_cap_key(string $email): string {
         $domain = 'gmail.com';
     }
     return $local . '@' . $domain;
+}
+
+/** A random id for one inquiry row (AUDIT-12 decision 42). */
+function ipc_new_id(): string {
+    try {
+        return bin2hex(random_bytes(8));
+    } catch (\Throwable $e) {
+        return substr(md5(uniqid('', true) . mt_rand()), 0, 16);
+    }
 }
 
 // Whatever we know about a rejected submission, shaped like a log entry so a
@@ -1156,18 +1171,36 @@ $headers .= "Content-Transfer-Encoding: 8bit\r\n"; // NEW-V3-2 — the body is 8
 // posture. (audit-runs/audit5.md, Low tier)
 
 
+// AUDIT-12 decision 42 (A12-L4-W2-G4-1) — the record is written BEFORE mail(),
+// marked pending, and the send result is appended after it as a second line
+// carrying the same id; admin/inquiries.php merges the two. mail() used to come
+// first, so a mail server that stalled until the host ended the request left
+// the lead nowhere: no email, no Inquiries row, no marker. Now a request cut
+// off inside mail() still leaves the row, shown as "Not confirmed".
+// Rows written before this change carry `sent` directly and have no id; the
+// Inquiries page reads both.
+//
+// ignore_user_abort: a buyer who closes the tab (or whose browser gives up at
+// its 30 s limit) must not stop the request between the row and its result.
+ignore_user_abort(true);
+$rowId = ipc_new_id();
+$logEntry['id']     = $rowId;
+$logEntry['sent']   = null;
+$logEntry['status'] = 'pending';
+ipc_log_inquiry($logEntry);
+
 // A12-L2-W1-G3-1 — on PHP 8 a host that lists mail() in disable_functions
-// removes it outright, and calling it was a fatal error BEFORE the inquiry
-// log below: no email, no Inquiries row, no marker. Treat it as a failed send
-// so the record is written and the visitor gets the call-us answer.
+// removes it outright, and calling it was a fatal error before the record was
+// complete. Treat it as a failed send so the visitor gets the call-us answer.
 $sent = function_exists('mail')
     ? @mail($to, $subject, $body, $headers, $mailParams) // @ — a mail warning must never corrupt the JSON response
     : false;
 
-// Log the inquiry whether or not the mail went through — a failed send is
-// exactly the case where the log is the only surviving copy of the lead.
-$logEntry['sent'] = (bool)$sent;
-ipc_log_inquiry($logEntry);
+// The send result — a failed send is exactly the case where the log is the
+// only surviving copy of the lead, so the row above is kept either way.
+// Never clears the failure marker: a healthy row write above already did, and
+// an unhealthy one (failed, or repaired after a short line) must stay visible.
+ipc_log_inquiry(['ts' => date('Y-m-d H:i:s'), 'type' => 'send-result', 'id' => $rowId, 'sent' => (bool)$sent], false);
 
 if (!$sent) {
     respond(500, [

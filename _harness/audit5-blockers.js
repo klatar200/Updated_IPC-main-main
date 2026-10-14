@@ -170,8 +170,9 @@ function post(body) {
      'A-5.1 sales notification still receives the raw quantity verbatim');
 
   const jsonl = path.join(ROOT, '_harness/site/admin/inquiries.jsonl');
+  // AUDIT-12 decision 42 — the lead is the last line that is not a send result.
   const lastLine = fs.existsSync(jsonl)
-    ? fs.readFileSync(jsonl, 'utf8').trim().split('\n').filter(Boolean).pop()
+    ? fs.readFileSync(jsonl, 'utf8').trim().split('\n').filter((l) => l && !/"type":"send-result"/.test(l)).pop()
     : '';
   let rec = {};
   try { rec = JSON.parse(lastLine); } catch { /* leave empty, assertion reports it */ }

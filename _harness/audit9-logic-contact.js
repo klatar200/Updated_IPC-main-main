@@ -63,7 +63,8 @@ function patchContact() {
 function restoreContact() { if (_inqOrig !== null) { fs.writeFileSync(INQ, _inqOrig); _inqOrig = null; } }
 
 const readMail = () => (fs.existsSync(MAILLOG) ? fs.readFileSync(MAILLOG, 'utf8') : '');
-const readLines = () => (fs.existsSync(JSONL) ? fs.readFileSync(JSONL, 'utf8').split('\n').filter(Boolean) : []);
+// AUDIT-12 decision 42 — lead rows only: a send-result line belongs to the row before it.
+const readLines = () => (fs.existsSync(JSONL) ? fs.readFileSync(JSONL, 'utf8').split('\n').filter((l) => l && !/"type":"send-result"/.test(l)) : []);
 
 async function submit(fields, headers = {}) {
   clearLimiter();

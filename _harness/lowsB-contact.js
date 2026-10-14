@@ -113,7 +113,8 @@ async function rfq(port, extra = {}, headers = {}) {
     fs.writeFileSync(INQ, (inqBefore ? inqBefore.toString() : '') + '{"ts":"2026-01-01","type":"rfq","name":"cut sho');
     fs.writeFileSync(MARKER, JSON.stringify({ ts: 'x', path: 'admin/inquiries.jsonl' }));
     await rfq(8716, { name: 'After The Cut', email: 'after@example.com' });
-    const last = fs.readFileSync(INQ, 'utf8').trimEnd().split('\n').pop();
+    // AUDIT-12 decision 42 — the lead is the last line that is not a send result.
+    const last = fs.readFileSync(INQ, 'utf8').trimEnd().split('\n').filter((l) => !/"type":"send-result"/.test(l)).pop() || '';
     let parsed = null;
     try { parsed = JSON.parse(last); } catch { /* stays null */ }
     note(parsed && parsed.name === 'After The Cut', 'N2-10: the lead after a short line is still its own valid JSON line', last.slice(0, 100));

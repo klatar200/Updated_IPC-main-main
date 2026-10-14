@@ -7,6 +7,12 @@
  *       forwarded header changes nothing; on, each buyer is counted by the
  *       RIGHT-MOST X-Forwarded-For entry, and a rotated left-most (spoofed)
  *       entry does not buy a fresh allowance.
+ *   42  the Inquiries row is written BEFORE mail() (A12-L4-W2-G4-1): pending
+ *       while the mail server is busy, then a send-result line with the same
+ *       id; a request killed inside mail() still leaves the lead; the
+ *       Inquiries page merges row and result ("Sent to mail server", "Email
+ *       failed", or "Not confirmed" when no result was written), counts each
+ *       lead once (page total and nav badge), and still reads old-format rows.
  *
  * Runs on a private copy of the mirror (_harness/site) with its own
  * `php -S` servers, a sendmail stand-in and a private sys_temp_dir per server,
@@ -19,6 +25,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync, execFileSync } = require('child_process');
+const { adminHttp } = require('./adminhttp');
+const { rawRows, leads } = require('./inqrows');
 
 const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
@@ -27,6 +35,7 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'ipc-lp12-'));
 const T = path.join(TMP, 'site');
 const MAIL = path.join(TMP, 'mail.log');
 const SLOW = path.join(TMP, 'slow');           // seconds the stand-in sendmail waits, when present
+const FAILMAIL = path.join(TMP, 'fail');       // when present, the stand-in sendmail refuses
 const INQ = path.join(T, 'admin', 'inquiries.jsonl');
 
 const results = [];
@@ -36,7 +45,7 @@ const note = (ok, label, detail) => {
 };
 
 const REC = path.join(TMP, 'rec.sh');
-fs.writeFileSync(REC, `#!/bin/sh\nmsg=$(cat)\n[ -f "${SLOW}" ] && sleep "$(cat "${SLOW}")"\n{ echo "===MESSAGE==="; printf '%s\\n' "$msg"; echo; } >> "${MAIL}"\nexit 0\n`);
+fs.writeFileSync(REC, `#!/bin/sh\nmsg=$(cat)\n[ -f "${SLOW}" ] && sleep "$(cat "${SLOW}")"\n[ -f "${FAILMAIL}" ] && exit 1\n{ echo "===MESSAGE==="; printf '%s\\n' "$msg"; echo; } >> "${MAIL}"\nexit 0\n`);
 fs.chmodSync(REC, 0o755);
 
 const servers = [];
@@ -51,9 +60,7 @@ function server(port, extra = []) {
 const stop = (p) => { try { process.kill(-p.pid, 'SIGKILL'); } catch (_) { try { p.kill('SIGKILL'); } catch (__) {} } };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const rows = () => {
-  try { return fs.readFileSync(INQ, 'utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); } catch { return []; }
-};
+const rows = () => leads(INQ);   // lead rows, send results merged (decision 42)
 const messages = () => {
   try { return fs.readFileSync(MAIL, 'utf8').split('===MESSAGE===\n').filter((m) => m.trim()); } catch { return []; }
 };
@@ -125,6 +132,68 @@ async function rfq(port, extra = {}, headers = {}) {
       const last = rows().pop() || {};
       note(junk.status === 200 && last.ip === '127.0.0.1', '43 on: an unusable forwarded value falls back to the connecting address', `${junk.status} ip=${last.ip}`);
       stop(on);
+    }
+
+    // ── 42 — the row is written before mail() ───────────────────────────
+    fs.rmSync(INQ, { force: true });
+    fs.rmSync(path.join(T, 'admin', '.inquiries-seen.json'), { force: true });
+    {
+      const srv = server(P0 + 2);
+      await sleep(900);
+      fs.writeFileSync(SLOW, '3');
+      const pending = rfq(P0 + 2, { name: 'Slow Mail Buyer', email: 'slow@example.com' });
+      await sleep(1500);
+      const mid = rawRows(INQ);
+      note(mid.length === 1 && mid[0].name === 'Slow Mail Buyer' && mid[0].status === 'pending' && mid[0].sent === null && /^[0-9a-f]{16}$/.test(mid[0].id || ''),
+        '42: while the mail server is still busy, the lead is already in the log, marked pending', JSON.stringify(mid).slice(0, 200));
+      const r = await pending;
+      const done = rawRows(INQ);
+      note(r.status === 200 && done.length === 2 && done[1].type === 'send-result' && done[1].id === mid[0].id && done[1].sent === true,
+        '42: after mail() returns, the send result is appended under the same id', JSON.stringify(done.slice(1)));
+      fs.rmSync(SLOW, { force: true });
+
+      // The mail server refuses: the row stays, its result says so.
+      fs.writeFileSync(FAILMAIL, '');
+      const rf = await rfq(P0 + 2, { name: 'Refused Mail Buyer', email: 'refused@example.com' });
+      fs.rmSync(FAILMAIL, { force: true });
+      const lf = leads(INQ).pop() || {};
+      note(rf.status === 500 && lf.name === 'Refused Mail Buyer' && lf.sent === false && lf.status === 'failed',
+        '42: a refused send keeps the lead, merged as failed', `${rf.status} ${JSON.stringify(lf).slice(0, 160)}`);
+
+      // The host ends the request while mail() hangs (the finding's case B).
+      fs.writeFileSync(SLOW, '30');
+      rfq(P0 + 2, { name: 'Cut Off Buyer', email: 'cutoff@example.com' }).catch(() => {});
+      await sleep(1500);
+      stop(srv);
+      await sleep(300);
+      fs.rmSync(SLOW, { force: true });
+      const cut = rawRows(INQ).filter((x) => x.name === 'Cut Off Buyer');
+      note(cut.length === 1 && cut[0].status === 'pending' && !rawRows(INQ).some((x) => x.type === 'send-result' && x.id === cut[0].id),
+        '42: a request killed inside mail() still leaves the lead in the log (pending, no result)', JSON.stringify(cut).slice(0, 160));
+    }
+    // An old-format row (before decision 42) is still read.
+    fs.appendFileSync(INQ, JSON.stringify({ ts: '2026-10-01 09:00:00', type: 'message', name: 'Legacy Row Buyer', email: 'legacy@example.com', subject: 'old', message: 'old', ip: '127.0.0.1', sent: true }) + '\n');
+    {
+      const srv = server(P0 + 3);
+      await sleep(900);
+      const a = adminHttp(P0 + 3);
+      const signedIn = await a.login('audit-pass-123');
+      const dash = (await a.req('GET', '/admin/index.php')).body;
+      const newCount = +((/(\d+) new inquir/.exec(dash) || [])[1] || 0);
+      note(signedIn && newCount === 4, '42: the dashboard counts each lead once, not once per line (4 leads, 7 lines)', `signed in ${signedIn}; "${newCount} new"`);
+      const html = (await a.req('GET', '/admin/inquiries.php')).body;
+      const card = (name) => { const i = html.indexOf(name); const j = html.lastIndexOf('<details', i); return i < 0 || j < 0 ? '' : html.slice(j, i); };
+      note(/Sent to mail server/.test(card('Slow Mail Buyer')), '42 page: a pending row with its result reads "Sent to mail server"', card('Slow Mail Buyer').replace(/\s+/g, ' ').slice(0, 200));
+      note(/Email failed/.test(card('Refused Mail Buyer')), '42 page: a refused send reads "Email failed"');
+      note(/Not confirmed/.test(card('Cut Off Buyer')) && !/Sent to mail server|Email failed/.test(card('Cut Off Buyer')),
+        '42 page: a row with no result reads "Not confirmed"');
+      note(/Sent to mail server/.test(card('Legacy Row Buyer')), '42 page: an old-format row (sent, no id) still reads "Sent to mail server"');
+      const total = +((/stat-num">(\d+)<\/div><div class="stat-lbl">Total received/.exec(html) || [])[1] || -1);
+      const refused = +((/stat-num[^"]*">(\d+)<\/div><div class="stat-lbl">Mail server refused/.exec(html) || [])[1] || -1);
+      note(total === 4 && refused === 1 && (html.match(/<details class="inq/g) || []).length === 4,
+        '42 page: four leads listed and counted once each; only the refused send counts as refused', `total ${total}, refused ${refused}`);
+      note(/1 request is marked "Not confirmed"/.test(html), '42 page: the unconfirmed lead is explained above the list');
+      stop(srv);
     }
   } finally {
     for (const p of servers) stop(p);

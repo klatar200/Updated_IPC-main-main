@@ -37,20 +37,59 @@ function inq_tail_lines(string $path, int $maxLines): array {
     return count($lines) > $maxLines ? array_slice($lines, -$maxLines) : $lines;
 }
 
-/** Total entries, counted by streaming — O(1) memory on any file size. */
+/**
+ * Total entries, counted by streaming — O(1) memory on any file size.
+ * A send-result line (AUDIT-12 decision 42) is part of the row before it, not
+ * an entry of its own. json_encode() escapes every quote inside a value, so
+ * the literal `"type":"send-result"` can only be that row's own field.
+ */
 function inq_count_lines(string $path): int {
     $fh = @fopen($path, 'rb');
     if (!$fh) return 0;
     $n = 0;
-    while (($chunk = fread($fh, 1024 * 1024)) !== false && $chunk !== '') {
-        $n += substr_count($chunk, "\n");
+    while (($line = fgets($fh)) !== false) {
+        if (substr($line, -1) !== "\n") break;   // an unterminated tail is not counted
+        if (strpos($line, '"type":"send-result"') !== false) continue;
+        $n++;
     }
     fclose($fh);
     return $n;
 }
 
+/**
+ * AUDIT-12 decision 42 (A12-L4-W2-G4-1) — contact.php writes a lead's row
+ * BEFORE it calls mail(), marked `"status":"pending"`, and appends the send
+ * result afterwards as `{"type":"send-result","id":…,"sent":…}`. This splits
+ * decoded lines into the rows to show (file order) and a map of results by id;
+ * inq_apply_result() then merges them. Rows written before the change carry
+ * `sent` directly and no id, and pass through untouched.
+ */
+function inq_split(array $lines, array &$results): array {
+    $rows = [];
+    foreach ($lines as $line) {
+        $e = json_decode($line, true);
+        if (!is_array($e)) continue;
+        if (($e['type'] ?? '') === 'send-result') {
+            if (is_string($e['id'] ?? null)) $results[$e['id']] = !empty($e['sent']);
+            continue;
+        }
+        $rows[] = $e;
+    }
+    return $rows;
+}
+
+/** A pending row with its send result applied; still pending when none was written. */
+function inq_apply_result(array $e, array $results): array {
+    if (($e['status'] ?? '') !== 'pending' || !is_string($e['id'] ?? null)) return $e;
+    if (!array_key_exists($e['id'], $results)) return $e;
+    $e['sent']   = $results[$e['id']];
+    $e['status'] = $e['sent'] ? 'sent' : 'failed';
+    return $e;
+}
+
 $entries = [];
 $total   = 0;
+$sendResults = [];   // id => sent, from the send-result lines (decision 42)
 if (file_exists(INQUIRIES_FILE)) {
     $total = inq_count_lines(INQUIRIES_FILE);
     // A-5.6 — viewing the page is what clears the nav badge.
@@ -63,10 +102,9 @@ if (file_exists(INQUIRIES_FILE)) {
     if ($fetchSite === '' || $fetchSite === 'same-origin' || $fetchSite === 'none') {
         inquiries_mark_seen($total);
     }
-    foreach (inq_tail_lines(INQUIRIES_FILE, $MAX_SHOW) as $line) {
-        $e = json_decode($line, true);
-        if (is_array($e)) $entries[] = $e;
-    }
+    // Twice the lines: since decision 42 a lead can be two (row + result).
+    $entries = inq_split(inq_tail_lines(INQUIRIES_FILE, 2 * $MAX_SHOW), $sendResults);
+    if (count($entries) > $MAX_SHOW) $entries = array_slice($entries, -$MAX_SHOW);
 }
 $entries = array_reverse($entries); // newest first
 
@@ -93,14 +131,13 @@ if (count($entries) < $MAX_SHOW && $archives) {
     foreach ($byAge as $a) {
         $need = $MAX_SHOW - count($entries);
         if ($need <= 0) break;
-        $more = [];
-        foreach (inq_tail_lines($a, $need) as $line) {
-            $e = json_decode($line, true);
-            if (is_array($e)) $more[] = $e;
-        }
+        $more = inq_split(inq_tail_lines($a, 2 * $need), $sendResults);
+        if (count($more) > $need) $more = array_slice($more, -$need);
         foreach (array_reverse($more) as $e) { $entries[] = $e; $fromArchive++; }
     }
 }
+// A row and its result can straddle a rotation, so merge after every file is read.
+foreach ($entries as $i => $e) $entries[$i] = inq_apply_result($e, $sendResults);
 
 /* Submissions that were REFUSED by a guard are not delivery failures.
    They were rendered as ordinary messages carrying a red "Email failed" badge,
@@ -125,8 +162,12 @@ $REJECTED = [
 assert(array_keys($REJECTED) == inquiry_rejected_types());
 $failed   = 0;
 $rejected = 0;
+$unconfirmed = 0;
 foreach ($entries as $e) {
     if (isset($REJECTED[$e['type'] ?? ''])) { $rejected++; continue; }
+    // Decision 42 — a row whose send result was never written is not a
+    // refusal the mail server reported; it is counted on its own.
+    if (($e['status'] ?? '') === 'pending') { $unconfirmed++; continue; }
     if (empty($e['sent'])) $failed++;
 }
 
@@ -151,6 +192,7 @@ $navActive = 'inquiries';
     .badge-msg { background: rgba(107,114,128,0.12); color: #4b5563; }
     .badge-sent { background: #f0fdf4; color: #166534; }
     .badge-failed { background: #fef2f2; color: #dc2626; }
+    .badge-pending { background: #fffbeb; color: #92400e; }
     /* Blocked/spam entries read as neutral, not as an error to chase. */
     .badge-blocked { background: rgba(107,114,128,0.12); color: #6b7280; }
     .inq-rejected { background: #fafbfc; border-style: dashed; }
@@ -191,6 +233,10 @@ $navActive = 'inquiries';
     <p class="sub" style="margin:-8px 0 20px">"Mail server refused" counts only genuine send failures: the notification email for those requests did not go out. Each one is still listed below, so the lead is safe — reply to it from your own email. If this number keeps growing, tell your developer; the website's mail setup needs fixing. Submissions the website blocked as spam are listed separately and are not a mail problem.</p>
   <?php endif; ?>
 
+  <?php if ($unconfirmed > 0): ?>
+    <p class="sub" style="margin:-8px 0 20px"><?= $unconfirmed ?> request<?= $unconfirmed === 1 ? ' is' : 's are' ?> marked "Not confirmed": the website saved the request, then the mail server took so long that the website never heard whether the notification email went out. The request is safe here — reply to it from your own email in case the notification never arrived.</p>
+  <?php endif; ?>
+
   <?php if (empty($entries)): ?>
     <div class="empty">No inquiries yet. Submissions from the website's contact form will appear here.</div>
   <?php endif; ?>
@@ -200,6 +246,7 @@ $navActive = 'inquiries';
       $rej    = $REJECTED[$type] ?? null;
       $isRfq  = $type === 'rfq' || ($e['form'] ?? '') === 'rfq';   // UX-11 — a refused quote keeps its quote fields
       $sent   = !empty($e['sent']);
+      $pending = ($e['status'] ?? '') === 'pending';   // decision 42 — no send result was written
   ?>
   <details class="inq<?= $rej ? ' inq-rejected' : '' ?>">
     <summary>
@@ -211,7 +258,11 @@ $navActive = 'inquiries';
                  mail() only reports that the local mail server ACCEPTED the
                  message; SPF/DKIM rejection, greylisting and spam-foldering all
                  happen afterwards and all look identical from here. */ ?>
+        <?php if ($pending): ?>
+          <span class="badge badge-pending" title="The website saved this request, but never heard back from the mail server about the notification email — it may or may not have gone out. Reply from your own email to be safe.">Not confirmed</span>
+        <?php else: ?>
         <span class="badge <?= $sent ? 'badge-sent' : 'badge-failed' ?>" title="<?= $sent ? 'Handed to the mail server. That is not proof it reached the inbox — check with the sender if in doubt.' : 'The mail server refused the message outright.' ?>"><?= $sent ? 'Sent to mail server' : 'Email failed' ?></span>
+        <?php endif; ?>
       <?php endif; ?>
       <span class="who"><?= h($e['name'] ?? '') !== '' ? h($e['name']) : '—' ?> <small><?= h($e['company'] ?? '') ?></small></span>
       <?php if ($rej): ?><small style="color:#6b7280"><?= h($rej['blurb']) ?></small><?php endif; ?>
