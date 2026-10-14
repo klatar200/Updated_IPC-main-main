@@ -25,18 +25,18 @@ $TARGETS = [
         'restore' => function (array $data): bool {
             // Accept both plain-array and {products:[...]} backup shapes.
             $products = isset($data['products']) && is_array($data['products']) ? $data['products'] : $data;
-            return save_products($products);
+            return save_products($products, true);   // AUDIT-12 decision 29: refuse without a safety backup
         },
     ],
     'site-info' => [
         'label'   => 'Business Details',
         'live'    => SITE_INFO_JSON,
-        'restore' => function (array $data): bool { return save_site_info($data); },
+        'restore' => function (array $data): bool { return save_site_info($data, true); },
     ],
     'content' => [
         'label'   => 'Page Content',
         'live'    => CONTENT_JSON,
-        'restore' => function (array $data): bool { return save_content($data); },
+        'restore' => function (array $data): bool { return save_content($data, true); },
     ],
 ];
 
@@ -90,7 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          . ($filesBack ? ' Data sheets and photos brought back: ' . implode(', ', $filesBack) . '.' : '')
                          . ' (The state from just before this restore was backed up too, so you can undo.)';
             } else {
-                $errors[] = 'Restore failed — check file permissions on the data/ folder.';
+                // AUDIT-12 decisions 29/31 — a restore whose safety copy of the
+                // current version could not be written is refused (the disk is
+                // full); any other failure gets the shared sentence.
+                $errors[] = save_failed_message();
             }
         }
     }

@@ -130,6 +130,18 @@ const footerCatalog = async (browser) => {
     const ls = lastLog();
     note(ls.action === 'marketing-pdf' && /^Stopped using a PDF for/.test(ls.detail), 'audit: "Stop using" is logged as marketing-pdf', JSON.stringify(ls));
 
+    // AUDIT-12 decision 39 (A12-L3-W5-G4-1) — "Take Off the Website": refused
+    // while something points at the PDF, otherwise moved aside as .deleted.<name>.
+    const kits = path.join(MK, 'Tubing-Kits.pdf');
+    const t1 = await act(a, [['action', 'trash'], ['file', 'Tubing-Kits.pdf']]);
+    note(t1.status === 200 && /still used for/.test(t1.body) && fs.existsSync(kits), 'take off: refused while a brochure points at the PDF, and the file stays', `status ${t1.status}`);
+    const t2 = await act(a, [['action', 'trash'], ['file', 'IPC-Catalog-2026.pdf']]);
+    const gone = await a.req('GET', '/pdfs/marketing/IPC-Catalog-2026.pdf');
+    note(t2.status === 302 && !fs.existsSync(f1) && fs.existsSync(path.join(MK, '.deleted.IPC-Catalog-2026.pdf')) && !/CAT-ONE/.test(gone.body),
+      'take off: an unused PDF leaves its address and is kept aside as .deleted.<name>', `status ${t2.status}, address now ${gone.status}`);
+    const lt = lastLog();
+    note(lt.action === 'marketing-pdf' && /off the website/.test(lt.detail), 'audit: "Take Off the Website" is logged as marketing-pdf', JSON.stringify(lt));
+
     // damaged
     const si = path.join(SITE, 'data', 'site-info.json');
     const good = fs.readFileSync(si, 'utf8');

@@ -174,6 +174,22 @@ const restore = () => { for (const n of ['products-all.json', 'content.json', 's
     }
     restore();
 
+    // ── AUDIT-12 decision 40 (A12-L5-01-W5-3) ── a wrong-typed text value in
+    // content.json (only an FTP hand edit can make one) falls back to the
+    // default instead of "Something went wrong": a copy field shows its
+    // built-in wording, a row's text field degrades to blank (index.php does
+    // the same) and the rest of the page renders.
+    const c40 = load('content.json');
+    c40.copy.faqHeader.title = { x: 1 };
+    c40.faq[0].question = { x: 1 };
+    put('content.json', c40);
+    await go('/faq');
+    const h40 = await page.locator('h1').first().innerText({ timeout: 2000 }).catch(() => '');
+    const m40 = await page.locator('main').innerText({ timeout: 2000 }).catch(() => '');
+    note(!(await crashed()) && h40.trim() === 'Frequently Asked Questions' && m40.includes(load('content.json').faq[1].question),
+      'decision 40: a wrong-typed Page Content text value falls back to the default, and the page still renders', `h1 "${h40}"`);
+    restore();
+
     // ── V1-2 ── on its own data: with the malformed rows above, the unfixed
     // bundle crashes the whole page and "no dead link" passes on an empty page.
     const pv = load('products-all.json');

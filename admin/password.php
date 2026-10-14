@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // times must not be able to lock himself further out by retrying.
         // password_verify() is deliberately not reached.
         $errors[] = login_cooloff_message($cooloff, 'incorrect current-password attempts');
-    } elseif (!ADMIN_PASSWORD_CONFIGURED || !password_verify($current, ADMIN_PASSWORD_HASH)) {
+    } elseif (!ADMIN_PASSWORD_CONFIGURED || !password_verify($current, current_password_hash())) {
         // The gate already counted this attempt — do NOT count it again.
         $errors[] = 'The current password is incorrect.';
         $armed = login_cooloff_remaining($clientIp);

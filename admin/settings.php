@@ -300,7 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: settings.php?saved=' . ($noop ? 'nochange' : '1'));
             exit;
         }
-        $errors[] = 'Failed to save site-info.json. Check file permissions on the data/ folder.';
+        $errors[] = save_failed_message();   // AUDIT-12 decision 31
     }
     $info = $updated; // repopulate the form with submitted values on error
 }
@@ -468,7 +468,13 @@ $navActive = 'settings';
           $cAccent2 = $colorIn($th['accent2Color'] ?? '', '#119ec8');
           ?>
           <div class="form-group"><label for="theme_primary">Primary color</label><input type="color" id="theme_primary" name="theme_primary" value="<?= h($cPrimary) ?>" style="height:44px;padding:4px;width:100%;">
-            <?= contrast_note([$cPrimary], 'buttons and highlights', 'cnote_primary') ?></div>
+            <?= contrast_note([$cPrimary], 'buttons and highlights', 'cnote_primary') ?>
+            <?php /* AUDIT-12 decision 49 (A12-L7-W3-G3-4) — on a phone the
+                     product name sits on a band that fades from a shade of the
+                     Dark colour into Primary, so one text colour must work on
+                     both. A pale Primary with the navy Dark left the name at
+                     2.1:1 while the note above said "Readable". */ ?>
+            <?= contrast_note([ipc_shade_of($cDark, '#0d2d52', '#0a2a52'), $cPrimary], 'the band behind each product\'s name, from Dark to Primary', 'cnote_prodhead') ?></div>
           <div class="form-group"><?php /* Docs audit 2026-09-29 — this said "headers & footer"; the footer background is a fixed #0a2240 in src/App.jsx and does not follow this color. */ ?><label for="theme_dark">Dark (navigation bar &amp; dark panels)</label><input type="color" id="theme_dark" name="theme_dark" value="<?= h($cDark) ?>" style="height:44px;padding:4px;width:100%;">
             <?= contrast_note([$cDark], 'the navigation bar', 'cnote_dark') ?></div>
           <div class="form-group"><label for="theme_accent">Accent</label><input type="color" id="theme_accent" name="theme_accent" value="<?= h($cAccent) ?>" style="height:44px;padding:4px;width:100%;"></div>
@@ -591,6 +597,16 @@ $navActive = 'settings';
           <div class="form-group">
             <label for="cert_iso">ISO Certification</label>
             <input type="text" id="cert_iso" name="cert_iso" value="<?= h($ce['iso'] ?? '') ?>" placeholder="ISO 9001" />
+            <?php /* AUDIT-12 decision 36 (A12-L8-08-4) — the website understands
+                     only "ISO 9001" or "ISO 9001:YYYY" here (ISO_9001_SOURCE in
+                     src/App.jsx, the same pattern in public/index.php). Anything
+                     else is pasted in whole over every ISO 9001 on the site, so
+                     "ISO 9001:2015 Certified" printed "ISO 9001:2015 Certified
+                     Registered". Warn; the value still saves. */
+                  $isoNow = trim((string)($ce['iso'] ?? ''));
+                  if ($isoNow !== '' && !preg_match('/^\s*ISO\s*9001(?:\s*:\s*(\d{4}))?\s*$/iu', $isoNow)): ?>
+            <div class="cnote cnote-warn" id="iso-format" role="status">⚠️ The website only understands <b>ISO 9001</b> or <b>ISO 9001:</b> followed by a year (for example <b>ISO 9001:2015</b>) here. What is typed now, “<?= h($isoNow) ?>”, is put in whole wherever the site says ISO 9001, so pages will read “<?= h($isoNow) ?> Registered”. Type just <b>ISO 9001</b> or <b>ISO 9001:2015</b> — words like “Certified” or “Registered” are already on the pages.</div>
+            <?php endif; ?>
             <div class="hint">
               <strong>This is the only place the ISO certification is set.</strong>
               What you type here appears everywhere it is claimed on the website
@@ -599,7 +615,8 @@ $navActive = 'settings';
               <br>
               Add the revision year only when your registrar has confirmed it
               (<code>ISO 9001:2015</code>), and it will appear in all of those
-              places at once. Leave it as plain <code>ISO 9001</code> and no
+              places at once. Type only <code>ISO 9001</code> or
+              <code>ISO 9001:</code> and a year &mdash; nothing before or after it. Leave it as plain <code>ISO 9001</code> and no
               revision is claimed anywhere &mdash; which is the safe answer if
               you are not certain which one your certificate names.
               <br>

@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             . ($brokenRefs ? '. Note: the Industries page still links to it from ' . implode(', ', $brokenRefs)
                 . ' — those links now show "product not found". Fix them in Page Content → Industries.' : ''), 'success');
     }
-    flash_redirect('Delete failed — check file permissions', 'error');
+    flash_redirect(save_failed_message(), 'error');   // AUDIT-12 decision 31
 }
 
 // GET = confirmation page

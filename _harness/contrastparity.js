@@ -137,6 +137,17 @@ if (!darkInk || !lightInk) {
   console.log(`ok   color set exercises both inks: ${lightInk} white, ${darkInk} dark`);
 }
 
-const total = COLORS.length + ANCHORS.length + 1;
+// AUDIT-12 decision 49 — Business Details scores the product title band on
+// the shade of Dark the site derives (--brand-dark-2). The admin's two copies
+// of shadeOf() must agree, and both must land on the literal the site ships.
+const guardShade = loadFns('admin/contrast-guard.js', ['parseHex', 'shadeOf']);
+const phpShade = spawnSync('php', ['-r', `require ${JSON.stringify(path.join(root, 'admin', 'config.php'))}; foreach (array_slice($argv, 1) as $c) echo ipc_shade_of($c, '#0d2d52', '#0a2a52'), "\\n";`, '--', ...COLORS],
+  { encoding: 'utf8' }).stdout.trim().split('\n');
+const shadeBad = COLORS.filter((c, i) => guardShade.shadeOf(c, '#0d2d52', '#0a2a52').toLowerCase() !== (phpShade[i] || '').toLowerCase());
+const shadeAnchor = guardShade.shadeOf('#0d2d52', '#0d2d52', '#0a2a52') === '#0a2a52' && guardShade.shadeOf('#d0dcea', '#0d2d52', '#0a2a52') === '#bbc6d3';
+if (shadeBad.length || !shadeAnchor) { bad++; console.log(`FAIL shadeOf: config.php and contrast-guard.js disagree on ${shadeBad.join(', ') || 'the anchors'}`); }
+else console.log(`ok   shadeOf: config.php and contrast-guard.js agree on ${COLORS.length} colors; shipped Dark gives #0a2a52`);
+
+const total = COLORS.length + ANCHORS.length + 2;
 console.log(`\ncontrastparity ${total - bad}/${total} (${COLORS.length} colors × 3 implementations)`);
 process.exit(bad === 0 ? 0 : 1);

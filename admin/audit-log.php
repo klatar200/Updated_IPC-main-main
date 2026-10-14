@@ -132,6 +132,19 @@ function action_color(string $a): array {
        whole page sideways and hid the Detail column; it scrolls in its own
        box instead, as on the dashboard. */
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+    .col-when { width: 170px; } .col-action { width: 110px; } .col-sku { width: 130px; } .col-ip { width: 120px; }
+    /* AUDIT-12 decision 33 (A12-L9-01-4) — on a phone the one-line time took
+       159 of the 342 px and pushed Detail, the column that says what happened,
+       off the right edge. The date now sits over the time, the fixed column
+       widths give way, and the cells are tighter, so Detail starts on the
+       first screen; IP, the least-read column, is what scrolls. */
+    @media (max-width: 640px) {
+      .col-when, .col-action, .col-sku, .col-ip { width: auto; }
+      th, td { padding: 9px 8px; }
+      .ts { white-space: normal; }
+      .ts span { display: block; white-space: nowrap; }
+      .detail { min-width: 116px; }
+    }
   </style>
 </head>
 <body>
@@ -184,11 +197,11 @@ function action_color(string $a): array {
     <table>
       <thead>
         <tr>
-          <th style="width:170px">When</th>
-          <th style="width:110px">Action</th>
-          <th style="width:130px">SKU</th>
+          <th class="col-when">When</th>
+          <th class="col-action">Action</th>
+          <th class="col-sku">SKU</th>
           <th>Detail</th>
-          <th style="width:120px">IP</th>
+          <th class="col-ip">IP</th>
         </tr>
       </thead>
       <tbody>
@@ -196,7 +209,8 @@ function action_color(string $a): array {
           [$bg, $fg] = action_color($e['action'] ?? '');
         ?>
         <tr>
-          <td class="ts"><?= h($e['ts'] ?? '') ?></td>
+          <?php $tsParts = explode(' ', (string)($e['ts'] ?? ''), 2); ?>
+          <td class="ts"><span><?= h($tsParts[0]) ?></span> <span><?= h($tsParts[1] ?? '') ?></span></td>
           <td><span class="action-badge" style="background:<?= $bg ?>;color:<?= $fg ?>"><?= h($e['action'] ?? '') ?></span></td>
           <td><span class="sku"><?= h($e['sku'] ?? '') ?></span></td>
           <td class="detail"><?= h($e['detail'] ?? '') ?></td>

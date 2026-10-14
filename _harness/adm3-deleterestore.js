@@ -90,7 +90,8 @@ const listDir = (d) => (fs.existsSync(d) ? fs.readdirSync(d) : []);
     const p0 = product(SKU);
     const pdf0 = await fetchFile(p0.pdfUrl);
     const img0 = await fetchFile(p0.photoUrl);
-    note(pdf0.type === 'application/pdf' && img0.type === 'image/png',
+    // AUDIT-12 decision 23: the opaque PNG is stored as a JPG; either is a photo.
+    note(pdf0.type === 'application/pdf' && /^image\/(png|jpeg)$/.test(img0.type),
       `setup: ${SKU} has a live PDF (${p0.pdfUrl}) and an uploaded photo (${p0.photoUrl})`, `${pdf0.type} / ${img0.type}`);
 
     // 2 — delete through the real confirm form
@@ -99,7 +100,7 @@ const listDir = (d) => (fs.existsSync(d) ? fs.readdirSync(d) : []);
     const pdf1 = await fetchFile(p0.pdfUrl);
     const img1 = await fetchFile(p0.photoUrl);
     note(!product(SKU), `delete: ${SKU} is gone from the catalog`);
-    note(pdf1.type !== 'application/pdf' && img1.type !== 'image/png',
+    note(pdf1.type !== 'application/pdf' && img1.type !== img0.type,
       'delete: its PDF and photo are no longer served at their public URLs (they still come off the site)',
       `PDF ${pdf1.status} ${pdf1.type}, photo ${img1.status} ${img1.type}`);
 
@@ -116,7 +117,7 @@ const listDir = (d) => (fs.existsSync(d) ? fs.readdirSync(d) : []);
     note(pdf2.type === 'application/pdf' && md5(pdf2.body) === md5(pdf0.body),
       'restore: the Datasheet URL serves the ORIGINAL PDF again (not the site shell)',
       `${pdf2.status} ${pdf2.type}${pdf2.type === 'text/html' ? ' — the dead-datasheet defect' : ''}`);
-    note(img2.type === 'image/png' && md5(img2.body) === md5(img0.body),
+    note(img2.type === img0.type && md5(img2.body) === md5(img0.body),
       'restore: the photo URL serves the original photo again', `${img2.status} ${img2.type}`);
     note(/brought back|restored.*file|data sheet|photo/i.test(msg.split('\n').filter((l) => /restored/i.test(l)).join(' ')),
       'restore: the success message says the files came back too',

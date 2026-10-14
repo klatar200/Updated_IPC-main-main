@@ -73,8 +73,8 @@ define('ADMIN_PASSWORD_SENTINEL', '*not-configured*');
 if (!defined('ADMIN_PASSWORD_HASH')) {
     define('ADMIN_PASSWORD_HASH', ADMIN_PASSWORD_SENTINEL);
 }
-define('ADMIN_PASSWORD_CONFIGURED', ADMIN_PASSWORD_HASH !== ADMIN_PASSWORD_SENTINEL
-    && preg_match('/^\$2[aby]\$\d{2}\$.{53}$/', ADMIN_PASSWORD_HASH) === 1);
+define('ADMIN_PASSWORD_CONFIGURED', admin_password_hash_at_start() !== ADMIN_PASSWORD_SENTINEL
+    && preg_match('/^\$2[aby]\$\d{2}\$.{53}$/', admin_password_hash_at_start()) === 1);
 
 // Proof-of-FTP flag that unlocks the one-time password-reset screen.
 define('PASSWORD_RESET_FLAG', __DIR__ . '/ALLOW-PASSWORD-RESET');
@@ -96,6 +96,43 @@ define('LOCAL_CONFIG_PATH', __DIR__ . '/config.local.php');
 // An hour is plenty to upload a file over FTP and type a password. Re-uploading
 // or touching the file opens a fresh window. (AUDIT_v3_FINDINGS B2)
 define('PASSWORD_RESET_WINDOW', 3600);
+
+/**
+ * AUDIT-12 decision 28 (A12-L2-W5-G4-1) — the password hash this request
+ * starts with. Normally the ADMIN_PASSWORD_HASH that config.local.php defined.
+ * But that file is PHP, so an opcode cache can keep serving an OLD compiled
+ * copy, and admin_password_write() clears it with opcache_invalidate() — which
+ * a host that sets opcache.restrict_api refuses (silently). There the Password
+ * page said "changed", the new password was refused, the old one kept working,
+ * and the FTP reset did not take either. When the cache is on and cannot be
+ * cleared from here, the hash is read from the file on disk instead, parsed
+ * the same way admin_password_write() reads it back. No hash is ever written
+ * into this file (invariant 2): a missing or unreadable file still leaves the
+ * sentinel in force.
+ */
+function local_config_cache_uncleared(): bool {
+    if (!function_exists('opcache_invalidate')) return false;            // no opcode cache loaded
+    $on = in_array(PHP_SAPI, ['cli', 'phpdbg'], true) ? ini_get('opcache.enable_cli') : ini_get('opcache.enable');
+    if (!filter_var($on, FILTER_VALIDATE_BOOLEAN)) return false;          // loaded but off
+    // The same test PHP applies before it lets opcache_invalidate() run.
+    $restrict = (string)ini_get('opcache.restrict_api');
+    if ($restrict === '') return false;
+    $script = (string)($_SERVER['SCRIPT_FILENAME'] ?? '');
+    return strncmp($script, $restrict, strlen($restrict)) !== 0;
+}
+function admin_password_hash_at_start(): string {
+    static $h = null;
+    if ($h !== null) return $h;
+    $h = ADMIN_PASSWORD_HASH;
+    $path = __DIR__ . '/config.local.php';     // LOCAL_CONFIG_PATH is defined further down
+    if (local_config_cache_uncleared() && is_file($path)) {
+        $body = (string)@file_get_contents($path);
+        [$reDef, $reConst] = admin_password_patterns();
+        $first = preg_match('/^\s*<\?php/i', $body) ? admin_password_first_definition($body, $reDef, $reConst) : null;
+        if ($first !== null) $h = $first['hash'];
+    }
+    return $h;
+}
 
 function password_reset_unlocked(): bool {
     if (!file_exists(PASSWORD_RESET_FLAG)) return false;
@@ -187,8 +224,7 @@ function admin_password_write(string $newPlain): array {
     // in the file (the one PHP uses) is the one replaced and the one read back,
     // and a file that names the constant in a way neither pattern can parse is
     // refused rather than appended to.
-    $reDef   = "/\\b(?i:define)\\s*\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)*)\\2\\s*\\)\\s*;/";
-    $reConst = "/\\b(?i:const)\\s+ADMIN_PASSWORD_HASH\\s*=\\s*(['\"])((?:(?!\\1).)*)\\1\\s*;/";
+    [$reDef, $reConst] = admin_password_patterns();
     $template = "<?php\n"
              . "/**\n"
              . " * IPC Admin — LOCAL password override (gitignored).\n"
@@ -298,6 +334,14 @@ function admin_password_write(string $newPlain): array {
     return ['ok' => true, 'error' => '', 'hash' => $hash];
 }
 
+/** The two spellings of the password line admin_password_write() understands. */
+function admin_password_patterns(): array {
+    return [
+        "/\\b(?i:define)\\s*\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)*)\\2\\s*\\)\\s*;/",
+        "/\\b(?i:const)\\s+ADMIN_PASSWORD_HASH\\s*=\\s*(['\"])((?:(?!\\1).)*)\\1\\s*;/",
+    ];
+}
+
 /**
  * The first definition of ADMIN_PASSWORD_HASH in a config.local.php body — the
  * one PHP keeps — as ['re' => the pattern that matched it, 'hash' => its value],
@@ -335,7 +379,7 @@ function admin_password_problems(string $new, string $confirm, bool $compareToCu
         $errors[] = 'The new password is too long (72 characters max; an accented letter counts as two).';
     } elseif ($new !== $confirm) {
         $errors[] = 'The two new-password fields do not match.';
-    } elseif ($compareToCurrent && ADMIN_PASSWORD_CONFIGURED && password_verify($new, ADMIN_PASSWORD_HASH)) {
+    } elseif ($compareToCurrent && ADMIN_PASSWORD_CONFIGURED && password_verify($new, current_password_hash())) {
         $errors[] = 'The new password must be different from the current one.';
     }
     return $errors;
@@ -705,7 +749,7 @@ if (session_status() === PHP_SESSION_NONE
 function current_password_hash(?string $set = null): string {
     static $h = null;
     if ($set !== null) $h = $set;
-    return $h ?? ADMIN_PASSWORD_HASH;
+    return $h ?? admin_password_hash_at_start();
 }
 function session_auth_token(?string $passwordHash = null): string {
     return hash_hmac('sha256', 'ipc-admin-session|' . session_id(), $passwordHash ?? current_password_hash());
@@ -996,7 +1040,11 @@ function backup_path(string $dir, string $prefix): string {
 // distinction is still worth making rather than returning null for both, so
 // that a future caller which does check gets a truthful answer instead of an
 // error for a file that is safely backed up already.
+// AUDIT-12 decisions 29/30: a failed copy is ALSO reported through
+// last_save_backup_failed(), which the save_*() helpers act on; the return
+// value stays as described.
 function backup_before_write(string $path, string $prefix): ?string {
+    $GLOBALS['ipc_last_backup_failed'] = false;   // AUDIT-12 decisions 29/30
     $dir = dirname($path);
     if (!file_exists($path)) return null;
 
@@ -1054,7 +1102,11 @@ function backup_before_write(string $path, string $prefix): ?string {
     // one-owner admin — but fall back to the old behaviour rather than skipping
     // the backup, because no backup at all is the worse outcome.
     if ($backupPath === null) $backupPath = backup_path($dir, $prefix);
-    if (!@copy($path, $backupPath)) { @unlink($backupPath); return null; }
+    if (!@copy($path, $backupPath)) {
+        @unlink($backupPath);
+        $GLOBALS['ipc_last_backup_failed'] = true;   // see last_save_backup_failed()
+        return null;
+    }
     $backups = backup_list($dir, $prefix); // oldest first, by parsed (stamp, seq)
     if (count($backups) > BACKUP_KEEP) {
         foreach (array_slice($backups, 0, count($backups) - BACKUP_KEEP) as $old) @unlink($old);
@@ -1109,6 +1161,74 @@ function last_save_was_noop(): bool {
     return !empty($GLOBALS['ipc_last_save_noop']);
 }
 
+/**
+ * AUDIT-12 decisions 29 and 30 (A12-L4-01-W5-1, A12-L4-05-2) — the separate
+ * failure signal invariant 16 asks for. backup_before_write() returning null
+ * is NOT failure (it also means "no file yet"); this flag is set only when the
+ * copy itself could not be written — on a shared host, a full disk.
+ *  - save_*($x, true) (Backups' restore) then refuses and writes nothing, so a
+ *    restore never replaces the only copy of the current version (29).
+ *  - an ordinary save goes ahead, and the next admin page says plainly that
+ *    the change cannot be undone from Backups (30; nav.php shows it once).
+ */
+$GLOBALS['ipc_last_backup_failed'] = false;
+function last_save_backup_failed(): bool {
+    return !empty($GLOBALS['ipc_last_backup_failed']);
+}
+// Why the most recent save_*() returned false: 'encode', 'damaged', 'backup' or 'write'.
+$GLOBALS['ipc_last_save_failure'] = '';
+
+/** The common tail of the three save_*() helpers, after the no-op check. */
+function save_json_with_backup(string $path, string $prefix, string $json, string $label, bool $requireBackup): bool {
+    $GLOBALS['ipc_last_save_noop'] = false;
+    backup_before_write($path, $prefix);
+    if (last_save_backup_failed() && $requireBackup) {
+        $GLOBALS['ipc_last_save_failure'] = 'backup';
+        return false;
+    }
+    if (!json_write_atomic($path, $json)) {
+        $GLOBALS['ipc_last_save_failure'] = 'write';
+        return false;
+    }
+    if (last_save_backup_failed() && session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION['ipc_unbacked_saves'][$label] = true;
+    }
+    return true;
+}
+
+/**
+ * AUDIT-12 decision 31 (A12-L8-02-1) — ONE sentence for "the dashboard could
+ * not write a file", used by every page, instead of seven wordings that named
+ * products-all.json and said "file" or "write" permissions, "folder" or
+ * "directory". Which sentence depends on the cause: a folder the server will
+ * not let the dashboard write to (the shared one), a folder it may write to
+ * but could not (a full disk), or text that cannot be stored at all.
+ * $dir/$name name the folder ('data' for the three data files).
+ */
+function write_failed_message(string $dir, string $name): string {
+    if (is_dir($dir) && !is_writable($dir)) {
+        return "Nothing was saved: the server does not let the dashboard write to its {$name} folder. "
+             . 'This is a server setting, not something you did — Help → "If the dashboard warns you about the server" says how to fix it, '
+             . 'or send a screenshot of this page to your developer.';
+    }
+    return "Nothing was saved: the server could not write to its {$name} folder, although the folder allows it, so its disk is probably full. "
+         . 'Free up space on your hosting account (or ask your host to), then try again.';
+}
+function save_failed_message(): string {
+    switch ($GLOBALS['ipc_last_save_failure'] ?? '') {
+        case 'encode':
+            return 'Nothing was saved: some of the text contains a character the server cannot store '
+                 . '(this can happen with text pasted from Word or a PDF). Retype the text you pasted last, then save again.';
+        case 'backup':
+            return 'Nothing was changed: the server\'s disk is full, so it could not first keep a copy of the current version, '
+                 . 'and without that copy this could not be undone. Free up space on your hosting account (or ask your host to), then try again.';
+        case 'damaged':
+            return 'Nothing was saved: the product catalog file (data/products-all.json) is damaged. '
+                 . 'Go to Backups and restore the most recent Product Catalog entry, then try again.';
+    }
+    return write_failed_message(dirname(PRODUCTS_JSON), 'data');
+}
+
 // All backups for one prefix, OLDEST FIRST.
 //
 // Two orderings that look right and are NOT (both measured, not guessed):
@@ -1153,11 +1273,13 @@ function backup_list(string $dir, string $prefix): array {
 // would strand the optimistic-concurrency pages on an error page instead of
 // redirecting and refreshing their signature. Pages that want to word it
 // differently read last_save_was_noop().
-function save_products(array $products): bool {
+function save_products(array $products, bool $requireBackup = false): bool {
     products_write_lock(); // SEC-5 — a no-op if load_products() already took it
+    $GLOBALS['ipc_last_save_failure'] = '';
+    $GLOBALS['ipc_last_backup_failed'] = false;
     // NEW-N2-2 — never save the [] a damaged catalog was read as over the
     // catalog itself. The dashboard banner says what to do instead.
-    if (products_load_damaged()) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    if (products_load_damaged()) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'damaged'; return false; }
     $path = PRODUCTS_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) {
@@ -1170,14 +1292,13 @@ function save_products(array $products): bool {
     // carry. file_put_contents($path, false) writes an EMPTY FILE and returns
     // 0, which is !== false — so the catalog would be blanked and reported as
     // saved. Fail loudly instead and leave the file alone.
-    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'encode'; return false; }
     if (!json_write_needed($path, $json)) {
         $GLOBALS['ipc_last_save_noop'] = true;
         return true;
     }
-    $GLOBALS['ipc_last_save_noop'] = false;
-    backup_before_write($path, 'products-all');
-    return json_write_atomic($path, $json);   // A-5.5 — temp file + atomic rename
+    // backup_before_write(), then json_write_atomic() (A-5.5 — temp file + atomic rename)
+    return save_json_with_backup($path, 'products-all', $json, 'Product Catalog', $requireBackup);
 }
 
 // Helper: load business details (site-info.json). Returns [] if missing/invalid.
@@ -1190,20 +1311,20 @@ function load_site_info(): array {
 
 // Helper: save business details. Mirrors save_products(): timestamped backup
 // (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
-function save_site_info(array $info): bool {
+function save_site_info(array $info, bool $requireBackup = false): bool {
     data_write_lock('site-info'); // a no-op if the page already took it
     $path = SITE_INFO_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $json = json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    $GLOBALS['ipc_last_save_failure'] = '';
+    $GLOBALS['ipc_last_backup_failed'] = false;
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'encode'; return false; }
     if (!json_write_needed($path, $json)) {          // F2
         $GLOBALS['ipc_last_save_noop'] = true;
         return true;
     }
-    $GLOBALS['ipc_last_save_noop'] = false;
-    backup_before_write($path, 'site-info');
-    return json_write_atomic($path, $json);
+    return save_json_with_backup($path, 'site-info', $json, 'Business Details', $requireBackup);
 }
 
 // Helper: load editable page content (homepage sections, etc.). Returns [] if
@@ -1501,20 +1622,20 @@ function ipc_product_families(): array {
 
 // Helper: save editable page content. Mirrors save_site_info(): timestamped
 // backup (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
-function save_content(array $content): bool {
+function save_content(array $content, bool $requireBackup = false): bool {
     data_write_lock('content'); // a no-op if the page already took it
     $path = CONTENT_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $json = json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    $GLOBALS['ipc_last_save_failure'] = '';
+    $GLOBALS['ipc_last_backup_failed'] = false;
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'encode'; return false; }
     if (!json_write_needed($path, $json)) {          // F2
         $GLOBALS['ipc_last_save_noop'] = true;
         return true;
     }
-    $GLOBALS['ipc_last_save_noop'] = false;
-    backup_before_write($path, 'content');
-    return json_write_atomic($path, $json);
+    return save_json_with_backup($path, 'content', $json, 'Page Content', $requireBackup);
 }
 
 /**
@@ -2061,6 +2182,26 @@ function ipc_ink_for($backgrounds): string {
     return $worst(IPC_INK_LIGHT) >= $worst(IPC_INK_DARK) ? IPC_INK_LIGHT : IPC_INK_DARK;
 }
 
+/**
+ * AUDIT-12 decision 49 (A12-L7-W3-G3-4) — MIRRORS shadeOf() in src/App.jsx's
+ * ThemeInjector (and shadeOf() in contrast-guard.js): a derived shade of an
+ * owner colour. The shipped base gives the literal; any other base is scaled
+ * by ONE factor (the mean of the literal's per-channel ratios), keeping its
+ * hue. Used for --brand-dark-2, the dark end of the product page's title band.
+ */
+function ipc_shade_of(string $base, string $shippedBase, string $literal): string {
+    $b = ipc_parse_hex_color($base);
+    $s = ipc_parse_hex_color($shippedBase);
+    $l = ipc_parse_hex_color($literal);
+    if ($b === null || $s === null || $l === null) return $literal;
+    if ($b === $s) return sprintf('#%02x%02x%02x', $l[0], $l[1], $l[2]);
+    $defined = [];
+    foreach ([0, 1, 2] as $i) if ($s[$i] !== 0) $defined[] = $l[$i] / $s[$i];
+    $k = $defined ? array_sum($defined) / count($defined) : 1;
+    $out = array_map(static fn($c) => max(0, min(255, (int)floor($c * $k + 0.5))), $b);
+    return sprintf('#%02x%02x%02x', $out[0], $out[1], $out[2]);
+}
+
 // ─── Does a product reference resolve on the public site? ───────────────────
 // MIRRORS src/App.jsx:6155-6188. The two must agree — if the React lookup
 // changes, change this with it.
@@ -2345,11 +2486,50 @@ function upload_tmp_unreadable_problem(string $tmp, string $what): string {
          . 'This is a hosting setting — contact your developer.';
 }
 
+const IMG_PROGRAM_CODE_MSG = 'That file is not a usable image — it contains program code, not just picture data. '
+    . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
+
+/**
+ * A PHP open tag anywhere in the first 8 MB of a file: `<?php`, `<?=`, or the
+ * short `<?` followed by white space, which runs wherever short_open_tag is On
+ * (PHP's compiled-in default) — the spelling A-9.P3-2 and NEW-V1-1 missed
+ * (AUDIT-12 A12-L3-02-1).
+ *
+ * Since AUDIT-12 decision 27 this scans only what is stored AS UPLOADED: a GIF
+ * (never re-encoded, so an animation is not flattened), or a JPG/PNG/WEBP the
+ * server could not re-encode (no gd, or the re-encode failed). Every other
+ * photo is written fresh by gd from its decoded pixels, which drops anything
+ * hidden in comments, metadata or after the image data. Scanning the
+ * compressed bytes of an ordinary photo refused about 1 in 14 genuine ones,
+ * IPC's own IP55FL.png among them: '<?=' turns up by chance in compressed
+ * data (A12-L11-W5-G1-1).
+ */
+function image_php_tag_in_bytes(string $path): bool {
+    $raw = (string)@file_get_contents($path, false, null, 0, 8 * 1024 * 1024 + 1);
+    return stripos($raw, '<?php') !== false || strpos($raw, '<?=') !== false
+        || preg_match('/<\?\s/', $raw) === 1;
+}
+
+/** JPG/PNG/WEBP that this server can decode and write again with gd. */
+const IPC_IMG_CODECS = [
+    'jpg'  => ['imagecreatefromjpeg', 'imagejpeg'],
+    'jpeg' => ['imagecreatefromjpeg', 'imagejpeg'],
+    'png'  => ['imagecreatefrompng',  'imagepng'],
+    'webp' => ['imagecreatefromwebp', 'imagewebp'],
+];
+function image_reencode_available(string $ext): bool {
+    $c = IPC_IMG_CODECS[strtolower($ext)] ?? null;
+    return $c !== null && extension_loaded('gd') && function_exists('imagescale')
+        && function_exists($c[0]) && function_exists($c[1]) && function_exists('imagejpeg');
+}
+
 // Everything that decides whether an uploaded file is a usable, safe image:
-// extension AND sniffed MIME agree (A-5.x), no PHP tag anywhere in the bytes
-// (A-9.P3-2 / NEW-V1-1), 8 MB, the pixel ceiling BEFORE any decode (SEC-2),
-// then it must actually decode where gd exists. Returns '' when it passes and
-// sets $ext to the lower-cased extension.
+// extension AND sniffed MIME agree (A-5.x), no PHP tag in the bytes that will
+// be stored as uploaded (A-9.P3-2 / NEW-V1-1; since AUDIT-12 decision 27 only
+// GIFs, and JPG/PNG/WEBP where gd cannot re-encode them — the others are
+// re-encoded by image_prepare_upload()), 8 MB, the pixel ceiling BEFORE any
+// decode (SEC-2), then it must actually decode where gd exists. Returns ''
+// when it passes and sets $ext to the lower-cased extension.
 function uploaded_image_problem(array $file, ?string &$ext = null): string {
     $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
     $tmp = (string)($file['tmp_name'] ?? '');
@@ -2362,16 +2542,12 @@ function uploaded_image_problem(array $file, ?string &$ext = null): string {
         if (PHP_VERSION_ID < 80000) finfo_close($finfo);   // A12-L2-W1-G1-1: deprecated in 8.5, a no-op since 8.0
         if ($fmime !== $mimeType) $mimeType = '';
     }
-    $raw       = (string)@file_get_contents($tmp, false, null, 0, 8 * 1024 * 1024 + 1);
-    $hasPhpTag = (stripos($raw, '<?php') !== false || stripos($raw, '<?=') !== false);
+    $hasPhpTag = ($ext === 'gif' || !image_reencode_available($ext)) && image_php_tag_in_bytes($tmp);
     $pixelProblem = $sniffed !== false ? image_pixel_problem((int)$sniffed[0], (int)$sniffed[1]) : '';
     if (!isset(IPC_IMG_TYPES[$ext]) || $mimeType !== IPC_IMG_TYPES[$ext]) {
         return 'Only JPG, PNG, WEBP, or GIF images are accepted (extension and content must match).';
     }
-    if ($hasPhpTag) {
-        return 'That file is not a usable image — it contains program code, not just picture data. '
-             . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
-    }
+    if ($hasPhpTag) return IMG_PROGRAM_CODE_MSG;
     if ((int)($file['size'] ?? 0) > 8 * 1024 * 1024) return 'File is too large. Maximum size is 8MB.';
     if ($pixelProblem === 'too-many-pixels') {
         return 'That photo is ' . round(((int)$sniffed[0] * (int)$sniffed[1]) / 1000000, 1) . ' megapixels — more than the '
@@ -2390,8 +2566,12 @@ function uploaded_image_problem(array $file, ?string &$ext = null): string {
 }
 
 // The "saved it smaller / could not resize" sentence both upload pages append.
-function image_resize_note(bool $wasResized, string $reason, string $what = 'this product page'): string {
-    return ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '')
+// AUDIT-12 decision 23 (A12-L11-W5-G1-2): "to keep the page fast" was said of
+// a PNG that came out at 1.4 MB, so the width sentence no longer claims speed;
+// $converted says the photo was stored as a JPG, which is what makes it small.
+function image_resize_note(bool $wasResized, string $reason, string $what = 'this product page', bool $converted = false): string {
+    return ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide — it will still look sharp.' : '')
+         . ($converted ? ' It was sent as a PNG with no see-through areas, so it has been saved as a JPG: the same picture in a much smaller file, so the page loads faster.' : '')
          . ($reason === 'no-gd'
             ? ' ⚠ This server cannot resize images (its image tools are not installed), so the photo has been'
               . ' saved at its original size and ' . $what . ' may load slowly. Please resize it to about '
@@ -2534,6 +2714,107 @@ function image_downscale_in_place(string $path, string $ext, ?string &$reason = 
     if ($perms !== false) @chmod($tmp, $perms & 0777);
     if (!@rename($tmp, $path)) { @unlink($tmp); $reason = 'rename-failed'; return false; }
     return true;
+}
+
+/**
+ * AUDIT-12 decisions 23 and 27 — every JPG, PNG and WEBP upload is written
+ * fresh by gd before it is stored, instead of keeping the uploaded bytes.
+ *
+ * 27 (A12-L11-W5-G1-1, A12-L3-02-1): a re-encode keeps only the decoded
+ *    pixels, so program code hidden in a comment, a metadata block or after
+ *    the image data does not survive. That replaces the raw-bytes scan for
+ *    these three types, which refused ~7% of genuine photos and still missed
+ *    the short '<?' tag. GIFs are stored as uploaded (an animation must not be
+ *    flattened) and stay scanned, as does any file gd cannot re-encode here:
+ *    then 'problem' carries the refusal. Camera details (EXIF) are dropped;
+ *    the orientation is applied to the pixels first, as A12-L11-W5-G4-1 did.
+ * 23 (A12-L11-W5-G1-2): a PNG with no see-through pixel is a photo, and is
+ *    saved as a JPG (~1.4 MB -> ~0.2 MB at 1600 wide). One with transparency
+ *    stays a PNG. $mayBecomeJpeg is false for the logo, which is artwork.
+ *
+ * Wider than IMG_MAX_WIDTH is scaled as image_downscale_in_place() does.
+ * uploaded_image_problem() has already refused anything over IMG_MAX_PIXELS,
+ * so the decode here is bounded (SEC-2).
+ *
+ * Returns ['path' => the re-encoded file, a dotfile in $dir to rename into
+ * place, or null to store the upload as is; 'ext' => the extension to save
+ * under; 'resized', 'converted' => bool; 'reason' => as
+ * image_downscale_in_place()'s, for image_resize_note(); 'problem' => '' or
+ * the refusal].
+ */
+function image_prepare_upload(string $src, string $ext, string $dir, bool $mayBecomeJpeg = true): array {
+    $ext = strtolower($ext);
+    $r = ['path' => null, 'ext' => $ext, 'resized' => false, 'converted' => false, 'reason' => '', 'problem' => ''];
+    $info = @getimagesize($src);
+    $w = is_array($info) ? (int)$info[0] : 0;
+    $h = is_array($info) ? (int)$info[1] : 0;
+    if ($ext === 'gif') { $r['reason'] = $w > IMG_MAX_WIDTH ? 'animation' : 'already-small'; return $r; }
+    // Not re-encoded: the bytes are stored as uploaded, so they must pass the scan.
+    $asUploaded = static function (string $reason) use ($r, $src): array {
+        $r['reason'] = $reason;
+        if (image_php_tag_in_bytes($src)) $r['problem'] = IMG_PROGRAM_CODE_MSG;
+        return $r;
+    };
+    if (!image_reencode_available($ext)) {
+        return $asUploaded(extension_loaded('gd') && function_exists('imagescale') ? 'no-loader' : 'no-gd');
+    }
+    if ($w < 1 || $h < 1) return $asUploaded('unreadable');
+    if ($w * $h > IMG_MAX_PIXELS) return $asUploaded('too-many-pixels');
+    [$load, $write] = IPC_IMG_CODECS[$ext];
+    $im = @$load($src);
+    if (!$im) return $asUploaded('decode-failed');
+    if ($ext === 'jpg' || $ext === 'jpeg') {
+        $o = jpeg_exif_orientation($src);
+        if ($o > 1) {
+            $turned = image_apply_orientation($im, $o);
+            if (!$turned) { gd_free($im); return $asUploaded('no-rotate'); }
+            $im = $turned;
+        }
+    }
+    if (!imageistruecolor($im)) @imagepalettetotruecolor($im);
+    if (imagesx($im) > IMG_MAX_WIDTH) {
+        $scaled = @imagescale($im, IMG_MAX_WIDTH);
+        if (!$scaled) { gd_free($im); return $asUploaded('scale-failed'); }
+        gd_free($im);
+        $im = $scaled;
+        $r['resized'] = true;
+    } else {
+        $r['reason'] = 'already-small';
+    }
+    $outExt = $ext;
+    if ($ext === 'png' && $mayBecomeJpeg && !image_has_transparency($im)) {
+        $outExt = 'jpg';
+        $write = 'imagejpeg';
+    }
+    if ($outExt === 'png' || $outExt === 'webp') {
+        @imagealphablending($im, false);
+        @imagesavealpha($im, true);
+    }
+    $tmp = rtrim($dir, '/') . '/.upload-' . getmypid() . '-' . mt_rand(1000, 999999) . '.tmp';
+    $ok = $write === 'imagepng' ? @imagepng($im, $tmp, 6) : @$write($im, $tmp, 82);
+    gd_free($im);
+    if (!$ok || !is_file($tmp) || @filesize($tmp) < 1) {
+        @unlink($tmp);
+        $r['resized'] = false;
+        return $asUploaded('write-failed');
+    }
+    @chmod($tmp, 0644);
+    $r['path'] = $tmp;
+    $r['ext'] = $outExt;
+    $r['converted'] = $outExt !== $ext;
+    return $r;
+}
+
+/** True when any pixel of a truecolor gd image is not fully opaque. */
+function image_has_transparency($im): bool {
+    $w = imagesx($im);
+    $h = imagesy($im);
+    for ($y = 0; $y < $h; $y++) {
+        for ($x = 0; $x < $w; $x++) {
+            if ((imagecolorat($im, $x, $y) >> 24) & 0x7F) return true;
+        }
+    }
+    return false;
 }
 
 function spec_table1_problem($rows): string {

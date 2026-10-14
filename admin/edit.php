@@ -296,7 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach (array_reverse($renamedPairs ?? []) as [$nowAt, $wasAt]) {
             if (file_exists($nowAt) && !file_exists($wasAt)) @rename($nowAt, $wasAt);
         }
-        $errors[] = 'Failed to save products-all.json. Check file permissions.';
+        $errors[] = save_failed_message();   // AUDIT-12 decision 31
     }
 
     $product = $updated; // repopulate form with submitted values

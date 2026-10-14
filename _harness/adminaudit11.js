@@ -84,6 +84,9 @@ async function upload(a, url, fields, files) {
   return a.req('POST', url, m.body, { 'Content-Type': m.type, 'Content-Length': m.body.length });
 }
 const img = (kind, rgb) => execFileSync('php', ['-r', `$i=imagecreatetruecolor(40,30);imagefill($i,0,0,imagecolorallocate($i,${rgb}));ob_start();image${kind}($i);echo ob_get_clean();`]);
+// AUDIT-12 decision 23 stores an OPAQUE PNG as a JPG, so the "another file
+// type" arms below need a PNG that stays one: a single see-through pixel.
+const imgAlphaPng = (rgb) => execFileSync('php', ['-r', `$i=imagecreatetruecolor(40,30);imagefill($i,0,0,imagecolorallocate($i,${rgb}));imagealphablending($i,false);imagesavealpha($i,true);imagesetpixel($i,0,0,imagecolorallocatealpha($i,0,0,0,127));ob_start();imagepng($i);echo ob_get_clean();`]);
 const pdf = (tag) => Buffer.from(`%PDF-1.4\n% ${tag}\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n`);
 const flashOf = async (a) => { const r = await a.req('GET', '/admin/index.php'); return ((/<div class="alert alert-(?:success|error)">([\s\S]*?)<\/div>/.exec(r.body) || [])[1] || '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#0?39;/g, "'"); };
 async function saveEdit(a, sku, change = (f) => f) {
@@ -159,7 +162,7 @@ function startServer(port, limited) {
     // ── DI-3 / DI-4 ──
     await arm('DI-3', async () => {
       reset();
-      await upload(a, '/admin/upload-image.php?sku=CC', [], [['image_file', 'red.png', img('png', '200,0,0'), 'image/png']]);
+      await upload(a, '/admin/upload-image.php?sku=CC', [], [['image_file', 'red.png', imgAlphaPng('200,0,0'), 'image/png']]);
       const was = prod('CC').photoUrl;
       const b = adminHttp(LIMITED);
       const limitedIn = await b.login(PASS);
@@ -168,13 +171,14 @@ function startServer(port, limited) {
       // Prove the failure this arm depends on HAPPENED before crediting the
       // outcome: with the size limit not biting, the save succeeded, the
       // catalog named CC.jpg and the arm still passed (AUDIT-12 A12-L13-01-1).
-      const failed = limitedIn && /The photo could not be saved: the product catalog/.test(ur.body) && now === was;
+      // AUDIT-12 decision 31: the shared "Nothing was saved" sentence, then this page's own tail.
+      const failed = limitedIn && /Nothing was saved[^<]*The current photo is still in place/.test(ur.body) && now === was;
       note(failed && was === '/uploads/images/CC.png' && onDisk(now), 'DI-3: when the catalog save fails after a photo replace, the photo the catalog names is still on disk',
-        `limited sign-in ${limitedIn}; save error shown ${/The photo could not be saved/.test(ur.body)}; was ${was}, catalog now ${now}, on disk ${onDisk(now)}`);
+        `limited sign-in ${limitedIn}; save error shown ${/Nothing was saved[^<]*The current photo is still in place/.test(ur.body)}; was ${was}, catalog now ${now}, on disk ${onDisk(now)}`);
     });
     await arm('DI-4', async () => {
       reset();
-      await upload(a, '/admin/upload-image.php?sku=CC', [], [['image_file', 'red.png', img('png', '200,0,0'), 'image/png']]);
+      await upload(a, '/admin/upload-image.php?sku=CC', [], [['image_file', 'red.png', imgAlphaPng('200,0,0'), 'image/png']]);
       await upload(a, '/admin/upload-image.php?sku=CC', [], [['image_file', 'blue.jpg', img('jpeg', '0,0,200'), 'image/jpeg']]);
       await restore(a, newestBackup('products-all'));
       const p1 = prod('CC').photoUrl;

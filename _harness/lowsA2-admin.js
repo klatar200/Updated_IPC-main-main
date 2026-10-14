@@ -160,7 +160,8 @@ function pngWithLateTag() {
     const e3 = await editProduct('CC', { sku: 'CCRENAMED3' }, '&caption=%FF%FE');   // invalid UTF-8: json_encode fails
     const ccThere = fs.existsSync(path.join(SITE, 'pdfs', 'CC.pdf'));
     const newThere = fs.existsSync(path.join(SITE, 'pdfs', 'CCRENAMED3.pdf'));
-    note(e3.status === 200 && /Failed to save/.test(e3.body), 'N2-3: setup — the save really failed');
+    // AUDIT-12 decision 31: invalid UTF-8 is not a permissions problem, so it gets its own sentence.
+    note(e3.status === 200 && /Nothing was saved: some of the text contains a character the server cannot store/.test(e3.body), 'N2-3: setup — the save really failed (and says the text, not permissions, is why)');
     note(ccThere && !newThere, 'N2-3: the data sheet is put back under the name the catalog still uses',
       `CC.pdf ${ccThere ? 'present' : 'MISSING'}, CCRENAMED3.pdf ${newThere ? 'present' : 'absent'}`);
     restoreData();
@@ -225,8 +226,15 @@ function pngWithLateTag() {
     ]);
     const u1 = await a.req('POST', '/admin/upload-image.php?sku=CC', body, { 'Content-Type': `multipart/form-data; boundary=${b}` });
     const landed = fs.readdirSync(path.join(SITE, 'uploads', 'images')).filter((x) => !imgsBefore.includes(x));
-    note(landed.length === 0 && /program code|not a usable image|cannot be opened/i.test(u1.body),
-      'V1-1: a PHP tag 3 MB into a valid PNG is found and the upload refused', `landed ${landed.join(', ') || 'none'}; ${errorsOf(u1.body).slice(0, 160)}`);
+    // AUDIT-12 decision 27: a PNG is no longer scanned and refused; it is
+    // re-encoded by gd, which keeps only the pixels. Either way, no PHP tag
+    // may reach uploads/images.
+    const tagged = landed.filter((x) => /<\?(php|=|\s)/i.test(fs.readFileSync(path.join(SITE, 'uploads', 'images', x), 'latin1')));
+    const refused = landed.length === 0 && /program code|not a usable image|cannot be opened/i.test(u1.body);
+    const cleaned = landed.length > 0 && tagged.length === 0 && /Photo (uploaded|replaced)/.test(u1.body);
+    note(refused || cleaned,
+      'V1-1: a PHP tag 3 MB into a valid PNG never reaches uploads/images (re-encoded without it, or refused)',
+      `landed ${landed.join(', ') || 'none'}; carrying a tag: ${tagged.join(', ') || 'none'}; ${errorsOf(u1.body).slice(0, 160)}`);
   } finally {
     srv.kill();
     restoreData();

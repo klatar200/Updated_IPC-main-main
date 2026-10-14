@@ -225,6 +225,14 @@ $navActive = 'products';
   // NEW-N3-3 / NEW-R3-m3-2 (audit 2026-09-27) — the folder can exist with its
   // security file missing (created by hand, or dotfiles hidden by the FTP
   // client). upload-image.php now refuses uploads then; say so up front.
+  // AUDIT-12 decision 38 (A12-L3-W5-G2-1) — the same mistake on admin/ itself:
+  // without admin/.htaccess (a dotfile the FTP client may hide) the inquiry
+  // log, the activity log and the password-file backups download for anyone.
+  if (!file_exists(__DIR__ . '/.htaccess')) {
+      $healthProblems[] = 'The <code>admin/.htaccess</code> security file is missing, so <strong>anyone can download the saved quote requests '
+        . '(names, email addresses and phone numbers), the activity log and the password-file backups</strong> from this folder. '
+        . 'Upload <code>admin/.htaccess</code> from the release over FTP (turn on "show hidden files" to see it).';
+  }
   $uploadsHtaccess = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
   if (is_dir(dirname($uploadsHtaccess)) && !file_exists($uploadsHtaccess)) {
       $healthProblems[] = 'The <code>uploads/.htaccess</code> security file is missing, so photo uploads are refused. '

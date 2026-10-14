@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $currentPdf = '';
             $product    = $products[$idx];
         } else {
-            $errors[] = 'Could not save the catalog. Check file permissions on products-all.json.';
+            $errors[] = save_failed_message();   // AUDIT-12 decision 31
         }
     }
     // A12-L3-14-1 — a second Remove (another tab, or Back) used to fall
@@ -131,10 +131,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!$isReplacement) @unlink($destPath);
                     $products[$idx]['pdfUrl'] = $currentPdf;
                     if ($currentPdf === '') unset($products[$idx]['pdfUrl']);
-                    $errors[] = 'The PDF could not be saved: the product catalog (products-all.json) could not be updated, so nothing was changed and the website still shows what it showed before. The server may be out of space — try again, or check the data/ folder.';
+                    $errors[] = save_failed_message() . ' The website still shows what it showed before.';   // AUDIT-12 decision 31
                 }
             } else {
-                $errors[] = 'Upload failed. Check write permissions on the /pdfs/ directory.';
+                $errors[] = write_failed_message(PDF_DIR, 'pdfs');   // AUDIT-12 decision 31
             }
         }
     }
