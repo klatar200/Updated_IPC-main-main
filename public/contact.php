@@ -874,7 +874,7 @@ function ipc_client_ip(): string {
 }
 
 $ip       = ipc_client_ip();
-$safeIp  = preg_replace('/[^a-fA-F0-9:.\/]/', '', ipc_rl_key(is_string($ip) ? $ip : 'unknown'));
+$safeIp   = preg_replace('/[^a-fA-F0-9:.\/]/', '', ipc_rl_key(is_string($ip) ? $ip : 'unknown'));
 $rateFile = sys_get_temp_dir() . '/ipc_rl_' . md5($safeIp) . '.json';
 $now      = time();
 $window   = 600; // seconds
