@@ -1022,6 +1022,10 @@ $navActive = 'help';
           <b>Why a blocked entry might be worth reading</b>
           "Rate limited" can be a real customer: five people in one office share a single internet connection, and the sixth request inside ten minutes gets refused. Those are recorded here specifically so you can call them back.
         </div>
+        <div class="callout callout-tip">
+          <b>If someone asks you to delete their enquiry</b>
+          The privacy policy (Page Content → Privacy, "Data Retention") tells visitors to email you and that you remove their record by hand. This page cannot delete anything, so forward the request to your developer, who removes that person's entries from the inquiry log files in the <code>admin</code> folder. Delete the notification email from your own inbox yourself, then reply to the person to confirm.
+        </div>
       </section>
 
       <section class="help-section" id="backups">
