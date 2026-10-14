@@ -3939,6 +3939,16 @@ function AboutPage() {
   const img = copy.siteImages;
   const [slot, onSlotError] = useSiteImageSlots(img);
   const claims = copy.claims;
+  // AUDIT-12 decision 22 (A12-L11-02-1) — the building photo stops at its real
+  // width: the shipped 425px file was painted 745px wide at 1440 and 1257px at
+  // 2560, soft and with its white frame showing. Until the file loads the cap
+  // is the shipped file's width when that is the photo in the slot (so the
+  // box does not change size on load), else none; once loaded, the file's own.
+  const aboutSrc = slot("aboutPhoto");
+  const [aboutNatural, setAboutNatural] = useState({ src: "", w: 0 });
+  const aboutCap = aboutNatural.src === aboutSrc && aboutNatural.w
+    ? aboutNatural.w
+    : (/\/images\/site\/IPC-Building\.jpg$/.test(aboutSrc || "") ? BAND_BUILDING.w : undefined);
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -3983,19 +3993,21 @@ function AboutPage() {
                 crop trims the white border baked into the source pixels". It
                 does not — a 3:2 cover crop of the 1.51:1 file removes ~2px — and
                 this slot paints the 425px file at 745px (1440) to 1257px (2560),
-                so the border shows and the photo is soft. Open with the owner.
+                so the border shows and the photo is soft. Since AUDIT-12
+                decision 22 the slot stops at the file's own width (aboutCap).
                 Owner-editable since item 3a; cleared removes it entirely. */}
             {slot("aboutPhoto") ? (
             <img
               src={slot("aboutPhoto")}
               onError={onSlotError}
+              onLoad={(e) => setAboutNatural({ src: aboutSrc, w: e.currentTarget.naturalWidth || 0 })}
               alt={withBusinessFacts(`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`, site)}
               loading="lazy"
               decoding="async"
               width={BAND_BUILDING.w}
               height={BAND_BUILDING.h}
               className="w-full rounded-xl"
-              style={{ aspectRatio: "3 / 2", objectFit: "cover", border: "1px solid #e5e9ee" }}
+              style={{ aspectRatio: "3 / 2", objectFit: "cover", border: "1px solid #e5e9ee", maxWidth: aboutCap }}
             />
             ) : null}
           </div>
@@ -10109,6 +10121,14 @@ function ProductDetail({ product, allProducts }) {
   // load failure can detect it. (DEPLOY_READINESS_v2 T2.7)
   const [photoFailed, setPhotoFailed] = useState(false);
   useEffect(() => { setPhotoFailed(false); }, [product && product.sku]);
+  // AUDIT-12 decision 22 (A12-L11-W3-R1-7-3) — the photo box stops at the
+  // photo's real width. 32 of the 37 photos are narrower than the column
+  // (median 335px against a 391px box at 1440, 775px at 2560), so they were
+  // stretched up to 2.4x and looked soft. 0 = not loaded yet: the box keeps
+  // its full, reserved 3:2 size until the file says how wide it is. The box
+  // stays anchored top-left, so only its size changes, never its position.
+  const [photoNaturalW, setPhotoNaturalW] = useState(0);
+  useEffect(() => { setPhotoNaturalW(0); }, [product && product.photoUrl]);
   // product.pdfUrl is set by the PHP admin (upload-pdf.php → "/pdfs/<sku>.pdf").
   // When it's missing we render a "Request Datasheet" button that routes to
   // the contact form instead — there is no external printable-page fallback.
@@ -10428,6 +10448,7 @@ function ProductDetail({ product, allProducts }) {
               // 200 site shell, which is why this was first written.)
               // (DEPLOY_READINESS_v2 T2.7)
               onError={() => setPhotoFailed(true)}
+              onLoad={(e) => setPhotoNaturalW(e.currentTarget.naturalWidth || 0)}
               // Both this and the branded panel below carry the marker, so a
               // suite can ask "is the photo's box reserved" without guessing at
               // DOM shape — the first attempt matched an outer wrapper and
@@ -10450,7 +10471,7 @@ function ProductDetail({ product, allProducts }) {
               // exactly while making the height predictable before load.
               // maxHeight is gone because aspectRatio now governs; leaving both
               // would let the cap fight the ratio at wide column widths.
-              style={{ border: "1px solid #e5e9ee", aspectRatio: "3 / 2" }}
+              style={{ border: "1px solid #e5e9ee", aspectRatio: "3 / 2", maxWidth: photoNaturalW || undefined }}
             />
           ) : (
             <div
