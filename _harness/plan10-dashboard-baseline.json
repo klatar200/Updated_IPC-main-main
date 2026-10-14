@@ -1,5 +1,5 @@
 {
- "_note": "Captured from the UNMODIFIED tree. desktop-1440 column widths and the mobile-390 card list are what AUDIT-10 measured as CORRECT; item 2 must leave both alone. A global px band is the wrong assertion here — the card heights vary per product — so \"unchanged\" means unchanged PER ITEM. Re-based 2026-10-06 (WHATS_LEFT §1at, A10-038): three mobile cards, CT 205.9 -> 187.9, IP30UV 252.6 -> 234.6, IP55FL 234.4 -> 216.4, one line shorter because the 110-character description cut now ends at a word (trimToWord) instead of mid-word. Every other card and every desktop column is unchanged. Re-captured 2026-10-13 after AUDIT-12 A12-L6-W5-G5-2 added the Specifications line to phone cards (mobile-390 +39px per card); desktop-1440 unchanged.",
+ "_note": "Captured from the UNMODIFIED tree. desktop-1440 column widths and the mobile-390 card list are what AUDIT-10 measured as CORRECT; item 2 must leave both alone. A global px band is the wrong assertion here — the card heights vary per product — so \"unchanged\" means unchanged PER ITEM. Re-based 2026-10-06 (WHATS_LEFT §1at, A10-038): three mobile cards, CT 205.9 -> 187.9, IP30UV 252.6 -> 234.6, IP55FL 234.4 -> 216.4, one line shorter because the 110-character description cut now ends at a word (trimToWord) instead of mid-word. Every other card and every desktop column is unchanged. Re-captured 2026-10-13 after AUDIT-12 A12-L6-W5-G5-2 added the Specifications line to phone cards (mobile-390 +39px per card); desktop-1440 unchanged. Re-captured 2026-10-14 after AUDIT-12 decision 2 corrected catalog content (families, approvals, temperatures): ten mobile cards change height by one line of text (IP15PV, IP30UV, IP32IP, IP37SH-IP36TH-IP39LH, IP38FE, IP3L, IP48MH, IP52EC, IP53MP, IP71NS-IP72PS-IP73PP); no code change, every other card and every desktop column unchanged.",
  "desktop-1440": {
   "cols": [
    {
@@ -82,7 +82,7 @@
    {
     "id": "IP15PV",
     "w": 342,
-    "h": 226.7
+    "h": 244.9
    },
    {
     "id": "IP17TW-IP18SW-IP19LW",
@@ -107,12 +107,12 @@
    {
     "id": "IP30UV",
     "w": 342,
-    "h": 273.6
+    "h": 255.4
    },
    {
     "id": "IP32IP",
     "w": 342,
-    "h": 291.6
+    "h": 273.4
    },
    {
     "id": "IP33PO",
@@ -137,17 +137,17 @@
    {
     "id": "IP37SH-IP36TH-IP39LH",
     "w": 342,
-    "h": 273.4
+    "h": 289.9
    },
    {
     "id": "IP38FE",
     "w": 342,
-    "h": 273.4
+    "h": 291.6
    },
    {
     "id": "IP3L",
     "w": 342,
-    "h": 309.8
+    "h": 291.6
    },
    {
     "id": "IP41NE-IP43VT",
@@ -177,7 +177,7 @@
    {
     "id": "IP48MH",
     "w": 342,
-    "h": 273.4
+    "h": 309.8
    },
    {
     "id": "IP49VP",
@@ -187,12 +187,12 @@
    {
     "id": "IP52EC",
     "w": 342,
-    "h": 255.2
+    "h": 226.7
    },
    {
     "id": "IP53MP",
     "w": 342,
-    "h": 309.8
+    "h": 326.3
    },
    {
     "id": "IP55FL",
@@ -227,7 +227,7 @@
    {
     "id": "IP71NS-IP72PS-IP73PP",
     "w": 342,
-    "h": 322.9
+    "h": 288.2
    },
    {
     "id": "IP75AD",

@@ -60,10 +60,14 @@ const PRODUCTS_MIRROR = path.join(__dirname, 'site', 'data', 'products-all.json'
 const PRODUCTS_PRISTINE = path.join(__dirname, 'pristine', 'products-all.json');
 const PW = 'audit-pass-123';
 
+// Fifteen since AUDIT-12 decision 2 added PVC, PTFE and FEP, Polyester
+// (Mylar) and Extruded Tubing. Must equal the two built-in defaults.
 const DEFAULTS = [
-  'Polyolefin Heat Shrink', 'PVDF Heat Shrink', 'Dual-Wall Heat Shrink',
-  'Medical Grade Heat Shrink', 'Elastomeric Heat Shrink', 'Fiberglass Sleeving',
-  'Expandable Sleeving', 'End Cap', 'Tape', 'Adhesive', 'Accessory',
+  'Polyolefin Heat Shrink', 'PVC Heat Shrink', 'PVDF Heat Shrink',
+  'PTFE and FEP Heat Shrink', 'Dual-Wall Heat Shrink', 'Medical Grade Heat Shrink',
+  'Elastomeric Heat Shrink', 'Polyester (Mylar) Heat Shrink', 'Extruded Tubing',
+  'Fiberglass Sleeving', 'Expandable Sleeving', 'End Cap', 'Tape', 'Adhesive',
+  'Accessory',
 ];
 
 const results = [];
@@ -136,12 +140,12 @@ const sidebarState = (page) =>
         .match(/["']Polyolefin Heat Shrink["']/g) || []).length }));
     const total = tree.reduce((a, r) => a + r.n, 0);
     note(total === 2,
-      `the eleven names appear exactly twice — one PHP default, one JS default (found ${total})`,
+      `the family names appear exactly twice — one PHP default, one JS default (found ${total})`,
       JSON.stringify(tree));
 
     const lint = require('child_process').spawnSync('php',
       [path.join(__dirname, 'lint.php')], { encoding: 'utf8' });
-    note(/family drift\s+11 families, PHP and JS identical/.test(lint.stdout) &&
+    note(new RegExp(`family drift\\s+${DEFAULTS.length} families, PHP and JS identical`).test(lint.stdout) &&
          /family literals\s+none in add\.php or edit\.php/.test(lint.stdout),
       'lint.php fails the build if the two defaults diverge, or if a third literal returns',
       lint.stdout.split('\n').filter((l) => /family/.test(l)).join('\n         '));

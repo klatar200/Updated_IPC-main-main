@@ -128,7 +128,10 @@ sec('nothing else in the catalog moved');
   ok(JSON.stringify(missing) === JSON.stringify(NO_PHOTO),
     `every record still carries a photoUrl except the ${NO_PHOTO.length} removed by decision on 2026-10-02`, JSON.stringify(missing));
   const badgeCount = products.reduce((n, p) => n + (p.badges || []).length, 0);
-  ok(badgeCount === 158, `the badge count is unchanged at 158 (renames only, no adds or drops)`, String(badgeCount));
+  // 157 since AUDIT-12 decision 2 (A12-L8-06-2): Slit Guard's "UL-94 V2 Rated"
+  // badge was dropped on purpose — its sheet offers that material for the
+  // polypropylene version only and lists no such badge. Otherwise unchanged.
+  ok(badgeCount === 157, `the badge count is unchanged at 157 (renames only, no adds or drops; 158 before AUDIT-12 decision 2 dropped Slit Guard's UL-94 badge)`, String(badgeCount));
 }
 
 const pass = results.filter((r) => r.ok).length;

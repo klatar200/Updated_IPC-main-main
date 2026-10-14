@@ -4590,7 +4590,7 @@ const FAQ_CATEGORIES = [
         {
           question: "What sleeving and conduit products are available?",
           answer:
-            "We supply fiberglass sleeving in four coating options: heat-treated bare glass (IP64FS, up to 1200°F/649°C), vinyl-coated Class C (IPC65VC, 130°C), acrylic-coated Class F (IP66AC, 155°C), and silicone-coated Class H (IP67SC, up to 200°C). We also carry expandable polyester sleeving (IP61ES/IP62EF), self-wrapping Roundit 2000 sleeving (IP63ES), slit guard conduit (polyethylene, nylon, polypropylene), and nonmetallic liquid-tight conduit fittings (CCS, CC, CC90, CT).",
+            "We supply fiberglass sleeving in four coating options: heat-treated bare glass (IP64FS, up to 1200°F/649°C), vinyl-coated Class C (IP65VC, 130°C), acrylic-coated Class F (IP66AC, 155°C), and silicone-coated Class H (IP67SC, up to 200°C). We also carry expandable polyester sleeving (IP61ES/IP62EF), self-wrapping Roundit 2000 sleeving (IP63ES), slit guard conduit (polyethylene, nylon, polypropylene), and nonmetallic liquid-tight conduit fittings (CCS, CC, CC90, CT).",
         },
         {
           question: "Are your products RoHS compliant?",
@@ -8078,8 +8078,10 @@ const COPY_DEFAULTS = {
     // which reads as a dead site. A hardcoded date in a placeholder can only
     // ever rot; the two non-date examples say everything the third did.
     // The live value is saved in content.json and is an owner action — this
-    // default only fixes a fresh install.
-    datePlaceholder: "e.g. ASAP, end of month, or a specific date",
+    // default only fixes a fresh install. Shortened from "e.g. ASAP, end of
+    // month, or a specific date" (AUDIT-12 decision 47, A12-L6-13-2): that was
+    // cut to "...or a specific" in the 390px field.
+    datePlaceholder: "e.g. ASAP or a specific date",
     specialLabel: "Special Requirements",
     specialPlaceholder: "e.g. C of C required, PPAP, custom marking, specific color, certifications needed",
     notesLabel: "Additional Notes",
@@ -8371,10 +8373,14 @@ const CONTACT_TIPS = [
  */
 const FAMILY_ORDER = [
   "Polyolefin Heat Shrink",
+  "PVC Heat Shrink",
   "PVDF Heat Shrink",
+  "PTFE and FEP Heat Shrink",
   "Dual-Wall Heat Shrink",
   "Medical Grade Heat Shrink",
   "Elastomeric Heat Shrink",
+  "Polyester (Mylar) Heat Shrink",
+  "Extruded Tubing",
   "Fiberglass Sleeving",
   "Expandable Sleeving",
   "End Cap",

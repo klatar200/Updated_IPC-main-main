@@ -41,7 +41,7 @@
 const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
-const TARGET = 'IP29CG';   // Polyolefin Heat Shrink — 12 siblings, so Related renders
+const TARGET = 'IP29CG';   // Polyolefin Heat Shrink — 6 rows (12 before AUDIT-12 decision 2), so Related renders
 const CYCLES = 20;
 // The related card is a PageLink (<a>) since AUDIT-12 A12-L6-13-4; it was a <button>.
 const CARD = 'a.group, button.group';

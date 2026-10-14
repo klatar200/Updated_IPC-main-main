@@ -1617,9 +1617,11 @@ function ipc_product_approvals(array $p): array {
 }
 
 const IPC_DEFAULT_FAMILIES = [
-    'Polyolefin Heat Shrink', 'PVDF Heat Shrink', 'Dual-Wall Heat Shrink',
-    'Medical Grade Heat Shrink', 'Elastomeric Heat Shrink', 'Fiberglass Sleeving',
-    'Expandable Sleeving', 'End Cap', 'Tape', 'Adhesive', 'Accessory',
+    'Polyolefin Heat Shrink', 'PVC Heat Shrink', 'PVDF Heat Shrink',
+    'PTFE and FEP Heat Shrink', 'Dual-Wall Heat Shrink', 'Medical Grade Heat Shrink',
+    'Elastomeric Heat Shrink', 'Polyester (Mylar) Heat Shrink', 'Extruded Tubing',
+    'Fiberglass Sleeving', 'Expandable Sleeving', 'End Cap', 'Tape', 'Adhesive',
+    'Accessory',
 ];
 
 /**
@@ -1634,7 +1636,8 @@ const IPC_DEFAULT_FAMILIES = [
  * reachable product links become 0. (It does NOT drop everything into "Other" —
  * that was the first guess and it is wrong; see familyOrder() in src/App.jsx.)
  *
- * These eleven names used to be a literal in add.php and another in edit.php,
+ * These names (eleven until AUDIT-12 decision 2 added PVC, PTFE and FEP,
+ * Polyester (Mylar) and Extruded Tubing) used to be a literal in add.php and another in edit.php,
  * alongside App.jsx's. `_harness/plan6-families.js` asserts there is now exactly
  * one copy in the tree; `_harness/lint.php` fails the build if a second appears.
  */

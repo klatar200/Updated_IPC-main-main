@@ -93,7 +93,7 @@
         },
         "description": [
             "Nonmetallic Liquid-tight Conduit Coupling produced from UV rated material for long outdoor life. Features an attractive one-piece design that reduces waste — no need to throw away those odd length pieces.",
-            "Simply screw the coupling unto two pieces simultaneously to make one continuous piece. Snake long lengths of conduit with ease by cutting the conduit, placing wire & reconnecting.",
+            "Simply screw the coupling onto two pieces simultaneously to make one continuous piece. Snake long lengths of conduit with ease by cutting the conduit, placing wire & reconnecting.",
             "Design allows superior liquid-tight seal & optimum pull strength."
         ],
         "operatingTemp": "",
@@ -363,7 +363,7 @@
         "description": [
             "Available 3/8\" through 2\". All nylon construction resists salt water, weak acids, gasoline, alcohol, grease & other common solvents. Standard Color: Black or Gray.",
             "Complete conduit/connector system is reusable. Conduit will not wind tight onto the connector during assembly & can be easily removed by pulling while turning in a clockwise direction.",
-            "Suitable for indoor/outdoor use; for original equipment manufacturers of field installers.",
+            "Suitable for indoor/outdoor use; for original equipment manufacturers or field installers.",
             "Molded of type nylon 6. Flammability classification 94V-2; temperature index 125°C. \"O\" ring & steel locknut included."
         ],
         "operatingTemp": "Temperature index 125°C",
@@ -394,7 +394,7 @@
                 },
                 {
                     "label": null,
-                    "value": "CSA Certified by Canadian Standards Association File No. LL-84707, except where noted by in specifications table."
+                    "value": "CSA Certified by Canadian Standards Association File No. LL-84707, except where noted in specifications table."
                 }
             ],
             "title": "Specifications:"
@@ -498,7 +498,7 @@
             "Low Cost"
         ],
         "caption": "A superior high dielectric strength 105°C PVC tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/IP10EX.jpg",
         "specTable1": {
             "rows": [
@@ -532,7 +532,7 @@
                 },
                 {
                     "label": "Colors:",
-                    "value": "black, white, red, yellow, and clear are standard."
+                    "value": "black, white, red, yellow, green and clear are standard."
                 },
                 {
                     "label": "Continuous operating temperature:",
@@ -774,6 +774,7 @@
         "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · 1000 V/mil dielectric · MIL-I-631D Grade C · ASTM D 922 · AMS 3631 · QPL Approved",
         "pdfUrl": "/pdfs/IP10EX.pdf",
         "approvals": [
+            "UL Recognized",
             "CSA",
             "MIL-SPEC",
             "UL VW-1"
@@ -789,7 +790,7 @@
             "Designed for aircraft devices"
         ],
         "caption": "A superior low temperature PVC tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/IP1274.png",
         "specTable1": {
             "rows": [
@@ -1043,7 +1044,9 @@
         "operatingTemp": "-68°C to 85°C",
         "specificationsSummary": "MIL-I-7444 Type I Class 1 & 2 · MIL-I-7444 Type III Class 1 · MIL-I-22076 · Colors: Black, White, Clear · Dielectric Strength: 300+ VPM · Tensile Strength: 1800 PSI",
         "pdfUrl": "/pdfs/IP1274.pdf",
-        "approvals": []
+        "approvals": [
+            "MIL-SPEC"
+        ]
     },
     {
         "id": "IP12GA",
@@ -1056,7 +1059,7 @@
             "Flexible"
         ],
         "caption": "A superior general purpose PVC tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/ip12ga.jpg",
         "specTable1": {
             "rows": [
@@ -1309,7 +1312,9 @@
         ],
         "operatingTemp": "-55°C to +90°C",
         "specificationsSummary": "MIL-I-631 Grade A & B · ASTM D922 · Colors: Black, Clear · -55 to +90°C · Dielectric Strength: 1000 VPM · Tensile Strength: 3000 PSI",
-        "approvals": []
+        "approvals": [
+            "MIL-SPEC"
+        ]
     },
     {
         "id": "IP12GA-IP1274",
@@ -1321,7 +1326,7 @@
             "Flexible"
         ],
         "caption": "A superior general purpose PVC tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "specTable1": {
             "rows": [
                 {
@@ -1594,7 +1599,9 @@
         "operatingTemp": "-70°C to 90°C",
         "specificationsSummary": "MIL-I-631 Grade A & B · ASTM D922 · MIL-I-7444 Types I and III · MIL-I-22076 · IP12GA: -55°C to 90°C, 1000 VPM · IP1274: -70°C to 85°C, 545 VPM · Colors: Black, Clear",
         "pdfUrl": "/pdfs/IP12GA-IP1274.pdf",
-        "approvals": []
+        "approvals": [
+            "MIL-SPEC"
+        ]
     },
     {
         "id": "IP13SP",
@@ -1732,7 +1739,7 @@
             "Kink resistant"
         ],
         "caption": "Great for low pressure FDA applications",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/IP15PV.jpg",
         "specTable1": {
             "rows": [
@@ -1741,7 +1748,7 @@
                     "value": "Food Grade Vinyl (FDA Approved)"
                 },
                 {
-                    "label": "Approvals:",
+                    "label": "Meets tests such as:",
                     "value": "U.S. Pharmacopoeia Classes I through VI\nFederal Specification L-T-790B"
                 },
                 {
@@ -1954,7 +1961,7 @@
             "Many Colors Available"
         ],
         "caption": "Very high temperature chemical resistant tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/IP17TW-IP18SW-IP19LW.jpg",
         "specTable1": {
             "rows": [
@@ -2281,7 +2288,7 @@
             "Electrical performance is excellent, offering extremely high dielectric strength even in the thinnest cross sections, with hot soldering irons and sub-zero environmental conditions having no effect. PTFE tubing possesses the lowest coefficient of friction of any known solid. It is also resistant to wicking, moisture absorption, or contamination from objectionable sources.",
             "PTFE tubing is the material to specify when the reliability and dependability of an application at environmental, electrical, mechanical, and chemical extremes is paramount."
         ],
-        "operatingTemp": "-275°F to 500°F (-70°C to 260°C)",
+        "operatingTemp": "-275°F to 500°F",
         "specificationsSummary": "Standard Wall: AMS 3653B, MIL-I-22129, U/L 600V · Thin Wall: AMS 3655 · Light Wall: AMS 3654 · Melt Point: 620°F · Continuous Usage: -275°F to 500°F · FDA: GFR 21.121.2555",
         "pdfUrl": "/pdfs/IP17TW-IP18SW-IP19LW.pdf",
         "approvals": [
@@ -2301,7 +2308,7 @@
             "FDA Compliant"
         ],
         "caption": "Polyurethane Ether 75A & Ester 85A",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "specTable1": {
             "rows": [
                 {
@@ -2753,7 +2760,7 @@
             "U/L CSA MIL-Spec."
         ],
         "caption": "Inexpensive low shrink temperature tubing",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "PVC Heat Shrink",
         "photoUrl": "/images/products/IP30HS.png",
         "specTable1": {
             "rows": [
@@ -2819,26 +2826,26 @@
                 [
                     "1/16\"",
                     ".063\"",
-                    ".032\"",
+                    ".031\"",
                     ".020\""
                 ],
                 [
                     "3/32\"",
                     ".093\"",
                     ".046\"",
-                    ".025\""
+                    ".020\""
                 ],
                 [
                     "1/8\"",
                     ".125\"",
-                    ".063\"",
-                    ".025\""
+                    ".062\"",
+                    ".020\""
                 ],
                 [
                     "3/16\"",
                     ".187\"",
                     ".093\"",
-                    ".025\""
+                    ".020\""
                 ],
                 [
                     "1/4\"",
@@ -2850,37 +2857,37 @@
                     "5/16\"",
                     ".313\"",
                     ".157\"",
-                    ".028\""
+                    ".025\""
                 ],
                 [
                     "3/8\"",
                     ".375\"",
                     ".187\"",
-                    ".028\""
+                    ".025\""
                 ],
                 [
                     "1/2\"",
                     ".500\"",
                     ".250\"",
-                    ".028\""
+                    ".025\""
                 ],
                 [
                     "5/8\"",
                     ".625\"",
                     ".313\"",
-                    ".033\""
+                    ".025\""
                 ],
                 [
                     "3/4\"",
                     ".750\"",
                     ".375\"",
-                    ".033\""
+                    ".030\""
                 ],
                 [
                     "1\"",
                     "1.000\"",
                     ".500\"",
-                    ".038\""
+                    ".035\""
                 ],
                 [
                     "1-1/4\"",
@@ -2958,8 +2965,8 @@
             "Low Shrink Temperature",
             "2:1 Shrink Low Cost"
         ],
-        "caption": "low shrink temperature tubing UV resistant",
-        "partType": "Polyolefin Heat Shrink",
+        "caption": "Low shrink temperature tubing UV resistant",
+        "partType": "PVC Heat Shrink",
         "specTable1": {
             "rows": [
                 {
@@ -3109,7 +3116,7 @@
         },
         "description": [
             "Heat Shrinkable UV PVC Tubing provides excellent electrical insulation along with the lowest shrink temperature of any of our tubings. PVC tubing shrinks a full 50% quickly at 200°F.",
-            "UV Certification: This is to certify that clear Heat Shrink Tubing supplied: After 5,000 kilojoules of exposure, the compound use to make heat shrink clear appears to retain aesthetic and structural integrity comparable to 8-10 years exposure in South Florida. The evaluation of this Vinyl compound has been derived utilizing a Xenon weatherometer. Xenon data is used to evaluate resistance to solar and other UV exposure sources. The brittleness of the material is -30°C.",
+            "UV Certification: This is to certify that clear Heat Shrink Tubing supplied: After 5,000 kilojoules of exposure, the compound used to make heat shrink clear appears to retain aesthetic and structural integrity comparable to 8-10 years exposure in South Florida. The evaluation of this Vinyl compound has been derived utilizing a Xenon weatherometer. Xenon data is used to evaluate resistance to solar and other UV exposure sources. The brittleness of the material is -30°C.",
             "Other Standards used: SAE J 1960 tests the accelerated exposure of automotive exterior materials using a controlled irradiance water-cooled xenon arc apparatus. This test method is designed to accelerate the extreme environmental conditions encountered outside a vehicle due to sunlight, heat, and moisture (in the form of humidity, condensation or rain) for the purpose of predicting the performance of automotive materials.",
             "SAE J2527 standard for exterior testing. SAE J 1885 standard for interior testing. SAE J1976 standard for South Florida Weathering, Direct Sunlight."
         ],
@@ -3129,7 +3136,7 @@
             "U/L CSA and MIL-SPEC"
         ],
         "caption": "Excellent abrasion resistance",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "PVC Heat Shrink",
         "photoUrl": "/images/products/IP32IP.png",
         "specTable1": {
             "rows": [
@@ -3294,7 +3301,7 @@
         "badges": [
             "General Purpose Flexible Polyolefin",
             "Flame Retardant",
-            "U/L, MIL-Spec."
+            "U/L, CSA, MIL-Spec."
         ],
         "caption": "Shrink over terminals for insulation and strain relief.",
         "partType": "Polyolefin Heat Shrink",
@@ -3303,11 +3310,15 @@
             "rows": [
                 {
                     "label": null,
-                    "value": "U/L Subject224   VW-1"
+                    "value": "U/L Subject 224   VW-1\nCSA, OFT\nAMS 3636\nASTM 3637"
                 },
                 {
                     "label": null,
                     "value": "Mil-I-23053/5"
+                },
+                {
+                    "label": "Longitudinal Shrinkage:",
+                    "value": "less than 5%"
                 },
                 {
                     "label": "Storage:",
@@ -3319,7 +3330,7 @@
                 },
                 {
                     "label": "Electrical:",
-                    "value": "600 volts per mil."
+                    "value": "1300 volts per mil."
                 },
                 {
                     "label": "Standard Colors:",
@@ -3470,11 +3481,11 @@
             "Also available in 3:1 and 4:1 shrink ratio and Medical Grade USP class VI (IP53MP)."
         ],
         "operatingTemp": "-55°C to 135°C",
-        "specificationsSummary": "U/L Subject 224 VW-1 · Mil-I-23053/5 · 600 V/mil · -55°C to 135°C · Colors: Black, White, Clear, Red, Blue, Yellow",
+        "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · AMS 3636 · ASTM 3637 · Mil-I-23053/5 · 1300 V/mil · -55°C to 135°C · Colors: Black, White, Clear, Red, Blue, Yellow",
         "pdfUrl": "/pdfs/IP33PO.pdf",
         "approvals": [
+            "CSA",
             "MIL-SPEC",
-            "USP Class VI",
             "UL VW-1"
         ]
     },
@@ -3495,7 +3506,7 @@
             "rows": [
                 {
                     "label": null,
-                    "value": "U/L Subject224   VW-1\nCSA, OFT\nAMS 3636\nASTM 3637"
+                    "value": "U/L Subject 224 VW-1\nCSA"
                 },
                 {
                     "label": "Longitudinal Shrinkage:",
@@ -3507,15 +3518,15 @@
                 },
                 {
                     "label": "Temperature Rating:",
-                    "value": "continuous operation from -55°C to 135°C."
+                    "value": "continuous operation from -30°C to +125°C."
                 },
                 {
                     "label": "Electrical:",
-                    "value": "1300 volts per mil."
+                    "value": "500 volts per mil."
                 },
                 {
                     "label": "Standard Colors:",
-                    "value": "black, white, clear, red, blue and yellow (most sizes in brown, orange, green, violet and gray)"
+                    "value": "black (others special order, available upon request)"
                 }
             ],
             "title": "Specifications:"
@@ -3526,97 +3537,61 @@
                     "3/64\"",
                     ".046\"",
                     ".023\"",
-                    ".018\""
+                    ".012\""
                 ],
                 [
                     "1/16\"",
                     ".063\"",
                     ".031\"",
-                    ".018\""
+                    ".012\""
                 ],
                 [
                     "3/32\"",
                     ".093\"",
                     ".046\"",
-                    ".020\""
+                    ".012\""
                 ],
                 [
                     "1/8\"",
                     ".125\"",
                     ".062\"",
-                    ".020\""
+                    ".013\""
                 ],
                 [
                     "3/16\"",
                     ".187\"",
                     ".093\"",
-                    ".020\""
+                    ".013\""
                 ],
                 [
                     "1/4\"",
                     ".250\"",
                     ".125\"",
-                    ".025\""
+                    ".014\""
                 ],
                 [
                     "3/8\"",
                     ".375\"",
                     ".187\"",
-                    ".025\""
+                    ".014\""
                 ],
                 [
                     "1/2\"",
                     ".500\"",
                     ".250\"",
-                    ".025\""
-                ],
-                [
-                    "5/8\"",
-                    ".625\"",
-                    ".313\"",
-                    ".025\""
+                    ".014\""
                 ],
                 [
                     "3/4\"",
                     ".750\"",
                     ".375\"",
-                    ".030\""
+                    ".017\""
                 ],
                 [
                     "1\"",
                     "1.000\"",
                     ".500\"",
-                    ".035\""
-                ],
-                [
-                    "1-1/4\"",
-                    "1.250\"",
-                    ".625\"",
-                    ".040\""
-                ],
-                [
-                    "1-1/2\"",
-                    "1.500\"",
-                    ".750\"",
-                    ".040\""
-                ],
-                [
-                    "2\"",
-                    "2.000\"",
-                    "1.000\"",
-                    ".045\""
-                ],
-                [
-                    "3\"",
-                    "3.000\"",
-                    "1.500\"",
-                    ".050\""
-                ],
-                [
-                    "4\"",
-                    "4.000\"",
-                    "2.000\"",
-                    ".055\""
+                    ".020\""
                 ]
             ],
             "columnSpans": [
@@ -3645,15 +3620,14 @@
         "description": [
             "IP33TW is a very thin wall heat shrinkable Polyolefin Tubing with a highly flexible, radiation cross-linked tubing used for insulating, jacketing and identification where saving space is important.",
             "Made from flame-retardant polyolefin, it has excellent electrical, chemical and physical properties representing a good all purpose heat shrinkable tubing.",
-            "Low shrink temperature reduces install time. Application of heat above 100°C will shrink this tubing quickly to 50% of its supplied diameter or snug down on the object it is to cover.",
+            "Low shrink temperature reduces install time. Application of heat above 90°C will shrink this tubing quickly to 50% of its supplied diameter or snug down on the object it is to cover.",
             "Resists a wide range of chemicals and oils, as well as sunlight, moisture and fungus."
         ],
-        "operatingTemp": "-55°C to 135°C",
-        "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · AMS 3636 · ASTM 3637 · 1300 V/mil · Colors: Black, White, Clear, Red, Blue, Yellow",
+        "operatingTemp": "-30°C to 125°C",
+        "specificationsSummary": "U/L Subject 224 VW-1 · CSA · 500 V/mil · -30°C to 125°C · Colors: Black (others special order)",
         "pdfUrl": "/pdfs/IP33TW.pdf",
         "approvals": [
             "CSA",
-            "MIL-SPEC",
             "UL VW-1"
         ]
     },
@@ -3674,7 +3648,7 @@
             "rows": [
                 {
                     "label": null,
-                    "value": "U/L Subject224   VW-1\nCSA, OFT\nAMS 3638 - colors\nASTM 3639 - clear\nMil-I-23053/6 Class 1 - colors\nMil-I-23053/6 Class 2 - clear"
+                    "value": "U/L Subject 224   VW-1\nCSA, OFT\nAMS 3638 - colors\nASTM 3639 - clear\nMil-I-23053/6 Class 1 - colors\nMil-I-23053/6 Class 2 - clear"
                 },
                 {
                     "label": "Longitudinal Shrinkage:",
@@ -3985,6 +3959,7 @@
         "pdfUrl": "/pdfs/IP35KY.pdf",
         "approvals": [
             "CSA",
+            "MIL-SPEC",
             "UL VW-1"
         ]
     },
@@ -3998,21 +3973,13 @@
             "Excellent Chemical Resistance"
         ],
         "caption": "A very high temperature, chemical resistant tubing",
-        "partType": "PVDF Heat Shrink",
+        "partType": "PTFE and FEP Heat Shrink",
         "photoUrl": "/images/products/IP37SH-IP36TH-IP39LH.png",
         "specTable1": {
             "rows": [
                 {
                     "label": null,
-                    "value": "U/L Recognized"
-                },
-                {
-                    "label": null,
                     "value": "Mil-I-23053/12"
-                },
-                {
-                    "label": null,
-                    "value": "AMS 3585"
                 },
                 {
                     "label": null,
@@ -4316,10 +4283,9 @@
             "PTFE has the widest working range of any plastics material (-250°C to 260°C), does not support combustion and is an excellent insulator for electrical applications."
         ],
         "operatingTemp": "-100°F to 500°F",
-        "specificationsSummary": "U/L Recognized · Mil-I-23053/12 · AMS 3585 · FDA Approved C.F.R. 21 121.255 · Shrink Ratio: 2:1 / 4:1 · Shrink Temp: 621°F",
+        "specificationsSummary": "Mil-I-23053/12 · FDA Approved C.F.R. 21 121.255 · Shrink Ratio: 2:1 / 4:1 · Shrink Temp: 621°F",
         "pdfUrl": "/pdfs/IP37SH-IP36TH-IP39LH.pdf",
         "approvals": [
-            "UL Recognized",
             "MIL-SPEC",
             "FDA"
         ]
@@ -4334,7 +4300,7 @@
             "Ultra Clear"
         ],
         "caption": "Low shrink temperature, extra clear Teflon",
-        "partType": "PVDF Heat Shrink",
+        "partType": "PTFE and FEP Heat Shrink",
         "photoUrl": "/images/products/IP38FE.png",
         "specTable1": {
             "rows": [
@@ -4604,6 +4570,7 @@
         "specificationsSummary": "Mil-I-23053-11 · FDA Title 21 #177.1550 · -55°C to 200°C · Shrink 290°C · Dielectric strength 2000 volts/mil · 1.3:1 and 1.67:1 Shrink Ratios",
         "pdfUrl": "/pdfs/IP38FE.pdf",
         "approvals": [
+            "MIL-SPEC",
             "FDA"
         ]
     },
@@ -4618,7 +4585,7 @@
             "U/L VW-1"
         ],
         "caption": "Ultra thin wall for battery and pharmaceutical applications",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "PVC Heat Shrink",
         "photoUrl": "/images/products/IP3L.png",
         "specTable1": {
             "rows": [
@@ -4636,11 +4603,7 @@
                 },
                 {
                     "label": "Thermal:",
-                    "value": "operating temperature +100°C to -20°C, cold brittleness 20°C heat shock 121°C, ihr. on flowing, dripping or cracking\nhigh temperature resistance 200hrs at 100°C"
-                },
-                {
-                    "label": "Electrical:",
-                    "value": "2400 volts/mill (.004\" sample)"
+                    "value": "operating temperature +100°C to -20°C, cold brittleness 20°C heat shock 121°C, 1 hr. no flowing, dripping or cracking\nhigh temperature resistance 200hrs at 100°C"
                 },
                 {
                     "label": "Shrink Ratio:",
@@ -4733,7 +4696,7 @@
             "Thick-Wall Construction"
         ],
         "caption": "Flexible, abrasion resistant covering for wires",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "Elastomeric Heat Shrink",
         "photoUrl": "/images/products/IP41NE-IP43VT.png",
         "specTable1": {
             "rows": [
@@ -4891,7 +4854,9 @@
         "operatingTemp": "-70°C to +121°C (Neoprene) / -55°C to 200°C (Viton)",
         "specificationsSummary": "M23053/1 Class 1 & 2 (Neoprene) · M23053/13 (Viton) · Temp: -70°C to +121°C / -55°C to 200°C · Shrink Temp: 135°C min (Neoprene) / 175°C (Viton) · Dielectric Strength: 500 V/Mil · Tensile Strength: 2400 psi",
         "pdfUrl": "/pdfs/IP41NE-IP43VT.pdf",
-        "approvals": []
+        "approvals": [
+            "MIL-SPEC"
+        ]
     },
     {
         "id": "IP42MW",
@@ -4911,10 +4876,6 @@
                 {
                     "label": null,
                     "value": "MIL-I-23053/4 Class 1"
-                },
-                {
-                    "label": null,
-                    "value": "AMS 3634"
                 },
                 {
                     "label": null,
@@ -5017,7 +4978,7 @@
             "Melt Wall Polyolefin Tubing is recommended for a wide variety of electronic, electrical and mechanical applications...wherever a highly reliable one-step approach to jacketing, encapsulation and environmental sealing is required."
         ],
         "operatingTemp": "-55°C to 110°C",
-        "specificationsSummary": "MIL-I-23053/4 Class 1 · AMS 3634 · U/L Approved · Shrink Ratio: 2.5:1 · Longitudinal Shrinkage: +1/-10% · Shrink Temp: 135°C · Colors: Black standard",
+        "specificationsSummary": "MIL-I-23053/4 Class 1 · U/L Approved · Shrink Ratio: 2.5:1 · Longitudinal Shrinkage: +1/-10% · Shrink Temp: 135°C · Colors: Black standard",
         "pdfUrl": "/pdfs/IP42MW.pdf",
         "approvals": [
             "UL Approved",
@@ -5190,7 +5151,8 @@
         "specificationsSummary": "Shrink Temp: 121°C · 500 Volts/Mil · M23053/4 Class 2 (IP44A2) · M23053/4 Class 3 (IP45A3) · U/L Approved · Standard Lengths 4'",
         "pdfUrl": "/pdfs/IP44A2-IP45A3.pdf",
         "approvals": [
-            "UL Approved"
+            "UL Approved",
+            "MIL-SPEC"
         ]
     },
     {
@@ -5203,7 +5165,7 @@
             "Mechanically Tough",
             "More Flexibility Than Heavy Wall"
         ],
-        "caption": "flexible jacketing with adhesive liner",
+        "caption": "Flexible jacketing with adhesive liner",
         "partType": "Dual-Wall Heat Shrink",
         "photoUrl": "/images/products/IP46MD.webp",
         "specTable1": {
@@ -5341,7 +5303,9 @@
         "operatingTemp": "Up to 90°C",
         "specificationsSummary": "MIL-I-23053/15 Class 2 · Dielectric Strength: 250 volts/mil @ 150 mils · Tensile Strength: 2400 psi · Water Absorption: 0.2% · Solvent Resistance: Excellent · Standard Length: 48\"",
         "pdfUrl": "/pdfs/IP46MD.pdf",
-        "approvals": []
+        "approvals": [
+            "MIL-SPEC"
+        ]
     },
     {
         "id": "IP47HV",
@@ -5483,13 +5447,14 @@
         "description": [
             "Heavy Wall heat shrink tubing is a thermally stabilized, modified polyolefin, heat shrinkable tubing. It provides a simpler, more positive splice sealing method that offers greater protection under the most adverse environmental conditions. A relatively small number of sizes covers a large number of cable sizes because of the high shrink ratio.",
             "Seals may be made over lead, steel, aluminum, copper, and all standard plastic and elastomeric insulating materials. The standard tubing is supplied with an adhesive to provide optimum water-proofing and environmental protection in submersible or direct buried applications.",
-            "This tubing can also be supplied in medium wall (product #IP46) where wall constraint is a factor. Both tubings are rated for continuous operating temperature up to 90°C for non-pressurized cable systems."
+            "This tubing can also be supplied in medium wall (product #IP46MD) where wall constraint is a factor. Both tubings are rated for continuous operating temperature up to 90°C for non-pressurized cable systems."
         ],
         "operatingTemp": "Up to 90°C",
         "specificationsSummary": "U/L Approved · MIL-I-23053/15 Class 1 and 2 · Dielectric Strength: 250 volts/mil @ 150 mils · Tensile Strength: 2400 psi · Water Absorption: 0.05% · Standard Length: 48\"",
         "pdfUrl": "/pdfs/IP47HV.pdf",
         "approvals": [
-            "UL Approved"
+            "UL Approved",
+            "MIL-SPEC"
         ]
     },
     {
@@ -5502,7 +5467,7 @@
             "High Longitudinal Shrinkage"
         ],
         "caption": "Thin wall, high dielectric, for tight spaces",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "Polyester (Mylar) Heat Shrink",
         "photoUrl": "/images/products/IP48MH.png",
         "specTable1": {
             "rows": [
@@ -5637,7 +5602,9 @@
         "operatingTemp": "-60°C to +150°C",
         "specificationsSummary": "M23053/7 Class 2 · Dielectric Strength: 1,500 VPM min. · Tensile Strength: 20,000 PSI · Melting Point: 245°C+ · Dielectric Constant: 3.9-3.9 · Temperature Range: -60 to +150°C",
         "pdfUrl": "/pdfs/IP48MH.pdf",
-        "approvals": []
+        "approvals": [
+            "MIL-SPEC"
+        ]
     },
     {
         "id": "IP49VP",
@@ -5789,8 +5756,7 @@
         "specificationsSummary": "U/L 224 · CSA · AMS-3587 · Shrink Ratio 2:1 · 800 V/mil · Color: Black",
         "pdfUrl": "/pdfs/IP49VP.pdf",
         "approvals": [
-            "CSA",
-            "MIL-SPEC"
+            "CSA"
         ]
     },
     {
@@ -5803,7 +5769,7 @@
             "Seal Wire and Pipe Ends",
             "Noncorrosive"
         ],
-        "caption": "seal cable and conduit ends / terminate electrical connections",
+        "caption": "Seal cable and conduit ends / terminate electrical connections",
         "partType": "End Cap",
         "photoUrl": "/images/products/ip52ec.png",
         "specTable1": {
@@ -5964,14 +5930,14 @@
             "When heated, the end cap's outer jacket shrinks while the inner wall flows into voids to create an environmentally sealed and electrically insulated connection.",
             "End caps are manufactured from crosslinked polyolefin and exhibit a dielectric strength of 600 - 1000 volts/mil. They are designed to remain tightly in place for the life of the substrate."
         ],
-        "operatingTemp": "-55°C to 225°C",
+        "operatingTemp": "",
         "specificationsSummary": "Tensile Strength: 2100 psi · Elongation: 350% · Specific Gravity: 1.1 · Dielectric Strength: 500 V/Mil min. · Heat Shock: No Cracking at 225°C · Noncorrosive",
-        "pdfUrl": "/pdfs/IP52EC-molded-cap.pdf",
-        "pdfLabel": "Molded Cap",
+        "pdfUrl": "/pdfs/IP52EC-plugged-cap.pdf",
+        "pdfLabel": "Plugged Cap",
         "additionalPdfs": [
             {
-                "url": "/pdfs/IP52EC-plugged-cap.pdf",
-                "label": "Plugged Cap"
+                "url": "/pdfs/IP52EC-molded-cap.pdf",
+                "label": "Molded Cap"
             }
         ],
         "approvals": []
@@ -6234,7 +6200,7 @@
             "Radiation Cross-Linked Polyvinylidene Fluoride: High heat resistant, thin wall fluoropolymer best for electrical insulation, stiffening, strain relief, and as a manufacturing aid in demanding environments. Features exceptional mechanical strength, low cost substitute for PTFE in many applications, lower shrink temperature than PTFE.",
             "High-Performance, Non-Phthalate Polyvinylchloride: Ultra-flexible, crystal clear, low shrink temperature, non-phthalate Polyvinylchloride is ideal for tube joining, transitioning and providing transparent protection. Features outstanding flexibility, exceptional clarity, low shrink temperature."
         ],
-        "operatingTemp": "-55°C to 175°C (-67°F to 347°F)",
+        "operatingTemp": "-55°C to 121°C (Polyolefin); -55°C to 175°C (PVDF); -20°C to 60°C (PVC)",
         "specificationsSummary": "Shrink Ratio: 2:1 · Acrylated Polyolefin: -55°C to 121°C · PVDF: -55°C to 175°C · PVC: -20°C to 60°C · Colors: Black, White, Blue, Clear, Crystal Clear · USP Class VI, ISO 10993-5",
         "pdfUrl": "/pdfs/IP53MP.pdf",
         "approvals": [
@@ -6262,10 +6228,6 @@
                 {
                     "label": null,
                     "value": "U/L Subject 224 VW-1"
-                },
-                {
-                    "label": null,
-                    "value": "CSA OFT"
                 },
                 {
                     "label": null,
@@ -6401,10 +6363,9 @@
             "Fluoropolymer tubings shrink at 125°C on applications such as jacketing for components, fuse coverings and capacitor protection. Because the tubing is transparent, it offers excellent see-thru inspection and identification."
         ],
         "operatingTemp": "-55°C to 150°C",
-        "specificationsSummary": "U/L Subject 224 VW-1 · CSA OFT · AMS-3632C · Mil-I-23053/18 Class 2 · 2500V Electrical · Colors: Clear, Black",
+        "specificationsSummary": "U/L Subject 224 VW-1 · AMS-3632C · Mil-I-23053/18 Class 2 · 2500V Electrical · Colors: Clear, Black",
         "pdfUrl": "/pdfs/IP55FL.pdf",
         "approvals": [
-            "CSA",
             "MIL-SPEC",
             "UL VW-1"
         ]
@@ -6539,7 +6500,9 @@
         "operatingTemp": "-75°C to +120°C",
         "specificationsSummary": "M23053/16 · MIL-R-46846 Type 1 Class 1 · -75°C to +120°C · Shrink Temp: 150°C min · Color: Black · Markers and Cut Pieces Available",
         "pdfUrl": "/pdfs/IP56DR.pdf",
-        "approvals": []
+        "approvals": [
+            "MIL-SPEC"
+        ]
     },
     {
         "id": "IP61ES-IP62EF",
@@ -6932,6 +6895,7 @@
         "pdfUrl": "/pdfs/IP64FS-IP65VC-IP66AC-IP67SC.pdf",
         "approvals": [
             "UL Recognized",
+            "MIL-SPEC",
             "UL VW-1"
         ]
     },
@@ -6945,7 +6909,7 @@
             "Moisture Resistant",
             "Corrosion Protection"
         ],
-        "caption": "Tough, abrasion-resistant polyethylene with thick aggressive adhesive for areas where tubing can not be applied.",
+        "caption": "Tough, abrasion-resistant polyethylene with thick aggressive adhesive for areas where tubing cannot be applied.",
         "partType": "Tape",
         "photoUrl": "/images/products/IP69HT.png",
         "specTable1": {
@@ -7046,7 +7010,7 @@
             ]
         },
         "description": [
-            "Heat shrinkable polyolefin tape is a primerless, heat shrinkable tape designed to insulate and seal areas, where tubing can not be used, for protection against moisture and corrosion. This unique tape permits quick and reliable installation without error by installers who have little experience working with heat shrink products. The shrinking action achieves exceptional conformation to contours, squeezing the adhesive into all surface irregularities, forming an effective seal.",
+            "Heat shrinkable polyolefin tape is a primerless, heat shrinkable tape designed to insulate and seal areas, where tubing cannot be used, for protection against moisture and corrosion. This unique tape permits quick and reliable installation without error by installers who have little experience working with heat shrink products. The shrinking action achieves exceptional conformation to contours, squeezing the adhesive into all surface irregularities, forming an effective seal.",
             "Using a propane torch or heat gun, pre-heat the object to remove any moisture. This will assist flow-out and bonding of the adhesive. Spirally wrap tape, keeping snug at all times, with about a 20% overlap. Warm the ends first and press down firmly to secure. Start shrinking from the center, moving in a circular direction around the pipe at all times. As the tape shrinks, work towards the ends of the tape."
         ],
         "operatingTemp": "-25°C to 60°C",
@@ -7061,11 +7025,10 @@
         "badges": [
             "General Purpose Polyethylene",
             "High Temperature Nylon",
-            "Extra Flexible Polypropylene",
-            "UL-94 V2 Rated"
+            "Extra Flexible Polypropylene"
         ],
         "caption": "Bundling for easy insertion and break-out",
-        "partType": "Expandable Sleeving",
+        "partType": "Accessory",
         "photoUrl": "/images/products/IP71NS-IP72PS-IP73PP.jpg",
         "specTable1": {
             "rows": [
@@ -7209,9 +7172,7 @@
         "operatingTemp": "-40°F to +300°F (Nylon); -40°F to +200°F (Polyethylene); -40°F to +275°F (Polypropylene)",
         "specificationsSummary": "Colors: standard black (others available) · Put-up: Boxes or Gaylord · Available with or without slit · Polyethylene: -40°F to +200°F · Nylon: -40°F to +300°F, 5100psi, 225% elongation · Polypropylene: -40°F to +275°F, 3000psi, 700% elongation",
         "pdfUrl": "/pdfs/IP71NS-IP72PS-IP73PP.pdf",
-        "approvals": [
-            "UL-94"
-        ]
+        "approvals": []
     },
     {
         "id": "IP75AD",
@@ -7284,7 +7245,7 @@
         "specTable1": {
             "rows": [
                 {
-                    "label": "Services:",
+                    "label": "Offered:",
                     "value": "Spooling, Coiling, Cutting"
                 },
                 {

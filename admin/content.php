@@ -665,11 +665,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // saved still deletes it, exactly as before.
         if ($clean === [] && !array_key_exists($sec, $storedContent)) continue;
         // A12-L4-01-W5-2 — the product families cannot be emptied: the site
-        // falls back to the built-in eleven (App.jsx familyOrder(), plan6-
+        // falls back to the built-in list (App.jsx familyOrder(), plan6-
         // families), so saving [] was reported "Content saved" while nothing
         // changed on the site, and the next untouched save logged a change.
         if ($sec === 'productFamilies' && $clean === [] && !$truncated) {
-            $errors[] = 'Product Families cannot be left empty — with no families listed, the website shows its eleven built-in ones instead. Nothing was saved. Keep at least one family (rename or remove the others as you need).';
+            $errors[] = 'Product Families cannot be left empty — with no families listed, the website shows its built-in ones instead. Nothing was saved. Keep at least one family (rename or remove the others as you need).';
         }
         $out[$sec] = $clean;
     }

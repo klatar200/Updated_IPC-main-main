@@ -384,7 +384,7 @@
         {
             "category": "Products",
             "question": "What sleeving and conduit products are available?",
-            "answer": "We supply fiberglass sleeving in four coating options: heat-treated bare glass (IP64FS, up to 1200°F/649°C), vinyl-coated Class C (IPC65VC, 130°C), acrylic-coated Class F (IP66AC, 155°C), and silicone-coated Class H (IP67SC, up to 200°C). We also carry expandable polyester sleeving (IP61ES/IP62EF), self-wrapping Roundit 2000 sleeving (IP63ES), slit guard conduit (polyethylene, nylon, polypropylene), and nonmetallic liquid-tight conduit fittings (CCS, CC, CC90, CT)."
+            "answer": "We supply fiberglass sleeving in four coating options: heat-treated bare glass (IP64FS, up to 1200°F/649°C), vinyl-coated Class C (IP65VC, 130°C), acrylic-coated Class F (IP66AC, 155°C), and silicone-coated Class H (IP67SC, up to 200°C). We also carry expandable polyester sleeving (IP61ES/IP62EF), self-wrapping Roundit 2000 sleeving (IP63ES), slit guard conduit (polyethylene, nylon, polypropylene), and nonmetallic liquid-tight conduit fittings (CCS, CC, CC90, CT)."
         },
         {
             "category": "Products",
@@ -736,7 +736,13 @@
             "name": "Polyolefin Heat Shrink"
         },
         {
+            "name": "PVC Heat Shrink"
+        },
+        {
             "name": "PVDF Heat Shrink"
+        },
+        {
+            "name": "PTFE and FEP Heat Shrink"
         },
         {
             "name": "Dual-Wall Heat Shrink"
@@ -746,6 +752,12 @@
         },
         {
             "name": "Elastomeric Heat Shrink"
+        },
+        {
+            "name": "Polyester (Mylar) Heat Shrink"
+        },
+        {
+            "name": "Extruded Tubing"
         },
         {
             "name": "Fiberglass Sleeving"
@@ -881,7 +893,7 @@
             "quantityLabel": "Quantity Required *",
             "quantityPlaceholder": "e.g. 500 ft, 1000 pcs, 10 spools",
             "dateLabel": "Required Delivery Date",
-            "datePlaceholder": "e.g. ASAP, end of month, or a specific date",
+            "datePlaceholder": "e.g. ASAP or a specific date",
             "specialLabel": "Special Requirements",
             "specialPlaceholder": "e.g. C of C required, PPAP, custom marking, specific color, certifications needed",
             "notesLabel": "Additional Notes",
