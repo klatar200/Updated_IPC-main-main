@@ -1180,6 +1180,7 @@ $navActive = 'help';
             <li>Go back to the original tab and press the browser's <strong>Back</strong> button (or <strong>Back to My Unsaved Page</strong>). Your typing reappears.</li>
             <li>Click Save again.</li>
           </ol>
+          <p>On <strong>Page Content</strong>, the rows you added, removed or moved (a new FAQ question, a removed card, a reordered milestone) come back too: the page keeps a copy of the whole form in that browser tab when you press Save, puts it back the next time Page Content opens in that tab, and says so in a blue box at the top. Check it and click Save Content. If someone saved Page Content from somewhere else in the meantime, the box says your changes could not be put back, and you will need to make them again.</p>
           <p>If you press Back <em>before</em> signing in, the dashboard sends that tab to the sign-in page and what you typed is lost. If a red <strong>"You have been signed out"</strong> bar appears at the top of a page before you have saved, the same rule applies: sign in again in a new tab before you do anything else in this one.</p>
         </details>
 

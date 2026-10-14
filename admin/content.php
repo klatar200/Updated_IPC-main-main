@@ -1224,7 +1224,11 @@ $navActive = 'content';
     </div>
   <?php endif; ?>
 
-  <form method="POST">
+  <?php /* AUDIT-12 decision 32 — content-editor.js does not put a kept draft
+           back over a page that is itself the answer to a POST (an error
+           render already shows what was submitted). An attribute, not a
+           field: nothing may follow form_complete (invariant 6). */ ?>
+  <form method="POST"<?= $_SERVER['REQUEST_METHOD'] === 'POST' ? ' data-ipc-post-response="1"' : '' ?>>
     <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
     <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
 
