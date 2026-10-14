@@ -689,6 +689,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($p !== '') $errors[] = $p;
     }
 
+    // ── AUDIT-12 decision 34 (A12-L10-W5-G4-1): one SEO row per page ─────────
+    // Both heads — PageMeta in src/App.jsx and its port in public/index.php —
+    // use the FIRST row whose page matches, so a second row for the same page
+    // was saved under "Content saved", stayed visible here, and changed
+    // nothing in Google, the browser tab or a shared-link card. Refuse it.
+    $seoSeen = [];
+    $seoDupes = [];
+    foreach (($out['seo'] ?? []) as $row) {
+        $pg = (string)($row['page'] ?? '');
+        if (isset($seoSeen[$pg])) $seoDupes[$pg] = true;
+        $seoSeen[$pg] = true;
+    }
+    foreach (array_keys($seoDupes) as $pg) {
+        $pl = (string)($PAGE_OPTIONS[$pg] ?? $pg);
+        $errors[] = 'Search Engine Text (SEO) has more than one row for the "' . $pl . '" page, and the website only ever uses the first one, so nothing was saved. '
+                  . 'Type your new title and description into the existing "' . $pl . '" row instead, then remove the extra row (✕) and save again.';
+    }
+
     // ── 4.12: the Industries product codes are checked against the catalog ───
     // This field used to validate against NOTHING, while the help text above it
     // promises "the SKU must match a real product so the link works". A typo
