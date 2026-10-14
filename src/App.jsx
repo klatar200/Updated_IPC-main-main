@@ -14417,6 +14417,16 @@ function Footer() {
   );
 
   return (
+    <>
+    {/* AUDIT-12 decision 17 (A12-L6-W5-G4-2) — the print sheet hides the
+        footer, and on a product page the footer is the only place the
+        supplier's name, phone and email sit, so a spec page printed into a
+        requisition never said whose part it was. This line is the footer's
+        name, phone and email for paper only: `.ipc-print-contact` is
+        display:none on screen and shown by the print sheet (src/index.css). */}
+    <div className="ipc-print-contact">
+      {site.company.name} · Phone {site.contact.phone} · {site.contact.email}
+    </div>
     <footer style={{ background: "#0a2240", borderTop: "3px solid var(--brand-accent)" }}>
       <div className="ipc-container px-6 py-14">
         {/* A10-014 (§1at) — four tracks from lg, not md: at 834 the two link
@@ -14617,6 +14627,7 @@ function Footer() {
         </div>
       </div>
     </footer>
+    </>
   );
 }
 

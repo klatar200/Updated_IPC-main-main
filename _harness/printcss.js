@@ -18,6 +18,11 @@
  *     /dashboard. Hiding every button printed the FAQ with no questions and
  *     the index with six blank headers, and the four routes above could not
  *     see it.
+ *   - the supplier is named on paper (AUDIT-12 decision 17, A12-L6-W5-G4-2):
+ *     every printed route carries the footer's company name, phone and email
+ *     from Business Details, and that print line is not shown on screen.
+ *     Hiding the footer had left 40 of 42 printed product pages with no
+ *     name, phone or email at all.
  *
  * Read-only against the mirror on :8123.
  *
@@ -34,7 +39,12 @@ const note = (ok, label, detail) => { results.push({ ok }); console.log(`${ok ? 
   for (const route of ['/products?productId=IP33PO', '/products?productId=IP12GA', '/products?productId=CC90', '/about']) {
     await p.emulateMedia({ media: 'screen' });
     await p.goto(BASE + route, { waitUntil: 'networkidle' });
-    const screen = await p.evaluate(() => ({ header: getComputedStyle(document.querySelector('header')).display !== 'none', footer: getComputedStyle(document.querySelector('footer')).display !== 'none' }));
+    const screen = await p.evaluate(() => {
+      const pc = document.querySelector('.ipc-print-contact');
+      return { header: getComputedStyle(document.querySelector('header')).display !== 'none', footer: getComputedStyle(document.querySelector('footer')).display !== 'none',
+        printLineOnScreen: !!pc && getComputedStyle(pc).display !== 'none' };
+    });
+    const facts = await p.evaluate(async () => { const r = await fetch('/data/site-info.json'); const j = await r.json(); return { name: j.company.name, phone: j.contact.phone, email: j.contact.email }; });
     await p.emulateMedia({ media: 'print' });
     const m = await p.evaluate(() => {
       let rules = 0;
@@ -54,6 +64,10 @@ const note = (ok, label, detail) => { results.push({ ok }); console.log(`${ok ? 
     note(m.visibleButtons === 0 && !m.related, `${route}: no buttons and no Related Products on paper`, JSON.stringify(m));
     note(!/gradient/.test(m.bannerBg) && /rgba\(0, 0, 0, 0\)|transparent/.test(m.bannerBg) && m.ink === 'rgb(0, 0, 0)', `${route}: banner prints without its colour block, text prints black`, `${m.bannerBg} / ${m.ink}`);
     note(screen.header && screen.footer, `${route}: the screen view still shows the header and footer`);
+    const paper = await p.evaluate(() => document.body.innerText);
+    const missing = Object.entries(facts).filter(([, v]) => !paper.includes(v)).map(([k]) => k);
+    note(missing.length === 0 && !screen.printLineOnScreen, `${route}: the printed page names the supplier (company name, phone, email), and the print line is not on screen`,
+      `missing on paper: ${missing.join(', ') || 'none'}; print line on screen: ${screen.printLineOnScreen}`);
     if (route.includes('IP33PO')) {
       const pdf = await p.pdf({ format: 'Letter' });
       const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;

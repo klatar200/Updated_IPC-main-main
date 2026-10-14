@@ -570,6 +570,10 @@ body.ipc-has-sticky-rfq {
    carries data-print="keep": hiding every button printed the FAQ with no
    questions and the Product Index with six blank column headers.
    (A12-L14-W1-G1-1) */
+/* AUDIT-12 decision 17 (A12-L6-W5-G4-2) — the footer's company name, phone
+   and email, for paper only (Footer in App.jsx). Hidden here, not in
+   GlobalStyles, so it never flashes on screen (invariant 9). */
+.ipc-print-contact { display: none; }
 @media print {
   @page { margin: 12mm; }
   html, body { background: #fff !important; }
@@ -591,6 +595,14 @@ body.ipc-has-sticky-rfq {
   th, td { border: 1px solid #999 !important; }
   tr, img, li { break-inside: avoid; }
   h1, h2, h3 { break-after: avoid; }
+  .ipc-print-contact {
+    display: block !important;
+    margin-top: 16px;
+    padding-top: 6px;
+    border-top: 1px solid #999;
+    font-size: 11pt;
+    break-inside: avoid;
+  }
 }
 
 
