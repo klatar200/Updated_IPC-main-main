@@ -31,7 +31,7 @@ require_auth();
 
 $SLOTS = [
     'heroPhoto'         => ['label' => 'Homepage — hero photo',           'where' => 'The large photo beside the headline at the top of the homepage (wide screens only).'],
-    'bandTeamPhoto'     => ['label' => 'Homepage — team photo',           'where' => 'The left photo in the band lower on the homepage ("The same team, the same building…").'],
+    'bandTeamPhoto'     => ['label' => 'Homepage — team photo',           'where' => 'The left photo in the band lower on the homepage ("Bolingbrook, Illinois — our team and our building").'],
     'bandBuildingPhoto' => ['label' => 'Homepage — building photo',       'where' => 'The right photo in that same homepage band.'],
     'aboutPhoto'        => ['label' => 'About page — photo',              'where' => 'Beside "Our Story" on the About page.'],
     'servicesPhoto'     => ['label' => 'Services page — photo',           'where' => 'Under the banner on the Services page.'],

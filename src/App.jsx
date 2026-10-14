@@ -3460,7 +3460,11 @@ function HomePage() {
             className="text-2xl font-extrabold mt-1"
             style={{ color: "#141414" }}
           >
-            {withBusinessFacts("The same team, the same building, since 1974", site)}
+            {/* AUDIT-12 decision 6 (A12-L8-W4-G3-1) — this heading read "The
+                same team, the same building, since 1974": a claim written
+                during this project, not by IPC, that nothing backs and no
+                admin field holds. It now describes the two photographs. */}
+            {withBusinessFacts("Bolingbrook, Illinois — our team and our building", site)}
           </h2>
           <p className="mt-2 text-sm max-w-2xl" style={{ color: "#4b5563" }}>
             {/* A-9.P4-6 — this sentence and the two facility `alt`s spelled the
