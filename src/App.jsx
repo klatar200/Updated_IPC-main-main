@@ -9695,7 +9695,11 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
       rail.scrollTop += top - head - (rail.clientHeight - head - row.offsetHeight) / 2;
     });
     return () => cancelAnimationFrame(id);
-  }, [selectedId, selectedFamilyOpen]);
+    // products.length too: since AUDIT-12 decision 10 a product page can render
+    // from the server's copy before the catalog arrives, with the rail holding
+    // only that product; when the other 41 land the row moves down and must be
+    // brought back into view (audit10cd A10-005 caught it).
+  }, [selectedId, selectedFamilyOpen, products.length]);
   // F1 — this was `mobileFamily`, sidebar-local state that only the <lg chip
   // row could set and only the <lg pill list could see. The desktop grid was
   // structurally incapable of reading it, which is why the desktop counts

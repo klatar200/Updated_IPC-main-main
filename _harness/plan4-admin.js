@@ -73,7 +73,10 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // 2026-10-14: **462** — AUDIT-12 decision 2 grew data/content.json
 // productFamilies from 11 to 15 rows (PVC, PTFE and FEP, Polyester (Mylar),
 // Extruded Tubing), one posted field each. Data-only, like 2026-09-28's.
-const POSTED_BEFORE = 462;
+// 2026-10-14: **468** — AUDIT-12 decision 48 gave each of the six homepage
+// Products & Services cards a "Links to" box: one posted field per card.
+// Structural (features[i][link]); plan2-trunc / plan2-formlast re-run at 468.
+const POSTED_BEFORE = 468;
 
 const results = [];
 const note = (ok, what, detail = '') => {

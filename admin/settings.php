@@ -471,7 +471,7 @@ $navActive = 'settings';
             <?= contrast_note([$cPrimary], 'buttons and highlights', 'cnote_primary') ?>
             <?php /* AUDIT-12 decision 49 (A12-L7-W3-G3-4) — on a phone the
                      product name sits on a band that fades from a shade of the
-                     Dark colour into Primary, so one text colour must work on
+                     Dark color into Primary, so one text color must work on
                      both. A pale Primary with the navy Dark left the name at
                      2.1:1 while the note above said "Readable". */ ?>
             <?= contrast_note([ipc_shade_of($cDark, '#0d2d52', '#0a2a52'), $cPrimary], 'the band behind each product\'s name, from Dark to Primary', 'cnote_prodhead') ?></div>
@@ -605,7 +605,7 @@ $navActive = 'settings';
                      Registered". Warn; the value still saves. */
                   $isoNow = trim((string)($ce['iso'] ?? ''));
                   if ($isoNow !== '' && !preg_match('/^\s*ISO\s*9001(?:\s*:\s*(\d{4}))?\s*$/iu', $isoNow)): ?>
-            <div class="cnote cnote-warn" id="iso-format" role="status">⚠️ The website only understands <b>ISO 9001</b> or <b>ISO 9001:</b> followed by a year (for example <b>ISO 9001:2015</b>) here. What is typed now, “<?= h($isoNow) ?>”, is put in whole wherever the site says ISO 9001, so pages will read “<?= h($isoNow) ?> Registered”. Type just <b>ISO 9001</b> or <b>ISO 9001:2015</b> — words like “Certified” or “Registered” are already on the pages.</div>
+            <div class="cnote cnote-warn" id="iso-format" role="status">⚠️ The website only understands <b>ISO 9001</b> or <b>ISO 9001:</b> followed by a year (for example <b>ISO 9001:2015</b>) here. What is typed now, "<?= h($isoNow) ?>", is put in whole wherever the site says ISO 9001, so pages will read "<?= h($isoNow) ?> Registered". Type just <b>ISO 9001</b> or <b>ISO 9001:2015</b> — words like "Certified" or "Registered" are already on the pages.</div>
             <?php endif; ?>
             <div class="hint">
               <strong>This is the only place the ISO certification is set.</strong>

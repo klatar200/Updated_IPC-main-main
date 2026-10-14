@@ -2218,7 +2218,7 @@ function ipc_ink_for($backgrounds): string {
 /**
  * AUDIT-12 decision 49 (A12-L7-W3-G3-4) — MIRRORS shadeOf() in src/App.jsx's
  * ThemeInjector (and shadeOf() in contrast-guard.js): a derived shade of an
- * owner colour. The shipped base gives the literal; any other base is scaled
+ * owner color. The shipped base gives the literal; any other base is scaled
  * by ONE factor (the mean of the literal's per-channel ratios), keeping its
  * hue. Used for --brand-dark-2, the dark end of the product page's title band.
  */

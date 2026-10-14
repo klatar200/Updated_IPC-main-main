@@ -69,6 +69,9 @@ function markContent(pairs) {
     if (SKIP_CONTENT.test(k)) return [k, v];
     if (/\[siteImages\]/.test(k)) return [k, `uploads/site/${mk(k)}.jpg`];
     if (/\[brochure_url\]$/.test(k)) return [k, `/pdfs/${mk(k)}.pdf`];
+    // A card's "Links to" box (AUDIT-12 decision 48) must be a page of the site:
+    // a family that does not exist only warns, so the marker rides in ?family=.
+    if (/^features\[\d+\]\[link\]$/.test(k)) return [k, `/products?family=${mk(k)}`];
     if (/^productFamilies\[/.test(k)) return [k, `${v} ${mk(k)}`];
     return [k, v ? `${v} ${mk(k)}` : mk(k)];
   });
