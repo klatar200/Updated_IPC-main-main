@@ -7570,7 +7570,15 @@ function groupFaq(flat) {
   // wrong". Any category text the admin accepts must group. (AUDIT-12
   // A12-L15-06-1)
   const byName = Object.create(null);
+  // AUDIT-12 decision 8 (A12-L6-01-W5-2) — a row is shown only with a
+  // non-blank question AND a non-blank answer: the same rule FaqPage's
+  // FAQPage JSON-LD applies. Page Content keeps any row with one field filled
+  // in, so an "add it now, answer later" edit showed a question that opened
+  // to nothing, and a category-only row a blank card with just a "+". A
+  // category whose rows are all half-written is not shown at all.
+  const filled = (v) => typeof v === "string" && v.trim() !== "";
   (flat || []).forEach((row) => {
+    if (!row || !filled(row.question) || !filled(row.answer)) return;
     const name = row.category || "General";
     if (!byName[name]) {
       byName[name] = { name, items: [] };
