@@ -437,7 +437,7 @@ $navActive = 'help';
           </li>
           <li>
             <strong>Feature Badges</strong> — type one badge per line (press Enter between each). These become small colored pill labels on the product page, e.g.:
-            <div class="visual-note"><span class="vn-icon">🏷️</span>Example: typing <code>Flame Retardant</code> on one line and <code>Flexible</code> on the next creates two separate badges shown side by side on the live page. A badge that names a standard (RoHS, UL, CSA, MIL-Spec …) is not shown — tick it under Approvals &amp; Certifications instead; the save message tells you if you typed one.</div>
+            <div class="visual-note"><span class="vn-icon">🏷️</span>Example: typing <code>Flame Retardant</code> on one line and <code>Flexible</code> on the next creates two separate badges shown side by side on the live page. A badge that names a standard (RoHS, UL, CSA, MIL-Spec …) is not shown — tick it under Approvals &amp; Certifications instead, but only if the part really holds that approval; the save message tells you if you typed one. An <strong>AMS</strong> spec (for example <code>AMS 3653</code>) is not one of the tick-boxes and is not a MIL-SPEC approval: type it as a badge and it shows under "Product Features" like any other.</div>
           </li>
           <li>
             <strong>Description Paragraphs</strong> — one paragraph per line. Each line you type becomes its own paragraph of body text on the product page.
@@ -791,7 +791,7 @@ $navActive = 'help';
           <tr><td>The line under the name, and the caption under the photo</td><td><strong>Image Caption</strong> (both places). Left empty, the line under the name reads "Part … — full specifications, data sheet and quote request below."</td></tr>
           <tr><td>"Datasheet" button</td><td><strong>Manage PDF</strong>; its wording is <strong>Primary PDF Button Label</strong>. Extra buttons: <strong>Additional PDF Links</strong>. With no PDF the button reads "Request Datasheet" (fixed).</td></tr>
           <tr><td>"Approvals &amp; Certifications" chips</td><td>The <strong>Approvals &amp; Certifications</strong> tick-boxes.</td></tr>
-          <tr><td>"Product Features" chips</td><td><strong>Feature Badges</strong>. A badge that names a standard (UL, RoHS, MIL-SPEC, FDA …) is <strong>left out here on purpose</strong> — the Approvals chips already say it — so tick the box rather than typing it as a badge.</td></tr>
+          <tr><td>"Product Features" chips</td><td><strong>Feature Badges</strong>. A badge that names a standard (UL, RoHS, MIL-SPEC, FDA …) is <strong>left out here on purpose</strong> — the Approvals chips already say it — so tick the box rather than typing it as a badge. AMS specs are ordinary badges and do show here.</td></tr>
           <tr><td>Body paragraphs</td><td><strong>Description Paragraphs</strong>.</td></tr>
           <tr><td>Specification list and size chart</td><td><a href="#specs">Specifications</a> and <a href="#sizechart">Size chart</a> on the Edit screen.</td></tr>
           <tr><td>"Related Products"</td><td>Automatic: up to four other products with the same Part Type. (Not shown for Accessory, Adhesive or Tape — fixed.)</td></tr>

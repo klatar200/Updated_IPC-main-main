@@ -2930,7 +2930,12 @@ const APPROVALS = [
   ["UL Approved",   /\bU\/?L\b[^.;]{0,18}\bApproved\b/i],
   ["cUL",           /\bCUL\b/i],
   ["CSA",           /\bCSA\b/i],
-  ["MIL-SPEC",      /\bMIL[\s-]?SPEC\b|\bAMS\b/i],
+  // AUDIT-12 decision 13 (A12-L15-02-3) — no `|\bAMS\b`. AMS is an SAE
+  // aerospace spec, not a military one: an "AMS 3653" badge was hidden from
+  // Product Features as if the MIL-SPEC mark said it, and the save message
+  // told Rick to tick MIL-SPEC — a military approval the part may not hold.
+  // It is an ordinary feature badge now. (admin/config.php: the same.)
+  ["MIL-SPEC",      /\bMIL[\s-]?SPEC\b/i],
   ["RoHS",          /\bRoHS\b/i],
   ["FDA",           /\b(?:US)?FDA\b/i],
   ["USP Class VI",  /\bUSP\b[^.;]{0,12}\bClass\s*VI\b/i],

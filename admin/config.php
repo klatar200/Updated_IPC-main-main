@@ -1271,7 +1271,9 @@ const IPC_APPROVAL_PATTERNS = [
     'UL Approved'   => '/\bU\/?L\b[^.;]{0,18}\bApproved\b/i',
     'cUL'           => '/\bCUL\b/i',
     'CSA'           => '/\bCSA\b/i',
-    'MIL-SPEC'      => '/\bMIL[\s-]?SPEC\b|\bAMS\b/i',
+    // AUDIT-12 decision 13 (A12-L15-02-3) — AMS (an SAE spec) is not MIL-SPEC;
+    // see APPROVALS in src/App.jsx.
+    'MIL-SPEC'      => '/\bMIL[\s-]?SPEC\b/i',
     'RoHS'          => '/\bRoHS\b/i',
     'FDA'           => '/\b(?:US)?FDA\b/i',
     'USP Class VI'  => '/\bUSP\b[^.;]{0,12}\bClass\s*VI\b/i',
@@ -1381,7 +1383,9 @@ function product_save_warnings(array $p): array {
         }
     }
     if ($hidden) {
-        $out[] = 'Badges that name a standard are shown only through the Approvals tick-boxes, so these will not appear on the website until you tick the box: ' . implode(', ', $hidden) . '.';
+        // AUDIT-12 decision 13 — tick only what the part holds: this message
+        // used to send Rick to MIL-SPEC for an AMS spec.
+        $out[] = 'Badges that name a standard are shown only through the Approvals tick-boxes, so these will not appear on the website: ' . implode(', ', $hidden) . '. Tick the box named in brackets only if this product really holds that approval; if it does not, delete the badge or reword it.';
     }
     return $out;
 }
