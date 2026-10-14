@@ -8101,10 +8101,14 @@ const CONTACT_TIPS = [
  */
 const FAMILY_ORDER = [
   "Polyolefin Heat Shrink",
+  "PVC Heat Shrink",
   "PVDF Heat Shrink",
+  "PTFE and FEP Heat Shrink",
   "Dual-Wall Heat Shrink",
   "Medical Grade Heat Shrink",
   "Elastomeric Heat Shrink",
+  "Polyester (Mylar) Heat Shrink",
+  "Extruded Tubing",
   "Fiberglass Sleeving",
   "Expandable Sleeving",
   "End Cap",

@@ -498,7 +498,7 @@
             "Low Cost"
         ],
         "caption": "A superior high dielectric strength 105°C PVC tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/IP10EX.jpg",
         "specTable1": {
             "rows": [
@@ -790,7 +790,7 @@
             "Designed for aircraft devices"
         ],
         "caption": "A superior low temperature PVC tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/IP1274.png",
         "specTable1": {
             "rows": [
@@ -1059,7 +1059,7 @@
             "Flexible"
         ],
         "caption": "A superior general purpose PVC tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/ip12ga.jpg",
         "specTable1": {
             "rows": [
@@ -1326,7 +1326,7 @@
             "Flexible"
         ],
         "caption": "A superior general purpose PVC tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "specTable1": {
             "rows": [
                 {
@@ -1739,7 +1739,7 @@
             "Kink resistant"
         ],
         "caption": "Great for low pressure FDA applications",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/IP15PV.jpg",
         "specTable1": {
             "rows": [
@@ -1961,7 +1961,7 @@
             "Many Colors Available"
         ],
         "caption": "Very high temperature chemical resistant tubing",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "photoUrl": "/images/products/IP17TW-IP18SW-IP19LW.jpg",
         "specTable1": {
             "rows": [
@@ -2308,7 +2308,7 @@
             "FDA Compliant"
         ],
         "caption": "Polyurethane Ether 75A & Ester 85A",
-        "partType": "Accessory",
+        "partType": "Extruded Tubing",
         "specTable1": {
             "rows": [
                 {
@@ -2760,7 +2760,7 @@
             "U/L CSA MIL-Spec."
         ],
         "caption": "Inexpensive low shrink temperature tubing",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "PVC Heat Shrink",
         "photoUrl": "/images/products/IP30HS.png",
         "specTable1": {
             "rows": [
@@ -2966,7 +2966,7 @@
             "2:1 Shrink Low Cost"
         ],
         "caption": "Low shrink temperature tubing UV resistant",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "PVC Heat Shrink",
         "specTable1": {
             "rows": [
                 {
@@ -3136,7 +3136,7 @@
             "U/L CSA and MIL-SPEC"
         ],
         "caption": "Excellent abrasion resistance",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "PVC Heat Shrink",
         "photoUrl": "/images/products/IP32IP.png",
         "specTable1": {
             "rows": [
@@ -3973,7 +3973,7 @@
             "Excellent Chemical Resistance"
         ],
         "caption": "A very high temperature, chemical resistant tubing",
-        "partType": "PVDF Heat Shrink",
+        "partType": "PTFE and FEP Heat Shrink",
         "photoUrl": "/images/products/IP37SH-IP36TH-IP39LH.png",
         "specTable1": {
             "rows": [
@@ -4300,7 +4300,7 @@
             "Ultra Clear"
         ],
         "caption": "Low shrink temperature, extra clear Teflon",
-        "partType": "PVDF Heat Shrink",
+        "partType": "PTFE and FEP Heat Shrink",
         "photoUrl": "/images/products/IP38FE.png",
         "specTable1": {
             "rows": [
@@ -4585,7 +4585,7 @@
             "U/L VW-1"
         ],
         "caption": "Ultra thin wall for battery and pharmaceutical applications",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "PVC Heat Shrink",
         "photoUrl": "/images/products/IP3L.png",
         "specTable1": {
             "rows": [
@@ -4696,7 +4696,7 @@
             "Thick-Wall Construction"
         ],
         "caption": "Flexible, abrasion resistant covering for wires",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "Elastomeric Heat Shrink",
         "photoUrl": "/images/products/IP41NE-IP43VT.png",
         "specTable1": {
             "rows": [
@@ -5467,7 +5467,7 @@
             "High Longitudinal Shrinkage"
         ],
         "caption": "Thin wall, high dielectric, for tight spaces",
-        "partType": "Polyolefin Heat Shrink",
+        "partType": "Polyester (Mylar) Heat Shrink",
         "photoUrl": "/images/products/IP48MH.png",
         "specTable1": {
             "rows": [
@@ -7028,7 +7028,7 @@
             "Extra Flexible Polypropylene"
         ],
         "caption": "Bundling for easy insertion and break-out",
-        "partType": "Expandable Sleeving",
+        "partType": "Accessory",
         "photoUrl": "/images/products/IP71NS-IP72PS-IP73PP.jpg",
         "specTable1": {
             "rows": [

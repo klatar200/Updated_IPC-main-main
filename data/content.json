@@ -730,7 +730,13 @@
             "name": "Polyolefin Heat Shrink"
         },
         {
+            "name": "PVC Heat Shrink"
+        },
+        {
             "name": "PVDF Heat Shrink"
+        },
+        {
+            "name": "PTFE and FEP Heat Shrink"
         },
         {
             "name": "Dual-Wall Heat Shrink"
@@ -740,6 +746,12 @@
         },
         {
             "name": "Elastomeric Heat Shrink"
+        },
+        {
+            "name": "Polyester (Mylar) Heat Shrink"
+        },
+        {
+            "name": "Extruded Tubing"
         },
         {
             "name": "Fiberglass Sleeving"

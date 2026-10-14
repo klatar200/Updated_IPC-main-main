@@ -53,9 +53,11 @@ const OUT = path.join(__dirname, 'out', 'plan5b-sidebar');
 const SITE = path.join(__dirname, 'site');
 const DEVDIST = path.join(__dirname, 'devdist');
 
-// Polyolefin Heat Shrink — 12 siblings, so the group renders with plenty of rows.
+// Polyolefin Heat Shrink — 6 rows since AUDIT-12 decision 2 moved the PVC,
+// Neoprene/Viton and Mylar tubing to their own families (12 before). The
+// sibling must share the family, or its row is in a closed accordion.
 const TARGET = 'IP29CG';
-const SIBLING = 'IP30HS';
+const SIBLING = 'IP33PO';
 const BRAND_PRIMARY = 'rgb(0, 93, 163)';       // --brand-primary on the shipped palette
 const ROW_DIVIDER = 'rgb(240, 243, 247)';      // #f0f3f7
 

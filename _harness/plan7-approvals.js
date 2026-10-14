@@ -106,15 +106,18 @@ const login = async (page) => {
     const covered = jsDerived
       ? Object.values(jsDerived).filter((a) => a.length).length
       : -1;
-    note(covered === 30,
-      `30 of ${products.length} products derive at least one approval (badges alone showed 23)`,
+    // 36 / MIL-SPEC 22 since AUDIT-12 decision 2 (A12-L8-01-5, A12-L8-06-2):
+    // MIL-SPEC follows each record's own datasheet (twelve added, two
+    // removed) and Slit Guard lost its product-wide UL-94. Before: 30 / 12.
+    note(covered === 36,
+      `36 of ${products.length} products derive at least one approval (badges alone showed 23)`,
       `got ${covered}`);
 
     const milspec = jsDerived
       ? Object.values(jsDerived).filter((a) => a.includes('MIL-SPEC')).length : -1;
     const vw1 = jsDerived
       ? Object.values(jsDerived).filter((a) => a.includes('UL VW-1')).length : -1;
-    note(milspec === 12 && vw1 === 11,
+    note(milspec === 22 && vw1 === 11,
       `the hidden ones surface: MIL-SPEC ${milspec} (badges said 5), UL VW-1 ${vw1} (badges said 1)`,
       `MIL-SPEC ${milspec}, UL VW-1 ${vw1}`);
 
@@ -165,7 +168,7 @@ const login = async (page) => {
       chipErr || `all ${all}, MIL-SPEC ${one}, +CSA ${two} (expected each to narrow)`);
 
     // ── admin round-trip, and the invariant-3 case ───────────────────────────
-    const target = 'IP33PO';   // derives MIL-SPEC, USP Class VI, UL VW-1
+    const target = 'IP33PO';   // derives CSA, MIL-SPEC, UL VW-1
     await login(page);
     await page.goto(`${BASE}/admin/edit.php?sku=${target}`, { waitUntil: 'networkidle' });
     const boxes = await page.$$('input[name="approvals[]"]');
