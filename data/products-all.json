@@ -5932,12 +5932,12 @@
         ],
         "operatingTemp": "",
         "specificationsSummary": "Tensile Strength: 2100 psi · Elongation: 350% · Specific Gravity: 1.1 · Dielectric Strength: 500 V/Mil min. · Heat Shock: No Cracking at 225°C · Noncorrosive",
-        "pdfUrl": "/pdfs/IP52EC-molded-cap.pdf",
-        "pdfLabel": "Molded Cap",
+        "pdfUrl": "/pdfs/IP52EC-plugged-cap.pdf",
+        "pdfLabel": "Plugged Cap",
         "additionalPdfs": [
             {
-                "url": "/pdfs/IP52EC-plugged-cap.pdf",
-                "label": "Plugged Cap"
+                "url": "/pdfs/IP52EC-molded-cap.pdf",
+                "label": "Molded Cap"
             }
         ],
         "approvals": []
