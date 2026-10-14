@@ -9028,6 +9028,10 @@ function ThemeInjector() {
     root.style.setProperty("--brand-primary-ink", primaryInk);
     root.style.setProperty("--brand-dark-ink", darkInk);
     root.style.setProperty("--brand-header-ink", headerInk);
+    // AUDIT-12 decision 20 (A12-L14-W1-G4-1) — the ink for SOLID accent-2
+    // (the spec-table heading cells). Dark (#141414, 5.92:1) on the shipped
+    // #119EC8, where white is 3.11:1.
+    root.style.setProperty("--brand-accent-2-ink", inkFor(accent2));
     // The same three inks as bare "r, g, b" triples, so de-emphasised text can
     // say rgba(var(--brand-dark-ink-rgb), 0.6) and follow the ink instead of
     // hardcoding rgba(255,255,255,0.6). That opacity idiom is used at ~50 call
@@ -9939,10 +9943,12 @@ function SpecTable2({ table }) {
                 className="px-3 py-3 text-center whitespace-pre-line text-xs font-semibold leading-snug align-middle"
                 style={{
                   // 4.23: these cells alternate between --brand-primary and
-                  // --brand-accent-2, the same two stops as the page-banner
-                  // gradient, so --brand-header-ink (scored on the worse of the
-                  // pair) is the ink that works across the whole row.
-                  color: "var(--brand-header-ink)",
+                  // --brand-accent-2. AUDIT-12 decision 20 (A12-L14-W1-G4-1) —
+                  // each cell is ONE solid colour, not the page-banner
+                  // gradient, so it takes the ink derived for its own surface.
+                  // --brand-header-ink (scored on the worse of the pair) put
+                  // white on #119EC8 at 3.11:1; the dark ink there is 5.92:1.
+                  color: i !== 0 && i % 2 === 0 ? "var(--brand-accent-2-ink)" : "var(--brand-primary-ink)",
                   background:
                     i === 0 ? "var(--brand-primary)" : i % 2 === 0 ? "var(--brand-accent-2)" : "var(--brand-primary)",
                   border: "1px solid rgba(255,255,255,0.2)",
@@ -9963,7 +9969,8 @@ function SpecTable2({ table }) {
                       key={`${gi}-${si}`}
                       className="px-3 py-2 text-center text-xs font-semibold"
                       style={{
-                        color: "var(--brand-header-ink)",
+                        // AUDIT-12 decision 20 — the ink for solid accent-2.
+                        color: "var(--brand-accent-2-ink)",
                         background: "var(--brand-accent-2)",
                         border: "1px solid rgba(255,255,255,0.2)",
                       }}

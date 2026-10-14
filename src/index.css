@@ -60,6 +60,9 @@
   --brand-primary-ink: #ffffff;
   --brand-dark-ink: #ffffff;
   --brand-header-ink: #ffffff;
+  /* AUDIT-12 decision 20 — the ink on SOLID accent-2 (spec-table heading
+     cells): inkFor(#119ec8) is the dark ink, 5.92:1 (white is 3.11:1). */
+  --brand-accent-2-ink: #141414;
 
   /* The same three as bare "r, g, b" triples, for de-emphasised text:
      rgba(var(--brand-dark-ink-rgb), 0.6) instead of rgba(255,255,255,0.6).
