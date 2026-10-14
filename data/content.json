@@ -895,7 +895,7 @@
             "rfqSuccessBody": "Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.",
             "msgSuccessBody": "Your message has been received. Our sales team will respond within one business day.",
             "urgentPrefix": "For urgent inquiries:",
-            "networkError": "Network error. Please call 630.771.0700 or email sales@insulationproducts.com directly.",
+            "networkError": "We could not confirm that your request was sent, and it may already have arrived. Pressing Submit again will not send it twice. Or call 630.771.0700 or email sales@insulationproducts.com directly.",
             "submitError": "Submission failed. Please call 630.771.0700.",
             "nameLabel": "Full Name *",
             "namePlaceholder": "Your name",

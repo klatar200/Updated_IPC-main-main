@@ -19,6 +19,15 @@
  *       after it; in the browser, a reply that never comes ends after 30 s
  *       in the network-error message with the phone number (clock
  *       fast-forwarded), not an endless "Sending…".
+ *   19  a resubmit is not a second lead (A12-L4-W5-G3-1): the same
+ *       submission_id again is answered "received" with no second email or
+ *       row when the first went out or is still in flight, and is sent again
+ *       when the first send failed or died long ago; no id (or a malformed
+ *       one) is never de-duplicated. In the browser, the finding's own case:
+ *       the reply to a delivered request is dropped, the message says it "may
+ *       already have arrived", and pressing Submit again gives the
+ *       confirmation with one lead and one sales email; an edited form is a
+ *       new submission.
  *
  * Runs on a private copy of the mirror (_harness/site) with its own
  * `php -S` servers, a sendmail stand-in and a private sys_temp_dir per server,
@@ -56,8 +65,12 @@ fs.writeFileSync(REC, `#!/bin/sh\nmsg=$(cat)\n[ -f "${SLOW}" ] && sleep "$(cat "
 fs.chmodSync(REC, 0o755);
 
 const servers = [];
+const tempOf = {};
+// The 5-per-10-minutes limiter is not under test in 19's arms; empty it.
+const clearLimiter = (port) => { for (const f of fs.readdirSync(tempOf[port])) if (/^ipc_(rl|lk)_/.test(f)) fs.rmSync(path.join(tempOf[port], f), { force: true }); };
 function server(port, extra = []) {
   const t = fs.mkdtempSync(path.join(TMP, `t${port}-`));
+  tempOf[port] = t;
   const p = spawn('php', ['-S', `127.0.0.1:${port}`, '-t', T, '-c', path.join(__dirname, 'php-mail.ini'),
     '-d', `sendmail_path=${REC}`, '-d', `sys_temp_dir=${t}`, ...extra, path.join(__dirname, 'router.php')],
   { cwd: T, stdio: 'ignore', detached: true });
@@ -249,6 +262,105 @@ async function rfq(port, extra = {}, headers = {}) {
           '18 browser: after 30 s the stalled send ends in the network-error message, which carries the phone number', JSON.stringify(txt));
         note(!(await page.locator('form button[type="submit"][disabled]').count()),
           '18 browser: and the submit button is usable again');
+      } finally {
+        await browser.close();
+      }
+      stop(srv);
+    }
+
+    // ── 19 — a resubmit of the same submission ──────────────────────────
+    fs.rmSync(INQ, { force: true });
+    {
+      const srv = server(P0 + 1);
+      await sleep(900);
+      const sidOf = (n) => `lp12-${n}-${Date.now().toString(36)}`;
+      const sales = () => messages().filter((m) => /IPC QUOTE REQUEST/.test(m)).length;
+      const settle = () => fetch(`http://127.0.0.1:${P0 + 1}/robots.txt`).then((x) => x.text()).catch(() => {});
+      const post = async (name, sid) => { clearLimiter(P0 + 1); const r = await rfq(P0 + 1, { name, email: 'dedupe@example.com', fields: sid === undefined ? {} : { submission_id: sid } }); await settle(); return r; };
+      fs.writeFileSync(MAIL, '');
+
+      const A = sidOf('a');
+      const a1 = await post('Dedupe A', A);
+      const l1 = rawRows(INQ).length, m1 = sales();
+      const a2 = await post('Dedupe A', A);
+      note(a1.status === 200 && a2.status === 200 && /"ok":true/.test(a2.text) && rawRows(INQ).length === l1 && sales() === m1 && m1 === 1,
+        '19: the same submission again is answered "received" with no second sales email and no second row', `${a1.status}/${a2.status}, rows ${l1}->${rawRows(INQ).length}, sales mails ${m1}->${sales()}`);
+      note(leads(INQ).filter((x) => x.sid === A).length === 1, '19: Inquiries lists that submission once');
+
+      const B = sidOf('b');
+      fs.writeFileSync(FAILMAIL, '');
+      const b1 = await post('Dedupe B', B);
+      fs.rmSync(FAILMAIL, { force: true });
+      const b2 = await post('Dedupe B', B);
+      const bRows = leads(INQ).filter((x) => x.sid === B);
+      note(b1.status === 500 && b2.status === 200 && bRows.length === 2 && bRows[0].sent === false && bRows[1].sent === true,
+        '19: when the first send FAILED, the same submission is sent again (the email may never have gone)', `${b1.status}/${b2.status} ${JSON.stringify(bRows.map((x) => x.sent))}`);
+
+      const n0 = leads(INQ).length, s0 = sales();
+      const codes = [await post('No Id Twice'), await post('No Id Twice'), await post('Bad Id Twice', '../../etc'), await post('Bad Id Twice', '../../etc')].map((x) => x.status);
+      note(codes.every((c) => c === 200) && leads(INQ).length === n0 + 4 && sales() === s0 + 4,
+        '19: without an id (or with a malformed one) nothing is de-duplicated — a deliberate second send still goes', `${codes} leads ${n0} -> ${leads(INQ).length}, sales ${s0} -> ${sales()}`);
+
+      // In flight: a row with no result yet. Young = still being sent; old = died.
+      const stamp = (d) => { const z = (x) => String(x).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`; };
+      const chicago = (ms) => new Date(new Date(ms).toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+      const Y = sidOf('young'), O = sidOf('old');
+      fs.appendFileSync(INQ, JSON.stringify({ ts: stamp(chicago(Date.now())), type: 'rfq', name: 'In Flight', email: 'dedupe@example.com', sid: Y, id: 'aaaaaaaaaaaaaaaa', sent: null, status: 'pending' }) + '\n');
+      fs.appendFileSync(INQ, JSON.stringify({ ts: stamp(chicago(Date.now() - 600000)), type: 'rfq', name: 'Died Long Ago', email: 'dedupe@example.com', sid: O, id: 'bbbbbbbbbbbbbbbb', sent: null, status: 'pending' }) + '\n');
+      const m2 = sales();
+      const y = await post('In Flight', Y);
+      note(y.status === 200 && sales() === m2 && leads(INQ).filter((x) => x.sid === Y).length === 1,
+        '19: a resubmit while the first is still being sent (no result yet, minutes old) is not sent twice');
+      const o = await post('Died Long Ago', O);
+      note(o.status === 200 && sales() === m2 + 1 && leads(INQ).filter((x) => x.sid === O).length === 2,
+        '19: a resubmit of one whose request died long ago without a result is sent again');
+
+      // The finding's case, in the browser: the request is delivered, the reply is lost.
+      fs.rmSync(INQ, { force: true });
+      fs.writeFileSync(MAIL, '');
+      const browser = await launch();
+      try {
+        const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+        const page = await ctx.newPage();
+        const ids = [];
+        let drop = true;
+        await page.route('**/contact.php', async (route) => {
+          clearLimiter(P0 + 1);
+          ids.push((/name="submission_id"\r\n\r\n([^\r]*)/.exec(route.request().postData() || '') || [])[1] || '');
+          if (drop) { drop = false; await route.fetch(); await settle(); return route.abort('connectionreset'); }
+          return route.continue();
+        });
+        await page.goto(`http://127.0.0.1:${P0 + 1}/contact`, { waitUntil: 'networkidle' });
+        const form = page.locator('form').filter({ has: page.locator('button[type="submit"]') }).first();
+        for (const [k, v] of Object.entries({ name: 'Lost Reply Buyer', email: 'lostreply@example.com', partNumber: 'LOSTREPLY-1', quantity: '500 ft' })) await form.locator(`[name="${k}"]`).fill(v);
+        await form.locator('button[type="submit"]').click();
+        const alert = page.locator('[role="alert"][data-error-kind="network"]');
+        await alert.waitFor({ timeout: 10000 }).catch(() => {});
+        const txt = (await alert.count()) ? await alert.textContent() : '';
+        note(/may already have arrived/.test(txt) && /630\.771\.0700/.test(txt),
+          '19 browser: a lost reply says the request "may already have arrived", with the phone number', JSON.stringify(txt));
+        const after1 = { leads: leads(INQ).length, sales: sales() };
+        await form.locator('button[type="submit"]').click();
+        await page.waitForURL(/[?&]sent=1/, { timeout: 10000 }).catch(() => {});
+        await settle();
+        note(after1.leads === 1 && after1.sales === 1 && /[?&]sent=1/.test(page.url()) && leads(INQ).length === 1 && sales() === 1 && ids.length === 2 && ids[0] && ids[0] === ids[1],
+          '19 browser: pressing Submit again confirms, and sales still has ONE email and Inquiries ONE lead',
+          JSON.stringify({ after1, url: page.url(), leads: leads(INQ).length, sales: sales(), ids }));
+        // An edited form is a new submission.
+        await page.goto(`http://127.0.0.1:${P0 + 1}/contact`, { waitUntil: 'networkidle' });
+        const f2 = page.locator('form').filter({ has: page.locator('button[type="submit"]') }).first();
+        for (const [k, v] of Object.entries({ name: 'Edited Buyer', email: 'edited@example.com', quantity: '100 ft' })) await f2.locator(`[name="${k}"]`).fill(v);
+        drop = true;
+        await f2.locator('button[type="submit"]').click();
+        await page.locator('[role="alert"][data-error-kind="network"]').waitFor({ timeout: 10000 }).catch(() => {});
+        await f2.locator('[name="quantity"]').fill('200 ft');
+        await f2.locator('button[type="submit"]').click();
+        await page.waitForURL(/[?&]sent=1/, { timeout: 10000 }).catch(() => {});
+        await settle();
+        const edited = leads(INQ).filter((x) => x.name === 'Edited Buyer').map((x) => x.quantity);
+        note(ids.length === 4 && ids[2] !== ids[3] && edited.join() === '100 ft,200 ft',
+          '19 browser: a form edited after the error is a new submission and is sent', JSON.stringify({ ids: ids.slice(2), edited }));
+        await ctx.close();
       } finally {
         await browser.close();
       }

@@ -5067,6 +5067,22 @@ function requiredLabel(label) {
 const CONTACT_SUBMIT_TIMEOUT_MS = 30000;
 
 /**
+ * AUDIT-12 decision 19 (A12-L4-W5-G3-1) — one id per submission. A buyer whose
+ * connection dropped after the request went out was told "Network error" and
+ * pressed Submit again; sales got the quote request twice and Inquiries listed
+ * two leads. Each form keeps an id that is sent with the POST and renewed when
+ * the visitor changes a field or a send succeeds, so pressing Submit again on
+ * an unchanged form re-sends the SAME id and contact.php, finding it among
+ * the recent inquiry rows, answers "received" without sending it twice.
+ */
+function newSubmissionId() {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  } catch (_) { /* fall through */ }
+  return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+}
+
+/**
  * POST one contact form. Resolves to the server's JSON, or `{ ok: false }`
  * for a reply that is not JSON (F9: the caller's fallback then names the
  * phone number). Rejects on a network failure or the time limit, which the
@@ -5308,7 +5324,14 @@ function ContactPage() {
     subject: "",
     message: "",
   });
-  const onMsgChange = makeOnChange(setMsgForm);
+  // AUDIT-12 decision 19 — this form's submission id; see newSubmissionId().
+  const msgSubmissionId = useRef(null);
+  if (msgSubmissionId.current === null) msgSubmissionId.current = newSubmissionId();
+  const onMsgFieldChange = makeOnChange(setMsgForm);
+  const onMsgChange = (e) => {
+    msgSubmissionId.current = newSubmissionId();   // changed content is a new submission
+    onMsgFieldChange(e);
+  };
   const onMsgSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -5316,10 +5339,12 @@ function ContactPage() {
     try {
       const body = new FormData(e.target);
       body.append("form_type", "message");
+      body.append("submission_id", msgSubmissionId.current);
       // A reply that is not JSON comes back as { ok: false } with no `error`,
       // so cf.submitError below is shown (F9, see postContactForm).
       const json = await postContactForm(body);
       if (json.ok) {
+        msgSubmissionId.current = newSubmissionId();   // the next send is a new one
         markSent("message");   // A-9.P7-2 — and from a submit that really happened
         if (!contactMounted.current) return;
         setSubmittedTab("message");
@@ -5352,7 +5377,14 @@ function ContactPage() {
     specialReqs: "",
     additionalNotes: prefillIndustry ? `Industry: ${prefillIndustry}` : "",
   });
-  const onRfqChange = makeOnChange(setRfqForm);
+  // AUDIT-12 decision 19 — this form's submission id; see newSubmissionId().
+  const rfqSubmissionId = useRef(null);
+  if (rfqSubmissionId.current === null) rfqSubmissionId.current = newSubmissionId();
+  const onRfqFieldChange = makeOnChange(setRfqForm);
+  const onRfqChange = (e) => {
+    rfqSubmissionId.current = newSubmissionId();   // changed content is a new submission
+    onRfqFieldChange(e);
+  };
   const onRfqSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -5360,10 +5392,12 @@ function ContactPage() {
     try {
       const body = new FormData(e.target);
       body.append("form_type", "rfq");
+      body.append("submission_id", rfqSubmissionId.current);
       // A reply that is not JSON comes back as { ok: false } with no `error`,
       // so cf.submitError below is shown (F9, see postContactForm).
       const json = await postContactForm(body);
       if (json.ok) {
+        rfqSubmissionId.current = newSubmissionId();   // the next send is a new one
         markSent("rfq");   // A-9.P7-2 — and from a submit that really happened
         if (!contactMounted.current) return;
         setSubmittedTab("rfq");
@@ -7879,7 +7913,7 @@ const COPY_DEFAULTS = {
     rfqSuccessBody: "Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.",
     msgSuccessBody: "Your message has been received. Our sales team will respond within one business day.",
     urgentPrefix: "For urgent inquiries:",
-    networkError: "Network error. Please call 630.771.0700 or email sales@insulationproducts.com directly.",
+    networkError: "We could not confirm that your request was sent, and it may already have arrived. Pressing Submit again will not send it twice. Or call 630.771.0700 or email sales@insulationproducts.com directly.",
     submitError: "Submission failed. Please call 630.771.0700.",
     nameLabel: "Full Name *",
     namePlaceholder: "Your name",

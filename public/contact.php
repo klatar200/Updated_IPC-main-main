@@ -723,6 +723,48 @@ function ipc_ar_cap_key(string $email): string {
     return $local . '@' . $domain;
 }
 
+/**
+ * AUDIT-12 decision 19 (A12-L4-W5-G3-1) — has this submission already been
+ * received? The form sends one id per submission (renewed when the visitor
+ * edits a field or a send succeeds); a buyer whose reply was lost presses
+ * Submit again and re-sends the SAME id. Looks for it in the recent tail of
+ * the live log and returns what became of that lead: ['sent' => true|false|
+ * null (no result written yet), 'age' => seconds], or null when not found.
+ * Read without the lock: a half-written last line only fails to decode.
+ */
+function ipc_find_submission(string $sid): ?array {
+    foreach ([__DIR__ . '/admin', __DIR__ . '/../admin'] as $dir) {
+        if (!is_dir($dir)) continue;
+        $path = $dir . '/inquiries.jsonl';
+        $fh = @fopen($path, 'rb');
+        if (!$fh) return null;
+        $size  = (int)@filesize($path);
+        $start = max(0, $size - 512 * 1024);      // minutes of leads, far more than a retry needs
+        if ($start > 0) fseek($fh, $start);
+        $lines = explode("\n", (string)stream_get_contents($fh));
+        fclose($fh);
+        $found = null;
+        foreach ($lines as $line) {
+            if (strpos($line, $sid) === false) continue;
+            $e = json_decode($line, true);
+            if (is_array($e) && ($e['sid'] ?? null) === $sid && in_array($e['type'] ?? '', ['rfq', 'message'], true)) $found = $e;
+        }
+        if ($found === null) return null;
+        $sent = array_key_exists('sent', $found) && $found['sent'] !== null ? (bool)$found['sent'] : null;
+        $id = $found['id'] ?? null;
+        if (is_string($id) && $id !== '') {
+            foreach ($lines as $line) {
+                if (strpos($line, $id) === false) continue;
+                $e = json_decode($line, true);
+                if (is_array($e) && ($e['type'] ?? '') === 'send-result' && ($e['id'] ?? null) === $id) $sent = !empty($e['sent']);
+            }
+        }
+        $t = strtotime((string)($found['ts'] ?? ''));
+        return ['sent' => $sent, 'age' => $t === false ? PHP_INT_MAX : time() - $t];
+    }
+    return null;
+}
+
 /** A random id for one inquiry row (AUDIT-12 decision 42). */
 function ipc_new_id(): string {
     try {
@@ -1185,6 +1227,25 @@ if ($formType === 'rfq') {
         'message' => $message,
         'ip'      => $ip,
     ];
+}
+
+// ── A resubmit of a submission already received (decision 19) ────
+// Answered "received" without a second email or a second Inquiries row when
+// the earlier copy went to the mail server, or is still being sent (no result
+// yet, under three minutes old: a slow mail server, a reply lost on the way
+// back). Sent again when the earlier send FAILED, or its request died before
+// writing a result: then the sales email may never have gone, and a second
+// try is the safer duplicate. No id (an old page, a script) — no check.
+// Requests from one address already queue behind the rate-limit lock, so a
+// retry from the same connection sees the first one's finished record.
+$sid = $_POST['submission_id'] ?? '';
+$sid = (is_string($sid) && preg_match('/^[A-Za-z0-9_-]{8,64}$/', $sid)) ? $sid : '';
+if ($sid !== '') {
+    $prior = ipc_find_submission($sid);
+    if ($prior !== null && ($prior['sent'] === true || ($prior['sent'] === null && $prior['age'] < 180))) {
+        respond(200, ['ok' => true]);
+    }
+    $logEntry['sid'] = $sid;
 }
 
 // ── Send to the sales team ──────────────────────────────────────
