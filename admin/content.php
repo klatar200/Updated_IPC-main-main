@@ -358,7 +358,7 @@ $COPY_GROUPS = [
     // the first save of a content.json that predates this group would write
     // eleven blanks, and COPY_CLEARABLE would read them as eleven deletions.
     'claims' => ['title' => 'Company Claims', 'fields' => [
-        ['key' => 'aboutStructureClaim',      'type' => 'text',     'label' => 'About page facts — Structure (empty removes the row)',            'default' => 'Privately Held'],
+        ['key' => 'aboutStructureClaim',      'type' => 'text',     'label' => 'About page facts — Structure; also the homepage band\'s "privately held, independent" (empty removes both)', 'default' => 'Privately Held'],
         ['key' => 'aboutLeadTimeClaim',       'type' => 'text',     'label' => 'About page facts — Custom Lead Time (empty removes the row)',     'default' => '≤ 1 week'],
         ['key' => 'aboutPpapClaim',           'type' => 'text',     'label' => 'About page facts — PPAP / IMDS (empty removes the row)',          'default' => 'Available on request'],
         ['key' => 'industriesPpapTitleClaim', 'type' => 'text',     'label' => 'Industries page — PPAP panel heading (empty removes the whole panel)', 'default' => 'PPAP & IMDS Documentation Available'],

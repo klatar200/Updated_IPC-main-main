@@ -3480,10 +3480,20 @@ function HomePage() {
             {/* §1aq — the ISO box may be emptied (Keagan 2026-10-05): with no
                 certification the sentence ends at "independent", not at
                 "and  registered". */}
+            {/* AUDIT-12 decision 12 (A12-L14-W1-G3-1) — "privately held,
+                independent" is the Structure claim, so it follows Page
+                Content → Company Claims → About page facts — Structure like
+                the About fact row does: emptied, it goes; other wording is
+                shown as typed. It was the one ADM-8 location left hardcoded. */}
             IPC has stocked, cut and shipped from {site.address.street} for over
-            fifty years — privately held{site.certifications.iso
-              ? <>, independent, and {site.certifications.iso} registered.</>
-              : <> and independent.</>}{" "}
+            fifty years{(() => {
+              const iso = site.certifications.iso;
+              const typed = String((copy.claims && copy.claims.aboutStructureClaim) || "").trim();
+              const shipped = typed.toLowerCase() === COPY_DEFAULTS.claims.aboutStructureClaim.toLowerCase();
+              if (!typed) return iso ? <> and is {iso} registered.</> : ".";
+              if (shipped) return iso ? <> — privately held, independent, and {iso} registered.</> : <> — privately held and independent.</>;
+              return iso ? <> — {typed}, and {iso} registered.</> : <> — {typed}.</>;
+            })()}{" "}
             <PageLink
               page="about"
               style={{
