@@ -164,7 +164,7 @@ $SECTIONS = [
     ],
     'faq' => [
         'title'    => 'FAQ / Resources',
-        'sub'      => 'Questions on the Resources / FAQ page. Items are grouped by the Category text — reuse the exact same category name to keep questions together.',
+        'sub'      => 'Questions on the Resources / FAQ page. Items are grouped by the Category text — reuse the exact same category name to keep questions together. A question appears on the website only once both its Question and Answer are filled in.',
         'page'     => '/faq',
         'anchor'   => 'ipc-sec-faq',
         'addLabel' => 'Question',

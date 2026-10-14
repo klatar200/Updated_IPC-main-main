@@ -845,7 +845,7 @@ $navActive = 'help';
         <table class="field-ref map-ref">
           <tr><td>Banner</td><td>Page Content → <strong>FAQ page — banner</strong>. Its "Contact our team." link and the "Expand all" button are fixed.</td></tr>
           <tr><td>The category buttons and category headings</td><td>The <strong>Category</strong> box on each FAQ row, in the order they first appear. Spell a category the same way every time or it splits into two.</td></tr>
-          <tr><td>Questions and answers</td><td>Page Content → <strong>FAQ / Resources</strong>. Google is given the same list.</td></tr>
+          <tr><td>Questions and answers</td><td>Page Content → <strong>FAQ / Resources</strong>. Google is given the same list. A question shows on the website only once both its Question and Answer boxes are filled in, so you can save one now and finish the answer later.</td></tr>
           <tr><td>"Still have questions?" box</td><td>Fixed wording; hours, phone, fax and email from Business Details.</td></tr>
         </table>
 
