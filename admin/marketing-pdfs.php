@@ -19,6 +19,11 @@ require_auth();
  * - This page never deletes a file. Choosing where a PDF is used changes one
  *   value, read fresh from disk under the data lock (WHATS_LEFT §1an); Business
  *   Details and Page Content keep their own stale-tab checks.
+ * - AUDIT-12 decision 39 (A12-L3-W5-G4-1): "Take Off the Website" moves a PDF
+ *   aside to pdfs/marketing/.deleted.<name> (file_to_trash(), as Remove PDF
+ *   does for a data sheet), so a file put up by mistake stops being
+ *   downloadable. Refused while the footer catalog link or any brochure
+ *   points at it. Still nothing is erased.
  * - A damaged data file is never saved over (NEW-N2-1).
  */
 
@@ -96,6 +101,23 @@ function marketing_pdf_uses(array $info, array $content): array {
         if ($u !== '') $uses[$u][] = 'Brochure: ' . ($sv['title'] ?? 'service');
     }
     return $uses;
+}
+
+/**
+ * AUDIT-12 decision 39 — every current use of pdfs/marketing/<name>, matched on
+ * the path so "/pdfs/…", "pdfs/…" and a full https:// address all count.
+ */
+function marketing_pdf_uses_of(string $name, array $info, array $content): array {
+    $hits = [];
+    $is = static function (string $u) use ($name): bool {
+        $path = (string)parse_url($u, PHP_URL_PATH);
+        return $path !== '' && preg_match('~(^|/)pdfs/marketing/' . preg_quote($name, '~') . '$~', $path) === 1;
+    };
+    if ($is((string)($info['catalogPdfUrl'] ?? ''))) $hits[] = 'the full product catalog link in the footer';
+    foreach ((array)($content['services'] ?? []) as $sv) {
+        if (is_array($sv) && $is((string)($sv['brochure']['url'] ?? ''))) $hits[] = 'the brochure on the "' . ($sv['title'] ?? 'service') . '" service card';
+    }
+    return $hits;
 }
 
 /**
@@ -206,8 +228,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 audit_log('marketing-pdf', $action === 'use' ? $file : $target, $action === 'use' ? $file . ' now used for ' . $where : 'Stopped using a PDF for ' . $where);
                 flash_redirect($action === 'use'
                     ? $file . ' is now used for ' . $where . '. The website shows it within about a minute.'
-                    : 'Removed the PDF from ' . $where . ' (the file itself stays on the server).', 'success', 'marketing-pdfs.php');
+                    : 'Removed the PDF from ' . $where . '. The file itself is still on the server, where anyone with its address can open it — '
+                      . 'to stop that too, press Take Off the Website beside it below.', 'success', 'marketing-pdfs.php');
             }
+        }
+    } elseif ($action === 'trash') {
+        // AUDIT-12 decision 39 — both data files are read under their locks,
+        // so a Use This PDF in another tab cannot slip in between the check
+        // and the move. (No other page holds both; site-info first.)
+        data_write_lock('site-info');
+        data_write_lock('content');
+        $file = as_str($_POST['file'] ?? null);
+        $all  = marketing_pdfs();
+        if (!isset($all[$file])) {
+            $errors[] = 'That PDF is not on the server any more. Nothing was changed.';
+        } elseif (data_file_damaged(SITE_INFO_JSON) || data_file_damaged(CONTENT_JSON)) {
+            $errors[] = 'The saved business details or page content are damaged and cannot be read, so the dashboard cannot tell whether this PDF is still in use. Nothing was changed. Go to Backups and restore the most recent entry, then try again.';
+        } elseif ($usedFor = marketing_pdf_uses_of($file, load_site_info(), load_content())) {
+            $errors[] = $file . ' is still used for ' . implode(' and ', $usedFor) . '. Press Stop Using there first, then take it off the website. Nothing was changed.';
+        } elseif (!file_to_trash(MARKETING_PDF_DIR, $file)) {
+            $errors[] = write_failed_message(MARKETING_PDF_DIR, 'pdfs/marketing');
+        } else {
+            audit_log('marketing-pdf', $file, 'Took ' . $file . ' off the website (kept aside on the server as ' . TRASH_PREFIX . $file . ')');
+            flash_redirect($file . ' is off the website: its address no longer opens it. The file is kept aside on the server (as '
+                . TRASH_PREFIX . $file . '), so your developer can bring it back if it was a mistake.', 'success', 'marketing-pdfs.php');
         }
     } else {
         $errors[] = 'Unknown action.';
@@ -304,7 +348,7 @@ $targetOptions = function (bool $withNone) use ($services) {
               if ($tgt === '') foreach ($services as $i => $t) if ($label === 'Brochure: ' . $t && (($content['services'][$i]['brochure']['url'] ?? '') === $p['url'])) { $tgt = marketing_service_target((int)$i, $t); break; } ?>
               <li>✓ Used for: <?= h($label) ?>
                 <?php if ($tgt !== ''): ?>
-                <form method="POST" data-confirm="Stop using this PDF there? The link disappears from the website; the file stays on the server.">
+                <form method="POST" data-confirm="Stop using this PDF there? The link disappears from the website; the file stays on the server (Take Off the Website removes it from there too).">
                   <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>">
                   <input type="hidden" name="action" value="stop">
                   <input type="hidden" name="target" value="<?= h($tgt) ?>">
@@ -324,11 +368,23 @@ $targetOptions = function (bool $withNone) use ($services) {
             <button type="submit" class="btn btn-secondary">Use This PDF</button>
           </div>
         </form>
+        <?php /* AUDIT-12 decision 39 — only for a PDF nothing points at. */ ?>
+        <?php if (empty($uses[$p['url']])): ?>
+        <form method="POST" data-confirm="Take <?= h($name) ?> off the website? Its address stops working for everyone. The file is kept aside on the server, not erased.">
+          <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>">
+          <input type="hidden" name="action" value="trash">
+          <input type="hidden" name="file" value="<?= h($name) ?>">
+          <div class="row"><button type="submit" class="btn btn-danger">Take Off the Website</button>
+            <span class="hint" style="margin:0">Not used anywhere, but anyone with its address can still open it.</span></div>
+        </form>
+        <?php else: ?>
+        <div class="hint">To take this PDF off the website, press <strong>Stop Using</strong> for each use above first.</div>
+        <?php endif; ?>
       </div>
     <?php endforeach; ?>
   </section>
 
-  <p class="hint">Nothing on this page deletes a file from the server. The link text of a brochure is set in Page Content → Value-Added Services; <strong>Backups</strong> can put a previous choice back.</p>
+  <p class="hint">Nothing on this page erases a file: <strong>Take Off the Website</strong> moves a PDF out of reach and keeps it aside on the server. The link text of a brochure is set in Page Content → Value-Added Services; <strong>Backups</strong> can put a previous choice back (but not a PDF taken off the website — upload it again).</p>
 </main>
 <script src="confirm.js"></script>
 </body>

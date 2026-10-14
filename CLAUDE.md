@@ -161,11 +161,14 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   `admin/.pdf-renames.json` so a restore can move them back (DI-1); a restore
   records the moves it makes there too, so the restore can itself be undone
   (A12-L4-W2-G3-1).
-- **`pdfs/marketing/`** — read/write, **never delete**; created at runtime if
+- **`pdfs/marketing/`** — read/write, **never erased**; created at runtime if
   absent by `marketing-pdfs.php` (2026-10-05, G1), which stores catalog and
   brochure PDFs under a name made from the uploaded file's own name, never
   overwriting, and writes `site-info.json` `catalogPdfUrl` or one
   `content.json` `services[i].brochure` through the same `save_*()` helpers.
+  Its **Take Off the Website** renames a PDF that no current use points at to
+  `.deleted.<name>` (`file_to_trash()`, as Remove PDF; AUDIT-12 decision 39);
+  nothing prunes or restores those.
 - **`uploads/images/`** — read/write/delete; created at runtime if absent, and
   `uploads_protection_problem()` (called by `upload-image.php` and
   `site-images.php`) writes `uploads/.htaccess` if that is missing — both
