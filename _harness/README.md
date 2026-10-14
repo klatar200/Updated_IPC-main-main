@@ -176,7 +176,7 @@ like a broken selector and is not. Re-run `php _harness/setpw.php` (or
 | `plan10-header.js` | PLAN-10 item 1 / AUDIT-10 **A10-011** — the product-detail header strip gives the product's name a column of its own, on all 42 products at 390 / 834 / 1440. Asserts the title column is not starved, that no title ink paints over an action button, and that the h1 does not wrap pathologically. Every measurement is taken with the document forced to **Liberation Sans** (the C49 control), because the defect must survive the font to be real — it does. The "unchanged" half compares 834 and 1440 **per product** against `plan10-header-baseline.json`, captured from the unmodified tree: a global band is wrong here because the title column's width depends on whether the product has a PDF button |
 | `plan10-dashboard.js` | PLAN-10 item 2 / AUDIT-10 **A10-001 + A10-002** (and the C-severity **A10-015**) — `/dashboard`'s Description track stops being the only elastic column under `table-layout: fixed`. 25 checks at 390 / 834 / 1024 / 1440, each overlap count taken under the shipped face **and** Liberation Sans (the C49 control). Asserts 0 painted-text overlap pairs, a Description track ≥ 220 px, no header overprint, ≤ 4 line boxes in the first description cell, a document under 7,000 px, the table scrolling **inside its card** while `documentElement` gains no horizontal scroll, and the three `?family=` views clean too. The "unchanged" half compares 1440's column widths and all 42 mobile cards **per item** against `plan10-dashboard-baseline.json`, captured from the unmodified tree. Note the `?family=` URLs are not the audit's three: `?family=` filters on `partType`, and the audit's `Heat Shrink Tubing` matches nothing, so its table held 0 rows and proved nothing |
 | `plan10-rfqscroll.js` | PLAN-10 item 3 / AUDIT-10 **A10-012** — native constraint validation must not scroll the invalid field behind the 65 px sticky header. 24 checks: **both** `/contact` forms (the RFQ tab and the message tab, which the audit never measured) × 4 viewports × (the field is below the header, its label is too, and native validation is still what fires — `noValidate` false, `valueMissing` true, `validationMessage` intact). That last one is the mechanism check: item 3's fix is a `scroll-margin-top`, not a JS validation takeover. Labels are resolved through `.labels` on both tabs. The message tab's four labels once all carried `htmlFor="rfq-subject"`; that defect was fixed 2026-08-12 (see the suite's own comment), and the wrapper fallback is kept only as a regression detector — a run that reports `via wrapper` means it has come back |
-| `plan10-repalette.js` | PLAN-10 items 11 + 12 / AUDIT-10 **A10-045 + A10-046** — the owner's brand colours must reach the translucent accent tints and the four hardcoded navies. 33 checks over 8 page-states in **three arms**. `owner` is the real path: `/data/site-info.json` is intercepted and its `theme` rewritten, exactly as saving Business Details → Branding does, so ThemeInjector's derivation is exercised and not bypassed. `vars` is the audit's own `:root !important` drill, extended with the variables the two items create — necessary because `audit10-repalette.js`'s injection map predates them, and a custom property that is not injected cannot move. `default` asserts the shipped site does **not** change: every brand-painting element and every gradient byte-identical, **per element**, against `plan10-repalette-baseline.json` captured from the unmodified tree. Run `--save-baseline` on an unmodified tree to recapture. The named-surface probes locate the header hairline, the hero badge and the `/dashboard` chips **structurally** (class shape plus "has a tint at all"), never by the cyan value, or they would stop finding them the moment the fix worked and pass vacuously |
+| `plan10-repalette.js` | PLAN-10 items 11 + 12 / AUDIT-10 **A10-045 + A10-046** — the owner's brand colours must reach the translucent accent tints and the four hardcoded navies. 33 checks over 8 page-states in **three arms**. `owner` is the real path: `/data/site-info.json` is intercepted and its `theme` rewritten, exactly as saving Business Details → Branding does, so ThemeInjector's derivation is exercised and not bypassed. `vars` is the audit's own `:root !important` drill, extended with the variables the two items create — necessary because `audit10-repalette.js`'s injection map (retired 2026-10-14) predates them, and a custom property that is not injected cannot move. `default` asserts the shipped site does **not** change: every brand-painting element and every gradient byte-identical, **per element**, against `plan10-repalette-baseline.json` captured from the unmodified tree. Run `--save-baseline` on an unmodified tree to recapture. The named-surface probes locate the header hairline, the hero badge and the `/dashboard` chips **structurally** (class shape plus "has a tint at all"), never by the cyan value, or they would stop finding them the moment the fix worked and pass vacuously |
 | `plan10-adminrows.js` | PLAN-10 item 5 / AUDIT-10 **A10-020** — the Delete button on `/admin/index.php` must be readable and reachable. 15 checks over 4 viewports × 42 rows: clipped px against the table's **content** box (not its border box — `overflow: hidden` clips at the padding edge), the Delete label's rendered width, and `elementFromPoint` at every button's centre. Geometry alone is not enough — a button can sit inside the content box and still be covered, and "Rick can click it" is what the finding is about. 834 and 390 are asserted **unchanged** (they always scrolled in-card; the defect was specific to 1440/1024) |
 | `plan10-adminnav.js` | PLAN-10 item 6 / AUDIT-10 **A10-021** — the admin header must contain its own nav at 390. 27 checks over 4 viewports × 4 signed-in pages, `upload-image.php?sku=IP38FE` included since 2026-09-29 (nav.php is shared, and `$navExtra` means a header that fits on one page can overflow on another). Contrast is computed against the **painted** backdrop via `elementsFromPoint`, skipping only the link and its own descendants: ancestors stay eligible because hit-testing is geometric, so the header appears in the stack exactly when it really covers the point. That is the difference between a link on the bar (7.53:1) and one that has escaped below it (1.07:1) — an ancestor walk reports this finding as already fixed. Row counting clusters y-centres with an 8px tolerance, because same-row items differ in height. Also asserts the Sign Out form still carries its `csrf_token`. `upload-image.php` is the page with the most nav items (13); the count check allows each page's own `$navExtra` |
 | `plan10-helpwidth.js` | PLAN-10 item 7 / AUDIT-10 **A10-022** — `/admin/help.php` must fit a phone. 21 checks. Asserts page overflow 0 at 390, no table past the viewport without a **working** scroller (`scrollWidth > clientWidth`, not merely `overflow-x: auto`), and per-instance reachability for the 8 rows the finding names — distinguishing "painted in-viewport" from "inside a scroller", because a page can measure 0 overflow by clipping rather than by fitting. Explicitly asserts `overflow-x` is **not** `hidden` on body/html, which is the forbidden shortcut. 834/1024/1440 are asserted unchanged, including that no table starts needing to scroll |
@@ -344,40 +344,16 @@ first of each is the readable one — except `inkfix`, which corrected
 `inkpatch3`'s output and so cannot be re-derived from the files kept; its
 header says so.)
 
-## `audit10-*.js` — kept for the findings that are still open
+## `audit10-p7reverify.js` — the one AUDIT-10 probe kept
 
-Thirty-five of these survive, and **the rule that selects them is not
-chronology.** `_harness/AUDIT10-REPORT.md` carries 39 severity-C and 9
-severity-D findings, each naming the probe that measured it under **Probe:** and
-again in its **Reproduce** block. All 48 were triaged on 2026-10-06 (§1at, PR
-#77: 31 fixed, 13 declined with reasons, 4 already fixed), so none is open now;
-the probes stay as the executable form of each finding's reproduce steps — the
-evidence behind those fixes and declines. (This paragraph said "nothing has
-actioned" them until 2026-10-13.)
-
-**Their inputs are read from git.** `plans/audit10/state/` was deleted on
-2026-08-12 (1d57237), and every probe reading it (`audit10-colorclust`,
-`-copyscan`, `-facts`, `-p6hover`, `-tokens`, `-trunc`) crashed with ENOENT.
-Since AUDIT-12 (A12-L13-01-5) they read it through `audit10state.js`: a file
-in that folder wins (`audit10-stylecensus.js` regenerates `stylecensus.json`
-there), otherwise the copy committed before 1d57237 — what the AUDIT-10
-records measured. A shallow clone without that commit gets a clear exit 2.
-The admin probes now address the product editor as `edit.php?sku=CC`; they
-said `?id=CC`, which redirects to the catalog, so their "product editor" rows
-measured the product list. `audit10-p2header.js` finds the product `<h1>` again
-(it matched on `text-white`, which the title lost on 2026-09-28, and printed
-"0/0") and exits 1 when it cannot (A12-L13-02-1).
-
-So: **an `audit10-*.js` file may be deleted only once no finding in that report
-cites it.** Twenty-five were deleted on 2026-08-12 under exactly that test —
-every one of them backed a severity-A or -B finding that PLAN-10 closed and
-AUDIT-11 verified. Re-run the test before deleting any more:
-
-```sh
-for f in _harness/audit10-*.js; do
-  grep -q "$(basename "$f")" _harness/AUDIT10-REPORT.md || echo "uncited: $f"
-done
-```
+The other 34 `audit10-*.js` probes (and their `audit10state.js` reader) were
+retired on 2026-10-14 by owner decision (AUDIT-12 A12-L13-01-W5-1; WHATS_LEFT
+"AUDIT-12 owner decisions" item 45). All 48 AUDIT-10 C/D findings they backed
+were triaged on 2026-10-06 (§1at, PR #77), so the keep rule — "delete only once
+no finding in `_harness/AUDIT10-REPORT.md` cites it" — could never release any of
+them. The report still cites them by name; recover any one with
+`git show 032b751:_harness/<name>.js` (and `audit10state.js` for the six that
+read `plans/audit10/state/`).
 
 `audit10-p7reverify.js` is the one to keep regardless of that test. It is the
 audit's own before/after instrument: it flipped from demonstrating the B defects
