@@ -9465,7 +9465,13 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
           </div>
         </div>
 
-        {/* Product pills — 2-column grid */}
+        {/* Product pills — 2-column grid.
+            AUDIT-12 decision 46 (A12-L6-02-1) — on a product page only. On
+            the catalog landing (no product open) this grid listed the same
+            42 products the cards below list, and pushed the search box
+            1,690–1,985 px down on a phone or tablet. The family chips above
+            and the cards stay. */}
+        {selectedId ? (
         <div
           style={{
             display: "grid",
@@ -9541,6 +9547,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
             );
           })}
         </div>
+        ) : null}
       </div>
 
       {/* ── DESKTOP VIEW: full left sidebar ── */}
