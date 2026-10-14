@@ -613,6 +613,8 @@ $navActive = 'settings';
           <div class="form-group">
             <label for="stats_min">Minimum Order</label>
             <input type="text" id="stats_min" name="stats_min" value="<?= h($sx['minimumOrder'] ?? '') ?>" placeholder="$50" />
+            <?php /* AUDIT-12 decision 14 (A12-L8-W5-G1-3) — clearable. */ ?>
+            <div class="hint">Type the amount only, e.g. <code>$75</code> &mdash; the site adds the words &ldquo;minimum order&rdquo;. If there is no minimum, <strong>empty the box</strong>: the minimum-order sentence then disappears from the homepage, the About page, the footer and the search-engine descriptions. The Page Content rows that state it as a figure (see Help) are yours to edit.</div>
           </div>
           <div class="form-group">
             <label for="stats_feet">Feet In Stock</label>

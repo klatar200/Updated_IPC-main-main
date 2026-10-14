@@ -3648,7 +3648,9 @@ function HomePage() {
                   same-day shipping claim. It was the strongest form of it on
                   the site and the only one hardcoded here, where no admin
                   edit could reach it. */}
-              {site.stats.minimumOrder} minimum order. {site.stats.feetInStock} feet in stock.
+              {/* AUDIT-12 decision 14 (A12-L8-W5-G1-3) — Minimum Order is
+                  clearable; empty means no minimum, so the sentence goes. */}
+              {site.stats.minimumOrder ? `${site.stats.minimumOrder} minimum order. ` : ""}{site.stats.feetInStock} feet in stock.
             </h2>
             <p style={{ color: "rgba(var(--brand-header-ink-rgb), 0.75)" }} className="text-sm">
               Call <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-header-ink)", fontWeight: 600 }}>{site.contact.phone}</a>,
@@ -7129,6 +7131,12 @@ const SITE_CLEARABLE = new Set([
   // advertising Mon–Fri 8–5. Blank now withdraws the hours from StructuredData.
   "hours.opens",
   "hours.closes",
+  // AUDIT-12 decision 14 (A12-L8-W5-G1-3) — "no minimum order" is a real
+  // answer. An emptied box re-seeded "$50" everywhere, and typing "No
+  // minimum" published "No minimum minimum order." Blank now removes the
+  // minimum-order sentence: the JSX drops it, and factsRewriter() takes the
+  // shipped "$50 minimum order" wording out of stored copy.
+  "stats.minimumOrder",
 ]);
 
 function mergeSiteInfo(data) {
@@ -7354,14 +7362,26 @@ function withIsoLabel(tree, iso) {
  * from the founded year, not stored in any field, and a founded year only
  * changes to correct a typo.
  */
-function factsRewriter(site) {
+// AUDIT-12 decision 15 (A12-L8-W5-G4-1) — a sentence about the company's
+// PAST. A new City in Business Details rewrote "incorporated … in
+// Bolingbrook" and "has operated from Bolingbrook ever since" to the new town
+// — and Rick's own corrected sentence ("…in Bolingbrook, where it operated
+// until 2027, when it moved to Naperville") with it. The address rules skip
+// any sentence matching this, and the whole timeline (FACTS_HISTORY_KEYS).
+// index.php's IPC_HISTORY_SENTENCE is the same pattern.
+const HISTORY_SENTENCE = /\b(?:incorporated|founded|established|ever since|moved|relocated)\b/i;
+const FACTS_HISTORY_KEYS = new Set(["milestones"]);
+
+function factsRewriter(site, { history = false } = {}) {
   if (!site) return null;
   const D = SITE_DEFAULTS;
   const val = (v) => (typeof v === "string" ? v.trim() : v != null ? String(v).trim() : "");
   const rules = [];
   // `withPrefix`: the pattern's first group is ONE context character
   // matched in place of a lookbehind, and is put back in front of the value.
-  const add = (re, to, withPrefix = false) => rules.push([re, to, withPrefix]);
+  // `addr`: an address rule, never applied to history (decision 15).
+  let addr = false;
+  const add = (re, to, withPrefix = false) => rules.push([re, to, withPrefix, addr]);
   const lit = (s) => new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
 
   const hours = val(site.hours && site.hours.text);
@@ -7376,6 +7396,7 @@ function factsRewriter(site) {
     const c = city || D.address.city;
     const s = state || D.address.state;
     const { street: dStreet, city: dCity, state: dState, zip: dZip } = D.address;
+    addr = true;
     // Longest form first, so a shorter rule never splits a longer one.
     add(lit(`${dStreet}, ${dCity}, ${dState} ${dZip}`), `${street || dStreet}, ${c}, ${s} ${zip || dZip}`);
     add(lit(`${dCity}, ${dState} ${dZip}`), `${c}, ${s} ${zip || dZip}`);
@@ -7385,6 +7406,7 @@ function factsRewriter(site) {
     add(lit(`${dCity}, ${dState}`), `${c}, ${s}`);
     add(new RegExp(`${dCity} ${dState}\\b`, "g"), `${c} ${s}`);
     add(lit(dCity), c);
+    addr = false;
   }
 
   const year = val(site.company && site.company.foundedYear);
@@ -7397,6 +7419,18 @@ function factsRewriter(site) {
 
   const moq = val(site.stats && site.stats.minimumOrder);
   if (moq && moq !== D.stats.minimumOrder) add(new RegExp(`${lit(D.stats.minimumOrder).source}(?![\\d,]|\\.\\d)`, "g"), moq);
+  // AUDIT-12 decision 14 — an EMPTY box (clearable since then) means no
+  // minimum: the shipped wording's three forms of the claim are taken out —
+  // its own sentence, "and a $50 minimum order" and ", $50 minimum order".
+  // Rows that state it as a figure (Trust Bar Stats, Hero Proof Points, the
+  // ticker's "$50 Minimum Order", the FAQ answer) are Page Content Rick
+  // edits; Help names them. index.php's port does the same.
+  if (site.stats && typeof site.stats.minimumOrder === "string" && !moq) {
+    const m = lit(D.stats.minimumOrder).source;
+    add(new RegExp(`\\s+and an? ${m} minimum order(?=[,.;])`, "gi"), "");
+    add(new RegExp(`,\\s*${m} minimum order(?=[.;])`, "gi"), "");
+    add(new RegExp(`\\s*${m} minimum order\\.(?=\\s|$)`, "gi"), "");
+  }
 
   const feet = val(site.stats && site.stats.feetInStock);
   if (feet && feet !== D.stats.feetInStock) {
@@ -7415,7 +7449,9 @@ function factsRewriter(site) {
     if (dm) add(new RegExp(`(^|[^\\d.])${dm[1].replace(".", "\\.")}M(?=\\+|\\b)`, "g"), m ? `${m[1]}M` : feet, true);
   }
 
-  if (!rules.length) return null;
+  const past = rules.filter((r) => !r[3]);
+  const current = history ? past : rules;
+  if (!current.length) return null;
   // AUDIT-12 A12-L15-W2-G3-1 — a rule's OUTPUT is never re-read by a later
   // rule. Applied in sequence over one string, the full-address rule wrote
   // "600 Bolingbrook Dr, Romeoville…" and the bare-city rule then turned the
@@ -7424,7 +7460,8 @@ function factsRewriter(site) {
   // plain values, never replacement strings (a typed "$75" stays literal).
   // public/index.php's ipc_facts_rewriter() does the same.
   const PUA = /[\uE000-\uF8FF]/g;
-  return (text) => {
+  const run = (text, rules) => {
+    if (!rules.length) return text;
     if (PUA.test(text)) {
       PUA.lastIndex = 0;
       // Text that already holds a private-use character cannot be parked
@@ -7443,11 +7480,25 @@ function factsRewriter(site) {
     );
     return parked.length ? held.replace(PUA, (ch) => parked[ch.charCodeAt(0) - 0xe000]) : held;
   };
+  // Decision 15 — sentence by sentence only when a history sentence is there
+  // (a split on the capturing group keeps the separators at the odd indexes).
+  return (text) => {
+    if (typeof text !== "string" || current.length === past.length || !HISTORY_SENTENCE.test(text)) return run(text, current);
+    return text.split(/([.!?]\s+)/).map((seg, i) => (i % 2 ? seg : run(seg, HISTORY_SENTENCE.test(seg) ? past : current))).join("");
+  };
 }
 
 function withBusinessFacts(tree, site) {
   const rewrite = factsRewriter(site);
-  return rewrite ? mapStrings(tree, rewrite) : tree;
+  if (!rewrite) return tree;
+  if (!tree || typeof tree !== "object" || Array.isArray(tree)) return mapStrings(tree, rewrite);
+  // Decision 15 — the timeline is history: the address rules never reach it.
+  const past = factsRewriter(site, { history: true });
+  const out = {};
+  for (const k of Object.keys(tree)) {
+    out[k] = FACTS_HISTORY_KEYS.has(k) ? (past ? mapStrings(tree[k], past) : tree[k]) : mapStrings(tree[k], rewrite);
+  }
+  return out;
 }
 
 /**
@@ -7533,7 +7584,14 @@ function useSiteInfo() {
 }
 
 function SiteInfoProvider({ children }) {
-  const [info, setInfo] = useState(SITE_DEFAULTS);
+  // AUDIT-12 decision 11 (A12-L11-W3-G2-1) — start from the business details
+  // index.php embedded (SERVER_BOOT, defined with ContentProvider below), put
+  // through the same mergeSiteInfo() a fetched file gets. SITE_DEFAULTS is
+  // right only until Rick's first edit: starting from it showed the shipped
+  // phone number on every cold load, and kept it if the fetch failed.
+  const [info, setInfo] = useState(() =>
+    SERVER_BOOT && SERVER_BOOT.siteInfo ? mergeSiteInfo(SERVER_BOOT.siteInfo) : SITE_DEFAULTS,
+  );
   const apply = useCallback((data) => setInfo(mergeSiteInfo(data)), []);
   useRefetchOnReturn(SITE_INFO_URL, "site info", apply);
   return <SiteInfoContext.Provider value={info}>{children}</SiteInfoContext.Provider>;
@@ -7950,10 +8008,33 @@ const OG_CARD = {
   src: "/images/og-card.jpg", w: 1200, h: 630,
   alt: "Insulation Products Corporation — heat shrink tubing, sleeving and adhesives",
 };
-// The size DECLARED for a product photo. A12-L15-10-1: the photos are not
-// one size (286x276 to 800x634; owner uploads up to 1600 wide) and none is
-// 400x300 — whether to keep declaring this, measure, or omit it is open.
-const OG_PHOTO = { w: 400, h: 300 };
+// AUDIT-12 decision 24 (A12-L15-10-1) — a product photo's og:image size is its
+// REAL size. A fixed 400x300 was declared for photos from 286x276 to 800x634
+// (owner uploads up to 1600 wide), none of them 400x300. index.php measures
+// the file on the server (getimagesize) for unfurlers; the browser measures
+// the same file and keeps the head equal. Only a photo on this site in a
+// raster format is measured (index.php: ipc_photo_size); anything else
+// declares no size rather than a wrong one.
+const PHOTO_SIZES = new Map();   // photoUrl -> { w, h } | null (failed or pending)
+function measurablePhotoPath(src) {
+  const s = typeof src === "string" ? src.trim() : "";
+  if (!s || s.includes("placehold.co") || /^([a-z][a-z0-9+.-]*:|\/\/)/i.test(s)) return "";
+  const p = s.replace(/[?#].*$/, "");
+  if (!/\.(jpe?g|png|gif|webp)$/i.test(p) || p.includes("..")) return "";
+  return s.startsWith("/") ? s : "/" + s;
+}
+let _photoSizesSeeded = false;
+/** The known size of a photo, seeding the server's measurement on first use. */
+function knownPhotoSize(key) {
+  if (!_photoSizesSeeded) {
+    _photoSizesSeeded = true;
+    const p = SERVER_BOOT && isPlainObject(SERVER_BOOT.product) ? SERVER_BOOT.product.photoUrl : "";
+    const z = SERVER_BOOT && Array.isArray(SERVER_BOOT.photoSize) ? SERVER_BOOT.photoSize : null;
+    const k = measurablePhotoPath(p);
+    if (k && z && Number(z[0]) > 0 && Number(z[1]) > 0) PHOTO_SIZES.set(k, { w: Number(z[0]), h: Number(z[1]) });
+  }
+  return PHOTO_SIZES.get(key);
+}
 
 /**
  * PAGE_LABELS — the visible heading of the two routes with no Page Content
@@ -8303,12 +8384,66 @@ const SERVER_RENDERED_HEAD =
   typeof document !== "undefined" && !!document.getElementById("ipc-prerender");
 const LANDING_URL =
   typeof window !== "undefined" ? window.location.pathname + window.location.search : "";
+
+/**
+ * AUDIT-12 decisions 9, 10, 11 and 24 — what public/index.php already read for
+ * THIS request, handed over as a non-executing JSON block (`#ipc-boot`, written
+ * only when index.php rendered the page; the bare index.html and the dev
+ * server have none, and then everything below is null):
+ *
+ *   siteInfo   site-info.json as stored. SiteInfoProvider starts from it, so
+ *              the bundle's shipped phone number never flashes, and never
+ *              stays when /data/site-info.json fails (A12-L11-W3-G2-1).
+ *   claims     content.json's Company Claims. ContentProvider starts from
+ *              them, so a claim Rick emptied is not re-shown when
+ *              /data/content.json fails (A12-L9-W5-G3-1).
+ *   product    the catalog row the product URL names, as stored. A failed or
+ *              slow catalog download keeps that product page and its head
+ *              instead of "Catalog Unavailable" (A12-L5-W5-G3-1,
+ *              A12-L10-W5-G3-1).
+ *   photoSize  that row's photo, measured on the server (og:image size).
+ *
+ * Read once, at module evaluation, like SERVER_RENDERED_HEAD. Anything of the
+ * wrong shape is ignored: the defaults are still the fallback for nothing.
+ */
+const SERVER_BOOT = (() => {
+  if (typeof document === "undefined") return null;
+  const el = document.getElementById("ipc-boot");
+  if (!el) return null;
+  try {
+    const d = JSON.parse(el.textContent || "");
+    return d && typeof d === "object" && !Array.isArray(d) ? d : null;
+  } catch (_) {
+    return null;
+  }
+})();
+const isPlainObject = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+let _serverBootProduct;
+/** The server's product row, normalised as useProducts() normalises every row, or null. */
+function serverBootProduct() {
+  if (_serverBootProduct === undefined) {
+    const raw = SERVER_BOOT && SERVER_BOOT.product;
+    const row = isPlainObject(raw) ? normalizeProductRow(raw) : null;
+    _serverBootProduct = row && (row.sku || row.id) ? row : null;
+  }
+  return _serverBootProduct;
+}
+
 function useContent() {
   return useContext(ContentContext) || contentDefaults();
 }
 
 function ContentProvider({ children }) {
-  const [content, setContent] = useState(contentDefaults);
+  // AUDIT-12 decision 9 (A12-L9-W5-G3-1) — start from the Company Claims the
+  // server page was built from, not the shipped ones: a claim Rick emptied
+  // as untrue must not come back for a visitor whose content.json request
+  // drops. Everything else still starts from the defaults until the file
+  // arrives, as before.
+  const [content, setContent] = useState(() =>
+    SERVER_BOOT && isPlainObject(SERVER_BOOT.claims)
+      ? mergeContent({ copy: { claims: SERVER_BOOT.claims } })
+      : contentDefaults(),
+  );
   // AUDIT-12 A12-L10-W5-G3-2 — whether Rick's content.json has arrived.
   // PageMeta reads it so the head index.php already rendered from that file
   // is not replaced by the bundle's defaults while it is pending or failed.
@@ -8509,6 +8644,8 @@ function PageMeta({ products }) {
   const [productId] = useSearchParam("productId");
   const unknownRoute = useIsUnknownRoute();
   const contentStatus = useContext(ContentStatusContext);
+  // AUDIT-12 decision 24 — bumped when a product photo's size has been measured.
+  const [photoSizesSeen, setPhotoSizesSeen] = useState(0);
   useEffect(() => {
     const list = Array.isArray(seo) ? seo : [];
     const key = page || "home";
@@ -8758,13 +8895,38 @@ function PageMeta({ products }) {
     const ogImage = photo || SITE_ORIGIN + OG_CARD.src;
     setMeta("property", "og:image", ogImage);
     // Declared so the first share renders without the crawler fetching the file
-    // to measure it. (This said the per-product photos are all 400x300 source
-    // art; none is — see OG_PHOTO, A12-L15-10-1.)
-    setMeta("property", "og:image:width", photo ? String(OG_PHOTO.w) : String(OG_CARD.w));
-    setMeta("property", "og:image:height", photo ? String(OG_PHOTO.h) : String(OG_CARD.h));
+    // to measure it — the photo's REAL size (AUDIT-12 decision 24): measured
+    // here once per photo, seeded with index.php's measurement of the landing
+    // product. Until it is known, or when it cannot be (not a raster file on
+    // this site, or it failed to load), no size is declared, as index.php does.
+    let size = photo ? null : { w: OG_CARD.w, h: OG_CARD.h };
+    if (photo) {
+      const key = measurablePhotoPath(matched.photoUrl);
+      if (key) {
+        size = knownPhotoSize(key) || null;
+        if (!PHOTO_SIZES.has(key) && typeof Image !== "undefined") {
+          PHOTO_SIZES.set(key, null);
+          const img = new Image();
+          img.onload = () => {
+            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+              PHOTO_SIZES.set(key, { w: img.naturalWidth, h: img.naturalHeight });
+              setPhotoSizesSeen((n) => n + 1);
+            }
+          };
+          img.src = key;
+        }
+      }
+    }
+    if (size) {
+      setMeta("property", "og:image:width", String(size.w));
+      setMeta("property", "og:image:height", String(size.h));
+    } else {
+      document.querySelector('meta[property="og:image:width"]')?.remove();
+      document.querySelector('meta[property="og:image:height"]')?.remove();
+    }
     // A12-L10-01-2 — the alt describes the image actually declared.
     setMeta("property", "og:image:alt", photo ? (String(matched.name || "").trim() || String(matched.sku || "").trim()) : OG_CARD.alt);
-  }, [page, productId, products, site, seo, copy, unknownRoute, contentStatus]);
+  }, [page, productId, products, site, seo, copy, unknownRoute, contentStatus, photoSizesSeen]);
   return null;
 }
 
@@ -14902,6 +15064,22 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
+  // AUDIT-12 decision 10 (A12-L5-W5-G3-1, A12-L10-W5-G3-1) — a product URL
+  // whose catalog download is still on its way, failed, or stalled past the
+  // 12 s abort keeps the product index.php already sent (SERVER_BOOT): its
+  // page, its Datasheet and quote links, and its head. "Catalog Unavailable"
+  // and the generic PUB-2 head were thrown at a buyer who had every byte of
+  // that product. Only for the product the server matched — any other
+  // product, the landing grid and the other catalog routes still need the
+  // catalog — and only until the real catalog arrives.
+  const bootRow = serverBootProduct();
+  const serverProduct =
+    page === "products" && productParam && (loading || error) && bootRow &&
+    findProductByParam([bootRow], productParam)
+      ? [bootRow]
+      : null;
+  const pageProducts = serverProduct || products;
+
   const renderPage = () => {
     // A5 — an unrecognised segment is a 404, not the homepage.
     //
@@ -14921,7 +15099,7 @@ function App() {
       case "about":
         return <AboutPage />;
       case "products":
-        return <ProductPage products={products} />;
+        return <ProductPage products={pageProducts} />;
       case "industries":
         return <IndustriesPage />;
       case "services":
@@ -14944,7 +15122,7 @@ function App() {
       <ContentProvider>
         <ThemeInjector />
         <StructuredData />
-        <PageMeta products={products} />
+        <PageMeta products={pageProducts} />
         <div
           className="min-h-screen flex flex-col"
           style={{ background: "#f5f7fa" }}
@@ -14973,9 +15151,9 @@ function App() {
               links look implemented and not work. */}
           <main className="flex-1" id="ipc-main" tabIndex={-1} style={{ outline: "none" }}>
             <ErrorBoundary key={page} resetKey={productParam || ""}>
-              {needsCatalog && loading ? (
+              {needsCatalog && loading && !serverProduct ? (
                 <CatalogSkeleton page={page} />
-              ) : needsCatalog && error ? (
+              ) : needsCatalog && error && !serverProduct ? (
                 <CatalogError error={error} />
               ) : (
                 renderPage()

@@ -9,7 +9,12 @@
  *
  *   1. the head: <title>, description, canonical, robots and og:* for THIS
  *      route and THIS product, instead of the homepage's for every URL;
- *   2. a plain-HTML body inside #root for clients that do not run JavaScript.
+ *   2. a plain-HTML body inside #root for clients that do not run JavaScript;
+ *   3. #ipc-boot, a non-executing JSON block in the head with what this
+ *      request read — the stored business details, the Company Claims, and on
+ *      a product URL the product row and its photo's size — so the browser
+ *      starts from Rick's data instead of the bundle's shipped copy, and keeps
+ *      it when its own /data/ request fails (AUDIT-12 decisions 9, 10, 11, 24).
  *
  * ── Why ─────────────────────────────────────────────────────────────────────
  *
@@ -51,7 +56,6 @@ const IPC_ORIGIN = 'https://www.insulationproducts.com';
 const IPC_META_TITLE_MAX = 60;
 const IPC_META_DESC_MAX = 160;
 const IPC_OG_CARD = ['/images/og-card.jpg', 1200, 630];
-const IPC_OG_PHOTO = [400, 300];
 const IPC_OG_CARD_ALT = 'Insulation Products Corporation — heat shrink tubing, sleeving and adhesives';
 
 /** SEO_DEFAULT in src/App.jsx — the ten routes and their default head copy. */
@@ -246,7 +250,8 @@ function ipc_fit_product_title($label, $sku, $company, $shortName)
 function ipc_merge_site(array $data)
 {
     $out = ipc_site_defaults();
-    $clearable = ['contact.fax' => 1, 'company.shortName' => 1, 'certifications.iso' => 1];
+    // stats.minimumOrder: AUDIT-12 decision 14 — empty means no minimum.
+    $clearable = ['contact.fax' => 1, 'company.shortName' => 1, 'certifications.iso' => 1, 'stats.minimumOrder' => 1];
     foreach ($out as $section => $fields) {
         $v = isset($data[$section]) && is_array($data[$section]) ? $data[$section] : [];
         foreach ($fields as $key => $dflt) {
@@ -336,11 +341,19 @@ function ipc_iso_rewriter($iso)
     };
 }
 
+/**
+ * HISTORY_SENTENCE in src/App.jsx (AUDIT-12 decision 15, A12-L8-W5-G4-1): a
+ * sentence about the company's past, which a new City never rewrites.
+ */
+const IPC_HISTORY_SENTENCE = '/\b(?:incorporated|founded|established|ever since|moved|relocated)\b/i';
+
 /** factsRewriter() — a callable, or null when no fact has moved off its shipped value. */
 function ipc_facts_rewriter(array $site)
 {
     $D = ipc_site_defaults();
     $rules = [];
+    // A rule whose third element is true is an address rule (decision 15): a
+    // history sentence is rewritten without it.
     $lit = function ($s) { return '/' . preg_quote($s, '/') . '/u'; };
     $val = function ($v) { return ipc_trim(ipc_str($v)); };
 
@@ -358,12 +371,12 @@ function ipc_facts_rewriter(array $site)
         $c = $city !== '' ? $city : $dA['city'];
         $s = $state !== '' ? $state : $dA['state'];
         $z = $zip !== '' ? $zip : $dA['zip'];
-        $rules[] = [$lit("{$dA['street']}, {$dA['city']}, {$dA['state']} {$dA['zip']}"), ($street !== '' ? $street : $dA['street']) . ", $c, $s $z"];
-        $rules[] = [$lit("{$dA['city']}, {$dA['state']} {$dA['zip']}"), "$c, $s $z"];
-        $rules[] = [$lit("{$dA['city']}, Illinois"), "$c, " . ($s === $dA['state'] ? 'Illinois' : $s)];
-        $rules[] = [$lit("{$dA['city']}, {$dA['state']}"), "$c, $s"];
-        $rules[] = ['/' . preg_quote("{$dA['city']} {$dA['state']}", '/') . '\b/u', "$c $s"];
-        $rules[] = [$lit($dA['city']), $c];
+        $rules[] = [$lit("{$dA['street']}, {$dA['city']}, {$dA['state']} {$dA['zip']}"), ($street !== '' ? $street : $dA['street']) . ", $c, $s $z", true];
+        $rules[] = [$lit("{$dA['city']}, {$dA['state']} {$dA['zip']}"), "$c, $s $z", true];
+        $rules[] = [$lit("{$dA['city']}, Illinois"), "$c, " . ($s === $dA['state'] ? 'Illinois' : $s), true];
+        $rules[] = [$lit("{$dA['city']}, {$dA['state']}"), "$c, $s", true];
+        $rules[] = ['/' . preg_quote("{$dA['city']} {$dA['state']}", '/') . '\b/u', "$c $s", true];
+        $rules[] = [$lit($dA['city']), $c, true];
     }
 
     $year = $val($site['company']['foundedYear']);
@@ -374,6 +387,15 @@ function ipc_facts_rewriter(array $site)
     $moq = $val($site['stats']['minimumOrder']);
     if ($moq !== '' && $moq !== $D['stats']['minimumOrder']) {
         $rules[] = ['/' . preg_quote($D['stats']['minimumOrder'], '/') . '(?![\d,]|\.\d)/u', $moq];
+    }
+    // AUDIT-12 decision 14 — an emptied box: no minimum-order sentence
+    // (factsRewriter() in App.jsx; the same three forms).
+    if (is_string($site['stats']['minimumOrder']) && $moq === '') {
+        $m = preg_quote($D['stats']['minimumOrder'], '/');
+        $ws = '[' . IPC_WS . ']';
+        $rules[] = ['/' . $ws . '+and an? ' . $m . ' minimum order(?=[,.;])/iu', ''];
+        $rules[] = ['/,' . $ws . '*' . $m . ' minimum order(?=[.;])/iu', ''];
+        $rules[] = ['/' . $ws . '*' . $m . ' minimum order\.(?=' . $ws . '|$)/iu', ''];
     }
 
     $feet = $val($site['stats']['feetInStock']);
@@ -394,12 +416,16 @@ function ipc_facts_rewriter(array $site)
     if (!$rules) {
         return null;
     }
+    $past = array_values(array_filter($rules, function ($r) { return empty($r[2]); }));
     // AUDIT-12 A12-L15-W2-G3-1 — a rule's OUTPUT is never re-read by a later
     // rule (factsRewriter() in App.jsx does the same): each replacement is
     // parked behind a private-use placeholder until every rule has run, or the
     // bare-city rule rewrote a new street named after the old city.
     $pua = '/[\x{E000}-\x{F8FF}]/u';
-    return function ($text) use ($rules, $pua) {
+    $run = function ($text, array $rules) use ($pua) {
+        if (!$rules) {
+            return $text;
+        }
         if (is_string($text) && preg_match($pua, $text)) {
             foreach ($rules as $r) {
                 $to = $r[1];
@@ -424,6 +450,19 @@ function ipc_facts_rewriter(array $site)
             $cp = ((ord($b[0]) & 0x0F) << 12) | ((ord($b[1]) & 0x3F) << 6) | (ord($b[2]) & 0x3F);
             return $parked[$cp - 0xE000];
         }, $text);
+    };
+    // Decision 15 — sentence by sentence only when a history sentence is there.
+    return function ($text) use ($run, $rules, $past) {
+        if (!is_string($text) || count($past) === count($rules) || !preg_match(IPC_HISTORY_SENTENCE, $text)) {
+            return $run($text, $rules);
+        }
+        $parts = preg_split('/([.!?][' . IPC_WS . ']+)/u', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+        foreach ($parts as $i => $seg) {
+            if ($i % 2 === 0) {
+                $parts[$i] = $run($seg, preg_match(IPC_HISTORY_SENTENCE, $seg) ? $past : $rules);
+            }
+        }
+        return implode('', $parts);
     };
 }
 
@@ -486,7 +525,7 @@ function ipc_find_product(array $products, $raw)
  * The catalog as useProducts() sees it (normalizeProductRow + the sku||id
  * filter), or null when it cannot be read — the browser's "not loaded".
  */
-function ipc_load_products($file)
+function ipc_load_products($file, &$rawText = null)
 {
     // A12-L15-17-3 — `@` does not stop the error handler below from throwing,
     // so an unreadable (mode 000) catalog threw out of the whole page and the
@@ -496,6 +535,7 @@ function ipc_load_products($file)
     } catch (Throwable $e) {
         $raw = false;
     }
+    $rawText = $raw === false ? null : ipc_strip_bom($raw);
     $data = $raw === false ? null : json_decode(ipc_strip_bom($raw), true);
     if (is_array($data) && isset($data['products'])) {
         $data = is_array($data['products']) ? $data['products'] : null;
@@ -504,11 +544,12 @@ function ipc_load_products($file)
         return null;
     }
     $out = [];
-    foreach ($data as $p) {
+    foreach ($data as $i => $p) {
         if (!is_array($p) || (array_keys($p) === range(0, count($p) - 1) && $p)) {
             continue;
         }
-        $row = [];
+        // The row's place in the file, for the #ipc-boot copy of the stored row.
+        $row = ['_i' => $i];
         foreach (['id', 'sku', 'name', 'partType', 'specificationsSummary', 'photoUrl', 'pdfUrl', 'pdfLabel'] as $k) {
             $row[$k] = isset($p[$k]) ? ipc_str($p[$k]) : '';
         }
@@ -573,12 +614,13 @@ function ipc_query_param($uri, $name)
     return null;
 }
 
-function ipc_load_json($file)
+function ipc_load_json($file, &$rawText = null)
 {
     $raw = is_file($file) ? @file_get_contents($file) : false;
     if ($raw === false || $raw === '') {
         throw new RuntimeException('unreadable: ' . basename($file));
     }
+    $rawText = ipc_strip_bom($raw);
     $data = json_decode(ipc_strip_bom($raw), true);
     if (!is_array($data)) {
         throw new RuntimeException('unparseable: ' . basename($file));
@@ -611,6 +653,42 @@ function ipc_product_image_abs($src)
 }
 
 /**
+ * AUDIT-12 decision 24 (A12-L15-10-1) — a product photo's real size, for
+ * og:image:width/height, or null. Only a photo on this site (a path, not an
+ * address on another host) in a raster format, inside the document root, is
+ * measured; anything else declares no size rather than a wrong one. The
+ * browser's measurablePhotoPath() in src/App.jsx takes the same set, and
+ * measures the same file, so the two heads agree.
+ */
+function ipc_photo_size($src, $docRoot)
+{
+    $s = ipc_trim(ipc_str($src));
+    if ($s === '' || strpos($s, 'placehold.co') !== false || preg_match('#^([a-z][a-z0-9+.-]*:|//)#i', $s)) {
+        return null;
+    }
+    $path = (string)preg_replace('/[?#].*$/s', '', $s);
+    if (!preg_match('/\.(jpe?g|png|gif|webp)$/i', $path) || strpos($path, '..') !== false) {
+        return null;
+    }
+    $path = rawurldecode('/' . ltrim($path, '/'));
+    if (strpos($path, '..') !== false || strpos($path, "\0") !== false) {
+        return null;
+    }
+    $file = rtrim($docRoot, '/') . $path;
+    $root = realpath($docRoot);
+    $real = is_file($file) ? realpath($file) : false;
+    if ($root === false || $real === false || strpos($real, $root . DIRECTORY_SEPARATOR) !== 0) {
+        return null;
+    }
+    $info = @getimagesize($real);
+    if (!is_array($info) || empty($info[0]) || empty($info[1])
+        || !in_array($info[2], [IMAGETYPE_GIF, IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+        return null;
+    }
+    return [(int)$info[0], (int)$info[1]];
+}
+
+/**
  * The default SEO description of a route (SEO_DEFAULT) as a fallback, put
  * through the same ISO and business-facts rewrite as the stored rows, and
  * without its ISO sentence when the ISO box is empty (A12-L5-W2-G3-1).
@@ -639,7 +717,8 @@ function ipc_canonical($key, $productId)
  */
 function ipc_route_state($uri, $dataDir)
 {
-    $site = ipc_merge_site(ipc_load_json($dataDir . 'site-info.json'));
+    $siteRaw = null;
+    $site = ipc_merge_site(ipc_load_json($dataDir . 'site-info.json', $siteRaw));
     $content = ipc_load_json($dataDir . 'content.json');
 
     $path = (string)parse_url($uri, PHP_URL_PATH);
@@ -680,7 +759,8 @@ function ipc_route_state($uri, $dataDir)
     $productAxis = $key === 'products';
     // The catalog is also listed in the no-JS body of the Product Index and
     // Datasheets pages (A12-L6-03-2, A12-L6-04-2); only /products matches on it.
-    $products = ($productAxis || $key === 'dashboard' || $key === 'datasheets') ? ipc_load_products($dataDir . 'products-all.json') : null;
+    $productsRaw = null;
+    $products = ($productAxis || $key === 'dashboard' || $key === 'datasheets') ? ipc_load_products($dataDir . 'products-all.json', $productsRaw) : null;
     $catalogLoaded = $products !== null;
     $matched = ($productAxis && $productId !== '' && $catalogLoaded) ? ipc_find_product($products, $productId) : null;
     $pendingProduct = $productAxis && $productId !== '' && !$catalogLoaded;
@@ -738,8 +818,36 @@ function ipc_route_state($uri, $dataDir)
 
     $photo = $matched ? ipc_product_image_abs($matched['photoUrl']) : '';
     $photoAlt = '';
+    $photoSize = null;
     if ($photo !== '') {
         $photoAlt = ipc_trim($matched['name']) !== '' ? ipc_trim($matched['name']) : ipc_trim($matched['sku']);
+        $photoSize = ipc_photo_size($matched['photoUrl'], dirname($dataDir));
+    }
+
+    // AUDIT-12 decisions 9, 10, 11 and 24 — what this request already read,
+    // for the browser to start from (SERVER_BOOT in src/App.jsx): the stored
+    // business details, the stored Company Claims, and on a product URL the
+    // stored row and its photo's size. Re-decoded as objects, so an empty
+    // {} stays an object and the browser merges exactly what a fetch returns.
+    $boot = [];
+    $si = is_string($siteRaw) ? json_decode($siteRaw) : null;
+    if (is_object($si)) {
+        $boot['siteInfo'] = $si;
+    }
+    if (isset($content['copy']['claims']) && is_array($content['copy']['claims'])) {
+        $boot['claims'] = (object)$content['copy']['claims'];
+    }
+    if ($matched && !$unknownRoute && is_string($productsRaw)) {
+        $all = json_decode($productsRaw);
+        if (is_object($all) && isset($all->products)) {
+            $all = $all->products;
+        }
+        if (is_array($all) && isset($all[$matched['_i']]) && is_object($all[$matched['_i']])) {
+            $boot['product'] = $all[$matched['_i']];
+            if ($photoSize !== null) {
+                $boot['photoSize'] = $photoSize;
+            }
+        }
     }
 
     return [
@@ -752,7 +860,11 @@ function ipc_route_state($uri, $dataDir)
         // null = no canonical and no og:url; '' never happens
         'canonical' => ($unknownRoute || $unknownProduct || $pendingProduct) ? null : ipc_canonical($key, $matched ? $matched['id'] : null),
         'noindex' => $unknownRoute || $unknownProduct,
-        'ogImage' => $photo !== '' ? [$photo, IPC_OG_PHOTO[0], IPC_OG_PHOTO[1], $photoAlt] : [IPC_ORIGIN . IPC_OG_CARD[0], IPC_OG_CARD[1], IPC_OG_CARD[2], IPC_OG_CARD_ALT],
+        // A product photo's size is null when it cannot be measured: no size is declared.
+        'ogImage' => $photo !== ''
+            ? [$photo, $photoSize ? $photoSize[0] : null, $photoSize ? $photoSize[1] : null, $photoAlt]
+            : [IPC_ORIGIN . IPC_OG_CARD[0], IPC_OG_CARD[1], IPC_OG_CARD[2], IPC_OG_CARD_ALT],
+        'boot' => $boot,
         'unknown' => $unknownRoute || $unknownProduct,
         'products' => $products,
         'matched' => $unknownRoute ? null : $matched,
@@ -782,8 +894,10 @@ function ipc_render_head($html, array $st)
     $html = ipc_replace_one(ipc_meta_re('property', 'og:title'), '<meta property="og:title" content="' . ipc_h($st['title']) . '" />', $html);
     $html = ipc_replace_one(ipc_meta_re('property', 'og:description'), '<meta property="og:description" content="' . ipc_h($st['desc']) . '" />', $html);
     $html = ipc_replace_one(ipc_meta_re('property', 'og:image'), '<meta property="og:image" content="' . ipc_h($st['ogImage'][0]) . '" />', $html);
-    $html = ipc_replace_one(ipc_meta_re('property', 'og:image:width'), '<meta property="og:image:width" content="' . $st['ogImage'][1] . '" />', $html);
-    $html = ipc_replace_one(ipc_meta_re('property', 'og:image:height'), '<meta property="og:image:height" content="' . $st['ogImage'][2] . '" />', $html);
+    $html = ipc_replace_one(ipc_meta_re('property', 'og:image:width'),
+        $st['ogImage'][1] === null ? '' : '<meta property="og:image:width" content="' . (int)$st['ogImage'][1] . '" />', $html);
+    $html = ipc_replace_one(ipc_meta_re('property', 'og:image:height'),
+        $st['ogImage'][2] === null ? '' : '<meta property="og:image:height" content="' . (int)$st['ogImage'][2] . '" />', $html);
     // A12-L10-01-2 — the alt describes the image actually declared.
     $html = ipc_replace_one(ipc_meta_re('property', 'og:image:alt'), '<meta property="og:image:alt" content="' . ipc_h($st['ogImage'][3]) . '" />', $html);
     // A12-L10-01-3 — the browser-bar colour follows Business Details' Dark colour.
@@ -799,6 +913,17 @@ function ipc_render_head($html, array $st)
     }
     if ($st['noindex']) {
         $extra .= '<meta name="robots" content="noindex" />' . "\n";
+    }
+    // #ipc-boot (see ipc_route_state). Not executed, and every "<", ">" and
+    // "&" is \u-escaped, so nothing in the data can close the element. If it
+    // cannot be encoded the page is served without it: the browser then
+    // starts from its defaults, as it always did.
+    if (!empty($st['boot'])) {
+        $json = json_encode($st['boot'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+            | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if (is_string($json)) {
+            $extra .= '<script type="application/json" id="ipc-boot">' . $json . '</script>' . "\n";
+        }
     }
     return ipc_replace_one('#</head>#', $extra . '</head>', $html);
 }

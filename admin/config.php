@@ -1406,7 +1406,8 @@ function approval_patterns_json_tag(): string {
 // Business Details box is left empty (App.jsx SITE_DEFAULTS; mergeSiteInfo()
 // drops blanks, invariant 4), keyed by settings.php input id, for the live
 // preview. Only fields that fall back; fax, slogan, short name and the social
-// links — and, since §1aq, the ISO box — are clearable and really do
+// links — and, since §1aq, the ISO box, and since AUDIT-12 decision 14 the
+// Minimum Order box — are clearable and really do
 // disappear; an empty click-to-call box is
 // worked out from the phone on save, not defaulted. _harness/adminaudit11.js
 // compares every entry with SITE_DEFAULTS.
@@ -1420,7 +1421,6 @@ const SITE_INFO_PREVIEW_DEFAULTS = [
     'addr_state'          => 'IL',
     'addr_zip'            => '60440',
     'hours_text'          => 'Mon–Fri, 8am–5pm CT',
-    'stats_min'           => '$50',
     'stats_feet'          => '25 million',
 ];
 
