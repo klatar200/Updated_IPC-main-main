@@ -2179,6 +2179,26 @@ function ipc_ink_for($backgrounds): string {
     return $worst(IPC_INK_LIGHT) >= $worst(IPC_INK_DARK) ? IPC_INK_LIGHT : IPC_INK_DARK;
 }
 
+/**
+ * AUDIT-12 decision 49 (A12-L7-W3-G3-4) — MIRRORS shadeOf() in src/App.jsx's
+ * ThemeInjector (and shadeOf() in contrast-guard.js): a derived shade of an
+ * owner colour. The shipped base gives the literal; any other base is scaled
+ * by ONE factor (the mean of the literal's per-channel ratios), keeping its
+ * hue. Used for --brand-dark-2, the dark end of the product page's title band.
+ */
+function ipc_shade_of(string $base, string $shippedBase, string $literal): string {
+    $b = ipc_parse_hex_color($base);
+    $s = ipc_parse_hex_color($shippedBase);
+    $l = ipc_parse_hex_color($literal);
+    if ($b === null || $s === null || $l === null) return $literal;
+    if ($b === $s) return sprintf('#%02x%02x%02x', $l[0], $l[1], $l[2]);
+    $defined = [];
+    foreach ([0, 1, 2] as $i) if ($s[$i] !== 0) $defined[] = $l[$i] / $s[$i];
+    $k = $defined ? array_sum($defined) / count($defined) : 1;
+    $out = array_map(static fn($c) => max(0, min(255, (int)floor($c * $k + 0.5))), $b);
+    return sprintf('#%02x%02x%02x', $out[0], $out[1], $out[2]);
+}
+
 // ─── Does a product reference resolve on the public site? ───────────────────
 // MIRRORS src/App.jsx:6155-6188. The two must agree — if the React lookup
 // changes, change this with it.

@@ -90,6 +90,18 @@
     };
   }
 
+  // MIRRORS shadeOf() in src/App.jsx and ipc_shade_of() in config.php: the
+  // product title band's dark end (--brand-dark-2). AUDIT-12 decision 49.
+  function shadeOf(base, shippedBase, literal) {
+    var b = parseHex(base), s = parseHex(shippedBase), l = parseHex(literal);
+    if (!b || !s || !l) return literal;
+    var hex = function (c) { return "#" + c.map(function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); };
+    if (b[0] === s[0] && b[1] === s[1] && b[2] === s[2]) return hex(l);
+    var defined = [0, 1, 2].filter(function (i) { return s[i] !== 0; }).map(function (i) { return l[i] / s[i]; });
+    var k = defined.length ? defined.reduce(function (a, x) { return a + x; }, 0) / defined.length : 1;
+    return hex(b.map(function (c) { return Math.max(0, Math.min(255, Math.round(c * k))); }));
+  }
+
   function val(id) {
     var el = document.getElementById(id);
     return el ? el.value : "";
@@ -112,6 +124,8 @@
     // The page banners are a gradient primary -> accent-2; one ink must work at
     // both ends, so the note is scored on the worse of the two.
     paint("cnote_header", [primary, accent2], "the page banners");
+    paint("cnote_prodhead", [shadeOf(dark, "#0d2d52", "#0a2a52"), primary],
+      "the band behind each product's name, from Dark to Primary");
   }
 
   function wire() {
