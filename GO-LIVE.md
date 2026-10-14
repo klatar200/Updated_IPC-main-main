@@ -347,7 +347,14 @@ pointing at a file that does not exist.
        carries them. `data/.htaccess` alone holds the
        `AddType application/json` that the site's `jsonOrThrow()` requires and
        the `X-Robots-Tag: noindex` half of the A-5.2 fix.
-9. [ ] **`index.html` → `public_html/` — LAST**
+9. [ ] **Do B3 (Permissions) now, then `index.html` → `public_html/` — LAST.**
+       Step 9 is the moment the site goes public, and from then on every quote
+       request is written to `admin/inquiries.jsonl`. If `admin/` is not yet
+       writable by PHP, those leads are emailed but never reach Admin →
+       Inquiries, and the "log failed" marker lives in the same unwritable
+       folder, so nothing ever says they are missing (AUDIT-12
+       A12-L2-W5-G2-1). On a re-deploy the permissions are already set;
+       glance at the B3 table and go straight on.
 10. [ ] **After C has passed — re-check `/site/` for owner edits, then delete
         `public_html/site/`.** The triage was 2026-09-15; anything saved there
         since would be lost with the folder. First download
@@ -365,6 +372,10 @@ pointing at a file that does not exist.
         eight URLs. `audit-runs/live-triage-2026-09-15.md`.
 
 ### B3. Permissions
+
+Done **inside B2, before step 9** — not after it. On a first deploy the folders
+exist from step 7, so this is the first moment it can be done and the last
+moment it is safe to.
 
 | Path | Mode | Why |
 |---|---|---|

@@ -85,7 +85,7 @@ not yet in the email.)
 | **Upload `index.php` before `.htaccess`** | The new `.htaccess` sends every page to `index.php` (A-5.10) |
 | `noreply@` mailbox; SPF / DKIM / DMARC; then `IPC_ENVELOPE_FROM` | In that order. Setting the envelope sender before SPF is right breaks every notification (DEP-2). |
 | TRACE off | A host setting; `.htaccess` cannot do it |
-| `admin/`, `data/`, `pdfs/`, `uploads/` writable by PHP | README "Permissions". The dashboard shows a banner when they are not. |
+| `admin/`, `data/`, `pdfs/`, `uploads/` writable by PHP | README "Permissions". Done before `index.html` goes up (GO-LIVE B2 step 9, AUDIT-12 decision 41). The dashboard shows a banner when they are not. |
 
 ## Open — ready to run
 
