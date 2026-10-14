@@ -128,6 +128,7 @@
   --brand-accent-on-dark: #119ec8;
   --brand-accent-on-footer: #119ec8;
   --brand-accent1-on-dark: #00bef2;
+  --brand-accent1-on-drawer: #00bef2; /* AUDIT-12 decision 51 — solved on the drawer */
 }
 
 /* Ink utilities, for elements that set their color through a class rather than

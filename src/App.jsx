@@ -1560,7 +1560,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                         style={{
                           fontSize: 13,
                           fontWeight: 600,
-                          color: currentPage === item.p ? "var(--brand-accent1-on-dark)" : "rgb(var(--brand-drawer-ink-rgb))",
+                          color: currentPage === item.p ? "var(--brand-accent1-on-drawer)" : "rgb(var(--brand-drawer-ink-rgb))",
                         }}
                       >
                         {item.label}
@@ -1720,7 +1720,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontSize: 13,
                           fontWeight: 600,
                           color:
-                            currentPage === item.page ? "var(--brand-accent1-on-dark)" : "rgb(var(--brand-drawer-ink-rgb))",
+                            currentPage === item.page ? "var(--brand-accent1-on-drawer)" : "rgb(var(--brand-drawer-ink-rgb))",
                         }}
                       >
                         {item.label}
@@ -9245,6 +9245,12 @@ function ThemeInjector() {
     root.style.setProperty("--brand-drawer-ink-rgb", inkRgb(inkFor(hexOf(darkDrawer))));
     const drawerHex = hexOf(darkDrawer);
     for (const a of [30, 40, 65, 70]) root.style.setProperty(`--brand-drawer-muted-${a}`, mutedOn(drawerHex, inkFor(drawerHex), a / 100));
+    // AUDIT-12 decision 51 — the phone menu's CURRENT sub-link is the accent
+    // as text on the drawer, so it is solved against the drawer surface, as
+    // --brand-drawer-ink is. --brand-accent1-on-dark is solved against
+    // --brand-dark: on a pale Dark colour (#d0dcea) it fell to 2.96:1 in the
+    // drawer. The shipped palette is unchanged (#00bef2 either way).
+    root.style.setProperty("--brand-accent1-on-drawer", textSafeOn(accent, drawerHex, DARK_TARGET));
     root.style.setProperty("--brand-deep-ink-rgb", inkRgb(deepInk));
     root.style.setProperty("--brand-hero-ink-rgb", inkRgb(heroInk));
     // §1as — the hero's small text sits on the scrim at any point along it,
