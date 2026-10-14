@@ -22,6 +22,10 @@
  *   clear     emptied values REMOVE: rows, the panel, the sub-line, the
  *             sentences, the JSON-LD keys — and stay empty on reload
  *   body      a cleared panel text keeps the heading
+ *   band      the homepage band's "privately held, independent" is the
+ *             Structure claim: shipped wording by default, the typed wording
+ *             after an edit, and gone when it is emptied (AUDIT-12 decision
+ *             12, A12-L14-W1-G3-1 — the one ADM-8 place left hardcoded)
  *
  * Own `php -S` on :8746 over the mirror (npm run build && sh _harness/sync.sh
  * first). Restores the mirror's content.json from _harness/pristine/.
@@ -79,6 +83,11 @@ async function surfaces(browser) {
     await page.waitForTimeout(300);
   };
   const out = {};
+  await go('/');
+  out.band = await page.evaluate(() => {
+    const p = [...document.querySelectorAll('p')].find((x) => /IPC has stocked, cut and shipped from/.test(x.textContent));
+    return p ? p.textContent.replace(/\s+/g, ' ').replace(/\s*More about IPC →\s*$/, '').trim() : null;
+  });
   await go('/about');
   out.aboutRows = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.space-y-3 > div')]
     .map((d) => [...d.querySelectorAll('span')].map((s) => s.textContent.trim()))
@@ -173,6 +182,8 @@ const footerText = (...parts) => parts.filter(Boolean).join(' ');
     let s = await surfaces(browser);
     note(s.aboutRows.Structure === 'Privately Held' && s.aboutRows['Custom Lead Time'] === '≤ 1 week'
       && s.aboutRows['PPAP / IMDS'] === 'Available on request', 'default: the three About rows read as before', JSON.stringify(s.aboutRows));
+    note(/for over fifty years — privately held, independent, and ISO 9001 registered\.$/.test(s.band || ''),
+      'band: by default the homepage band says "privately held, independent" as before (decision 12)', JSON.stringify(s.band));
     note(s.ppap && s.ppap.title === JS.industriesPpapTitleClaim && s.ppap.body.replace(/\s+/g, ' ').trim() === JS.industriesPpapBodyClaim,
       'default: the Industries PPAP panel reads as before', JSON.stringify(s.ppap));
     note(s.services && s.services.endsWith('All fabrication services listed below. Rush service available — contact sales for details.'),
@@ -206,6 +217,8 @@ const footerText = (...parts) => parts.filter(Boolean).join(' ');
     s = await surfaces(browser);
     note(s.aboutRows.Structure === 'Family Owned' && s.aboutRows['Custom Lead Time'] === '2 weeks' && s.aboutRows['PPAP / IMDS'] === 'By arrangement',
       'edit: the About rows show the typed values', JSON.stringify(s.aboutRows));
+    note(/for over fifty years — Family Owned, and ISO 9001 registered\.$/.test(s.band || '') && !/privately held/i.test(s.band || ''),
+      'band: the homepage band follows the typed Structure claim (decision 12)', JSON.stringify(s.band));
     note(s.ppap && s.ppap.title === 'Automotive Paperwork' && s.ppap.body.trim() === 'Ask sales about PPAP.', 'edit: the Industries panel shows the typed heading and text', JSON.stringify(s.ppap));
     note(s.services && s.services.endsWith('All fabrication services listed below. Expedite on request.'), 'edit: the Services banner shows the typed line', JSON.stringify(s.services));
     note(s.emailSub === 'Reply within one business day', 'edit: the Contact email card shows the typed reply time', JSON.stringify(s.emailSub));
@@ -227,6 +240,8 @@ const footerText = (...parts) => parts.filter(Boolean).join(' ');
     s = await surfaces(browser);
     note(!('Structure' in s.aboutRows) && !('Custom Lead Time' in s.aboutRows) && !('PPAP / IMDS' in s.aboutRows) && 'Founded' in s.aboutRows,
       'clear: the three About rows are gone, the others stay', JSON.stringify(Object.keys(s.aboutRows)));
+    note(/for over fifty years and is ISO 9001 registered\.$/.test(s.band || '') && !/privately held|independent|Family Owned/i.test(s.band || ''),
+      'band: with the Structure claim emptied, the homepage band no longer says it (decision 12)', JSON.stringify(s.band));
     note(s.ppap === null, 'clear: the Industries PPAP panel is gone, with its Contact Sales button', JSON.stringify(s.ppap));
     note(s.services && s.services.endsWith('All fabrication services listed below.'), 'clear: the Services banner has no rush line', JSON.stringify(s.services));
     note(s.emailSub === '', 'clear: the Contact email card has no reply-time line', JSON.stringify(s.emailSub));

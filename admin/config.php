@@ -1392,7 +1392,9 @@ const IPC_APPROVAL_PATTERNS = [
     'UL Approved'   => '/\bU\/?L\b[^.;]{0,18}\bApproved\b/i',
     'cUL'           => '/\bCUL\b/i',
     'CSA'           => '/\bCSA\b/i',
-    'MIL-SPEC'      => '/\bMIL[\s-]?SPEC\b|\bAMS\b/i',
+    // AUDIT-12 decision 13 (A12-L15-02-3) — AMS (an SAE spec) is not MIL-SPEC;
+    // see APPROVALS in src/App.jsx.
+    'MIL-SPEC'      => '/\bMIL[\s-]?SPEC\b/i',
     'RoHS'          => '/\bRoHS\b/i',
     'FDA'           => '/\b(?:US)?FDA\b/i',
     'USP Class VI'  => '/\bUSP\b[^.;]{0,12}\bClass\s*VI\b/i',
@@ -1409,8 +1411,14 @@ const IPC_APPROVAL_PATTERNS = [
  * owner's: a milestone such as "Achieved ISO 9001 registration" may stay true
  * history after a lapse, so nothing is deleted automatically — the owner is
  * shown where each mention is instead. Returns "Where: text" lines.
+ *
+ * AUDIT-12 decision 37 (A12-L14-W5-G1-1) — the catalog too: a product's own
+ * text (the VALUE-ADDED page's summary, description and spec table say
+ * "ISO 9001") is never rewritten by the box, and its Google text and share
+ * card kept the claim with nothing in the list naming it. Addresses
+ * (photoUrl, pdfUrl, an extra PDF's url) are not wording and are skipped.
  */
-function iso_mentions(array $content, array $info): array {
+function iso_mentions(array $content, array $info, array $products = []): array {
     $names = [
         'certs' => 'Page Content → Certifications', 'heroTrust' => 'Page Content → Homepage — Hero Trust Ticker',
         'heroProofPoints' => 'Page Content → Homepage — Hero Proof Points', 'stats' => 'Page Content → Trust Bar Stats',
@@ -1449,6 +1457,26 @@ function iso_mentions(array $content, array $info): array {
     }
     foreach ((array)($info['about']['paragraphs'] ?? []) as $i => $p) $walk($p, 'Business Details → About story', $i + 1);
     $walk((string)($info['company']['description'] ?? ''), 'Business Details → Short Description', 0);
+    // The box names as Products → Edit shows them.
+    $fields = [
+        'name' => 'Product Name', 'partType' => 'Part Type', 'caption' => 'Image Caption',
+        'operatingTemp' => 'Operating Temperature', 'specificationsSummary' => 'Specifications Summary',
+        'badges' => 'Feature Badges', 'description' => 'Description', 'pdfLabel' => 'Primary PDF Button Label',
+        'specTable1' => 'Specifications', 'specTable2' => 'Specifications',
+    ];
+    foreach ($products as $p) {
+        if (!is_array($p)) continue;
+        $sku = trim((string)(is_scalar($p['sku'] ?? null) ? $p['sku'] : (is_scalar($p['id'] ?? null) ? $p['id'] : '')));
+        foreach ($p as $k => $v) {
+            if (in_array($k, ['id', 'sku', 'photoUrl', 'pdfUrl', 'approvals'], true)) continue;
+            $where = 'Products → Edit ' . $sku . ' → ' . ($fields[$k] ?? ($k === 'additionalPdfs' ? 'Additional PDF Links' : $k));
+            if ($k === 'additionalPdfs' && is_array($v)) {
+                foreach ($v as $x) if (is_array($x)) $walk($x['label'] ?? '', $where, 0);
+                continue;
+            }
+            $walk($v, $where, 0);
+        }
+    }
     return $out;
 }
 
@@ -1502,7 +1530,9 @@ function product_save_warnings(array $p): array {
         }
     }
     if ($hidden) {
-        $out[] = 'Badges that name a standard are shown only through the Approvals tick-boxes, so these will not appear on the website until you tick the box: ' . implode(', ', $hidden) . '.';
+        // AUDIT-12 decision 13 — tick only what the part holds: this message
+        // used to send Rick to MIL-SPEC for an AMS spec.
+        $out[] = 'Badges that name a standard are shown only through the Approvals tick-boxes, so these will not appear on the website: ' . implode(', ', $hidden) . '. Tick the box named in brackets only if this product really holds that approval; if it does not, delete the badge or reword it.';
     }
     return $out;
 }
@@ -1527,7 +1557,8 @@ function approval_patterns_json_tag(): string {
 // Business Details box is left empty (App.jsx SITE_DEFAULTS; mergeSiteInfo()
 // drops blanks, invariant 4), keyed by settings.php input id, for the live
 // preview. Only fields that fall back; fax, slogan, short name and the social
-// links — and, since §1aq, the ISO box — are clearable and really do
+// links — and, since §1aq, the ISO box, and since AUDIT-12 decision 14 the
+// Minimum Order box — are clearable and really do
 // disappear; an empty click-to-call box is
 // worked out from the phone on save, not defaulted. _harness/adminaudit11.js
 // compares every entry with SITE_DEFAULTS.
@@ -1541,7 +1572,6 @@ const SITE_INFO_PREVIEW_DEFAULTS = [
     'addr_state'          => 'IL',
     'addr_zip'            => '60440',
     'hours_text'          => 'Mon–Fri, 8am–5pm CT',
-    'stats_min'           => '$50',
     'stats_feet'          => '25 million',
 ];
 

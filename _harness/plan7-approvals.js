@@ -138,6 +138,21 @@ const login = async (page) => {
       !boundary ? 'deriver not exposed' :
         `Ultra Clear[${boundary.ultraClear}] Encapsulating[${boundary.encapsulating}] realUL[${boundary.realUL}]`);
 
+    // ── AUDIT-12 decision 13 (A12-L15-02-3) — AMS is not MIL-SPEC ───────────
+    // "AMS 3653" (an SAE spec) was read as a MIL-SPEC approval: hidden from
+    // Product Features, and the save message told the owner to tick MIL-SPEC.
+    // It is an ordinary badge on both sides now; a real MIL-SPEC badge still
+    // derives the mark.
+    const ams = await page.evaluate(() => window.__ipcDeriveApprovals
+      ? { ams: window.__ipcDeriveApprovals({ badges: ['AMS 3653'] }), mil: window.__ipcDeriveApprovals({ badges: ['Mil-Spec.'] }) } : null);
+    const amsPhp = JSON.parse(execFileSync('php', ['-r', `require ${JSON.stringify(path.join(__dirname, '..', 'admin', 'config.php'))};
+      echo json_encode(['derive' => ipc_product_approvals(['badges' => ['AMS 3653']]),
+        'warn' => product_save_warnings(['badges' => ['AMS 3653', 'Mil-Spec.'], 'approvals' => []])]);`]).toString());
+    note(!!ams && ams.ams.length === 0 && ams.mil.join() === 'MIL-SPEC' && amsPhp.derive.length === 0
+      && amsPhp.warn.length === 1 && !/AMS 3653/.test(amsPhp.warn[0]) && /"Mil-Spec\." \(MIL-SPEC\)/.test(amsPhp.warn[0]),
+      'AMS is an ordinary feature badge, not a MIL-SPEC mark, in App.jsx and in the save message (decision 13)',
+      JSON.stringify({ ams, amsPhp }));
+
     // ── the public filter ────────────────────────────────────────────────────
     await page.goto(`${BASE}/dashboard`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(300);

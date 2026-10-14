@@ -23,6 +23,7 @@
  *   - every product with a pdfUrl is listed, grouped under its own partType
  *   - EVERY pdfUrl answers 200 with application/pdf — no exceptions list
  *   - the page is reachable: a footer link on an ordinary page, not just here
+ *   - the homepage's "Datasheets Published" stat is this page's count (AUDIT-12 decision 50)
  *   - /sitemap.xml carries it, so it can be indexed
  *   - the filter narrows the list and clearing it restores the full set
  *   - no horizontal overflow at 375
@@ -111,6 +112,17 @@ const note = (ok, what, detail = '') => {
 
     // ── reachable from an ordinary page, not just by typing the URL ──────────
     await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    // AUDIT-12 decision 50 (CLAIM-2) — the homepage's "Datasheets Published"
+    // number is counted from the catalog, so it is the number of cards above
+    // (it was a hand-typed "42 Products Stocked" while this page listed 43).
+    const stat = await page.evaluate(() => {
+      const cell = [...document.querySelectorAll('#ipc-sec-stats .min-w-0')]
+        .find((c) => /Datasheets Published/i.test(c.textContent));
+      return cell ? cell.firstElementChild.textContent.trim() : null;
+    });
+    note(stat === String(shape.links.length),
+      `the homepage stat "${stat} — Datasheets Published" is the number of data sheets this page lists (${shape.links.length}) (decision 50)`,
+      `stat ${JSON.stringify(stat)} vs ${shape.links.length} cards`);
     const hrefs = () => page.evaluate(() =>
       [...document.querySelectorAll('a')]
         .map((a) => a.getAttribute('href') || '')

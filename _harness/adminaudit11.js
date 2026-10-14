@@ -405,7 +405,7 @@ function startServer(port, limited) {
       const SD = eval('(' + app.slice(o, e + 1) + ')');
       const MAP = { company_name: SD.company.name, company_foundedYear: SD.company.foundedYear, contact_phone: SD.contact.phone, contact_email: SD.contact.email,
         addr_street: SD.address.street, addr_city: SD.address.city, addr_state: SD.address.state, addr_zip: SD.address.zip, hours_text: SD.hours.text,
-        stats_min: SD.stats.minimumOrder, stats_feet: SD.stats.feetInStock };   // cert_iso left the list in §1aq: it is clearable now
+        stats_feet: SD.stats.feetInStock };   // cert_iso left the list in §1aq, stats_min in AUDIT-12 decision 14: both are clearable now
       const php = JSON.parse(execFileSync('php', ['-r', `require ${JSON.stringify(path.join(ROOT, 'admin', 'config.php'))}; echo json_encode(SITE_INFO_PREVIEW_DEFAULTS, JSON_UNESCAPED_UNICODE);`]).toString());
       note(JSON.stringify(php) === JSON.stringify(MAP), 'UX-12: the preview fallbacks equal App.jsx SITE_DEFAULTS', `php ${JSON.stringify(php)}\n       js  ${JSON.stringify(MAP)}`);
     });

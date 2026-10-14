@@ -389,12 +389,12 @@ $navActive = 'settings';
         // A12-L9-02-W5-1 — not while the stored file is damaged: $info is then
         // the blank form, and the list told Rick to remove nine true ISO lines.
         $isoLeft = !$siteInfoDamaged && trim((string)($info['certifications']['iso'] ?? 'x')) === ''
-            ? iso_mentions(load_content(), $info) : [];
+            ? iso_mentions(load_content(), $info, load_products()) : [];   // + the catalog, AUDIT-12 decision 37
         if ($isoLeft): ?>
     <div class="warn-list" role="status" id="iso-mentions">
       <strong>⚠️ The ISO box is empty, but these entries still mention ISO 9001</strong>
       <ul><?php foreach ($isoLeft as $m): ?><li><?= h($m) ?></li><?php endforeach; ?></ul>
-      <div style="font-size:12px;margin-top:6px">Edit or remove each in the place named. A historical sentence (for example a milestone) can stay if it is still true.</div>
+      <div style="font-size:12px;margin-top:6px">Edit or remove each in the place named (Page Content, Business Details, or Products → Edit for a product's own text). A historical sentence (for example a milestone) can stay if it is still true.</div>
     </div>
   <?php endif;
         if ($missingFiles): ?>
@@ -622,14 +622,16 @@ $navActive = 'settings';
               <br>
               <strong>Empty this box</strong> and the website stops claiming ISO
               in the footer, the About fact box and the homepage band. Wording
-              you typed yourself in Page Content is not changed: after saving,
-              this page lists every entry that still mentions ISO, so you can
-              edit or remove each one.
+              you typed yourself in Page Content, and a product's own text, is
+              not changed: after saving, this page lists every entry that still
+              mentions ISO (products included), so you can edit or remove each one.
             </div>
           </div>
           <div class="form-group">
             <label for="stats_min">Minimum Order</label>
             <input type="text" id="stats_min" name="stats_min" value="<?= h($sx['minimumOrder'] ?? '') ?>" placeholder="$50" />
+            <?php /* AUDIT-12 decision 14 (A12-L8-W5-G1-3) — clearable. */ ?>
+            <div class="hint">Type the amount only, e.g. <code>$75</code> &mdash; the site adds the words &ldquo;minimum order&rdquo;. If there is no minimum, <strong>empty the box</strong>: the minimum-order sentence then disappears from the homepage, the About page, the footer and the search-engine descriptions. The Page Content rows that state it as a figure (see Help) are yours to edit.</div>
           </div>
           <div class="form-group">
             <label for="stats_feet">Feet In Stock</label>

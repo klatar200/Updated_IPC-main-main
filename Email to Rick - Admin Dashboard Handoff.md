@@ -47,7 +47,7 @@ Please change it to something of your own the first time you sign in: click **Pa
 These are facts about IPC that the site states. The dashboard can't be signed into until the site is live, so they will already be on the website as they are now when you first sign in — if you can, send me your answers before launch and I'll put them in, or check them first thing after you sign in. Each one is a box in the dashboard; please check it says what's true, and change it if not:
 
 - **ISO 9001** (Business Details → Certifications): type it the way your current certificate shows it, including the revision year — for example **ISO 9001:2015**, not just "2015" (whatever is in the box replaces the words "ISO 9001" across the site) — or empty the box if you'd rather the site not claim it.
-- **Company Claims** (Page Content): "RoHS compliant — entire line", "42 Products Stocked" and the AMS claims — keep only what's true for every product.
+- **Company Claims** (Page Content): "RoHS compliant — entire line" and the AMS claims — keep only what's true for every product. (The homepage's "Datasheets Published" number, which replaced "42 Products Stocked", now counts itself from the catalog.)
 - **Search engines** boxes (Page Content → Company Claims): these tell Google the brand and manufacturer of every product. If IPC doesn't make a product, correct or empty them.
 - **FAQ**: question 15, and the answer that says to click the "Data Sheet" button — the button now reads "Datasheet".
 - **Certification spellings** (UL, CSA, MIL-SPEC, AMS, RoHS) as they appear on your certificates.

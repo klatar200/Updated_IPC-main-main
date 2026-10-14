@@ -98,7 +98,8 @@ $SECTIONS = [
         'icons'    => $STAT_ICONS,
         'fields'   => [
             ['key' => 'iconKey', 'type' => 'icon', 'label' => 'Icon'],
-            ['key' => 'value',   'type' => 'text', 'label' => 'Value (e.g. 25M+)'],
+            // AUDIT-12 decision 50 — {datasheets} / {products} are counted from the catalog.
+            ['key' => 'value',   'type' => 'text', 'label' => 'Value (e.g. 25M+; {datasheets} shows the live number of data sheets, {products} the number of products)'],
             ['key' => 'label',   'type' => 'text', 'label' => 'Label'],
             ['key' => 'sub',     'type' => 'text', 'label' => 'Sub-line'],
         ],
@@ -361,7 +362,7 @@ $COPY_GROUPS = [
     // the first save of a content.json that predates this group would write
     // eleven blanks, and COPY_CLEARABLE would read them as eleven deletions.
     'claims' => ['title' => 'Company Claims', 'fields' => [
-        ['key' => 'aboutStructureClaim',      'type' => 'text',     'label' => 'About page facts — Structure (empty removes the row)',            'default' => 'Privately Held'],
+        ['key' => 'aboutStructureClaim',      'type' => 'text',     'label' => 'About page facts — Structure; also the homepage band\'s "privately held, independent" (empty removes both)', 'default' => 'Privately Held'],
         ['key' => 'aboutLeadTimeClaim',       'type' => 'text',     'label' => 'About page facts — Custom Lead Time (empty removes the row)',     'default' => '≤ 1 week'],
         ['key' => 'aboutPpapClaim',           'type' => 'text',     'label' => 'About page facts — PPAP / IMDS (empty removes the row)',          'default' => 'Available on request'],
         ['key' => 'industriesPpapTitleClaim', 'type' => 'text',     'label' => 'Industries page — PPAP panel heading (empty removes the whole panel)', 'default' => 'PPAP & IMDS Documentation Available'],
