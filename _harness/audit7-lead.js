@@ -38,7 +38,8 @@ const note = (ok, what, detail = '') => {
 
 const logLines = () => {
   try {
-    return fs.readFileSync(INQUIRIES, 'utf8').split('\n').filter((l) => l.trim() !== '').length;
+    // AUDIT-12 decision 42 — a send-result line belongs to the lead before it.
+    return fs.readFileSync(INQUIRIES, 'utf8').split('\n').filter((l) => l.trim() !== '' && !/"type":"send-result"/.test(l)).length;
   } catch { return 0; }
 };
 const sessCount = () => {

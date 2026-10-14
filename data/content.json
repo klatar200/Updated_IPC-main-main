@@ -648,7 +648,7 @@
         },
         {
             "title": "Data Retention",
-            "content": "Inquiry records — the details you submit, together with the IP address and timestamp described above — are kept for as long as they are needed to answer your enquiry and for our ongoing business record-keeping. They are not deleted automatically. If you would like the record of a particular enquiry removed, contact us using the details below and we will remove it."
+            "content": "Inquiry records — the details you submit, together with the IP address and timestamp described above — are kept for as long as they are needed to answer your enquiry and for our ongoing business record-keeping. They are not deleted automatically. If you would like the record of a particular enquiry removed, email us at the address below with the name and email address you used. We remove it by hand, from our enquiry records and from our sales inbox, and email you to confirm once it is done."
         },
         {
             "title": "Cookies & Tracking",
@@ -901,7 +901,7 @@
             "rfqSuccessBody": "Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.",
             "msgSuccessBody": "Your message has been received. Our sales team will respond within one business day.",
             "urgentPrefix": "For urgent inquiries:",
-            "networkError": "Network error. Please call 630.771.0700 or email sales@insulationproducts.com directly.",
+            "networkError": "We could not confirm that your request was sent, and it may already have arrived. Pressing Submit again will not send it twice. Or call 630.771.0700 or email sales@insulationproducts.com directly.",
             "submitError": "Submission failed. Please call 630.771.0700.",
             "nameLabel": "Full Name *",
             "namePlaceholder": "Your name",

@@ -1011,6 +1011,7 @@ $navActive = 'help';
                see an inbox, only the hand-off to the mail server. -->
           <tr><td><span class="badge-mock">Sent to mail server</span></td><td>The notification was handed to your mail server. Normal. The website cannot see your inbox, so this is not proof it arrived — if a customer says you never replied, check here and in your spam folder.</td></tr>
           <tr><td><span class="badge-mock">Email failed</span></td><td>The mail server refused it. <strong>The lead is not lost</strong> — it's right here. If you see several of these, tell your developer.</td></tr>
+          <tr><td><span class="badge-mock">Not confirmed</span></td><td>The website saves every request <em>before</em> it sends the notification email. This badge means the mail server was so slow that the website never heard whether that email went out — it may or may not be in your inbox. <strong>The lead is safe here</strong>: reply to it from your own email. If you see these often, tell your developer the mail server is slow.</td></tr>
           <tr><td><span class="badge-mock">Spam trap</span> / <span class="badge-mock">Blocked</span></td><td>Refused as spam, or as sent from another website — almost always a bot. Not counted in the red number on Inquiries, and <em>not</em> an email problem.</td></tr>
           <tr><td><span class="badge-mock">Rate limited</span> / <span class="badge-mock">Incomplete</span></td><td>Refused, but often a real customer — several people at one office connection, or an email address the server did not accept. These <strong>do</strong> raise the red number on Inquiries: call them back. Not an email problem either.</td></tr>
         </table>
@@ -1021,6 +1022,10 @@ $navActive = 'help';
         <div class="callout callout-tip">
           <b>Why a blocked entry might be worth reading</b>
           "Rate limited" can be a real customer: five people in one office share a single internet connection, and the sixth request inside ten minutes gets refused. Those are recorded here specifically so you can call them back.
+        </div>
+        <div class="callout callout-tip">
+          <b>If someone asks you to delete their enquiry</b>
+          The privacy policy (Page Content → Privacy, "Data Retention") tells visitors to email you and that you remove their record by hand. This page cannot delete anything, so forward the request to your developer, who removes that person's entries from the inquiry log files in the <code>admin</code> folder. Delete the notification email from your own inbox yourself, then reply to the person to confirm.
         </div>
       </section>
 

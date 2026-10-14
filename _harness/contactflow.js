@@ -53,6 +53,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { launch } = require('./browser');
+const { leads, rawRows } = require('./inqrows');
 
 const BASE = 'http://127.0.0.1:8123';
 const OUT = path.join(__dirname, 'out', 'contactflow');
@@ -121,13 +122,16 @@ const clearTmp = (prefix) => {
 const clearGuards = () => { clearTmp('ipc_rl_'); clearTmp('ipc_ar_'); };
 
 // ── Inquiry log ────────────────────────────────────────────────────────────
-function inquiryLines() {
-  if (!fs.existsSync(INQUIRIES)) return [];
-  return fs.readFileSync(INQUIRIES, 'utf8').split('\n').filter(Boolean).map((l) => {
-    try { return JSON.parse(l); } catch { return null; }
-  }).filter(Boolean);
-}
+// AUDIT-12 decision 42 — a lead is its row (written before mail(), pending)
+// plus a send-result line; inqrows merges them as the Inquiries page does.
+const inquiryLines = () => leads(INQUIRIES);
 const inquiryCount = () => inquiryLines().length;
+// The raw tail: the lead row, then its send result carrying the same id.
+const rowThenResult = () => {
+  const raw = rawRows(INQUIRIES).slice(-2);
+  return raw.length === 2 && raw[0].status === 'pending' && raw[0].sent === null && typeof raw[0].id === 'string'
+    && raw[1].type === 'send-result' && raw[1].id === raw[0].id && raw[1].sent === true;
+};
 const lastInquiry = () => inquiryLines().slice(-1)[0] || null;
 
 const SITE = JSON.parse(fs.readFileSync(SITE_INFO, 'utf8'));
@@ -193,6 +197,8 @@ async function fillForm(form, values) {
 async function submitAndSettle(page, form) {
   await form.locator('button[type="submit"]').click();
   await page.waitForTimeout(1200);
+  // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+  await fetch(`${BASE}/robots.txt`).then((r) => r.text()).catch(() => {});
 }
 
 /** What the confirmation panel looks like, measured in the page. */
@@ -289,8 +295,10 @@ function missingFields(body, values) {
       'rfq: the auto-reply summarises what was actually requested');
 
     const entry = lastInquiry();
-    note(inquiryCount() === before + 1, 'rfq: exactly one line was appended to inquiries.jsonl',
+    note(inquiryCount() === before + 1, 'rfq: exactly one lead was appended to inquiries.jsonl',
       `${before} -> ${inquiryCount()}`);
+    note(rowThenResult(), 'rfq: the lead row was written pending, then its send result (decision 42)',
+      JSON.stringify(rawRows(INQUIRIES).slice(-2).map((r) => ({ type: r.type, id: r.id, sent: r.sent, status: r.status }))));
     note(!!entry && entry.type === 'rfq' && entry.sent === true,
       'rfq: the inquiry is logged as a sent RFQ', JSON.stringify(entry && { type: entry.type, sent: entry.sent }));
     const logMismatch = entry ? Object.entries({
@@ -341,7 +349,8 @@ function missingFields(body, values) {
       `subject=${JSON.stringify(reply.subject)}`);
 
     const entry = lastInquiry();
-    note(inquiryCount() === before + 1, 'message: exactly one line was appended to inquiries.jsonl');
+    note(inquiryCount() === before + 1, 'message: exactly one lead was appended to inquiries.jsonl');
+    note(rowThenResult(), 'message: the lead row was written pending, then its send result (decision 42)');
     note(!!entry && entry.type === 'message' && entry.sent === true,
       'message: the inquiry is logged as a sent message');
     const logMismatch = entry ? Object.entries({

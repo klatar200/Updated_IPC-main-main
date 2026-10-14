@@ -1640,6 +1640,9 @@ function inquiries_count_leads(string $path, int $from = 0, int $to = -1): int {
             if (trim($line) === '') continue;
             $e = json_decode($line, true);
             if (is_array($e) && isset($rejected[(string)($e['type'] ?? '')])) continue;
+            // AUDIT-12 decision 42 — a lead's send result is its own line
+            // now; it belongs to the row before it and is not a second lead.
+            if (is_array($e) && ($e['type'] ?? '') === 'send-result') continue;
             $n++;
         }
     }

@@ -120,6 +120,9 @@ const present = [
   ['GO-LIVE.md', /### B4\. Set the admin password/, 'DEP-6/V4-2: B4 sets the first-deploy password with the reset flow'],
   ['GO-LIVE.md', /Confirm the host runs PHP 7\.4 or newer/, 'DEP-7: a PHP 7.4 check in §A'],
   ['admin/help.php', /Server temporary folder writable/, 'NEW-N3-9: a temp-folder row in "What your server allows"'],
+  // AUDIT-12 decision 41 — admin/ is made writable before the site goes public,
+  // or the leads in between are emailed but never logged.
+  ['GO-LIVE.md', /9\. \[ \] \*\*Do B3 \(Permissions\) now, then `index\.html` → `public_html\/` — LAST/, 'A12-L2-W5-G2-1: B2 step 9 applies B3 before index.html'],
 ];
 for (const [file, re, label] of present) note(re.test(read(file)), `docs: present — ${label} (${file})`);
 

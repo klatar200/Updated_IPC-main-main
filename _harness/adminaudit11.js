@@ -359,11 +359,13 @@ function startServer(port, limited) {
       });
       const badgeNow = async () => +((/class="nav-badge"[^>]*>(\d+)</.exec((await a.req('GET', '/admin/index.php')).body) || [])[1] || 0);
       const LOG = path.join(SITE, 'admin', 'inquiries.jsonl');
-      const n0 = fs.existsSync(LOG) ? fs.readFileSync(LOG, 'utf8').trim().split('\n').length : 0;
+      // AUDIT-12 decision 42 — lead rows only: a send-result line belongs to the row before it.
+      const leadLines = () => (fs.existsSync(LOG) ? fs.readFileSync(LOG, 'utf8').trim().split('\n').filter((l) => l && !/"type":"send-result"/.test(l)) : []);
+      const n0 = leadLines().length;
       const b0 = await badgeNow();
       const codes = [];
       for (let i = 1; i <= 6; i++) codes.push(await post(i));
-      const lines = fs.readFileSync(LOG, 'utf8').trim().split('\n').slice(n0).map((l) => JSON.parse(l));
+      const lines = leadLines().slice(n0).map((l) => JSON.parse(l));
       const rl = lines.find((e) => e.type === 'rate-limited');
       note(codes[5] === 429 && rl && rl.quantity === '500 ft #6' && rl.part === 'IP33PO-6', 'UX-11: a rate-limited quote request keeps its part number and quantity', `codes ${codes} entry ${JSON.stringify(rl || null).slice(0, 200)}`);
       const b1 = await badgeNow();
@@ -372,7 +374,7 @@ function startServer(port, limited) {
       // logged as honeypot, and it must not raise the badge.
       const botBody = new URLSearchParams({ form_type: 'message', name: 'Bot', email: 'bot@example.com', message: 'spam', website: 'http://spam.example' }).toString();
       await new Promise((resolve) => { const rq = require('http').request({ host: '127.0.0.1', port: PORT, method: 'POST', path: '/contact.php', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(botBody), Referer: BASE + '/contact' } }, (res) => { res.resume(); res.on('end', resolve); }); rq.end(botBody); });
-      const last = JSON.parse(fs.readFileSync(LOG, 'utf8').trim().split('\n').pop());
+      const last = JSON.parse(leadLines().pop());
       const b2 = await badgeNow();
       note(last.type === 'honeypot' && b2 === b1, 'UX-11: a rate-limited request that filled the hidden spam field is logged as spam and does not raise the badge', `type ${last.type}, badge ${b1} → ${b2}`);
     });

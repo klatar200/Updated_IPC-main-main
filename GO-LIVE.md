@@ -347,7 +347,14 @@ pointing at a file that does not exist.
        carries them. `data/.htaccess` alone holds the
        `AddType application/json` that the site's `jsonOrThrow()` requires and
        the `X-Robots-Tag: noindex` half of the A-5.2 fix.
-9. [ ] **`index.html` → `public_html/` — LAST**
+9. [ ] **Do B3 (Permissions) now, then `index.html` → `public_html/` — LAST.**
+       Step 9 is the moment the site goes public, and from then on every quote
+       request is written to `admin/inquiries.jsonl`. If `admin/` is not yet
+       writable by PHP, those leads are emailed but never reach Admin →
+       Inquiries, and the "log failed" marker lives in the same unwritable
+       folder, so nothing ever says they are missing (AUDIT-12
+       A12-L2-W5-G2-1). On a re-deploy the permissions are already set;
+       glance at the B3 table and go straight on.
 10. [ ] **After C has passed — re-check `/site/` for owner edits, then delete
         `public_html/site/`.** The triage was 2026-09-15; anything saved there
         since would be lost with the folder. First download
@@ -365,6 +372,10 @@ pointing at a file that does not exist.
         eight URLs. `audit-runs/live-triage-2026-09-15.md`.
 
 ### B3. Permissions
+
+Done **inside B2, before step 9** — not after it. On a first deploy the folders
+exist from step 7, so this is the first moment it can be done and the last
+moment it is safe to.
 
 | Path | Mode | Why |
 |---|---|---|
@@ -527,6 +538,20 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
       proves `mail()`, the Inquiries row proves the log. Either alone is a
       half-working form.
 - [ ] The auto-reply arrives at the address you submitted.
+- [ ] **Is the host behind a proxy?** Open that Inquiries row and read
+      **Visitor IP**. On the same device, search "what is my IP" and compare.
+      - The same address (either of yours, if it shows IPv4 and IPv6): leave
+        `IPC_TRUST_PROXY_FORWARDED` off. Nothing to do.
+      - A private address (`10.…`, `172.16.…`–`172.31.…`, `192.168.…`,
+        `127.0.0.1`) or one that is not yours — and a second test from a
+        phone on mobile data, not Wi-Fi, shows the **same** address: the host
+        puts a proxy in front of PHP, and the quote form's "5 per 10 minutes"
+        limit is counting every buyer on the site together. In
+        `public/contact.php` change `define('IPC_TRUST_PROXY_FORWARDED', false)`
+        to `true`, rebuild, upload `contact.php`, submit once more, and check
+        that Visitor IP is now your own address. (AUDIT-12 decision 43,
+        A12-L2-W5-G3-1. Do not turn it on otherwise: on direct hosting the
+        forwarded address is whatever the sender typed.)
 
 ---
 

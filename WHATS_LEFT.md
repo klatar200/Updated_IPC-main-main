@@ -34,6 +34,7 @@ in the box, and nothing here is a code change. History: §2r, §1ao and §1aq.
 | Five products without a photograph (A-9.P4-8) | Products → Edit → Photo | `IP12GA-IP1274`, `IP13SP`, `IP25PU`, `IP30UV`, `IP47HV` show the branded "image coming soon" panel. Photograph them, or confirm the panel is what they should show |
 | Commercial promises (claims register: inherited, unsourced) | Business Details (Minimum Order, Feet In Stock) / Page Content | 25M+ feet in stock, $50 minimum, same- or next-business-day shipping, custom work in a week or less, JIT programs, PPAP and IMDS packages, certificates of conformance — came from IPC's old site and nothing in this repo backs them. Still true? |
 | Privacy policy effective date | Page Content → Privacy | The date the policy takes effect |
+| Privacy policy, Data Retention wording (AUDIT-12 decision 44, [A12-L14-W5-G4-1](audit-runs/audit12.md#a12-l14-w5-g4-1)) | Page Content → Privacy (3rd section) | The policy used to promise "we will remove it" with no way to do so. It now states the real procedure: the visitor emails IPC, and the record is removed by hand from the enquiry log (by the developer; Inquiries cannot delete) and from the sales inbox, with an email to confirm. **Rick approves this wording** or rewrites it; if the change counts as a policy revision, the effective date above moves with it. |
 | Five site photos | Site Images & Logo | Replace the shipped placeholders where wanted |
 | Social links | Business Details → Social | Only accounts IPC actually runs |
 | Search-engine brand / manufacturer | Page Content → Company Claims → Search engines | IPC is a distributor. Correct or empty these if a product is not IPC-made. |
@@ -85,7 +86,8 @@ not yet in the email.)
 | **Upload `index.php` before `.htaccess`** | The new `.htaccess` sends every page to `index.php` (A-5.10) |
 | `noreply@` mailbox; SPF / DKIM / DMARC; then `IPC_ENVELOPE_FROM` | In that order. Setting the envelope sender before SPF is right breaks every notification (DEP-2). |
 | TRACE off | A host setting; `.htaccess` cannot do it |
-| `admin/`, `data/`, `pdfs/`, `uploads/` writable by PHP | README "Permissions". The dashboard shows a banner when they are not. |
+| Proxy in front of PHP? then `IPC_TRUST_PROXY_FORWARDED` | GO-LIVE C4 compares Admin → Inquiries' Visitor IP with your own. Only if it shows the proxy, turn the switch on in `contact.php`; otherwise the quote form's rate limit is shared by every buyer (AUDIT-12 decision 43). Ships off. |
+| `admin/`, `data/`, `pdfs/`, `uploads/` writable by PHP | README "Permissions". Done before `index.html` goes up (GO-LIVE B2 step 9, AUDIT-12 decision 41). The dashboard shows a banner when they are not. |
 
 ## Open — ready to run
 

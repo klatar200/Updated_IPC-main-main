@@ -137,7 +137,7 @@ it on the server.
 
 | Upload to `public_html/` | From | When |
 |---|---|---|
-| `index.html`, `index.php`, `assets/` | `dist/` (`index.php` copied from `public/`) | every frontend deploy — `index.php` before `.htaccess` (below) |
+| `index.html`, `index.php`, `assets/` | `dist/` (`index.php` copied from `public/`) | every frontend deploy — `index.php` before `.htaccess` (below); `index.html` last, and only once the Permissions below are set (GO-LIVE B2 step 9) |
 | `.htaccess`, `.user.ini`, `contact.php`, `sitemap.php`, `favicon.svg`, `logo.svg`, `manifest.json`, `robots.txt` | `dist/` (copied from `public/`) | every frontend deploy (GO-LIVE B2 steps 3–4); re-uploading an unchanged file is harmless |
 | `images/` | `dist/images/` (copied from `public/images/`) | every frontend deploy (GO-LIVE B2 step 2) |
 | `admin/` — **tracked files only** (`git ls-files admin/`, including the dotfile `admin/.htaccess`) | `admin/` | first deploy; afterwards when the admin code changed. Never its live-state files — `config.local.php*`, `*.jsonl`, `.login-throttle.json`, `.inquiries-seen.json`, `.inquiry-log-failed.json`, `.pdf-renames.json`, `.sessions/`, `ALLOW-PASSWORD-RESET`: locally they are test leftovers, on the server live state (GO-LIVE B2.5, NEW-V4-8) |
@@ -178,6 +178,11 @@ The `data/`, `pdfs/` and `uploads/` rows mean each folder's **contents**. The
 on they are owned by the customer, and re-uploading them destroys his edits.
 
 ### Permissions
+
+Set these **before `index.html` goes up** (GO-LIVE B2 step 9 does B3 first).
+A quote request sent while `admin/` is not writable by PHP is emailed but
+never reaches Admin → Inquiries, and nothing records that it is missing
+(AUDIT-12 A12-L2-W5-G2-1).
 
 | Path | Permission | Why |
 |---|---|---|

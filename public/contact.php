@@ -191,7 +191,13 @@ function ipc_inquiry_log_open(string $dir, string $path) {
     return null;
 }
 
-function ipc_log_inquiry(array $entry): bool {
+/**
+ * $mayClearMarker — AUDIT-12 decision 42: a lead is now TWO appends (the row,
+ * then its send result). The second passes false: a successful result append
+ * must not clear a marker the row's own write set, or the lost (or repaired)
+ * row would be hidden.
+ */
+function ipc_log_inquiry(array $entry, bool $mayClearMarker = true): bool {
     foreach ([__DIR__ . '/admin', __DIR__ . '/../admin'] as $dir) {
         if (is_dir($dir)) {
             $path = $dir . '/inquiries.jsonl';
@@ -222,7 +228,7 @@ function ipc_log_inquiry(array $entry): bool {
             }
             $ok = ($bytes !== false && $bytes === strlen((string)$line) + 1);
             if ($ok && !$repaired) {
-                @unlink($dir . '/' . IPC_LOG_FAIL_MARKER);
+                if ($mayClearMarker) @unlink($dir . '/' . IPC_LOG_FAIL_MARKER);
             } else {
                 @file_put_contents($dir . '/' . IPC_LOG_FAIL_MARKER, json_encode([
                     'ts'   => date('c'),
@@ -342,13 +348,48 @@ function ipc_wants_html(): bool {
  * situation it exists for is the one where JavaScript did not run.
  */
 function respond(int $code, array $payload): void {
+    echo ipc_response_body($code, $payload);
+    exit;
+}
+
+/**
+ * AUDIT-12 decision 18 (A12-L11-W3-G4-1) — answer the visitor NOW and keep
+ * running. The buyer's "received" used to wait for the auto-reply's mail() as
+ * well as the sales one, so a 10 s mail server made a 20 s wait, and the
+ * courtesy copy this file itself calls best-effort decided when the buyer was
+ * told the lead was safe. The lead is safe once the record and the sales mail
+ * are done; the auto-reply is sent after this returns.
+ *
+ * The response is sent whole with its Content-Length, so the browser has its
+ * answer and stops waiting even while this request keeps running. PHP-FPM and
+ * LiteSpeed close the request themselves; under mod_php the length is what
+ * tells the browser it is done. Compression is switched off for this one
+ * response, because a gzip filter holds the body until the script ends.
+ * ignore_user_abort is already on (decision 42), so a browser that hangs up
+ * once it has its answer does not stop the auto-reply.
+ */
+function respond_and_continue(int $code, array $payload): void {
+    ignore_user_abort(true);
+    $body = ipc_response_body($code, $payload);
+    while (ob_get_level() > 0) @ob_end_clean();
+    if (function_exists('apache_setenv')) @apache_setenv('no-gzip', '1');
+    @ini_set('zlib.output_compression', '0');
+    header('Content-Length: ' . strlen($body));
+    header('Connection: close');
+    echo $body;
+    if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); return; }
+    if (function_exists('litespeed_finish_request')) { litespeed_finish_request(); return; }
+    flush();
+}
+
+/** The response body for $payload, with its status and Content-Type set. */
+function ipc_response_body(int $code, array $payload): string {
     global $bizPhone, $bizDial, $bizName, $to;
     if ($code !== 200) http_response_code($code);
 
     if (!ipc_wants_html()) {
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($payload);
-        exit;
+        return (string)json_encode($payload);
     }
 
     $ok    = !empty($payload['ok']);
@@ -371,7 +412,7 @@ function respond(int $code, array $payload): void {
     if ($ok && $msg === '') $msg = $dfltBody;
 
     header('Content-Type: text/html; charset=utf-8');
-    echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8">'
        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
        . '<meta name="robots" content="noindex">'
        . '<title>' . hesc($title) . ' — ' . hesc($bizName) . '</title></head>'
@@ -387,7 +428,6 @@ function respond(int $code, array $payload): void {
        . '<p style="margin:0"><a href="/" style="color:#0a2240">← Back to ' . hesc($bizName) . '</a>'
        . ' &nbsp;·&nbsp; <a href="/contact" style="color:#0a2240">Back to the contact form</a></p>'
        . '</div></body></html>';
-    exit;
 }
 
 // ── POST only ──────────────────────────────────────────────────
@@ -683,6 +723,57 @@ function ipc_ar_cap_key(string $email): string {
     return $local . '@' . $domain;
 }
 
+/**
+ * AUDIT-12 decision 19 (A12-L4-W5-G3-1) — has this submission already been
+ * received? The form sends one id per submission (renewed when the visitor
+ * edits a field or a send succeeds); a buyer whose reply was lost presses
+ * Submit again and re-sends the SAME id. Looks for it in the recent tail of
+ * the live log and returns what became of that lead: ['sent' => true|false|
+ * null (no result written yet), 'age' => seconds], or null when not found.
+ * Read without the lock: a half-written last line only fails to decode.
+ */
+function ipc_find_submission(string $sid): ?array {
+    foreach ([__DIR__ . '/admin', __DIR__ . '/../admin'] as $dir) {
+        if (!is_dir($dir)) continue;
+        $path = $dir . '/inquiries.jsonl';
+        $fh = @fopen($path, 'rb');
+        if (!$fh) return null;
+        $size  = (int)@filesize($path);
+        $start = max(0, $size - 512 * 1024);      // minutes of leads, far more than a retry needs
+        if ($start > 0) fseek($fh, $start);
+        $lines = explode("\n", (string)stream_get_contents($fh));
+        fclose($fh);
+        $found = null;
+        foreach ($lines as $line) {
+            if (strpos($line, $sid) === false) continue;
+            $e = json_decode($line, true);
+            if (is_array($e) && ($e['sid'] ?? null) === $sid && in_array($e['type'] ?? '', ['rfq', 'message'], true)) $found = $e;
+        }
+        if ($found === null) return null;
+        $sent = array_key_exists('sent', $found) && $found['sent'] !== null ? (bool)$found['sent'] : null;
+        $id = $found['id'] ?? null;
+        if (is_string($id) && $id !== '') {
+            foreach ($lines as $line) {
+                if (strpos($line, $id) === false) continue;
+                $e = json_decode($line, true);
+                if (is_array($e) && ($e['type'] ?? '') === 'send-result' && ($e['id'] ?? null) === $id) $sent = !empty($e['sent']);
+            }
+        }
+        $t = strtotime((string)($found['ts'] ?? ''));
+        return ['sent' => $sent, 'age' => $t === false ? PHP_INT_MAX : time() - $t];
+    }
+    return null;
+}
+
+/** A random id for one inquiry row (AUDIT-12 decision 42). */
+function ipc_new_id(): string {
+    try {
+        return bin2hex(random_bytes(8));
+    } catch (\Throwable $e) {
+        return substr(md5(uniqid('', true) . mt_rand()), 0, 16);
+    }
+}
+
 // Whatever we know about a rejected submission, shaped like a log entry so a
 // lead that hits a guard is still recoverable from admin/inquiries.php.
 function ipc_partial_entry(string $type, string $note, string $ip): array {
@@ -752,7 +843,37 @@ function ipc_rl_key(string $ip): string {
     return inet_ntop(substr($bin, 0, 8) . str_repeat("\0", 8)) . '/64';
 }
 
-$ip       = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+// AUDIT-12 decision 43 (A12-L2-W5-G3-1) — behind a TLS-terminating proxy or
+// CDN every request's REMOTE_ADDR is the proxy's, so the "5 per 10 minutes per
+// buyer" limit above became 5 per 10 minutes for the WHOLE SITE (measured: the
+// sixth buyer refused, the sixteenth left no trace at all). public/.htaccess is
+// written for that topology too.
+//
+// OFF ON PURPOSE. Turn it on only when GO-LIVE C4's address check shows the
+// proxy (Admin > Inquiries shows the same private or host address for every
+// buyer): set it to true and upload contact.php. On direct hosting it must stay
+// off — there X-Forwarded-For is whatever the client typed, and trusting it
+// would let one sender rotate past the limit.
+//
+// Same rule as the admin sign-in throttle's login_throttle_client_ip()
+// (TRUST_PROXY_FORWARDED, SEC-A2): the RIGHT-MOST entry, the one the trusted
+// proxy appended; the left-most is the client's own and spoofable. Behind more
+// than one proxy hop this is still the nearest proxy's view; do not enable it
+// then. The inquiry record carries the same address.
+if (!defined('IPC_TRUST_PROXY_FORWARDED')) define('IPC_TRUST_PROXY_FORWARDED', false);
+function ipc_client_ip(): string {
+    $remote = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    if (!is_string($remote) || $remote === '') $remote = 'unknown';
+    $xff = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+    if (IPC_TRUST_PROXY_FORWARDED && is_string($xff) && $xff !== '') {
+        $parts = explode(',', $xff);
+        $last  = trim((string)end($parts));
+        if (filter_var($last, FILTER_VALIDATE_IP)) return $last;
+    }
+    return $remote;
+}
+
+$ip       = ipc_client_ip();
 $safeIp   = preg_replace('/[^a-fA-F0-9:.\/]/', '', ipc_rl_key(is_string($ip) ? $ip : 'unknown'));
 $rateFile = sys_get_temp_dir() . '/ipc_rl_' . md5($safeIp) . '.json';
 $now      = time();
@@ -1108,6 +1229,25 @@ if ($formType === 'rfq') {
     ];
 }
 
+// ── A resubmit of a submission already received (decision 19) ────
+// Answered "received" without a second email or a second Inquiries row when
+// the earlier copy went to the mail server, or is still being sent (no result
+// yet, under three minutes old: a slow mail server, a reply lost on the way
+// back). Sent again when the earlier send FAILED, or its request died before
+// writing a result: then the sales email may never have gone, and a second
+// try is the safer duplicate. No id (an old page, a script) — no check.
+// Requests from one address already queue behind the rate-limit lock, so a
+// retry from the same connection sees the first one's finished record.
+$sid = $_POST['submission_id'] ?? '';
+$sid = (is_string($sid) && preg_match('/^[A-Za-z0-9_-]{8,64}$/', $sid)) ? $sid : '';
+if ($sid !== '') {
+    $prior = ipc_find_submission($sid);
+    if ($prior !== null && ($prior['sent'] === true || ($prior['sent'] === null && $prior['age'] < 180))) {
+        respond(200, ['ok' => true]);
+    }
+    $logEntry['sid'] = $sid;
+}
+
 // ── Send to the sales team ──────────────────────────────────────
 // Reply-To is set to the visitor's email so sales can reply directly.
 // From is a no-reply on the domain — Network Solutions requires the From
@@ -1126,18 +1266,36 @@ $headers .= "Content-Transfer-Encoding: 8bit\r\n"; // NEW-V3-2 — the body is 8
 // posture. (audit-runs/audit5.md, Low tier)
 
 
+// AUDIT-12 decision 42 (A12-L4-W2-G4-1) — the record is written BEFORE mail(),
+// marked pending, and the send result is appended after it as a second line
+// carrying the same id; admin/inquiries.php merges the two. mail() used to come
+// first, so a mail server that stalled until the host ended the request left
+// the lead nowhere: no email, no Inquiries row, no marker. Now a request cut
+// off inside mail() still leaves the row, shown as "Not confirmed".
+// Rows written before this change carry `sent` directly and have no id; the
+// Inquiries page reads both.
+//
+// ignore_user_abort: a buyer who closes the tab (or whose browser gives up at
+// its 30 s limit) must not stop the request between the row and its result.
+ignore_user_abort(true);
+$rowId = ipc_new_id();
+$logEntry['id']     = $rowId;
+$logEntry['sent']   = null;
+$logEntry['status'] = 'pending';
+ipc_log_inquiry($logEntry);
+
 // A12-L2-W1-G3-1 — on PHP 8 a host that lists mail() in disable_functions
-// removes it outright, and calling it was a fatal error BEFORE the inquiry
-// log below: no email, no Inquiries row, no marker. Treat it as a failed send
-// so the record is written and the visitor gets the call-us answer.
+// removes it outright, and calling it was a fatal error before the record was
+// complete. Treat it as a failed send so the visitor gets the call-us answer.
 $sent = function_exists('mail')
     ? @mail($to, $subject, $body, $headers, $mailParams) // @ — a mail warning must never corrupt the JSON response
     : false;
 
-// Log the inquiry whether or not the mail went through — a failed send is
-// exactly the case where the log is the only surviving copy of the lead.
-$logEntry['sent'] = (bool)$sent;
-ipc_log_inquiry($logEntry);
+// The send result — a failed send is exactly the case where the log is the
+// only surviving copy of the lead, so the row above is kept either way.
+// Never clears the failure marker: a healthy row write above already did, and
+// an unhealthy one (failed, or repaired after a short line) must stay visible.
+ipc_log_inquiry(['ts' => date('Y-m-d H:i:s'), 'type' => 'send-result', 'id' => $rowId, 'sent' => (bool)$sent], false);
 
 if (!$sent) {
     respond(500, [
@@ -1145,6 +1303,10 @@ if (!$sent) {
         'error' => "The mail server could not send your message. Please call {$bizPhone} or email {$to} directly.",
     ]);
 }
+
+// AUDIT-12 decision 18 — the lead is recorded and the sales mail has gone: tell
+// the buyer now. Everything below runs after the answer has been sent.
+respond_and_continue(200, ['ok' => true]);
 
 // ── Auto-reply to visitor ───────────────────────────────────────
 // Best-effort only — we never fail the request if this one doesn't go through.
@@ -1281,5 +1443,4 @@ $replyHeaders .= "Content-Transfer-Encoding: 8bit\r\n"; // NEW-V3-2
 if ($autoReplyOk && function_exists('mail')) {
     @mail($replyTo, $replySubject, $replyBody, $replyHeaders, $mailParams); // best-effort, no error check
 }
-
-respond(200, ['ok' => true]);
+exit;

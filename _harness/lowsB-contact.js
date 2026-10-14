@@ -65,7 +65,10 @@ async function rfq(port, extra = {}, headers = {}) {
   body.append('partNumber', 'IP30HS');
   body.append('quantity', '500 ft');
   const res = await fetch(`http://127.0.0.1:${port}/contact.php`, { method: 'POST', body, headers });
-  return { status: res.status, text: await res.text() };
+  const text = await res.text();
+  // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+  await fetch(`http://127.0.0.1:${port}/robots.txt`).then((r) => r.text()).catch(() => {});
+  return { status: res.status, text };
 }
 
 (async () => {
@@ -113,7 +116,8 @@ async function rfq(port, extra = {}, headers = {}) {
     fs.writeFileSync(INQ, (inqBefore ? inqBefore.toString() : '') + '{"ts":"2026-01-01","type":"rfq","name":"cut sho');
     fs.writeFileSync(MARKER, JSON.stringify({ ts: 'x', path: 'admin/inquiries.jsonl' }));
     await rfq(8716, { name: 'After The Cut', email: 'after@example.com' });
-    const last = fs.readFileSync(INQ, 'utf8').trimEnd().split('\n').pop();
+    // AUDIT-12 decision 42 — the lead is the last line that is not a send result.
+    const last = fs.readFileSync(INQ, 'utf8').trimEnd().split('\n').filter((l) => !/"type":"send-result"/.test(l)).pop() || '';
     let parsed = null;
     try { parsed = JSON.parse(last); } catch { /* stays null */ }
     note(parsed && parsed.name === 'After The Cut', 'N2-10: the lead after a short line is still its own valid JSON line', last.slice(0, 100));

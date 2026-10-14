@@ -10,6 +10,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { leads } = require('./inqrows');
 const http = require('http');
 const { execFileSync } = require('child_process');
 const { launch } = require('./browser.js');
@@ -86,12 +87,13 @@ const POST = (p, o, extra = {}) => req({ path: p, method: 'POST',
 
   // and the server half: a native RFQ post is accepted and LOGGED
   const logPath = path.join(SITE, 'admin/inquiries.jsonl');
-  const before = fs.existsSync(logPath) ? fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean).length : 0;
+  // AUDIT-12 decision 42 — leads, not lines: a lead is its row plus a send-result line.
+  const before = leads(logPath).length;
   const nat = await POST('/contact.php', {
     form_type: 'rfq', name: 'NoJS Buyer', email: 'nojs-suite@example.com',
     quantity: '250 ft', partNumber: 'IP30HS', website: '',
   });
-  const after = fs.existsSync(logPath) ? fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean).length : 0;
+  const after = leads(logPath).length;
   ok(nat.status === 200 && after === before + 1, 'A-5.3 a native RFQ post is accepted and logged', `status ${nat.status}, delta ${after - before}`);
 
   // ── A-5.4 — the filter must reach past a flood of sign-in noise ─────────
@@ -222,8 +224,13 @@ array_map('unlink', glob($dir . '/*')); @rmdir($dir);
     };
     const mails = () => fs.readFileSync(MAIL, 'utf8').split('===MESSAGE===').filter((m) => m.trim());
     const autoRepliedTo = (addr) => mails().some((m) => new RegExp(`^To:.*${addr.replace(/[.]/g, '\\.')}`, 'mi').test(m));
-    const lead = (port, email) => req({ port, path: '/contact.php', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' } },
-      form({ form_type: 'message', name: 'A59 Probe', company: 'X', email, phone: '6305550100', subject: 'General', message: 'auto-reply cap probe', website: '' }));
+    // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+    const lead = async (port, email) => {
+      const r = await req({ port, path: '/contact.php', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' } },
+        form({ form_type: 'message', name: 'A59 Probe', company: 'X', email, phone: '6305550100', subject: 'General', message: 'auto-reply cap probe', website: '' }));
+      await req({ port, path: '/robots.txt', method: 'GET' }).catch(() => {});
+      return r;
+    };
 
     // :8750 — control first: an ordinary lead gets its auto-reply, and the
     // limiter file it writes tells us this client's name for it.

@@ -5128,6 +5128,61 @@ function requiredLabel(label) {
   return typeof label === "string" && label.trim() && !/\*\s*$/.test(label) ? `${label} *` : label;
 }
 
+/**
+ * AUDIT-12 decision 18 (A12-L11-W3-G4-1) — the quote and message forms waited
+ * on /contact.php with no time limit, unlike every data fetch on the site
+ * (PRODUCTS_FETCH_TIMEOUT_MS): a stalled mail server left "Sending…" on screen
+ * for minutes with no message and no phone number. After this long the wait
+ * is abandoned and the visitor gets the network-error message, which carries
+ * the phone number. contact.php answers as soon as the lead is recorded and
+ * the sales email has gone, so a healthy server is far inside it.
+ */
+const CONTACT_SUBMIT_TIMEOUT_MS = 30000;
+
+/**
+ * AUDIT-12 decision 19 (A12-L4-W5-G3-1) — one id per submission. A buyer whose
+ * connection dropped after the request went out was told "Network error" and
+ * pressed Submit again; sales got the quote request twice and Inquiries listed
+ * two leads. Each form keeps an id that is sent with the POST and renewed when
+ * the visitor changes a field or a send succeeds, so pressing Submit again on
+ * an unchanged form re-sends the SAME id and contact.php, finding it among
+ * the recent inquiry rows, answers "received" without sending it twice.
+ */
+function newSubmissionId() {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  } catch (_) { /* fall through */ }
+  return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+}
+
+/**
+ * POST one contact form. Resolves to the server's JSON, or `{ ok: false }`
+ * for a reply that is not JSON (F9: the caller's fallback then names the
+ * phone number). Rejects on a network failure or the time limit, which the
+ * caller shows as cf.networkError.
+ */
+async function postContactForm(body) {
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), CONTACT_SUBMIT_TIMEOUT_MS) : null;
+  try {
+    const res = await fetch("/contact.php", { method: "POST", body, ...(controller ? { signal: controller.signal } : {}) });
+    // Deliberately carries NO `error`. This catch fires when the response
+    // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
+    // interstitial. It used to supply "Unexpected server response.", which
+    // satisfied the `json.error ||` in the caller and so SHADOWED
+    // cf.submitError, the owner-editable fallback that has the phone number in
+    // it. The visitor lost a whole RFQ and got a developer's phrase with no way
+    // to reach anyone. Leaving error unset lets the real fallback through. (F9)
+    // A body cut off by the time limit is a network failure, not a bad reply.
+    return await res.json().catch((err) => {
+      if (controller && controller.signal.aborted) throw err;
+      return { ok: false };
+    });
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function ContactPage() {
   const site = useSiteInfo();
   // ?part=SKU set by the product page's "Request Quote" button. (4.6)
@@ -5342,7 +5397,14 @@ function ContactPage() {
     subject: "",
     message: "",
   });
-  const onMsgChange = makeOnChange(setMsgForm);
+  // AUDIT-12 decision 19 — this form's submission id; see newSubmissionId().
+  const msgSubmissionId = useRef(null);
+  if (msgSubmissionId.current === null) msgSubmissionId.current = newSubmissionId();
+  const onMsgFieldChange = makeOnChange(setMsgForm);
+  const onMsgChange = (e) => {
+    msgSubmissionId.current = newSubmissionId();   // changed content is a new submission
+    onMsgFieldChange(e);
+  };
   const onMsgSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -5350,16 +5412,12 @@ function ContactPage() {
     try {
       const body = new FormData(e.target);
       body.append("form_type", "message");
-      const res  = await fetch("/contact.php", { method: "POST", body });
-      // Deliberately carries NO `error`. This catch fires when the response
-      // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
-      // interstitial. It used to supply "Unexpected server response.", which
-      // satisfied the `json.error ||` below and so SHADOWED cf.submitError,
-      // the owner-editable fallback that has the phone number in it. The
-      // visitor lost a whole RFQ and got a developer's phrase with no way to
-      // reach anyone. Leaving error unset lets the real fallback through. (F9)
-      const json = await res.json().catch(() => ({ ok: false }));
+      body.append("submission_id", msgSubmissionId.current);
+      // A reply that is not JSON comes back as { ok: false } with no `error`,
+      // so cf.submitError below is shown (F9, see postContactForm).
+      const json = await postContactForm(body);
       if (json.ok) {
+        msgSubmissionId.current = newSubmissionId();   // the next send is a new one
         markSent("message");   // A-9.P7-2 — and from a submit that really happened
         if (!contactMounted.current) return;
         setSubmittedTab("message");
@@ -5392,7 +5450,14 @@ function ContactPage() {
     specialReqs: "",
     additionalNotes: prefillIndustry ? `Industry: ${prefillIndustry}` : "",
   });
-  const onRfqChange = makeOnChange(setRfqForm);
+  // AUDIT-12 decision 19 — this form's submission id; see newSubmissionId().
+  const rfqSubmissionId = useRef(null);
+  if (rfqSubmissionId.current === null) rfqSubmissionId.current = newSubmissionId();
+  const onRfqFieldChange = makeOnChange(setRfqForm);
+  const onRfqChange = (e) => {
+    rfqSubmissionId.current = newSubmissionId();   // changed content is a new submission
+    onRfqFieldChange(e);
+  };
   const onRfqSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -5400,16 +5465,12 @@ function ContactPage() {
     try {
       const body = new FormData(e.target);
       body.append("form_type", "rfq");
-      const res  = await fetch("/contact.php", { method: "POST", body });
-      // Deliberately carries NO `error`. This catch fires when the response
-      // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
-      // interstitial. It used to supply "Unexpected server response.", which
-      // satisfied the `json.error ||` below and so SHADOWED cf.submitError,
-      // the owner-editable fallback that has the phone number in it. The
-      // visitor lost a whole RFQ and got a developer's phrase with no way to
-      // reach anyone. Leaving error unset lets the real fallback through. (F9)
-      const json = await res.json().catch(() => ({ ok: false }));
+      body.append("submission_id", rfqSubmissionId.current);
+      // A reply that is not JSON comes back as { ok: false } with no `error`,
+      // so cf.submitError below is shown (F9, see postContactForm).
+      const json = await postContactForm(body);
       if (json.ok) {
+        rfqSubmissionId.current = newSubmissionId();   // the next send is a new one
         markSent("rfq");   // A-9.P7-2 — and from a submit that really happened
         if (!contactMounted.current) return;
         setSubmittedTab("rfq");
@@ -7933,7 +7994,7 @@ const COPY_DEFAULTS = {
     rfqSuccessBody: "Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.",
     msgSuccessBody: "Your message has been received. Our sales team will respond within one business day.",
     urgentPrefix: "For urgent inquiries:",
-    networkError: "Network error. Please call 630.771.0700 or email sales@insulationproducts.com directly.",
+    networkError: "We could not confirm that your request was sent, and it may already have arrived. Pressing Submit again will not send it twice. Or call 630.771.0700 or email sales@insulationproducts.com directly.",
     submitError: "Submission failed. Please call 630.771.0700.",
     nameLabel: "Full Name *",
     namePlaceholder: "Your name",
@@ -14103,7 +14164,7 @@ const PRIVACY_SECTIONS = [
     {
       title: "Data Retention",
       content:
-        "Inquiry records — the details you submit, together with the IP address and timestamp described above — are kept for as long as they are needed to answer your enquiry and for our ongoing business record-keeping. They are not deleted automatically. If you would like the record of a particular enquiry removed, contact us using the details below and we will remove it.",
+        "Inquiry records — the details you submit, together with the IP address and timestamp described above — are kept for as long as they are needed to answer your enquiry and for our ongoing business record-keeping. They are not deleted automatically. If you would like the record of a particular enquiry removed, email us at the address below with the name and email address you used. We remove it by hand, from our enquiry records and from our sales inbox, and email you to confirm once it is done.",
     },
     {
       title: "Cookies & Tracking",
