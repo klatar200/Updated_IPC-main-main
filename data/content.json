@@ -40,9 +40,9 @@
         },
         {
             "iconKey": "stock",
-            "value": "42",
-            "label": "Products Stocked",
-            "sub": "Datasheet published for every one"
+            "value": "{datasheets}",
+            "label": "Datasheets Published",
+            "sub": "One for every catalog page"
         },
         {
             "iconKey": "dollar",

@@ -237,6 +237,11 @@ All of these render from `data/content.json` or `data/products-all.json`.
       carries a datasheet), or to restore the old site's own figure if IPC
       stands behind it. Nothing should change on the homepage until you have
       chosen — only one is what IPC means.
+      **Decided 2026-10-14 (AUDIT-12 decision 50): the recommendation.** The
+      slot ships as "Datasheets Published", its Value is `{datasheets}` and the
+      site counts it from the catalog (43 today: IP52EC's Plugged Cap is a sheet
+      of its own). Nothing to do unless IPC prefers another figure — type it
+      over the token in Page Content → Trust Bar Stats.
 - [ ] **Rewrite FAQ row #15** — *"Where can I download product data sheets?"*
       (**A-9.P5a-2**), at **Admin → Page Content → FAQ**; in the repo it is
       `faq[14]` of `data/content.json`, which is where the old "answer 14"

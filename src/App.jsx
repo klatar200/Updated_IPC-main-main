@@ -2647,6 +2647,14 @@ const STATS_ICONS = {
  * in STATS_ICONS it can honestly carry. Every value here is a claim already
  * made elsewhere on the site; do not put a number in this row that nothing
  * else supports.
+ *
+ * AUDIT-12 decision 50 (CLAIM-2) — the second stat was "42 — Products
+ * Stocked", typed by hand on a different screen from the catalog it counted,
+ * and "Stocked" is an inventory claim the catalog cannot back. It is now
+ * "Datasheets Published", and its value is the token {datasheets}: StatsBar
+ * writes the number of data sheets /datasheets lists (catalogCounts()), so it
+ * follows every product added or removed. {products} counts catalog pages.
+ * Any other value is shown as typed.
  */
 const STATS_DATA = [
   {
@@ -2656,9 +2664,9 @@ const STATS_DATA = [
     iconKey: "years",
   },
   {
-    value: "42",
-    label: "Products Stocked",
-    sub: "Datasheet published for every one",
+    value: "{datasheets}",
+    label: "Datasheets Published",
+    sub: "One for every catalog page",
     iconKey: "stock",
   },
   {
@@ -2682,6 +2690,16 @@ const STATS_DATA = [
  */
 function StatsBar() {
   const { stats } = useContent();
+  // Decision 50 — the live counts behind {datasheets} / {products}. Until the
+  // catalog has arrived (or if it fails) the number is left out rather than
+  // guessed; the row keeps its height.
+  const catalog = useContext(CatalogContext);
+  const counts = Array.isArray(catalog) && catalog.length ? catalogCounts(catalog) : null;
+  const statValue = (v) => {
+    const t = asText(v);
+    if (!/\{(datasheets|products)\}/i.test(t)) return t;
+    return counts ? t.replace(/\{(datasheets|products)\}/gi, (_, k) => String(counts[k.toLowerCase()])) : "";
+  };
   return (
     <section id="ipc-sec-stats" className="bg-white border-b border-gray-200">
       <div className="ipc-container px-6 grid grid-cols-2 md:grid-cols-4 ipc-stats-grid">
@@ -2706,7 +2724,7 @@ function StatsBar() {
                 className="font-extrabold leading-tight"
                 style={{ fontSize: 20, color: "var(--brand-primary-text)" }}
               >
-                {s.value}
+                {statValue(s.value) || "\u00a0"}
               </div>
               <div
                 className="text-xs font-semibold mt-0.5"
@@ -3153,6 +3171,24 @@ function looksLikeSize(query) {
     /\d\s*(mm|in|inch|inches|awg|ga|gauge|ft)\b/.test(q) || /\d\s*"/.test(q);
 }
 
+/**
+ * AUDIT-12 decision 50 — what the catalog publishes, counted ONE way for the
+ * Datasheets page and the homepage stat: one data sheet per primary PDF and
+ * per Additional PDF Link with an address (A12-L6-W3-G4-1: IP52EC's Plugged
+ * Cap is a sheet of its own), and one page per product.
+ */
+function catalogCounts(products) {
+  const list = Array.isArray(products) ? products : [];
+  return {
+    products: list.length,
+    datasheets: list.reduce((n, p) => n + (p.pdfUrl ? 1 : 0)
+      + productExtraPdfs(p).filter((x) => asText(x.url)).length, 0),
+  };
+}
+// The loaded catalog for the few components that only count it (StatsBar);
+// App provides it. Not a second useProducts() — that hook mounts once.
+const CatalogContext = createContext(null);
+
 function DatasheetsPage({ products }) {
   const [q, setQ] = useState("");
   const site = useSiteInfo();
@@ -3196,11 +3232,7 @@ function DatasheetsPage({ products }) {
     return Object.entries(g).sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]));
   }, [products, q, famOrder]);
 
-  const total = useMemo(
-    () => products.reduce((n, p) => n + (p.pdfUrl ? 1 : 0)
-      + productExtraPdfs(p).filter((x) => asText(x.url)).length, 0),
-    [products],
-  );
+  const total = useMemo(() => catalogCounts(products).datasheets, [products]);
 
   // Published for _harness/plan7-approvals.js, which diffs this against what
   // admin/config.php derives for the same 42 products. Two implementations of
@@ -15135,6 +15167,7 @@ function App() {
   return (
     <SiteInfoProvider>
       <ContentProvider>
+       <CatalogContext.Provider value={products}>
         <ThemeInjector />
         <StructuredData />
         <PageMeta products={pageProducts} />
@@ -15177,6 +15210,7 @@ function App() {
           </main>
           <Footer />
         </div>
+       </CatalogContext.Provider>
       </ContentProvider>
     </SiteInfoProvider>
   );

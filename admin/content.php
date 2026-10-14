@@ -95,7 +95,8 @@ $SECTIONS = [
         'icons'    => $STAT_ICONS,
         'fields'   => [
             ['key' => 'iconKey', 'type' => 'icon', 'label' => 'Icon'],
-            ['key' => 'value',   'type' => 'text', 'label' => 'Value (e.g. 25M+)'],
+            // AUDIT-12 decision 50 — {datasheets} / {products} are counted from the catalog.
+            ['key' => 'value',   'type' => 'text', 'label' => 'Value (e.g. 25M+; {datasheets} shows the live number of data sheets, {products} the number of products)'],
             ['key' => 'label',   'type' => 'text', 'label' => 'Label'],
             ['key' => 'sub',     'type' => 'text', 'label' => 'Sub-line'],
         ],
