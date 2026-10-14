@@ -1059,6 +1059,7 @@ $navActive = 'help';
           <li>Use the filter boxes to narrow it down: type a SKU to see everything that's happened to one specific product, or pick an action type from the dropdown (it lists every action in the table below) — then click <strong>Filter</strong>. Nothing changes until you do.</li>
           <li>Click <strong>Clear</strong> (it appears once a filter is on) to see everything again.</li>
         </ol>
+        <p>On a phone, the date sits above the time so that the <strong>Detail</strong> column — what actually happened — fits on the screen. The IP address is just past the right edge: swipe the table sideways to see it.</p>
         <h3>What each colored badge means</h3>
         <table class="field-ref">
           <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dcfce7;color:#166534;">add</span></td><td>A brand-new product was created.</td></tr>
