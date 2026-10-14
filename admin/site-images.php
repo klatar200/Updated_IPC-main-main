@@ -79,7 +79,7 @@ function slot_write(string $slot, string $value, array &$errors): bool {
         $info = load_site_info();
         $info['theme'] = is_array($info['theme'] ?? null) ? $info['theme'] : [];
         $info['theme']['logoUrl'] = $url;
-        if (!save_site_info($info)) { $errors[] = 'Could not save data/site-info.json. Check that the data/ folder is writable.'; return false; }
+        if (!save_site_info($info)) { $errors[] = save_failed_message(); return false; }   // AUDIT-12 decision 31
         return true;
     }
     if (data_file_damaged(CONTENT_JSON)) {
@@ -90,7 +90,7 @@ function slot_write(string $slot, string $value, array &$errors): bool {
     $content['copy'] = is_array($content['copy'] ?? null) ? $content['copy'] : [];
     $content['copy']['siteImages'] = is_array($content['copy']['siteImages'] ?? null) ? $content['copy']['siteImages'] : [];
     $content['copy']['siteImages'][$slot] = $value;
-    if (!save_content($content)) { $errors[] = 'Could not save data/content.json. Check that the data/ folder is writable.'; return false; }
+    if (!save_content($content)) { $errors[] = save_failed_message(); return false; }
     return true;
 }
 
@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     : move_uploaded_file($_FILES['image_file']['tmp_name'], $dest);
                 if ($prep['path'] !== null && !$stored) @unlink($prep['path']);
                 if (!$stored) {
-                    $errors[] = 'Upload failed. Check write permissions on the /uploads/site/ folder.';
+                    $errors[] = write_failed_message(SITE_IMG_DIR, 'uploads/site');   // AUDIT-12 decision 31
                 } else {
                     if (slot_write($slot, SITE_IMG_PATH . $filename, $errors)) {
                         audit_log('site-image', $slot, $SLOTS[$slot]['label'] . ' → uploaded ' . $filename);

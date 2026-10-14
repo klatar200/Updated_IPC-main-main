@@ -811,7 +811,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: content.php?saved=' . ($noop ? 'nochange' : '1'));
             exit;
         }
-        $errors[] = 'Failed to save content.json. Check file permissions on the data/ folder.';
+        $errors[] = save_failed_message();   // AUDIT-12 decision 31
     }
 }
 

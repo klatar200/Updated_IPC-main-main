@@ -300,7 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: settings.php?saved=' . ($noop ? 'nochange' : '1'));
             exit;
         }
-        $errors[] = 'Failed to save site-info.json. Check file permissions on the data/ folder.';
+        $errors[] = save_failed_message();   // AUDIT-12 decision 31
     }
     $info = $updated; // repopulate the form with submitted values on error
 }

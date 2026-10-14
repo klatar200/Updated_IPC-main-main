@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $isManaged    = false;
             $product      = $products[$idx];
         } else {
-            $errors[] = 'Could not save the catalog. Check file permissions on products-all.json.';
+            $errors[] = save_failed_message();   // AUDIT-12 decision 31
         }
     }
     // A12-L3-14-1 — a second Remove (another tab, or Back) used to fall
@@ -173,10 +173,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // upload created is an orphan; a same-name replacement has
                     // already overwritten the old bytes and stays.
                     if (!$isReplacement) @unlink($destPath);
-                    $errors[] = 'The photo could not be saved: the product catalog (products-all.json) could not be updated, so nothing was changed and the current photo is still in place. The server may be out of space — try again, or check the data/ folder.';
+                    $errors[] = save_failed_message() . ' The current photo is still in place.';   // AUDIT-12 decision 31
                 }
             } else {
-                $errors[] = 'Upload failed. Check write permissions on the /uploads/images/ directory.';
+                $errors[] = write_failed_message(IMG_DIR, 'uploads/images');   // AUDIT-12 decision 31
             }
         }
     }

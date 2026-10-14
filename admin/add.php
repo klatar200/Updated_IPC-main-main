@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // owner to the wrong fix.
         $errors[] = products_load_damaged()
             ? 'The product catalog (data/products-all.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Product Catalog entry, then add the product again.'
-            : 'Failed to save. Check file permissions on products-all.json.';
+            : save_failed_message();   // AUDIT-12 decision 31
     }
 
     // Repopulate from the submitted values. Only scalars — an array-typed field

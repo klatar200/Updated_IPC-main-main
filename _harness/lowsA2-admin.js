@@ -160,7 +160,8 @@ function pngWithLateTag() {
     const e3 = await editProduct('CC', { sku: 'CCRENAMED3' }, '&caption=%FF%FE');   // invalid UTF-8: json_encode fails
     const ccThere = fs.existsSync(path.join(SITE, 'pdfs', 'CC.pdf'));
     const newThere = fs.existsSync(path.join(SITE, 'pdfs', 'CCRENAMED3.pdf'));
-    note(e3.status === 200 && /Failed to save/.test(e3.body), 'N2-3: setup — the save really failed');
+    // AUDIT-12 decision 31: invalid UTF-8 is not a permissions problem, so it gets its own sentence.
+    note(e3.status === 200 && /Nothing was saved: some of the text contains a character the server cannot store/.test(e3.body), 'N2-3: setup — the save really failed (and says the text, not permissions, is why)');
     note(ccThere && !newThere, 'N2-3: the data sheet is put back under the name the catalog still uses',
       `CC.pdf ${ccThere ? 'present' : 'MISSING'}, CCRENAMED3.pdf ${newThere ? 'present' : 'absent'}`);
     restoreData();

@@ -297,7 +297,11 @@ incident.
     array is not a change) and skip both the write and the backup when it
     matches. Returning `false` there would surface "could not save" for a file
     that is already correct and would strand the optimistic-concurrency pages.
-    Pages that need to word it differently call `last_save_was_noop()`.
+    Pages that need to word it differently call `last_save_was_noop()`. A
+    backup copy that could not be written is reported separately, by
+    `last_save_backup_failed()`: a restore (`save_*($x, true)`) is then
+    refused, an ordinary save goes ahead and the next page says it can't be
+    undone from Backups (AUDIT-12 decisions 29/30).
 17. **A SKU rename in `edit.php` must not rename a PDF another product points
     at.** Two products share one data sheet in the shipped catalog (`IP12GA` and
     `IP12GA-IP1274`), so the unconditional

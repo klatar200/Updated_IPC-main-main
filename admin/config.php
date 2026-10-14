@@ -1040,7 +1040,11 @@ function backup_path(string $dir, string $prefix): string {
 // distinction is still worth making rather than returning null for both, so
 // that a future caller which does check gets a truthful answer instead of an
 // error for a file that is safely backed up already.
+// AUDIT-12 decisions 29/30: a failed copy is ALSO reported through
+// last_save_backup_failed(), which the save_*() helpers act on; the return
+// value stays as described.
 function backup_before_write(string $path, string $prefix): ?string {
+    $GLOBALS['ipc_last_backup_failed'] = false;   // AUDIT-12 decisions 29/30
     $dir = dirname($path);
     if (!file_exists($path)) return null;
 
@@ -1098,7 +1102,11 @@ function backup_before_write(string $path, string $prefix): ?string {
     // one-owner admin — but fall back to the old behaviour rather than skipping
     // the backup, because no backup at all is the worse outcome.
     if ($backupPath === null) $backupPath = backup_path($dir, $prefix);
-    if (!@copy($path, $backupPath)) { @unlink($backupPath); return null; }
+    if (!@copy($path, $backupPath)) {
+        @unlink($backupPath);
+        $GLOBALS['ipc_last_backup_failed'] = true;   // see last_save_backup_failed()
+        return null;
+    }
     $backups = backup_list($dir, $prefix); // oldest first, by parsed (stamp, seq)
     if (count($backups) > BACKUP_KEEP) {
         foreach (array_slice($backups, 0, count($backups) - BACKUP_KEEP) as $old) @unlink($old);
@@ -1153,6 +1161,74 @@ function last_save_was_noop(): bool {
     return !empty($GLOBALS['ipc_last_save_noop']);
 }
 
+/**
+ * AUDIT-12 decisions 29 and 30 (A12-L4-01-W5-1, A12-L4-05-2) — the separate
+ * failure signal invariant 16 asks for. backup_before_write() returning null
+ * is NOT failure (it also means "no file yet"); this flag is set only when the
+ * copy itself could not be written — on a shared host, a full disk.
+ *  - save_*($x, true) (Backups' restore) then refuses and writes nothing, so a
+ *    restore never replaces the only copy of the current version (29).
+ *  - an ordinary save goes ahead, and the next admin page says plainly that
+ *    the change cannot be undone from Backups (30; nav.php shows it once).
+ */
+$GLOBALS['ipc_last_backup_failed'] = false;
+function last_save_backup_failed(): bool {
+    return !empty($GLOBALS['ipc_last_backup_failed']);
+}
+// Why the most recent save_*() returned false: 'encode', 'damaged', 'backup' or 'write'.
+$GLOBALS['ipc_last_save_failure'] = '';
+
+/** The common tail of the three save_*() helpers, after the no-op check. */
+function save_json_with_backup(string $path, string $prefix, string $json, string $label, bool $requireBackup): bool {
+    $GLOBALS['ipc_last_save_noop'] = false;
+    backup_before_write($path, $prefix);
+    if (last_save_backup_failed() && $requireBackup) {
+        $GLOBALS['ipc_last_save_failure'] = 'backup';
+        return false;
+    }
+    if (!json_write_atomic($path, $json)) {
+        $GLOBALS['ipc_last_save_failure'] = 'write';
+        return false;
+    }
+    if (last_save_backup_failed() && session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION['ipc_unbacked_saves'][$label] = true;
+    }
+    return true;
+}
+
+/**
+ * AUDIT-12 decision 31 (A12-L8-02-1) — ONE sentence for "the dashboard could
+ * not write a file", used by every page, instead of seven wordings that named
+ * products-all.json and said "file" or "write" permissions, "folder" or
+ * "directory". Which sentence depends on the cause: a folder the server will
+ * not let the dashboard write to (the shared one), a folder it may write to
+ * but could not (a full disk), or text that cannot be stored at all.
+ * $dir/$name name the folder ('data' for the three data files).
+ */
+function write_failed_message(string $dir, string $name): string {
+    if (is_dir($dir) && !is_writable($dir)) {
+        return "Nothing was saved: the server does not let the dashboard write to its {$name} folder. "
+             . 'This is a server setting, not something you did — Help → "If the dashboard warns you about the server" says how to fix it, '
+             . 'or send a screenshot of this page to your developer.';
+    }
+    return "Nothing was saved: the server could not write to its {$name} folder, although the folder allows it, so its disk is probably full. "
+         . 'Free up space on your hosting account (or ask your host to), then try again.';
+}
+function save_failed_message(): string {
+    switch ($GLOBALS['ipc_last_save_failure'] ?? '') {
+        case 'encode':
+            return 'Nothing was saved: some of the text contains a character the server cannot store '
+                 . '(this can happen with text pasted from Word or a PDF). Retype the text you pasted last, then save again.';
+        case 'backup':
+            return 'Nothing was changed: the server\'s disk is full, so it could not first keep a copy of the current version, '
+                 . 'and without that copy this could not be undone. Free up space on your hosting account (or ask your host to), then try again.';
+        case 'damaged':
+            return 'Nothing was saved: the product catalog file (data/products-all.json) is damaged. '
+                 . 'Go to Backups and restore the most recent Product Catalog entry, then try again.';
+    }
+    return write_failed_message(dirname(PRODUCTS_JSON), 'data');
+}
+
 // All backups for one prefix, OLDEST FIRST.
 //
 // Two orderings that look right and are NOT (both measured, not guessed):
@@ -1197,11 +1273,13 @@ function backup_list(string $dir, string $prefix): array {
 // would strand the optimistic-concurrency pages on an error page instead of
 // redirecting and refreshing their signature. Pages that want to word it
 // differently read last_save_was_noop().
-function save_products(array $products): bool {
+function save_products(array $products, bool $requireBackup = false): bool {
     products_write_lock(); // SEC-5 — a no-op if load_products() already took it
+    $GLOBALS['ipc_last_save_failure'] = '';
+    $GLOBALS['ipc_last_backup_failed'] = false;
     // NEW-N2-2 — never save the [] a damaged catalog was read as over the
     // catalog itself. The dashboard banner says what to do instead.
-    if (products_load_damaged()) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    if (products_load_damaged()) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'damaged'; return false; }
     $path = PRODUCTS_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) {
@@ -1214,14 +1292,13 @@ function save_products(array $products): bool {
     // carry. file_put_contents($path, false) writes an EMPTY FILE and returns
     // 0, which is !== false — so the catalog would be blanked and reported as
     // saved. Fail loudly instead and leave the file alone.
-    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'encode'; return false; }
     if (!json_write_needed($path, $json)) {
         $GLOBALS['ipc_last_save_noop'] = true;
         return true;
     }
-    $GLOBALS['ipc_last_save_noop'] = false;
-    backup_before_write($path, 'products-all');
-    return json_write_atomic($path, $json);   // A-5.5 — temp file + atomic rename
+    // backup_before_write(), then json_write_atomic() (A-5.5 — temp file + atomic rename)
+    return save_json_with_backup($path, 'products-all', $json, 'Product Catalog', $requireBackup);
 }
 
 // Helper: load business details (site-info.json). Returns [] if missing/invalid.
@@ -1234,20 +1311,20 @@ function load_site_info(): array {
 
 // Helper: save business details. Mirrors save_products(): timestamped backup
 // (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
-function save_site_info(array $info): bool {
+function save_site_info(array $info, bool $requireBackup = false): bool {
     data_write_lock('site-info'); // a no-op if the page already took it
     $path = SITE_INFO_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $json = json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    $GLOBALS['ipc_last_save_failure'] = '';
+    $GLOBALS['ipc_last_backup_failed'] = false;
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'encode'; return false; }
     if (!json_write_needed($path, $json)) {          // F2
         $GLOBALS['ipc_last_save_noop'] = true;
         return true;
     }
-    $GLOBALS['ipc_last_save_noop'] = false;
-    backup_before_write($path, 'site-info');
-    return json_write_atomic($path, $json);
+    return save_json_with_backup($path, 'site-info', $json, 'Business Details', $requireBackup);
 }
 
 // Helper: load editable page content (homepage sections, etc.). Returns [] if
@@ -1545,20 +1622,20 @@ function ipc_product_families(): array {
 
 // Helper: save editable page content. Mirrors save_site_info(): timestamped
 // backup (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
-function save_content(array $content): bool {
+function save_content(array $content, bool $requireBackup = false): bool {
     data_write_lock('content'); // a no-op if the page already took it
     $path = CONTENT_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $json = json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    $GLOBALS['ipc_last_save_failure'] = '';
+    $GLOBALS['ipc_last_backup_failed'] = false;
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'encode'; return false; }
     if (!json_write_needed($path, $json)) {          // F2
         $GLOBALS['ipc_last_save_noop'] = true;
         return true;
     }
-    $GLOBALS['ipc_last_save_noop'] = false;
-    backup_before_write($path, 'content');
-    return json_write_atomic($path, $json);
+    return save_json_with_backup($path, 'content', $json, 'Page Content', $requireBackup);
 }
 
 /**

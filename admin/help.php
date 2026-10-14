@@ -1037,7 +1037,11 @@ $navActive = 'help';
         </ol>
         <div class="callout callout-tip">
           <b>A restore can itself be undone</b>
-          Restoring backs up the <em>current</em> state first, so if you restore the wrong one, the version you just replaced is now the newest entry in the list. You cannot get stuck.
+          Restoring backs up the <em>current</em> state first, so if you restore the wrong one, the version you just replaced is now the newest entry in the list. You cannot get stuck. If the server cannot make that copy (its disk is full), the restore is refused and nothing changes — the page says so. Free up space on your hosting account, then restore again.
+        </div>
+        <div class="callout callout-warning">
+          <b>"This change can't be undone from Backups"</b>
+          If the server's disk is full, a save still goes through, but the server cannot keep its copy of the version before it. A yellow box at the top of the next page says so. That one change cannot be undone from this page, so note what you changed, and free up space on your hosting account (or ask your host to) so your next change is backed up again.
         </div>
         <div class="callout callout-warning">
           <b>Act sooner rather than later</b>
@@ -1096,6 +1100,7 @@ $navActive = 'help';
         <h2>🩺 If the dashboard warns you about the server</h2>
         <p>Several things can go wrong on the server itself in a way that is completely silent — the dashboard keeps saying "saved", and nothing actually is. So the <strong>Products</strong> page checks for all of them every time you open it, and shows a red box at the top headed <strong>"Server setup problem — please send this to your developer"</strong> if it finds one. The box names every problem it found; the table below explains each one.</p>
         <p><strong>If you never see that box, there is nothing to do here.</strong> If you do, it is a permissions problem on the hosting account, not something you did wrong, and the box tells you exactly which folder to fix over FTP.</p>
+        <p><strong>When a save fails,</strong> every page says why in the same words. <em>"The server does not let the dashboard write to its … folder"</em> is the permissions problem in the table below. <em>"…although the folder allows it, so its disk is probably full"</em> means the hosting account is out of space: free some up, or ask your host. <em>"Some of the text contains a character the server cannot store"</em> is about what you typed, not the server: retype the last thing you pasted and save again.</p>
         <table class="field-ref">
           <tr><td>The <code>admin</code> folder is not writable</td><td>The most serious one. <strong>Contact-form leads are still emailed to sales but are not being saved to the Inquiries page</strong>, the change history cannot record anything, and the Password page cannot save. Set <code>admin/</code> to 755 (or 775) over FTP. If the warning stays, ask your host to run PHP as your account user (777 also works, as a stop-gap only).</td></tr>
           <tr><td>The <code>data</code> folder is not writable</td><td>Nothing you edit on any page can be saved at all. Set <code>data/</code> to 755 (or 775) over FTP. If the warning stays, ask your host to run PHP as your account user (777 also works, as a stop-gap only).</td></tr>

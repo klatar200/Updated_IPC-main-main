@@ -96,3 +96,15 @@ $navExtra  = $navExtra  ?? '';
     </form>
   </nav>
 </header>
+<?php
+/* AUDIT-12 decision 30 (A12-L4-05-2) — a save went through but its backup
+   could not be written (save_json_with_backup() in config.php records it).
+   Said once, on the next admin page, whichever page made the save. */
+if (!empty($_SESSION['ipc_unbacked_saves']) && is_array($_SESSION['ipc_unbacked_saves'])):
+  $navUnbacked = array_keys($_SESSION['ipc_unbacked_saves']);
+  unset($_SESSION['ipc_unbacked_saves']); ?>
+<div role="alert" style="max-width:1100px;margin:16px auto 0;padding:12px 16px;background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;color:#78350f;font-size:14px;line-height:1.5;">
+  <strong>⚠ Your change to <?= h(implode(' and ', $navUnbacked)) ?> was saved, but this change can't be undone from Backups.</strong>
+  The server could not keep a copy of the version before it — its disk is probably full. Free up space on your hosting account (or ask your host to), so that your next change is backed up again.
+</div>
+<?php endif; ?>

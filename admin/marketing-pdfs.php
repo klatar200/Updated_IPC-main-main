@@ -107,7 +107,7 @@ function marketing_pdf_assign(string $target, string $url, array &$errors): stri
         if (data_file_damaged(SITE_INFO_JSON)) { $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.'; return ''; }
         $info = load_site_info();
         $info['catalogPdfUrl'] = $url;
-        if (!save_site_info($info)) { $errors[] = 'Could not save data/site-info.json. Check that the data/ folder is writable.'; return ''; }
+        if (!save_site_info($info)) { $errors[] = save_failed_message(); return ''; }   // AUDIT-12 decision 31
         return 'the full product catalog link in the footer';
     }
     if (!preg_match('/^service:(\d+)(?::[0-9a-f]{10})?$/', $target, $m)) { $errors[] = 'Choose where to use this PDF.'; return ''; }
@@ -127,7 +127,7 @@ function marketing_pdf_assign(string $target, string $url, array &$errors): stri
     }
     $title = (string)($sv['title'] ?? 'service');
     unset($sv);
-    if (!save_content($content)) { $errors[] = 'Could not save data/content.json. Check that the data/ folder is writable.'; return ''; }
+    if (!save_content($content)) { $errors[] = save_failed_message(); return ''; }
     return 'the brochure link on the "' . $title . '" service card';
 }
 
@@ -171,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if (!move_uploaded_file($_FILES['pdf_file']['tmp_name'], MARKETING_PDF_DIR . $name)) {
                 @unlink(MARKETING_PDF_DIR . $name);   // our own empty placeholder
-                $errors[] = 'Upload failed. Check write permissions on the /pdfs/marketing/ folder.';
+                $errors[] = write_failed_message(MARKETING_PDF_DIR, 'pdfs/marketing');   // AUDIT-12 decision 31
             } else {
                 $url = MARKETING_PDF_URL . $name;
                 $where = $lockFor !== '' ? marketing_pdf_assign($target, $url, $errors) : '';
