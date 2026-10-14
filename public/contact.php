@@ -752,8 +752,38 @@ function ipc_rl_key(string $ip): string {
     return inet_ntop(substr($bin, 0, 8) . str_repeat("\0", 8)) . '/64';
 }
 
-$ip       = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-$safeIp   = preg_replace('/[^a-fA-F0-9:.\/]/', '', ipc_rl_key(is_string($ip) ? $ip : 'unknown'));
+// AUDIT-12 decision 43 (A12-L2-W5-G3-1) — behind a TLS-terminating proxy or
+// CDN every request's REMOTE_ADDR is the proxy's, so the "5 per 10 minutes per
+// buyer" limit above became 5 per 10 minutes for the WHOLE SITE (measured: the
+// sixth buyer refused, the sixteenth left no trace at all). public/.htaccess is
+// written for that topology too.
+//
+// OFF ON PURPOSE. Turn it on only when GO-LIVE C4's address check shows the
+// proxy (Admin > Inquiries shows the same private or host address for every
+// buyer): set it to true and upload contact.php. On direct hosting it must stay
+// off — there X-Forwarded-For is whatever the client typed, and trusting it
+// would let one sender rotate past the limit.
+//
+// Same rule as the admin sign-in throttle's login_throttle_client_ip()
+// (TRUST_PROXY_FORWARDED, SEC-A2): the RIGHT-MOST entry, the one the trusted
+// proxy appended; the left-most is the client's own and spoofable. Behind more
+// than one proxy hop this is still the nearest proxy's view; do not enable it
+// then. The inquiry record carries the same address.
+if (!defined('IPC_TRUST_PROXY_FORWARDED')) define('IPC_TRUST_PROXY_FORWARDED', false);
+function ipc_client_ip(): string {
+    $remote = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    if (!is_string($remote) || $remote === '') $remote = 'unknown';
+    $xff = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+    if (IPC_TRUST_PROXY_FORWARDED && is_string($xff) && $xff !== '') {
+        $parts = explode(',', $xff);
+        $last  = trim((string)end($parts));
+        if (filter_var($last, FILTER_VALIDATE_IP)) return $last;
+    }
+    return $remote;
+}
+
+$ip       = ipc_client_ip();
+$safeIp  = preg_replace('/[^a-fA-F0-9:.\/]/', '', ipc_rl_key(is_string($ip) ? $ip : 'unknown'));
 $rateFile = sys_get_temp_dir() . '/ipc_rl_' . md5($safeIp) . '.json';
 $now      = time();
 $window   = 600; // seconds

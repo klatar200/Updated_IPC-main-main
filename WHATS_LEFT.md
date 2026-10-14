@@ -86,6 +86,7 @@ not yet in the email.)
 | **Upload `index.php` before `.htaccess`** | The new `.htaccess` sends every page to `index.php` (A-5.10) |
 | `noreply@` mailbox; SPF / DKIM / DMARC; then `IPC_ENVELOPE_FROM` | In that order. Setting the envelope sender before SPF is right breaks every notification (DEP-2). |
 | TRACE off | A host setting; `.htaccess` cannot do it |
+| Proxy in front of PHP? then `IPC_TRUST_PROXY_FORWARDED` | GO-LIVE C4 compares Admin → Inquiries' Visitor IP with your own. Only if it shows the proxy, turn the switch on in `contact.php`; otherwise the quote form's rate limit is shared by every buyer (AUDIT-12 decision 43). Ships off. |
 | `admin/`, `data/`, `pdfs/`, `uploads/` writable by PHP | README "Permissions". Done before `index.html` goes up (GO-LIVE B2 step 9, AUDIT-12 decision 41). The dashboard shows a banner when they are not. |
 
 ## Open — ready to run

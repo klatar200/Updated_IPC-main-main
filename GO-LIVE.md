@@ -538,6 +538,20 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
       proves `mail()`, the Inquiries row proves the log. Either alone is a
       half-working form.
 - [ ] The auto-reply arrives at the address you submitted.
+- [ ] **Is the host behind a proxy?** Open that Inquiries row and read
+      **Visitor IP**. On the same device, search "what is my IP" and compare.
+      - The same address (either of yours, if it shows IPv4 and IPv6): leave
+        `IPC_TRUST_PROXY_FORWARDED` off. Nothing to do.
+      - A private address (`10.…`, `172.16.…`–`172.31.…`, `192.168.…`,
+        `127.0.0.1`) or one that is not yours — and a second test from a
+        phone on mobile data, not Wi-Fi, shows the **same** address: the host
+        puts a proxy in front of PHP, and the quote form's "5 per 10 minutes"
+        limit is counting every buyer on the site together. In
+        `public/contact.php` change `define('IPC_TRUST_PROXY_FORWARDED', false)`
+        to `true`, rebuild, upload `contact.php`, submit once more, and check
+        that Visitor IP is now your own address. (AUDIT-12 decision 43,
+        A12-L2-W5-G3-1. Do not turn it on otherwise: on direct hosting the
+        forwarded address is whatever the sender typed.)
 
 ---
 
