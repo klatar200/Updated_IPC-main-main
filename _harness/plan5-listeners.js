@@ -41,8 +41,11 @@
 const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
-const TARGET = 'IP29CG';   // Polyolefin Heat Shrink — 12 siblings, so Related renders
+const TARGET = 'IP29CG';   // Polyolefin Heat Shrink — 6 rows (12 before AUDIT-12 decision 2), so Related renders
 const CYCLES = 20;
+// The related card is a PageLink (<a>) since AUDIT-12 A12-L6-13-4; it was a <button>.
+const CARD = 'a.group, button.group';
+const CARD_GLYPH = 'a.group span[style*="translateX"], button.group span[style*="translateX"]';
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -53,7 +56,7 @@ const note = (ok, what, detail = '') => {
 /** Listeners on the first related-product card, by type. */
 async function cardListeners(cdp) {
   const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
-  const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: 'button.group' });
+  const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: CARD });
   if (!nodeId) return null;
   const { object } = await cdp.send('DOM.resolveNode', { nodeId });
   const { listeners } = await cdp.send('DOMDebugger.getEventListeners', { objectId: object.objectId });
@@ -108,7 +111,7 @@ const sameTally = (a, b) =>
       JSON.stringify(winFirst));
 
     for (let i = 0; i < CYCLES; i++) {
-      await page.click('button.group');                 // SPA nav to a sibling
+      await page.click(CARD);                 // SPA nav to a sibling
       await page.waitForTimeout(80);
       await page.goBack();                              // SPA nav back
       await page.waitForTimeout(80);
@@ -131,12 +134,12 @@ const sameTally = (a, b) =>
       const p = await ctx.newPage();
       await p.goto(`${BASE}/products?productId=${TARGET}`, { waitUntil: 'networkidle' });
 
-      const card = await p.$('button.group');
+      const card = await p.$(CARD);
       if (!card) {
         note(false, `${w}px: related-product card present`);
       } else {
         await card.scrollIntoViewIfNeeded();
-        const glyphOf = () => p.$eval('button.group span[style*="translateX"]',
+        const glyphOf = () => p.$eval(CARD_GLYPH,
           (el) => getComputedStyle(el).transform);
         const rest = await glyphOf();
         await card.hover();

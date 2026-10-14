@@ -93,6 +93,14 @@
     if (first) first.focus();
   }
 
+  // Focus the moved row's own arrow; when that arrow has just become disabled
+  // (the row reached the top or bottom), its other arrow.
+  function keepFocus(row, same, other) {
+    var b = row.querySelector('[data-action="' + same + '"]');
+    if (!b || b.disabled) b = row.querySelector('[data-action="' + other + '"]');
+    if (b && !b.disabled) b.focus();
+  }
+
   document.addEventListener('click', function (e) {
     var t = e.target.closest('[data-action]');
     if (!t) return;
@@ -105,22 +113,35 @@
     var row = t.closest('.content-row');
     if (!row) return;
     var section = sectionOf(row);
+    // A12-L7-W3-G1-5 — keep the keyboard user's place, as spectable-editor.js
+    // does (4.30). Moving a focused node blurs it in the browser, and a
+    // removed row takes focus with it, so focus landed on <body> and the next
+    // Tab-then-Enter acted on a different row.
     if (action === 'remove') {
       e.preventDefault();
       var rowParent = row.parentNode;
+      var survivor = row.nextElementSibling || row.previousElementSibling;
       row.remove();
       reindex(section);
       structural(rowParent);
+      var next = survivor && survivor.querySelector('[data-action="remove"]');
+      if (!next) {
+        var host = rowParent.closest('[data-section]');
+        next = host && host.querySelector('[data-action="add"]');
+      }
+      if (next) next.focus();
     } else if (action === 'up') {
       e.preventDefault();
       if (row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
       reindex(section);
       structural(row);
+      keepFocus(row, 'up', 'down');
     } else if (action === 'down') {
       e.preventDefault();
       if (row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
       reindex(section);
       structural(row);
+      keepFocus(row, 'down', 'up');
     }
   });
 
@@ -129,7 +150,124 @@
     document.querySelectorAll('[data-section]').forEach(function (s) {
       reindex(s.getAttribute('data-section'));
     });
+    restoreDraft();
   });
+
+  /*
+   * AUDIT-12 decision 32 (A12-L9-01-W5-1) — rows added, removed or moved
+   * survive being signed out mid-edit.
+   *
+   * Admin pages are sent no-store, so "Back to My Unsaved Page" (the expired-
+   * session page, invariant 12) re-requests this page and the browser can only
+   * refill the boxes the fresh HTML has: a typed fixed box came back, but an
+   * FAQ question added with "+ Add", a removed card or a reordered row did not,
+   * and the next Save said "Content saved" without them.
+   *
+   * So the whole form — every section's rows (which server row each one was,
+   * or a new one) and every box's value — is copied into THIS TAB's
+   * sessionStorage when the form is submitted. The next plain load of this
+   * page puts it back, says so, and forgets it. It is NOT put back when:
+   *   - the save went through (the page carries ?saved=) or the server answered
+   *     the POST itself (an error page already shows the submitted rows);
+   *   - the stored content changed since (orig_sig differs) — then the page
+   *     says the rows could not be restored;
+   *   - it is older than 12 hours (ADMIN_ABSOLUTE_LIMIT) or storage is blocked.
+   * Server rows are moved, not rebuilt, so the family-rename warning's
+   * data-ipc-family-* attributes stay on the right row.
+   */
+  var DRAFT_KEY = 'ipc-content-draft';
+  var DRAFT_MAX_AGE = 12 * 3600 * 1000;
+  function store(op, v) {
+    try {
+      if (op === 'get') return window.sessionStorage.getItem(DRAFT_KEY);
+      if (op === 'set') window.sessionStorage.setItem(DRAFT_KEY, v);
+      if (op === 'del') window.sessionStorage.removeItem(DRAFT_KEY);
+    } catch (e) { /* private mode or blocked storage: nothing is kept */ }
+    return null;
+  }
+  function contentForm() {
+    var f = document.querySelector('[name="form_complete"]');
+    return f ? f.closest('form') : null;
+  }
+  function sectionNames() {
+    return Array.prototype.map.call(document.querySelectorAll('[data-section]:not(button)'), function (h) {
+      return h.getAttribute('data-section');
+    });
+  }
+  var SKIP = { csrf_token: 1, orig_sig: 1, form_complete: 1 };
+  function snapshot(form) {
+    var sigEl = form.querySelector('[name="orig_sig"]');
+    var d = { sig: sigEl ? sigEl.value : '', at: Date.now(), sections: {}, values: {} };
+    sectionNames().forEach(function (s) {
+      d.sections[s] = Array.prototype.map.call(rowsOf(s), function (row) {
+        var o = row.getAttribute('data-ipc-orig');
+        return o === null ? -1 : parseInt(o, 10);
+      });
+    });
+    Array.prototype.forEach.call(form.elements, function (el) {
+      if (!el.name || SKIP[el.name] || /^(file|submit|button|reset)$/.test(el.type)) return;
+      d.values[el.name] = el.value;
+    });
+    return d;
+  }
+  function note(form, html) {
+    var box = document.createElement('div');
+    box.className = 'alert-info';
+    box.setAttribute('role', 'status');
+    box.id = 'ipc-draft-note';
+    box.innerHTML = html;
+    form.parentNode.insertBefore(box, form);
+  }
+  function restoreDraft() {
+    var form = contentForm();
+    if (!form) return;
+    // Which server row each row is, before anything moves (snapshot() reads it).
+    sectionNames().forEach(function (s) {
+      Array.prototype.forEach.call(rowsOf(s), function (row, i) { row.setAttribute('data-ipc-orig', String(i)); });
+    });
+    var raw = store('get');
+    if (!raw) return;
+    if (form.hasAttribute('data-ipc-post-response') || /[?&]saved=/.test(window.location.search)) { store('del'); return; }
+    store('del');
+    var d = null;
+    try { d = JSON.parse(raw); } catch (e) { return; }
+    if (!d || typeof d !== 'object' || !d.sections || !d.values || Date.now() - (d.at || 0) > DRAFT_MAX_AGE) return;
+    var sigEl = form.querySelector('[name="orig_sig"]');
+    if (!sigEl || d.sig !== sigEl.value) {
+      note(form, '<strong>Your unsaved changes could not be put back</strong> — the page content was saved from somewhere else since. What you see is the saved version; make your changes again, then click Save Content.');
+      return;
+    }
+    Object.keys(d.sections).forEach(function (s) {
+      var wrap = document.querySelector('[data-section="' + s + '"] .rows');
+      var tpl = document.getElementById('tpl-' + s);
+      if (!wrap || !tpl || !Array.isArray(d.sections[s])) return;
+      var orig = Array.prototype.slice.call(rowsOf(s));
+      var used = [];
+      var rows = d.sections[s].map(function (k) {
+        if (k >= 0 && orig[k] && used.indexOf(orig[k]) < 0) { used.push(orig[k]); return orig[k]; }
+        return tpl.content.firstElementChild.cloneNode(true);
+      });
+      orig.forEach(function (r) { if (used.indexOf(r) < 0) r.remove(); });
+      rows.forEach(function (r) { wrap.appendChild(r); });
+      reindex(s);
+    });
+    Array.prototype.forEach.call(form.elements, function (el) {
+      if (!el.name || SKIP[el.name] || !Object.prototype.hasOwnProperty.call(d.values, el.name)) return;
+      el.value = String(d.values[el.name]);
+    });
+    note(form, '<strong>Your unsaved changes are back</strong> — including the rows you added, removed or moved before you were signed out. Check them, then click <strong>Save Content</strong>.');
+    structural(form);   // arm unsaved.js: these changes are not saved yet
+  }
+  (function () {
+    var form = contentForm();
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      store('set', JSON.stringify(snapshot(form)));
+      // Another listener (the family-rename confirm, or unsaved.js's double-
+      // submit guard) may cancel this submit; then nothing was sent.
+      setTimeout(function () { if (e.defaultPrevented) store('del'); }, 0);
+    });
+  })();
 
   /**
    * PLAN-6 item 1 — warn before a family rename orphans the products in it.
@@ -172,8 +310,8 @@
       if (!orphaned.length) return;
       var msg = 'Renaming a product family does not rename the products in it.\n\n' +
                 orphaned.join('\n') + '\n\n' +
-                'Those products keep their old category until you re-save each one, ' +
-                'so they will appear under the old name on the site.\n\n' +
+                'Those products keep their old category, and appear under the old name on the site, ' +
+                'until you open each one with Edit, pick the new name in Part Type, and save.\n\n' +
                 'Save anyway?';
       if (!window.confirm(msg)) e.preventDefault();
     });

@@ -106,15 +106,18 @@ const login = async (page) => {
     const covered = jsDerived
       ? Object.values(jsDerived).filter((a) => a.length).length
       : -1;
-    note(covered === 30,
-      `30 of ${products.length} products derive at least one approval (badges alone showed 23)`,
+    // 36 / MIL-SPEC 22 since AUDIT-12 decision 2 (A12-L8-01-5, A12-L8-06-2):
+    // MIL-SPEC follows each record's own datasheet (twelve added, two
+    // removed) and Slit Guard lost its product-wide UL-94. Before: 30 / 12.
+    note(covered === 36,
+      `36 of ${products.length} products derive at least one approval (badges alone showed 23)`,
       `got ${covered}`);
 
     const milspec = jsDerived
       ? Object.values(jsDerived).filter((a) => a.includes('MIL-SPEC')).length : -1;
     const vw1 = jsDerived
       ? Object.values(jsDerived).filter((a) => a.includes('UL VW-1')).length : -1;
-    note(milspec === 12 && vw1 === 11,
+    note(milspec === 22 && vw1 === 11,
       `the hidden ones surface: MIL-SPEC ${milspec} (badges said 5), UL VW-1 ${vw1} (badges said 1)`,
       `MIL-SPEC ${milspec}, UL VW-1 ${vw1}`);
 
@@ -137,6 +140,21 @@ const login = async (page) => {
       'word boundaries hold: "Ultra Clear" and "Encapsulating" derive nothing, "U/L Recognized" derives one',
       !boundary ? 'deriver not exposed' :
         `Ultra Clear[${boundary.ultraClear}] Encapsulating[${boundary.encapsulating}] realUL[${boundary.realUL}]`);
+
+    // ── AUDIT-12 decision 13 (A12-L15-02-3) — AMS is not MIL-SPEC ───────────
+    // "AMS 3653" (an SAE spec) was read as a MIL-SPEC approval: hidden from
+    // Product Features, and the save message told the owner to tick MIL-SPEC.
+    // It is an ordinary badge on both sides now; a real MIL-SPEC badge still
+    // derives the mark.
+    const ams = await page.evaluate(() => window.__ipcDeriveApprovals
+      ? { ams: window.__ipcDeriveApprovals({ badges: ['AMS 3653'] }), mil: window.__ipcDeriveApprovals({ badges: ['Mil-Spec.'] }) } : null);
+    const amsPhp = JSON.parse(execFileSync('php', ['-r', `require ${JSON.stringify(path.join(__dirname, '..', 'admin', 'config.php'))};
+      echo json_encode(['derive' => ipc_product_approvals(['badges' => ['AMS 3653']]),
+        'warn' => product_save_warnings(['badges' => ['AMS 3653', 'Mil-Spec.'], 'approvals' => []])]);`]).toString());
+    note(!!ams && ams.ams.length === 0 && ams.mil.join() === 'MIL-SPEC' && amsPhp.derive.length === 0
+      && amsPhp.warn.length === 1 && !/AMS 3653/.test(amsPhp.warn[0]) && /"Mil-Spec\." \(MIL-SPEC\)/.test(amsPhp.warn[0]),
+      'AMS is an ordinary feature badge, not a MIL-SPEC mark, in App.jsx and in the save message (decision 13)',
+      JSON.stringify({ ams, amsPhp }));
 
     // ── the public filter ────────────────────────────────────────────────────
     await page.goto(`${BASE}/dashboard`, { waitUntil: 'networkidle' });
@@ -165,7 +183,7 @@ const login = async (page) => {
       chipErr || `all ${all}, MIL-SPEC ${one}, +CSA ${two} (expected each to narrow)`);
 
     // ── admin round-trip, and the invariant-3 case ───────────────────────────
-    const target = 'IP33PO';   // derives MIL-SPEC, USP Class VI, UL VW-1
+    const target = 'IP33PO';   // derives CSA, MIL-SPEC, UL VW-1
     await login(page);
     await page.goto(`${BASE}/admin/edit.php?sku=${target}`, { waitUntil: 'networkidle' });
     const boxes = await page.$$('input[name="approvals[]"]');
@@ -211,8 +229,9 @@ const login = async (page) => {
     // ── restore ──────────────────────────────────────────────────────────────
     fs.copyFileSync(PRISTINE, MIRROR);
     restored = true;
-    const same = fs.readFileSync(PRISTINE).equals(fs.readFileSync(MIRROR));
-    note(same, 'mirror catalogue restored from pristine, byte-identical');
+    // Cleanup precondition, not a counted check: copyFileSync lands these
+    // bytes or throws (AUDIT-12 A12-L13-20-1).
+    if (!fs.readFileSync(PRISTINE).equals(fs.readFileSync(MIRROR))) throw new Error('cleanup: mirror catalogue not restored');
   } finally {
     if (!restored) { try { fs.copyFileSync(PRISTINE, MIRROR); } catch (_) {} }
     await browser.close();

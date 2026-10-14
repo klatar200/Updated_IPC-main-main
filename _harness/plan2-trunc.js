@@ -2,7 +2,8 @@
  * The truncation guard, exercised against a REAL truncating server.
  *
  * :8124 runs max_input_vars=100 with display_errors=Off — the production shape
- * (public/.user.ini). The content form posts 439 variables, so PHP genuinely
+ * (public/.user.ini). The content form posts ~460 variables (458 on
+ * 2026-10-02; plan4-admin.js POSTED_BEFORE holds the count), so PHP genuinely
  * drops everything past the 100th and `form_complete` never arrives. This is
  * not a simulation: the field is not removed by the test, PHP discards it.
  *
@@ -29,6 +30,8 @@ const MIRROR_CONTENT = path.join(DIR, 'content.json');
 const PRISTINE_CONTENT = path.join(__dirname, 'pristine/content.json');
 
 const MARKER = 'TRUNCMARK' + process.pid;
+// What only a leaked PHP warning produces — never the guard's own message.
+const LEAK = /Warning:\s*(PHP\s*)?(Request|Input)|max_input_vars exceeded|on line \d+ in \/|<b>Warning<\/b>/i;
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -102,7 +105,7 @@ async function submitOn(browser, base) {
 
     // display_errors=Off must hold: a raw PHP warning on an admin page is both
     // ugly and a path disclosure.
-    const leaked = /Warning:\s*(PHP\s*)?(Request|Input)|max_input_vars exceeded|on line \d+ in \/|<b>Warning<\/b>/i.test(t.html);
+    const leaked = LEAK.test(t.html);
     note(!leaked, 'no raw PHP warning leaked into the page (display_errors=Off)',
       'found a PHP warning in the response body');
 
@@ -111,7 +114,10 @@ async function submitOn(browser, base) {
     // assertion above is vacuous.
     restore();
     const c = await submitOn(browser, 'http://127.0.0.1:8125');
-    const controlLeaked = /Warning|max_input_vars/i.test(c.html);
+    // The SAME regex as the check it controls: /Warning|max_input_vars/ also
+    // matched the guard's own "(PHP max_input_vars)" sentence, so the control
+    // passed even against a display_errors=Off server (AUDIT-12 A12-L13-12-1).
+    const controlLeaked = LEAK.test(c.html);
     note(controlLeaked,
       'negative control :8125 (display_errors=On) DOES surface the PHP warning',
       'the two servers behaved identically — the display_errors check proves nothing');
@@ -122,6 +128,28 @@ async function submitOn(browser, base) {
     const afterControl = fs.readFileSync(MIRROR_CONTENT);
     note(afterControl.equals(beforeBytes),
       'negative control: content.json still byte-identical');
+
+    // ── T3.5 — "That upload was too large for this server" ─────────────────
+    // Over post_max_size PHP empties $_POST and $_FILES, and csrf_check()
+    // turns that into the too-large page. It renders only with
+    // display_errors=Off (public/.user.ini) — on :8123's ini PHP's own warning
+    // is output first and the owner sees "session expired" instead — so it is
+    // driven here against :8124, the display_errors=Off server. Nothing in the
+    // sweep asserted this page before (AUDIT-12 A12-L13-05-W5-3).
+    {
+      const { adminHttp } = require('./adminhttp');
+      const a = adminHttp(8124);
+      const signedIn = await a.login(PW);
+      const big = Buffer.alloc(25 * 1024 * 1024 + 4096, 0x61);   // > post_max_size = 24M
+      const B = '----ipcTooLarge';
+      const body = Buffer.concat([Buffer.from(`--${B}\r\nContent-Disposition: form-data; name="f"; filename="big.bin"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+        big, Buffer.from(`\r\n--${B}--\r\n`)]);
+      const r = await a.req('POST', '/admin/settings.php', body, { 'Content-Type': `multipart/form-data; boundary=${B}`, 'Content-Length': body.length });
+      const h1 = (/<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(r.body) || [, ''])[1].trim();
+      note(signedIn && r.status === 403 && /That upload was too large for this server/.test(h1) && !LEAK.test(r.body),
+        'T3.5: an over-post_max_size upload gets the "too large" page, not "session expired" (display_errors=Off)',
+        `signed in ${signedIn}; HTTP ${r.status}; <h1> ${JSON.stringify(h1)}`);
+    }
 
     // ── and the untruncated server still saves ─────────────────────────────
     // Otherwise "refused" could just mean the page is broken everywhere.

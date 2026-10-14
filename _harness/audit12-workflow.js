@@ -14,7 +14,7 @@ export const meta = {
 // args = { wave: 'W1', head: '<short sha>', lenses: ['L1', ...],
 //          batches: [{ batch, lens, ids: [...] }, ...],      // from --batches, filtered to `lenses`
 //          prior: { L3: ['title', ...], ... },              // titles already raised in earlier waves
-//          portBase: 10000,                                  // above every port a suite binds (8123–9481)
+//          portBase: 10000,                                  // above every port a suite binds (8123–8749)
 //          methods: { L6: ['...'], ... } }                 // optional: extra gap-hunt methods (W5's
 //                                                           //   cross-lens seams) — no script edit needed
 // Tested without spending a token by _harness/audit12-workflow-dryrun.js.
@@ -28,6 +28,12 @@ const WAVE = A.wave || 'W?'
 const LENSES = A.lenses || []
 const BATCHES = (A.batches || []).filter((b) => LENSES.includes(b.lens))
 const PORT = A.portBase || 10000
+// Each agent owns a BLOCK of ports (php -S + a control server + an Apache
+// HTTP/HTTPS pair + one spare), not one port and "the next free one": with
+// contiguous first ports, an agent needing a second server landed on, signed
+// in to and once killed its neighbour's server (AUDIT-12 A12-L3-03-1).
+const BLOCK = 5
+const ports = (p) => `Your first port: ${p}. Your port block: ${p}-${p + BLOCK - 1}`
 const MAX_GAP_ROUNDS = 5
 const DRY_TO_STOP = 2
 const MAX_CRITIC_ROUNDS = 3
@@ -148,7 +154,7 @@ const COMMON = `You are one agent in AUDIT-12, a read-only audit of this reposit
 Before anything else read ${PLAN} §0 (rules, all of them bind you), §3.3 (do-not-re-report), §4 (safety) and §9 (finding protocol). Do not read the rest of the plan except the section named below.
 Hard rules you will be checked on:
 - You change NOTHING tracked by git. You write only under ${OUT}/ . \`git status --porcelain\` must be unchanged when you finish.
-- Never write to or serve _harness/site/, and never use ports 8123-8139 (the sweep and step M own them); copying FROM _harness/site is how you get a mirror. If you need a running site: cp -r _harness/site ${OUT}/m/<your label> ; serve it with php -S 127.0.0.1:<first free port at or above the one given> -t <that dir> -c _harness/php-mail.ini _harness/router.php ; stop it by PID (ps -eo pid,comm,args, comm == php, your port) — never pkill -f — and delete the copy when done.
+- Never write to or serve _harness/site/, and never use ports 8123-8139 (the sweep and step M own them); copying FROM _harness/site is how you get a mirror. If you need a running site: cp -r _harness/site ${OUT}/m/<your label> ; serve it with php -S 127.0.0.1:<a port from your own block> -t <that dir> -c _harness/php-mail.ini -d sys_temp_dir=${OUT}/m/<your label>-tmp _harness/router.php (a private temp dir, so the contact form's rate-limit files are not shared with any other server) ; bind ONLY the ports in the block you were given — they are yours alone; a busy one is a server of yours still running, never a reason to take the next free port (that port belongs to another agent) ; stop it by PID (ps -eo pid,comm,args, comm == php, your port) — never pkill -f — and delete the copy when done.
 - Every claim is measured, not inferred. Unmeasured → write [UNVERIFIED] and why. A screenshot counts only after you open it with Read.
 - A finding needs a reproduction a stranger can run cold, and citations that pass \`node _harness/audit12-cite.js <your findings file>\`.
 - Stay in your lens. Anything else: one line in outOfBrief, then stop thinking about it.`
@@ -156,7 +162,7 @@ Hard rules you will be checked on:
 const findPrompt = (b, idx) => `${COMMON}
 
 Your lens: ${b.lens}. Read ${PLAN} §6, subsection "### ${b.lens}", in full — charter, method, instruments, exit criteria.
-Your batch: ${b.batch} (wave ${WAVE}). Your first port: ${PORT + idx}.
+Your batch: ${b.batch} (wave ${WAVE}). ${ports(PORT + idx * BLOCK)}.
 Your ledger rows — fetch them with:
   node -e 'const ids=new Set(process.argv.slice(1));require("fs").readFileSync("${OUT}/ledger.jsonl","utf8").split("\\n").filter(Boolean).map(JSON.parse).filter(r=>ids.has(r.id)).forEach(r=>console.log(JSON.stringify(r)))' ${b.ids.join(' ')}
 IDS: ${JSON.stringify(b.ids)}
@@ -169,7 +175,7 @@ Return the same rows and findings in the output schema.`
 
 const verifyPrompt = (f, lens, idx, others) => `${COMMON}
 
-You are a VERIFIER (lens: ${lens}). You did not raise this finding and must not trust its author. Your first port: ${PORT + 400 + idx}. Work from a FRESH mirror copy.
+You are a VERIFIER (lens: ${lens}). You did not raise this finding and must not trust its author. ${ports(PORT + 1000 + idx * BLOCK)}. Work from a FRESH mirror copy.
 Finding (also in ${OUT}/findings/):
 ${JSON.stringify(f, null, 1)}
 
@@ -181,7 +187,7 @@ Write your verdict to ${OUT}/verdicts/${f.id}.${lens}.json as well as returning 
 
 const gapPrompt = (lens, round, seen) => `${COMMON}
 
-Your lens: ${lens}. Read ${PLAN} §6, subsection "### ${lens}". Wave ${WAVE}, gap hunt round ${round}. Your first port: ${PORT + 800 + round * 20 + Object.keys(METHODS).indexOf(lens)}.
+Your lens: ${lens}. Read ${PLAN} §6, subsection "### ${lens}". Wave ${WAVE}, gap hunt round ${round}. ${ports(PORT + 3000 + (round * 20 + Object.keys(METHODS).indexOf(lens)) * BLOCK)}.
 The row-by-row pass is done. Your job is what it MISSED. Use this method, not the ledger order:
   ${(METHODS[lens] || ['start from the buyer\'s or Rick\'s goal, not the file list'])[(round - 1) % (METHODS[lens] || [1]).length]}
 Already raised for this lens (confirmed or killed — do NOT raise these again, nor a re-wording of one):
@@ -203,6 +209,7 @@ const key = (f) => ((f.where || []).map((w) => (w.file ? `${w.file}:${w.line}` :
 const seen = new Set()
 const confirmed = []
 const killed = []
+const unverified = []
 const blocked = []
 const outOfBrief = []
 const ledgerGaps = []
@@ -221,14 +228,30 @@ async function verify(f) {
   const rep = votes.find((v) => v.lens === 'reproduce')
   const ref = votes.find((v) => v.lens === 'refute')
   const sev = votes.find((v) => v.lens === 'severity')
-  let alive = rep && rep.verdict === 'confirmed' && ref && ref.verdict === 'confirmed'
+  // A verifier that returned nothing (skipped, died, hit a limit) is not a vote
+  // against the finding. It used to fall through to `killed` with an empty
+  // "by", and its title shielded it from re-raising; --tally calls the same
+  // finding UNVERIFIED. Record it as unverified and the cap as a cap.
+  // (AUDIT-12 A12-L13-04-3)
+  const unverifiedBecause = (why) => {
+    const rec = { ...f, votes, unverifiedBecause: why }
+    unverified.push(rec)
+    capped.push(`verify:${f.id}: ${why}`)
+    log(`${f.id}: UNVERIFIED — ${why}`)
+    titlesByLens[f.lens] = titlesByLens[f.lens] || []
+    titlesByLens[f.lens].push(`[unverified] ${f.title}`)
+    return rec
+  }
+  if (!rep || !ref) return unverifiedBecause(`${[!rep && 'reproduce', !ref && 'refute'].filter(Boolean).join(' and ')} verifier returned nothing`)
+  let alive = rep.verdict === 'confirmed' && ref.verdict === 'confirmed'
   let tie = null
   // Disagreement between reproduce and refute goes to a fourth agent rather than
   // to a vote: one confident refuter should not kill a reproduced finding, and
   // one reproducer should not carry a finding the refuter measured away.
-  if (rep && ref && (rep.verdict === 'confirmed') !== (ref.verdict === 'confirmed')) {
+  if ((rep.verdict === 'confirmed') !== (ref.verdict === 'confirmed')) {
     tie = await agent(verifyPrompt(f, 'tiebreak', base + 3, [rep, ref]), { label: `verify:${f.id}:tiebreak`, phase: 'Verify', schema: VERDICT })
-    alive = !!tie && tie.verdict === 'confirmed'
+    if (!tie) return unverifiedBecause('reproduce and refute disagreed and the tiebreak returned nothing')
+    alive = tie.verdict === 'confirmed'
   }
   const severity = (sev && sev.severity) || f.severity
   const rec = { ...f, severity, authorSeverity: f.severity, votes: [...votes, ...(tie ? [tie] : [])] }
@@ -289,19 +312,25 @@ for (let round = 1; round <= MAX_CRITIC_ROUNDS; round++) {
   const re = c.redispatch.filter((r) => LENSES.includes(r.lens) && r.ids.length)
   if (!re.length) break
   if (round === MAX_CRITIC_ROUNDS) { capped.push(`critic still re-dispatching ${re.reduce((n, r) => n + r.ids.length, 0)} rows after ${MAX_CRITIC_ROUNDS} rounds`); break }
-  log(`critic round ${round}: re-dispatching ${re.reduce((n, r) => n + r.ids.length, 0)} rows`)
-  await findAndVerify(re.map((r, i) => ({ batch: `${r.lens}-${WAVE}-R${round}-${i + 1}`, lens: r.lens, ids: r.ids.slice(0, 15), why: r.why })), `critic${round}`)
+  // An entry of more than 15 ids is split into batches of 15, never truncated:
+  // `slice(0, 15)` used to drop the rest while the log and critic[] reported
+  // them all as re-dispatched (AUDIT-12 A12-L13-07-W5-1).
+  const reBatches = []
+  for (const r of re) for (let s = 0; s < r.ids.length; s += 15) reBatches.push({ batch: `${r.lens}-${WAVE}-R${round}-${reBatches.length + 1}`, lens: r.lens, ids: r.ids.slice(s, s + 15), why: r.why })
+  log(`critic round ${round}: re-dispatching ${reBatches.reduce((n, b) => n + b.ids.length, 0)} rows in ${reBatches.length} batches`)
+  await findAndVerify(reBatches, `critic${round}`)
 }
 
 const bySev = {}
 for (const f of confirmed) bySev[f.severity] = (bySev[f.severity] || 0) + 1
-log(`${WAVE} done: ${confirmed.length} confirmed (${Object.entries(bySev).map(([s, n]) => `${s} ${n}`).join(', ') || 'none'}), ${killed.length} killed, ${capped.length} caps hit`)
+log(`${WAVE} done: ${confirmed.length} confirmed (${Object.entries(bySev).map(([s, n]) => `${s} ${n}`).join(', ') || 'none'}), ${killed.length} killed, ${unverified.length} unverified, ${capped.length} caps hit`)
 return {
   wave: WAVE,
   lenses: LENSES,
   batches: BATCHES.length,
   confirmed: confirmed.map((f) => ({ id: f.id, severity: f.severity, authorSeverity: f.authorSeverity, class: f.class, lens: f.lens, title: f.title, citeFailed: f.citeFailed, raisedIn: f.raisedIn })),
   killed: killed.map((f) => ({ id: f.id, lens: f.lens, title: f.title, by: f.votes.filter((v) => v.verdict !== 'confirmed').map((v) => `${v.lens}:${v.verdict}`) })),
+  unverified: unverified.map((f) => ({ id: f.id, lens: f.lens, title: f.title, severity: f.severity, why: f.unverifiedBecause })),
   blocked,
   outOfBrief,
   ledgerGaps,

@@ -68,7 +68,7 @@ const VP = {
    continuity with the audit's sample. */
 const FAMILY_URLS = [
   '/dashboard?family=Accessory',                                       // 13 rows
-  '/dashboard?family=' + encodeURIComponent('Polyolefin Heat Shrink'), // 12 rows
+  '/dashboard?family=' + encodeURIComponent('Polyolefin Heat Shrink'), // 6 rows (12 before AUDIT-12 decision 2)
   '/dashboard?family=Tape',                                            // 1 row
 ];
 

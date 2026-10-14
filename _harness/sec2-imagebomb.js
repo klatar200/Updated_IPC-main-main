@@ -149,11 +149,12 @@ const imgFiles = () => (fs.existsSync(IMGDIR) ? fs.readdirSync(IMGDIR).filter((f
     const c = await upload(okPath);
     note(/Photo (uploaded|replaced)/.test(c.text), 'control: a normal 1200x900 photo still uploads',
       c.text.split('\n').filter((l) => /photo|image|error/i.test(l)).slice(0, 3).join(' | '));
-    note(/\/uploads\/images\/CC\.png$/.test(photoOf() || ''), 'control: and it becomes the product photo', `photoUrl ${photoOf()}`);
+    // AUDIT-12 decision 23: an opaque PNG photo is stored as a JPG.
+    note(/\/uploads\/images\/CC\.jpg$/.test(photoOf() || ''), 'control: and it becomes the product photo (an opaque PNG is stored as a JPG)', `photoUrl ${photoOf()}`);
 
     // ── phone50 ──
     const ph = await upload(phonePath);
-    const w = spawnSync('php', ['-r', '$s=getimagesize($argv[1]); echo $s[0];', path.join(IMGDIR, 'CC.png')], { encoding: 'utf8' }).stdout;
+    const w = spawnSync('php', ['-r', '$s=getimagesize($argv[1]); echo $s[0];', path.join(IMGDIR, path.basename(photoOf() || 'CC.jpg'))], { encoding: 'utf8' }).stdout;
     note(/Photo (uploaded|replaced)/.test(ph.text) && w === '1600',
       'phone50: a 50 MP phone-size photo is accepted and scaled to 1600 px wide',
       `${ph.text.split('\n').filter((l) => /photo|megapixel|image/i.test(l)).slice(0, 2).join(' | ')} · width ${w}`);
@@ -164,7 +165,9 @@ const imgFiles = () => (fs.existsSync(IMGDIR) ? fs.readdirSync(IMGDIR).filter((f
     for (const f of imgFiles()) if (!before.files.includes(f)) fs.unlinkSync(path.join(IMGDIR, f));
     fs.rmSync(TMP, { recursive: true, force: true });
   }
-  note(fs.readFileSync(CATALOG).equals(fs.readFileSync(PRISTINE)), 'mirror catalog restored byte-for-byte');
+  // Cleanup precondition, not a counted check: the copy in the finally lands
+  // pristine's bytes or throws (AUDIT-12 A12-L13-15-3).
+  if (!fs.readFileSync(CATALOG).equals(fs.readFileSync(PRISTINE))) throw new Error('cleanup: mirror catalog not restored');
 
   const bad = results.filter((r) => !r.ok).length;
   console.log(`\nsec2-imagebomb ${results.length - bad}/${results.length}`);

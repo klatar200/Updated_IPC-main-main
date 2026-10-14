@@ -151,13 +151,18 @@ async function landing(browser) {
   note(cc.canonical === `${ORIGIN}/products?productId=CC`,
     'C29: the CC canonical did not move', String(cc.canonical));
 
-  // ── sidebar navigation from the landing still works ──
-  await page.goto(`${BASE}/products`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(400);
+  // ── sidebar navigation still works ──
+  // Until AUDIT-12 decision 46 (A12-L6-02-1) the landing carried the phone
+  // pill list of all 42 products in its DOM (hidden on desktop), and this arm
+  // clicked one through script. The landing now has no product links in the
+  // sidebar by design — the family filter and the cards do that job — so the
+  // sidebar's own navigation is measured where it lives: the rail on a
+  // product page, from CC to another product.
+  await page.goto(`${BASE}/products?productId=CC`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(600);
   const sidebarClicked = await page.evaluate(() => {
-    // The sidebar's product links are ?productId= anchors OUTSIDE the grid.
-    const a = [...document.querySelectorAll('a[href*="productId="]')]
-      .find((x) => !x.closest('[data-ipc-catalog-card]'));
+    const a = [...document.querySelectorAll('aside a[href*="productId="]')]
+      .find((x) => !/productId=CC(&|$)/.test(x.getAttribute('href')) && x.getBoundingClientRect().height > 0);
     if (!a) return null;
     const href = a.getAttribute('href');
     a.click();
@@ -165,9 +170,18 @@ async function landing(browser) {
   });
   await page.waitForTimeout(700);
   const afterSidebar = await page.evaluate(READ);
-  note(sidebarClicked !== null && afterSidebar.hasDetail,
-    'C29: sidebar navigation from the landing still opens a product',
-    `clicked ${sidebarClicked}, detail=${afterSidebar.hasDetail}`);
+  const movedTo = await page.evaluate(() => new URL(location.href).searchParams.get('productId'));
+  note(sidebarClicked !== null && afterSidebar.hasDetail && movedTo && movedTo !== 'CC',
+    'C29: sidebar navigation still opens another product',
+    `clicked ${sidebarClicked}, now ${movedTo}, detail=${afterSidebar.hasDetail}`);
+  const landingSidebarLinks = await (async () => {
+    await page.goto(`${BASE}/products`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+    return page.evaluate(() => [...document.querySelectorAll('a[href*="productId="]')].filter((x) => !x.closest('[data-ipc-catalog-card]')).length);
+  })();
+  note(landingSidebarLinks === 0,
+    'C29: the landing carries no sidebar product list (decision 46: the cards are the list)',
+    `${landingSidebarLinks} sidebar product links on /products`);
 
   // ── a card click opens that product ──
   await page.goto(`${BASE}/products`, { waitUntil: 'networkidle' });

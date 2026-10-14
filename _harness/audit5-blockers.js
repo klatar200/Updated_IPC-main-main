@@ -79,7 +79,9 @@ function post(body) {
     }, (res) => {
       let out = '';
       res.on('data', (c) => (out += c));
-      res.on('end', () => resolve({ status: res.statusCode, body: out }));
+      // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+      res.on('end', () => http.get({ host: '127.0.0.1', port: 8123, path: '/robots.txt' }, (r2) => { r2.resume(); r2.on('end', () => resolve({ status: res.statusCode, body: out })); })
+        .on('error', () => resolve({ status: res.statusCode, body: out })));
     });
     req.on('error', reject);
     req.write(data);
@@ -170,8 +172,9 @@ function post(body) {
      'A-5.1 sales notification still receives the raw quantity verbatim');
 
   const jsonl = path.join(ROOT, '_harness/site/admin/inquiries.jsonl');
+  // AUDIT-12 decision 42 — the lead is the last line that is not a send result.
   const lastLine = fs.existsSync(jsonl)
-    ? fs.readFileSync(jsonl, 'utf8').trim().split('\n').filter(Boolean).pop()
+    ? fs.readFileSync(jsonl, 'utf8').trim().split('\n').filter((l) => l && !/"type":"send-result"/.test(l)).pop()
     : '';
   let rec = {};
   try { rec = JSON.parse(lastLine); } catch { /* leave empty, assertion reports it */ }

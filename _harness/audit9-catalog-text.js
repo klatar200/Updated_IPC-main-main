@@ -120,9 +120,18 @@ sec('nothing else in the catalog moved');
   const skus = products.map((p) => p.sku);
   ok(new Set(skus).size === 42, 'still 42 distinct SKUs', '');
   ok(products.every((p) => p.pdfUrl), 'every record still carries a pdfUrl', '');
-  ok(products.every((p) => p.photoUrl), 'every record still carries a photoUrl', '');
+  // Five dead placehold.co photoUrls were removed by decision on 2026-10-02
+  // (71a0991, WHATS_LEFT-history §1an); those five fall back to the branded
+  // placeholder. Every OTHER record must still carry one (AUDIT-12 A12-L13-05-2).
+  const NO_PHOTO = ['IP12GA-IP1274', 'IP13SP', 'IP25PU', 'IP30UV', 'IP47HV'];
+  const missing = products.filter((p) => !p.photoUrl).map((p) => p.sku).sort();
+  ok(JSON.stringify(missing) === JSON.stringify(NO_PHOTO),
+    `every record still carries a photoUrl except the ${NO_PHOTO.length} removed by decision on 2026-10-02`, JSON.stringify(missing));
   const badgeCount = products.reduce((n, p) => n + (p.badges || []).length, 0);
-  ok(badgeCount === 158, `the badge count is unchanged at 158 (renames only, no adds or drops)`, String(badgeCount));
+  // 157 since AUDIT-12 decision 2 (A12-L8-06-2): Slit Guard's "UL-94 V2 Rated"
+  // badge was dropped on purpose — its sheet offers that material for the
+  // polypropylene version only and lists no such badge. Otherwise unchanged.
+  ok(badgeCount === 157, `the badge count is unchanged at 157 (renames only, no adds or drops; 158 before AUDIT-12 decision 2 dropped Slit Guard's UL-94 badge)`, String(badgeCount));
 }
 
 const pass = results.filter((r) => r.ok).length;

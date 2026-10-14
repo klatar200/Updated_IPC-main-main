@@ -7,7 +7,8 @@
  *
  *   BASE      default http://127.0.0.1:8140
  *   SITE      docroot of that origin (mutated, restored in a finally)
- *   PRISTINE  dir holding pristine-*.json
+ *   PRISTINE  dir holding the reference JSON (default _harness/pristine;
+ *             real names or pristine-*.json)
  *   PW        mirror admin password (default from ADMIN_PW env; never written to a record)
  *   ONLY      comma-separated row ids
  *   NEGCTL=1  run the negative controls
@@ -18,7 +19,13 @@ const { execFileSync } = require('child_process');
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8140';
 const SITE = process.env.SITE || '_harness/out/audit9/site-A';
-const PRISTINE = process.env.PRISTINE || '_harness/out/audit9/P7';
+// PRISTINE defaults to _harness/pristine (what sync.sh seeds), whose files
+// carry their REAL names; the old default _harness/out/audit9/P7 held
+// pristine-*.json copies that nothing in the repo creates, so a cold run
+// crashed — after mutating the mirror. Either naming is accepted, and a
+// missing reference stops the run BEFORE anything is written
+// (AUDIT-12 A12-L13-05-5).
+const PRISTINE = process.env.PRISTINE || path.join(__dirname, 'pristine');
 const OUT = process.env.OUT || '_harness/out/audit9/P7';
 const PW = process.env.ADMIN_PW || '';
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
@@ -26,7 +33,11 @@ const NEGCTL = process.env.NEGCTL === '1';
 
 const FILES = { 'products-all.json': 'pristine-products.json', 'site-info.json': 'pristine-siteinfo.json', 'content.json': 'pristine-content.json' };
 const live = (f) => path.join(SITE, 'data', f);
-const ref = (f) => path.join(PRISTINE, FILES[f]);
+const ref = (f) => (fs.existsSync(path.join(PRISTINE, FILES[f])) ? path.join(PRISTINE, FILES[f]) : path.join(PRISTINE, f));
+{
+  const missing = Object.keys(FILES).filter((f) => !fs.existsSync(ref(f)));
+  if (missing.length) { console.error(`audit9-logic-admin: no reference copy of ${missing.join(', ')} in ${PRISTINE} (run sh _harness/sync.sh, or set PRISTINE) — nothing was changed`); process.exit(2); }
+}
 const restoreAll = () => { for (const f of Object.keys(FILES)) fs.copyFileSync(ref(f), live(f)); };
 const readLive = (f) => fs.readFileSync(live(f), 'utf8');
 
@@ -53,7 +64,6 @@ async function req(url, opts = {}) {
 // cannot be string-replaced onto BASE; resolve it against the request's own URL.
 const rel = (loc, from) => new URL(loc, BASE + from).pathname + new URL(loc, BASE + from).search;
 const tokenOf = (html) => (html.match(/name="csrf_token"\s+value="([a-f0-9]{64})"/) || [])[1] || '';
-const sigOf = (html) => (html.match(/name="orig_sig"\s+value="([a-f0-9]{40})"/) || [])[1] || '';
 const form = (obj) => {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(obj)) {
@@ -227,7 +237,8 @@ async function main() {
       const g2 = await req('/admin/backups.php');
       const r2 = await POST('/admin/backups.php', { csrf_token: tokenOf(g2.body), backup: bad, action: 'restore' });
       const liveNow = readLive('site-info.json');
-      check('C22', 'restoring a malformed backup is refused', /not valid JSON/i.test(r2.body), { msg: (r2.body.match(/[^>]*not valid JSON[^<]*/) || [''])[0].trim().slice(0, 90) }, '"not valid JSON — restore aborted, nothing was changed"');
+      // Wording: A12-L9-02-W5-3 (was "not valid JSON — restore aborted").
+      check('C22', 'restoring a malformed backup is refused', /damaged and cannot be used/i.test(r2.body), { msg: (r2.body.match(/[^>]*damaged and cannot be used[^<]*/) || [''])[0].trim().slice(0, 90) }, '"That saved version is damaged and cannot be used. Nothing was changed."');
       check('C22', 'and the live file was not touched', liveNow.includes('BACKUP-ALLOC-PROBE'), { untouched: liveNow.includes('BACKUP-ALLOC-PROBE') }, 'live file unchanged');
       // backup_list() ordering — the newest must be first, sorted on (ts, seq)
       const listPage = (await req('/admin/backups.php')).body;
@@ -272,9 +283,13 @@ async function main() {
         // Put the pdfs back as a clean SYNC — a plain `cp -r` leaves the
         // renamed file behind, and a leftover target makes the next arm's
         // rename hit edit.php's no-clobber guard and look like a failure.
+        // From the REPO's pdfs/ (what sync.sh copies): copying from
+        // _harness/site/pdfs deleted the source first whenever SITE was the
+        // sweep mirror itself, leaving it with no pdfs/ at all (AUDIT-12
+        // A12-L13-05-5).
         try {
           execFileSync('rm', ['-rf', pdfDir]);
-          execFileSync('cp', ['-r', '_harness/site/pdfs', pdfDir]);
+          execFileSync('cp', ['-r', path.join(__dirname, '..', 'pdfs'), pdfDir]);
         } catch (e) { /* best effort */ }
       }
     }

@@ -26,7 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // the refreshed signature and go through, giving an explicit override.)
     $submittedSig = $_POST['orig_sig'] ?? '';
     if ($submittedSig !== '' && $submittedSig !== $storedSig) {
-        $errors[] = 'This product was changed by another session since you opened this page. Your edits were NOT saved. Reload to see the current version, then re-apply your changes (submitting again will overwrite the other change).';
+        // A12-L9-W4-G2-1 — the form below is refilled with what was typed
+        // (see "repopulate" at the end of this handler), so "reload" threw that
+        // typing away with no warning. Same wording as content.php's.
+        $errors[] = 'This product was changed by another session (or another browser tab) since you opened this page. Your edits were NOT saved — but they are still filled in below, so nothing you typed is lost. Do not reload this page (that would discard them). To see the other change, open this product in another tab. Clicking Save Changes again will keep what is on this page and overwrite that other change.';
     }
 
     // Build updated product from form
@@ -48,8 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // approval never reaches the catalog. array_intersect also deduplicates
     // and restores canonical order.
     $postedAp = $_POST['approvals'] ?? [];
+    // A12-L3-11-2 — string members only: a nested approvals[0][]= turned
+    // array_intersect() into an "Array to string" warning that ate the redirect.
     $updated['approvals'] = is_array($postedAp)
-        ? array_values(array_intersect(IPC_APPROVALS, $postedAp))
+        ? array_values(array_intersect(IPC_APPROVALS, array_filter($postedAp, 'is_string')))
         : [];
 
     // Badges — one per line
@@ -203,6 +208,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $renamedPairs = [];
             $renameOne = function ($url) use ($oldSku, $newSku, $realPdfDir, &$renameNotes, $sharedNames, &$sharedKept, &$renamedPairs) {
                 if (empty($url)) return $url;
+                // A12-L4-03-1 — only this product's own files in /pdfs/ itself.
+                // An off-site link (a manufacturer's sheet) or another folder
+                // was "renamed" to a same-named local file whenever one existed.
+                if (!is_string($url) || $url !== PDF_URL . basename($url)) return $url;
                 $oldName = basename($url);
                 if (isset($sharedNames[$oldName])) {
                     // Keep the file where it is and keep pointing at it.
@@ -258,6 +267,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 : $updated['sku'] . ' saved successfully';
             // DI-6 / UX-2 (admin audit 2026-10-05) — true even on a no-op save.
             foreach (product_save_warnings($updated) as $w) $msg .= '. Note: ' . rtrim($w, '.');
+            // Invariant 17 says the owner is TOLD in the flash message; the note
+            // only ever reached the audit log (AUDIT-12 A12-L13-16-1).
+            if (!empty($sharedKept)) {
+                $msg .= '. Note: the data sheet ' . implode(', ', array_keys($sharedKept))
+                      . ' kept its old name because another product uses the same file';
+            }
+            // A12-L4-W2-G1-1 — the main data sheet too. A SKU-rename save cut
+            // off between the file rename and the catalog write leaves pdfUrl
+            // naming a file that is gone, and the retry said only "saved
+            // successfully". (product_save_warnings() checks the photo and the
+            // Additional PDFs, not this.)
+            if (site_file_missing($updated['pdfUrl'] ?? '')) {
+                $msg .= '. Note: the data sheet ' . basename((string)$updated['pdfUrl']) . ' is not on the server, so the Datasheet button will not work until you upload it with Manage PDF';
+            }
             if ($brokenRefs) {
                 $msg .= '. Note: the Industries page links to the old SKU from ' . implode(', ', $brokenRefs)
                       . ' — those links now show "product not found". Update them in Page Content → Industries.';
@@ -273,7 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach (array_reverse($renamedPairs ?? []) as [$nowAt, $wasAt]) {
             if (file_exists($nowAt) && !file_exists($wasAt)) @rename($nowAt, $wasAt);
         }
-        $errors[] = 'Failed to save products-all.json. Check file permissions.';
+        $errors[] = save_failed_message();   // AUDIT-12 decision 31
     }
 
     $product = $updated; // repopulate form with submitted values
@@ -365,7 +388,7 @@ include 'nav.php';
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
   <?php endif; ?>
 
-  <form method="POST">
+  <form method="POST"<?= !empty($product['pdfUrl']) ? ' data-ipc-has-pdf="1"' : '' ?>><?php /* A12-L5-01-W5-4 — product-preview.js */ ?>
     <!-- Basic Info -->
     <div class="card">
       <div class="card-title">Basic Information</div>
@@ -408,9 +431,9 @@ include 'nav.php';
           <div class="hint">Leave blank to use the IPC branded placeholder — or <a href="upload-image.php?sku=<?= urlencode($sku) ?>">upload a photo</a> and this field is filled in automatically.</div>
         </div>
         <div class="form-group full">
-          <label for="specificationsSummary">Specifications Summary <small style="text-transform:none;font-weight:400">(shown in Product Index table)</small></label>
+          <label for="specificationsSummary">Specifications Summary <small style="text-transform:none;font-weight:400">(Product Index table, and the product's Google description)</small></label>
           <input type="text" id="specificationsSummary" name="specificationsSummary" value="<?= h($product['specificationsSummary'] ?? '') ?>" placeholder="e.g. U/L 224 VW-1 · RoHS · -55°C to 135°C · 600V" />
-          <div class="hint">Comma/bullet-separated summary. Keep under 120 characters.</div>
+          <div class="hint">Comma/bullet-separated summary, most important first. It also ends the product's Google description and shared-link card, after the name, SKU and Part Type, and that whole description is cut off with "…" at about 160 characters.</div>
         </div>
       </div>
     </div>
@@ -479,7 +502,7 @@ include 'nav.php';
       <div class="form-group">
         <label for="additionalPdfs">Additional PDF Links — one per line</label>
         <textarea id="additionalPdfs" name="additionalPdfs" rows="4" placeholder="/pdfs/IP52EC-plugged-cap.pdf | Plugged Cap"><?= h($addPdfStr) ?></textarea>
-        <div class="hint">Format: <code>/pdfs/filename.pdf | Button Label</code> (label optional). Each becomes an extra download button. Upload the referenced files to <code>/pdfs/</code> first — the admin doesn't move them for you.</div>
+        <div class="hint">Format: <code>/pdfs/filename.pdf | Button Label</code> (label optional). Each becomes an extra download button. <?php /* A12-L9-02-1 */ ?>To put a second PDF on the server yourself, upload it on <a href="marketing-pdfs.php">Catalog &amp; Brochure PDFs</a> with <em>Just upload it — I will choose later</em>, then copy the address it shows (for example <code>/pdfs/marketing/Plugged-Cap.pdf</code>) onto a line here.</div>
       </div>
     </div>
 

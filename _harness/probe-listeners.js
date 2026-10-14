@@ -15,7 +15,7 @@
 const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
-const TARGET = 'IP29CG';   // Polyolefin Heat Shrink — 12 siblings, so Related renders
+const TARGET = 'IP29CG';   // Polyolefin Heat Shrink — 6 rows (12 before AUDIT-12 decision 2), so Related renders
 const OTHER = 'IP30HS';
 
 (async () => {

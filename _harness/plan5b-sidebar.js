@@ -53,9 +53,11 @@ const OUT = path.join(__dirname, 'out', 'plan5b-sidebar');
 const SITE = path.join(__dirname, 'site');
 const DEVDIST = path.join(__dirname, 'devdist');
 
-// Polyolefin Heat Shrink — 12 siblings, so the group renders with plenty of rows.
+// Polyolefin Heat Shrink — 6 rows since AUDIT-12 decision 2 moved the PVC,
+// Neoprene/Viton and Mylar tubing to their own families (12 before). The
+// sibling must share the family, or its row is in a closed accordion.
 const TARGET = 'IP29CG';
-const SIBLING = 'IP30HS';
+const SIBLING = 'IP33PO';
 const BRAND_PRIMARY = 'rgb(0, 93, 163)';       // --brand-primary on the shipped palette
 const ROW_DIVIDER = 'rgb(240, 243, 247)';      // #f0f3f7
 
@@ -203,6 +205,15 @@ const rows = (page, selected) =>
       fs.rmSync(DEVDIST, { recursive: true, force: true });
     }
     await browser.close();
+    // A-9.D6's bar (as plan5-keys): the bundle swap is proved undone — the
+    // mirror's assets/*.js are dist's again, not the dev build (AUDIT-12
+    // A12-L13-12-2).
+    const js = (d) => (fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.js')).sort() : []);
+    const shipped = js(path.join(SITE, 'assets'));
+    const built = js(path.join(ROOT, 'dist', 'assets'));
+    note(shipped.length > 0 && shipped.join(',') === built.join(','),
+      'restore: the mirror carries the production bundle again, not the dev build',
+      `mirror ${shipped.join(',') || '(none)'} vs dist ${built.join(',') || '(none)'}`);
   }
 
   const bad = results.filter((r) => !r.ok).length;

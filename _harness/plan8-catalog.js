@@ -44,6 +44,11 @@ const products = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'pristine', 'products-all.json'), 'utf8')
 );
 const TOTAL = products.length;
+// A12-L6-W3-G4-1 — /datasheets counts SHEETS since it lists each product's
+// Additional PDF Links too (IP52EC's Plugged Cap), so its total is the
+// products plus their extra sheets, not the product count.
+const EXTRA_SHEETS = products.reduce((n, p) => n + (Array.isArray(p.additionalPdfs)
+  ? p.additionalPdfs.filter((x) => x && typeof x === 'object' && x.url).length : 0), 0);
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -357,9 +362,9 @@ const READ_TABLE = () => {
 
   // ── B12 ───────────────────────────────────────────────────────────────────
   const c = record.counts;
-  const vals = Object.values(c);
+  const vals = Object.values({ ...c, datasheets: c.datasheets - EXTRA_SHEETS });
   note(vals.every((v) => v === TOTAL),
-    `all four catalog surfaces say ${TOTAL}`,
+    `all four catalog surfaces say ${TOTAL} (datasheets: ${TOTAL} + ${EXTRA_SHEETS} additional sheet(s))`,
     JSON.stringify(c) + `  (sidebar="${record.sidebarCount}", showing="${record.dashShowing}", ` +
     `approval="${record.dashApproval}", datasheets="${record.datasheets}")`);
 

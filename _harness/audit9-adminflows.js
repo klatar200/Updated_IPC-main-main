@@ -116,6 +116,11 @@ function parseAttrs(s) {
 // submit it. Returns [name, value][] (repeats allowed, order preserved —
 // content.php's form_complete truncation guard depends on that order).
 function scrapeForm(formHtml) {
+  // A browser never submits controls inside <template>. content.php carries a
+  // blank row template per section AFTER the real rows, so scraping them made
+  // the "unchanged" save blank and drop row 0 of all 17 sections (AUDIT-12
+  // A12-L13-05-W5-5).
+  formHtml = formHtml.replace(/<template\b[\s\S]*?<\/template>/gi, '');
   const fields = [];
   const tagRe = /<input\b([^>]*)\/?>|<textarea\b([^>]*)>([\s\S]*?)<\/textarea>|<select\b([^>]*)>([\s\S]*?)<\/select>/gi;
   let m;

@@ -18,9 +18,9 @@
  * The context sets hasTouch, because `@media (pointer: coarse)` is what the
  * fix keys on and a desktop-pointer context would measure the unfixed rule.
  *
- * B13 is asserted here as of Phase F. B26 (form-first ordering) is still
- * logged open in WHATS_LEFT §2b and is NOT asserted — a suite that silently
- * covers two of three named items reads like it covers all three.
+ * B13 is asserted here as of Phase F. B26 (form-first ordering) shipped
+ * 2026-08-08 and is asserted by plan8-lead.js, not here (AUDIT-12
+ * A12-L13-04-W5-1: this header used to call it open and unasserted).
  *
  * B13 is driven with real clicks and real Escape presses. A drawer whose
  * close-on-Escape is wired to a handler that never receives the key looks
@@ -69,6 +69,10 @@ const measure = () => {
       h: Math.round(r.height),
       tel: !!(href && /^tel:/.test(href)),
       mail: !!(href && /^mailto:/.test(href)),
+      // A12-L6-07-1 — an email link that follows a phone link in the same
+      // block does not grow upward (its 44px box stole taps from the number
+      // above it); it is held to the AA 24px floor below, not to 44.
+      afterTel: !!(href && /^mailto:/.test(href) && el.matches('a[href^="tel:"] ~ a[href^="mailto:"]')),
       text: (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 34),
       cls: (typeof el.className === 'string' ? el.className : '').slice(0, 36),
     });
@@ -160,6 +164,9 @@ const measure = () => {
         seen.push(await p.evaluate(() => {
           const dlg = document.querySelector('[role="dialog"]');
           const a = document.activeElement;
+          // A12-L7-W3-G4-2 — the visible X ("Close menu", the burger) is part
+          // of the trapped cycle on purpose.
+          if (a && a.getAttribute('aria-label') === 'Close menu') return true;
           return dlg && a ? dlg.contains(a) : false;
         }));
       }
@@ -228,7 +235,7 @@ const measure = () => {
   const all = ROUTES.flatMap((r) => rec[r].map((e) => ({ ...e, route: r })));
 
   // ── the conversion paths: 44x44 ───────────────────────────────────────────
-  const conv = all.filter((e) => e.tel || e.mail);
+  const conv = all.filter((e) => (e.tel || e.mail) && !e.afterTel);
   const convSmall = conv.filter((e) => e.h < TARGET || e.w < TARGET);
   note(convSmall.length === 0,
     `all ${conv.length} tel:/mailto: links are at least ${TARGET}x${TARGET}`,

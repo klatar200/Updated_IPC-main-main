@@ -37,8 +37,9 @@
  *     rewriting the catalogue is exactly the class of thing this codebase has
  *     spent five plans removing.
  *
- * Writes the MIRROR's content.json only, restores from pristine/ and proves
- * byte-identity. products-all.json is read and asserted UNCHANGED.
+ * Writes the MIRROR's content.json only, restores from pristine/ (throwing if
+ * the bytes differ — a cleanup precondition, not a counted check: AUDIT-12
+ * A12-L13-20-1). products-all.json is read and asserted UNCHANGED.
  *
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
@@ -59,10 +60,14 @@ const PRODUCTS_MIRROR = path.join(__dirname, 'site', 'data', 'products-all.json'
 const PRODUCTS_PRISTINE = path.join(__dirname, 'pristine', 'products-all.json');
 const PW = 'audit-pass-123';
 
+// Fifteen since AUDIT-12 decision 2 added PVC, PTFE and FEP, Polyester
+// (Mylar) and Extruded Tubing. Must equal the two built-in defaults.
 const DEFAULTS = [
-  'Polyolefin Heat Shrink', 'PVDF Heat Shrink', 'Dual-Wall Heat Shrink',
-  'Medical Grade Heat Shrink', 'Elastomeric Heat Shrink', 'Fiberglass Sleeving',
-  'Expandable Sleeving', 'End Cap', 'Tape', 'Adhesive', 'Accessory',
+  'Polyolefin Heat Shrink', 'PVC Heat Shrink', 'PVDF Heat Shrink',
+  'PTFE and FEP Heat Shrink', 'Dual-Wall Heat Shrink', 'Medical Grade Heat Shrink',
+  'Elastomeric Heat Shrink', 'Polyester (Mylar) Heat Shrink', 'Extruded Tubing',
+  'Fiberglass Sleeving', 'Expandable Sleeving', 'End Cap', 'Tape', 'Adhesive',
+  'Accessory',
 ];
 
 const results = [];
@@ -135,12 +140,12 @@ const sidebarState = (page) =>
         .match(/["']Polyolefin Heat Shrink["']/g) || []).length }));
     const total = tree.reduce((a, r) => a + r.n, 0);
     note(total === 2,
-      `the eleven names appear exactly twice — one PHP default, one JS default (found ${total})`,
+      `the family names appear exactly twice — one PHP default, one JS default (found ${total})`,
       JSON.stringify(tree));
 
     const lint = require('child_process').spawnSync('php',
       [path.join(__dirname, 'lint.php')], { encoding: 'utf8' });
-    note(/family drift\s+11 families, PHP and JS identical/.test(lint.stdout) &&
+    note(new RegExp(`family drift\\s+${DEFAULTS.length} families, PHP and JS identical`).test(lint.stdout) &&
          /family literals\s+none in add\.php or edit\.php/.test(lint.stdout),
       'lint.php fails the build if the two defaults diverge, or if a third literal returns',
       lint.stdout.split('\n').filter((l) => /family/.test(l)).join('\n         '));
@@ -201,7 +206,13 @@ const sidebarState = (page) =>
     // first save. An unseeded editor showed ZERO rows there while the site
     // rendered eleven families, and invited the owner to retype a list he
     // already had. Measured; now seeded from what is in effect.
-    fs.writeFileSync(MIRROR, pristineContent);
+    // pristine/ is seeded from data/, which HAS carried productFamilies (11
+    // rows) since 081962b — so writing pristine back no longer produced the
+    // day-one state and the seeding arm passed with seeding removed (AUDIT-12
+    // A12-L13-13-4). Delete the key, as plan8-formpolish does for its default.
+    const dayOne = JSON.parse(pristineContent);
+    delete dayOne.productFamilies;
+    fs.writeFileSync(MIRROR, JSON.stringify(dayOne, null, 4));
     const actx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const apage = await actx.newPage();
     await apage.goto(`${BASE}/admin/auth.php`, { waitUntil: 'domcontentloaded' });
@@ -229,7 +240,8 @@ const sidebarState = (page) =>
 
     // Renaming a family that products use must warn BEFORE the save commits.
     const dialogs = [];
-    apage.on('dialog', (d) => { dialogs.push(d.message()); d.dismiss(); });
+    let acceptDialogs = false;
+    apage.on('dialog', (d) => { dialogs.push(d.message()); if (acceptDialogs) d.accept(); else d.dismiss(); });
     await apage.evaluate(() => {
       const row = [...document.querySelectorAll('[data-ipc-family-count]')]
         .find((e) => (e.querySelector('input') || {}).value === 'Tape');
@@ -248,6 +260,20 @@ const sidebarState = (page) =>
       'renaming a family that products use warns before saving, naming the count',
       JSON.stringify(dialogs));
 
+    // The check below ran after the save above was CANCELLED (the dialog was
+    // dismissed, so nothing was posted) and so could not fail. Now confirm the
+    // warning and let the save happen, then compare (AUDIT-12 A12-L13-13-4).
+    acceptDialogs = true;
+    let posted = false;
+    apage.on('request', (r) => { if (r.method() === 'POST' && /\/admin\/content\.php/.test(r.url())) posted = true; });
+    await Promise.all([
+      apage.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+      apage.evaluate(() => document.querySelector('[name="form_complete"]').closest('form').requestSubmit()),
+    ]);
+    const savedFams = JSON.stringify((JSON.parse(fs.readFileSync(MIRROR, 'utf8')).productFamilies) || []);
+    note(posted && /"Tapes"/.test(savedFams),
+      'setup: the confirmed content save really reached the server and stored the renamed family',
+      `posted ${posted}, productFamilies ${savedFams.slice(0, 120)}`);
     note(fs.readFileSync(PRODUCTS_MIRROR).equals(pristineProducts),
       'no content save writes to products-all.json — the catalogue is never ' +
       'bulk-migrated behind the owner',
@@ -259,9 +285,12 @@ const sidebarState = (page) =>
     await browser.close();
   }
 
-  note(fs.readFileSync(MIRROR).equals(pristineContent) &&
-       fs.readFileSync(PRODUCTS_MIRROR).equals(pristineProducts),
-    'the mirror\'s content.json and products-all.json are byte-identical to pristine');
+  // Cleanup precondition, not a counted check: the writes in the finally land
+  // these bytes or throw, so the compare could never fail (AUDIT-12 A12-L13-20-1).
+  if (!(fs.readFileSync(MIRROR).equals(pristineContent) &&
+        fs.readFileSync(PRODUCTS_MIRROR).equals(pristineProducts))) {
+    throw new Error('cleanup: the mirror\'s content.json / products-all.json were not restored');
+  }
 
   const bad = results.filter((r) => !r.ok).length;
   console.log(`\nplan6-families: ${results.length - bad}/${results.length}`);

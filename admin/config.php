@@ -73,8 +73,8 @@ define('ADMIN_PASSWORD_SENTINEL', '*not-configured*');
 if (!defined('ADMIN_PASSWORD_HASH')) {
     define('ADMIN_PASSWORD_HASH', ADMIN_PASSWORD_SENTINEL);
 }
-define('ADMIN_PASSWORD_CONFIGURED', ADMIN_PASSWORD_HASH !== ADMIN_PASSWORD_SENTINEL
-    && preg_match('/^\$2[aby]\$\d{2}\$.{53}$/', ADMIN_PASSWORD_HASH) === 1);
+define('ADMIN_PASSWORD_CONFIGURED', admin_password_hash_at_start() !== ADMIN_PASSWORD_SENTINEL
+    && preg_match('/^\$2[aby]\$\d{2}\$.{53}$/', admin_password_hash_at_start()) === 1);
 
 // Proof-of-FTP flag that unlocks the one-time password-reset screen.
 define('PASSWORD_RESET_FLAG', __DIR__ . '/ALLOW-PASSWORD-RESET');
@@ -96,6 +96,43 @@ define('LOCAL_CONFIG_PATH', __DIR__ . '/config.local.php');
 // An hour is plenty to upload a file over FTP and type a password. Re-uploading
 // or touching the file opens a fresh window. (AUDIT_v3_FINDINGS B2)
 define('PASSWORD_RESET_WINDOW', 3600);
+
+/**
+ * AUDIT-12 decision 28 (A12-L2-W5-G4-1) — the password hash this request
+ * starts with. Normally the ADMIN_PASSWORD_HASH that config.local.php defined.
+ * But that file is PHP, so an opcode cache can keep serving an OLD compiled
+ * copy, and admin_password_write() clears it with opcache_invalidate() — which
+ * a host that sets opcache.restrict_api refuses (silently). There the Password
+ * page said "changed", the new password was refused, the old one kept working,
+ * and the FTP reset did not take either. When the cache is on and cannot be
+ * cleared from here, the hash is read from the file on disk instead, parsed
+ * the same way admin_password_write() reads it back. No hash is ever written
+ * into this file (invariant 2): a missing or unreadable file still leaves the
+ * sentinel in force.
+ */
+function local_config_cache_uncleared(): bool {
+    if (!function_exists('opcache_invalidate')) return false;            // no opcode cache loaded
+    $on = in_array(PHP_SAPI, ['cli', 'phpdbg'], true) ? ini_get('opcache.enable_cli') : ini_get('opcache.enable');
+    if (!filter_var($on, FILTER_VALIDATE_BOOLEAN)) return false;          // loaded but off
+    // The same test PHP applies before it lets opcache_invalidate() run.
+    $restrict = (string)ini_get('opcache.restrict_api');
+    if ($restrict === '') return false;
+    $script = (string)($_SERVER['SCRIPT_FILENAME'] ?? '');
+    return strncmp($script, $restrict, strlen($restrict)) !== 0;
+}
+function admin_password_hash_at_start(): string {
+    static $h = null;
+    if ($h !== null) return $h;
+    $h = ADMIN_PASSWORD_HASH;
+    $path = __DIR__ . '/config.local.php';     // LOCAL_CONFIG_PATH is defined further down
+    if (local_config_cache_uncleared() && is_file($path)) {
+        $body = (string)@file_get_contents($path);
+        [$reDef, $reConst] = admin_password_patterns();
+        $first = preg_match('/^\s*<\?php/i', $body) ? admin_password_first_definition($body, $reDef, $reConst) : null;
+        if ($first !== null) $h = $first['hash'];
+    }
+    return $h;
+}
 
 function password_reset_unlocked(): bool {
     if (!file_exists(PASSWORD_RESET_FLAG)) return false;
@@ -123,6 +160,38 @@ function password_reset_expired(): bool {
     return password_reset_flag_present() && !password_reset_unlocked();
 }
 
+/** Expired because its date is in the FUTURE (SEC-13's upper bound), not
+ *  because it is old. The two need different words: "more than an hour old,
+ *  upload it again" is false here, and re-uploading with an FTP program that
+ *  keeps the file's own wrong date reproduces the same refusal. (A12-L8-08-1) */
+function password_reset_future_dated(): bool {
+    if (!password_reset_flag_present()) return false;
+    $mtime = @filemtime(PASSWORD_RESET_FLAG);
+    return $mtime !== false && $mtime > time() + 300;
+}
+
+/** The sentence that explains an expired flag, for the sign-in page and the
+ *  dashboard. HTML: the caller echoes it as-is. */
+function password_reset_expired_reason(): string {
+    return password_reset_future_dated()
+        ? 'its date is in the future (the computer or FTP program that uploaded it has a wrong clock)'
+        : 'it is more than an hour old';
+}
+
+/**
+ * A12-L3-W2-G2-1 — a POST that the browser marks as sent by ANOTHER website.
+ * The session cookie is SameSite=Lax and the sign-in form has no token, so any
+ * page open in the owner's browser could post wrong passwords to auth.php from
+ * his own address and hold him in the login cool-off indefinitely. Same rule
+ * as SEC-10 on the Inquiries page: `Sec-Fetch-Site` is sent by every current
+ * browser and a page cannot remove it; a browser that sends none is not
+ * refused (an absent header is not evidence, as with the Referer, invariant 11).
+ */
+function request_from_other_site(): bool {
+    $site = $_SERVER['HTTP_SEC_FETCH_SITE'] ?? '';
+    return is_string($site) && ($site === 'cross-site' || $site === 'same-site');
+}
+
 /**
  * Write a new admin password hash into admin/config.local.php.
  *
@@ -137,42 +206,70 @@ function admin_password_write(string $newPlain): array {
     $path = LOCAL_CONFIG_PATH;
     $hash = password_hash($newPlain, PASSWORD_BCRYPT, ['cost' => 12]);
     $defineLine = "define('ADMIN_PASSWORD_HASH', '" . $hash . "');";
-    // Either quote style. This matched single quotes only, and
-    // define("ADMIN_PASSWORD_HASH", "$2y$…") is legal PHP that works perfectly
-    // at login — a bcrypt hash contains no interpolatable variable, so "$2y" is
-    // literal. A file hand-deployed that way therefore did not match, the new
-    // define was APPENDED, PHP kept the FIRST definition and ignored the second,
-    // and the read-back check below matched the appended line and passed — so
-    // the page said "Password changed" while the old password went on working,
-    // permanently, with every later change stacking another dead define.
-    // (audit-runs/audit5.md, Low tier)
-    $re = "/define\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)*)\\2\\s*\\)\\s*;/";
+    // Either quote style. This matched single quotes only, and a file
+    // hand-deployed with define("ADMIN_PASSWORD_HASH", "$2y$…") did not match.
+    // (Double quotes are NOT a safe way to write a hash by hand: inside "…"
+    // PHP reads "$" followed by a letter or "_" as a variable, and about four
+    // bcrypt salts in five start with one, so such a hash is usually corrupted
+    // at load time. Accepting and rewriting that style is the cure. A12-L12-16-2)
+    // The new define was APPENDED, PHP kept the FIRST definition and ignored the
+    // second, and the read-back check below matched the appended line and
+    // passed — so the page said "Password changed" while the old password went
+    // on working, permanently, with every later change stacking another dead
+    // define. (audit-runs/audit5.md, Low tier)
+    //
+    // A12-L3-02-W5-1 — the same defect for the other spellings PHP accepts:
+    // `define (…)`, `DEFINE(…)` (function names are case-insensitive) and
+    // `const ADMIN_PASSWORD_HASH = …;`. Both are matched, the FIRST definition
+    // in the file (the one PHP uses) is the one replaced and the one read back,
+    // and a file that names the constant in a way neither pattern can parse is
+    // refused rather than appended to.
+    [$reDef, $reConst] = admin_password_patterns();
+    $template = "<?php\n"
+             . "/**\n"
+             . " * IPC Admin — LOCAL password override (gitignored).\n"
+             . " * Generated by the IPC admin on " . date('Y-m-d H:i:s') . ".\n"
+             . " * config.php loads this file first, so the hash below is the one that counts.\n"
+             . " * There is no shipped default password to fall back to: if this file is\n"
+             . " * deleted, nobody can sign in until the ALLOW-PASSWORD-RESET recovery is used.\n"
+             . " */\n"
+             . $defineLine . "\n";
 
-    if (file_exists($path)) {
-        $body = (string)file_get_contents($path);
-        // preg_replace_callback, NOT preg_replace: every bcrypt hash contains
-        // "$2y$12$", and preg_replace would eat $2/$12 as backreferences and
-        // write a corrupt hash. That bug shipped and made password changes
-        // 0% functional. Do not "simplify" this back.
-        $newBody = preg_replace_callback($re, static function () use ($defineLine) {
-            return $defineLine;
-        }, $body, 1, $replaced);
-        if ($newBody === null) { $replaced = 0; $newBody = $body; }
-        if (!$replaced) {
+    $body = file_exists($path) ? (string)@file_get_contents($path) : '';
+    if (!preg_match('/^\s*<\?php/i', $body)) {
+        // A12-L4-W2-G4-2 — a file with no opening tag (an empty one left by an
+        // interrupted write, included) is not PHP: appending a define to it
+        // produced a config.local.php that PRINTED the new hash at the top of
+        // every admin page, the public sign-in page included, while nobody
+        // could sign in. Rebuild it from the template; the old body is kept in
+        // the .bak copy below.
+        $newBody = $template;
+    } else {
+        $first = admin_password_first_definition($body, $reDef, $reConst);
+        if ($first !== null) {
+            // preg_replace_callback, NOT preg_replace: every bcrypt hash contains
+            // "$2y$12$", and preg_replace would eat $2/$12 as backreferences and
+            // write a corrupt hash. That bug shipped and made password changes
+            // 0% functional. Do not "simplify" this back.
+            $re = $first['re'];
+            $newBody = preg_replace_callback($re, static function () use ($defineLine) {
+                return $defineLine;
+            }, $body, 1, $replaced);
+            if ($newBody === null || !$replaced) {
+                return ['ok' => false, 'error' => 'Could not update admin/config.local.php (its password line could not be read). Nothing was changed.'];
+            }
+        } elseif (preg_match('/^(?!\s*(?:\/\/|#|\*|\/\*)).*\bADMIN_PASSWORD_HASH\b/m', $body)) {
+            return ['ok' => false, 'error' => 'admin/config.local.php sets the password in a form this page cannot update, so nothing was changed. '
+                . 'Over FTP, delete that file (a copy is kept as config.local.php.bak.*), then upload an empty file named '
+                . 'ALLOW-PASSWORD-RESET into the admin folder and visit /admin/ to set the password again.'];
+        } else {
+            // A closing PHP tag at the end would turn the appended define into text
+            // printed on every page — the same exposure as the tagless file.
+            $newBody = rtrim($body);
+            if (substr($newBody, -2) === '?>') $newBody = substr($newBody, 0, -2);
             $newBody = rtrim($newBody) . "\n\n// Added by the IPC admin on " . date('Y-m-d H:i:s') . "\n" . $defineLine . "\n";
         }
-    } else {
-        $newBody = "<?php\n"
-                 . "/**\n"
-                 . " * IPC Admin — LOCAL password override (gitignored).\n"
-                 . " * Generated by the IPC admin on " . date('Y-m-d H:i:s') . ".\n"
-                 . " * config.php loads this file first, so the hash below is the one that counts.\n"
-                 . " * There is no shipped default password to fall back to: if this file is\n"
-                 . " * deleted, nobody can sign in until the ALLOW-PASSWORD-RESET recovery is used.\n"
-                 . " */\n"
-                 . $defineLine . "\n";
     }
-
     $backupPath = null;
     if (file_exists($path)) {
         $backupPath = $path . '.bak.' . date('Ymd-His');
@@ -187,7 +284,12 @@ function admin_password_write(string $newPlain): array {
         }
     }
 
-    if (@file_put_contents($path, $newBody, LOCK_EX) === false) {
+    // A12-L4-W2-G4-2 — written to a temp file and renamed in, like every data
+    // file (json_write_atomic(), A-5.5). file_put_contents() truncated the live
+    // file first, so a request killed between the truncate and the write (a
+    // host timeout, a PHP restart) left config.local.php EMPTY: nobody could
+    // sign in, and the recovery then appended to the empty file (see above).
+    if (!json_write_atomic($path, $newBody)) {
         return ['ok' => false, 'error' => 'Could not write admin/config.local.php — the admin/ folder must be writable by the web server.'];
     }
 
@@ -201,8 +303,10 @@ function admin_password_write(string $newPlain): array {
     }
 
     $check = (string)@file_get_contents($path);
-    $ok = preg_match("/define\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)+)\\2\\s*\\)\\s*;/", $check, $m)
-          && password_verify($newPlain, $m[3]);   // group 3 — 1 and 2 are the quote characters
+    // The FIRST definition is the one PHP uses, and the file must open with
+    // <?php or it is printed instead of run (A12-L4-W2-G4-2, A12-L3-02-W5-1).
+    $first = preg_match('/^\s*<\?php/i', $check) ? admin_password_first_definition($check, $reDef, $reConst) : null;
+    $ok = $first !== null && password_verify($newPlain, $first['hash']);
     if (!$ok) {
         // L11 — say what actually happened. The restore only runs when a backup
         // exists, and @copy() above is unchecked, so on the path where the copy
@@ -212,7 +316,10 @@ function admin_password_write(string $newPlain): array {
         // NOBODY can sign in — and the message pointed away from the one thing
         // that recovers it.
         $restored = false;
-        if ($backupPath && file_exists($backupPath)) $restored = @copy($backupPath, $path);
+        if ($backupPath && file_exists($backupPath)) {
+            $prev = @file_get_contents($backupPath);
+            $restored = $prev !== false && json_write_atomic($path, $prev);
+        }
         return ['ok' => false, 'error' => $restored
             ? 'Verification of the written file failed — the previous password was restored. Nothing changed.'
             : 'Verification of the written file failed, AND the previous version could not be restored. '
@@ -227,10 +334,41 @@ function admin_password_write(string $newPlain): array {
     return ['ok' => true, 'error' => '', 'hash' => $hash];
 }
 
+/** The two spellings of the password line admin_password_write() understands. */
+function admin_password_patterns(): array {
+    return [
+        "/\\b(?i:define)\\s*\\(\\s*(['\"])ADMIN_PASSWORD_HASH\\1\\s*,\\s*(['\"])((?:(?!\\2).)*)\\2\\s*\\)\\s*;/",
+        "/\\b(?i:const)\\s+ADMIN_PASSWORD_HASH\\s*=\\s*(['\"])((?:(?!\\1).)*)\\1\\s*;/",
+    ];
+}
+
+/**
+ * The first definition of ADMIN_PASSWORD_HASH in a config.local.php body — the
+ * one PHP keeps — as ['re' => the pattern that matched it, 'hash' => its value],
+ * or null when neither spelling is present. (A12-L3-02-W5-1)
+ */
+function admin_password_first_definition(string $body, string $reDef, string $reConst): ?array {
+    $best = null;
+    if (preg_match($reDef, $body, $m, PREG_OFFSET_CAPTURE)) {
+        $best = ['at' => $m[0][1], 're' => $reDef, 'hash' => $m[3][0]];     // groups 1 and 2 are the quotes
+    }
+    if (preg_match($reConst, $body, $m, PREG_OFFSET_CAPTURE) && ($best === null || $m[0][1] < $best['at'])) {
+        $best = ['at' => $m[0][1], 're' => $reConst, 'hash' => $m[2][0]];   // group 1 is the quote
+    }
+    return $best;
+}
+
 /** Shared password-strength rules for both the change and recovery screens. */
 function admin_password_problems(string $new, string $confirm, bool $compareToCurrent = true): array {
     $errors = [];
-    if (strlen($new) < 12) {
+    if (strpos($new, "\0") !== false || strpos($confirm, "\0") !== false) {
+        // A12-L3-01-2 — bcrypt reads its input as a C string. PHP 8's
+        // password_hash() throws an uncaught ValueError on a NUL (a 500), and
+        // PHP 7.4 silently hashes only the bytes before it, storing a password
+        // far shorter than the 12-character rule below. A browser password box
+        // cannot submit one, so this is a crafted request; refuse it plainly.
+        $errors[] = 'The new password contains a character that cannot be used in a password. Please type it again.';
+    } elseif (strlen($new) < 12) {
         $errors[] = 'The new password must be at least 12 characters. A short sentence or 4+ random words works well.';
     } elseif (strlen($new) > 72) {
         // SEC-14 — bcrypt reads only the first 72 BYTES. Past that, two
@@ -241,7 +379,7 @@ function admin_password_problems(string $new, string $confirm, bool $compareToCu
         $errors[] = 'The new password is too long (72 characters max; an accented letter counts as two).';
     } elseif ($new !== $confirm) {
         $errors[] = 'The two new-password fields do not match.';
-    } elseif ($compareToCurrent && ADMIN_PASSWORD_CONFIGURED && password_verify($new, ADMIN_PASSWORD_HASH)) {
+    } elseif ($compareToCurrent && ADMIN_PASSWORD_CONFIGURED && password_verify($new, current_password_hash())) {
         $errors[] = 'The new password must be different from the current one.';
     }
     return $errors;
@@ -443,7 +581,12 @@ function csrf_fail_page(string $reason): void {
         $lead  = 'The whole request was rejected before it reached the admin, so <strong>nothing was saved</strong>. '
                . 'This server accepts up to <strong>' . h(ini_get('post_max_size') ?: '?') . '</strong> per request and '
                . '<strong>' . h(ini_get('upload_max_filesize') ?: '?') . '</strong> per file. '
-               . 'Use a smaller file, or ask your developer to raise the limits in <code>.user.ini</code>.';
+               // A12-L9-W4-G2-2 — the dashboard's own caps sit under the
+               // shipped server figures, so .user.ini is worth raising only
+               // while post_max_size is below the 20MB PDF cap.
+               . 'Use a smaller file (the dashboard itself accepts at most 20MB for a PDF and 8MB for a picture)'
+               . (ini_size_mb('post_max_size', 20) < 20
+                   ? ', or ask your developer to raise the limits in <code>.user.ini</code>.' : '.');
     } else {
         $title = $expired ? 'Your sign-in session expired' : 'This form could not be verified';
         $lead  = $expired
@@ -606,7 +749,7 @@ if (session_status() === PHP_SESSION_NONE
 function current_password_hash(?string $set = null): string {
     static $h = null;
     if ($set !== null) $h = $set;
-    return $h ?? ADMIN_PASSWORD_HASH;
+    return $h ?? admin_password_hash_at_start();
 }
 function session_auth_token(?string $passwordHash = null): string {
     return hash_hmac('sha256', 'ipc-admin-session|' . session_id(), $passwordHash ?? current_password_hash());
@@ -897,7 +1040,11 @@ function backup_path(string $dir, string $prefix): string {
 // distinction is still worth making rather than returning null for both, so
 // that a future caller which does check gets a truthful answer instead of an
 // error for a file that is safely backed up already.
+// AUDIT-12 decisions 29/30: a failed copy is ALSO reported through
+// last_save_backup_failed(), which the save_*() helpers act on; the return
+// value stays as described.
 function backup_before_write(string $path, string $prefix): ?string {
+    $GLOBALS['ipc_last_backup_failed'] = false;   // AUDIT-12 decisions 29/30
     $dir = dirname($path);
     if (!file_exists($path)) return null;
 
@@ -955,7 +1102,11 @@ function backup_before_write(string $path, string $prefix): ?string {
     // one-owner admin — but fall back to the old behaviour rather than skipping
     // the backup, because no backup at all is the worse outcome.
     if ($backupPath === null) $backupPath = backup_path($dir, $prefix);
-    if (!@copy($path, $backupPath)) { @unlink($backupPath); return null; }
+    if (!@copy($path, $backupPath)) {
+        @unlink($backupPath);
+        $GLOBALS['ipc_last_backup_failed'] = true;   // see last_save_backup_failed()
+        return null;
+    }
     $backups = backup_list($dir, $prefix); // oldest first, by parsed (stamp, seq)
     if (count($backups) > BACKUP_KEEP) {
         foreach (array_slice($backups, 0, count($backups) - BACKUP_KEEP) as $old) @unlink($old);
@@ -1010,6 +1161,74 @@ function last_save_was_noop(): bool {
     return !empty($GLOBALS['ipc_last_save_noop']);
 }
 
+/**
+ * AUDIT-12 decisions 29 and 30 (A12-L4-01-W5-1, A12-L4-05-2) — the separate
+ * failure signal invariant 16 asks for. backup_before_write() returning null
+ * is NOT failure (it also means "no file yet"); this flag is set only when the
+ * copy itself could not be written — on a shared host, a full disk.
+ *  - save_*($x, true) (Backups' restore) then refuses and writes nothing, so a
+ *    restore never replaces the only copy of the current version (29).
+ *  - an ordinary save goes ahead, and the next admin page says plainly that
+ *    the change cannot be undone from Backups (30; nav.php shows it once).
+ */
+$GLOBALS['ipc_last_backup_failed'] = false;
+function last_save_backup_failed(): bool {
+    return !empty($GLOBALS['ipc_last_backup_failed']);
+}
+// Why the most recent save_*() returned false: 'encode', 'damaged', 'backup' or 'write'.
+$GLOBALS['ipc_last_save_failure'] = '';
+
+/** The common tail of the three save_*() helpers, after the no-op check. */
+function save_json_with_backup(string $path, string $prefix, string $json, string $label, bool $requireBackup): bool {
+    $GLOBALS['ipc_last_save_noop'] = false;
+    backup_before_write($path, $prefix);
+    if (last_save_backup_failed() && $requireBackup) {
+        $GLOBALS['ipc_last_save_failure'] = 'backup';
+        return false;
+    }
+    if (!json_write_atomic($path, $json)) {
+        $GLOBALS['ipc_last_save_failure'] = 'write';
+        return false;
+    }
+    if (last_save_backup_failed() && session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION['ipc_unbacked_saves'][$label] = true;
+    }
+    return true;
+}
+
+/**
+ * AUDIT-12 decision 31 (A12-L8-02-1) — ONE sentence for "the dashboard could
+ * not write a file", used by every page, instead of seven wordings that named
+ * products-all.json and said "file" or "write" permissions, "folder" or
+ * "directory". Which sentence depends on the cause: a folder the server will
+ * not let the dashboard write to (the shared one), a folder it may write to
+ * but could not (a full disk), or text that cannot be stored at all.
+ * $dir/$name name the folder ('data' for the three data files).
+ */
+function write_failed_message(string $dir, string $name): string {
+    if (is_dir($dir) && !is_writable($dir)) {
+        return "Nothing was saved: the server does not let the dashboard write to its {$name} folder. "
+             . 'This is a server setting, not something you did — Help → "If the dashboard warns you about the server" says how to fix it, '
+             . 'or send a screenshot of this page to your developer.';
+    }
+    return "Nothing was saved: the server could not write to its {$name} folder, although the folder allows it, so its disk is probably full. "
+         . 'Free up space on your hosting account (or ask your host to), then try again.';
+}
+function save_failed_message(): string {
+    switch ($GLOBALS['ipc_last_save_failure'] ?? '') {
+        case 'encode':
+            return 'Nothing was saved: some of the text contains a character the server cannot store '
+                 . '(this can happen with text pasted from Word or a PDF). Retype the text you pasted last, then save again.';
+        case 'backup':
+            return 'Nothing was changed: the server\'s disk is full, so it could not first keep a copy of the current version, '
+                 . 'and without that copy this could not be undone. Free up space on your hosting account (or ask your host to), then try again.';
+        case 'damaged':
+            return 'Nothing was saved: the product catalog file (data/products-all.json) is damaged. '
+                 . 'Go to Backups and restore the most recent Product Catalog entry, then try again.';
+    }
+    return write_failed_message(dirname(PRODUCTS_JSON), 'data');
+}
+
 // All backups for one prefix, OLDEST FIRST.
 //
 // Two orderings that look right and are NOT (both measured, not guessed):
@@ -1054,11 +1273,13 @@ function backup_list(string $dir, string $prefix): array {
 // would strand the optimistic-concurrency pages on an error page instead of
 // redirecting and refreshing their signature. Pages that want to word it
 // differently read last_save_was_noop().
-function save_products(array $products): bool {
+function save_products(array $products, bool $requireBackup = false): bool {
     products_write_lock(); // SEC-5 — a no-op if load_products() already took it
+    $GLOBALS['ipc_last_save_failure'] = '';
+    $GLOBALS['ipc_last_backup_failed'] = false;
     // NEW-N2-2 — never save the [] a damaged catalog was read as over the
     // catalog itself. The dashboard banner says what to do instead.
-    if (products_load_damaged()) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    if (products_load_damaged()) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'damaged'; return false; }
     $path = PRODUCTS_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) {
@@ -1071,14 +1292,13 @@ function save_products(array $products): bool {
     // carry. file_put_contents($path, false) writes an EMPTY FILE and returns
     // 0, which is !== false — so the catalog would be blanked and reported as
     // saved. Fail loudly instead and leave the file alone.
-    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'encode'; return false; }
     if (!json_write_needed($path, $json)) {
         $GLOBALS['ipc_last_save_noop'] = true;
         return true;
     }
-    $GLOBALS['ipc_last_save_noop'] = false;
-    backup_before_write($path, 'products-all');
-    return json_write_atomic($path, $json);   // A-5.5 — temp file + atomic rename
+    // backup_before_write(), then json_write_atomic() (A-5.5 — temp file + atomic rename)
+    return save_json_with_backup($path, 'products-all', $json, 'Product Catalog', $requireBackup);
 }
 
 // Helper: load business details (site-info.json). Returns [] if missing/invalid.
@@ -1091,20 +1311,20 @@ function load_site_info(): array {
 
 // Helper: save business details. Mirrors save_products(): timestamped backup
 // (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
-function save_site_info(array $info): bool {
+function save_site_info(array $info, bool $requireBackup = false): bool {
     data_write_lock('site-info'); // a no-op if the page already took it
     $path = SITE_INFO_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $json = json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    $GLOBALS['ipc_last_save_failure'] = '';
+    $GLOBALS['ipc_last_backup_failed'] = false;
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'encode'; return false; }
     if (!json_write_needed($path, $json)) {          // F2
         $GLOBALS['ipc_last_save_noop'] = true;
         return true;
     }
-    $GLOBALS['ipc_last_save_noop'] = false;
-    backup_before_write($path, 'site-info');
-    return json_write_atomic($path, $json);
+    return save_json_with_backup($path, 'site-info', $json, 'Business Details', $requireBackup);
 }
 
 // Helper: load editable page content (homepage sections, etc.). Returns [] if
@@ -1123,12 +1343,14 @@ function load_content(): array {
  * One copy across two languages is not achievable without a build step, and
  * this codebase already has an answer for exactly this shape of problem:
  * `$COPY_GROUPS` here and `COPY_DEFAULTS` in App.jsx are two copies kept honest
- * by `_harness/copydrift.js`, which FAILS the build when they diverge. The same
- * check now covers this list (`lint.php` -> "family drift"), so the pair cannot
- * drift silently the way the three `$partTypes`/FAMILY_ORDER literals could.
+ * by `_harness/copydrift.js`, which FAILS `php _harness/lint.php` when they
+ * diverge (not `npm run build`, which is plain `vite build` — the check runs
+ * only when the lint is run). The same check now covers this list (`lint.php`
+ * -> "family drift"), so the pair cannot drift silently the way the three
+ * `$partTypes`/FAMILY_ORDER literals could.
  *
  * What changed is not the number of copies — it is that a copy which disagrees
- * is now a build failure instead of an invisible defect.
+ * is now a lint failure instead of an invisible defect.
  */
 /**
  * The approval vocabulary, and how a product's approvals are read.
@@ -1170,7 +1392,9 @@ const IPC_APPROVAL_PATTERNS = [
     'UL Approved'   => '/\bU\/?L\b[^.;]{0,18}\bApproved\b/i',
     'cUL'           => '/\bCUL\b/i',
     'CSA'           => '/\bCSA\b/i',
-    'MIL-SPEC'      => '/\bMIL[\s-]?SPEC\b|\bAMS\b/i',
+    // AUDIT-12 decision 13 (A12-L15-02-3) — AMS (an SAE spec) is not MIL-SPEC;
+    // see APPROVALS in src/App.jsx.
+    'MIL-SPEC'      => '/\bMIL[\s-]?SPEC\b/i',
     'RoHS'          => '/\bRoHS\b/i',
     'FDA'           => '/\b(?:US)?FDA\b/i',
     'USP Class VI'  => '/\bUSP\b[^.;]{0,12}\bClass\s*VI\b/i',
@@ -1187,8 +1411,14 @@ const IPC_APPROVAL_PATTERNS = [
  * owner's: a milestone such as "Achieved ISO 9001 registration" may stay true
  * history after a lapse, so nothing is deleted automatically — the owner is
  * shown where each mention is instead. Returns "Where: text" lines.
+ *
+ * AUDIT-12 decision 37 (A12-L14-W5-G1-1) — the catalog too: a product's own
+ * text (the VALUE-ADDED page's summary, description and spec table say
+ * "ISO 9001") is never rewritten by the box, and its Google text and share
+ * card kept the claim with nothing in the list naming it. Addresses
+ * (photoUrl, pdfUrl, an extra PDF's url) are not wording and are skipped.
  */
-function iso_mentions(array $content, array $info): array {
+function iso_mentions(array $content, array $info, array $products = []): array {
     $names = [
         'certs' => 'Page Content → Certifications', 'heroTrust' => 'Page Content → Homepage — Hero Trust Ticker',
         'heroProofPoints' => 'Page Content → Homepage — Hero Proof Points', 'stats' => 'Page Content → Trust Bar Stats',
@@ -1200,9 +1430,17 @@ function iso_mentions(array $content, array $info): array {
     $out = [];
     $walk = function ($node, string $where, int $row) use (&$walk, &$out) {
         if (is_string($node)) {
-            if (preg_match('/\bISO\s*9001/i', $node)) {
+            if (preg_match('/\bISO\s*9001/i', $node, $hit, PREG_OFFSET_CAPTURE)) {
                 // No mbstring (A-9.P2-1): cut on characters with a /u regex.
                 $text = preg_match('/^.{91}/us', $node) && preg_match('/^.{0,87}/us', $node, $cut) ? $cut[0] . '…' : $node;
+                // A12-L9-15-1 — when the mention is past that cut, the quote
+                // showed no ISO wording at all and the owner could not see
+                // what to remove. Show an excerpt that starts shortly before it.
+                $before = preg_match_all('/./us', substr($node, 0, $hit[0][1]));
+                if ($before + strlen($hit[0][0]) > 87
+                    && preg_match('/^.{' . ($before - 30) . '}(.{0,87})/us', $node, $win)) {
+                    $text = '…' . $win[1] . (preg_match('/^.{' . ($before - 30 + 88) . '}/us', $node) ? '…' : '');
+                }
                 $out[] = $where . ($row > 0 ? ' (row ' . $row . ')' : '') . ': "' . $text . '"';
             }
         } elseif (is_array($node)) {
@@ -1219,6 +1457,26 @@ function iso_mentions(array $content, array $info): array {
     }
     foreach ((array)($info['about']['paragraphs'] ?? []) as $i => $p) $walk($p, 'Business Details → About story', $i + 1);
     $walk((string)($info['company']['description'] ?? ''), 'Business Details → Short Description', 0);
+    // The box names as Products → Edit shows them.
+    $fields = [
+        'name' => 'Product Name', 'partType' => 'Part Type', 'caption' => 'Image Caption',
+        'operatingTemp' => 'Operating Temperature', 'specificationsSummary' => 'Specifications Summary',
+        'badges' => 'Feature Badges', 'description' => 'Description', 'pdfLabel' => 'Primary PDF Button Label',
+        'specTable1' => 'Specifications', 'specTable2' => 'Specifications',
+    ];
+    foreach ($products as $p) {
+        if (!is_array($p)) continue;
+        $sku = trim((string)(is_scalar($p['sku'] ?? null) ? $p['sku'] : (is_scalar($p['id'] ?? null) ? $p['id'] : '')));
+        foreach ($p as $k => $v) {
+            if (in_array($k, ['id', 'sku', 'photoUrl', 'pdfUrl', 'approvals'], true)) continue;
+            $where = 'Products → Edit ' . $sku . ' → ' . ($fields[$k] ?? ($k === 'additionalPdfs' ? 'Additional PDF Links' : $k));
+            if ($k === 'additionalPdfs' && is_array($v)) {
+                foreach ($v as $x) if (is_array($x)) $walk($x['label'] ?? '', $where, 0);
+                continue;
+            }
+            $walk($v, $where, 0);
+        }
+    }
     return $out;
 }
 
@@ -1233,9 +1491,12 @@ function site_file_missing($u): bool {
     if (!is_string($u)) return false;
     $u = trim($u);
     if ($u === '' || preg_match('#^([a-z][a-z0-9+.-]*:|//)#i', $u)) return false;
-    $path = '/' . ltrim((string)preg_replace('/[?#].*$/', '', $u), '/');
-    if (strpos($path, '..') !== false) return true;
-    return !is_file(__DIR__ . '/..' . rawurldecode($path));
+    // A12-L3-04-1 — decode BEFORE the ".." test. Testing the raw text let
+    // "%2e%2e/" through, and the decoded path then stat()ed any file on the
+    // host (/etc/passwd answered "exists"). A NUL is refused for the same reason.
+    $path = rawurldecode('/' . ltrim((string)preg_replace('/[?#].*$/', '', $u), '/'));
+    if (strpos($path, '..') !== false || strpos($path, "\0") !== false) return true;
+    return !is_file(__DIR__ . '/..' . $path);
 }
 
 /**
@@ -1269,7 +1530,9 @@ function product_save_warnings(array $p): array {
         }
     }
     if ($hidden) {
-        $out[] = 'Badges that name a standard are shown only through the Approvals tick-boxes, so these will not appear on the website until you tick the box: ' . implode(', ', $hidden) . '.';
+        // AUDIT-12 decision 13 — tick only what the part holds: this message
+        // used to send Rick to MIL-SPEC for an AMS spec.
+        $out[] = 'Badges that name a standard are shown only through the Approvals tick-boxes, so these will not appear on the website: ' . implode(', ', $hidden) . '. Tick the box named in brackets only if this product really holds that approval; if it does not, delete the badge or reword it.';
     }
     return $out;
 }
@@ -1294,7 +1557,8 @@ function approval_patterns_json_tag(): string {
 // Business Details box is left empty (App.jsx SITE_DEFAULTS; mergeSiteInfo()
 // drops blanks, invariant 4), keyed by settings.php input id, for the live
 // preview. Only fields that fall back; fax, slogan, short name and the social
-// links — and, since §1aq, the ISO box — are clearable and really do
+// links — and, since §1aq, the ISO box, and since AUDIT-12 decision 14 the
+// Minimum Order box — are clearable and really do
 // disappear; an empty click-to-call box is
 // worked out from the phone on save, not defaulted. _harness/adminaudit11.js
 // compares every entry with SITE_DEFAULTS.
@@ -1308,7 +1572,6 @@ const SITE_INFO_PREVIEW_DEFAULTS = [
     'addr_state'          => 'IL',
     'addr_zip'            => '60440',
     'hours_text'          => 'Mon–Fri, 8am–5pm CT',
-    'stats_min'           => '$50',
     'stats_feet'          => '25 million',
 ];
 
@@ -1354,9 +1617,11 @@ function ipc_product_approvals(array $p): array {
 }
 
 const IPC_DEFAULT_FAMILIES = [
-    'Polyolefin Heat Shrink', 'PVDF Heat Shrink', 'Dual-Wall Heat Shrink',
-    'Medical Grade Heat Shrink', 'Elastomeric Heat Shrink', 'Fiberglass Sleeving',
-    'Expandable Sleeving', 'End Cap', 'Tape', 'Adhesive', 'Accessory',
+    'Polyolefin Heat Shrink', 'PVC Heat Shrink', 'PVDF Heat Shrink',
+    'PTFE and FEP Heat Shrink', 'Dual-Wall Heat Shrink', 'Medical Grade Heat Shrink',
+    'Elastomeric Heat Shrink', 'Polyester (Mylar) Heat Shrink', 'Extruded Tubing',
+    'Fiberglass Sleeving', 'Expandable Sleeving', 'End Cap', 'Tape', 'Adhesive',
+    'Accessory',
 ];
 
 /**
@@ -1371,7 +1636,8 @@ const IPC_DEFAULT_FAMILIES = [
  * reachable product links become 0. (It does NOT drop everything into "Other" —
  * that was the first guess and it is wrong; see familyOrder() in src/App.jsx.)
  *
- * These eleven names used to be a literal in add.php and another in edit.php,
+ * These names (eleven until AUDIT-12 decision 2 added PVC, PTFE and FEP,
+ * Polyester (Mylar) and Extruded Tubing) used to be a literal in add.php and another in edit.php,
  * alongside App.jsx's. `_harness/plan6-families.js` asserts there is now exactly
  * one copy in the tree; `_harness/lint.php` fails the build if a second appears.
  */
@@ -1389,20 +1655,20 @@ function ipc_product_families(): array {
 
 // Helper: save editable page content. Mirrors save_site_info(): timestamped
 // backup (keep BACKUP_KEEP), LOCK_EX write. The React site reads this file at runtime.
-function save_content(array $content): bool {
+function save_content(array $content, bool $requireBackup = false): bool {
     data_write_lock('content'); // a no-op if the page already took it
     $path = CONTENT_JSON;
     $dir  = dirname($path);
     if (!is_dir($dir)) mkdir($dir, 0755, true);
     $json = json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; return false; }
+    $GLOBALS['ipc_last_save_failure'] = '';
+    $GLOBALS['ipc_last_backup_failed'] = false;
+    if ($json === false) { $GLOBALS['ipc_last_save_noop'] = false; $GLOBALS['ipc_last_save_failure'] = 'encode'; return false; }
     if (!json_write_needed($path, $json)) {          // F2
         $GLOBALS['ipc_last_save_noop'] = true;
         return true;
     }
-    $GLOBALS['ipc_last_save_noop'] = false;
-    backup_before_write($path, 'content');
-    return json_write_atomic($path, $json);
+    return save_json_with_backup($path, 'content', $json, 'Page Content', $requireBackup);
 }
 
 /**
@@ -1528,6 +1794,9 @@ function inquiries_count_leads(string $path, int $from = 0, int $to = -1): int {
             if (trim($line) === '') continue;
             $e = json_decode($line, true);
             if (is_array($e) && isset($rejected[(string)($e['type'] ?? '')])) continue;
+            // AUDIT-12 decision 42 — a lead's send result is its own line
+            // now; it belongs to the row before it and is not a second lead.
+            if (is_array($e) && ($e['type'] ?? '') === 'send-result') continue;
             $n++;
         }
     }
@@ -1879,7 +2148,7 @@ function login_reset_failures(string $ip): void {
 function login_cooloff_message(int $seconds, string $attempts = 'failed sign-in attempts'): string {
     $wait = $seconds >= 60
         ? (int)ceil($seconds / 60) . ' ' . ((int)ceil($seconds / 60) === 1 ? 'minute' : 'minutes')
-        : max(1, $seconds) . ' seconds';
+        : (max(1, $seconds) === 1 ? '1 second' : $seconds . ' seconds');   // A12-L8-08-2
     return 'Too many ' . $attempts . ' from this computer. Please wait about '
          . $wait . ' and try again. Waiting is all that is needed — this clears itself, '
          . 'and reloading the page sooner will not make it shorter.';
@@ -1944,6 +2213,26 @@ function ipc_ink_for($backgrounds): string {
         return min($r);
     };
     return $worst(IPC_INK_LIGHT) >= $worst(IPC_INK_DARK) ? IPC_INK_LIGHT : IPC_INK_DARK;
+}
+
+/**
+ * AUDIT-12 decision 49 (A12-L7-W3-G3-4) — MIRRORS shadeOf() in src/App.jsx's
+ * ThemeInjector (and shadeOf() in contrast-guard.js): a derived shade of an
+ * owner color. The shipped base gives the literal; any other base is scaled
+ * by ONE factor (the mean of the literal's per-channel ratios), keeping its
+ * hue. Used for --brand-dark-2, the dark end of the product page's title band.
+ */
+function ipc_shade_of(string $base, string $shippedBase, string $literal): string {
+    $b = ipc_parse_hex_color($base);
+    $s = ipc_parse_hex_color($shippedBase);
+    $l = ipc_parse_hex_color($literal);
+    if ($b === null || $s === null || $l === null) return $literal;
+    if ($b === $s) return sprintf('#%02x%02x%02x', $l[0], $l[1], $l[2]);
+    $defined = [];
+    foreach ([0, 1, 2] as $i) if ($s[$i] !== 0) $defined[] = $l[$i] / $s[$i];
+    $k = $defined ? array_sum($defined) / count($defined) : 1;
+    $out = array_map(static fn($c) => max(0, min(255, (int)floor($c * $k + 0.5))), $b);
+    return sprintf('#%02x%02x%02x', $out[0], $out[1], $out[2]);
 }
 
 // ─── Does a product reference resolve on the public site? ───────────────────
@@ -2218,32 +2507,80 @@ function uploads_protection_problem(): string {
     return '';
 }
 
+/**
+ * A12-L2-W1-G3-2 — PHP received the upload but may not read its temp file
+ * (open_basedir that leaves out upload_tmp_dir). The type checks then failed
+ * and the owner was told his valid PDF or JPG was the wrong kind of file.
+ */
+function upload_tmp_unreadable_problem(string $tmp, string $what): string {
+    if ($tmp === '' || @is_readable($tmp)) return '';
+    return "The server received the {$what} but its PHP settings do not let the dashboard read uploaded files "
+         . '(open_basedir does not include the upload temporary folder). Nothing is wrong with your file. '
+         . 'This is a hosting setting — contact your developer.';
+}
+
+const IMG_PROGRAM_CODE_MSG = 'That file is not a usable image — it contains program code, not just picture data. '
+    . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
+
+/**
+ * A PHP open tag anywhere in the first 8 MB of a file: `<?php`, `<?=`, or the
+ * short `<?` followed by white space, which runs wherever short_open_tag is On
+ * (PHP's compiled-in default) — the spelling A-9.P3-2 and NEW-V1-1 missed
+ * (AUDIT-12 A12-L3-02-1).
+ *
+ * Since AUDIT-12 decision 27 this scans only what is stored AS UPLOADED: a GIF
+ * (never re-encoded, so an animation is not flattened), or a JPG/PNG/WEBP the
+ * server could not re-encode (no gd, or the re-encode failed). Every other
+ * photo is written fresh by gd from its decoded pixels, which drops anything
+ * hidden in comments, metadata or after the image data. Scanning the
+ * compressed bytes of an ordinary photo refused about 1 in 14 genuine ones,
+ * IPC's own IP55FL.png among them: '<?=' turns up by chance in compressed
+ * data (A12-L11-W5-G1-1).
+ */
+function image_php_tag_in_bytes(string $path): bool {
+    $raw = (string)@file_get_contents($path, false, null, 0, 8 * 1024 * 1024 + 1);
+    return stripos($raw, '<?php') !== false || strpos($raw, '<?=') !== false
+        || preg_match('/<\?\s/', $raw) === 1;
+}
+
+/** JPG/PNG/WEBP that this server can decode and write again with gd. */
+const IPC_IMG_CODECS = [
+    'jpg'  => ['imagecreatefromjpeg', 'imagejpeg'],
+    'jpeg' => ['imagecreatefromjpeg', 'imagejpeg'],
+    'png'  => ['imagecreatefrompng',  'imagepng'],
+    'webp' => ['imagecreatefromwebp', 'imagewebp'],
+];
+function image_reencode_available(string $ext): bool {
+    $c = IPC_IMG_CODECS[strtolower($ext)] ?? null;
+    return $c !== null && extension_loaded('gd') && function_exists('imagescale')
+        && function_exists($c[0]) && function_exists($c[1]) && function_exists('imagejpeg');
+}
+
 // Everything that decides whether an uploaded file is a usable, safe image:
-// extension AND sniffed MIME agree (A-5.x), no PHP tag anywhere in the bytes
-// (A-9.P3-2 / NEW-V1-1), 8 MB, the pixel ceiling BEFORE any decode (SEC-2),
-// then it must actually decode where gd exists. Returns '' when it passes and
-// sets $ext to the lower-cased extension.
+// extension AND sniffed MIME agree (A-5.x), no PHP tag in the bytes that will
+// be stored as uploaded (A-9.P3-2 / NEW-V1-1; since AUDIT-12 decision 27 only
+// GIFs, and JPG/PNG/WEBP where gd cannot re-encode them — the others are
+// re-encoded by image_prepare_upload()), 8 MB, the pixel ceiling BEFORE any
+// decode (SEC-2), then it must actually decode where gd exists. Returns ''
+// when it passes and sets $ext to the lower-cased extension.
 function uploaded_image_problem(array $file, ?string &$ext = null): string {
     $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
     $tmp = (string)($file['tmp_name'] ?? '');
+    if (($p = upload_tmp_unreadable_problem($tmp, 'photo')) !== '') return $p;
     $sniffed  = @getimagesize($tmp);
     $mimeType = $sniffed !== false ? (string)($sniffed['mime'] ?? '') : '';
     if ($mimeType !== '' && function_exists('finfo_open')) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $fmime = finfo_file($finfo, $tmp);
-        finfo_close($finfo);
+        if (PHP_VERSION_ID < 80000) finfo_close($finfo);   // A12-L2-W1-G1-1: deprecated in 8.5, a no-op since 8.0
         if ($fmime !== $mimeType) $mimeType = '';
     }
-    $raw       = (string)@file_get_contents($tmp, false, null, 0, 8 * 1024 * 1024 + 1);
-    $hasPhpTag = (stripos($raw, '<?php') !== false || stripos($raw, '<?=') !== false);
+    $hasPhpTag = ($ext === 'gif' || !image_reencode_available($ext)) && image_php_tag_in_bytes($tmp);
     $pixelProblem = $sniffed !== false ? image_pixel_problem((int)$sniffed[0], (int)$sniffed[1]) : '';
     if (!isset(IPC_IMG_TYPES[$ext]) || $mimeType !== IPC_IMG_TYPES[$ext]) {
         return 'Only JPG, PNG, WEBP, or GIF images are accepted (extension and content must match).';
     }
-    if ($hasPhpTag) {
-        return 'That file is not a usable image — it contains program code, not just picture data. '
-             . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
-    }
+    if ($hasPhpTag) return IMG_PROGRAM_CODE_MSG;
     if ((int)($file['size'] ?? 0) > 8 * 1024 * 1024) return 'File is too large. Maximum size is 8MB.';
     if ($pixelProblem === 'too-many-pixels') {
         return 'That photo is ' . round(((int)$sniffed[0] * (int)$sniffed[1]) / 1000000, 1) . ' megapixels — more than the '
@@ -2256,31 +2593,115 @@ function uploaded_image_problem(array $file, ?string &$ext = null): string {
             return 'That file looks like an image on the outside but cannot be opened as one — it is damaged or incomplete. '
                  . 'Re-save it from an image editor and upload it again.';
         }
-        if (function_exists('imagedestroy')) @imagedestroy($im);
+        gd_free($im);
     }
     return '';
 }
 
 // The "saved it smaller / could not resize" sentence both upload pages append.
-function image_resize_note(bool $wasResized, string $reason, string $what = 'this product page'): string {
-    return ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '')
+// AUDIT-12 decision 23 (A12-L11-W5-G1-2): "to keep the page fast" was said of
+// a PNG that came out at 1.4 MB, so the width sentence no longer claims speed;
+// $converted says the photo was stored as a JPG, which is what makes it small.
+function image_resize_note(bool $wasResized, string $reason, string $what = 'this product page', bool $converted = false): string {
+    return ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide — it will still look sharp.' : '')
+         . ($converted ? ' It was sent as a PNG with no see-through areas, so it has been saved as a JPG: the same picture in a much smaller file, so the page loads faster.' : '')
          . ($reason === 'no-gd'
             ? ' ⚠ This server cannot resize images (its image tools are not installed), so the photo has been'
               . ' saved at its original size and ' . $what . ' may load slowly. Please resize it to about '
               . IMG_MAX_WIDTH . ' pixels wide and upload it again, or ask the host to enable the PHP "gd" extension.'
-            : '');
+            // A12-L4-03-2 — every other reason a large photo was NOT scaled
+            // down (a GIF, which is never flattened; one the server could not
+            // decode, turn or rewrite) was silent, so the owner never learned
+            // the page now carries a full-size picture.
+            : (!$wasResized && !in_array($reason, ['', 'already-small'], true)
+                ? ' ⚠ It was saved at its original size, so ' . $what . ' may load slowly on a phone. '
+                  . 'To keep it fast, resize it to about ' . IMG_MAX_WIDTH . ' pixels wide'
+                  . ' and upload it again.'
+                : ''));
+}
+
+/** imagedestroy() only where it does something. Since PHP 8.0 a GdImage is
+ *  freed automatically and 8.5 deprecates the call, so unguarded it printed a
+ *  Deprecated line with the server path on hosts that display errors.
+ *  (A12-L2-W1-G1-1, as finfo_close() above) */
+function gd_free($im): void {
+    if (PHP_VERSION_ID < 80000 && $im && function_exists('imagedestroy')) @imagedestroy($im);
+}
+
+/**
+ * The EXIF Orientation of a JPEG (1-8; 1 when absent or unreadable). Uses the
+ * exif extension where it is installed and otherwise reads the one tag from
+ * the APP1 segment itself, so a host without exif still gets it right.
+ * (A12-L11-W5-G4-1)
+ */
+function jpeg_exif_orientation(string $path): int {
+    if (function_exists('exif_read_data')) {
+        $e = @exif_read_data($path);
+        $o = is_array($e) ? (int)($e['Orientation'] ?? 1) : 1;
+        return ($o >= 1 && $o <= 8) ? $o : 1;
+    }
+    $d = (string)@file_get_contents($path, false, null, 0, 256 * 1024);
+    return jpeg_exif_orientation_from_bytes($d);
+}
+
+function jpeg_exif_orientation_from_bytes(string $d): int {
+    $n = strlen($d);
+    if ($n < 4 || substr($d, 0, 2) !== "\xFF\xD8") return 1;
+    $pos = 2;
+    while ($pos + 4 <= $n && $d[$pos] === "\xFF") {
+        $marker = ord($d[$pos + 1]);
+        if ($marker === 0xDA || $marker === 0xD9) break;               // image data / end
+        $len = unpack('n', substr($d, $pos + 2, 2))[1];
+        if ($len < 2) break;
+        if ($marker === 0xE1 && substr($d, $pos + 4, 6) === "Exif\0\0") {
+            $t  = $pos + 10;                                         // TIFF header
+            $le = substr($d, $t, 2) === 'II';
+            if (!$le && substr($d, $t, 2) !== 'MM') return 1;
+            $u16 = function (int $at) use ($d, $le) { $v = unpack($le ? 'v' : 'n', substr($d, $at, 2)); return $v ? $v[1] : 0; };
+            $u32 = function (int $at) use ($d, $le) { $v = unpack($le ? 'V' : 'N', substr($d, $at, 4)); return $v ? $v[1] : 0; };
+            $ifd = $t + $u32($t + 4);
+            if ($ifd + 2 > $n) return 1;
+            $count = $u16($ifd);
+            for ($i = 0; $i < $count && $ifd + 2 + ($i + 1) * 12 <= $n; $i++) {
+                $e = $ifd + 2 + $i * 12;
+                if ($u16($e) === 0x0112) {
+                    $o = $u16($e + 8);
+                    return ($o >= 1 && $o <= 8) ? $o : 1;
+                }
+            }
+            return 1;
+        }
+        $pos += 2 + $len;
+    }
+    return 1;
+}
+
+/** The gd image turned upright for EXIF orientation 2-8, or null if gd cannot. */
+function image_apply_orientation($im, int $o) {
+    if (!function_exists('imagerotate') || !function_exists('imageflip')) return null;
+    $rotate = [3 => 180, 4 => 180, 5 => -90, 6 => -90, 7 => 90, 8 => 90][$o] ?? 0;
+    if ($rotate !== 0) {
+        $r = @imagerotate($im, $rotate, 0);
+        if (!$r) return null;
+        gd_free($im);
+        $im = $r;
+    }
+    if (in_array($o, [2, 4, 5, 7], true) && !@imageflip($im, IMG_FLIP_HORIZONTAL)) return null;
+    return $im;
 }
 
 function image_downscale_in_place(string $path, string $ext, ?string &$reason = null): bool {
     $reason = '';
     if (!extension_loaded('gd') || !function_exists('imagescale')) { $reason = 'no-gd'; return false; }
     $ext = strtolower($ext);
-    if ($ext === 'gif') { $reason = 'animation'; return false; }   // never flatten an animation
     $info = @getimagesize($path);
     if (!is_array($info) || empty($info[0])) { $reason = 'unreadable'; return false; }
     $w = (int)$info[0];
     $h = (int)($info[1] ?? 0);
     if ($w <= IMG_MAX_WIDTH) { $reason = 'already-small'; return false; }
+    // After the width test, so a small GIF reads as small (A12-L4-03-2: the
+    // note for a photo kept at full size must not fire on every GIF).
+    if ($ext === 'gif') { $reason = 'animation'; return false; }   // never flatten an animation
     // Too big to decode safely — keep the upload at its original size. GD
     // allocates outside the Zend allocator, so memory_limit does not bound
     // this; the input is what has to be bounded. (audit-runs/audit6.md A-6.6)
@@ -2292,8 +2713,22 @@ function image_downscale_in_place(string $path, string $ext, ?string &$reason = 
     $src = @$loaders[$ext]($path);
     if (!$src) { $reason = 'decode-failed'; return false; }
 
+    // A12-L11-W5-G4-1 — a phone held upright saves the pixels sideways plus an
+    // EXIF "Orientation" tag; browsers turn it on display. The re-encode below
+    // writes no EXIF, so the scaled photo lay on its side on the site. Turn
+    // the pixels first. If they cannot be turned, keep the original (its tag
+    // still displays it upright) rather than publish it sideways.
+    if ($ext === 'jpg' || $ext === 'jpeg') {
+        $orientation = jpeg_exif_orientation($path);
+        if ($orientation > 1) {
+            $turned = image_apply_orientation($src, $orientation);
+            if (!$turned) { gd_free($src); $reason = 'no-rotate'; return false; }
+            $src = $turned;
+        }
+    }
+
     $dst = @imagescale($src, IMG_MAX_WIDTH);
-    if (!$dst) { imagedestroy($src); $reason = 'scale-failed'; return false; }
+    if (!$dst) { gd_free($src); $reason = 'scale-failed'; return false; }
     if ($ext === 'png' || $ext === 'webp') {                // keep transparency
         @imagealphablending($dst, false);
         @imagesavealpha($dst, true);
@@ -2305,8 +2740,8 @@ function image_downscale_in_place(string $path, string $ext, ?string &$reason = 
     if ($ext === 'jpg' || $ext === 'jpeg') $okWrite = @imagejpeg($dst, $tmp, 82);
     elseif ($ext === 'png')                $okWrite = @imagepng($dst, $tmp, 6);
     elseif ($ext === 'webp')               $okWrite = @imagewebp($dst, $tmp, 82);
-    imagedestroy($src);
-    imagedestroy($dst);
+    gd_free($src);
+    gd_free($dst);
     if (!$okWrite || !is_file($tmp) || @filesize($tmp) < 1) { @unlink($tmp); $reason = 'write-failed'; return false; }
     $perms = @fileperms($path);
     if ($perms !== false) @chmod($tmp, $perms & 0777);
@@ -2314,8 +2749,113 @@ function image_downscale_in_place(string $path, string $ext, ?string &$reason = 
     return true;
 }
 
+/**
+ * AUDIT-12 decisions 23 and 27 — every JPG, PNG and WEBP upload is written
+ * fresh by gd before it is stored, instead of keeping the uploaded bytes.
+ *
+ * 27 (A12-L11-W5-G1-1, A12-L3-02-1): a re-encode keeps only the decoded
+ *    pixels, so program code hidden in a comment, a metadata block or after
+ *    the image data does not survive. That replaces the raw-bytes scan for
+ *    these three types, which refused ~7% of genuine photos and still missed
+ *    the short '<?' tag. GIFs are stored as uploaded (an animation must not be
+ *    flattened) and stay scanned, as does any file gd cannot re-encode here:
+ *    then 'problem' carries the refusal. Camera details (EXIF) are dropped;
+ *    the orientation is applied to the pixels first, as A12-L11-W5-G4-1 did.
+ * 23 (A12-L11-W5-G1-2): a PNG with no see-through pixel is a photo, and is
+ *    saved as a JPG (~1.4 MB -> ~0.2 MB at 1600 wide). One with transparency
+ *    stays a PNG. $mayBecomeJpeg is false for the logo, which is artwork.
+ *
+ * Wider than IMG_MAX_WIDTH is scaled as image_downscale_in_place() does.
+ * uploaded_image_problem() has already refused anything over IMG_MAX_PIXELS,
+ * so the decode here is bounded (SEC-2).
+ *
+ * Returns ['path' => the re-encoded file, a dotfile in $dir to rename into
+ * place, or null to store the upload as is; 'ext' => the extension to save
+ * under; 'resized', 'converted' => bool; 'reason' => as
+ * image_downscale_in_place()'s, for image_resize_note(); 'problem' => '' or
+ * the refusal].
+ */
+function image_prepare_upload(string $src, string $ext, string $dir, bool $mayBecomeJpeg = true): array {
+    $ext = strtolower($ext);
+    $r = ['path' => null, 'ext' => $ext, 'resized' => false, 'converted' => false, 'reason' => '', 'problem' => ''];
+    $info = @getimagesize($src);
+    $w = is_array($info) ? (int)$info[0] : 0;
+    $h = is_array($info) ? (int)$info[1] : 0;
+    if ($ext === 'gif') { $r['reason'] = $w > IMG_MAX_WIDTH ? 'animation' : 'already-small'; return $r; }
+    // Not re-encoded: the bytes are stored as uploaded, so they must pass the scan.
+    $asUploaded = static function (string $reason) use ($r, $src): array {
+        $r['reason'] = $reason;
+        if (image_php_tag_in_bytes($src)) $r['problem'] = IMG_PROGRAM_CODE_MSG;
+        return $r;
+    };
+    if (!image_reencode_available($ext)) {
+        return $asUploaded(extension_loaded('gd') && function_exists('imagescale') ? 'no-loader' : 'no-gd');
+    }
+    if ($w < 1 || $h < 1) return $asUploaded('unreadable');
+    if ($w * $h > IMG_MAX_PIXELS) return $asUploaded('too-many-pixels');
+    [$load, $write] = IPC_IMG_CODECS[$ext];
+    $im = @$load($src);
+    if (!$im) return $asUploaded('decode-failed');
+    if ($ext === 'jpg' || $ext === 'jpeg') {
+        $o = jpeg_exif_orientation($src);
+        if ($o > 1) {
+            $turned = image_apply_orientation($im, $o);
+            if (!$turned) { gd_free($im); return $asUploaded('no-rotate'); }
+            $im = $turned;
+        }
+    }
+    if (!imageistruecolor($im)) @imagepalettetotruecolor($im);
+    if (imagesx($im) > IMG_MAX_WIDTH) {
+        $scaled = @imagescale($im, IMG_MAX_WIDTH);
+        if (!$scaled) { gd_free($im); return $asUploaded('scale-failed'); }
+        gd_free($im);
+        $im = $scaled;
+        $r['resized'] = true;
+    } else {
+        $r['reason'] = 'already-small';
+    }
+    $outExt = $ext;
+    if ($ext === 'png' && $mayBecomeJpeg && !image_has_transparency($im)) {
+        $outExt = 'jpg';
+        $write = 'imagejpeg';
+    }
+    if ($outExt === 'png' || $outExt === 'webp') {
+        @imagealphablending($im, false);
+        @imagesavealpha($im, true);
+    }
+    $tmp = rtrim($dir, '/') . '/.upload-' . getmypid() . '-' . mt_rand(1000, 999999) . '.tmp';
+    $ok = $write === 'imagepng' ? @imagepng($im, $tmp, 6) : @$write($im, $tmp, 82);
+    gd_free($im);
+    if (!$ok || !is_file($tmp) || @filesize($tmp) < 1) {
+        @unlink($tmp);
+        $r['resized'] = false;
+        return $asUploaded('write-failed');
+    }
+    @chmod($tmp, 0644);
+    $r['path'] = $tmp;
+    $r['ext'] = $outExt;
+    $r['converted'] = $outExt !== $ext;
+    return $r;
+}
+
+/** True when any pixel of a truecolor gd image is not fully opaque. */
+function image_has_transparency($im): bool {
+    $w = imagesx($im);
+    $h = imagesy($im);
+    for ($y = 0; $y < $h; $y++) {
+        for ($x = 0; $x < $w; $x++) {
+            if ((imagecolorat($im, $x, $y) >> 24) & 0x7F) return true;
+        }
+    }
+    return false;
+}
+
 function spec_table1_problem($rows): string {
-    if (!is_array($rows)) return 'The Specifications table must be a list of rows.';
+    // A12-L3-07-1 — a single {...} object decodes to a string-keyed array, and
+    // `$i + 1` on a string key was an uncaught TypeError (a blank 500 that lost
+    // every other edit in the form). A top level that is not a list gets the
+    // same sentence as one that is not an array.
+    if (!is_array($rows) || array_values($rows) !== $rows) return 'The Specifications table must be a list of rows.';
     foreach ($rows as $i => $r) {
         $n = $i + 1;
         // A row must be an object; a bare list means someone typed ["a","b"].
@@ -2335,7 +2875,7 @@ function spec_table2_problem($st2): string {
     if (!is_array($st2)) return 'The Size / Dimension table must be an object with "columnSpans" and "rows".';
     $spans = $st2['columnSpans'] ?? [];
     $rows  = $st2['rows'] ?? [];
-    if (!is_array($spans)) return 'The Size / Dimension table\'s "columnSpans" must be a list.';
+    if (!is_array($spans) || array_values($spans) !== $spans) return 'The Size / Dimension table\'s "columnSpans" must be a list.';   // A12-L3-07-1
     foreach ($spans as $i => $g) {
         $n = $i + 1;
         if (!is_array($g) || array_values($g) === $g) {
@@ -2344,11 +2884,17 @@ function spec_table2_problem($st2): string {
         if (array_key_exists('sub', $g) && $g['sub'] !== null && !is_array($g['sub'])) {
             return 'Size / Dimension column ' . $n . ' has a "sub" that is neither a list nor null.';
         }
-        if (array_key_exists('colspan', $g) && !is_numeric($g['colspan'])) {
-            return 'Size / Dimension column ' . $n . ' has a "colspan" that is not a number.';
+        // A12-L4-03-3 — a whole number in a sane range. is_numeric() let 1e400
+        // through: as a number it decodes to INF, which json_encode() refuses
+        // (the save then failed as "check file permissions"); as a string the
+        // size-chart editor tried to build an array that long and froze.
+        if (array_key_exists('colspan', $g)
+            && !((is_int($g['colspan']) || (is_string($g['colspan']) && ctype_digit($g['colspan'])))
+                 && (int)$g['colspan'] >= 1 && (int)$g['colspan'] <= 50)) {
+            return 'Size / Dimension column ' . $n . ' has a "colspan" that is not a whole number from 1 to 50.';
         }
     }
-    if (!is_array($rows)) return 'The Size / Dimension table\'s "rows" must be a list.';
+    if (!is_array($rows) || array_values($rows) !== $rows) return 'The Size / Dimension table\'s "rows" must be a list.';   // A12-L3-07-1
     foreach ($rows as $i => $r) {
         $n = $i + 1;
         if (!is_array($r) || array_values($r) !== $r) {
@@ -2377,7 +2923,9 @@ function link_url_problem(string $url, string $what): string {
     }
     if ($u[0] === '/') return '';
     if (preg_match('#^https?://\S+$#i', $u)) return '';
-    return $what . ' is not a valid link — use a path on this site such as /pdfs/catalog.pdf, or a full address starting http:// or https://.';
+    // A12-L9-11-3 — the example fits the box: a PDF path was shown for a logo.
+    $example = stripos($what, 'logo') !== false ? '/logo.svg' : '/pdfs/catalog.pdf';
+    return $what . ' is not a valid link — use a path on this site such as ' . $example . ', or a full address starting http:// or https://.';
 }
 
 /**
@@ -2541,10 +3089,11 @@ function pdf_renames_load(): array {
  */
 function uploaded_pdf_problem(array $file): string {
     $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+    if (($p = upload_tmp_unreadable_problem((string)($file['tmp_name'] ?? ''), 'PDF')) !== '') return $p;
     if (function_exists('finfo_open')) {
         $finfo    = finfo_open(FILEINFO_MIME_TYPE);
         $mimeType = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
+        if (PHP_VERSION_ID < 80000) finfo_close($finfo);   // A12-L2-W1-G1-1: deprecated in 8.5, a no-op since 8.0
     } else {
         $head     = (string)@file_get_contents($file['tmp_name'], false, null, 0, 5);
         $mimeType = $head === '%PDF-' ? 'application/pdf' : '';
@@ -2601,8 +3150,19 @@ function restore_trashed_files(array $products): array {
                 if (($renames[$i]['old'] ?? null) === $cur) { $next = (string)($renames[$i]['new'] ?? ''); break; }
             }
             if ($next === null || $next === '' || $next[0] === '.' || $next !== basename($next)) return;
-            if (is_file($realDir . '/' . $next)) {
-                if (!isset($wanted[$next]) && @rename($realDir . '/' . $next, $live)) $back[] = $name;
+            // A12-L4-W2-G3-2 — the file may since have been put in the trash
+            // under its NEW name (the renamed product deleted, or its PDF
+            // removed); the chain stopped there and the restored product kept
+            // a dead Data Sheet button.
+            foreach ([$next, TRASH_PREFIX . $next] as $found) {
+                if (!is_file($realDir . '/' . $found)) continue;
+                if (!isset($wanted[$next]) && @rename($realDir . '/' . $found, $live)) {
+                    $back[] = $name;
+                    // A12-L4-W2-G3-1 — record this move like edit.php records a
+                    // rename, so undoing THIS restore (the "you can undo" the
+                    // page offers) can follow the file back to $next.
+                    pdf_renames_record([[$next, $name]]);
+                }
                 return;
             }
             $cur = $next;
@@ -2656,10 +3216,49 @@ function uploads_runtime_htaccess(): string {
         . "<IfModule mod_headers.c>\n  <FilesMatch \"\\.(?i:svg)$\">\n    Order Deny,Allow\n    Allow from all\n"
         . "    Header set Content-Security-Policy \"default-src 'none'; style-src 'unsafe-inline'; sandbox\"\n"
         . "    Header set X-Content-Type-Options \"nosniff\"\n  </FilesMatch>\n</IfModule>\n"
+        // A12-L2-01-1 — trashed `.deleted.<name>` photos: denied after the
+        // image allow, as in uploads/.htaccess.
+        . "<FilesMatch \"^\\.\">\n  Order Allow,Deny\n  Deny from all\n</FilesMatch>\n"
         . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
         . "  Order Allow,Deny\n"
         . "  Deny from all\n"
-        . "</FilesMatch>\n";
+        . "</FilesMatch>\n"
+        // PUB-10's revalidation, as uploads/.htaccess carries it: a replaced
+        // photo keeps its <SKU>.<ext> name, and without this the root rule's
+        // max-age=3600 applied, so "on the site within about a minute" was an
+        // hour here. Headers only, no access rules, so after the deny is safe
+        // (invariant 19 is about access). (A12-L2-W1-G5-1)
+        . "<IfModule mod_headers.c>\n  <FilesMatch \"\\.(?i:jpe?g|png|webp|gif)$\">\n"
+        . "    Header set Cache-Control \"no-cache\"\n  </FilesMatch>\n</IfModule>\n";
+}
+
+// A12-L2-01-5 — the pdfs/ twin of uploads_protection_problem(). upload-pdf.php
+// recreates a missing pdfs/ folder, and that folder had no .htaccess: a data
+// sheet replaced in place (same name) lost pdfs/.htaccess's PUB-10 no-cache
+// rule and the GET-only rule. Writes the runtime copy if it is missing;
+// returns the refusal message if it is STILL missing, else ''.
+function pdfs_protection_problem(): string {
+    $ht = rtrim(PDF_DIR, '/') . '/.htaccess';
+    if (is_dir(PDF_DIR) && !file_exists($ht)) {
+        @file_put_contents($ht, pdfs_runtime_htaccess());
+    }
+    if (is_dir(PDF_DIR) && !file_exists($ht)) {
+        return 'The PDF was not saved: the pdfs folder is missing its security file (pdfs/.htaccess) and the server would not let the admin create it. '
+             . 'Upload pdfs/.htaccess from the release over FTP (turn on "show hidden files" to see it), then try again.';
+    }
+    return '';
+}
+
+// The rules of pdfs/.htaccess, for a pdfs/ folder that was created on the
+// server rather than deployed. Mirrors that file; keep the two in step.
+function pdfs_runtime_htaccess(): string {
+    return "# Written at runtime by admin/upload-pdf.php because this folder was\n"
+        . "# created on the server rather than deployed. Mirrors pdfs/.htaccess.\n"
+        . "Options -Indexes\n"
+        . "<FilesMatch \"\\.(?i:php|phtml|phps|php[0-9]|pht|phar|pl|py|cgi|sh|asp|aspx|jsp)(\\.|$)\">\n"
+        . "  Order Allow,Deny\n  Deny from all\n</FilesMatch>\n"
+        . "<LimitExcept GET>\n  Order Allow,Deny\n  Deny from all\n</LimitExcept>\n"
+        . "<IfModule mod_headers.c>\n  <FilesMatch \"\\.(?i:pdf)$\">\n    Header set Cache-Control \"no-cache\"\n  </FilesMatch>\n</IfModule>\n";
 }
 
 // Helper: derive the canonical image filename for a SKU. Same sanitization as
@@ -2696,15 +3295,31 @@ function image_in_use(array $products, string $basename): bool {
  * .user.ini would not have moved either one. (AUDIT_v3_FINDINGS D6)
  */
 function min_upload_label(int $ownCapMb): string {
-    $ini   = (string)ini_get('upload_max_filesize');
+    // A12-L2-02-1 — post_max_size too: the file has to fit in the whole
+    // request, so where it is the smaller figure it is the one that applies.
+    // (0 or unparseable means no limit from that setting.)
+    $mb = $ownCapMb;
+    foreach (['upload_max_filesize', 'post_max_size'] as $key) {
+        $ini   = (string)ini_get($key);
+        $bytes = 0;
+        if (preg_match('/^\s*(\d+(?:\.\d+)?)\s*([KMG])?/i', $ini, $m)) {
+            $mult  = ['' => 1, 'K' => 1024, 'M' => 1048576, 'G' => 1073741824];
+            $bytes = (int)((float)$m[1] * $mult[strtoupper($m[2] ?? '')]);
+        }
+        if ($bytes > 0) $mb = min($mb, $bytes / 1048576);
+    }
+    return ($mb >= 1 ? (string)round($mb) : rtrim(rtrim(number_format($mb, 1), '0'), '.')) . 'MB';
+}
+
+/** An ini size setting ("24M") in MB; $fallback when it cannot be read. */
+function ini_size_mb(string $key, float $fallback): float {
+    $ini   = (string)ini_get($key);
     $bytes = 0;
     if (preg_match('/^\s*(\d+(?:\.\d+)?)\s*([KMG])?/i', $ini, $m)) {
         $mult  = ['' => 1, 'K' => 1024, 'M' => 1048576, 'G' => 1073741824];
         $bytes = (int)((float)$m[1] * $mult[strtoupper($m[2] ?? '')]);
     }
-    $iniMb = $bytes > 0 ? $bytes / 1048576 : $ownCapMb;
-    $mb    = min($iniMb, $ownCapMb);
-    return ($mb >= 1 ? (string)round($mb) : rtrim(rtrim(number_format($mb, 1), '0'), '.')) . 'MB';
+    return $bytes > 0 ? $bytes / 1048576 : $fallback;
 }
 
 /**
@@ -2718,18 +3333,36 @@ function upload_field_is_single(string $field): bool {
     return !isset($_FILES[$field]) || !is_array($_FILES[$field]['error'] ?? null);
 }
 
-function upload_error_message(int $code, string $what = 'file'): string {
+function upload_error_message(int $code, string $what = 'file', int $ownCapMb = 0): string {
     $iniMax = ini_get('upload_max_filesize') ?: '?';
     $postMax = ini_get('post_max_size') ?: '?';
     switch ($code) {
         case UPLOAD_ERR_INI_SIZE:
+            // A12-L9-W4-G2-2 — the page's own cap (20MB PDFs, 8MB pictures)
+            // can be LOWER than the server's figure. Then raising .user.ini
+            // changes nothing (Help #server-limits says so), and a file shrunk
+            // to just under the server figure was refused again with another
+            // number. Name the limit that actually applies, and send him to
+            // his developer only when the server's figure is the lower one.
+            if ($ownCapMb > 0 && ini_size_mb('upload_max_filesize', $ownCapMb) >= $ownCapMb) {
+                return "That {$what} is larger than this page accepts. The most it takes is "
+                     . min_upload_label($ownCapMb) . ". Shrink the {$what} to that size or less and try again.";
+            }
             return "That {$what} is larger than this server accepts ({$iniMax} per file, {$postMax} per request). "
-                 . "Shrink the {$what} and try again, or ask your developer to raise the limit in .user.ini.";
+                 . "Shrink the {$what} and try again, or ask your developer to raise the limit in .user.ini"
+                 . ($ownCapMb > 0 ? " (this page's own limit is {$ownCapMb}MB, so raising it past that will not help)." : '.');
         case UPLOAD_ERR_FORM_SIZE:
             return "That {$what} is larger than this form accepts. Please use a smaller file.";
         case UPLOAD_ERR_PARTIAL:
             return "The upload was interrupted and only part of the {$what} arrived. Please try again.";
         case UPLOAD_ERR_NO_FILE:
+            // A12-L2-W1-G3-2 — with file_uploads off PHP drops every file, so
+            // "please choose one" blamed the owner for the server setting.
+            $fu = ini_get('file_uploads');
+            if ($fu !== false && !filter_var($fu, FILTER_VALIDATE_BOOLEAN)) {
+                return "This server has file uploads switched off (the PHP setting file_uploads), so the {$what} never arrived. "
+                     . 'Nothing is wrong with your file. This is a hosting setting — contact your developer.';
+            }
             // "a image" — pick the article from the word. (AUDIT_v3 NB18)
             return 'Please choose ' . (strpos('aeiou', strtolower($what[0] ?? 'f')) !== false ? 'an' : 'a')
                  . " {$what} to upload.";

@@ -69,6 +69,9 @@ function markContent(pairs) {
     if (SKIP_CONTENT.test(k)) return [k, v];
     if (/\[siteImages\]/.test(k)) return [k, `uploads/site/${mk(k)}.jpg`];
     if (/\[brochure_url\]$/.test(k)) return [k, `/pdfs/${mk(k)}.pdf`];
+    // A card's "Links to" box (AUDIT-12 decision 48) must be a page of the site:
+    // a family that does not exist only warns, so the marker rides in ?family=.
+    if (/^features\[\d+\]\[link\]$/.test(k)) return [k, `/products?family=${mk(k)}`];
     if (/^productFamilies\[/.test(k)) return [k, `${v} ${mk(k)}`];
     return [k, v ? `${v} ${mk(k)}` : mk(k)];
   });
@@ -126,6 +129,12 @@ async function crawl(browser) {
     for (const route of ROUTES) {
       const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
       const page = await ctx.newPage();
+      // A photo-slot marker is not a loadable image, and since AUDIT-12
+      // A12-L11-W3-G2-2 a slot whose photo fails to load renders nothing, so
+      // its <img src> is gone from the DOM. The request it made still shows the
+      // field reached the page: record requested URLs as their own part.
+      const requested = [];
+      page.on('request', (rq) => requested.push(rq.url()));
       await page.goto(BASE + route, { waitUntil: 'networkidle' });
       await page.waitForTimeout(250);
       await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
@@ -139,6 +148,7 @@ async function crawl(browser) {
         const b = page.locator('button[aria-label*="enu" i]').first();
         if (await b.count()) { try { await b.click(); await page.waitForTimeout(300); record(route, await page.evaluate(COLLECT)); } catch { /* none */ } }
       }
+      record(route, { requests: requested.join('\n') });
       if (route === '/contact' && w === 1440) {
         const tab = page.locator('button', { hasText: /message/i }).first();
         if (await tab.count()) { await tab.click(); await page.waitForTimeout(250); record(route, await page.evaluate(COLLECT)); }
@@ -279,7 +289,15 @@ async function crawl(browser) {
     };
     // Case-sensitive on purpose: "Feet In Stock" is the field, "feet in stock"
     // is prose that mentions it (a lower-cased match passed with the row deleted).
-    const undocumented = settingNames.filter((k) => !/^(csrf_token|orig_sig)$/.test(k)).filter((k) => !DOC_TERMS[k] || !help.includes(DOC_TERMS[k]));
+    // Matched inside the Business Details field table only (#business), where
+    // each term sits in exactly ONE row. Page-wide, "Phone", "fax" and "email"
+    // occur all over Help, so deleting their row left them "documented"
+    // (AUDIT-12 A12-L13-07-4).
+    const helpSrc = fs.readFileSync(path.join(ROOT, 'admin', 'help.php'), 'utf8');
+    const iBiz = helpSrc.indexOf('<section class="help-section" id="business">');
+    const bizSec = iBiz < 0 ? '' : helpSrc.slice(iBiz);
+    const bizTable = dec(bizSec.slice(0, bizSec.indexOf('</table>')).replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
+    const undocumented = settingNames.filter((k) => !/^(csrf_token|orig_sig)$/.test(k)).filter((k) => !DOC_TERMS[k] || !bizTable.includes(DOC_TERMS[k]));
     note(undocumented.length === 0, `help.php covers all ${settingNames.length - 2} Business Details fields`, undocumented.join(', '));
 
     // ── 4. §2t: empty states follow the Business Details phone ──

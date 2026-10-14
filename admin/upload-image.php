@@ -50,8 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $isManaged    = false;
             $product      = $products[$idx];
         } else {
-            $errors[] = 'Could not save the catalog. Check file permissions on products-all.json.';
+            $errors[] = save_failed_message();   // AUDIT-12 decision 31
         }
+    }
+    // A12-L3-14-1 — a second Remove (another tab, or Back) used to fall
+    // through to the upload branch and say "Please choose an image to upload".
+    elseif (($_POST['action'] ?? '') === 'remove') {
+        $errors[] = 'This product has no photo any more, so there is nothing to remove. Nothing was changed.';
     }
     // Branch B — upload / replace.
     // SEC-12 — `image_file[]` makes every key an array; say so instead of a TypeError.
@@ -59,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Please choose one image file at a time.';
     }
     elseif (!isset($_FILES['image_file']) || $_FILES['image_file']['error'] !== UPLOAD_ERR_OK) {
-        $errors[] = upload_error_message($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'image');
+        $errors[] = upload_error_message($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'image', 8);
     } else {
         // The mkdir() return was unchecked, and creating uploads/images/ at
         // runtime produced a folder WITHOUT the .htaccess that blocks script
@@ -75,17 +80,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // uploaded_image_problem()) so the Site Images page runs the same ones.
         // Order and messages are unchanged.
         $file    = $_FILES['image_file'];
-        $problem = uploads_protection_problem();
-        if ($problem === '') $problem = uploaded_image_problem($file, $ext);
-        if ($problem !== '') {
+        // A12-L4-03-5 — stop at a missing folder (as site-images.php does); the
+        // upload below used to run anyway and add a contradictory
+        // "check write permissions" error for a folder that is not there.
+        $problem = $errors ? '' : uploads_protection_problem();
+        if ($problem === '' && !$errors) $problem = uploaded_image_problem($file, $ext);
+        // AUDIT-12 decisions 23/27 — re-encode JPG/PNG/WEBP (and store an
+        // opaque PNG as a JPG) BEFORE the name is chosen, since the extension
+        // may change. A file that cannot be re-encoded is scanned instead.
+        $prep = ($errors || $problem !== '') ? null : image_prepare_upload($file['tmp_name'], $ext, IMG_DIR);
+        if ($prep !== null && $prep['problem'] !== '') $problem = $prep['problem'];
+        if ($prep !== null) $ext = $prep['ext'];
+        if ($errors) {
+            // the folder message above is the whole story
+        } elseif ($problem !== '') {
             $errors[] = $problem;
         } else {
             // Filename strategy (mirrors the PDF manager): replace in place if
             // this product already has a managed photo with the same extension;
             // otherwise derive a fresh name from the SKU.
+            // A12-L3-W2-G5-1 — the reused name must be one this page could have
+            // chosen itself: the SKU-derived name, or it with the SEC-1 "-N"
+            // suffix. photoUrl is free text on Edit Product, so reusing any
+            // well-formed name let a typed "/uploads/images/shell.php.jpg" (or
+            // another product's file) name the stored upload.
             $existingName = $isManaged ? basename($currentPhoto) : '';
+            $skuStem = pathinfo(image_filename_for_sku($sku, $ext), PATHINFO_FILENAME);
             if ($existingName !== ''
-                && preg_match('/^[A-Za-z0-9._-]+\.(jpg|jpeg|png|webp|gif)$/i', $existingName)
+                && preg_match('/^' . preg_quote($skuStem, '/') . '(-\d+)?\.(jpg|jpeg|png|webp|gif)$/i', $existingName)
                 && strtolower(pathinfo($existingName, PATHINFO_EXTENSION)) === $ext) {
                 $filename = $existingName;
             } else {
@@ -113,12 +135,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $destUrl  = IMG_URL . $filename;
 
             $isReplacement = file_exists($destPath);
-            if (move_uploaded_file($file['tmp_name'], $destPath)) {
-                // A-5.16 — bound the pixel size once the file is in place.
-                // A-7.6 — and keep the reason, so "too big to resize" can be
-                // said out loud instead of reading like "already fine".
-                $resizeReason = '';
-                $wasResized = image_downscale_in_place($destPath, $ext, $resizeReason);
+            // A-5.16 — the pixel size is bounded by image_prepare_upload()
+            // above (it used to be image_downscale_in_place() after the move).
+            // A-7.6 — and the reason is kept, so "too big to resize" can be
+            // said out loud instead of reading like "already fine".
+            $stored = $prep['path'] !== null
+                ? (is_uploaded_file($file['tmp_name']) && @rename($prep['path'], $destPath))
+                : move_uploaded_file($file['tmp_name'], $destPath);
+            if ($prep['path'] !== null && !$stored) @unlink($prep['path']);
+            if ($stored) {
+                $resizeReason = $prep['reason'];
+                $wasResized = $prep['resized'];
                 $products[$idx]['photoUrl'] = $destUrl;
                 if (save_products($products)) {
                     // If the file name changed, move the old managed file aside
@@ -137,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     // A-5.16 (resized), A-9.P2-2 (no gd: saved at full size, the only
                                     // silent outcome until then) — text in image_resize_note(), shared
                                     // with site-images.php. SEC-2 refuses over-ceiling images earlier.
-                                    . image_resize_note($wasResized, $resizeReason);
+                                    . image_resize_note($wasResized, $resizeReason, 'this product page', $prep['converted']);
                     $currentPhoto = $destUrl;
                     $isManaged    = true;
                     $product      = $products[$idx];
@@ -146,10 +173,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // upload created is an orphan; a same-name replacement has
                     // already overwritten the old bytes and stays.
                     if (!$isReplacement) @unlink($destPath);
-                    $errors[] = 'The photo could not be saved: the product catalog (products-all.json) could not be updated, so nothing was changed and the current photo is still in place. The server may be out of space — try again, or check the data/ folder.';
+                    $errors[] = save_failed_message() . ' The current photo is still in place.';   // AUDIT-12 decision 31
                 }
             } else {
-                $errors[] = 'Upload failed. Check write permissions on the /uploads/images/ directory.';
+                $errors[] = write_failed_message(IMG_DIR, 'uploads/images');   // AUDIT-12 decision 31
             }
         }
     }
@@ -226,7 +253,7 @@ include 'nav.php';
       <div class="hint">
         The file is saved in <code>/uploads/images/</code> named after the SKU and the product's Photo URL is updated automatically.
         <?php if ($isManaged): ?><span style="color:#dc2626;font-weight:600"> ⚠ Uploading replaces the current photo.</span><?php endif; ?>
-        A landscape photo around 1200×900px looks best on the product page.
+        A landscape photo about 3:2 (e.g. 1200×800px) fits the product page's frame; anything taller or wider is trimmed to fit.
       </div>
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
       <button type="submit" class="btn btn-primary"><?= $isManaged ? 'Replace Photo →' : 'Upload Photo →' ?></button>

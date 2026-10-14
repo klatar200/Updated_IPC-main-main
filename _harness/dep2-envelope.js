@@ -1,6 +1,6 @@
 /**
  * DEP-2 = PUB-3 — contact.php's envelope sender (sendmail -f).
- * audit-runs/audit-2026-09-27.md §3 (DEP-2), measured in §9.
+ * audit-runs/audit-2026-09-27.md §1 (DEP-2), measured in §6, outcome in §11.
  *
  * mail() was called with no 5th argument, so the envelope sender (the address
  * SPF is checked against, and the one DMARC aligns with the From:) was
@@ -57,7 +57,10 @@ async function submit(port) {
   body.append('partNumber', 'IP30HS');
   body.append('quantity', '500 ft');
   const res = await fetch(`http://127.0.0.1:${port}/contact.php`, { method: 'POST', body });
-  return res.json().catch(() => ({}));
+  const json = await res.json().catch(() => ({}));
+  // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+  await fetch(`http://127.0.0.1:${port}/robots.txt`).then((r) => r.text()).catch(() => {});
+  return json;
 }
 
 const argvLines = () => {

@@ -49,7 +49,9 @@ const OUT = path.join(__dirname, 'out', 'plan5-images', TAG);
 const MAX_TOTAL = 3 * 1024 * 1024;
 const MAX_FILE = 300 * 1024;
 // 61 since PLAN-8 A4 added public/images/og-card.jpg (1200x630, 33 KiB, built
-// by _harness/ogcard.js). This constant is a tripwire for an image being
+// by _harness/ogcard.js, deleted in 1d57237 — recover it with
+// `git show 1d57237^:_harness/ogcard.js`; it needs `npm i --no-save sharp`).
+// This constant is a tripwire for an image being
 // renamed or deleted by accident, so a deliberate addition moves it here in
 // the same commit rather than being allowed to pass silently.
 const EXPECTED_FILES = 61;
@@ -147,13 +149,13 @@ function walk(dir) {
     note(unexpected.length === 0,
       'every /images/ response is a 2xx with an image/* content type — no exceptions',
       unexpected.join('\n         '));
-    // Only the five products whose photoUrl legitimately points at placehold.co
-    // fall back now. The four case-mismatched ones were fixed in
-    // products-all.json; if this ever reads more than 5 again, a photoUrl has
-    // stopped resolving.
+    // Only the five products with NO photoUrl fall back now (they were
+    // placehold.co URLs until the 2026-10-02 data fix, 71a0991, emptied them).
+    // The four case-mismatched ones were fixed in products-all.json; if this
+    // ever reads more than 5 again, a photoUrl has stopped resolving.
     note(noPhoto.length === 5,
       `${products.length - noPhoto.length} of ${products.length} product pages paint a real photo ` +
-      `(${noPhoto.length} on the branded placeholder, all of them placehold.co URLs in the catalog)`,
+      `(${noPhoto.length} on the branded placeholder, all of them products with no photoUrl in the catalog)`,
       noPhoto.join(', '));
     note(PAINTED.every((rel) => painted.has(rel)),
       `all ${PAINTED.length} product images that were painted before are still painted`,

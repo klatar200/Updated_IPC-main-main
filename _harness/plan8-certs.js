@@ -23,6 +23,12 @@
  *   header "UL Listed" vs approvals "UL Approved"     (3 products)
  *   header "UL Listed" vs approvals VW-1 only         (9 products)
  *
+ * Since the header chip row was removed, "the header" here means every UL
+ * category printed anywhere in the page's <main> outside the approvals block
+ * and related cards' approval marks; and the approvals block must be found on
+ * every product that stores approvals (AUDIT-12 A12-L13-13-1 — the A1 checks
+ * read a deleted heading and passed on nothing).
+ *
  * C32. Three overlapping blocks became two. Every string in a product's
  * `badges` must still appear in exactly one of them — collapsing the blocks
  * must not silently drop a badge the owner typed.
@@ -69,7 +75,7 @@ const note = (ok, what, detail = '') => {
  */
 const READ_BLOCKS = () => {
   const byHeading = (label) => {
-    const head = [...document.querySelectorAll('div')].find(
+    const head = [...document.querySelectorAll('div, h2')].find(   // A12-L7-W3-G2-2: the section titles are h2s now
       (d) => d.textContent.trim() === label && d.children.length === 0
     );
     return head && head.parentElement ? head.parentElement : null;
@@ -82,9 +88,29 @@ const READ_BLOCKS = () => {
   const approvalsRoot = byHeading('Approvals & Certifications');
   const featuresRoot = byHeading('Product Features');
 
+  // The header chip row the A1 checks read was deleted (App.jsx: "the
+  // Certifications & Standards chip row stood here"), so they passed on
+  // nothing (AUDIT-12 A12-L13-13-1). Read EVERY UL category the product page
+  // prints instead: the page's <main> text with this product's approvals
+  // block and every related card's approval marks removed. Anything left is
+  // a UL claim printed somewhere other than the approvals block.
+  const main = document.querySelector('main') || document.body;
+  const clone = main.cloneNode(true);
+  if (approvalsRoot && main.contains(approvalsRoot)) {
+    const path = [];
+    for (let n = approvalsRoot; n && n !== main; n = n.parentElement) path.unshift([...n.parentElement.children].indexOf(n));
+    let c = clone; for (const i of path) c = c && c.children[i];
+    if (c) c.remove();
+  }
+  for (const m of clone.querySelectorAll('[data-ipc-approval-mark]')) (m.parentElement || m).remove();
+  const elsewhere = clone.textContent;
+
   return {
     headerPresent: !!headerRoot,
-    header: textsIn(headerRoot, 'span'),
+    approvalsPresent: !!approvalsRoot,
+    // Header chips if the row ever comes back, plus any UL category printed
+    // anywhere else on the page.
+    header: [...textsIn(headerRoot, 'span'), ...['UL Listed', 'UL Recognized', 'UL Approved'].filter((c) => elsewhere.includes(c))],
     approvals: textsIn(approvalsRoot, 'span[data-ipc-approval-mark]'),
     features: textsIn(featuresRoot, 'span'),
   };
@@ -114,6 +140,7 @@ const READ_BLOCKS = () => {
         id: p.id,
         sku: p.sku || '',
         headerPresent: b.headerPresent,
+        approvalsPresent: b.approvalsPresent,
         header: b.header,
         approvals: b.approvals,
         features: b.features,
@@ -145,12 +172,19 @@ const READ_BLOCKS = () => {
   }
 
   // ── A1 ────────────────────────────────────────────────────────────────────
+  // Not vacuous: every product with stored approvals must have had its
+  // approvals block found and read.
+  const withApprovals = rows.filter((r) => r.storedApprovals && r.storedApprovals.length);
+  const unread = withApprovals.filter((r) => !r.approvalsPresent || !r.approvals.length);
+  note(withApprovals.length > 0 && unread.length === 0,
+    `the approvals block was found and read on all ${withApprovals.length} products that store approvals`,
+    unread.map((r) => r.id).join(', '));
   const disagreeing = rows.filter((r) => r.invented.length);
   note(
     disagreeing.length === 0,
     `no product page prints a UL category its approvals data does not claim (0 of ${rows.length})`,
     disagreeing
-      .map((r) => `${r.id}: header ${JSON.stringify(r.headerUL)} vs approvals ${JSON.stringify(r.approvalUL)}`)
+      .map((r) => `${r.id}: printed ${JSON.stringify(r.headerUL)} vs approvals ${JSON.stringify(r.approvalUL)}`)
       .join('\n         ')
   );
 

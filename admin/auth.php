@@ -84,8 +84,8 @@ $resetErrors   = [];
 
 if ($resetUnlocked && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set_password'])) {
     csrf_check(false);   // recovery happens before any login exists
-    $new     = (string)($_POST['new_password'] ?? '');
-    $confirm = (string)($_POST['confirm_password'] ?? '');
+    $new     = raw_str($_POST['new_password'] ?? '');
+    $confirm = raw_str($_POST['confirm_password'] ?? '');
     $resetErrors = admin_password_problems($new, $confirm, false);
     if (empty($resetErrors)) {
         $res = admin_password_write($new);   // deletes the flag file on success
@@ -119,7 +119,13 @@ if (!$resetUnlocked && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['se
 // Handle login
 $cooloff = 0;
 
-if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METHOD'] === 'POST'
+    && request_from_other_site()) {
+    // A12-L3-W2-G2-1 — sent by another website, not typed here. Refused BEFORE
+    // login_attempt_gate(), so it is neither counted nor able to arm the
+    // cool-off that would lock the owner out of his own admin.
+    $error = 'This sign-in did not come from this page. Type your password below and press Sign In.';
+} elseif (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // A-5.7 — raw_str(), not post_str(): trimming would silently change the
     // password that gets verified. `password[]=x` used to fatal here.
     $password = raw_str($_POST['password'] ?? null);
@@ -135,7 +141,7 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
         // password_verify() is deliberately not reached, so a correct password
         // is refused too and the response cannot be used as an oracle.
         $error = login_cooloff_message($cooloff);
-    } elseif (password_verify($password, ADMIN_PASSWORD_HASH)) {
+    } elseif (password_verify($password, current_password_hash())) {
         // Defeat session fixation: rotate the session id the moment auth
         // succeeds so any pre-set IPCADMIN cookie is invalidated.
         regenerate_session_id();
@@ -204,13 +210,16 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
     <p>Recovery mode is unlocked because <code>ALLOW-PASSWORD-RESET</code> is present in the admin folder. Set a new password below — the file is removed automatically and this screen goes away.</p>
     <p><strong>This window closes one hour after the file was uploaded.</strong> If it runs out before you finish, upload the file again to reopen it.</p>
     <?php if ($resetErrors): ?>
-      <div class="error"><?php foreach ($resetErrors as $e): ?><div><?= h($e) ?></div><?php endforeach; ?></div>
+      <div class="error" id="reset-error" role="alert"><?php foreach ($resetErrors as $e): ?><div><?= h($e) ?></div><?php endforeach; ?></div>
     <?php endif; ?>
+    <?php /* A12-L7-W5-G4-1/-2 — the error is announced and tied to the field
+             focus lands in; new-password tells a password manager to offer to
+             save it (the field token overrides the form's autocomplete="off"). */ ?>
     <form method="POST" autocomplete="off">
       <label for="new_password">New password</label>
-      <input type="password" id="new_password" name="new_password" autofocus minlength="12" placeholder="At least 12 characters" required />
+      <input type="password" id="new_password" name="new_password" autofocus minlength="12" placeholder="At least 12 characters" required autocomplete="new-password"<?= $resetErrors ? ' aria-invalid="true" aria-describedby="reset-error"' : '' ?> />
       <label for="confirm_password" style="margin-top:14px;">Repeat new password</label>
-      <input type="password" id="confirm_password" name="confirm_password" minlength="12" required />
+      <input type="password" id="confirm_password" name="confirm_password" minlength="12" required autocomplete="new-password" />
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
       <input type="hidden" name="set_password" value="1">
       <button type="submit">Set Password &amp; Sign In →</button>
@@ -220,7 +229,7 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
     <p>No admin password is set on this server, and there is no built-in default. <code>admin/config.local.php</code> is missing or damaged.</p>
     <?php if ($resetExpired): ?>
       <div class="error">
-        <code>ALLOW-PASSWORD-RESET</code> <strong>is</strong> in the admin folder, but it is more than an hour old, so the recovery window has closed. Delete it over FTP and upload it again — that reopens the window for another hour.
+        <code>ALLOW-PASSWORD-RESET</code> <strong>is</strong> in the admin folder, but <?= password_reset_expired_reason() ?>, so the recovery window has closed. Delete it over FTP and upload it again — that reopens the window for another hour.<?php if (password_reset_future_dated()): ?> If this message comes back, create the empty file with your host's file manager instead, so it gets the server's own date.<?php endif; ?>
       </div>
     <?php else: ?>
     <div class="error">
@@ -231,16 +240,19 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
     <h1>Sign In</h1>
     <p>Enter the admin password to manage products.</p>
     <?php if ($error): ?>
-      <div class="error"><?= h($error) ?></div>
+      <div class="error" id="signin-error" role="alert"><?= h($error) ?></div>
     <?php endif; ?>
     <?php if ($resetExpired): ?>
       <div class="error">
-        <code>ALLOW-PASSWORD-RESET</code> is still in the admin folder, but it is more than an hour old, so the password-reset screen is closed and your normal password works again. <strong>Please delete that file over FTP.</strong> If you still need to reset the password, delete it and upload it again.
+        <code>ALLOW-PASSWORD-RESET</code> is still in the admin folder, but <?= password_reset_expired_reason() ?>, so the password-reset screen is closed and your normal password works again. <strong>Please delete that file over FTP.</strong> If you still need to reset the password, delete it and upload it again.<?php if (password_reset_future_dated()): ?> If this message comes back, create the empty file with your host's file manager instead, so it gets the server's own date.<?php endif; ?>
       </div>
     <?php endif; ?>
+    <?php /* A12-L7-W5-G4-1 — role="alert" plus aria-describedby/aria-invalid,
+             so a screen reader hears why focus came back to an empty box.
+             A12-L7-W5-G4-2 — current-password, as on password.php. */ ?>
     <form method="POST">
       <label for="password">Password</label>
-      <input type="password" id="password" name="password" autofocus placeholder="Admin password" required />
+      <input type="password" id="password" name="password" autofocus placeholder="Admin password" required autocomplete="current-password"<?= $error ? ' aria-invalid="true" aria-describedby="signin-error"' : '' ?> />
       <button type="submit">Sign In →</button>
     </form>
   <?php endif; ?>

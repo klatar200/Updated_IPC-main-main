@@ -75,7 +75,7 @@ $PAGE_OPTIONS = [
 $SECTIONS = [
     'features' => [
         'title'    => 'Products & Services Cards',
-        'sub'      => 'The card grid under "A Complete Insulation Supply Source" on the homepage. Any number of cards works.',
+        'sub'      => 'The card grid under "A Complete Insulation Supply Source" on the homepage. Any number of cards works. Each card opens the page in its <strong>Links to</strong> box: a page of this website, such as <code>/services</code>, <code>/about</code>, or <code>/products?family=Adhesive</code> for the catalog showing one product family (spelled exactly as in Product Families below). Left empty, a card opens the usual page for its icon.',
         'page'     => '/',
         'anchor'   => 'ipc-sec-features',
         'addLabel' => 'Card',
@@ -84,6 +84,9 @@ $SECTIONS = [
             ['key' => 'iconKey',     'type' => 'icon',     'label' => 'Icon'],
             ['key' => 'title',       'type' => 'text',     'label' => 'Title'],
             ['key' => 'description', 'type' => 'textarea', 'label' => 'Description', 'full' => true],
+            // AUDIT-12 decision 48 (A12-L6-W3-G5-1) — all six cards opened the
+            // same unfiltered catalog. Checked on save below.
+            ['key' => 'link',        'type' => 'text',     'label' => 'Links to (a page of this website, e.g. /services)', 'full' => true],
         ],
     ],
     'stats' => [
@@ -95,7 +98,8 @@ $SECTIONS = [
         'icons'    => $STAT_ICONS,
         'fields'   => [
             ['key' => 'iconKey', 'type' => 'icon', 'label' => 'Icon'],
-            ['key' => 'value',   'type' => 'text', 'label' => 'Value (e.g. 25M+)'],
+            // AUDIT-12 decision 50 — {datasheets} / {products} are counted from the catalog.
+            ['key' => 'value',   'type' => 'text', 'label' => 'Value (e.g. 25M+; {datasheets} shows the live number of data sheets, {products} the number of products)'],
             ['key' => 'label',   'type' => 'text', 'label' => 'Label'],
             ['key' => 'sub',     'type' => 'text', 'label' => 'Sub-line'],
         ],
@@ -161,7 +165,7 @@ $SECTIONS = [
     ],
     'faq' => [
         'title'    => 'FAQ / Resources',
-        'sub'      => 'Questions on the Resources / FAQ page. Items are grouped by the Category text — reuse the exact same category name to keep questions together.',
+        'sub'      => 'Questions on the Resources / FAQ page. Items are grouped by the Category text — reuse the exact same category name to keep questions together. A question appears on the website only once both its Question and Answer are filled in.',
         'page'     => '/faq',
         'anchor'   => 'ipc-sec-faq',
         'addLabel' => 'Question',
@@ -358,7 +362,7 @@ $COPY_GROUPS = [
     // the first save of a content.json that predates this group would write
     // eleven blanks, and COPY_CLEARABLE would read them as eleven deletions.
     'claims' => ['title' => 'Company Claims', 'fields' => [
-        ['key' => 'aboutStructureClaim',      'type' => 'text',     'label' => 'About page facts — Structure (empty removes the row)',            'default' => 'Privately Held'],
+        ['key' => 'aboutStructureClaim',      'type' => 'text',     'label' => 'About page facts — Structure; also the homepage band\'s "privately held, independent" (empty removes both)', 'default' => 'Privately Held'],
         ['key' => 'aboutLeadTimeClaim',       'type' => 'text',     'label' => 'About page facts — Custom Lead Time (empty removes the row)',     'default' => '≤ 1 week'],
         ['key' => 'aboutPpapClaim',           'type' => 'text',     'label' => 'About page facts — PPAP / IMDS (empty removes the row)',          'default' => 'Available on request'],
         ['key' => 'industriesPpapTitleClaim', 'type' => 'text',     'label' => 'Industries page — PPAP panel heading (empty removes the whole panel)', 'default' => 'PPAP & IMDS Documentation Available'],
@@ -529,10 +533,16 @@ $errors = [];
 // the product exists. Keep the two arrays separate.
 $warnings = [];
 
-$saved  = isset($_GET['saved']);
+// A12-L3-10-1 — ?saved alone is not evidence of a save: reopening the page
+// from history or the address bar showed "Content saved" with nothing saved.
+// The banner also needs the one-shot session note the save sets (the SEC-9
+// flash idea; invariant 18's rule for /contact?sent=1).
+$savedNote = $_SESSION['ipc_content_saved'] ?? '';
+unset($_SESSION['ipc_content_saved']);
+$saved  = isset($_GET['saved']) && is_string($savedNote) && $savedNote !== '';
 // F3 — ?saved=nochange is still a successful save; it just wrote nothing. It
 // must keep $saved true, or the warnings flash read just below is swallowed.
-$noChange = ($_GET['saved'] ?? '') === 'nochange';
+$noChange = $saved && $savedNote === 'nochange';
 
 // A successful save redirects to ?saved=1, which would swallow any warning that
 // save produced — the one message this feature exists to show. Carry them over
@@ -637,7 +647,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $bu = trim((string)($r['brochure_url'] ?? ''));
                     $bl = trim((string)($r['brochure_label'] ?? ''));
                     unset($r['brochure_url'], $r['brochure_label']);
-                    if ($bu !== '') $r['brochure'] = ['url' => $bu, 'label' => ($bl !== '' ? $bl : 'Download brochure')];
+                    // A12-L4-01-1 — the site prints "Download {label}", so the
+                    // default "Download brochure" read "Download Download
+                    // brochure". A noun phrase, like the shipped ones.
+                    $bt = trim((string)($r['title'] ?? ''));
+                    if ($bu !== '') $r['brochure'] = ['url' => $bu, 'label' => ($bl !== '' ? $bl : ($bt !== '' ? $bt . ' brochure' : 'brochure'))];
                 }
                 if ($hasText) $clean[] = $r; // drop fully-blank rows
             }
@@ -650,6 +664,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // absent unless he actually added rows. Emptying a section that IS
         // saved still deletes it, exactly as before.
         if ($clean === [] && !array_key_exists($sec, $storedContent)) continue;
+        // A12-L4-01-W5-2 — the product families cannot be emptied: the site
+        // falls back to the built-in list (App.jsx familyOrder(), plan6-
+        // families), so saving [] was reported "Content saved" while nothing
+        // changed on the site, and the next untouched save logged a change.
+        if ($sec === 'productFamilies' && $clean === [] && !$truncated) {
+            $errors[] = 'Product Families cannot be left empty — with no families listed, the website shows its built-in ones instead. Nothing was saved. Keep at least one family (rename or remove the others as you need).';
+        }
         $out[$sec] = $clean;
     }
 
@@ -670,6 +691,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($card === '') $card = 'a service card';
         $p = link_url_problem((string)$row['brochure']['url'], 'The brochure link on "' . $card . '"');
         if ($p !== '') $errors[] = $p;
+    }
+
+    // ── AUDIT-12 decision 48: a card's "Links to" box ───────────────────────
+    // The site follows only a path on this website to one of its pages (it
+    // falls back to the icon's usual page otherwise), so a link it would
+    // ignore is refused here, naming the card, rather than saved under a
+    // green banner. A family no product is filed under WARNS and still
+    // saves (the 4.12 rule below: a card may be written before its products).
+    $familyNames = [];
+    foreach (load_products() as $p) {
+        $t = is_array($p) ? trim((string)($p['partType'] ?? '')) : '';
+        if ($t !== '') $familyNames[$t] = true;
+    }
+    foreach (($out['features'] ?? []) as $fi => $row) {
+        $link = trim((string)($row['link'] ?? ''));
+        $out['features'][$fi]['link'] = $link;
+        if ($link === '') continue;
+        $card = trim((string)($row['title'] ?? ''));
+        if ($card === '') $card = 'card ' . ($fi + 1);
+        $path = (string)parse_url($link, PHP_URL_PATH);
+        $segs = array_values(array_filter(explode('/', $path), 'strlen'));
+        $ok = preg_match('#^/(?!/)[^\\\\\x00-\x1f]*$#', $link)
+            && count($segs) <= 1
+            && ($segs === [] || isset($PAGE_OPTIONS[$segs[0]]));
+        if (!$ok) {
+            $errors[] = 'The "Links to" box on the "' . $card . '" card must be a page of this website, such as /services, /about or /products?family=Adhesive. Nothing was saved.';
+            continue;
+        }
+        parse_str((string)parse_url($link, PHP_URL_QUERY), $q);
+        $fam = isset($q['family']) && is_string($q['family']) ? trim($q['family']) : '';
+        if ($fam !== '' && $familyNames && !isset($familyNames[$fam])) {
+            $warnings[] = 'The "' . $card . '" card links to the product family "' . $fam . '", but no product is filed under that family, so the card opens an empty catalog. Check the spelling against Product Families. If you are adding the card before its products, you can ignore this.';
+        }
+    }
+
+    // ── AUDIT-12 decision 34 (A12-L10-W5-G4-1): one SEO row per page ─────────
+    // Both heads — PageMeta in src/App.jsx and its port in public/index.php —
+    // use the FIRST row whose page matches, so a second row for the same page
+    // was saved under "Content saved", stayed visible here, and changed
+    // nothing in Google, the browser tab or a shared-link card. Refuse it.
+    $seoSeen = [];
+    $seoDupes = [];
+    foreach (($out['seo'] ?? []) as $row) {
+        $pg = (string)($row['page'] ?? '');
+        if (isset($seoSeen[$pg])) $seoDupes[$pg] = true;
+        $seoSeen[$pg] = true;
+    }
+    foreach (array_keys($seoDupes) as $pg) {
+        $pl = (string)($PAGE_OPTIONS[$pg] ?? $pg);
+        $errors[] = 'Search Engine Text (SEO) has more than one row for the "' . $pl . '" page, and the website only ever uses the first one, so nothing was saved. '
+                  . 'Type your new title and description into the existing "' . $pl . '" row instead, then remove the extra row (✕) and save again.';
     }
 
     // ── 4.12: the Industries product codes are checked against the catalog ───
@@ -790,10 +862,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 . (!empty($warnings) ? ' — ' . count($warnings) . ' unmatched product code(s)' : ''));
             // 4.12: survive the redirect. See the flash read near $saved.
             if (!empty($warnings)) $_SESSION['content_warnings'] = $warnings;
+            $_SESSION['ipc_content_saved'] = $noop ? 'nochange' : '1';   // A12-L3-10-1
             header('Location: content.php?saved=' . ($noop ? 'nochange' : '1'));
             exit;
         }
-        $errors[] = 'Failed to save content.json. Check file permissions on the data/ folder.';
+        $errors[] = save_failed_message();   // AUDIT-12 decision 31
     }
 }
 
@@ -934,6 +1007,20 @@ function prep_row(string $section, array $row): array {
     return $row;
 }
 
+/**
+ * A12-L9-01-2 — which box names a row in the ✕ prompt. The first text box was
+ * the FAQ's Category ("Remove "Products"?" for every Products question), a
+ * stat's value ("50+"), a milestone's year, a person's emoji. Prefer the field
+ * that IS the row's name; fall back to the first text box as before.
+ */
+function confirm_name_selector(array $cfg): string {
+    $keys = array_column($cfg['fields'], 'key');
+    foreach (['question', 'title', 'name', 'label', 'text'] as $k) {
+        if (in_array($k, $keys, true)) return '[data-field="' . $k . '"]';
+    }
+    return 'input.ci[type=text], textarea.ci';
+}
+
 /** Render one editable row (used for existing rows and the clone template). */
 function render_row(string $section, int $i, array $cfg, array $row): string {
     // Inject icon options into each icon field so render_field can see them.
@@ -981,7 +1068,7 @@ function render_row(string $section, int $i, array $cfg, array $row): string {
           . ' aria-label="Remove row ' . ($i + 1) . ' of ' . h($title) . '"'
           . ' data-confirm="Remove {it} from this page?&#10;&#10;The row disappears now and is deleted for good when you click &quot;Save Content&quot;. If you save by mistake, you can put it back from Backups."'
           . ' data-confirm-scope=".content-row"'
-          . ' data-confirm-from="input.ci[type=text], textarea.ci">✕</button>'
+          . ' data-confirm-from="' . h(confirm_name_selector($cfg)) . '">✕</button>'
           . '</span></div>';
     $out .= '<div class="grid-2">';
     foreach ($fields as $f) $out .= render_field($section, $i, $f, $row, $title);
@@ -1073,6 +1160,10 @@ $navActive = 'content';
     .vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
           overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     .card > .sub { margin-top: -8px; margin-bottom: 18px; }
+    /* A12-L9-02-3 — guidance inside a label inherited the label's 11px
+       capitals, so "uploads/site/" read "UPLOADS/SITE/" in 9px type: a path
+       Rick must type exactly, on a case-sensitive server. */
+    label small { text-transform: none; letter-spacing: normal; font-size: 12px; }
     /* E1/E2 — the "where does this appear" line under each section's prose. */
     .where { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: -10px 0 18px; }
     .where-link { flex-shrink: 0; font-size: 12px; font-weight: 700; color: #005da3; text-decoration: none; background: rgba(0,93,163,0.08); border-radius: 6px; padding: 5px 10px; }
@@ -1150,8 +1241,14 @@ $navActive = 'content';
            "page not found" screen. Checked on every visit from what is STORED,
            so it stays until fixed. */
         $missingFiles = [];
+        // A12-L9-02-4 — name the box by its label ("Homepage hero — photo"),
+        // not its key ("heroPhoto").
+        $siteImgLabels = [];
+        foreach ($COPY_GROUPS['siteImages']['fields'] as $f) {
+            $siteImgLabels[$f['key']] = trim((string)preg_replace('/\s*\([^)]*\)\s*$/', '', strip_tags(explode('<br>', $f['label'])[0])));
+        }
         foreach ((array)($content['copy']['siteImages'] ?? []) as $k => $u) {
-            if (site_file_missing($u)) $missingFiles[] = 'Site Images → ' . $k . ': ' . $u;
+            if (site_file_missing($u)) $missingFiles[] = 'Site Images → ' . ($siteImgLabels[$k] ?? $k) . ': ' . $u;
         }
         foreach ((array)($content['services'] ?? []) as $sv) {
             $bu = is_array($sv) ? ($sv['brochure']['url'] ?? '') : '';
@@ -1164,7 +1261,11 @@ $navActive = 'content';
     </div>
   <?php endif; ?>
 
-  <form method="POST">
+  <?php /* AUDIT-12 decision 32 — content-editor.js does not put a kept draft
+           back over a page that is itself the answer to a POST (an error
+           render already shows what was submitted). An attribute, not a
+           field: nothing may follow form_complete (invariant 6). */ ?>
+  <form method="POST"<?= $_SERVER['REQUEST_METHOD'] === 'POST' ? ' data-ipc-post-response="1"' : '' ?>>
     <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
     <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
 

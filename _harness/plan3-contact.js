@@ -235,15 +235,28 @@ async function readErrorRegion(form) {
       // ── 3. Network failure, distinct from validation ─────────────────────
       {
         const ctx = await browser.newContext({ viewport: { width, height: 900 } });
+        // The shipped networkError is word-for-word the built-in default, so
+        // matching it could not tell "reads the owner's copy" from "shows the
+        // hard-coded sentence" (AUDIT-12 A12-L13-W1-G3-1). Serve content.json
+        // with a distinct marker in that one key (in the browser only — the
+        // mirror file is not touched) and require the marker on screen.
+        const NET_MARK = `Network error marker ${process.pid}-${width}-${tab.id}. Please call us.`;
+        await ctx.route('**/data/content.json*', async (route) => {
+          const res = await route.fetch();
+          const setNet = (o) => { if (o && typeof o === 'object') for (const k of Object.keys(o)) { if (k === 'networkError' && typeof o[k] === 'string') o[k] = NET_MARK; else setNet(o[k]); } };
+          const body = await res.json();
+          setNet(body);
+          await route.fulfill({ response: res, body: JSON.stringify(body) });
+        });
         const { page, dialogs, form } = await openForm(ctx, tab);
         await page.route('**/contact.php', (r) => r.abort('failed'));
         await submitBypassingClientValidation(page, form);
         const r = await readErrorRegion(form);
 
         note(dialogs.length === 0, `${tag}: no alert() on network failure`);
-        note(r.present && r.text === NETWORK_MSG,
-          `${tag}: network failure shows cf.networkError`,
-          `wanted ${JSON.stringify(NETWORK_MSG)}, got ${JSON.stringify(r.text)}`);
+        note(r.present && r.text === NET_MARK,
+          `${tag}: network failure shows cf.networkError (the owner's copy, not the built-in sentence)`,
+          `wanted ${JSON.stringify(NET_MARK)}, got ${JSON.stringify(r.text)}`);
         note(r.present && r.text !== SERVER_MSG[tab.id] && r.kind === 'network',
           `${tag}: network failure is distinguishable from a validation failure`,
           `kind=${r.kind}`);

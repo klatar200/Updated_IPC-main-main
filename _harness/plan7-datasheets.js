@@ -23,6 +23,7 @@
  *   - every product with a pdfUrl is listed, grouped under its own partType
  *   - EVERY pdfUrl answers 200 with application/pdf — no exceptions list
  *   - the page is reachable: a footer link on an ordinary page, not just here
+ *   - the homepage's "Datasheets Published" stat is this page's count (AUDIT-12 decision 50)
  *   - /sitemap.xml carries it, so it can be indexed
  *   - the filter narrows the list and clearing it restores the full set
  *   - no horizontal overflow at 375
@@ -43,6 +44,12 @@ const BASE = 'http://127.0.0.1:8123';
 const raw = JSON.parse(fs.readFileSync(path.join(__dirname, 'pristine', 'products-all.json'), 'utf8'));
 const products = raw.products || raw;
 const withPdf = products.filter((p) => p.pdfUrl);
+// A12-L6-W3-G4-1 — the page lists every SHEET: a product's Additional PDF
+// Links get their own cards (IP52EC's Plugged Cap), so the card count is the
+// products' pdfUrls plus their extras.
+const extraPdfs = withPdf.flatMap((p) => (Array.isArray(p.additionalPdfs) ? p.additionalPdfs : [])
+  .filter((x) => x && typeof x === 'object' && x.url).map((x) => ({ sku: p.sku, url: x.url })));
+const expectedCards = withPdf.length + extraPdfs.length;
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -74,11 +81,12 @@ const note = (ok, what, detail = '') => {
     // distinct-links === products would fail on correct data, and relaxing it
     // to <= would stop noticing a card that vanished.
     const listed = new Set(shape.links);
-    const missing = withPdf.filter((p) => !listed.has(p.pdfUrl)).map((p) => p.sku);
+    const missing = [...withPdf.map((p) => ({ sku: p.sku, url: p.pdfUrl })), ...extraPdfs]
+      .filter((s) => !listed.has(s.url)).map((s) => `${s.sku} ${s.url}`);
     const sharedExpected = withPdf.length - new Set(withPdf.map((p) => p.pdfUrl)).size;
-    note(missing.length === 0 && shape.links.length === withPdf.length,
-      `all ${withPdf.length} products are listed as cards (${listed.size} distinct files — ${sharedExpected} shared)`,
-      missing.length ? `missing: ${missing.join(', ')}` : `${shape.links.length} cards vs ${withPdf.length} products`);
+    note(missing.length === 0 && shape.links.length === expectedCards,
+      `all ${withPdf.length} products are listed as cards, plus ${extraPdfs.length} additional sheet(s) (${listed.size} distinct files — ${sharedExpected} shared)`,
+      missing.length ? `missing: ${missing.join(', ')}` : `${shape.links.length} cards vs ${expectedCards} sheets`);
 
     const wantFamilies = [...new Set(withPdf.map((p) => p.partType || 'Other'))].sort();
     const gotFamilies = [...new Set(shape.families)].sort();
@@ -104,6 +112,17 @@ const note = (ok, what, detail = '') => {
 
     // ── reachable from an ordinary page, not just by typing the URL ──────────
     await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    // AUDIT-12 decision 50 (CLAIM-2) — the homepage's "Datasheets Published"
+    // number is counted from the catalog, so it is the number of cards above
+    // (it was a hand-typed "42 Products Stocked" while this page listed 43).
+    const stat = await page.evaluate(() => {
+      const cell = [...document.querySelectorAll('#ipc-sec-stats .min-w-0')]
+        .find((c) => /Datasheets Published/i.test(c.textContent));
+      return cell ? cell.firstElementChild.textContent.trim() : null;
+    });
+    note(stat === String(shape.links.length),
+      `the homepage stat "${stat} — Datasheets Published" is the number of data sheets this page lists (${shape.links.length}) (decision 50)`,
+      `stat ${JSON.stringify(stat)} vs ${shape.links.length} cards`);
     const hrefs = () => page.evaluate(() =>
       [...document.querySelectorAll('a')]
         .map((a) => a.getAttribute('href') || '')

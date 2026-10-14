@@ -107,6 +107,10 @@ const HISTORY = /Achieved [A-Z0-9 :.-]* registration/;
     note(/privately held and independent\./.test(s['/'].band || '') && !/registered/.test(s['/'].band || ''), 'cleared: the homepage band ends "privately held and independent."', s['/'].band);
     const box = await page.evaluate(() => (document.getElementById('iso-mentions') || {}).innerText || '');
     note(/Hero Trust Ticker/.test(box) && /Certifications/.test(box) && /Milestones/.test(box), 'cleared: Business Details lists the Page Content wording that still mentions ISO 9001', box.slice(0, 300));
+    // AUDIT-12 decision 37 (A12-L14-W5-G1-1) — and the catalog: the
+    // VALUE-ADDED product's own text says "ISO 9001" in three fields.
+    note(/Products → Edit VALUE-ADDED → Specifications Summary/.test(box) && /Products → Edit VALUE-ADDED → Description/.test(box),
+      'cleared: the list names the VALUE-ADDED product\'s own text too (decision 37)', box.slice(-400));
 
     // plain
     await setIso('ISO 9001');

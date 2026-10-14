@@ -29,11 +29,18 @@ cp admin/*.js  _harness/site/admin/
 # logo.svg was never copied, so every admin page in the mirror rendered a broken
 # <img> and a 404 favicon — the brand mark is missing from every admin
 # screenshot in the audit record, and any suite measuring the header was
-# measuring a header without its logo. Deliberately NOT a `cp admin/*`:
-# admin/.htaccess must stay out, because `php -S` ignores it and its presence in
-# the mirror would imply file-blocking coverage the harness does not have.
+# measuring a header without its logo. Deliberately NOT a `cp admin/*`, which
+# would also carry any local config.local.php and logs into the mirror.
 # (audit-runs/audit1.md A-14)
 cp admin/logo.svg _harness/site/admin/
+# admin/.htaccess too, since AUDIT-12 decision 38: the dashboard banners it
+# when it is MISSING (a dotfile the FTP client hid), so a mirror without it
+# shows that red banner on every dashboard load. `php -S` still ignores its
+# rules; as with uploads/.htaccess below, its PRESENCE is what the admin
+# checks, and the file-blocking itself is tested on real Apache only
+# (lowsE-apache, dep3-scriptblock). It used to be kept out of the mirror so
+# its presence could not imply coverage php -S does not have.
+cp admin/.htaccess _harness/site/admin/.htaccess
 
 # pdfs/ is served by the datasheet index and by every product page's download
 # button. Without it in the mirror every pdfUrl 404s for a reason that has
@@ -81,14 +88,15 @@ echo "built  bundle: $(grep -o 'index-[A-Za-z0-9_-]*\.js' dist/index.html)"
 # against a stale mirror and reported the old behaviour as still live.
 # Compare the two trees instead of trusting the bundle hash.
 # (audit-runs/audit2.md B-03)
-stale=''
-for f in public/*; do
-  [ -f "$f" ] || continue
-  b=$(basename "$f")
-  if [ ! -f "dist/$b" ] || ! cmp -s "$f" "dist/$b"; then
-    stale="$stale $b"
+# The whole tree, dotfiles and subfolders included: the old `public/*` glob
+# compared only the top level, so a changed public/images/ file (61 of them)
+# or .htaccess/.user.ini reported "in sync" while the mirror served the old
+# one (AUDIT-12 A12-L13-16-3).
+stale=$(cd public && find . -type f | sed 's#^\./##' | while IFS= read -r f; do
+  if [ ! -f "../dist/$f" ] || ! cmp -s "$f" "../dist/$f"; then
+    printf ' %s' "$f"
   fi
-done
+done)
 if [ -n "$stale" ]; then
   echo "STALE:        dist/ does not match public/ for:$stale"
   echo "              The mirror is serving the OLD copies. Run: npm run build && sh _harness/sync.sh"

@@ -34,7 +34,9 @@
  *
  * FAIL for any *withdrawn* revision found in the live data. Bare "ISO 9001"
  * with no revision is fine and is what `site-info.json` already says — it is
- * the honest form and the one the owner can change from Business Details.
+ * the honest form and the one the owner can change from Business Details. The
+ * current revision in that field is fine too (it is what GO-LIVE §A tells him
+ * to enter once the certificate confirms it).
  *
  * This is a check with a real pass state: it goes green the moment the owner
  * either drops the revisions or confirms the current one with the registrar.
@@ -89,7 +91,10 @@ function* strings(node, trail = []) {
 
 const FILES = ['data/content.json', 'data/site-info.json', 'data/products-all.json'];
 // "ISO 9001:2008", "ISO9001:2000", "ISO 9001 : 2015" — and bare "ISO 9001".
-const CLAIM = /ISO\s*-?\s*9001\s*[:\s]?\s*(\d{4})?/gi;
+// Also "ISO 9001-2008", "ISO 9001/2008", "ISO 9001–2008" and "ISO 9001 (2008)":
+// the year was only captured after ':' or whitespace, so a withdrawn revision
+// written any of those ways passed (AUDIT-12 A12-L13-09-4).
+const CLAIM = /ISO\s*-?\s*9001(?:\s*[:\-\/\u2013\u2014(]?\s*(\d{4})\)?)?/gi;
 
 const found = [];   // { file, path, revision|null, text }
 
@@ -158,16 +163,19 @@ note(
   unknown.length ? unknown.map((h) => `${h.file} ${h.path} → ${h.revision}`).join('; ') : ''
 );
 
-// The owner-editable field must stay the honest, unversioned form. If someone
-// ever types a revision into Business Details it becomes the one claim that
-// propagates everywhere through localizeProse/SITE_DEFAULTS, so it is worth
-// its own assertion rather than being folded into the sweep above.
+// The owner-editable field must be the honest, unversioned form OR the
+// current revision: GO-LIVE §A and WHATS_LEFT tell the owner to put the year
+// printed on his current certificate in exactly this one field. Any other
+// revision becomes the one claim that propagates everywhere through
+// localizeProse/SITE_DEFAULTS, so it is worth its own assertion. (This used to
+// fail on ANY revision, so the documented owner action — entering 2015 — went
+// red: AUDIT-12 A12-L13-18-1.)
 const siteInfoVersioned = found.filter(
-  (f) => f.file === 'data/site-info.json' && f.revision
+  (f) => f.file === 'data/site-info.json' && f.revision && f.revision !== CURRENT
 );
 note(
   siteInfoVersioned.length === 0,
-  'site-info.json still claims a bare "ISO 9001" with no revision',
+  `site-info.json claims a bare "ISO 9001" or the current revision (${CURRENT})`,
   siteInfoVersioned.length
     ? `Business Details now carries a revision: ${siteInfoVersioned
         .map((h) => h.revision)

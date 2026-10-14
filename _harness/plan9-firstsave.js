@@ -99,10 +99,11 @@ async function saveForm(page) {
     if (pre3a.copy) delete pre3a.copy.siteImages;
     fs.writeFileSync(CONTENT, JSON.stringify(pre3a, null, 2));
   }
+  // Fixture setup, not a counted check: it asserts the absence of the key the
+  // lines above just deleted, and pristine itself now HAS the key, so the old
+  // label misdescribed it too (AUDIT-12 A12-L13-14-3).
   const parsed = JSON.parse(fs.readFileSync(CONTENT, 'utf8'));
-  note(!(parsed.copy && parsed.copy.siteImages),
-    'pristine content.json (the first-deploy shape) has no copy.siteImages key',
-    'key present: ' + JSON.stringify(parsed.copy && parsed.copy.siteImages));
+  if (parsed.copy && parsed.copy.siteImages) throw new Error('fixture: the pre-3a content.json still has copy.siteImages');
 
   const browser = await launch();
 
@@ -155,9 +156,9 @@ async function saveForm(page) {
   await browser.close();
 
   // ── 8. leave the mirror exactly as this script found it ─────────────────
+  // Cleanup precondition, not a counted check (AUDIT-12 A12-L13-14-3).
   fs.copyFileSync(PRISTINE, CONTENT);
-  const restored = fs.readFileSync(CONTENT).equals(fs.readFileSync(PRISTINE));
-  note(restored, 'mirror content.json restored from pristine, byte-identical');
+  if (!fs.readFileSync(CONTENT).equals(fs.readFileSync(PRISTINE))) throw new Error('cleanup: mirror content.json not restored');
 
   const pass = results.filter((r) => r.ok).length;
   console.log(`\nplan9-firstsave ${pass}/${results.length}`);

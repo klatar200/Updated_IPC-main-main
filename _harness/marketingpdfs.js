@@ -112,13 +112,35 @@ const footerCatalog = async (browser) => {
     // use / stop
     await act(a, [['action', 'use'], ['file', 'IPC-Catalog-2026-2.pdf'], ['target', 'service:0']]);
     const s0 = content().services[0];
-    note(s0.brochure && s0.brochure.url === '/pdfs/marketing/IPC-Catalog-2026-2.pdf' && s0.brochure.label === 'Download brochure',
+    note(s0.brochure && s0.brochure.url === '/pdfs/marketing/IPC-Catalog-2026-2.pdf' && s0.brochure.label === `${s0.title} brochure`,   // A12-L4-01-1: the site prints "Download {label}"
       'use: an existing PDF becomes a service brochure, with the default link text', JSON.stringify(s0.brochure));
-    const s2label = content().services[2].brochure.label;
+    // The header promises every change is logged; only the upload was checked
+    // (AUDIT-12 A12-L13-20-2).
+    const lu = lastLog();
+    note(lu.action === 'marketing-pdf' && /IPC-Catalog-2026-2\.pdf now used for/.test(lu.detail), 'audit: "use" is logged as marketing-pdf', JSON.stringify(lu));
+    const s2before = content().services[2].brochure;
     await act(a, [['action', 'use'], ['file', 'Tubing-Kits.pdf'], ['target', 'service:2']]);
-    note(content().services[2].brochure.label === s2label, 'use: re-pointing a brochure keeps its link text');
+    // The URL must MOVE as well: comparing only the label passed when the
+    // re-point was a silent no-op (AUDIT-12 A12-L13-10-5).
+    const s2after = content().services[2].brochure;
+    note(s2after.url === '/pdfs/marketing/Tubing-Kits.pdf' && s2before.url !== s2after.url && s2after.label === s2before.label,
+      'use: re-pointing a brochure moves it to the chosen PDF and keeps its link text', `${JSON.stringify(s2before)} -> ${JSON.stringify(s2after)}`);
     await act(a, [['action', 'stop'], ['target', 'catalog']]);
     note(info().catalogPdfUrl === '' && fs.existsSync(f1) && await footerCatalog(browser) === null, 'stop: "Stop using" takes the catalog link off the site and keeps the file');
+    const ls = lastLog();
+    note(ls.action === 'marketing-pdf' && /^Stopped using a PDF for/.test(ls.detail), 'audit: "Stop using" is logged as marketing-pdf', JSON.stringify(ls));
+
+    // AUDIT-12 decision 39 (A12-L3-W5-G4-1) — "Take Off the Website": refused
+    // while something points at the PDF, otherwise moved aside as .deleted.<name>.
+    const kits = path.join(MK, 'Tubing-Kits.pdf');
+    const t1 = await act(a, [['action', 'trash'], ['file', 'Tubing-Kits.pdf']]);
+    note(t1.status === 200 && /still used for/.test(t1.body) && fs.existsSync(kits), 'take off: refused while a brochure points at the PDF, and the file stays', `status ${t1.status}`);
+    const t2 = await act(a, [['action', 'trash'], ['file', 'IPC-Catalog-2026.pdf']]);
+    const gone = await a.req('GET', '/pdfs/marketing/IPC-Catalog-2026.pdf');
+    note(t2.status === 302 && !fs.existsSync(f1) && fs.existsSync(path.join(MK, '.deleted.IPC-Catalog-2026.pdf')) && !/CAT-ONE/.test(gone.body),
+      'take off: an unused PDF leaves its address and is kept aside as .deleted.<name>', `status ${t2.status}, address now ${gone.status}`);
+    const lt = lastLog();
+    note(lt.action === 'marketing-pdf' && /off the website/.test(lt.detail), 'audit: "Take Off the Website" is logged as marketing-pdf', JSON.stringify(lt));
 
     // damaged
     const si = path.join(SITE, 'data', 'site-info.json');

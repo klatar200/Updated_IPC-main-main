@@ -19,6 +19,11 @@ require_auth();
  * - This page never deletes a file. Choosing where a PDF is used changes one
  *   value, read fresh from disk under the data lock (WHATS_LEFT §1an); Business
  *   Details and Page Content keep their own stale-tab checks.
+ * - AUDIT-12 decision 39 (A12-L3-W5-G4-1): "Take Off the Website" moves a PDF
+ *   aside to pdfs/marketing/.deleted.<name> (file_to_trash(), as Remove PDF
+ *   does for a data sheet), so a file put up by mistake stops being
+ *   downloadable. Refused while the footer catalog link or any brochure
+ *   points at it. Still nothing is erased.
  * - A damaged data file is never saved over (NEW-N2-1).
  */
 
@@ -34,14 +39,56 @@ function marketing_pdfs(): array {
     return $out;
 }
 
-/** A safe file name from the uploaded one, never an existing file's. */
+/**
+ * A safe file name from the uploaded one, never an existing file's, or '' when
+ * none is free.
+ *
+ * A12-L3-12-2 / A12-L4-01-W5-4 — the name is CLAIMED by creating the file
+ * (fopen 'x' fails if it exists), so two uploads of the same name at the same
+ * moment cannot both pick it, and an exhausted suffix loop no longer falls
+ * through to overwrite "-999". The caller moves the upload over its own empty
+ * placeholder, and removes the placeholder if that fails.
+ */
 function marketing_pdf_name(string $original): string {
     $stem = (string)preg_replace('/[^A-Za-z0-9]+/', '-', pathinfo($original, PATHINFO_FILENAME));
     $stem = trim(substr(trim($stem, '-'), 0, 60), '-');
     if ($stem === '') $stem = 'document';
-    $name = $stem . '.pdf';
-    for ($n = 2; file_exists(MARKETING_PDF_DIR . $name) && $n < 1000; $n++) $name = $stem . '-' . $n . '.pdf';
-    return $name;
+    for ($n = 1; $n < 1000; $n++) {
+        $name = $n === 1 ? $stem . '.pdf' : $stem . '-' . $n . '.pdf';
+        $fh = @fopen(MARKETING_PDF_DIR . $name, 'x');
+        if ($fh !== false) { fclose($fh); return $name; }
+    }
+    return '';
+}
+
+/**
+ * The option value for a service target. The index alone went stale: with this
+ * page open while a service was removed or reordered in Page Content, "Stop
+ * Using" and "Use This PDF" changed a DIFFERENT service's brochure
+ * (A12-L4-W2-G2-1). The value now carries a short fingerprint of the title it
+ * was rendered for, checked against the file before anything is written.
+ */
+function marketing_service_target(int $i, string $title): string {
+    return 'service:' . $i . ':' . substr(sha1($title), 0, 10);
+}
+
+/**
+ * Why a target cannot be used right now, or ''. Run BEFORE an upload is stored
+ * (A12-L3-12-1 — a refused upload left the PDF on the server under an error
+ * that read as if nothing had happened). The caller holds the data lock.
+ */
+function marketing_target_problem(string $target): string {
+    if ($target === 'catalog') return '';
+    if (!preg_match('/^service:(\d+)(?::([0-9a-f]{10}))?$/', $target, $m)) return 'Choose where to use this PDF.';
+    if (data_file_damaged(CONTENT_JSON)) return '';   // said by the damaged-file check
+    $services = load_content()['services'] ?? [];
+    $i  = (int)$m[1];
+    $sv = $services[$i] ?? null;
+    if (!is_array($sv)) return 'That service no longer exists — reload this page.';
+    if (isset($m[2]) && $m[2] !== '' && substr(sha1((string)($sv['title'] ?? ('Service ' . ($i + 1)))), 0, 10) !== $m[2]) {
+        return 'The services on Page Content have changed since this page was opened (one was removed, renamed or moved), so nothing was changed. Reload this page and choose again.';
+    }
+    return '';
 }
 
 /** Where each URL is used now: url → list of human labels. */
@@ -57,6 +104,23 @@ function marketing_pdf_uses(array $info, array $content): array {
 }
 
 /**
+ * AUDIT-12 decision 39 — every current use of pdfs/marketing/<name>, matched on
+ * the path so "/pdfs/…", "pdfs/…" and a full https:// address all count.
+ */
+function marketing_pdf_uses_of(string $name, array $info, array $content): array {
+    $hits = [];
+    $is = static function (string $u) use ($name): bool {
+        $path = (string)parse_url($u, PHP_URL_PATH);
+        return $path !== '' && preg_match('~(^|/)pdfs/marketing/' . preg_quote($name, '~') . '$~', $path) === 1;
+    };
+    if ($is((string)($info['catalogPdfUrl'] ?? ''))) $hits[] = 'the full product catalog link in the footer';
+    foreach ((array)($content['services'] ?? []) as $sv) {
+        if (is_array($sv) && $is((string)($sv['brochure']['url'] ?? ''))) $hits[] = 'the brochure on the "' . ($sv['title'] ?? 'service') . '" service card';
+    }
+    return $hits;
+}
+
+/**
  * Point one target at $url ('' = stop using it there). $target is "catalog" or
  * "service:<index>". The caller holds the data lock for the file it changes.
  */
@@ -65,28 +129,32 @@ function marketing_pdf_assign(string $target, string $url, array &$errors): stri
         if (data_file_damaged(SITE_INFO_JSON)) { $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.'; return ''; }
         $info = load_site_info();
         $info['catalogPdfUrl'] = $url;
-        if (!save_site_info($info)) { $errors[] = 'Could not save data/site-info.json. Check that the data/ folder is writable.'; return ''; }
+        if (!save_site_info($info)) { $errors[] = save_failed_message(); return ''; }   // AUDIT-12 decision 31
         return 'the full product catalog link in the footer';
     }
-    if (!preg_match('/^service:(\d+)$/', $target, $m)) { $errors[] = 'Choose where to use this PDF.'; return ''; }
+    if (!preg_match('/^service:(\d+)(?::[0-9a-f]{10})?$/', $target, $m)) { $errors[] = 'Choose where to use this PDF.'; return ''; }
     if (data_file_damaged(CONTENT_JSON)) { $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.'; return ''; }
+    if (($tp = marketing_target_problem($target)) !== '') { $errors[] = $tp; return ''; }
     $content = load_content();
     $i = (int)$m[1];
-    if (!isset($content['services'][$i]) || !is_array($content['services'][$i])) { $errors[] = 'That service no longer exists — reload this page.'; return ''; }
     $sv = &$content['services'][$i];
     if ($url === '') {
         unset($sv['brochure']);
     } else {
         $label = is_array($sv['brochure'] ?? null) ? (string)($sv['brochure']['label'] ?? '') : '';
-        $sv['brochure'] = ['url' => $url, 'label' => $label !== '' ? $label : 'Download brochure'];
+        // A12-L4-01-1 — the site prints "Download {label}"; the default was
+        // "Download brochure", so the card read "Download Download brochure".
+        $svTitle = trim((string)($sv['title'] ?? ''));
+        $sv['brochure'] = ['url' => $url, 'label' => $label !== '' ? $label : ($svTitle !== '' ? $svTitle . ' brochure' : 'brochure')];
     }
     $title = (string)($sv['title'] ?? 'service');
     unset($sv);
-    if (!save_content($content)) { $errors[] = 'Could not save data/content.json. Check that the data/ folder is writable.'; return ''; }
+    if (!save_content($content)) { $errors[] = save_failed_message(); return ''; }
     return 'the brochure link on the "' . $title . '" service card';
 }
 
 $errors  = [];
+$notice  = '';
 $flash   = flash_take();
 $success = $flash['type'] === 'success' ? $flash['msg'] : '';
 if ($flash['type'] === 'error' && $flash['msg'] !== '') $errors[] = $flash['msg'];
@@ -102,9 +170,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!upload_field_is_single('pdf_file')) {
             $errors[] = 'Please choose one PDF at a time.';
         } elseif (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
-            $errors[] = upload_error_message($_FILES['pdf_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'PDF');
+            $errors[] = upload_error_message($_FILES['pdf_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'PDF', 20);
         } elseif (!is_dir(MARKETING_PDF_DIR) && !@mkdir(MARKETING_PDF_DIR, 0755, true) && !is_dir(MARKETING_PDF_DIR)) {
             $errors[] = 'Could not create the pdfs/marketing folder on the server. Create public_html/pdfs/marketing/ over FTP and make it writable (755).';
+        } elseif (($p = pdfs_protection_problem()) !== '') {
+            // A12-L2-01-5 — pdfs/ itself may have just been created above.
+            $errors[] = $p;
         } elseif (($p = uploaded_pdf_problem($_FILES['pdf_file'])) !== '') {
             $errors[] = $p;
         } elseif ($target !== '' && $target !== 'none' && $lockFor === '') {
@@ -115,17 +186,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.';
         } elseif ($lockFor === 'content' && data_file_damaged(CONTENT_JSON)) {
             $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.';
+        } elseif ($lockFor === 'content' && ($tp = marketing_target_problem($target)) !== '') {
+            $errors[] = $tp . ' The PDF was not uploaded.';   // A12-L3-12-1 — checked before storing
+        } elseif (($name = marketing_pdf_name((string)$_FILES['pdf_file']['name'])) === '') {
+            $errors[] = 'There are already too many PDFs with this file name on the server. Rename the file on your computer and upload it again.';
         } else {
-            $name = marketing_pdf_name((string)$_FILES['pdf_file']['name']);
             if (!move_uploaded_file($_FILES['pdf_file']['tmp_name'], MARKETING_PDF_DIR . $name)) {
-                $errors[] = 'Upload failed. Check write permissions on the /pdfs/marketing/ folder.';
+                @unlink(MARKETING_PDF_DIR . $name);   // our own empty placeholder
+                $errors[] = write_failed_message(MARKETING_PDF_DIR, 'pdfs/marketing');   // AUDIT-12 decision 31
             } else {
                 $url = MARKETING_PDF_URL . $name;
                 $where = $lockFor !== '' ? marketing_pdf_assign($target, $url, $errors) : '';
-                audit_log('marketing-pdf', $name, 'Uploaded ' . $name . ($where !== '' ? ' and used it for ' . $where : ''));
                 if (empty($errors)) {
+                    audit_log('marketing-pdf', $name, 'Uploaded ' . $name . ($where !== '' ? ' and used it for ' . $where : ''));
                     flash_redirect($name . ' uploaded' . ($where !== '' ? ' and now used for ' . $where . '. The website shows it within about a minute.' : '. Choose below where to use it.'), 'success', 'marketing-pdfs.php');
                 }
+                // The data file was not changed, so this new file is used
+                // nowhere: do not leave it behind (the DI-3 rule).
+                @unlink(MARKETING_PDF_DIR . $name);
+                $errors[] = 'The PDF was not kept on the server.';
             }
         }
     } elseif ($action === 'use' || $action === 'stop') {
@@ -138,12 +217,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $url = $action === 'use' ? $all[$file]['url'] : '';
             $where = marketing_pdf_assign($target, $url, $errors);
-            if ($where !== '') {
+            // A12-L4-01-W5-3 — a Stop or Use that changed nothing (an old tab,
+            // or the PDF already in use there) is not a success and not an
+            // Activity Log entry. Invariant 16: the save was a no-op.
+            if ($where !== '' && last_save_was_noop()) {
+                $notice = $action === 'use'
+                    ? 'Nothing changed — ' . $file . ' was already used for ' . $where . '.'
+                    : 'Nothing changed — ' . $where . ' already had no PDF.';
+            } elseif ($where !== '') {
                 audit_log('marketing-pdf', $action === 'use' ? $file : $target, $action === 'use' ? $file . ' now used for ' . $where : 'Stopped using a PDF for ' . $where);
                 flash_redirect($action === 'use'
                     ? $file . ' is now used for ' . $where . '. The website shows it within about a minute.'
-                    : 'Removed the PDF from ' . $where . ' (the file itself stays on the server).', 'success', 'marketing-pdfs.php');
+                    : 'Removed the PDF from ' . $where . '. The file itself is still on the server, where anyone with its address can open it — '
+                      . 'to stop that too, press Take Off the Website beside it below.', 'success', 'marketing-pdfs.php');
             }
+        }
+    } elseif ($action === 'trash') {
+        // AUDIT-12 decision 39 — both data files are read under their locks,
+        // so a Use This PDF in another tab cannot slip in between the check
+        // and the move. (No other page holds both; site-info first.)
+        data_write_lock('site-info');
+        data_write_lock('content');
+        $file = as_str($_POST['file'] ?? null);
+        $all  = marketing_pdfs();
+        if (!isset($all[$file])) {
+            $errors[] = 'That PDF is not on the server any more. Nothing was changed.';
+        } elseif (data_file_damaged(SITE_INFO_JSON) || data_file_damaged(CONTENT_JSON)) {
+            $errors[] = 'The saved business details or page content are damaged and cannot be read, so the dashboard cannot tell whether this PDF is still in use. Nothing was changed. Go to Backups and restore the most recent entry, then try again.';
+        } elseif ($usedFor = marketing_pdf_uses_of($file, load_site_info(), load_content())) {
+            $errors[] = $file . ' is still used for ' . implode(' and ', $usedFor) . '. Press Stop Using there first, then take it off the website. Nothing was changed.';
+        } elseif (!file_to_trash(MARKETING_PDF_DIR, $file)) {
+            $errors[] = write_failed_message(MARKETING_PDF_DIR, 'pdfs/marketing');
+        } else {
+            audit_log('marketing-pdf', $file, 'Took ' . $file . ' off the website (kept aside on the server as ' . TRASH_PREFIX . $file . ')');
+            flash_redirect($file . ' is off the website: its address no longer opens it. The file is kept aside on the server (as '
+                . TRASH_PREFIX . $file . '), so your developer can bring it back if it was a mistake.', 'success', 'marketing-pdfs.php');
         }
     } else {
         $errors[] = 'Unknown action.';
@@ -160,7 +268,7 @@ $csrf     = csrf_token();
 $targetOptions = function (bool $withNone) use ($services) {
     $o = $withNone ? '<option value="none">Just upload it — I will choose later</option>' : '<option value="">Use it for…</option>';
     $o .= '<option value="catalog">Full product catalog (link in the footer of every page)</option>';
-    foreach ($services as $i => $t) $o .= '<option value="service:' . (int)$i . '">Brochure on the Services page — ' . h($t) . '</option>';
+    foreach ($services as $i => $t) $o .= '<option value="' . h(marketing_service_target((int)$i, $t)) . '">Brochure on the Services page — ' . h($t) . '</option>';
     return $o;
 };
 ?>
@@ -196,13 +304,16 @@ $targetOptions = function (bool $withNone) use ($services) {
 <?php $navActive = ''; include 'nav.php'; ?>
 <main>
   <h1>Catalog &amp; Brochure PDFs</h1>
-  <p class="sub">PDFs that are not a single product's data sheet: your full product catalog (linked in the footer of every page) and the brochures on the Services page. Upload one here and choose where it is used. Product data sheets are separate — use the <strong>PDF</strong> button on the Products page.</p>
+  <p class="sub">PDFs that are not a single product's data sheet: your full product catalog (linked in the footer of every page) and the brochures on the Services page. Upload one here and choose where it is used. Product data sheets are separate — use the <strong>Manage PDF</strong> button on the Products page.</p>
 
   <?php if (!empty($errors)): ?>
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
   <?php endif; ?>
   <?php if ($success !== ''): ?>
     <div class="alert-success">✅ <?= h($success) ?></div>
+  <?php endif; ?>
+  <?php if ($notice !== ''): ?>
+    <div class="alert-info"><?= h($notice) ?></div>
   <?php endif; ?>
 
   <section class="card" id="upload">
@@ -234,10 +345,10 @@ $targetOptions = function (bool $withNone) use ($services) {
           <ul class="uses">
             <?php foreach ($uses[$p['url']] as $label):
               $tgt = $label === 'Full product catalog (footer link)' ? 'catalog' : '';
-              if ($tgt === '') foreach ($services as $i => $t) if ($label === 'Brochure: ' . $t && (($content['services'][$i]['brochure']['url'] ?? '') === $p['url'])) { $tgt = 'service:' . $i; break; } ?>
+              if ($tgt === '') foreach ($services as $i => $t) if ($label === 'Brochure: ' . $t && (($content['services'][$i]['brochure']['url'] ?? '') === $p['url'])) { $tgt = marketing_service_target((int)$i, $t); break; } ?>
               <li>✓ Used for: <?= h($label) ?>
                 <?php if ($tgt !== ''): ?>
-                <form method="POST" data-confirm="Stop using this PDF there? The link disappears from the website; the file stays on the server.">
+                <form method="POST" data-confirm="Stop using this PDF there? The link disappears from the website; the file stays on the server (Take Off the Website removes it from there too).">
                   <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>">
                   <input type="hidden" name="action" value="stop">
                   <input type="hidden" name="target" value="<?= h($tgt) ?>">
@@ -257,11 +368,23 @@ $targetOptions = function (bool $withNone) use ($services) {
             <button type="submit" class="btn btn-secondary">Use This PDF</button>
           </div>
         </form>
+        <?php /* AUDIT-12 decision 39 — only for a PDF nothing points at. */ ?>
+        <?php if (empty($uses[$p['url']])): ?>
+        <form method="POST" data-confirm="Take <?= h($name) ?> off the website? Its address stops working for everyone. The file is kept aside on the server, not erased.">
+          <input type="hidden" name="csrf_token" value="<?= h($csrf) ?>">
+          <input type="hidden" name="action" value="trash">
+          <input type="hidden" name="file" value="<?= h($name) ?>">
+          <div class="row"><button type="submit" class="btn btn-danger">Take Off the Website</button>
+            <span class="hint" style="margin:0">Not used anywhere, but anyone with its address can still open it.</span></div>
+        </form>
+        <?php else: ?>
+        <div class="hint">To take this PDF off the website, press <strong>Stop Using</strong> for each use above first.</div>
+        <?php endif; ?>
       </div>
     <?php endforeach; ?>
   </section>
 
-  <p class="hint">Nothing on this page deletes a file from the server. The link text of a brochure is set in Page Content → Value-Added Services; <strong>Backups</strong> can put a previous choice back.</p>
+  <p class="hint">Nothing on this page erases a file: <strong>Take Off the Website</strong> moves a PDF out of reach and keeps it aside on the server. The link text of a brochure is set in Page Content → Value-Added Services; <strong>Backups</strong> can put a previous choice back (but not a PDF taken off the website — upload it again).</p>
 </main>
 <script src="confirm.js"></script>
 </body>

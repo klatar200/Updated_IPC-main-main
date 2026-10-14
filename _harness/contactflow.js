@@ -53,6 +53,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { launch } = require('./browser');
+const { leads, rawRows } = require('./inqrows');
 
 const BASE = 'http://127.0.0.1:8123';
 const OUT = path.join(__dirname, 'out', 'contactflow');
@@ -74,6 +75,14 @@ const note = (ok, what, detail = '') => {
 // per mutation is ~90 s and the selftest makes eight of them.
 const ONLY = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7);
 const want = (tag) => !ONLY || tag === ONLY;
+// A typo'd tag selected nothing and printed "contactflow: 0/0", exit 0 — a
+// green run that tested nothing (AUDIT-12 A12-L13-17-6). Keep in step with
+// the want('…') calls below.
+const TAGS = ['rfq', 'message', 'prefill', 'honeypot', 'validation', 'ratelimit', 'double', 'reset', 'drift', 'truncation', 'labels', 'viewer'];
+if (ONLY && !TAGS.includes(ONLY)) {
+  console.log(`contactflow: unknown --only=${ONLY} (one of: ${TAGS.join(', ')})`);
+  process.exit(2);
+}
 
 // ── Captured mail ──────────────────────────────────────────────────────────
 // fakemail.sh appends the FULL message — headers included, because PHP invokes
@@ -113,13 +122,16 @@ const clearTmp = (prefix) => {
 const clearGuards = () => { clearTmp('ipc_rl_'); clearTmp('ipc_ar_'); };
 
 // ── Inquiry log ────────────────────────────────────────────────────────────
-function inquiryLines() {
-  if (!fs.existsSync(INQUIRIES)) return [];
-  return fs.readFileSync(INQUIRIES, 'utf8').split('\n').filter(Boolean).map((l) => {
-    try { return JSON.parse(l); } catch { return null; }
-  }).filter(Boolean);
-}
+// AUDIT-12 decision 42 — a lead is its row (written before mail(), pending)
+// plus a send-result line; inqrows merges them as the Inquiries page does.
+const inquiryLines = () => leads(INQUIRIES);
 const inquiryCount = () => inquiryLines().length;
+// The raw tail: the lead row, then its send result carrying the same id.
+const rowThenResult = () => {
+  const raw = rawRows(INQUIRIES).slice(-2);
+  return raw.length === 2 && raw[0].status === 'pending' && raw[0].sent === null && typeof raw[0].id === 'string'
+    && raw[1].type === 'send-result' && raw[1].id === raw[0].id && raw[1].sent === true;
+};
 const lastInquiry = () => inquiryLines().slice(-1)[0] || null;
 
 const SITE = JSON.parse(fs.readFileSync(SITE_INFO, 'utf8'));
@@ -185,6 +197,8 @@ async function fillForm(form, values) {
 async function submitAndSettle(page, form) {
   await form.locator('button[type="submit"]').click();
   await page.waitForTimeout(1200);
+  // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+  await fetch(`${BASE}/robots.txt`).then((r) => r.text()).catch(() => {});
 }
 
 /** What the confirmation panel looks like, measured in the page. */
@@ -281,8 +295,10 @@ function missingFields(body, values) {
       'rfq: the auto-reply summarises what was actually requested');
 
     const entry = lastInquiry();
-    note(inquiryCount() === before + 1, 'rfq: exactly one line was appended to inquiries.jsonl',
+    note(inquiryCount() === before + 1, 'rfq: exactly one lead was appended to inquiries.jsonl',
       `${before} -> ${inquiryCount()}`);
+    note(rowThenResult(), 'rfq: the lead row was written pending, then its send result (decision 42)',
+      JSON.stringify(rawRows(INQUIRIES).slice(-2).map((r) => ({ type: r.type, id: r.id, sent: r.sent, status: r.status }))));
     note(!!entry && entry.type === 'rfq' && entry.sent === true,
       'rfq: the inquiry is logged as a sent RFQ', JSON.stringify(entry && { type: entry.type, sent: entry.sent }));
     const logMismatch = entry ? Object.entries({
@@ -333,7 +349,8 @@ function missingFields(body, values) {
       `subject=${JSON.stringify(reply.subject)}`);
 
     const entry = lastInquiry();
-    note(inquiryCount() === before + 1, 'message: exactly one line was appended to inquiries.jsonl');
+    note(inquiryCount() === before + 1, 'message: exactly one lead was appended to inquiries.jsonl');
+    note(rowThenResult(), 'message: the lead row was written pending, then its send result (decision 42)');
     note(!!entry && entry.type === 'message' && entry.sent === true,
       'message: the inquiry is logged as a sent message');
     const logMismatch = entry ? Object.entries({
@@ -452,7 +469,7 @@ function missingFields(body, values) {
       // the rendered form already marks required. This fixture predates that
       // and omitted subject, so the POST 422s and the assertions below measure a
       // submission that never happened. The real form always sends it.
-      // (audit-runs/audit3.md C-04)
+      // (audit 3 C-01; IDs as numbered in audit-runs/build-plan-run3.md)
       b.append('form_type', 'message');
       b.append('name', 'Window Filler');
       b.append('email', `filler${i}@example-rl.test`);
@@ -669,19 +686,30 @@ function missingFields(body, values) {
     clearGuards();
     clearMail();
     const marker = `VERIFY-${Date.now()}`;
+    // TAG-SHAPED text in every free-text field the viewer prints. SPEC and
+    // COMPANY alone cannot tell escaped from unescaped output (`<` before a
+    // digit is not a tag, so the browser shows the same text either way), and
+    // this arm stayed green with h() removed from the Special-reqs cell and the
+    // company name (AUDIT-12 A12-L13-07-1). A parsed probe becomes an element
+    // carrying data-ipc-probe; an escaped one stays visible text.
+    const TAG = (where) => `<b data-ipc-probe="${where}">${where}</b>`;
+    const PROBED = { name: `Lead ${marker} ${TAG('name')}`, company: `${COMPANY} ${TAG('company')}`,
+      material: `Glass ${TAG('material')}`, specialReqs: `${SPEC} ${TAG('special')}`, additionalNotes: `Notes ${TAG('notes')}` };
     const body = new FormData();
     // A-04 (audit-runs/audit1.md): contact.php now enforces the two fields
     // the rendered form already marks required. This fixture predates that
     // and omitted quantity, so the POST 422s and the assertions below measure a
     // submission that never happened. The real form always sends it.
-    // (audit-runs/audit3.md C-04)
+    // (audit 3 C-01; IDs as numbered in audit-runs/build-plan-run3.md)
     body.append('form_type', 'rfq');
-    body.append('name', `Lead ${marker}`);
+    body.append('name', PROBED.name);
     body.append('email', 'viewer@example-read.test');
-    body.append('company', COMPANY);
+    body.append('company', PROBED.company);
     body.append('partNumber', 'IP30HS');
+    body.append('material', PROBED.material);
     body.append('quantity', '500 ft');
-    body.append('specialReqs', SPEC);
+    body.append('specialReqs', PROBED.specialReqs);
+    body.append('additionalNotes', PROBED.additionalNotes);
     await fetch(`${BASE}/contact.php`, { method: 'POST', body });
 
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
@@ -698,18 +726,21 @@ function missingFields(body, values) {
       if (!row) return null;
       row.open = true;
       const cells = [...row.querySelectorAll('td')].map((td) => td.textContent.trim());
-      return { text: row.textContent, cells, html: row.innerHTML };
+      const parsed = [...row.querySelectorAll('[data-ipc-probe]')].map((el) => el.getAttribute('data-ipc-probe'));
+      return { text: row.textContent, cells, html: row.innerHTML, parsed };
     }, marker);
 
     note(!!seen, 'viewer: the lead appears in admin/inquiries.php', 'the entry was not found on the page');
-    note(!!seen && seen.cells.includes(SPEC),
+    note(!!seen && seen.cells.includes(PROBED.specialReqs),
       'viewer: the spec string renders LITERALLY — nothing stripped, nothing double-escaped (invariant 10)',
       `cells: ${JSON.stringify(seen && seen.cells)}`);
-    note(!!seen && seen.text.includes(COMPANY) && !seen.text.includes('&#039;') && !seen.text.includes('&amp;'),
+    note(!!seen && seen.text.includes(PROBED.company) && !seen.text.includes('&#039;') && !seen.text.includes('&amp;'),
       'viewer: the company name is not double-escaped',
       `text had &#039;=${!!seen && seen.text.includes('&#039;')} &amp;=${!!seen && seen.text.includes('&amp;')}`);
-    note(!!seen && !/<script|<b>|<i>/i.test(seen.html.replace(/<\/?(details|summary|div|table|tbody|tr|th|td|p|a|span|small)\b[^>]*>/gi, '')),
-      'viewer: nothing in the lead was parsed as markup');
+    const shown = !!seen && Object.values(PROBED).every((v) => seen.text.includes(v));
+    note(!!seen && seen.parsed.length === 0 && shown,
+      'viewer: nothing in the lead was parsed as markup — every tag-shaped value shows as its own text (invariant 10)',
+      seen ? `parsed as elements: [${seen.parsed.join(', ')}]; all five shown literally: ${shown}` : '');
     await page.screenshot({ path: path.join(OUT, 'inquiry-viewer.png'), fullPage: false });
     await ctx.close();
     clearGuards();
@@ -720,5 +751,5 @@ function missingFields(body, values) {
   const pass = results.filter((r) => r.ok).length;
   console.log(`\ncontactflow: ${pass}/${results.length}`);
   console.log(`screenshots -> ${OUT}`);
-  process.exit(pass === results.length ? 0 : 1);
+  process.exit(results.length && pass === results.length ? 0 : 1);
 })();

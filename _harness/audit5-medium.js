@@ -30,11 +30,25 @@ const POST = (p, o, extra = {}) => req({ path: p, method: 'POST',
 
 (async () => {
   // ── A-5.29 — a corrupt-but-parseable catalog must not fatal every admin page
-  ok(php(`require 'admin/config.php';
-    $d = json_decode('{"products":"nope"}', true);
-    $out = isset($d['products']) ? (is_array($d['products']) ? $d['products'] : []) : $d;
-    echo gettype($out);`) === 'array',
-     'A-5.29 a non-array products value degrades to [] instead of a TypeError');
+  // The REAL load_products() on a {"products":"nope"} file, in a temp copy of
+  // admin/ + data/ (config.php resolves data/ beside admin/). This arm used to
+  // run a copy of the guard typed into the test, which stayed "array" with the
+  // guard reverted (AUDIT-12 A12-L13-04-1).
+  {
+    const t = fs.mkdtempSync(path.join(require('os').tmpdir(), 'a529-'));
+    fs.mkdirSync(path.join(t, 'admin')); fs.mkdirSync(path.join(t, 'data'));
+    for (const f of fs.readdirSync(path.join(ROOT, 'admin'))) {
+      if (/\.php$/.test(f) && f !== 'config.local.php') fs.copyFileSync(path.join(ROOT, 'admin', f), path.join(t, 'admin', f));
+    }
+    fs.writeFileSync(path.join(t, 'data', 'products-all.json'), '{"products":"nope"}');
+    let got;
+    try {
+      got = execFileSync('php', ['-r', `require 'admin/config.php'; $p = load_products(); echo gettype($p), ':', count($p);`],
+        { encoding: 'utf8', cwd: t, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    } catch (e) { got = 'THREW: ' + String(e.stderr || e.message).split('\n').find((l) => /Error|error/.test(l)); }
+    fs.rmSync(t, { recursive: true, force: true });
+    ok(got === 'array:0', 'A-5.29 load_products() on a non-array products value returns [] instead of a TypeError', got);
+  }
 
   // ── A-5.13 — the backslash/tab spellings of a protocol-relative URL
   const guard = php(`require 'admin/config.php';
@@ -46,9 +60,23 @@ const POST = (p, o, extra = {}) => req({ path: p, method: 'POST',
   ok(guard === 'deny,deny,deny,allow,allow,deny',
      'A-5.13 link_url_problem() rejects backslash and tab spellings, keeps real paths', guard);
   const js = src('src/App.jsx');
-  ok(/replace\(\/\[\\\\t\\\\n\\\\r\]\/g, ""\)[\s\S]{0,40}replace\(\/\\\\\\\\\/g, "\/"\)/.test(js)
-     || /A-5\.13/.test(js),
-     'A-5.13 isSafeLinkUrl() normalises the same way before deciding');
+  // RUN isSafeLinkUrl() read out of App.jsx over the same spellings. The old
+  // arm passed on the "A-5.13" incident comment alone (AUDIT-12 A12-L13-04-1).
+  {
+    let jsGuard;
+    try {
+      const at = js.search(/function\s+isSafeLinkUrl\s*\(/);
+      let d = 0, end = -1;
+      for (let i = js.indexOf('{', at); i < js.length; i++) {
+        if (js[i] === '{') d++; else if (js[i] === '}') { d--; if (d === 0) { end = i + 1; break; } }
+      }
+      const isSafeLinkUrl = new Function(`${js.slice(at, end)}\nreturn isSafeLinkUrl;`)();
+      jsGuard = ['/\\evil.com/x.pdf', '/\t/evil.com/x.pdf', '//evil.com/x.pdf', '/pdfs/ok.pdf', 'https://ok.example/a.pdf', 'javascript:alert(1)']
+        .map((u) => (isSafeLinkUrl(u) ? 'allow' : 'deny')).join(',');
+    } catch (e) { jsGuard = 'THREW: ' + e.message; }
+    ok(jsGuard === 'deny,deny,deny,allow,allow,deny',
+       'A-5.13 isSafeLinkUrl() normalises the same way before deciding', jsGuard);
+  }
 
   // ── A-5.12 — shape validation, not just is_array()
   const shapes = php(`require 'admin/config.php';
@@ -85,7 +113,10 @@ const POST = (p, o, extra = {}) => req({ path: p, method: 'POST',
      'A-5.16 a phone-sized photo is scaled to 1600px and a small one is left byte-identical', dims);
 
   // ── A-5.20 / A-5.21 / A-5.22 — the unsaved-changes guard
-  ok(/unsaved\.js/.test(src('admin/edit.php')), 'A-5.20 edit.php loads the unsaved-changes guard');
+  // The <script> tag itself, comments stripped: the incident comment above the
+  // tag names unsaved.js and used to satisfy this (AUDIT-12 A12-L13-04-1).
+  ok(/<script\b[^>]*\bsrc=["']unsaved\.js["']/.test(src('admin/edit.php').replace(/<!--[\s\S]*?-->/g, '')),
+     'A-5.20 edit.php loads the unsaved-changes guard');
   const uns = src('admin/unsaved.js');
   ok(/ipc:structural-change/.test(uns), 'A-5.21 the guard listens for structural edits');
   ok(/ipc:structural-change/.test(src('admin/content-editor.js'))

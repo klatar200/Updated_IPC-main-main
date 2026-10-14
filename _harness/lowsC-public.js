@@ -72,7 +72,7 @@ const restore = () => { for (const n of ['products-all.json', 'content.json', 's
 
     // ── N1-2 ──
     await go('/dashboard');
-    const chips = page.locator('button[aria-pressed]');
+    const chips = page.locator('button[data-ipc-approval]');   // A12-L7-W3-G2-3: the family pills say aria-pressed too now
     const nChips = await chips.count();
     let emptied = false;
     for (let i = 0; i < nChips && !emptied; i++) {
@@ -83,7 +83,7 @@ const restore = () => { for (const n of ['products-all.json', 'content.json', 's
     const clearBtn = page.getByRole('button', { name: 'Clear all filters' });
     const hasClear = emptied && (await clearBtn.count()) > 0;
     if (hasClear) { await clearBtn.first().click(); await page.waitForTimeout(200); }
-    const pressedAfter = await page.locator('button[aria-pressed="true"]').count();
+    const pressedAfter = await page.locator('button[data-ipc-approval][aria-pressed="true"]').count();
     note(emptied && hasClear && pressedAfter === 0 && (await dashNames()).length > 10,
       'N1-2: when approval chips alone empty the index, "Clear all filters" is offered and clears them too',
       `emptied ${emptied}, button ${hasClear}, chips still on ${pressedAfter}`);
@@ -172,6 +172,22 @@ const restore = () => { for (const n of ['products-all.json', 'content.json', 's
       const mainText = await page.locator('main').innerText({ timeout: 2000 }).catch(() => '');
       note(!(await crashed()) && mainText.length > 200, `PUB-6/N1-1: ${u} renders with a malformed product row`);
     }
+    restore();
+
+    // ── AUDIT-12 decision 40 (A12-L5-01-W5-3) ── a wrong-typed text value in
+    // content.json (only an FTP hand edit can make one) falls back to the
+    // default instead of "Something went wrong": a copy field shows its
+    // built-in wording, a row's text field degrades to blank (index.php does
+    // the same) and the rest of the page renders.
+    const c40 = load('content.json');
+    c40.copy.faqHeader.title = { x: 1 };
+    c40.faq[0].question = { x: 1 };
+    put('content.json', c40);
+    await go('/faq');
+    const h40 = await page.locator('h1').first().innerText({ timeout: 2000 }).catch(() => '');
+    const m40 = await page.locator('main').innerText({ timeout: 2000 }).catch(() => '');
+    note(!(await crashed()) && h40.trim() === 'Frequently Asked Questions' && m40.includes(load('content.json').faq[1].question),
+      'decision 40: a wrong-typed Page Content text value falls back to the default, and the page still renders', `h1 "${h40}"`);
     restore();
 
     // ── V1-2 ── on its own data: with the malformed rows above, the unfixed

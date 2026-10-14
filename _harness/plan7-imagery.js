@@ -14,7 +14,9 @@
  *     crosses it, so the hero's scrim ramp is untouched. That is only true
  *     while it stays true — so this asserts backdrop.js recorded ZERO
  *     unscorable layers behind text (PLAN-7 item 1a) on every route carrying
- *     an image.
+ *     an image, AND (since backdrop.js sees CSS backgrounds only, and every
+ *     photo here is an <img>) that no text element's glyphs hit-test onto a
+ *     replaced element beneath them (AUDIT-12 A12-L13-13-3).
  *  2. A HIDDEN IMAGE IS STILL DOWNLOADED. The mockup hid the hero photo on
  *     mobile with a class, which costs the bytes and shows nothing. Asserted
  *     by intercepting requests at 390, not by reading the markup.
@@ -136,6 +138,8 @@ const READ = () => [...document.querySelectorAll('img[src*="images/site/"]')].ma
   const cctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const cp = await cctx.newPage();
   const debt = [];
+  const underText = [];
+  const hitTested = {};
   for (const route of ROUTES) {
     await cp.goto(BASE + route, { waitUntil: 'networkidle' });
     await cp.evaluate(SOURCE);
@@ -146,10 +150,51 @@ const READ = () => [...document.querySelectorAll('img[src*="images/site/"]')].ma
       }
     });
     for (const s of await skippedLayers(cp)) debt.push({ route, ...s });
+    // backdrop.js reads CSS background layers only, and every photograph on
+    // the site is an <img>: a photo placed under a heading as a positioned
+    // <img> scored debt=0 (AUDIT-12 A12-L13-13-3). So hit-test each text
+    // element's own ink: anything replaced painted BENEATH it at its glyphs
+    // is a photo under text.
+    const r = await cp.evaluate(() => {
+      const REPLACED = new Set(['IMG', 'PICTURE', 'VIDEO', 'CANVAS', 'IFRAME', 'OBJECT', 'EMBED']);
+      const hits = [];
+      let tested = 0;
+      for (const el of document.querySelectorAll('h1,h2,h3,h4,p,span,a,div,li,strong')) {
+        if (!el.getClientRects().length) continue;
+        const texts = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim());
+        if (!texts.length) continue;
+        el.scrollIntoView({ block: 'center', behavior: 'instant' });
+        let seen = false, hit = null;
+        for (const t of texts) {
+          const range = document.createRange();
+          range.selectNodeContents(t);
+          for (const b of range.getClientRects()) {
+            if (b.width < 1 || b.height < 1) continue;
+            for (const x of [b.left + 1, b.left + b.width / 2, b.right - 1]) {
+              const stack = document.elementsFromPoint(x, b.top + b.height / 2);
+              const i = stack.indexOf(el);
+              if (i < 0) continue;
+              seen = true;
+              hit = hit || stack.slice(i + 1).find((n) => REPLACED.has(n.tagName.toUpperCase()));
+            }
+          }
+        }
+        if (seen) tested++;
+        if (hit) hits.push({ tag: el.tagName.toLowerCase(), text: el.textContent.trim().slice(0, 30), under: `${hit.tagName.toLowerCase()} ${(hit.getAttribute('src') || '').split('/').pop()}` });
+      }
+      window.scrollTo(0, 0);
+      return { hits, tested };
+    });
+    for (const h of r.hits) underText.push({ route, ...h });
+    hitTested[route] = r.tested;
   }
   note(debt.length === 0,
     'NO CONTRAST DEBT: no text on any route sits over a background the contrast core cannot score',
     debt.slice(0, 3).map((d) => `${d.route} <${d.tag}> ${d.layer} behind "${d.forText}"`).join('\n         '));
+  const thinRoutes = Object.entries(hitTested).filter(([, n]) => n < 10);
+  note(underText.length === 0 && thinRoutes.length === 0,
+    'NO PHOTO UNDER TEXT: no text on any route is painted over an <img>/<picture>/<video> (hit-tested at its glyphs, 10+ elements per route)',
+    JSON.stringify({ under: underText.slice(0, 3), thin: thinRoutes }));
   await cctx.close();
 
   // ── mobile: a hidden image must not be DOWNLOADED ──────────────────────

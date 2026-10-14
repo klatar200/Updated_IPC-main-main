@@ -3,32 +3,38 @@
         {
             "iconKey": "heatshrink",
             "title": "Heat Shrink Tubing",
-            "description": "Polyolefin (2:1 & 3:1), dual-wall adhesive-lined, PVDF/Kynar, neoprene, fluoroelastomer, and medical-grade. All RoHS compliant."
+            "description": "Polyolefin (2:1 & 3:1), dual-wall adhesive-lined, PVDF/Kynar, neoprene, fluoroelastomer, and medical-grade. All RoHS compliant.",
+            "link": "/products?family=Polyolefin Heat Shrink"
         },
         {
             "iconKey": "sleeving",
             "title": "Electrical Sleeving",
-            "description": "Fiberglass sleeving — heat-treated, vinyl-coated (Class C), acrylic-coated (Class F), silicone-coated (Class H). Expandable polyester also stocked."
+            "description": "Fiberglass sleeving — heat-treated, vinyl-coated (Class C), acrylic-coated (Class F), silicone-coated (Class H). Expandable polyester also stocked.",
+            "link": "/products?family=Fiberglass Sleeving"
         },
         {
             "iconKey": "adhesives",
             "title": "Adhesives & Accessories",
-            "description": "Industrial & cyanoacrylate adhesives, cable ties, insulating tape, heat guns, and heat-shrinkable end caps."
+            "description": "Industrial & cyanoacrylate adhesives, cable ties, insulating tape, heat guns, and heat-shrinkable end caps.",
+            "link": "/products?family=Adhesive"
         },
         {
             "iconKey": "cut",
             "title": "Custom Cut-to-Length",
-            "description": "Small or large volume precision cutting and spooling. Tight tolerances, clean environment. Typical turnaround: one week or less."
+            "description": "Small or large volume precision cutting and spooling. Tight tolerances, clean environment. Typical turnaround: one week or less.",
+            "link": "/services"
         },
         {
             "iconKey": "marking",
             "title": "Marking & Kitting",
-            "description": "Custom labeling, bar code printing, wire & cable markers, slit lengthwise, perforations, bagging per spec, JIT services."
+            "description": "Custom labeling, bar code printing, wire & cable markers, slit lengthwise, perforations, bagging per spec, JIT services.",
+            "link": "/services"
         },
         {
             "iconKey": "quality",
             "title": "ISO 9001 Quality",
-            "description": "ISO 9001 registered facility. Computerized equipment, documented processes, quality maintained from receiving through shipping."
+            "description": "ISO 9001 registered facility. Computerized equipment, documented processes, quality maintained from receiving through shipping.",
+            "link": "/about"
         }
     ],
     "stats": [
@@ -40,9 +46,9 @@
         },
         {
             "iconKey": "stock",
-            "value": "42",
-            "label": "Products Stocked",
-            "sub": "Datasheet published for every one"
+            "value": "{datasheets}",
+            "label": "Datasheets Published",
+            "sub": "One for every catalog page"
         },
         {
             "iconKey": "dollar",
@@ -378,7 +384,7 @@
         {
             "category": "Products",
             "question": "What sleeving and conduit products are available?",
-            "answer": "We supply fiberglass sleeving in four coating options: heat-treated bare glass (IP64FS, up to 1200°F/649°C), vinyl-coated Class C (IPC65VC, 130°C), acrylic-coated Class F (IP66AC, 155°C), and silicone-coated Class H (IP67SC, up to 200°C). We also carry expandable polyester sleeving (IP61ES/IP62EF), self-wrapping Roundit 2000 sleeving (IP63ES), slit guard conduit (polyethylene, nylon, polypropylene), and nonmetallic liquid-tight conduit fittings (CCS, CC, CC90, CT)."
+            "answer": "We supply fiberglass sleeving in four coating options: heat-treated bare glass (IP64FS, up to 1200°F/649°C), vinyl-coated Class C (IP65VC, 130°C), acrylic-coated Class F (IP66AC, 155°C), and silicone-coated Class H (IP67SC, up to 200°C). We also carry expandable polyester sleeving (IP61ES/IP62EF), self-wrapping Roundit 2000 sleeving (IP63ES), slit guard conduit (polyethylene, nylon, polypropylene), and nonmetallic liquid-tight conduit fittings (CCS, CC, CC90, CT)."
         },
         {
             "category": "Products",
@@ -642,7 +648,7 @@
         },
         {
             "title": "Data Retention",
-            "content": "Inquiry records — the details you submit, together with the IP address and timestamp described above — are kept for as long as they are needed to answer your enquiry and for our ongoing business record-keeping. They are not deleted automatically. If you would like the record of a particular enquiry removed, contact us using the details below and we will remove it."
+            "content": "Inquiry records — the details you submit, together with the IP address and timestamp described above — are kept for as long as they are needed to answer your enquiry and for our ongoing business record-keeping. They are not deleted automatically. If you would like the record of a particular enquiry removed, email us at the address below with the name and email address you used. We remove it by hand, from our enquiry records and from our sales inbox, and email you to confirm once it is done."
         },
         {
             "title": "Cookies & Tracking",
@@ -730,7 +736,13 @@
             "name": "Polyolefin Heat Shrink"
         },
         {
+            "name": "PVC Heat Shrink"
+        },
+        {
             "name": "PVDF Heat Shrink"
+        },
+        {
+            "name": "PTFE and FEP Heat Shrink"
         },
         {
             "name": "Dual-Wall Heat Shrink"
@@ -740,6 +752,12 @@
         },
         {
             "name": "Elastomeric Heat Shrink"
+        },
+        {
+            "name": "Polyester (Mylar) Heat Shrink"
+        },
+        {
+            "name": "Extruded Tubing"
         },
         {
             "name": "Fiberglass Sleeving"
@@ -875,7 +893,7 @@
             "quantityLabel": "Quantity Required *",
             "quantityPlaceholder": "e.g. 500 ft, 1000 pcs, 10 spools",
             "dateLabel": "Required Delivery Date",
-            "datePlaceholder": "e.g. ASAP, end of month, or a specific date",
+            "datePlaceholder": "e.g. ASAP or a specific date",
             "specialLabel": "Special Requirements",
             "specialPlaceholder": "e.g. C of C required, PPAP, custom marking, specific color, certifications needed",
             "notesLabel": "Additional Notes",
@@ -895,7 +913,7 @@
             "rfqSuccessBody": "Your quote request has been received. Our sales team will review the details and respond within one business day — often the same day for in-stock items.",
             "msgSuccessBody": "Your message has been received. Our sales team will respond within one business day.",
             "urgentPrefix": "For urgent inquiries:",
-            "networkError": "Network error. Please call 630.771.0700 or email sales@insulationproducts.com directly.",
+            "networkError": "We could not confirm that your request was sent, and it may already have arrived. Pressing Submit again will not send it twice. Or call 630.771.0700 or email sales@insulationproducts.com directly.",
             "submitError": "Submission failed. Please call 630.771.0700.",
             "nameLabel": "Full Name *",
             "namePlaceholder": "Your name",

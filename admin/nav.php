@@ -54,6 +54,15 @@ $navExtra  = $navExtra  ?? '';
   .ipc-admin-header .logout { color: rgba(255,255,255,0.5) !important; }
   .ipc-admin-header nav a .nav-badge { display: inline-block; min-width: 18px; margin-left: 6px; padding: 1px 6px;
     border-radius: 9px; background: #d92d20; color: #fff; font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; }
+  /* A12-L7-01-W5-4 — on a touch screen the 13px links were 15px tall in three
+     tight rows, under WCAG 2.5.8's 24px, so a tap opened the neighbouring page.
+     Touch only, the way the public site does it (src/index.css, pointer: coarse);
+     mouse layouts are unchanged. min-height, not padding: Sign Out's inline
+     style sets its padding. */
+  @media (pointer: coarse) {
+    .ipc-admin-header nav a { display: inline-block; min-height: 24px; line-height: 24px; }
+    .ipc-admin-header nav button.logout { min-height: 24px; }
+  }
 </style>
 <header class="ipc-admin-header">
   <a class="logo" href="index.php">
@@ -87,3 +96,15 @@ $navExtra  = $navExtra  ?? '';
     </form>
   </nav>
 </header>
+<?php
+/* AUDIT-12 decision 30 (A12-L4-05-2) — a save went through but its backup
+   could not be written (save_json_with_backup() in config.php records it).
+   Said once, on the next admin page, whichever page made the save. */
+if (!empty($_SESSION['ipc_unbacked_saves']) && is_array($_SESSION['ipc_unbacked_saves'])):
+  $navUnbacked = array_keys($_SESSION['ipc_unbacked_saves']);
+  unset($_SESSION['ipc_unbacked_saves']); ?>
+<div role="alert" style="max-width:1100px;margin:16px auto 0;padding:12px 16px;background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;color:#78350f;font-size:14px;line-height:1.5;">
+  <strong>⚠ Your change to <?= h(implode(' and ', $navUnbacked)) ?> was saved, but this change can't be undone from Backups.</strong>
+  The server could not keep a copy of the version before it — its disk is probably full. Free up space on your hosting account (or ask your host to), so that your next change is backed up again.
+</div>
+<?php endif; ?>

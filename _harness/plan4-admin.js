@@ -23,7 +23,8 @@
  * associated with anything, which is exactly this defect.
  *
  * Needs the mirror on :8123. 4.30's round-trip SAVES; the caller restores
- * data/ from _harness/pristine and the suite proves byte-identity itself.
+ * data/ from _harness/pristine (a cleanup step that throws if it fails; not a
+ * counted check — AUDIT-12 A12-L13-12-3).
  *
  * Usage: node _harness/plan4-admin.js
  */
@@ -69,7 +70,13 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // 2026-10-02: **458** — Company Claims (WHATS_LEFT §1ao, ADM-8 + NEW-V2-3)
 // adds eleven fixed copy fields, one posted variable each. Structural this
 // time, not data: the new group is the whole delta (447 + 11).
-const POSTED_BEFORE = 458;
+// 2026-10-14: **462** — AUDIT-12 decision 2 grew data/content.json
+// productFamilies from 11 to 15 rows (PVC, PTFE and FEP, Polyester (Mylar),
+// Extruded Tubing), one posted field each. Data-only, like 2026-09-28's.
+// 2026-10-14: **468** — AUDIT-12 decision 48 gave each of the six homepage
+// Products & Services cards a "Links to" box: one posted field per card.
+// Structural (features[i][link]); plan2-trunc / plan2-formlast re-run at 468.
+const POSTED_BEFORE = 468;
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -356,17 +363,16 @@ async function specTableEditor(browser) {
 
   await ctx.close();
 
-  // ── restore the mirror and PROVE it ──
+  // ── restore the mirror ──
+  // Copying pristine over the mirror and then cmp'ing the same pairs could
+  // never fail, so it is a cleanup precondition, not a counted check
+  // (AUDIT-12 A12-L13-12-3).
   for (const f of ['products-all.json', 'content.json', 'site-info.json']) {
     fs.copyFileSync(path.join(PRISTINE, f), path.join(MIRROR_DATA, f));
   }
-  let restored = true;
   for (const f of ['products-all.json', 'content.json', 'site-info.json']) {
-    try {
-      execFileSync('cmp', ['-s', path.join(PRISTINE, f), path.join(MIRROR_DATA, f)]);
-    } catch { restored = false; }
+    execFileSync('cmp', ['-s', path.join(PRISTINE, f), path.join(MIRROR_DATA, f)]);   // throws if not identical
   }
-  note(restored, '4.30: the mirror data/ is byte-identical to pristine again');
 }
 
 (async () => {

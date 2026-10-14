@@ -1,7 +1,7 @@
 /**
  * ADM-9b — "Other Certifications" is published site-wide the moment it is
  * saved, so it must appear as typed and the owner must be told.
- * audit-runs/audit-2026-09-27.md §7 (ADM-9b), verified in §9.
+ * audit-runs/audit-2026-09-27.md §2 (ADM-9b), verified in §6, outcome in §11.
  *
  * The footer upper-cased the whole certification line, so "RoHS" went out as
  * "ROHS", and settings.php/help.php said nothing (help.php said the box was

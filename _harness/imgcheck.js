@@ -94,13 +94,19 @@ const products = productsRaw.products || productsRaw;
  * `/images/...` is served out of `public/`, which Vite's publicDir copies into
  * dist/ verbatim — so `public/images/products/x.jpg` is what the browser asks
  * for as `/images/products/x.jpg`. `/pdfs/...` is a top-level folder deployed
- * as-is. Anything else (the five placehold.co URLs) is external and skipped:
- * the app refuses to render those anyway.
+ * as-is. `/uploads/...` is the admin's upload folder, also deployed from the
+ * repo on first deploy. Only an absolute http(s):// (or protocol-relative //)
+ * URL is external and skipped. Any OTHER path — a wrong-case `/Images/`, a
+ * relative `images/...` — is a local path the app will try to load, and it
+ * fails here: it used to be counted as "external" and skipped, so the
+ * first-segment case error this suite exists for passed (AUDIT-12 A12-L13-08-1).
  */
 const MOUNTS = [
   { prefix: '/images/', root: path.join(ROOT, 'public'), label: 'public' },
   { prefix: '/pdfs/', root: ROOT, label: 'repo root' },
+  { prefix: '/uploads/', root: ROOT, label: 'repo root' },
 ];
+const EXTERNAL = /^(?:https?:)?\/\//i;
 
 let checked = 0;
 let skipped = 0;
@@ -114,9 +120,15 @@ for (const p of products) {
 
     // Strip a query string or fragment; neither is part of the filename.
     const url = raw.split(/[?#]/)[0];
+    if (EXTERNAL.test(url)) {
+      skipped++;
+      continue;
+    }
     const mount = MOUNTS.find((m) => url.startsWith(m.prefix));
     if (!mount) {
-      skipped++;
+      checked++;
+      failures.push({ sku, field, url: raw, mount: '(none)', ok: false,
+        reason: `not under ${MOUNTS.map((m) => m.prefix).join(', ')} — a local path no deployed folder serves (check the first segment's case and the leading /)` });
       continue;
     }
 
@@ -143,7 +155,7 @@ console.log(`broken:            ${failures.length}\n`);
 
 for (const f of failures) {
   console.log(`  ${f.sku.padEnd(18)} ${f.field.padEnd(9)} ${f.url}`);
-  console.log(`  ${''.padEnd(18)} ${''.padEnd(9)} not found under ${f.mount}/ at "${f.failedAt}"`);
+  console.log(`  ${''.padEnd(18)} ${''.padEnd(9)} ${f.reason || `not found under ${f.mount}/ at "${f.failedAt}"`}`);
   if (f.actual) {
     console.log(
       `  ${''.padEnd(18)} ${''.padEnd(9)} CASE MISMATCH — the file on disk is "${f.actual}"`,

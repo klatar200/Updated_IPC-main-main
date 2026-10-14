@@ -25,6 +25,10 @@
  * is not white, and scoring it as white is how 121 failing instances went
  * unnoticed.
  *
+ * CSS `opacity` on the element or any ancestor fades the ink the same way and
+ * is folded into its alpha (AUDIT-12 A12-L13-06-W5-1: the Product Index chip
+ * counts at opacity 0.65 scored 10.31:1 for a real 3.77:1).
+ *
  * Usage:
  *   node _harness/plan8-contrast.js            (needs :8123)
  *   node _harness/plan8-contrast.js --report   full table, no verdict
@@ -91,9 +95,14 @@ const isGradientBacked = (r) => r.back[0].join() !== r.back[1].join();
  * spans 242.
  */
 const chan = (c) => [c[0], c[1], c[2]];
+// 40, not 24: Tailwind's greys are blue-tinted — gray-700 rgb(55,65,81)
+// spans 26 — so at 24 the Product Index chip counts were waved through as a
+// "brand colour" that brandtext.js (which scores brand VARIABLES only) never
+// looks at either (AUDIT-12 A12-L13-06-W5-1). slate-400 spans 36; the
+// darkest brand ink, the navy rgb(10,34,64), spans 54.
 const isChromaticInk = (r) => {
   const [x, y, z] = chan(r.fg);
-  return Math.max(x, y, z) - Math.min(x, y, z) > 24;
+  return Math.max(x, y, z) - Math.min(x, y, z) > 40;
 };
 
 /**
@@ -110,10 +119,43 @@ const isChromaticInk = (r) => {
  *
  * Held as a named exemption with a count rather than a blanket rule, so a
  * SECOND brand-surface failure cannot hide behind it. Logged in WHATS_LEFT §2b.
+ *
+ * NAMED by what it is, measured in the page: a <th> whose computed ink is
+ * --brand-header-ink and whose computed background is --brand-accent-2 (the
+ * spec-table sub-header). It was only a count, so with that header fixed any
+ * other failing neutral text took the free slot and the sweep stayed green,
+ * labelled as "brand ink on a brand surface" (AUDIT-12 A12-L13-13-2).
+ *
+ * RATCHETED TO 0 (AUDIT-12 decision 20, A12-L14-W1-G4-1, Keagan 2026-10-14).
+ * The deferral rested on a mis-measurement: each spec-table heading cell
+ * sits on ONE solid colour, not on the page-header gradient, and on solid
+ * #119EC8 the site's own inkFor() picks the dark ink at 5.92:1. The cells now
+ * take the ink derived for their own surface (--brand-accent-2-ink /
+ * --brand-primary-ink), so the pairing is gone and a header-ink <th> on
+ * accent-2 coming back fails here. Never raise it.
  */
-const EXEMPT_BRAND_SURFACE = 1;
+const EXEMPT_BRAND_SURFACE = 0;
+
+/**
+ * Gradient-backed NEUTRAL ink outside `.ipc-page-header`. The note above says
+ * brandtext / plan5c-eyebrow / plan5c-brandink own all gradient-backed text;
+ * they own brand-coloured ink and the page header only. The homepage quote
+ * band and the Services lead-time banner fell between all of them (AUDIT-12
+ * A12-L13-06-W5-2). Not judged at AA here (same reason as above: it is the
+ * gradient item), but held as a RATCHET so the count cannot grow unnoticed.
+ * Lower it when one is fixed; never raise it.
+ */
+const UNOWNED_GRADIENT_MAX = 8;
 
 const collect = () => {
+  // The two computed brand values the named exemption is defined by.
+  const probe = document.createElement('i');
+  document.body.appendChild(probe);
+  probe.style.color = 'var(--brand-header-ink)';
+  const headerInk = getComputedStyle(probe).color;
+  probe.style.color = 'var(--brand-accent-2)';
+  const accent2 = getComputedStyle(probe).color;
+  probe.remove();
   const paintsOwnText = (el) => {
     for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) return true;
     return false;
@@ -127,11 +169,19 @@ const collect = () => {
     const weight = parseInt(cs.fontWeight, 10) || 400;
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) continue;
-    const fg = window.__ipcParse(cs.color);
-    if (!fg) continue;
+    const declared = window.__ipcParse(cs.color);
+    if (!declared) continue;
+    // CSS opacity fades the glyphs exactly as an alpha in the colour does, and
+    // it multiplies down the tree. Ignoring it scored the Product Index chip
+    // counts (rgb(55,65,81) at opacity 0.65) at 10.31:1 instead of 3.77:1
+    // (AUDIT-12 A12-L13-06-W5-1).
+    let op = 1;
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) op *= parseFloat(getComputedStyle(n).opacity) || 0;
+    if (op === 0) continue;
+    const fg = op < 1 ? [declared[0], declared[1], declared[2], (declared.length > 3 ? declared[3] : 1) * op] : declared;
     const back = window.__ipcBackdrop(el);
     out.push({
-      color: cs.color,
+      color: op < 1 ? `${cs.color} at opacity ${+op.toFixed(3)}` : cs.color,
       fg,
       back,
       // The INK is the foreground composited over the background it sits on.
@@ -153,6 +203,8 @@ const collect = () => {
       large: size >= 24 || (weight >= 700 && size >= 18.66),
       size, weight,
       tag: el.tagName.toLowerCase(),
+      specSub: el.tagName === 'TH' && cs.color === headerInk && cs.backgroundColor === accent2,
+      inPageHeader: !!el.closest('.ipc-page-header'),
       cls: (typeof el.className === 'string' ? el.className : '').slice(0, 40),
       text: (el.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40),
     });
@@ -206,8 +258,13 @@ function score(r) {
   // shape brandtext reports, so the two are comparable by eye.
   const combos = new Map();
   for (const r of rows) {
-    const key = `${r.color}|${r.on}|${r.large}`;
-    const need = r.large ? 3 : 4.5;
+    // A glyph with no letter or digit in it (the ▼ menu caret) is a graphical
+    // object, not text: WCAG 1.4.11's 3:1, not 1.4.3's 4.5. Scored once
+    // opacity was folded in (the caret is rgba(255,255,255,0.6) inside an
+    // opacity-0.7 span: 3.67:1), it would otherwise fail as body text.
+    const glyph = !/[\p{L}\p{N}]/u.test(r.text);
+    const key = `${r.color}|${r.on}|${r.large}|${r.specSub}|${r.inPageHeader}|${glyph}`;
+    const need = r.large || glyph ? 3 : 4.5;
     const prev = combos.get(key);
     if (!prev || r.ratio < prev.ratio) {
       combos.set(key, {
@@ -222,6 +279,9 @@ function score(r) {
   const all = [...combos.values()].sort((a, b) => a.ratio - b.ratio);
   const judged = all.filter((c) => !c.gradient && !isChromaticInk(c));
   const failing = judged.filter((c) => !c.pass);
+  const exempt = failing.filter((c) => c.specSub);
+  const unexempt = failing.filter((c) => !c.specSub);
+  const unownedGradient = all.filter((c) => c.gradient && !isChromaticInk(c) && !c.inPageHeader && !c.pass);
 
   fs.writeFileSync(path.join(OUT, 'contrast.json'), JSON.stringify({ combos: all, rows: rows.length }, null, 2));
 
@@ -245,16 +305,20 @@ function score(r) {
   console.log(`${all.length} distinct (colour x background x size) combinations; ` +
     `${all.length - judged.length} belong to brandtext's open item and are not judged here\n`);
 
-  for (const c of failing) {
+  for (const c of unexempt) {
     console.log(`FAIL ${c.ratio.toFixed(2)}:1 (needs ${c.need}) ${c.color} on ${c.on}` +
       `\n       ${c.size}px/${c.weight} <${c.tag}> x${c.count} — ${JSON.stringify(c.text)}`);
   }
-
-  const ok = failing.length <= EXEMPT_BRAND_SURFACE;
-  if (failing.length && ok) {
-    console.log(`\n(${failing.length} of ${EXEMPT_BRAND_SURFACE} allowed: computed brand ink on a ` +
-      `computed brand surface — 4.23's item, not this one. See EXEMPT_BRAND_SURFACE.)`);
+  for (const c of exempt) {
+    console.log(`exempt ${c.ratio.toFixed(2)}:1 (needs ${c.need}) ${c.color} on ${c.on} <${c.tag}> x${c.count} — ` +
+      `the spec-table sub-header: computed brand ink on a computed brand surface, 4.23's item (EXEMPT_BRAND_SURFACE)`);
   }
+  const unownedOk = unownedGradient.length <= UNOWNED_GRADIENT_MAX;
+  console.log(`${unownedOk ? 'ok  ' : 'FAIL'} ${unownedGradient.length} gradient-backed neutral combination(s) outside the page header below AA ` +
+    `(ratchet: must not exceed ${UNOWNED_GRADIENT_MAX})` +
+    (unownedOk ? '' : unownedGradient.map((c) => `\n       ${c.ratio.toFixed(2)}:1 ${c.color} <${c.tag}> ${c.url}@${c.width} — ${JSON.stringify(c.text)}`).join('')));
+
+  const ok = unexempt.length === 0 && exempt.length <= EXEMPT_BRAND_SURFACE && unownedOk;
   console.log(`\nplan8-contrast ${judged.length - failing.length}/${judged.length} neutral combinations meet WCAG AA`);
   console.log(`record -> ${path.join(OUT, 'contrast.json')}`);
   process.exit(ok ? 0 : 1);

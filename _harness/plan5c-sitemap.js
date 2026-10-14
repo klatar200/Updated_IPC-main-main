@@ -32,7 +32,8 @@
  *     learns to ignore
  *
  * Writes ONLY `_harness/site/data/products-all.json`, restores it from
- * `_harness/pristine/` at the end, and proves the restore with a byte compare.
+ * `_harness/pristine/` at the end (a byte compare that throws on failure — a
+ * cleanup precondition, not a counted check: AUDIT-12 A12-L13-20-1).
  * The repo's `data/` is never touched.
  *
  * Needs the mirror on :8123 (started with -t _harness/site).
@@ -242,10 +243,13 @@ const writeMirror = (obj) => fs.writeFileSync(MIRROR, JSON.stringify(obj, null, 
     fs.writeFileSync(MIRROR, pristine);
   }
 
-  // The mirror's catalog is deliberately rewritten above. Prove it came back.
-  note(fs.readFileSync(MIRROR).equals(fs.readFileSync(PRISTINE)),
-    'the mirror catalog is byte-identical to pristine/ again',
-    'the mirror was left modified — check _harness/site/data/products-all.json');
+  // The mirror's catalog is deliberately rewritten above. The write in the
+  // finally either lands pristine's bytes or throws, so comparing right after
+  // it could never fail; it is a cleanup precondition, not a counted check
+  // (AUDIT-12 A12-L13-20-1).
+  if (!fs.readFileSync(MIRROR).equals(fs.readFileSync(PRISTINE))) {
+    throw new Error('cleanup: the mirror was left modified — check _harness/site/data/products-all.json');
+  }
 
   const bad = results.filter((r) => !r.ok).length;
   console.log(`\nplan5c-sitemap: ${results.length - bad}/${results.length}`);

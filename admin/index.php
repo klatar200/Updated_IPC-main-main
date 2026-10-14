@@ -9,6 +9,13 @@ require_auth();
 // (AUDIT_v3_FINDINGS B2)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['close_reset_window'])) {
     csrf_check();
+    // A12-L3-11-1 — a second Close (stale tab, double submit, or a reset that
+    // already deleted the flag) found no file, and unlink() of a missing file
+    // fails exactly like a permissions failure: Rick was told admin/ is not
+    // writable and to delete over FTP a file that was not there.
+    if (!file_exists(PASSWORD_RESET_FLAG)) {
+        flash_redirect('The password-reset window is already closed — the file is gone.', 'success');
+    }
     $removed = @unlink(PASSWORD_RESET_FLAG);
     audit_log('password', 'admin', $removed
         ? 'Password-reset window closed from the dashboard'
@@ -184,10 +191,28 @@ $navActive = 'products';
       // Failing open is deliberate (it must not lock the owner out) — which is
       // exactly why it has to be said out loud here.
       $healthProblems[] = 'The <code>admin</code> folder is not writable by the web server. '
-        . 'Sales leads from the contact form are being DISCARDED, the activity log cannot record anything, '
+        . 'Contact-form leads are still emailed to sales but are NOT being saved to the Inquiries page, the activity log cannot record anything, '
         . 'the Password page cannot save, and — because both depend on files in this folder — '
         . '<strong>the login cool-off that limits password guessing is switched off and failed sign-ins are not being recorded</strong>. '
         . 'Set admin/ to 755 (or 775) over FTP, then sign out and back in to confirm this warning is gone.' . $permFallback;
+  } else {
+      // A12-L3-01-1 / A12-L3-06-1 — admin_writable() is a bare
+      // is_writable(__DIR__), blind to ONE file in the folder being unwritable
+      // (uploaded with the folder, or left owned by another user after a host
+      // change). Each of these two then fails open in silence: audit_log()
+      // records nothing, and login_throttle_mutate() cannot open its file, so
+      // there is no cool-off at all. Same gap A-7.4 closed for inquiries.jsonl.
+      foreach ([
+          ['admin-log.jsonl', 'the activity log is not recording anything — sign-ins, failed password attempts and every edit go unrecorded'],
+          ['.login-throttle.json', '<strong>the login cool-off that limits password guessing is switched off</strong>'],
+      ] as [$adminFile, $adminEffect]) {
+          $p = __DIR__ . '/' . $adminFile;
+          if (file_exists($p) && (!is_file($p) || !is_writable($p))) {
+              $healthProblems[] = 'The file <code>admin/' . h($adminFile) . '</code> cannot be written by the web server, so '
+                . $adminEffect . '. Over FTP, set that file to 644 (or 664); if that does not clear this warning, '
+                . 'the file belongs to a different user than the web server — ask your host to give it to the same user as the admin folder.';
+          }
+      }
   }
   if (!data_writable()) {
       $healthProblems[] = 'The <code>data</code> folder is not writable by the web server. '
@@ -200,6 +225,14 @@ $navActive = 'products';
   // NEW-N3-3 / NEW-R3-m3-2 (audit 2026-09-27) — the folder can exist with its
   // security file missing (created by hand, or dotfiles hidden by the FTP
   // client). upload-image.php now refuses uploads then; say so up front.
+  // AUDIT-12 decision 38 (A12-L3-W5-G2-1) — the same mistake on admin/ itself:
+  // without admin/.htaccess (a dotfile the FTP client may hide) the inquiry
+  // log, the activity log and the password-file backups download for anyone.
+  if (!file_exists(__DIR__ . '/.htaccess')) {
+      $healthProblems[] = 'The <code>admin/.htaccess</code> security file is missing, so <strong>anyone can download the saved quote requests '
+        . '(names, email addresses and phone numbers), the activity log and the password-file backups</strong> from this folder. '
+        . 'Upload <code>admin/.htaccess</code> from the release over FTP (turn on "show hidden files" to see it).';
+  }
   $uploadsHtaccess = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
   if (is_dir(dirname($uploadsHtaccess)) && !file_exists($uploadsHtaccess)) {
       $healthProblems[] = 'The <code>uploads/.htaccess</code> security file is missing, so photo uploads are refused. '
@@ -216,9 +249,27 @@ $navActive = 'products';
         . 'The contact form still works and still records every lead, but its spam rate limit is not counting, '
         . 'and confirmation emails to senders are being held back as a precaution. Ask the host to fix permissions on it.';
   }
-  if (!is_dir(PDF_DIR) || !is_writable(PDF_DIR)) {
-      $healthProblems[] = 'The <code>pdfs</code> folder is missing or not writable. '
+  // A12-L8-03-W5-2 — "missing" and "not writable" are different problems.
+  // A missing pdfs/ is a first deploy that skipped it: uploads still work
+  // (upload-pdf.php creates the folder), but every Datasheet link is dead —
+  // and one upload used to silence this warning while the rest stayed dead.
+  $pdfsMissing = [];
+  foreach ($products as $p) {
+      $pu = $p['pdfUrl'] ?? '';
+      if (is_string($pu) && strpos($pu, PDF_URL) === 0 && site_file_missing($pu)) $pdfsMissing[] = (string)($p['sku'] ?? '?');
+  }
+  if (!is_dir(PDF_DIR)) {
+      $healthProblems[] = 'The <code>pdfs</code> folder is missing on the server, so every product\'s Datasheet link on the website leads nowhere. '
+        . 'Upload the <code>pdfs/</code> folder from the release over FTP (it ships on the first deploy), including its hidden <code>.htaccess</code> file.';
+  } elseif (!is_writable(PDF_DIR)) {
+      $healthProblems[] = 'The <code>pdfs</code> folder is not writable. '
         . 'Data sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.' . $permFallback;
+  }
+  if (is_dir(PDF_DIR) && $pdfsMissing) {
+      $healthProblems[] = '<strong>' . count($pdfsMissing) . ' product' . (count($pdfsMissing) === 1 ? '' : 's')
+        . ' point at a data sheet that is not on the server</strong>, so the Datasheet button gives buyers a "not found" page: '
+        . h(implode(', ', array_slice($pdfsMissing, 0, 8))) . (count($pdfsMissing) > 8 ? ' and ' . (count($pdfsMissing) - 8) . ' more' : '') . '. '
+        . 'Upload the missing files with <strong>Manage PDF</strong>, or upload the <code>pdfs/</code> folder from the release over FTP.';
   }
   // §1aq (doc verification 2026-10-05) — the two folders the newer upload
   // pages write were in the permissions tables but not checked here, so a
@@ -283,7 +334,7 @@ $navActive = 'products';
         . 'It closes by itself one hour after the file was uploaded — close it now if you are done.' . $closeBtn;
   } elseif (password_reset_expired()) {
       $healthProblems[] = 'The file <code>admin/ALLOW-PASSWORD-RESET</code> is still in the admin folder. '
-        . 'It is more than an hour old so it no longer does anything, but it should not be left there.' . $closeBtn;
+        . 'It no longer does anything because ' . password_reset_expired_reason() . ', but it should not be left there.' . $closeBtn;
   }
   ?>
   <?php /* A-5.6 — new leads, above everything else on the page. */ ?>
@@ -314,7 +365,7 @@ $navActive = 'products';
   <!-- Search -->
   <div class="search-bar">
     <input type="search" id="productSearch" placeholder="Search by SKU / part number or product name…" autocomplete="off" aria-label="Search products" />
-    <span id="searchCount" style="display:flex;align-items:center;font-size:13px;color:#6b7280;white-space:nowrap;"></span>
+    <span id="searchCount" role="status" aria-live="polite" style="display:flex;align-items:center;font-size:13px;color:#6b7280;white-space:nowrap;"></span>
   </div>
   <p id="searchEmpty" style="display:none;color:#4b5563;font-size:13px;margin:0 0 24px;">No products match your search.</p>
 
@@ -322,12 +373,27 @@ $navActive = 'products';
   <div class="stats">
     <div class="stat"><div class="stat-val"><?= count($products) ?></div><div class="stat-lbl">Total Products</div></div>
     <div class="stat"><div class="stat-val"><?= count($grouped) ?></div><div class="stat-lbl">Categories</div></div>
+    <?php
+      // A12-L11-01-W5-1 — "With PDF" tested the FIELD (!empty), so a data
+      // sheet deleted over FTP, lost in a partial upload or a host restore
+      // still counted, and the buyer's Datasheet click got the server's bare
+      // 404 with nobody told (the ADM-3 record's note, audit-2026-09-27:191).
+      // A /pdfs/ link now counts only when its file is on disk.
+      $pdfPresent = static function (array $p): bool {
+          $u = (string)($p['pdfUrl'] ?? '');
+          if ($u === '') return false;
+          $path = (string)parse_url($u, PHP_URL_PATH);
+          if (strpos($path, '/pdfs/') !== 0) return true;   // an outside link: not ours to check
+          return is_file(PDF_DIR . basename(rawurldecode($path)));
+      };
+      $withPdf = count(array_filter($products, $pdfPresent));
+    ?>
     <div class="stat">
-      <div class="stat-val"><?= count(array_filter($products, fn($p) => !empty($p['pdfUrl']))) ?></div>
+      <div class="stat-val"><?= $withPdf ?></div>
       <div class="stat-lbl">With PDF</div>
     </div>
     <div class="stat">
-      <div class="stat-val"><?= count(array_filter($products, fn($p) => empty($p['pdfUrl']))) ?></div>
+      <div class="stat-val"><?= count($products) - $withPdf ?></div>
       <div class="stat-lbl">Missing PDF</div>
     </div>
   </div>

@@ -34,6 +34,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { leads } = require('./inqrows');
 
 const BASE = 'http://127.0.0.1:8123';
 // os.tmpdir(), not '/tmp'. contact.php writes the rate-limit files through
@@ -93,6 +94,9 @@ function writeCopy(patch) {
   fs.writeFileSync(CONTENT, JSON.stringify(doc, null, 2));
 }
 
+// AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+const settle = () => fetch(`${BASE}/robots.txt`).then((r) => r.text()).catch(() => {});
+
 async function submitRfq(email, extra = {}) {
   clearTmp('ipc_rl_');
   const body = new FormData();
@@ -103,7 +107,9 @@ async function submitRfq(email, extra = {}) {
   body.append('quantity', '500 ft');
   for (const [k, v] of Object.entries(extra)) body.append(k, v);
   const res = await fetch(`${BASE}/contact.php`, { method: 'POST', body });
-  return res.json();
+  const json = await res.json();
+  await settle();
+  return json;
 }
 
 async function submit(email) {
@@ -115,14 +121,16 @@ async function submit(email) {
   // the rendered form already marks required. This fixture predates that
   // and omitted subject, so the POST 422s and the assertions below measure a
   // submission that never happened. The real form always sends it.
-  // (audit-runs/audit3.md C-04)
+  // (audit 3 C-01; IDs as numbered in audit-runs/build-plan-run3.md)
   body.append('form_type', 'message');
   body.append('name', 'Cap Test');
   body.append('email', email);
   body.append('subject', 'Auto-reply cap check');
   body.append('message', 'checking the auto-reply cap');
   const res = await fetch(`${BASE}/contact.php`, { method: 'POST', body });
-  return res.json();
+  const json = await res.json();
+  await settle();
+  return json;
 }
 
 /** Run a set of addresses through the form and report what each one produced. */
@@ -145,7 +153,8 @@ async function run(addresses) {
 
 (async () => {
   if (!fs.existsSync(INQUIRIES)) fs.writeFileSync(INQUIRIES, '');
-  const inqBefore = fs.readFileSync(INQUIRIES, 'utf8').split('\n').filter(Boolean).length;
+  // AUDIT-12 decision 42 — leads, not lines: a lead is its row plus a send-result line.
+  const inqBefore = leads(INQUIRIES).length;
 
   // ── Gmail family: four spellings of one mailbox ───────────────────────────
   clearTmp('ipc_ar_');
@@ -188,8 +197,7 @@ async function run(addresses) {
     `distinct cap files: ${otherKeys}`);
 
   // ── The lead record is untouched ──────────────────────────────────────────
-  const lines = fs.readFileSync(INQUIRIES, 'utf8').split('\n').filter(Boolean);
-  const added = lines.slice(inqBefore).map((l) => { try { return JSON.parse(l); } catch { return {}; } });
+  const added = leads(INQUIRIES).slice(inqBefore);
   const loggedEmails = added.map((e) => e.email);
   const wanted = [...GMAIL, ...OTHER];
   note(JSON.stringify(loggedEmails) === JSON.stringify(wanted),

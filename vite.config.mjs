@@ -64,9 +64,48 @@ function serveDataDir() {
   };
 }
 
+/**
+ * DEV ONLY — refuse the parts of the repo that are not the website.
+ *
+ * Vite's dev server serves its root — this whole repository — as raw files.
+ * Measured (AUDIT-12 A12-L1-W1-G2-1): /admin/config.php came back as PHP
+ * source, /.git/HEAD and /_harness/README.md were served, and so was the
+ * harness mirror's admin/config.local.php. A copied-down live admin/ (the real
+ * password hash, inquiries.jsonl with customers' names and phone numbers)
+ * would be served the same way, to anyone who can reach the port once
+ * `npm run dev -- --host` is used to check the site on a phone.
+ *
+ * The site itself needs none of it: the SPA, /src, /node_modules (incl.
+ * /node_modules/.vite), /public's files, /data via serveDataDir, and /pdfs,
+ * /images, /uploads for the pages that link them. A refused path gets a real
+ * 404, like serveDataDir's miss, not the SPA shell.
+ */
+function denyRepoInternals() {
+  const TOP = new Set(['admin', '_harness', 'audit-runs', 'plans']);
+  return {
+    name: 'ipc-deny-repo-internals',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        let urlPath = (req.url || '').split('?')[0];
+        try { urlPath = decodeURIComponent(urlPath); } catch { /* judged as sent */ }
+        const top = urlPath.replace(/^\/+/, '').split('/')[0];
+        const refused =
+          TOP.has(top) ||
+          (top.startsWith('.') && top !== '.well-known') ||
+          (!urlPath.startsWith('/node_modules/') && /\.(php|jsonl|md|ini|log|bak|sh)$/i.test(urlPath));
+        if (!refused) return next();
+        res.statusCode = 404;
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.end('Not found (refused by the dev server: not part of the website)');
+      });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), serveDataDir()],
+  plugins: [react(), serveDataDir(), denyRepoInternals()],
 
   // `base` controls the asset URL prefix in the built HTML.
   // - Domain root (e.g. https://yourdomain.com/) → '/'.

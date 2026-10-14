@@ -6,9 +6,15 @@ require_auth();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') data_write_lock('site-info');
 $info   = load_site_info();
 $errors = [];
-$saved  = isset($_GET['saved']);
+// A12-L3-W2-G3-2 — ?saved alone is not evidence of a save: reopening the page
+// from history or the address bar showed "Business details saved" with nothing
+// saved. The banner also needs the one-shot session note the save sets (the
+// SEC-9 flash idea; invariant 18's rule for /contact?sent=1).
+$savedNote = $_SESSION['ipc_settings_saved'] ?? '';
+unset($_SESSION['ipc_settings_saved']);
+$saved  = isset($_GET['saved']) && is_string($savedNote) && $savedNote !== '';
 // F3 — ?saved=nochange is still a successful save; it just wrote nothing.
-$noChange = ($_GET['saved'] ?? '') === 'nochange';
+$noChange = $saved && $savedNote === 'nochange';
 
 // Optimistic-concurrency signature, same mechanism as edit.php:17-31. Without
 // it, two tabs open on this page silently clobbered each other: the stale tab's
@@ -63,7 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $submittedSig = $_POST['orig_sig'] ?? '';
     if ($submittedSig !== '' && $submittedSig !== $storedSig) {
-        $errors[] = 'These business details were changed by another session (or another browser tab) since you opened this page. Your edits were NOT saved. Reload to see the current version, then re-apply your changes — submitting again will overwrite the other change.';
+        // A12-L9-W4-G2-1 — the form is refilled with what was typed ($info =
+        // $updated below), so "reload" threw it away. content.php's wording.
+        $errors[] = 'These business details were changed by another session (or another browser tab) since you opened this page. Your edits were NOT saved — but they are still filled in below, so nothing you typed is lost. Do not reload this page (that would discard them). To see the other change, open the website in another tab. Clicking Save again will keep what is on this page and overwrite that other change.';
     }
 
     $cur  = $info['company'] ?? [];
@@ -183,8 +191,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($logoProblem !== '') $errors[] = $logoProblem;
     }
     $year = $updated['company']['foundedYear'];
-    if ($year !== '' && (!preg_match('/^\d{4}$/', $year) || (int)$year < 1800 || (int)$year > (int)date('Y'))) {
+    if ($year !== '' && !preg_match('/^\d{4}$/', $year)) {
         $errors[] = 'Founded Year must be a four-digit year such as 1974.';
+    } elseif ($year !== '' && ((int)$year < 1800 || (int)$year > (int)date('Y'))) {
+        // A12-L9-11-2 — "must be a four-digit year" for 2099 named a rule the
+        // input already met. Name the one it failed.
+        $errors[] = 'Founded Year must be between 1800 and ' . date('Y') . ' — "' . $year . '" is not.';
     }
     foreach (['opens' => 'Opens', 'closes' => 'Closes'] as $k => $label) {
         $t = $updated['hours'][$k];
@@ -194,21 +206,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     $days = [];
+    $badDay = false;
     foreach ($updated['hours']['days'] as $d) {
         $match = null;
         foreach ($weekdays as $w) { if (strcasecmp($d, $w) === 0) { $match = $w; break; } }
         if ($match === null) {
             $errors[] = 'Open Days must be full day names separated by commas, e.g. Monday, Tuesday — "' . $d . '" is not one.';
+            $badDay = true;
         } else {
             $days[] = $match;
         }
     }
-    $updated['hours']['days'] = $days;
+    // A12-L9-W4-G4-1 — only normalise a list that passed. Replacing it with the
+    // matched days first sent the error page back WITHOUT the misspelt day,
+    // and the next Save published "closed on Wednesday" to search engines.
+    if (!$badDay) $updated['hours']['days'] = $days;
     // The dial number: digits with an optional leading +. Spaces, dots,
     // dashes and brackets are accepted and removed.
     $dial = preg_replace('/[\s.\-()]/', '', $updated['contact']['phoneDial']);
     if ($dial !== '' && !preg_match('/^\+?\d{7,15}$/', $dial)) {
         $errors[] = 'The click-to-call number must be digits, optionally starting with + and the country code, e.g. +16307710700.';
+    }
+    // A12-L9-W4-G4-2 — the same ten-digit North American number typed in both
+    // boxes ("630.771.0800" twice) was refused as "different numbers": the
+    // display side gains +1, the dial side did not. Give it the same +1.
+    if (preg_match('/^\d{10}$/', $dial) && strlen(preg_replace('/\D/', '', $updated['contact']['phone'])) === 10) {
+        $dial = '+1' . $dial;
     }
     // NEW-N1-15 — a blank dial number fell back to the SHIPPED one on the site,
     // so changing only the display phone left every tel: link dialling the old
@@ -242,12 +265,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'The phone number (' . $updated['contact']['phone'] . ') and the click-to-call number (' . $dial . ') are different numbers, so visitors would see one and dial the other. Make them the same number, or empty the click-to-call box and it will be worked out from the phone number.';
         }
     }
+    // AUDIT-12 A12-L9-14-2 — clearing the display phone puts the SHIPPED
+    // number back on the site (mergeSiteInfo drops blanks, invariant 4), but a
+    // dial number left in its box kept every tel: link and the JSON-LD dialling
+    // the number just cleared. When the phone is emptied and the dial box was
+    // not changed, empty it too, so both fall back to the shipped pair.
+    if ($updated['contact']['phone'] === '' && $dial !== ''
+        && $dial === preg_replace('/[\s.\-()]/', '', (string)($curT['phoneDial'] ?? ''))) {
+        $dial = '';
+    }
     $updated['contact']['phoneDial'] = $dial;
 
+    // A12-L8-02-2 — name each box the way its label does, not by its key.
+    $socialLabels = ['twitter' => 'Twitter / X', 'facebook' => 'Facebook', 'linkedin' => 'LinkedIn', 'youtube' => 'YouTube',
+                     'pinterest' => 'Pinterest', 'instagram' => 'Instagram', 'tiktok' => 'TikTok'];
     foreach (array_keys($updated['social']) as $s) {
         $u = $updated['social'][$s];
         if ($u !== '' && !preg_match('#^https?://#i', $u)) {
-            $errors[] = 'The ' . $s . ' link should be a full URL starting with http:// or https://';
+            $errors[] = 'The ' . ($socialLabels[$s] ?? $s) . ' link should be a full URL starting with http:// or https://';
         }
     }
 
@@ -261,10 +296,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             audit_log('settings', 'site-info', $noop
                 ? 'Business details submitted — no changes'
                 : 'Business details updated');
+            $_SESSION['ipc_settings_saved'] = $noop ? 'nochange' : '1';   // A12-L3-W2-G3-2
             header('Location: settings.php?saved=' . ($noop ? 'nochange' : '1'));
             exit;
         }
-        $errors[] = 'Failed to save site-info.json. Check file permissions on the data/ folder.';
+        $errors[] = save_failed_message();   // AUDIT-12 decision 31
     }
     $info = $updated; // repopulate the form with submitted values on error
 }
@@ -350,13 +386,15 @@ $navActive = 'settings';
         ], 'site_file_missing'));
         // §1aq — with the ISO box empty, list the stored wording that still
         // claims ISO (iso_mentions() in config.php).
-        $isoLeft = trim((string)($info['certifications']['iso'] ?? 'x')) === ''
-            ? iso_mentions(load_content(), $info) : [];
+        // A12-L9-02-W5-1 — not while the stored file is damaged: $info is then
+        // the blank form, and the list told Rick to remove nine true ISO lines.
+        $isoLeft = !$siteInfoDamaged && trim((string)($info['certifications']['iso'] ?? 'x')) === ''
+            ? iso_mentions(load_content(), $info, load_products()) : [];   // + the catalog, AUDIT-12 decision 37
         if ($isoLeft): ?>
     <div class="warn-list" role="status" id="iso-mentions">
       <strong>⚠️ The ISO box is empty, but these entries still mention ISO 9001</strong>
       <ul><?php foreach ($isoLeft as $m): ?><li><?= h($m) ?></li><?php endforeach; ?></ul>
-      <div style="font-size:12px;margin-top:6px">Edit or remove each in the place named. A historical sentence (for example a milestone) can stay if it is still true.</div>
+      <div style="font-size:12px;margin-top:6px">Edit or remove each in the place named (Page Content, Business Details, or Products → Edit for a product's own text). A historical sentence (for example a milestone) can stay if it is still true.</div>
     </div>
   <?php endif;
         if ($missingFiles): ?>
@@ -430,7 +468,13 @@ $navActive = 'settings';
           $cAccent2 = $colorIn($th['accent2Color'] ?? '', '#119ec8');
           ?>
           <div class="form-group"><label for="theme_primary">Primary color</label><input type="color" id="theme_primary" name="theme_primary" value="<?= h($cPrimary) ?>" style="height:44px;padding:4px;width:100%;">
-            <?= contrast_note([$cPrimary], 'buttons and highlights', 'cnote_primary') ?></div>
+            <?= contrast_note([$cPrimary], 'buttons and highlights', 'cnote_primary') ?>
+            <?php /* AUDIT-12 decision 49 (A12-L7-W3-G3-4) — on a phone the
+                     product name sits on a band that fades from a shade of the
+                     Dark color into Primary, so one text color must work on
+                     both. A pale Primary with the navy Dark left the name at
+                     2.1:1 while the note above said "Readable". */ ?>
+            <?= contrast_note([ipc_shade_of($cDark, '#0d2d52', '#0a2a52'), $cPrimary], 'the band behind each product\'s name, from Dark to Primary', 'cnote_prodhead') ?></div>
           <div class="form-group"><?php /* Docs audit 2026-09-29 — this said "headers & footer"; the footer background is a fixed #0a2240 in src/App.jsx and does not follow this color. */ ?><label for="theme_dark">Dark (navigation bar &amp; dark panels)</label><input type="color" id="theme_dark" name="theme_dark" value="<?= h($cDark) ?>" style="height:44px;padding:4px;width:100%;">
             <?= contrast_note([$cDark], 'the navigation bar', 'cnote_dark') ?></div>
           <div class="form-group"><label for="theme_accent">Accent</label><input type="color" id="theme_accent" name="theme_accent" value="<?= h($cAccent) ?>" style="height:44px;padding:4px;width:100%;"></div>
@@ -553,6 +597,16 @@ $navActive = 'settings';
           <div class="form-group">
             <label for="cert_iso">ISO Certification</label>
             <input type="text" id="cert_iso" name="cert_iso" value="<?= h($ce['iso'] ?? '') ?>" placeholder="ISO 9001" />
+            <?php /* AUDIT-12 decision 36 (A12-L8-08-4) — the website understands
+                     only "ISO 9001" or "ISO 9001:YYYY" here (ISO_9001_SOURCE in
+                     src/App.jsx, the same pattern in public/index.php). Anything
+                     else is pasted in whole over every ISO 9001 on the site, so
+                     "ISO 9001:2015 Certified" printed "ISO 9001:2015 Certified
+                     Registered". Warn; the value still saves. */
+                  $isoNow = trim((string)($ce['iso'] ?? ''));
+                  if ($isoNow !== '' && !preg_match('/^\s*ISO\s*9001(?:\s*:\s*(\d{4}))?\s*$/iu', $isoNow)): ?>
+            <div class="cnote cnote-warn" id="iso-format" role="status">⚠️ The website only understands <b>ISO 9001</b> or <b>ISO 9001:</b> followed by a year (for example <b>ISO 9001:2015</b>) here. What is typed now, "<?= h($isoNow) ?>", is put in whole wherever the site says ISO 9001, so pages will read "<?= h($isoNow) ?> Registered". Type just <b>ISO 9001</b> or <b>ISO 9001:2015</b> — words like "Certified" or "Registered" are already on the pages.</div>
+            <?php endif; ?>
             <div class="hint">
               <strong>This is the only place the ISO certification is set.</strong>
               What you type here appears everywhere it is claimed on the website
@@ -561,20 +615,23 @@ $navActive = 'settings';
               <br>
               Add the revision year only when your registrar has confirmed it
               (<code>ISO 9001:2015</code>), and it will appear in all of those
-              places at once. Leave it as plain <code>ISO 9001</code> and no
+              places at once. Type only <code>ISO 9001</code> or
+              <code>ISO 9001:</code> and a year &mdash; nothing before or after it. Leave it as plain <code>ISO 9001</code> and no
               revision is claimed anywhere &mdash; which is the safe answer if
               you are not certain which one your certificate names.
               <br>
               <strong>Empty this box</strong> and the website stops claiming ISO
               in the footer, the About fact box and the homepage band. Wording
-              you typed yourself in Page Content is not changed: after saving,
-              this page lists every entry that still mentions ISO, so you can
-              edit or remove each one.
+              you typed yourself in Page Content, and a product's own text, is
+              not changed: after saving, this page lists every entry that still
+              mentions ISO (products included), so you can edit or remove each one.
             </div>
           </div>
           <div class="form-group">
             <label for="stats_min">Minimum Order</label>
             <input type="text" id="stats_min" name="stats_min" value="<?= h($sx['minimumOrder'] ?? '') ?>" placeholder="$50" />
+            <?php /* AUDIT-12 decision 14 (A12-L8-W5-G1-3) — clearable. */ ?>
+            <div class="hint">Type the amount only, e.g. <code>$75</code> &mdash; the site adds the words &ldquo;minimum order&rdquo;. If there is no minimum, <strong>empty the box</strong>: the minimum-order sentence then disappears from the homepage, the About page, the footer and the search-engine descriptions. The Page Content rows that state it as a figure (see Help) are yours to edit.</div>
           </div>
           <div class="form-group">
             <label for="stats_feet">Feet In Stock</label>

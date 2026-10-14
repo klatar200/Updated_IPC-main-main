@@ -31,13 +31,45 @@ require_auth();
 
 $SLOTS = [
     'heroPhoto'         => ['label' => 'Homepage — hero photo',           'where' => 'The large photo beside the headline at the top of the homepage (wide screens only).'],
-    'bandTeamPhoto'     => ['label' => 'Homepage — team photo',           'where' => 'The left photo in the band lower on the homepage ("The same team, the same building…").'],
+    'bandTeamPhoto'     => ['label' => 'Homepage — team photo',           'where' => 'The left photo in the band lower on the homepage ("Bolingbrook, Illinois — our team and our building").'],
     'bandBuildingPhoto' => ['label' => 'Homepage — building photo',       'where' => 'The right photo in that same homepage band.'],
     'aboutPhoto'        => ['label' => 'About page — photo',              'where' => 'Beside "Our Story" on the About page.'],
     'servicesPhoto'     => ['label' => 'Services page — photo',           'where' => 'Under the banner on the Services page.'],
     'logo'              => ['label' => 'Logo',                            'where' => 'The site header and footer, the placeholder on products with no photo, and the information search engines read.'],
 ];
 $SITE_SHIPPED_DIR = __DIR__ . '/../images/site/';
+
+/**
+ * AUDIT-12 decision 35 (A12-L8-09-5) — what the picker calls each picture
+ * shipped in images/site/. The files keep their names (the site, older
+ * backups and the deploy all point at them; "coulplings1.png" is misspelled
+ * on disk and stays so); only the label Rick reads changes. A shipped file
+ * not listed here shows its file name, as before.
+ */
+const SITE_IMAGE_LABELS = [
+    'Front-Cover.jpg'                      => 'Catalog front cover',
+    'Heat-Shrink-Tape-Product-photo-2.jpg' => 'Heat-shrink tape rolls',
+    'IPC-Building.jpg'                     => 'IPC building, outside',
+    'Marker-Sample-2.jpg'                  => 'Marker and tag samples',
+    'Slide1.png'                           => 'Tubing spools banner (thin strip)',
+    'conduit-drawing.png'                  => 'Conduit fitting drawing, straight',
+    'conduit-drawing2.png'                 => 'Conduit fitting drawing, elbow',
+    'coulplings1.png'                      => 'Couplings, photo',
+    'coulplings2.png'                      => 'Coupling drawing',
+    'download.png'                         => 'Heat-shrink tubing samples',
+    'featured-category-1.jpg'              => 'Blue tubing on cables (strip)',
+    'featured-category-2.jpg'              => 'Colored wire loops (strip)',
+    'featured-category-3.jpg'              => 'Tubing kits (strip)',
+    'header-logo.jpg'                      => 'IPC logo, small square',
+    'id-markers.png'                       => 'ID markers and tags',
+    'main-banner-1349x414.jpg'             => 'Tubing spools banner, wide',
+    'main-banner-800x414.jpg'              => 'Tubing spools banner',
+    'spiralwrap-1.jpg'                     => 'Spiral wrap (second copy)',
+    'spiralwrap.jpg'                       => 'Spiral wrap',
+    'staff-image.png'                      => 'Staff group photo, small',
+    'staff.jpg'                            => 'Staff group photo',
+    'tubingkits-e1470671026976.png'        => 'Tubing kits',
+];
 
 /** Every picture this page may point a slot at: path as stored → display info. */
 function site_image_choices(string $shippedDir): array {
@@ -47,7 +79,8 @@ function site_image_choices(string $shippedDir): array {
         $names = @scandir($dir) ?: [];
         foreach ($names as $n) {
             if (!preg_match('/^[A-Za-z0-9._-]+\.(jpe?g|png|webp|gif)$/i', $n) || !is_file($dir . $n)) continue;
-            $out[$prefix . $n] = ['name' => $n, 'group' => $group, 'mtime' => (int)@filemtime($dir . $n)];
+            $name = $prefix === 'images/site/' ? (SITE_IMAGE_LABELS[$n] ?? $n) : $n;
+            $out[$prefix . $n] = ['name' => $name, 'group' => $group, 'mtime' => (int)@filemtime($dir . $n)];
         }
     }
     uasort($out, static fn($a, $b) => [$a['group'] === 'Your uploads' ? 0 : 1, -$a['mtime']] <=> [$b['group'] === 'Your uploads' ? 0 : 1, -$b['mtime']]);
@@ -79,7 +112,7 @@ function slot_write(string $slot, string $value, array &$errors): bool {
         $info = load_site_info();
         $info['theme'] = is_array($info['theme'] ?? null) ? $info['theme'] : [];
         $info['theme']['logoUrl'] = $url;
-        if (!save_site_info($info)) { $errors[] = 'Could not save data/site-info.json. Check that the data/ folder is writable.'; return false; }
+        if (!save_site_info($info)) { $errors[] = save_failed_message(); return false; }   // AUDIT-12 decision 31
         return true;
     }
     if (data_file_damaged(CONTENT_JSON)) {
@@ -90,11 +123,12 @@ function slot_write(string $slot, string $value, array &$errors): bool {
     $content['copy'] = is_array($content['copy'] ?? null) ? $content['copy'] : [];
     $content['copy']['siteImages'] = is_array($content['copy']['siteImages'] ?? null) ? $content['copy']['siteImages'] : [];
     $content['copy']['siteImages'][$slot] = $value;
-    if (!save_content($content)) { $errors[] = 'Could not save data/content.json. Check that the data/ folder is writable.'; return false; }
+    if (!save_content($content)) { $errors[] = save_failed_message(); return false; }
     return true;
 }
 
 $errors  = [];
+$notice  = '';
 $flash   = flash_take();
 $success = $flash['type'] === 'success' ? $flash['msg'] : '';
 if ($flash['type'] === 'error' && $flash['msg'] !== '') $errors[] = $flash['msg'];
@@ -115,7 +149,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($damagedMsg !== '') {
         $errors[] = $damagedMsg;
     } elseif ($action === 'remove') {
-        if (slot_write($slot, '', $errors)) {
+        // A12-L4-01-W5-3 — a Remove that finds nothing to remove (an old tab,
+        // or pressed twice) is not a success and not an Activity Log entry.
+        // Read fresh, under the lock taken above.
+        [$curNow, $defNow] = slot_current($slot, load_content(), load_site_info());
+        if ($curNow === '' && ($slot === 'logo' || !$defNow)) {
+            $notice = $slot === 'logo'
+                ? 'Nothing changed — the original logo is already in use.'
+                : 'Nothing changed — ' . $SLOTS[$slot]['label'] . ' already has no photo.';
+        } elseif (slot_write($slot, '', $errors)) {
             audit_log('site-image', $slot, $slot === 'logo' ? 'Logo reset to the original' : $SLOTS[$slot]['label'] . ': photo removed');
             flash_redirect($slot === 'logo'
                 ? 'The original logo is back on the website.'
@@ -124,8 +166,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'choose') {
         $choice  = as_str($_POST['choice'] ?? null);
         $choices = site_image_choices($SITE_SHIPPED_DIR);
+        [$curNow] = slot_current($slot, load_content(), load_site_info());
         if (!isset($choices[$choice])) {
             $errors[] = 'Pick a picture from the list.';
+        } elseif (ltrim($curNow, '/') === $choice) {
+            // A12-L4-01-W5-3 — already the picture in use: say so, log nothing.
+            $notice = 'Nothing changed — ' . $SLOTS[$slot]['label'] . ' already uses ' . $choices[$choice]['name'] . '.';
         } elseif (slot_write($slot, $choice, $errors)) {
             audit_log('site-image', $slot, $SLOTS[$slot]['label'] . ' → ' . $choice);
             flash_redirect($SLOTS[$slot]['label'] . ' now uses ' . $choices[$choice]['name'] . '. The website shows it within about a minute.', 'success', 'site-images.php');
@@ -134,29 +180,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!upload_field_is_single('image_file')) {
             $errors[] = 'Please choose one image file at a time.';
         } elseif (!isset($_FILES['image_file']) || $_FILES['image_file']['error'] !== UPLOAD_ERR_OK) {
-            $errors[] = upload_error_message($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'image');
+            $errors[] = upload_error_message($_FILES['image_file']['error'] ?? UPLOAD_ERR_NO_FILE, 'image', 8);
         } elseif (!is_dir(SITE_IMG_DIR) && !@mkdir(SITE_IMG_DIR, 0755, true) && !is_dir(SITE_IMG_DIR)) {
             $errors[] = 'Could not create the uploads/site folder on the server. Create public_html/uploads/site/ over FTP and make it writable (755).';
         } else {
             $problem = uploads_protection_problem();
             if ($problem === '') $problem = uploaded_image_problem($_FILES['image_file'], $ext);
+            // AUDIT-12 decisions 23/27 — re-encoded by gd before it is stored;
+            // an opaque PNG photo becomes a JPG, but never the logo (artwork).
+            $prep = $problem === '' ? image_prepare_upload($_FILES['image_file']['tmp_name'], $ext, SITE_IMG_DIR, $slot !== 'logo') : null;
+            if ($prep !== null && $prep['problem'] !== '') $problem = $prep['problem'];
             if ($problem !== '') {
                 $errors[] = $problem;
             } else {
+                $ext = $prep['ext'];
                 $stem = $slot . '-' . date('Ymd-His');
                 $filename = $stem . '.' . $ext;
                 for ($n = 2; file_exists(SITE_IMG_DIR . $filename) && $n < 1000; $n++) $filename = $stem . '-' . $n . '.' . $ext;
                 $dest = SITE_IMG_DIR . $filename;
-                if (!move_uploaded_file($_FILES['image_file']['tmp_name'], $dest)) {
-                    $errors[] = 'Upload failed. Check write permissions on the /uploads/site/ folder.';
+                $stored = $prep['path'] !== null
+                    ? (is_uploaded_file($_FILES['image_file']['tmp_name']) && @rename($prep['path'], $dest))
+                    : move_uploaded_file($_FILES['image_file']['tmp_name'], $dest);
+                if ($prep['path'] !== null && !$stored) @unlink($prep['path']);
+                if (!$stored) {
+                    $errors[] = write_failed_message(SITE_IMG_DIR, 'uploads/site');   // AUDIT-12 decision 31
                 } else {
-                    $reason = '';
-                    $wasResized = image_downscale_in_place($dest, $ext, $reason);
                     if (slot_write($slot, SITE_IMG_PATH . $filename, $errors)) {
                         audit_log('site-image', $slot, $SLOTS[$slot]['label'] . ' → uploaded ' . $filename);
                         flash_redirect($SLOTS[$slot]['label'] . ': new picture uploaded and in use. The website shows it within about a minute.'
-                            . image_resize_note($wasResized, $reason, 'that page'), 'success', 'site-images.php');
+                            . image_resize_note($prep['resized'], $prep['reason'], 'that page', $prep['converted']), 'success', 'site-images.php');
                     }
+                    // A12-L4-03-4 — the data file was not changed, so this new
+                    // picture is used nowhere and was never published: remove
+                    // it (the DI-3 rule upload-image.php follows), or every
+                    // failed try adds another "Your uploads" entry to the list.
+                    // "Never delete" is for pictures a slot has used.
+                    @unlink($dest);
+                    $errors[] = 'The picture was not kept on the server.';
                 }
             }
         }
@@ -193,6 +253,8 @@ $csrf    = csrf_token();
     .btn-secondary { background: #f0f4f8; color: #141414; border: 1px solid #d1d9e0; }
     .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
     .hint { font-size: 11px; color: #6b7280; margin-top: 6px; }
+    .choice-preview { display: block; width: 100%; max-width: 320px; max-height: 200px; object-fit: contain; background: #f0f4f8; border-radius: 6px; margin-top: 10px; }
+    .choice-preview[hidden] { display: none; }
   </style>
 </head>
 <body>
@@ -206,6 +268,9 @@ $csrf    = csrf_token();
   <?php endif; ?>
   <?php if ($success !== ''): ?>
     <div class="alert-success">✅ <?= h($success) ?></div>
+  <?php endif; ?>
+  <?php if ($notice !== ''): ?>
+    <div class="alert-info"><?= h($notice) ?></div>
   <?php endif; ?>
 
   <?php foreach ($SLOTS as $slot => $cfg):
@@ -237,7 +302,7 @@ $csrf    = csrf_token();
         <button type="submit" class="btn btn-primary">Upload &amp; Use →</button>
       </div>
       <?php if ($isLogo): ?><div class="hint">A PNG with a transparent background works best. An SVG logo cannot be uploaded here (SVG files can carry program code) — ask your developer.</div>
-      <?php else: ?><div class="hint">Anything wider than <?= (int)IMG_MAX_WIDTH ?> pixels is scaled down automatically so the page stays fast.</div><?php endif; ?>
+      <?php else: ?><div class="hint">Anything wider than <?= (int)IMG_MAX_WIDTH ?> pixels is scaled down automatically, and a PNG photo with no see-through areas is saved as a JPG, a much smaller file.</div><?php endif; ?>
     </form>
 
     <?php if ($choices): ?>
@@ -255,6 +320,11 @@ $csrf    = csrf_token();
         </select>
         <button type="submit" class="btn btn-secondary">Use This One</button>
       </div>
+      <?php /* A12-L9-02-W5-2 — the list is bare file names ("download.png",
+               "Slide1.png"); site-images.js shows the chosen picture here
+               before it goes live, the PLAN-7 3b design ("lists ... as
+               thumbnails"). Hidden until a choice is made, and without JS. */ ?>
+      <img class="choice-preview" data-preview-for="choice-<?= h($slot) ?>" alt="" hidden>
     </form>
     <?php endif; ?>
 
@@ -272,5 +342,6 @@ $csrf    = csrf_token();
   <p class="hint">Nothing on this page deletes a file from the server — an old picture stays available in the list above, and <strong>Backups</strong> can put a previous choice back.</p>
 </main>
 <script src="confirm.js"></script>
+<script src="site-images.js"></script>
 </body>
 </html>

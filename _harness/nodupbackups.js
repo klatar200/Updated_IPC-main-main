@@ -10,6 +10,8 @@
  * The damage is not disk space, it is EVICTION. BACKUP_KEEP is 30, so thirty
  * duplicate copies of the current state push the one pre-mistake copy off the
  * end of the list — which is precisely the recovery help.php promises.
+ * (BACKUP_KEEP was 30 when this was written; it is 90 since, in
+ * admin/config.php — the eviction is the same, just ninety saves away.)
  *
  * What this asserts, end to end through the real admin rather than by calling
  * the PHP directly, because the thing being fixed is what happens when the
@@ -24,6 +26,9 @@
  *      second save from the reloaded page is accepted, not rejected as stale.
  *   4. A save that DOES change something still writes exactly one backup — the
  *      fix must not have disabled backups altogether.
+ *   5. A save onto a MISSING site-info.json succeeds and recreates it:
+ *      backup_before_write() returning null is not a failure (invariant 16's
+ *      second clause; AUDIT-12 A12-L13-W1-R2-2-1).
  *
  * Runs against Business Details (settings.php / site-info.json) because it is
  * the smallest of the three forms and carries a signature.
@@ -140,6 +145,19 @@ const ok = (c, m) => { c ? pass++ : fail++; console.log(`  ${c ? 'ok  ' : 'FAIL'
   await save();
   ok(backups().length === before.length + 2,
     'restoring the original value wrote its own backup (it is a real change too)');
+
+  // ── 5: a save onto a MISSING file succeeds and recreates it ──────────────
+  // Invariant 16's second clause: backup_before_write() returning null (there
+  // was nothing to back up) is not a failure. Only the no-op clause was
+  // guarded; "null = failure" brought back left the owner unable to recreate a
+  // missing site-info.json from the dashboard (AUDIT-12 A12-L13-W1-R2-2-1).
+  fs.rmSync(path.join(DATA, 'site-info.json'), { force: true });
+  await p.goto(BASE + '/admin/settings.php', { waitUntil: 'domcontentloaded' });
+  // With no file the form opens blank, and the company name is required.
+  await p.fill('input[name="company_name"]', 'Insulation Products Corporation');
+  await save();
+  ok(/[?&]saved=(1|nochange)/.test(p.url()) && fs.existsSync(path.join(DATA, 'site-info.json')),
+    `a save with site-info.json missing succeeds and recreates the file (${p.url().split('/').pop()}, file ${fs.existsSync(path.join(DATA, 'site-info.json')) ? 'present' : 'MISSING'})`);
 
   fs.copyFileSync(path.join(__dirname, 'pristine', 'site-info.json'), path.join(DATA, 'site-info.json'));
   fs.writeFileSync(path.join(OUT, 'nodupbackups.json'), JSON.stringify({ pass, fail }, null, 2));

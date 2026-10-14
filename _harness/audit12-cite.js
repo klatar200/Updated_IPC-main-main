@@ -1,8 +1,10 @@
 /**
- * PLAN-12 §9.3 — the citation gate. A finding's `where` entries are checked
- * against the tree: the file exists, the line exists, and the quoted text is on
- * that line (±2, whitespace-normalised). A finding whose citation does not hold
- * is not sent to verification; it goes back to its finder.
+ * PLAN-12 §9.4 — the citation gate. A finding's `where` entries are checked
+ * against the tree: the file is tracked in git (so a fresh clone at AUDIT_HEAD
+ * has it — not a finder's untracked scratch file), the line exists, and the
+ * quoted text is on that line (±2, whitespace-normalised). A finding whose
+ * citation does not hold is still sent to verification, flagged `citeFailed`
+ * (audit12-workflow.js), and C sends it back to its finder (PLAN-12 §9.4).
  *
  * Why a script: AUDIT-11 published five numbers that did not reproduce, and
  * prior passes cited line numbers from a file that had since moved
@@ -15,8 +17,11 @@
  * Finding file: one object, or an array of objects, each with
  *   { id, rows: ["FILE-0001", ...], where: [{ file, line, quote }], ... }
  * `rows` must exist in _harness/out/audit12/ledger.jsonl. A `where` entry with
- * `url` instead of `file` (a rendered-page observation) is skipped here — its
- * evidence is an artifact path, which must exist.
+ * a `url` (a rendered-page observation) carries its evidence as an artifact
+ * path, which must exist INSIDE the repository; if the entry also names a
+ * `file`, that file/line/quote is checked as well (AUDIT-12 A12-L13-W1-G2-1:
+ * a `url` used to skip the file check entirely, and an artifact outside the
+ * repo or a finder's untracked scratch file passed).
  * Exit 1 if any citation fails.
  */
 const fs = require('fs');
@@ -25,6 +30,15 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(__dirname, 'out', 'audit12');
 const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
+const inside = (abs) => abs.startsWith(ROOT + path.sep);
+
+// Files tracked in the index. null when git is unavailable (then existence
+// inside the repo is the best this gate can do, and it says so).
+let tracked = null;
+try {
+  tracked = new Set(require('child_process').execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 << 20 })
+    .split('\0').filter(Boolean));
+} catch (_) { console.log('  (git unavailable — file citations checked for existence only)'); }
 
 const ledgerFile = path.join(OUT, 'ledger.jsonl');
 const ledgerIds = fs.existsSync(ledgerFile)
@@ -49,11 +63,13 @@ for (const t of targets) {
     for (const w of f.where) {
       checked++;
       if (w.url) {
-        if (!w.artifact || !fs.existsSync(path.resolve(ROOT, w.artifact))) fails.push(`${tag}: ${w.url} cites artifact ${w.artifact || '(none)'} which does not exist`);
-        continue;
+        const art = w.artifact ? path.resolve(ROOT, w.artifact) : '';
+        if (!w.artifact || !inside(art) || !fs.existsSync(art)) fails.push(`${tag}: ${w.url} cites artifact ${w.artifact || '(none)'} which does not exist inside the repository`);
+        if (!w.file) continue;
       }
       const abs = path.resolve(ROOT, w.file || '');
-      if (!w.file || !abs.startsWith(ROOT + path.sep) || !fs.existsSync(abs)) { fails.push(`${tag}: file ${w.file} does not exist`); continue; }
+      if (!w.file || !inside(abs) || !fs.existsSync(abs)) { fails.push(`${tag}: file ${w.file} does not exist`); continue; }
+      if (tracked && !tracked.has(path.relative(ROOT, abs).split(path.sep).join('/'))) { fails.push(`${tag}: file ${w.file} is not tracked in git (not at AUDIT_HEAD)`); continue; }
       const lines = fs.readFileSync(abs, 'utf8').split('\n');
       const n = Number(w.line);
       if (!Number.isInteger(n) || n < 1 || n > lines.length) { fails.push(`${tag}: ${w.file}:${w.line} out of range (1–${lines.length})`); continue; }
