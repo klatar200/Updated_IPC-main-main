@@ -93,8 +93,9 @@ const sizeOf = (file) => spawnSync('php', ['-r', '$s=getimagesize($argv[1]); ech
     const after = readJ('content.json');
     const heroPath = after.copy.siteImages.heroPhoto;
     const heroFile = path.join(SITE, heroPath || 'x');
-    note(r1.status === 302 && /^uploads\/site\/heroPhoto-\d{8}-\d{6}(-\d+)?\.png$/.test(heroPath || '') && fs.existsSync(heroFile),
-      'upload: stored as uploads/site/heroPhoto-<stamp>.png (not the visitor\'s filename) and written to copy.siteImages.heroPhoto', `${r1.status} ${heroPath}`);
+    // AUDIT-12 decision 23: an opaque PNG photo is stored as a JPG (the logo below stays PNG).
+    note(r1.status === 302 && /^uploads\/site\/heroPhoto-\d{8}-\d{6}(-\d+)?\.jpg$/.test(heroPath || '') && fs.existsSync(heroFile),
+      'upload: stored as uploads/site/heroPhoto-<stamp>.jpg (not the visitor\'s filename; an opaque PNG becomes a JPG) and written to copy.siteImages.heroPhoto', `${r1.status} ${heroPath}`);
     note(sizeOf(heroFile) === '1600', 'upload: a 2000px picture is scaled to 1600px wide', sizeOf(heroFile));
     const strip = (c) => { const x = JSON.parse(JSON.stringify(c)); delete x.copy.siteImages.heroPhoto; return JSON.stringify(x); };
     note(strip(before) === strip(after), 'upload: nothing else in content.json changed');

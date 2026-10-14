@@ -2342,11 +2342,50 @@ function upload_tmp_unreadable_problem(string $tmp, string $what): string {
          . 'This is a hosting setting — contact your developer.';
 }
 
+const IMG_PROGRAM_CODE_MSG = 'That file is not a usable image — it contains program code, not just picture data. '
+    . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
+
+/**
+ * A PHP open tag anywhere in the first 8 MB of a file: `<?php`, `<?=`, or the
+ * short `<?` followed by white space, which runs wherever short_open_tag is On
+ * (PHP's compiled-in default) — the spelling A-9.P3-2 and NEW-V1-1 missed
+ * (AUDIT-12 A12-L3-02-1).
+ *
+ * Since AUDIT-12 decision 27 this scans only what is stored AS UPLOADED: a GIF
+ * (never re-encoded, so an animation is not flattened), or a JPG/PNG/WEBP the
+ * server could not re-encode (no gd, or the re-encode failed). Every other
+ * photo is written fresh by gd from its decoded pixels, which drops anything
+ * hidden in comments, metadata or after the image data. Scanning the
+ * compressed bytes of an ordinary photo refused about 1 in 14 genuine ones,
+ * IPC's own IP55FL.png among them: '<?=' turns up by chance in compressed
+ * data (A12-L11-W5-G1-1).
+ */
+function image_php_tag_in_bytes(string $path): bool {
+    $raw = (string)@file_get_contents($path, false, null, 0, 8 * 1024 * 1024 + 1);
+    return stripos($raw, '<?php') !== false || strpos($raw, '<?=') !== false
+        || preg_match('/<\?\s/', $raw) === 1;
+}
+
+/** JPG/PNG/WEBP that this server can decode and write again with gd. */
+const IPC_IMG_CODECS = [
+    'jpg'  => ['imagecreatefromjpeg', 'imagejpeg'],
+    'jpeg' => ['imagecreatefromjpeg', 'imagejpeg'],
+    'png'  => ['imagecreatefrompng',  'imagepng'],
+    'webp' => ['imagecreatefromwebp', 'imagewebp'],
+];
+function image_reencode_available(string $ext): bool {
+    $c = IPC_IMG_CODECS[strtolower($ext)] ?? null;
+    return $c !== null && extension_loaded('gd') && function_exists('imagescale')
+        && function_exists($c[0]) && function_exists($c[1]) && function_exists('imagejpeg');
+}
+
 // Everything that decides whether an uploaded file is a usable, safe image:
-// extension AND sniffed MIME agree (A-5.x), no PHP tag anywhere in the bytes
-// (A-9.P3-2 / NEW-V1-1), 8 MB, the pixel ceiling BEFORE any decode (SEC-2),
-// then it must actually decode where gd exists. Returns '' when it passes and
-// sets $ext to the lower-cased extension.
+// extension AND sniffed MIME agree (A-5.x), no PHP tag in the bytes that will
+// be stored as uploaded (A-9.P3-2 / NEW-V1-1; since AUDIT-12 decision 27 only
+// GIFs, and JPG/PNG/WEBP where gd cannot re-encode them — the others are
+// re-encoded by image_prepare_upload()), 8 MB, the pixel ceiling BEFORE any
+// decode (SEC-2), then it must actually decode where gd exists. Returns ''
+// when it passes and sets $ext to the lower-cased extension.
 function uploaded_image_problem(array $file, ?string &$ext = null): string {
     $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
     $tmp = (string)($file['tmp_name'] ?? '');
@@ -2359,16 +2398,12 @@ function uploaded_image_problem(array $file, ?string &$ext = null): string {
         if (PHP_VERSION_ID < 80000) finfo_close($finfo);   // A12-L2-W1-G1-1: deprecated in 8.5, a no-op since 8.0
         if ($fmime !== $mimeType) $mimeType = '';
     }
-    $raw       = (string)@file_get_contents($tmp, false, null, 0, 8 * 1024 * 1024 + 1);
-    $hasPhpTag = (stripos($raw, '<?php') !== false || stripos($raw, '<?=') !== false);
+    $hasPhpTag = ($ext === 'gif' || !image_reencode_available($ext)) && image_php_tag_in_bytes($tmp);
     $pixelProblem = $sniffed !== false ? image_pixel_problem((int)$sniffed[0], (int)$sniffed[1]) : '';
     if (!isset(IPC_IMG_TYPES[$ext]) || $mimeType !== IPC_IMG_TYPES[$ext]) {
         return 'Only JPG, PNG, WEBP, or GIF images are accepted (extension and content must match).';
     }
-    if ($hasPhpTag) {
-        return 'That file is not a usable image — it contains program code, not just picture data. '
-             . 'Open it in an image editor and re-save it as a JPG or PNG, then upload it again.';
-    }
+    if ($hasPhpTag) return IMG_PROGRAM_CODE_MSG;
     if ((int)($file['size'] ?? 0) > 8 * 1024 * 1024) return 'File is too large. Maximum size is 8MB.';
     if ($pixelProblem === 'too-many-pixels') {
         return 'That photo is ' . round(((int)$sniffed[0] * (int)$sniffed[1]) / 1000000, 1) . ' megapixels — more than the '
@@ -2387,8 +2422,12 @@ function uploaded_image_problem(array $file, ?string &$ext = null): string {
 }
 
 // The "saved it smaller / could not resize" sentence both upload pages append.
-function image_resize_note(bool $wasResized, string $reason, string $what = 'this product page'): string {
-    return ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide to keep the page fast — it will still look sharp.' : '')
+// AUDIT-12 decision 23 (A12-L11-W5-G1-2): "to keep the page fast" was said of
+// a PNG that came out at 1.4 MB, so the width sentence no longer claims speed;
+// $converted says the photo was stored as a JPG, which is what makes it small.
+function image_resize_note(bool $wasResized, string $reason, string $what = 'this product page', bool $converted = false): string {
+    return ($wasResized ? ' It was very large, so it has been scaled down to ' . IMG_MAX_WIDTH . ' pixels wide — it will still look sharp.' : '')
+         . ($converted ? ' It was sent as a PNG with no see-through areas, so it has been saved as a JPG: the same picture in a much smaller file, so the page loads faster.' : '')
          . ($reason === 'no-gd'
             ? ' ⚠ This server cannot resize images (its image tools are not installed), so the photo has been'
               . ' saved at its original size and ' . $what . ' may load slowly. Please resize it to about '
@@ -2531,6 +2570,107 @@ function image_downscale_in_place(string $path, string $ext, ?string &$reason = 
     if ($perms !== false) @chmod($tmp, $perms & 0777);
     if (!@rename($tmp, $path)) { @unlink($tmp); $reason = 'rename-failed'; return false; }
     return true;
+}
+
+/**
+ * AUDIT-12 decisions 23 and 27 — every JPG, PNG and WEBP upload is written
+ * fresh by gd before it is stored, instead of keeping the uploaded bytes.
+ *
+ * 27 (A12-L11-W5-G1-1, A12-L3-02-1): a re-encode keeps only the decoded
+ *    pixels, so program code hidden in a comment, a metadata block or after
+ *    the image data does not survive. That replaces the raw-bytes scan for
+ *    these three types, which refused ~7% of genuine photos and still missed
+ *    the short '<?' tag. GIFs are stored as uploaded (an animation must not be
+ *    flattened) and stay scanned, as does any file gd cannot re-encode here:
+ *    then 'problem' carries the refusal. Camera details (EXIF) are dropped;
+ *    the orientation is applied to the pixels first, as A12-L11-W5-G4-1 did.
+ * 23 (A12-L11-W5-G1-2): a PNG with no see-through pixel is a photo, and is
+ *    saved as a JPG (~1.4 MB -> ~0.2 MB at 1600 wide). One with transparency
+ *    stays a PNG. $mayBecomeJpeg is false for the logo, which is artwork.
+ *
+ * Wider than IMG_MAX_WIDTH is scaled as image_downscale_in_place() does.
+ * uploaded_image_problem() has already refused anything over IMG_MAX_PIXELS,
+ * so the decode here is bounded (SEC-2).
+ *
+ * Returns ['path' => the re-encoded file, a dotfile in $dir to rename into
+ * place, or null to store the upload as is; 'ext' => the extension to save
+ * under; 'resized', 'converted' => bool; 'reason' => as
+ * image_downscale_in_place()'s, for image_resize_note(); 'problem' => '' or
+ * the refusal].
+ */
+function image_prepare_upload(string $src, string $ext, string $dir, bool $mayBecomeJpeg = true): array {
+    $ext = strtolower($ext);
+    $r = ['path' => null, 'ext' => $ext, 'resized' => false, 'converted' => false, 'reason' => '', 'problem' => ''];
+    $info = @getimagesize($src);
+    $w = is_array($info) ? (int)$info[0] : 0;
+    $h = is_array($info) ? (int)$info[1] : 0;
+    if ($ext === 'gif') { $r['reason'] = $w > IMG_MAX_WIDTH ? 'animation' : 'already-small'; return $r; }
+    // Not re-encoded: the bytes are stored as uploaded, so they must pass the scan.
+    $asUploaded = static function (string $reason) use ($r, $src): array {
+        $r['reason'] = $reason;
+        if (image_php_tag_in_bytes($src)) $r['problem'] = IMG_PROGRAM_CODE_MSG;
+        return $r;
+    };
+    if (!image_reencode_available($ext)) {
+        return $asUploaded(extension_loaded('gd') && function_exists('imagescale') ? 'no-loader' : 'no-gd');
+    }
+    if ($w < 1 || $h < 1) return $asUploaded('unreadable');
+    if ($w * $h > IMG_MAX_PIXELS) return $asUploaded('too-many-pixels');
+    [$load, $write] = IPC_IMG_CODECS[$ext];
+    $im = @$load($src);
+    if (!$im) return $asUploaded('decode-failed');
+    if ($ext === 'jpg' || $ext === 'jpeg') {
+        $o = jpeg_exif_orientation($src);
+        if ($o > 1) {
+            $turned = image_apply_orientation($im, $o);
+            if (!$turned) { gd_free($im); return $asUploaded('no-rotate'); }
+            $im = $turned;
+        }
+    }
+    if (!imageistruecolor($im)) @imagepalettetotruecolor($im);
+    if (imagesx($im) > IMG_MAX_WIDTH) {
+        $scaled = @imagescale($im, IMG_MAX_WIDTH);
+        if (!$scaled) { gd_free($im); return $asUploaded('scale-failed'); }
+        gd_free($im);
+        $im = $scaled;
+        $r['resized'] = true;
+    } else {
+        $r['reason'] = 'already-small';
+    }
+    $outExt = $ext;
+    if ($ext === 'png' && $mayBecomeJpeg && !image_has_transparency($im)) {
+        $outExt = 'jpg';
+        $write = 'imagejpeg';
+    }
+    if ($outExt === 'png' || $outExt === 'webp') {
+        @imagealphablending($im, false);
+        @imagesavealpha($im, true);
+    }
+    $tmp = rtrim($dir, '/') . '/.upload-' . getmypid() . '-' . mt_rand(1000, 999999) . '.tmp';
+    $ok = $write === 'imagepng' ? @imagepng($im, $tmp, 6) : @$write($im, $tmp, 82);
+    gd_free($im);
+    if (!$ok || !is_file($tmp) || @filesize($tmp) < 1) {
+        @unlink($tmp);
+        $r['resized'] = false;
+        return $asUploaded('write-failed');
+    }
+    @chmod($tmp, 0644);
+    $r['path'] = $tmp;
+    $r['ext'] = $outExt;
+    $r['converted'] = $outExt !== $ext;
+    return $r;
+}
+
+/** True when any pixel of a truecolor gd image is not fully opaque. */
+function image_has_transparency($im): bool {
+    $w = imagesx($im);
+    $h = imagesy($im);
+    for ($y = 0; $y < $h; $y++) {
+        for ($x = 0; $x < $w; $x++) {
+            if ((imagecolorat($im, $x, $y) >> 24) & 0x7F) return true;
+        }
+    }
+    return false;
 }
 
 function spec_table1_problem($rows): string {

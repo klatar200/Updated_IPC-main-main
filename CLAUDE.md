@@ -169,8 +169,9 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
 - **`uploads/images/`** — read/write/delete; created at runtime if absent, and
   `uploads_protection_problem()` (called by `upload-image.php` and
   `site-images.php`) writes `uploads/.htaccess` if that is missing — both
-  refuse the upload if it still is (NEW-N3-3). Photo resizes go through a `.tmp`
-  beside the target. Deleted products' photos go to `.deleted.<name>` as above.
+  refuse the upload if it still is (NEW-N3-3). Every JPG/PNG/WEBP upload is re-encoded by
+  gd into `.upload-<pid>-<rand>.tmp` in the target folder and renamed in
+  (AUDIT-12 decisions 23/27; `uploads/site/` the same). Deleted products' photos go to `.deleted.<name>` as above.
 - **`uploads/site/`** — read/write, **never delete**; created at runtime if
   absent by `site-images.php` (2026-09-29), which stores page photos and the
   logo as `<slot>-<stamp>.<ext>` and never overwrites. It also READS

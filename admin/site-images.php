@@ -153,22 +153,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $problem = uploads_protection_problem();
             if ($problem === '') $problem = uploaded_image_problem($_FILES['image_file'], $ext);
+            // AUDIT-12 decisions 23/27 — re-encoded by gd before it is stored;
+            // an opaque PNG photo becomes a JPG, but never the logo (artwork).
+            $prep = $problem === '' ? image_prepare_upload($_FILES['image_file']['tmp_name'], $ext, SITE_IMG_DIR, $slot !== 'logo') : null;
+            if ($prep !== null && $prep['problem'] !== '') $problem = $prep['problem'];
             if ($problem !== '') {
                 $errors[] = $problem;
             } else {
+                $ext = $prep['ext'];
                 $stem = $slot . '-' . date('Ymd-His');
                 $filename = $stem . '.' . $ext;
                 for ($n = 2; file_exists(SITE_IMG_DIR . $filename) && $n < 1000; $n++) $filename = $stem . '-' . $n . '.' . $ext;
                 $dest = SITE_IMG_DIR . $filename;
-                if (!move_uploaded_file($_FILES['image_file']['tmp_name'], $dest)) {
+                $stored = $prep['path'] !== null
+                    ? (is_uploaded_file($_FILES['image_file']['tmp_name']) && @rename($prep['path'], $dest))
+                    : move_uploaded_file($_FILES['image_file']['tmp_name'], $dest);
+                if ($prep['path'] !== null && !$stored) @unlink($prep['path']);
+                if (!$stored) {
                     $errors[] = 'Upload failed. Check write permissions on the /uploads/site/ folder.';
                 } else {
-                    $reason = '';
-                    $wasResized = image_downscale_in_place($dest, $ext, $reason);
                     if (slot_write($slot, SITE_IMG_PATH . $filename, $errors)) {
                         audit_log('site-image', $slot, $SLOTS[$slot]['label'] . ' → uploaded ' . $filename);
                         flash_redirect($SLOTS[$slot]['label'] . ': new picture uploaded and in use. The website shows it within about a minute.'
-                            . image_resize_note($wasResized, $reason, 'that page'), 'success', 'site-images.php');
+                            . image_resize_note($prep['resized'], $prep['reason'], 'that page', $prep['converted']), 'success', 'site-images.php');
                     }
                     // A12-L4-03-4 — the data file was not changed, so this new
                     // picture is used nowhere and was never published: remove
@@ -262,7 +269,7 @@ $csrf    = csrf_token();
         <button type="submit" class="btn btn-primary">Upload &amp; Use →</button>
       </div>
       <?php if ($isLogo): ?><div class="hint">A PNG with a transparent background works best. An SVG logo cannot be uploaded here (SVG files can carry program code) — ask your developer.</div>
-      <?php else: ?><div class="hint">Anything wider than <?= (int)IMG_MAX_WIDTH ?> pixels is scaled down automatically so the page stays fast.</div><?php endif; ?>
+      <?php else: ?><div class="hint">Anything wider than <?= (int)IMG_MAX_WIDTH ?> pixels is scaled down automatically, and a PNG photo with no see-through areas is saved as a JPG, a much smaller file.</div><?php endif; ?>
     </form>
 
     <?php if ($choices): ?>

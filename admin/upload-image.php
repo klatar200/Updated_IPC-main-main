@@ -85,6 +85,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // "check write permissions" error for a folder that is not there.
         $problem = $errors ? '' : uploads_protection_problem();
         if ($problem === '' && !$errors) $problem = uploaded_image_problem($file, $ext);
+        // AUDIT-12 decisions 23/27 — re-encode JPG/PNG/WEBP (and store an
+        // opaque PNG as a JPG) BEFORE the name is chosen, since the extension
+        // may change. A file that cannot be re-encoded is scanned instead.
+        $prep = ($errors || $problem !== '') ? null : image_prepare_upload($file['tmp_name'], $ext, IMG_DIR);
+        if ($prep !== null && $prep['problem'] !== '') $problem = $prep['problem'];
+        if ($prep !== null) $ext = $prep['ext'];
         if ($errors) {
             // the folder message above is the whole story
         } elseif ($problem !== '') {
@@ -129,12 +135,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $destUrl  = IMG_URL . $filename;
 
             $isReplacement = file_exists($destPath);
-            if (move_uploaded_file($file['tmp_name'], $destPath)) {
-                // A-5.16 — bound the pixel size once the file is in place.
-                // A-7.6 — and keep the reason, so "too big to resize" can be
-                // said out loud instead of reading like "already fine".
-                $resizeReason = '';
-                $wasResized = image_downscale_in_place($destPath, $ext, $resizeReason);
+            // A-5.16 — the pixel size is bounded by image_prepare_upload()
+            // above (it used to be image_downscale_in_place() after the move).
+            // A-7.6 — and the reason is kept, so "too big to resize" can be
+            // said out loud instead of reading like "already fine".
+            $stored = $prep['path'] !== null
+                ? (is_uploaded_file($file['tmp_name']) && @rename($prep['path'], $destPath))
+                : move_uploaded_file($file['tmp_name'], $destPath);
+            if ($prep['path'] !== null && !$stored) @unlink($prep['path']);
+            if ($stored) {
+                $resizeReason = $prep['reason'];
+                $wasResized = $prep['resized'];
                 $products[$idx]['photoUrl'] = $destUrl;
                 if (save_products($products)) {
                     // If the file name changed, move the old managed file aside
@@ -153,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     // A-5.16 (resized), A-9.P2-2 (no gd: saved at full size, the only
                                     // silent outcome until then) — text in image_resize_note(), shared
                                     // with site-images.php. SEC-2 refuses over-ceiling images earlier.
-                                    . image_resize_note($wasResized, $resizeReason);
+                                    . image_resize_note($wasResized, $resizeReason, 'this product page', $prep['converted']);
                     $currentPhoto = $destUrl;
                     $isManaged    = true;
                     $product      = $products[$idx];
