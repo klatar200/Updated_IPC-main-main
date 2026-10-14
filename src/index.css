@@ -60,6 +60,9 @@
   --brand-primary-ink: #ffffff;
   --brand-dark-ink: #ffffff;
   --brand-header-ink: #ffffff;
+  /* AUDIT-12 decision 20 — the ink on SOLID accent-2 (spec-table heading
+     cells): inkFor(#119ec8) is the dark ink, 5.92:1 (white is 3.11:1). */
+  --brand-accent-2-ink: #141414;
 
   /* The same three as bare "r, g, b" triples, for de-emphasised text:
      rgba(var(--brand-dark-ink-rgb), 0.6) instead of rgba(255,255,255,0.6).
@@ -125,6 +128,7 @@
   --brand-accent-on-dark: #119ec8;
   --brand-accent-on-footer: #119ec8;
   --brand-accent1-on-dark: #00bef2;
+  --brand-accent1-on-drawer: #00bef2; /* AUDIT-12 decision 51 — solved on the drawer */
 }
 
 /* Ink utilities, for elements that set their color through a class rather than
@@ -570,6 +574,10 @@ body.ipc-has-sticky-rfq {
    carries data-print="keep": hiding every button printed the FAQ with no
    questions and the Product Index with six blank column headers.
    (A12-L14-W1-G1-1) */
+/* AUDIT-12 decision 17 (A12-L6-W5-G4-2) — the footer's company name, phone
+   and email, for paper only (Footer in App.jsx). Hidden here, not in
+   GlobalStyles, so it never flashes on screen (invariant 9). */
+.ipc-print-contact { display: none; }
 @media print {
   @page { margin: 12mm; }
   html, body { background: #fff !important; }
@@ -591,6 +599,14 @@ body.ipc-has-sticky-rfq {
   th, td { border: 1px solid #999 !important; }
   tr, img, li { break-inside: avoid; }
   h1, h2, h3 { break-after: avoid; }
+  .ipc-print-contact {
+    display: block !important;
+    margin-top: 16px;
+    padding-top: 6px;
+    border-top: 1px solid #999;
+    font-size: 11pt;
+    break-inside: avoid;
+  }
 }
 
 

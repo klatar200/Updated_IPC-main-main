@@ -102,6 +102,33 @@ Options -Indexes
 # it and this rule would look like it worked while a stale file shipped.
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
+# AUDIT-12 decision 25 (A12-L10-W3-G3-1) — /index.html is a permanent alias of
+# the homepage. Served as the static file it was the shipped shell: the
+# shipped title and description instead of Rick's SEO text, the shipped phone
+# and email, and no canonical, to every crawler and link preview that asked
+# for it. THE_REQUEST (the visitor's own request line), not the rewritten
+# path: index.php reads index.html from disk and is untouched, and on a host
+# whose index.php is missing DirectoryIndex's internal fall-back to
+# index.html must not loop back to `/`. The query string is kept.
+RewriteCond %{THE_REQUEST} ^\S+\s/index\.html[?\s]
+RewriteRule ^index\.html$ https://%{HTTP_HOST}/ [R=301,L]
+
+# AUDIT-12 decision 26 (A12-L10-W5-G2-1) — the predecessor site lived at
+# /site/ from 2026-09-04 until deploy day (the domain's `/` answered
+# 302 -> /site/), so bookmarks and pasted links point there. Once its pages
+# are deleted (GO-LIVE B2 step 10), /site, /site/ and /site/index.html go to
+# the homepage. Only while /site/index.html is gone: until step 10 it is the
+# predecessor and the first-deploy rollback, and the rollback restores
+# `/` -> /site/, which this rule would otherwise bounce straight back. The
+# base folder comes from REQUEST_FILENAME (measured on Apache 2.4: it is
+# <docroot>/site... whether or not the folder still exists), not
+# DOCUMENT_ROOT, which shared hosts do not always set to this folder.
+# /site/admin/ and everything under it is NOT matched (Keagan 2026-10-13:
+# the old admin keeps running).
+RewriteCond %{REQUEST_FILENAME} ^(.*/)site(/.*)?$
+RewriteCond %1site/index.html !-f
+RewriteRule ^site(/|/index\.html)?$ https://%{HTTP_HOST}/ [R=301,L]
+
 # Serve existing files and directories normally (assets, JSON, .well-known, etc.)
 # A missing file under /assets/ must NOT fall through to the SPA shell. The
 # build emits content-hashed files there, so a request for one that is not on

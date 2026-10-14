@@ -854,6 +854,12 @@ function ipc_render_body(array $st)
     } else {
         $o .= '<h1>' . ipc_h($st['unknown'] ? 'Page not found' : ($st['key'] === 'home' ? $st['title'] : $st['heading'])) . '</h1>';
         if ($st['desc'] !== '') $o .= '<p>' . ipc_h($st['desc']) . '</p>';
+        // AUDIT-12 decision 16 (A12-L6-09-3) — /contact's description offers
+        // "our online form", which only exists with JavaScript; this body is
+        // what a browser without it shows. Say so, and where to go instead.
+        if ($st['key'] === 'contact' && !$st['unknown']) {
+            $o .= '<p>The online form needs JavaScript. Without it, please call or email us — our phone number and email address are below.</p>';
+        }
         // The Product Index lists the same catalog links as /products
         // (A12-L6-03-2); Datasheets lists every published data sheet (A12-L6-04-2).
         if (($st['key'] === 'products' || $st['key'] === 'dashboard') && is_array($st['products']) && !$st['unknown']) {

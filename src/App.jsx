@@ -1560,7 +1560,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                         style={{
                           fontSize: 13,
                           fontWeight: 600,
-                          color: currentPage === item.p ? "var(--brand-accent1-on-dark)" : "rgb(var(--brand-drawer-ink-rgb))",
+                          color: currentPage === item.p ? "var(--brand-accent1-on-drawer)" : "rgb(var(--brand-drawer-ink-rgb))",
                         }}
                       >
                         {item.label}
@@ -1720,7 +1720,7 @@ function Navbar({ products = [], catalogFailed = false }) {
                           fontSize: 13,
                           fontWeight: 600,
                           color:
-                            currentPage === item.page ? "var(--brand-accent1-on-dark)" : "rgb(var(--brand-drawer-ink-rgb))",
+                            currentPage === item.page ? "var(--brand-accent1-on-drawer)" : "rgb(var(--brand-drawer-ink-rgb))",
                         }}
                       >
                         {item.label}
@@ -2194,10 +2194,12 @@ function Hero() {
 // The whole card is one navigational control, so the card itself is the anchor
 // — a nested <a> would be invalid and only the inner text would be crawlable.
 // `flex` in the className supplies the display an <a> lacks. (PLAN-1 4.21)
-function FeatureCard({ icon, title, description, page }) {
+function FeatureCard({ icon, title, description, page, params, hash }) {
   return (
     <PageLink
       page={page}
+      params={params}
+      hash={hash}
       className="flex gap-5 p-6 rounded-xl cursor-pointer transition-all duration-200"
       style={{
         background: "#ffffff",
@@ -2445,39 +2447,89 @@ const FEATURES_ICONS = {
   ),
 };
 
+/**
+ * AUDIT-12 decision 48 (A12-L6-W3-G5-1) — where each "Products & Services"
+ * card goes. All six opened the same unfiltered /products, so "Custom
+ * Cut-to-Length", "Marking & Kitting" and "ISO 9001 Quality" landed on a
+ * product grid that says nothing about cutting, marking or quality. Each card
+ * now has a link box in Page Content (`link`, a path on this site); an empty
+ * or unusable one falls back to the card's icon below, and then to /products.
+ * The catalog filter takes ONE family, so a product-line card opens the family
+ * its description leads with.
+ */
+const FEATURE_LINK_DEFAULTS = {
+  heatshrink: "/products?family=Polyolefin Heat Shrink",
+  sleeving: "/products?family=Fiberglass Sleeving",
+  adhesives: "/products?family=Adhesive",
+  cut: "/services",
+  marking: "/services",
+  quality: "/about",
+};
+const FEATURE_LINK_PAGES = new Set(["home", "products", "dashboard", "datasheets", "industries",
+  "services", "about", "faq", "contact", "privacy"]);
+function featureLinkTarget(f) {
+  const parse = (raw) => {
+    if (typeof raw !== "string") return null;
+    const s = raw.trim();
+    // A path on this site only: "/x", never "//host" or a scheme. Spaces
+    // are fine ("?family=Polyolefin Heat Shrink"); a backslash or a control
+    // character is not (a browser reads "/\\host" as another site).
+    if (!/^\/(?!\/)/.test(s) || /[\\\x00-\x1f]/.test(s)) return null;
+    let u;
+    try { u = new URL(s, "https://site.invalid"); } catch { return null; }
+    if (u.origin !== "https://site.invalid") return null;
+    const segs = u.pathname.split("/").filter(Boolean);
+    if (segs.length > 1) return null;
+    const page = segs.length ? segs[0] : "home";
+    if (!FEATURE_LINK_PAGES.has(page)) return null;
+    return {
+      page: page === "home" ? null : page,
+      params: Object.fromEntries(u.searchParams),
+      hash: u.hash ? decodeURIComponent(u.hash.slice(1)) : undefined,
+    };
+  };
+  return parse(f && f.link) || parse(FEATURE_LINK_DEFAULTS[f && f.iconKey]) || { page: "products", params: {} };
+}
+
 const FEATURES_DATA = [
   {
     iconKey: "heatshrink",
+    link: FEATURE_LINK_DEFAULTS.heatshrink,
     title: "Heat Shrink Tubing",
     description:
       "Polyolefin (2:1 & 3:1), dual-wall adhesive-lined, PVDF/Kynar, neoprene, fluoroelastomer, and medical-grade. All RoHS compliant.",
   },
   {
     iconKey: "sleeving",
+    link: FEATURE_LINK_DEFAULTS.sleeving,
     title: "Electrical Sleeving",
     description:
       "Fiberglass sleeving — heat-treated, vinyl-coated (Class C), acrylic-coated (Class F), silicone-coated (Class H). Expandable polyester also stocked.",
   },
   {
     iconKey: "adhesives",
+    link: FEATURE_LINK_DEFAULTS.adhesives,
     title: "Adhesives & Accessories",
     description:
       "Industrial & cyanoacrylate adhesives, cable ties, insulating tape, heat guns, and heat-shrinkable end caps.",
   },
   {
     iconKey: "cut",
+    link: FEATURE_LINK_DEFAULTS.cut,
     title: "Custom Cut-to-Length",
     description:
       "Small or large volume precision cutting and spooling. Tight tolerances, clean environment. Typical turnaround: one week or less.",
   },
   {
     iconKey: "marking",
+    link: FEATURE_LINK_DEFAULTS.marking,
     title: "Marking & Kitting",
     description:
       "Custom labeling, bar code printing, wire & cable markers, slit lengthwise, perforations, bagging per spec, JIT services.",
   },
   {
     iconKey: "quality",
+    link: FEATURE_LINK_DEFAULTS.quality,
     title: "ISO 9001 Quality",
     description:
       // A2 — revision deliberately absent; see the homepage trust-bar default.
@@ -2509,7 +2561,9 @@ function Features() {
           action={{ label: "View Full Catalog →", page: "products" }}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((f, i) => (
+          {features.map((f, i) => {
+            const to = featureLinkTarget(f);
+            return (
             <FeatureCard
               key={`${i}-${f.title}`}
               icon={
@@ -2519,9 +2573,12 @@ function Features() {
               }
               title={f.title}
               description={f.description}
-              page="products"
+              page={to.page}
+              params={to.params}
+              hash={to.hash}
             />
-          ))}
+            );
+          })}
         </div>
         </>)}
         <div
@@ -3460,7 +3517,11 @@ function HomePage() {
             className="text-2xl font-extrabold mt-1"
             style={{ color: "#141414" }}
           >
-            {withBusinessFacts("The same team, the same building, since 1974", site)}
+            {/* AUDIT-12 decision 6 (A12-L8-W4-G3-1) — this heading read "The
+                same team, the same building, since 1974": a claim written
+                during this project, not by IPC, that nothing backs and no
+                admin field holds. It now describes the two photographs. */}
+            {withBusinessFacts("Bolingbrook, Illinois — our team and our building", site)}
           </h2>
           <p className="mt-2 text-sm max-w-2xl" style={{ color: "#4b5563" }}>
             {/* A-9.P4-6 — this sentence and the two facility `alt`s spelled the
@@ -3935,6 +3996,16 @@ function AboutPage() {
   const img = copy.siteImages;
   const [slot, onSlotError] = useSiteImageSlots(img);
   const claims = copy.claims;
+  // AUDIT-12 decision 22 (A12-L11-02-1) — the building photo stops at its real
+  // width: the shipped 425px file was painted 745px wide at 1440 and 1257px at
+  // 2560, soft and with its white frame showing. Until the file loads the cap
+  // is the shipped file's width when that is the photo in the slot (so the
+  // box does not change size on load), else none; once loaded, the file's own.
+  const aboutSrc = slot("aboutPhoto");
+  const [aboutNatural, setAboutNatural] = useState({ src: "", w: 0 });
+  const aboutCap = aboutNatural.src === aboutSrc && aboutNatural.w
+    ? aboutNatural.w
+    : (/\/images\/site\/IPC-Building\.jpg$/.test(aboutSrc || "") ? BAND_BUILDING.w : undefined);
 
   return (
     <div style={{ background: "#f5f7fa", minHeight: "100vh" }}>
@@ -3979,19 +4050,21 @@ function AboutPage() {
                 crop trims the white border baked into the source pixels". It
                 does not — a 3:2 cover crop of the 1.51:1 file removes ~2px — and
                 this slot paints the 425px file at 745px (1440) to 1257px (2560),
-                so the border shows and the photo is soft. Open with the owner.
+                so the border shows and the photo is soft. Since AUDIT-12
+                decision 22 the slot stops at the file's own width (aboutCap).
                 Owner-editable since item 3a; cleared removes it entirely. */}
             {slot("aboutPhoto") ? (
             <img
               src={slot("aboutPhoto")}
               onError={onSlotError}
+              onLoad={(e) => setAboutNatural({ src: aboutSrc, w: e.currentTarget.naturalWidth || 0 })}
               alt={withBusinessFacts(`The IPC facility at ${site.address.street}, Bolingbrook, Illinois`, site)}
               loading="lazy"
               decoding="async"
               width={BAND_BUILDING.w}
               height={BAND_BUILDING.h}
               className="w-full rounded-xl"
-              style={{ aspectRatio: "3 / 2", objectFit: "cover", border: "1px solid #e5e9ee" }}
+              style={{ aspectRatio: "3 / 2", objectFit: "cover", border: "1px solid #e5e9ee", maxWidth: aboutCap }}
             />
             ) : null}
           </div>
@@ -7566,7 +7639,15 @@ function groupFaq(flat) {
   // wrong". Any category text the admin accepts must group. (AUDIT-12
   // A12-L15-06-1)
   const byName = Object.create(null);
+  // AUDIT-12 decision 8 (A12-L6-01-W5-2) — a row is shown only with a
+  // non-blank question AND a non-blank answer: the same rule FaqPage's
+  // FAQPage JSON-LD applies. Page Content keeps any row with one field filled
+  // in, so an "add it now, answer later" edit showed a question that opened
+  // to nothing, and a category-only row a blank card with just a "+". A
+  // category whose rows are all half-written is not shown at all.
+  const filled = (v) => typeof v === "string" && v.trim() !== "";
   (flat || []).forEach((row) => {
+    if (!row || !filled(row.question) || !filled(row.answer)) return;
     const name = row.category || "General";
     if (!byName[name]) {
       byName[name] = { name, items: [] };
@@ -9016,6 +9097,10 @@ function ThemeInjector() {
     root.style.setProperty("--brand-primary-ink", primaryInk);
     root.style.setProperty("--brand-dark-ink", darkInk);
     root.style.setProperty("--brand-header-ink", headerInk);
+    // AUDIT-12 decision 20 (A12-L14-W1-G4-1) — the ink for SOLID accent-2
+    // (the spec-table heading cells). Dark (#141414, 5.92:1) on the shipped
+    // #119EC8, where white is 3.11:1.
+    root.style.setProperty("--brand-accent-2-ink", inkFor(accent2));
     // The same three inks as bare "r, g, b" triples, so de-emphasised text can
     // say rgba(var(--brand-dark-ink-rgb), 0.6) and follow the ink instead of
     // hardcoding rgba(255,255,255,0.6). That opacity idiom is used at ~50 call
@@ -9160,6 +9245,12 @@ function ThemeInjector() {
     root.style.setProperty("--brand-drawer-ink-rgb", inkRgb(inkFor(hexOf(darkDrawer))));
     const drawerHex = hexOf(darkDrawer);
     for (const a of [30, 40, 65, 70]) root.style.setProperty(`--brand-drawer-muted-${a}`, mutedOn(drawerHex, inkFor(drawerHex), a / 100));
+    // AUDIT-12 decision 51 — the phone menu's CURRENT sub-link is the accent
+    // as text on the drawer, so it is solved against the drawer surface, as
+    // --brand-drawer-ink is. --brand-accent1-on-dark is solved against
+    // --brand-dark: on a pale Dark colour (#d0dcea) it fell to 2.96:1 in the
+    // drawer. The shipped palette is unchanged (#00bef2 either way).
+    root.style.setProperty("--brand-accent1-on-drawer", textSafeOn(accent, drawerHex, DARK_TARGET));
     root.style.setProperty("--brand-deep-ink-rgb", inkRgb(deepInk));
     root.style.setProperty("--brand-hero-ink-rgb", inkRgb(heroInk));
     // §1as — the hero's small text sits on the scrim at any point along it,
@@ -9437,7 +9528,13 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
           </div>
         </div>
 
-        {/* Product pills — 2-column grid */}
+        {/* Product pills — 2-column grid.
+            AUDIT-12 decision 46 (A12-L6-02-1) — on a product page only. On
+            the catalog landing (no product open) this grid listed the same
+            42 products the cards below list, and pushed the search box
+            1,690–1,985 px down on a phone or tablet. The family chips above
+            and the cards stay. */}
+        {selectedId ? (
         <div
           style={{
             display: "grid",
@@ -9513,6 +9610,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
             );
           })}
         </div>
+        ) : null}
       </div>
 
       {/* ── DESKTOP VIEW: full left sidebar ── */}
@@ -9927,10 +10025,12 @@ function SpecTable2({ table }) {
                 className="px-3 py-3 text-center whitespace-pre-line text-xs font-semibold leading-snug align-middle"
                 style={{
                   // 4.23: these cells alternate between --brand-primary and
-                  // --brand-accent-2, the same two stops as the page-banner
-                  // gradient, so --brand-header-ink (scored on the worse of the
-                  // pair) is the ink that works across the whole row.
-                  color: "var(--brand-header-ink)",
+                  // --brand-accent-2. AUDIT-12 decision 20 (A12-L14-W1-G4-1) —
+                  // each cell is ONE solid colour, not the page-banner
+                  // gradient, so it takes the ink derived for its own surface.
+                  // --brand-header-ink (scored on the worse of the pair) put
+                  // white on #119EC8 at 3.11:1; the dark ink there is 5.92:1.
+                  color: i !== 0 && i % 2 === 0 ? "var(--brand-accent-2-ink)" : "var(--brand-primary-ink)",
                   background:
                     i === 0 ? "var(--brand-primary)" : i % 2 === 0 ? "var(--brand-accent-2)" : "var(--brand-primary)",
                   border: "1px solid rgba(255,255,255,0.2)",
@@ -9951,7 +10051,8 @@ function SpecTable2({ table }) {
                       key={`${gi}-${si}`}
                       className="px-3 py-2 text-center text-xs font-semibold"
                       style={{
-                        color: "var(--brand-header-ink)",
+                        // AUDIT-12 decision 20 — the ink for solid accent-2.
+                        color: "var(--brand-accent-2-ink)",
                         background: "var(--brand-accent-2)",
                         border: "1px solid rgba(255,255,255,0.2)",
                       }}
@@ -10090,6 +10191,14 @@ function ProductDetail({ product, allProducts }) {
   // load failure can detect it. (DEPLOY_READINESS_v2 T2.7)
   const [photoFailed, setPhotoFailed] = useState(false);
   useEffect(() => { setPhotoFailed(false); }, [product && product.sku]);
+  // AUDIT-12 decision 22 (A12-L11-W3-R1-7-3) — the photo box stops at the
+  // photo's real width. 32 of the 37 photos are narrower than the column
+  // (median 335px against a 391px box at 1440, 775px at 2560), so they were
+  // stretched up to 2.4x and looked soft. 0 = not loaded yet: the box keeps
+  // its full, reserved 3:2 size until the file says how wide it is. The box
+  // stays anchored top-left, so only its size changes, never its position.
+  const [photoNaturalW, setPhotoNaturalW] = useState(0);
+  useEffect(() => { setPhotoNaturalW(0); }, [product && product.photoUrl]);
   // product.pdfUrl is set by the PHP admin (upload-pdf.php → "/pdfs/<sku>.pdf").
   // When it's missing we render a "Request Datasheet" button that routes to
   // the contact form instead — there is no external printable-page fallback.
@@ -10409,6 +10518,7 @@ function ProductDetail({ product, allProducts }) {
               // 200 site shell, which is why this was first written.)
               // (DEPLOY_READINESS_v2 T2.7)
               onError={() => setPhotoFailed(true)}
+              onLoad={(e) => setPhotoNaturalW(e.currentTarget.naturalWidth || 0)}
               // Both this and the branded panel below carry the marker, so a
               // suite can ask "is the photo's box reserved" without guessing at
               // DOM shape — the first attempt matched an outer wrapper and
@@ -10431,7 +10541,7 @@ function ProductDetail({ product, allProducts }) {
               // exactly while making the height predictable before load.
               // maxHeight is gone because aspectRatio now governs; leaving both
               // would let the cap fight the ratio at wide column widths.
-              style={{ border: "1px solid #e5e9ee", aspectRatio: "3 / 2" }}
+              style={{ border: "1px solid #e5e9ee", aspectRatio: "3 / 2", maxWidth: photoNaturalW || undefined }}
             />
           ) : (
             <div
@@ -14405,6 +14515,16 @@ function Footer() {
   );
 
   return (
+    <>
+    {/* AUDIT-12 decision 17 (A12-L6-W5-G4-2) — the print sheet hides the
+        footer, and on a product page the footer is the only place the
+        supplier's name, phone and email sit, so a spec page printed into a
+        requisition never said whose part it was. This line is the footer's
+        name, phone and email for paper only: `.ipc-print-contact` is
+        display:none on screen and shown by the print sheet (src/index.css). */}
+    <div className="ipc-print-contact">
+      {site.company.name} · Phone {site.contact.phone} · {site.contact.email}
+    </div>
     <footer style={{ background: "#0a2240", borderTop: "3px solid var(--brand-accent)" }}>
       <div className="ipc-container px-6 py-14">
         {/* A10-014 (§1at) — four tracks from lg, not md: at 834 the two link
@@ -14605,6 +14725,7 @@ function Footer() {
         </div>
       </div>
     </footer>
+    </>
   );
 }
 

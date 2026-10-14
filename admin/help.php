@@ -775,7 +775,7 @@ $navActive = 'help';
           <tr><td>The scrolling strip of ✓ items</td><td>Page Content → <strong>Homepage — Hero Trust Ticker</strong>.</td></tr>
           <tr><td>The bar of numbers under the hero (years in business, products stocked …)</td><td>Page Content → <strong>Trust Bar Stats</strong>. <strong>These numbers are typed by you, not counted</strong> — when you add or remove products, update the "Products Stocked" figure here yourself.</td></tr>
           <tr><td>"Products &amp; Services" heading, the dark ribbon's text and its button</td><td>Page Content → <strong>Homepage — "Products &amp; Services" heading</strong>. The "View Full Catalog →" link is fixed.</td></tr>
-          <tr><td>The product and service cards</td><td>Page Content → <strong>Products &amp; Services Cards</strong>.</td></tr>
+          <tr><td>The product and service cards, and where each one opens</td><td>Page Content → <strong>Products &amp; Services Cards</strong>. The <strong>Links to</strong> box on each card is the page it opens: <code>/services</code>, <code>/about</code>, or <code>/products?family=Adhesive</code> for the catalog showing one product family. Left empty, the card opens the usual page for its icon.</td></tr>
           <tr><td>The team and building photos band</td><td>Photos: Page Content → <strong>Site Images</strong> (team and building). The heading and sentence are <strong>fixed</strong> wording, with your street address and ISO filled in from Business Details. The band disappears if you empty both photos.</td></tr>
           <tr><td>"Industries" heading and its paragraph</td><td>Page Content → <strong>Homepage — "Industries" heading</strong>. The "View All Industries →" button is fixed.</td></tr>
           <tr><td>The industry cards</td><td>Page Content → <strong>Industries Grid</strong>. Each card's "Learn More →" jumps to the matching section of the Industries page — so the card's <strong>Name</strong> must be spelled exactly like that section's <strong>Industry name</strong> in <em>Industries Page — Detail Sections</em>, or it lands at the top of the page instead.</td></tr>
@@ -845,7 +845,7 @@ $navActive = 'help';
         <table class="field-ref map-ref">
           <tr><td>Banner</td><td>Page Content → <strong>FAQ page — banner</strong>. Its "Contact our team." link and the "Expand all" button are fixed.</td></tr>
           <tr><td>The category buttons and category headings</td><td>The <strong>Category</strong> box on each FAQ row, in the order they first appear. Spell a category the same way every time or it splits into two.</td></tr>
-          <tr><td>Questions and answers</td><td>Page Content → <strong>FAQ / Resources</strong>. Google is given the same list.</td></tr>
+          <tr><td>Questions and answers</td><td>Page Content → <strong>FAQ / Resources</strong>. Google is given the same list. A question shows on the website only once both its Question and Answer boxes are filled in, so you can save one now and finish the answer later.</td></tr>
           <tr><td>"Still have questions?" box</td><td>Fixed wording; hours, phone, fax and email from Business Details.</td></tr>
         </table>
 

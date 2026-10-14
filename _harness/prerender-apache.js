@@ -10,7 +10,13 @@
  *   /products?productId=CC the product's title, share photo and canonical; 200, no-store
  *   /about?utm_source=x    REQUEST_URI survives the internal rewrite: About's head, not home's
  *   /products/CC/extra     noindex, no canonical, still 200 (A5)
- *   /index.html            the static file, untouched (no canonical — the browser adds it)
+ *   /index.html            301 to / (AUDIT-12 decision 25, A12-L10-W3-G3-1); it was
+ *                          the static shell: shipped head, shipped phone, no canonical
+ *   /site, /site/, /site/index.html
+ *                          301 to / once the predecessor's /site/index.html is gone,
+ *                          served as before while it is there (the first-deploy
+ *                          rollback); /site/admin/ untouched either way
+ *                          (AUDIT-12 decision 26, A12-L10-W5-G2-1)
  *   /assets/nope.js        still a real 404 (audit5 Low), not the shell
  *   /sitemap.xml           still the generated sitemap
  *   damaged content.json   index.html byte for byte, 200
@@ -120,8 +126,38 @@ DocumentRoot ${PUB}
     'an unknown path: noindex, no canonical, still 200 (A5)', `${deep.status} canonical=${canonical(deep.body)}`);
 
   const shell = fs.readFileSync(path.join(PUB, 'index.html'), 'utf8');
+  // AUDIT-12 decision 25 — was "/index.html is still the static file" (200,
+  // the shell byte for byte), which is the defect A12-L10-W3-G3-1 measured.
   const direct = get(`${B}/index.html`);
-  note(direct.status === 200 && direct.body === shell, '/index.html is still the static file');
+  note(direct.status === 301 && direct.h('Location') === 'https://127.0.0.1:' + PORT + '/',
+    '/index.html is a 301 to / (not the static shell)', `${direct.status} ${direct.h('Location')}`);
+  const directQ = get(`${B}/index.html?productId=CC`);
+  note(directQ.status === 301 && directQ.h('Location') === 'https://127.0.0.1:' + PORT + '/?productId=CC',
+    '/index.html?productId=CC keeps its query string', `${directQ.status} ${directQ.h('Location')}`);
+
+  // AUDIT-12 decision 26 — the predecessor at /site/. Its folder is kept until
+  // GO-LIVE B2 step 10 (and its admin after that), so both states are run.
+  fs.mkdirSync(path.join(PUB, 'site', 'admin'), { recursive: true });
+  fs.writeFileSync(path.join(PUB, 'site', 'index.html'), 'PREDECESSOR');
+  fs.writeFileSync(path.join(PUB, 'site', 'admin', 'index.html'), 'OLD ADMIN');
+  spawnSync('chmod', ['-R', 'a+rX', path.join(PUB, 'site')]);
+  const pre = get(`${B}/site/`);
+  const preAdmin = get(`${B}/site/admin/`);
+  note(pre.status === 200 && pre.body === 'PREDECESSOR' && preAdmin.status === 200 && preAdmin.body === 'OLD ADMIN',
+    'while /site/index.html exists, /site/ and /site/admin/ are served as they are (the rollback still works)',
+    `${pre.status} ${pre.body.slice(0, 20)} | ${preAdmin.status} ${preAdmin.body.slice(0, 20)}`);
+  fs.rmSync(path.join(PUB, 'site', 'index.html'));
+  for (const u of ['/site', '/site/', '/site/index.html']) {
+    const r = get(B + u);
+    note(r.status === 301 && r.h('Location') === 'https://127.0.0.1:' + PORT + '/',
+      `${u} is a 301 to / once the predecessor is gone`, `${r.status} ${r.h('Location')}`);
+  }
+  const postAdmin = get(`${B}/site/admin/`);
+  note(postAdmin.status === 200 && postAdmin.body === 'OLD ADMIN', '/site/admin/ is left alone', `${postAdmin.status} ${postAdmin.body.slice(0, 20)}`);
+  fs.rmSync(path.join(PUB, 'site'), { recursive: true, force: true });
+  const gone = get(`${B}/site/`);
+  note(gone.status === 301 && gone.h('Location') === 'https://127.0.0.1:' + PORT + '/',
+    '/site/ is a 301 to / with the whole folder deleted', `${gone.status} ${gone.h('Location')}`);
 
   const asset = get(`${B}/assets/nope.js`);
   note(asset.status === 404, 'a missing /assets/ file is still a real 404, not the page', String(asset.status));

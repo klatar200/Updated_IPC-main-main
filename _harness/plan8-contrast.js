@@ -125,8 +125,16 @@ const isChromaticInk = (r) => {
  * spec-table sub-header). It was only a count, so with that header fixed any
  * other failing neutral text took the free slot and the sweep stayed green,
  * labelled as "brand ink on a brand surface" (AUDIT-12 A12-L13-13-2).
+ *
+ * RATCHETED TO 0 (AUDIT-12 decision 20, A12-L14-W1-G4-1, Keagan 2026-10-14).
+ * The deferral rested on a mis-measurement: each spec-table heading cell
+ * sits on ONE solid colour, not on the page-header gradient, and on solid
+ * #119EC8 the site's own inkFor() picks the dark ink at 5.92:1. The cells now
+ * take the ink derived for their own surface (--brand-accent-2-ink /
+ * --brand-primary-ink), so the pairing is gone and a header-ink <th> on
+ * accent-2 coming back fails here. Never raise it.
  */
-const EXEMPT_BRAND_SURFACE = 1;
+const EXEMPT_BRAND_SURFACE = 0;
 
 /**
  * Gradient-backed NEUTRAL ink outside `.ipc-page-header`. The note above says
