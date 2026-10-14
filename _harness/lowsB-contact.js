@@ -65,7 +65,10 @@ async function rfq(port, extra = {}, headers = {}) {
   body.append('partNumber', 'IP30HS');
   body.append('quantity', '500 ft');
   const res = await fetch(`http://127.0.0.1:${port}/contact.php`, { method: 'POST', body, headers });
-  return { status: res.status, text: await res.text() };
+  const text = await res.text();
+  // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+  await fetch(`http://127.0.0.1:${port}/robots.txt`).then((r) => r.text()).catch(() => {});
+  return { status: res.status, text };
 }
 
 (async () => {

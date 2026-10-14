@@ -94,6 +94,9 @@ function writeCopy(patch) {
   fs.writeFileSync(CONTENT, JSON.stringify(doc, null, 2));
 }
 
+// AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+const settle = () => fetch(`${BASE}/robots.txt`).then((r) => r.text()).catch(() => {});
+
 async function submitRfq(email, extra = {}) {
   clearTmp('ipc_rl_');
   const body = new FormData();
@@ -104,7 +107,9 @@ async function submitRfq(email, extra = {}) {
   body.append('quantity', '500 ft');
   for (const [k, v] of Object.entries(extra)) body.append(k, v);
   const res = await fetch(`${BASE}/contact.php`, { method: 'POST', body });
-  return res.json();
+  const json = await res.json();
+  await settle();
+  return json;
 }
 
 async function submit(email) {
@@ -123,7 +128,9 @@ async function submit(email) {
   body.append('subject', 'Auto-reply cap check');
   body.append('message', 'checking the auto-reply cap');
   const res = await fetch(`${BASE}/contact.php`, { method: 'POST', body });
-  return res.json();
+  const json = await res.json();
+  await settle();
+  return json;
 }
 
 /** Run a set of addresses through the form and report what each one produced. */

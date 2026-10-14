@@ -224,8 +224,13 @@ array_map('unlink', glob($dir . '/*')); @rmdir($dir);
     };
     const mails = () => fs.readFileSync(MAIL, 'utf8').split('===MESSAGE===').filter((m) => m.trim());
     const autoRepliedTo = (addr) => mails().some((m) => new RegExp(`^To:.*${addr.replace(/[.]/g, '\\.')}`, 'mi').test(m));
-    const lead = (port, email) => req({ port, path: '/contact.php', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' } },
-      form({ form_type: 'message', name: 'A59 Probe', company: 'X', email, phone: '6305550100', subject: 'General', message: 'auto-reply cap probe', website: '' }));
+    // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+    const lead = async (port, email) => {
+      const r = await req({ port, path: '/contact.php', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' } },
+        form({ form_type: 'message', name: 'A59 Probe', company: 'X', email, phone: '6305550100', subject: 'General', message: 'auto-reply cap probe', website: '' }));
+      await req({ port, path: '/robots.txt', method: 'GET' }).catch(() => {});
+      return r;
+    };
 
     // :8750 — control first: an ordinary lead gets its auto-reply, and the
     // limiter file it writes tells us this client's name for it.

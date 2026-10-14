@@ -5055,6 +5055,45 @@ function requiredLabel(label) {
   return typeof label === "string" && label.trim() && !/\*\s*$/.test(label) ? `${label} *` : label;
 }
 
+/**
+ * AUDIT-12 decision 18 (A12-L11-W3-G4-1) — the quote and message forms waited
+ * on /contact.php with no time limit, unlike every data fetch on the site
+ * (PRODUCTS_FETCH_TIMEOUT_MS): a stalled mail server left "Sending…" on screen
+ * for minutes with no message and no phone number. After this long the wait
+ * is abandoned and the visitor gets the network-error message, which carries
+ * the phone number. contact.php answers as soon as the lead is recorded and
+ * the sales email has gone, so a healthy server is far inside it.
+ */
+const CONTACT_SUBMIT_TIMEOUT_MS = 30000;
+
+/**
+ * POST one contact form. Resolves to the server's JSON, or `{ ok: false }`
+ * for a reply that is not JSON (F9: the caller's fallback then names the
+ * phone number). Rejects on a network failure or the time limit, which the
+ * caller shows as cf.networkError.
+ */
+async function postContactForm(body) {
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), CONTACT_SUBMIT_TIMEOUT_MS) : null;
+  try {
+    const res = await fetch("/contact.php", { method: "POST", body, ...(controller ? { signal: controller.signal } : {}) });
+    // Deliberately carries NO `error`. This catch fires when the response
+    // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
+    // interstitial. It used to supply "Unexpected server response.", which
+    // satisfied the `json.error ||` in the caller and so SHADOWED
+    // cf.submitError, the owner-editable fallback that has the phone number in
+    // it. The visitor lost a whole RFQ and got a developer's phrase with no way
+    // to reach anyone. Leaving error unset lets the real fallback through. (F9)
+    // A body cut off by the time limit is a network failure, not a bad reply.
+    return await res.json().catch((err) => {
+      if (controller && controller.signal.aborted) throw err;
+      return { ok: false };
+    });
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function ContactPage() {
   const site = useSiteInfo();
   // ?part=SKU set by the product page's "Request Quote" button. (4.6)
@@ -5277,15 +5316,9 @@ function ContactPage() {
     try {
       const body = new FormData(e.target);
       body.append("form_type", "message");
-      const res  = await fetch("/contact.php", { method: "POST", body });
-      // Deliberately carries NO `error`. This catch fires when the response
-      // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
-      // interstitial. It used to supply "Unexpected server response.", which
-      // satisfied the `json.error ||` below and so SHADOWED cf.submitError,
-      // the owner-editable fallback that has the phone number in it. The
-      // visitor lost a whole RFQ and got a developer's phrase with no way to
-      // reach anyone. Leaving error unset lets the real fallback through. (F9)
-      const json = await res.json().catch(() => ({ ok: false }));
+      // A reply that is not JSON comes back as { ok: false } with no `error`,
+      // so cf.submitError below is shown (F9, see postContactForm).
+      const json = await postContactForm(body);
       if (json.ok) {
         markSent("message");   // A-9.P7-2 — and from a submit that really happened
         if (!contactMounted.current) return;
@@ -5327,15 +5360,9 @@ function ContactPage() {
     try {
       const body = new FormData(e.target);
       body.append("form_type", "rfq");
-      const res  = await fetch("/contact.php", { method: "POST", body });
-      // Deliberately carries NO `error`. This catch fires when the response
-      // isn't JSON at all — a PHP fatal, an HTML error page, a proxy
-      // interstitial. It used to supply "Unexpected server response.", which
-      // satisfied the `json.error ||` below and so SHADOWED cf.submitError,
-      // the owner-editable fallback that has the phone number in it. The
-      // visitor lost a whole RFQ and got a developer's phrase with no way to
-      // reach anyone. Leaving error unset lets the real fallback through. (F9)
-      const json = await res.json().catch(() => ({ ok: false }));
+      // A reply that is not JSON comes back as { ok: false } with no `error`,
+      // so cf.submitError below is shown (F9, see postContactForm).
+      const json = await postContactForm(body);
       if (json.ok) {
         markSent("rfq");   // A-9.P7-2 — and from a submit that really happened
         if (!contactMounted.current) return;

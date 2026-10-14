@@ -78,7 +78,10 @@ async function submit(fields, headers = {}) {
     }, headers),
     body,
   });
-  return { status: res.status, body: await res.text() };
+  const text = await res.text();
+  // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+  await fetch(BASE + '/robots.txt').then((r) => r.text()).catch(() => {});
+  return { status: res.status, body: text };
 }
 
 // RFC 2047 encoded-words (B and Q), adjacent words joined as the RFC says.

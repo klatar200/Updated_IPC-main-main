@@ -348,13 +348,48 @@ function ipc_wants_html(): bool {
  * situation it exists for is the one where JavaScript did not run.
  */
 function respond(int $code, array $payload): void {
+    echo ipc_response_body($code, $payload);
+    exit;
+}
+
+/**
+ * AUDIT-12 decision 18 (A12-L11-W3-G4-1) — answer the visitor NOW and keep
+ * running. The buyer's "received" used to wait for the auto-reply's mail() as
+ * well as the sales one, so a 10 s mail server made a 20 s wait, and the
+ * courtesy copy this file itself calls best-effort decided when the buyer was
+ * told the lead was safe. The lead is safe once the record and the sales mail
+ * are done; the auto-reply is sent after this returns.
+ *
+ * The response is sent whole with its Content-Length, so the browser has its
+ * answer and stops waiting even while this request keeps running. PHP-FPM and
+ * LiteSpeed close the request themselves; under mod_php the length is what
+ * tells the browser it is done. Compression is switched off for this one
+ * response, because a gzip filter holds the body until the script ends.
+ * ignore_user_abort is already on (decision 42), so a browser that hangs up
+ * once it has its answer does not stop the auto-reply.
+ */
+function respond_and_continue(int $code, array $payload): void {
+    ignore_user_abort(true);
+    $body = ipc_response_body($code, $payload);
+    while (ob_get_level() > 0) @ob_end_clean();
+    if (function_exists('apache_setenv')) @apache_setenv('no-gzip', '1');
+    @ini_set('zlib.output_compression', '0');
+    header('Content-Length: ' . strlen($body));
+    header('Connection: close');
+    echo $body;
+    if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); return; }
+    if (function_exists('litespeed_finish_request')) { litespeed_finish_request(); return; }
+    flush();
+}
+
+/** The response body for $payload, with its status and Content-Type set. */
+function ipc_response_body(int $code, array $payload): string {
     global $bizPhone, $bizDial, $bizName, $to;
     if ($code !== 200) http_response_code($code);
 
     if (!ipc_wants_html()) {
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($payload);
-        exit;
+        return (string)json_encode($payload);
     }
 
     $ok    = !empty($payload['ok']);
@@ -377,7 +412,7 @@ function respond(int $code, array $payload): void {
     if ($ok && $msg === '') $msg = $dfltBody;
 
     header('Content-Type: text/html; charset=utf-8');
-    echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8">'
        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
        . '<meta name="robots" content="noindex">'
        . '<title>' . hesc($title) . ' — ' . hesc($bizName) . '</title></head>'
@@ -393,7 +428,6 @@ function respond(int $code, array $payload): void {
        . '<p style="margin:0"><a href="/" style="color:#0a2240">← Back to ' . hesc($bizName) . '</a>'
        . ' &nbsp;·&nbsp; <a href="/contact" style="color:#0a2240">Back to the contact form</a></p>'
        . '</div></body></html>';
-    exit;
 }
 
 // ── POST only ──────────────────────────────────────────────────
@@ -1209,6 +1243,10 @@ if (!$sent) {
     ]);
 }
 
+// AUDIT-12 decision 18 — the lead is recorded and the sales mail has gone: tell
+// the buyer now. Everything below runs after the answer has been sent.
+respond_and_continue(200, ['ok' => true]);
+
 // ── Auto-reply to visitor ───────────────────────────────────────
 // Best-effort only — we never fail the request if this one doesn't go through.
 //
@@ -1344,5 +1382,4 @@ $replyHeaders .= "Content-Transfer-Encoding: 8bit\r\n"; // NEW-V3-2
 if ($autoReplyOk && function_exists('mail')) {
     @mail($replyTo, $replySubject, $replyBody, $replyHeaders, $mailParams); // best-effort, no error check
 }
-
-respond(200, ['ok' => true]);
+exit;

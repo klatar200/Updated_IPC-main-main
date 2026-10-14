@@ -197,6 +197,8 @@ async function fillForm(form, values) {
 async function submitAndSettle(page, form) {
   await form.locator('button[type="submit"]').click();
   await page.waitForTimeout(1200);
+  // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+  await fetch(`${BASE}/robots.txt`).then((r) => r.text()).catch(() => {});
 }
 
 /** What the confirmation panel looks like, measured in the page. */

@@ -13,6 +13,12 @@
  *       Inquiries page merges row and result ("Sent to mail server", "Email
  *       failed", or "Not confirmed" when no result was written), counts each
  *       lead once (page total and nav badge), and still reads old-format rows.
+ *   18  the buyer is answered before the auto-reply (A12-L11-W3-G4-1): with a
+ *       3 s mail server the answer takes one mail's time, not two, for the
+ *       JSON and the no-JS page alike, and the auto-reply still goes out
+ *       after it; in the browser, a reply that never comes ends after 30 s
+ *       in the network-error message with the phone number (clock
+ *       fast-forwarded), not an endless "Sending…".
  *
  * Runs on a private copy of the mirror (_harness/site) with its own
  * `php -S` servers, a sendmail stand-in and a private sys_temp_dir per server,
@@ -27,6 +33,7 @@ const path = require('path');
 const { spawn, spawnSync, execFileSync } = require('child_process');
 const { adminHttp } = require('./adminhttp');
 const { rawRows, leads } = require('./inqrows');
+const { launch } = require('./browser');
 
 const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
@@ -193,6 +200,58 @@ async function rfq(port, extra = {}, headers = {}) {
       note(total === 4 && refused === 1 && (html.match(/<details class="inq/g) || []).length === 4,
         '42 page: four leads listed and counted once each; only the refused send counts as refused', `total ${total}, refused ${refused}`);
       note(/1 request is marked "Not confirmed"/.test(html), '42 page: the unconfirmed lead is explained above the list');
+      stop(srv);
+    }
+
+    // ── 18 — answer first, auto-reply after; the browser's time limit ────
+    fs.rmSync(INQ, { force: true });
+    {
+      const srv = server(P0);
+      await sleep(900);
+      fs.writeFileSync(MAIL, '');
+      fs.writeFileSync(SLOW, '3');
+      const r = await rfq(P0, { name: 'Early Answer Buyer', email: 'early@example.com' });
+      const atAnswer = messages().length;
+      note(r.status === 200 && /"ok":true/.test(r.text) && r.ms >= 2500 && r.ms < 4800,
+        '18: with a 3 s mail server the buyer is answered after ONE mail (the sales email), not two', `${r.status} in ${r.ms} ms`);
+      note(atAnswer === 1 && /IPC QUOTE REQUEST/.test(messages()[0] || ''),
+        '18: at the moment of the answer only the sales notification has gone', `${atAnswer} message(s)`);
+      await fetch(`http://127.0.0.1:${P0}/robots.txt`).then((x) => x.text()).catch(() => {});   // php -S: waits for the request above to finish
+      const after = messages();
+      note(after.length === 2 && /^To:\s*early@example\.com/mi.test(after[1] || ''),
+        '18: the auto-reply still goes out, after the answer', `${after.length} message(s)`);
+      fs.writeFileSync(MAIL, '');
+      const h = await rfq(P0, { name: 'Early NoJS Buyer', email: 'early-nojs@example.com' }, { Accept: 'text/html' });
+      await fetch(`http://127.0.0.1:${P0}/robots.txt`).then((x) => x.text()).catch(() => {});
+      note(h.status === 200 && /Quote request sent/.test(h.text) && /<\/html>$/.test(h.text) && h.ms < 4800 && messages().length === 2,
+        '18: the no-JavaScript page is answered early too, and whole', `${h.status} in ${h.ms} ms, ${messages().length} message(s)`);
+      fs.rmSync(SLOW, { force: true });
+
+      const browser = await launch();
+      try {
+        const page = await browser.newPage();
+        await page.clock.install();
+        let posted = 0;
+        await page.route('**/contact.php', () => { posted++; });   // never answered: a stalled server
+        await page.goto(`http://127.0.0.1:${P0}/contact`, { waitUntil: 'networkidle' });
+        const form = page.locator('form').filter({ has: page.locator('button[type="submit"]') }).first();
+        for (const [k, v] of Object.entries({ name: 'Stalled Buyer', email: 'stalled@example.com', quantity: '500 ft' })) await form.locator(`[name="${k}"]`).fill(v);
+        await form.locator('button[type="submit"]').click();
+        await page.clock.fastForward(5000);
+        const at5 = await page.evaluate(() => ({ alert: !!document.querySelector('[role="alert"]'), busy: !!document.querySelector('form button[type="submit"][disabled]') }));
+        await page.clock.fastForward(26000);
+        const alert = page.locator('[role="alert"][data-error-kind="network"]');
+        await alert.waitFor({ timeout: 5000 }).catch(() => {});
+        const txt = (await alert.count()) ? (await alert.textContent()) : '';
+        note(posted === 1 && at5.busy && !at5.alert,
+          '18 browser: five seconds into a stalled send the form is still waiting (no early give-up)', JSON.stringify({ posted, ...at5 }));
+        note(/630\.771\.0700/.test(txt),
+          '18 browser: after 30 s the stalled send ends in the network-error message, which carries the phone number', JSON.stringify(txt));
+        note(!(await page.locator('form button[type="submit"][disabled]').count()),
+          '18 browser: and the submit button is usable again');
+      } finally {
+        await browser.close();
+      }
       stop(srv);
     }
   } finally {

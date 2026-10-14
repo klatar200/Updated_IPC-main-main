@@ -79,7 +79,9 @@ function post(body) {
     }, (res) => {
       let out = '';
       res.on('data', (c) => (out += c));
-      res.on('end', () => resolve({ status: res.statusCode, body: out }));
+      // AUDIT-12 decision 18 — contact.php answers BEFORE it sends the auto-reply. `php -S` serves one request at a time, so this second request returns only once that one has finished, auto-reply included.
+      res.on('end', () => http.get({ host: '127.0.0.1', port: 8123, path: '/robots.txt' }, (r2) => { r2.resume(); r2.on('end', () => resolve({ status: res.statusCode, body: out })); })
+        .on('error', () => resolve({ status: res.statusCode, body: out })));
     });
     req.on('error', reject);
     req.write(data);
