@@ -39,6 +39,38 @@ $SLOTS = [
 ];
 $SITE_SHIPPED_DIR = __DIR__ . '/../images/site/';
 
+/**
+ * AUDIT-12 decision 35 (A12-L8-09-5) — what the picker calls each picture
+ * shipped in images/site/. The files keep their names (the site, older
+ * backups and the deploy all point at them; "coulplings1.png" is misspelled
+ * on disk and stays so); only the label Rick reads changes. A shipped file
+ * not listed here shows its file name, as before.
+ */
+const SITE_IMAGE_LABELS = [
+    'Front-Cover.jpg'                      => 'Catalog front cover',
+    'Heat-Shrink-Tape-Product-photo-2.jpg' => 'Heat-shrink tape rolls',
+    'IPC-Building.jpg'                     => 'IPC building, outside',
+    'Marker-Sample-2.jpg'                  => 'Marker and tag samples',
+    'Slide1.png'                           => 'Tubing spools banner (thin strip)',
+    'conduit-drawing.png'                  => 'Conduit fitting drawing, straight',
+    'conduit-drawing2.png'                 => 'Conduit fitting drawing, elbow',
+    'coulplings1.png'                      => 'Couplings, photo',
+    'coulplings2.png'                      => 'Coupling drawing',
+    'download.png'                         => 'Heat-shrink tubing samples',
+    'featured-category-1.jpg'              => 'Blue tubing on cables (strip)',
+    'featured-category-2.jpg'              => 'Coloured wire loops (strip)',
+    'featured-category-3.jpg'              => 'Tubing kits (strip)',
+    'header-logo.jpg'                      => 'IPC logo, small square',
+    'id-markers.png'                       => 'ID markers and tags',
+    'main-banner-1349x414.jpg'             => 'Tubing spools banner, wide',
+    'main-banner-800x414.jpg'              => 'Tubing spools banner',
+    'spiralwrap-1.jpg'                     => 'Spiral wrap (second copy)',
+    'spiralwrap.jpg'                       => 'Spiral wrap',
+    'staff-image.png'                      => 'Staff group photo, small',
+    'staff.jpg'                            => 'Staff group photo',
+    'tubingkits-e1470671026976.png'        => 'Tubing kits',
+];
+
 /** Every picture this page may point a slot at: path as stored → display info. */
 function site_image_choices(string $shippedDir): array {
     $out = [];
@@ -47,7 +79,8 @@ function site_image_choices(string $shippedDir): array {
         $names = @scandir($dir) ?: [];
         foreach ($names as $n) {
             if (!preg_match('/^[A-Za-z0-9._-]+\.(jpe?g|png|webp|gif)$/i', $n) || !is_file($dir . $n)) continue;
-            $out[$prefix . $n] = ['name' => $n, 'group' => $group, 'mtime' => (int)@filemtime($dir . $n)];
+            $name = $prefix === 'images/site/' ? (SITE_IMAGE_LABELS[$n] ?? $n) : $n;
+            $out[$prefix . $n] = ['name' => $name, 'group' => $group, 'mtime' => (int)@filemtime($dir . $n)];
         }
     }
     uasort($out, static fn($a, $b) => [$a['group'] === 'Your uploads' ? 0 : 1, -$a['mtime']] <=> [$b['group'] === 'Your uploads' ? 0 : 1, -$b['mtime']]);
