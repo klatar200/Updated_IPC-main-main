@@ -61,12 +61,6 @@ not yet in the email.)
 | Proxy in front of PHP? then `IPC_TRUST_PROXY_FORWARDED` | GO-LIVE C4 compares Admin → Inquiries' Visitor IP with your own. Only if it shows the proxy, turn the switch on in `contact.php`; otherwise the quote form's rate limit is shared by every buyer (AUDIT-12 decision 43). Ships off. |
 | `admin/`, `data/`, `pdfs/`, `uploads/` writable by PHP | README "Permissions". Done before `index.html` goes up (GO-LIVE B2 step 9, AUDIT-12 decision 41). The dashboard shows a banner when they are not. |
 
-## Open — ready to run
-
-| Item | Note |
-|---|---|
-| AUDIT-12, the full-project audit | [`plans/PLAN-12-full-project-audit.md`](plans/PLAN-12-full-project-audit.md). For a new session using the Workflow tool; the kickoff prompt is its §14. Read-only: it reports and fixes nothing. Its findings will land in a new section here. |
-
 ## Open — deferred by decision (not to be built without a new decision)
 
 | Item | Decision | Held by |
