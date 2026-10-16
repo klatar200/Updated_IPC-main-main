@@ -62,11 +62,14 @@ if ($path === '/sitemap.xml' && is_file($root . '/sitemap.php')) {
 // fatal with HTTP 200 and the folder path, so a local probe measured this
 // router, not the site (AUDIT-12 A12-L13-05-W5-4). No file has a NUL in its
 // name: take the not-a-file branch, as the catch-all would.
+// DIRECTORY_SEPARATOR, not '/': on Windows realpath() returns backslashes, so
+// a '/' prefix never matched and every asset fell through to index.php — the
+// page loaded with no CSS or JS (_harness/review-local.ps1, 2026-10-16).
 $full = strpos($path, "\0") === false ? realpath($root . $path) : false;
 $realRoot = realpath($root);
 
 if ($full !== false && $realRoot !== false
-    && ($full === $realRoot || strpos($full, rtrim($realRoot, '/') . '/') === 0)) {
+    && ($full === $realRoot || strpos($full, rtrim($realRoot, '/\\') . DIRECTORY_SEPARATOR) === 0)) {
     if (is_dir($full)) {
         // A directory: serve its index.php / index.html if present, as Apache would.
         foreach (['index.php', 'index.html'] as $idx) {
