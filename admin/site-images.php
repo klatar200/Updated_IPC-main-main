@@ -30,9 +30,9 @@ require_auth();
  */
 
 $SLOTS = [
-    'heroPhoto'         => ['label' => 'Homepage — hero photo',           'where' => 'The large photo beside the headline at the top of the homepage (wide screens only).'],
-    'bandTeamPhoto'     => ['label' => 'Homepage — team photo',           'where' => 'The left photo in the band lower on the homepage ("Bolingbrook, Illinois — our team and our building").'],
-    'bandBuildingPhoto' => ['label' => 'Homepage — building photo',       'where' => 'The right photo in that same homepage band.'],
+    'heroPhoto'         => ['label' => 'Homepage — hero photo',           'where' => 'The large photo beside the headline at the top of the homepage (Classic, wide screens only); the full-width hero in the Light layout, the hero in Corporate and the banner in Classic distributor.'],
+    'bandTeamPhoto'     => ['label' => 'Homepage — team photo',           'where' => 'The left photo in the band lower on the homepage ("Bolingbrook, Illinois — our team and our building"); the About IPC photo in the Bold and Light layouts.'],
+    'bandBuildingPhoto' => ['label' => 'Homepage — building photo',       'where' => 'The right photo in that same homepage band (Classic), and the Industries panel in the Corporate layout.'],
     'boldHeroPhoto'     => ['label' => 'Homepage — spools photo',          'where' => 'The hero photo in the Bold and Distributor catalog layouts, and the Capabilities panel in the Corporate layout (Business Details → Branding → Homepage layout).'],
     'boldFeaturePhoto'  => ['label' => 'Homepage — featured product photo', 'where' => 'The large first Products & Services card in the Bold layout, and the Products panel and product list in the Corporate layout.'],
     'aboutPhoto'        => ['label' => 'About page — photo',             'where' => 'Beside "Our Story" on the About page.'],

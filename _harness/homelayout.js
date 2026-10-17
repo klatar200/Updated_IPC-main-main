@@ -383,6 +383,78 @@ const SCORE = (rootSel) => {
       JSON.stringify({ stored: savedC.features && savedC.features[0].photo, first }));
     fs.writeFileSync(CONTENT, originalContent);
 
+    // ── 10. every layout is edited on Page Content, and its marks are true ─
+    // For each layout: a marker is typed into every homepage box through the
+    // real form and saved; the homepage must show exactly the boxes
+    // content.php's HOME_LAYOUT_USES says that layout shows, and Page Content
+    // must mark exactly the others "Not shown by your current homepage layout".
+    const usesBlock = /const HOME_LAYOUT_USES = \[([\s\S]*?)\n\];/.exec(php);
+    const USES = {};
+    for (const m of (usesBlock ? usesBlock[1] : '').matchAll(/'([\w.]+)'\s*=>\s*\[([^\]]*)\]/g)) {
+      USES[m[1]] = [...m[2].matchAll(/'(\w+)'/g)].map((x) => x[1]);
+    }
+    ok(Object.keys(USES).length > 30, `content.php HOME_LAYOUT_USES parsed (${Object.keys(USES).length} boxes)`);
+    // Boxes every layout shows, so the map leaves them out.
+    for (const k of ['hero.badge', 'hero.headlineLine1', 'hero.headlineLine3']) USES[k] = ALL_LAYOUTS;
+    const LIST_BOX = { features: 'features[0][title]', stats: 'stats[0][label]', markets: 'markets[0][label]', heroProofPoints: 'heroProofPoints[0][label]', heroTrust: 'heroTrust[0][text]' };
+    const PHOTO = { heroPhoto: 'featured-category-1.jpg', bandTeamPhoto: 'featured-category-2.jpg', bandBuildingPhoto: 'featured-category-3.jpg', boldHeroPhoto: 'main-banner-1349x414.jpg', boldFeaturePhoto: 'spiralwrap-1.jpg' };
+    const boxName = (k) => LIST_BOX[k] || `copy[${k.split('.')[0]}][${k.split('.')[1]}]`;
+    const keys = Object.keys(USES).filter((k) => !/Page$/.test(k)); // page selects carry no text
+    const token = (k) => ('zq' + k.replace(/\W/g, '') + 'zq').toLowerCase();
+    // A copy box whose key the stored content.json does not have shows the
+    // site's built-in text, never an empty box (boldSubhead shipped empty
+    // while three layouts printed its default — audit 2026-10-17).
+    {
+      fs.writeFileSync(CONTENT, originalContent);
+      await adm.goto(BASE + '/admin/content.php', { waitUntil: 'domcontentloaded' });
+      const absent = keys.filter((k) => !LIST_BOX[k] && (((content.copy || {})[k.split('.')[0]] || {})[k.split('.')[1]]) === undefined);
+      const vals = await adm.evaluate((names) => names.map((n) => (document.querySelector(`[name="${n}"]`) || {}).value), absent.map(boxName));
+      const empty = absent.filter((k, i) => !vals[i]);
+      ok(absent.length > 0 && empty.length === 0, `Page Content prefills every homepage box not yet stored (${absent.length}) with the text the site shows`, empty.join(', '));
+    }
+    for (const layout of ALL_LAYOUTS) {
+      fs.writeFileSync(CONTENT, originalContent);
+      writeTheme(originalSite, { homeLayout: layout });
+      await adm.goto(BASE + '/admin/content.php', { waitUntil: 'domcontentloaded' });
+      const marks = await adm.evaluate(({ keys, names, lists }) => Object.fromEntries(keys.map((k) => {
+        if (lists.includes(k)) return [k, !!document.querySelector(`fieldset[data-section="${k}"] > .layout-off`)];
+        const box = document.querySelector(`[name="${names[k]}"]`);
+        return [k, box ? !!box.closest('.form-group').querySelector('.layout-off') : 'missing'];
+      })), { keys, names: Object.fromEntries(keys.map((k) => [k, boxName(k)])), lists: Object.keys(LIST_BOX) });
+      const wrongMarks = keys.filter((k) => marks[k] !== !USES[k].includes(layout));
+      ok(wrongMarks.length === 0, `${layout}: Page Content marks exactly the homepage boxes this layout does not show`,
+        wrongMarks.map((k) => `${k}=${marks[k]}`).join(', '));
+      for (const k of keys) {
+        const v = k.startsWith('siteImages.') ? `images/site/${PHOTO[k.split('.')[1]]}` : token(k);
+        await adm.fill(`[name="${boxName(k)}"]`, v);
+      }
+      await saveContent();
+      const savedNow = fs.readFileSync(CONTENT, 'utf8');
+      ok(keys.filter((k) => !k.startsWith('siteImages.')).every((k) => savedNow.includes(token(k))),
+        `${layout}: every homepage box saved through Page Content`, savedNow === originalContent ? 'content.json not written' : '');
+      await pub.goto(BASE + '/?v=' + Date.now(), { waitUntil: 'networkidle' });
+      await pub.evaluate(async () => { for (let y = 0; y < 6000; y += 700) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 50)); } });
+      const seen = await pub.evaluate(() => ({ text: document.body.innerText.toLowerCase(), imgs: [...document.querySelectorAll('img')].map((i) => i.getAttribute('src') || '') }));
+      const wrongSite = keys.filter((k) => {
+        const shown = k.startsWith('siteImages.')
+          ? seen.imgs.some((s) => s.endsWith('/' + PHOTO[k.split('.')[1]]))
+          : seen.text.includes(token(k));
+        return shown !== USES[k].includes(layout);
+      });
+      ok(wrongSite.length === 0, `${layout}: the homepage shows every edited box this layout uses (${keys.filter((k) => USES[k].includes(layout)).length}) and none it does not`,
+        wrongSite.map((k) => `${k} ${USES[k].includes(layout) ? 'expected, missing' : 'not expected, shown'}`).join(', '));
+    }
+    fs.writeFileSync(CONTENT, originalContent);
+    // The defaults Page Content prefills for the new headings are the ones the site shows.
+    const jsHl = /homeLayouts: \{([\s\S]*?)\n  \},/.exec(js);
+    const jsMapHl = Object.fromEntries([...(jsHl ? jsHl[1] : '').matchAll(/(\w+): "([^"]*)"/g)].map((m) => [m[1], m[2]]));
+    const phpMapHl = Object.fromEntries([...php.matchAll(/\['key' => '(\w+)',\s*'type' => 'text', 'label' => '(?:Distributor catalog|Corporate|Classic distributor)[^']*',\s*'default' => '([^']*)'/g)].map((m) => [m[1], m[2]]));
+    ok(Object.keys(jsMapHl).length === 17 && JSON.stringify(jsMapHl) === JSON.stringify(phpMapHl),
+      'the homeLayouts headings default to the same 17 values in content.php and App.jsx', JSON.stringify({ js: jsMapHl, php: phpMapHl }));
+    const jsBs = (/boldSubhead:\s*"([^"]*)"/.exec(js) || [])[1];
+    const phpBs = (/'key' => 'boldSubhead'[\s\S]*?'default' => '([^']*)'/.exec(php) || [])[1];
+    ok(jsBs && jsBs === phpBs, 'the short sub-headline box prefills the same sentence the site shows by default', JSON.stringify({ js: jsBs, php: phpBs }));
+
     // ── 8. back to Classic ───────────────────────────────────────────────
     await choose('classic');
     await pub.goto(BASE + '/?v=' + Date.now(), { waitUntil: 'networkidle' });

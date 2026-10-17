@@ -81,7 +81,10 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // boldFeaturePhoto, one posted field each. Structural (468 + 3).
 // 2026-10-17: **477** — the Light homepage layout: a Photo box on each of the
 // six Products & Services cards (features[i][photo]). Structural (471 + 6).
-const POSTED_BEFORE = 477;
+// 2026-10-17: **494** — the Page Content group "Homepage — Distributor
+// catalog, Corporate and Classic distributor headings" (copy.homeLayouts),
+// 17 text boxes. Structural (477 + 17); plan2-trunc re-run at 494.
+const POSTED_BEFORE = 494;
 
 const results = [];
 const note = (ok, what, detail = '') => {

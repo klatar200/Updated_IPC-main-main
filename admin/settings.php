@@ -33,21 +33,9 @@ $storedSig = sha1(json_encode($info));
  * and an empty "faxNumber" in the JSON-LD. An ABSENT key now keeps the stored
  * value; an EMPTY key is still an intentional clear.
  */
-/**
- * Keagan 2026-10-17 — the homepage designs offered under Branding. The keys
- * are stored in site-info.json theme.homeLayout; the same list is
- * HOME_LAYOUTS in src/App.jsx, which renders "classic" for any other value.
- */
-const HOME_LAYOUTS = [
-    'classic' => 'Classic — the original homepage',
-    'bold'    => 'Bold — large photo hero, big numbers, featured product line',
-    'light'   => 'Light — bright, photo tiles for every product line and service',
-    // 2026-10-17 — three layouts modelled on other suppliers in IPC's
-    // industry (Allied Wire & Cable / Lapp Tannehill; Pexco / Zeus; Qualtek).
-    'distributor' => 'Distributor catalog — product search and every product family as a photo tile',
-    'corporate'   => 'Corporate — split hero, large photo panels, the full product range as a list',
-    'sidebar'     => 'Classic distributor — product families in a sidebar, featured products with datasheets',
-];
+// HOME_LAYOUTS (the homepage designs offered under Branding) is defined in
+// config.php: Page Content reads it too, to say which boxes the chosen
+// layout shows.
 
 function sf(string $key, $current): string {
     if (!array_key_exists($key, $_POST) || !is_string($_POST[$key])) {
@@ -519,7 +507,7 @@ $navActive = 'settings';
               <option value="<?= h($key) ?>"<?= $key === $layNow ? ' selected' : '' ?>><?= h($label) ?></option>
             <?php endforeach; ?>
           </select>
-          <div class="hint">Every layout shows the same content from Page Content, these Business Details and your Products — switching changes only how the homepage looks, and you can switch back at any time. The Hero Proof Points are shown only in <b>Classic</b>. In <b>Bold</b>, the first Products &amp; Services card is shown large with a photo (set it on <a href="site-images.php">Site Images &amp; Logo</a>). In <b>Light</b>, every Products &amp; Services card has a photo (each card's <i>Photo</i> box on Page Content). <b>Distributor catalog</b>, <b>Corporate</b> and <b>Classic distributor</b> build their product families, counts and featured products from your Products automatically. Help → Business Details → Homepage layout describes each one. <a href="/" target="_blank" rel="noopener">View the homepage ↗</a></div>
+          <div class="hint">Every layout shows the same content from Page Content, these Business Details and your Products — switching changes only how the homepage looks, and you can switch back at any time. The Hero Proof Points are shown only in <b>Classic</b>. In <b>Bold</b>, the first Products &amp; Services card is shown large with a photo (set it on <a href="site-images.php">Site Images &amp; Logo</a>). In <b>Light</b>, every Products &amp; Services card has a photo (each card's <i>Photo</i> box on Page Content). <b>Distributor catalog</b>, <b>Corporate</b> and <b>Classic distributor</b> build their product families, counts and featured products from your Products automatically. Page Content marks every homepage box the chosen layout does not show. Help → Business Details → Homepage layout describes each one. <a href="/" target="_blank" rel="noopener">View the homepage ↗</a></div>
         </div>
       </div>
 
