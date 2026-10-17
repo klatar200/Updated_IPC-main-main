@@ -33,7 +33,9 @@ $SLOTS = [
     'heroPhoto'         => ['label' => 'Homepage — hero photo',           'where' => 'The large photo beside the headline at the top of the homepage (wide screens only).'],
     'bandTeamPhoto'     => ['label' => 'Homepage — team photo',           'where' => 'The left photo in the band lower on the homepage ("Bolingbrook, Illinois — our team and our building").'],
     'bandBuildingPhoto' => ['label' => 'Homepage — building photo',       'where' => 'The right photo in that same homepage band.'],
-    'aboutPhoto'        => ['label' => 'About page — photo',              'where' => 'Beside "Our Story" on the About page.'],
+    'boldHeroPhoto'     => ['label' => 'Homepage — spools photo',          'where' => 'The hero photo in the Bold and Distributor catalog layouts, and the Capabilities panel in the Corporate layout (Business Details → Branding → Homepage layout).'],
+    'boldFeaturePhoto'  => ['label' => 'Homepage — featured product photo', 'where' => 'The large first Products & Services card in the Bold layout, and the Products panel and product list in the Corporate layout.'],
+    'aboutPhoto'        => ['label' => 'About page — photo',             'where' => 'Beside "Our Story" on the About page.'],
     'servicesPhoto'     => ['label' => 'Services page — photo',           'where' => 'Under the banner on the Services page.'],
     'logo'              => ['label' => 'Logo',                            'where' => 'The site header and footer, the placeholder on products with no photo, and the information search engines read.'],
 ];
@@ -48,6 +50,8 @@ $SITE_SHIPPED_DIR = __DIR__ . '/../images/site/';
  */
 const SITE_IMAGE_LABELS = [
     'Front-Cover.jpg'                      => 'Catalog front cover',
+    'bold-hero-spools.jpg'                 => 'Tubing spools (Bold hero)',
+    'bold-heat-shrink.jpg'                 => 'Heat-shrink tubing over flame',
     'Heat-Shrink-Tape-Product-photo-2.jpg' => 'Heat-shrink tape rolls',
     'IPC-Building.jpg'                     => 'IPC building, outside',
     'Marker-Sample-2.jpg'                  => 'Marker and tag samples',

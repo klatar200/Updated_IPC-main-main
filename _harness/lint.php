@@ -154,7 +154,7 @@ if (!$phpAp || !$jsAp) {
 }
 
 // ── photo-default drift ─────────────────────────────────────────────────────
-// PLAN-9 item 1 — the five siteImages default paths exist in PHP
+// PLAN-9 item 1 — the siteImages default paths (seven since the Bold layout, 2026-10-17) exist in PHP
 // (content.php's $COPY_GROUPS 'default' entries, which prefill an absent key)
 // and in JS (App.jsx's COPY_DEFAULTS.siteImages, which renders an absent key).
 // If they disagree, the admin's first save silently REPOINTS a photo: the
@@ -172,9 +172,9 @@ if (preg_match('/siteImages:\s*\{(.*?)\},/s', (string)@file_get_contents(__DIR__
     preg_match_all('/(\w+):\s*"([^"]+)"/', $m[1], $mm, PREG_SET_ORDER);
     foreach ($mm as $pair) $jsPh[$pair[1]] = $pair[2];
 }
-if (count($phpPh) !== 5 || count($jsPh) !== 5) {
+if (count($phpPh) !== 7 || count($jsPh) !== 7) {
     $fail++;
-    echo "FAIL  photo-default drift\n      could not read the two five-entry lists (php "
+    echo "FAIL  photo-default drift\n      could not read the two seven-entry lists (php "
        . count($phpPh) . ", js " . count($jsPh) . ") — has one moved?\n";
 } elseif ($phpPh !== $jsPh) {
     $fail++;
@@ -182,7 +182,7 @@ if (count($phpPh) !== 5 || count($jsPh) !== 5) {
        . "      php: " . json_encode($phpPh) . "\n"
        . "      js : " . json_encode($jsPh) . "\n";
 } else {
-    echo "photo-default drift       5 slot defaults, PHP and JS identical\n";
+    echo "photo-default drift       7 slot defaults, PHP and JS identical\n";
 }
 
 // ── audit-action drift ──────────────────────────────────────────────────────

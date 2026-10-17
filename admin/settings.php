@@ -33,6 +33,22 @@ $storedSig = sha1(json_encode($info));
  * and an empty "faxNumber" in the JSON-LD. An ABSENT key now keeps the stored
  * value; an EMPTY key is still an intentional clear.
  */
+/**
+ * Keagan 2026-10-17 — the homepage designs offered under Branding. The keys
+ * are stored in site-info.json theme.homeLayout; the same list is
+ * HOME_LAYOUTS in src/App.jsx, which renders "classic" for any other value.
+ */
+const HOME_LAYOUTS = [
+    'classic' => 'Classic — the original homepage',
+    'bold'    => 'Bold — large photo hero, big numbers, featured product line',
+    'light'   => 'Light — bright, photo tiles for every product line and service',
+    // 2026-10-17 — three layouts modelled on other suppliers in IPC's
+    // industry (Allied Wire & Cable / Lapp Tannehill; Pexco / Zeus; Qualtek).
+    'distributor' => 'Distributor catalog — product search and every product family as a photo tile',
+    'corporate'   => 'Corporate — split hero, large photo panels, the full product range as a list',
+    'sidebar'     => 'Classic distributor — product families in a sidebar, featured products with datasheets',
+];
+
 function sf(string $key, $current): string {
     if (!array_key_exists($key, $_POST) || !is_string($_POST[$key])) {
         return is_string($current) ? $current : '';
@@ -133,6 +149,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'accentColor'  => sf('theme_accent',  $curTh['accentColor']  ?? ''),
             'accent2Color' => sf('theme_accent2', $curTh['accent2Color'] ?? ''),
             'logoUrl'      => sf('theme_logo',    $curTh['logoUrl']      ?? ''),
+            // Only a listed layout is stored; anything else (a crafted POST,
+            // a layout since removed) saves as the original design.
+            'homeLayout'   => (static function ($v) {
+                return array_key_exists($v, HOME_LAYOUTS) ? $v : 'classic';
+            })(sf('theme_layout', $curTh['homeLayout'] ?? 'classic')),
         ],
         'about' => [
             'paragraphs' => sfList('about_paragraphs', $info['about']['paragraphs'] ?? []),
@@ -360,8 +381,8 @@ $navActive = 'settings';
     .cnote-warn { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; }
     .cnote-bad  { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
     .cnote b { font-weight: 700; }
-    input[type=text], textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; }
-    input[type=text]:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
+    input[type=text], textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; }
+    input[type=text]:focus, textarea:focus, select:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     textarea { resize: vertical; line-height: 1.5; }
     .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
     .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 4px; }
@@ -490,6 +511,16 @@ $navActive = 'settings';
           </div>
         </div>
         <div class="hint">These colors re-skin the entire public website. Changes go live within ~60 seconds.</div>
+        <?php $layNow = array_key_exists($th['homeLayout'] ?? '', HOME_LAYOUTS) ? $th['homeLayout'] : 'classic'; ?>
+        <div class="form-group full" style="margin-top:18px">
+          <label for="theme_layout">Homepage layout</label>
+          <select id="theme_layout" name="theme_layout">
+            <?php foreach (HOME_LAYOUTS as $key => $label): ?>
+              <option value="<?= h($key) ?>"<?= $key === $layNow ? ' selected' : '' ?>><?= h($label) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="hint">Both layouts show the same content from Page Content and these Business Details — switching changes only how the homepage looks, and you can switch back at any time. In <b>Bold</b>, the first Products &amp; Services card is shown large with a photo (set it on <a href="site-images.php">Site Images &amp; Logo</a>), and the Hero Proof Points are not shown. In <b>Light</b>, every Products &amp; Services card has a photo (each card's <i>Photo</i> box on Page Content), the hero photo is the Homepage — hero photo on Site Images &amp; Logo, and the Hero Proof Points are not shown. <a href="/" target="_blank" rel="noopener">View the homepage ↗</a></div>
+        </div>
       </div>
 
       <div class="card">

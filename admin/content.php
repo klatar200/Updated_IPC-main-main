@@ -19,6 +19,23 @@ $FEATURE_ICONS = [
     'marking'    => 'Marking / label',
     'quality'    => 'Quality / shield',
 ];
+/**
+ * Keagan 2026-10-17 — the Light homepage layout shows each Products & Services
+ * card with a photo. A card that has never had its Photo box saved shows the
+ * built-in picture for its icon (this list); a box emptied on purpose shows
+ * none. The form prefills an absent box with the same value, so the first
+ * Save after this release keeps the photos rather than writing "" over them.
+ * The same list, with the same values, is FEATURE_PHOTO_DEFAULTS in
+ * src/App.jsx (homelayout.js compares the two).
+ */
+const FEATURE_PHOTO_DEFAULTS = [
+    'heatshrink' => 'images/site/bold-heat-shrink.jpg',
+    'sleeving'   => 'images/products/IP64FS-IP65VC-IP66AC-IP67SC.jpg',
+    'adhesives'  => 'images/products/IP75AD.png',
+    'cut'        => 'images/products/value-added.png',
+    'marking'    => 'images/site/id-markers.png',
+    'quality'    => 'images/site/IPC-Building.jpg',
+];
 $STAT_ICONS = [
     'years'  => 'Calendar (years)',
     'stock'  => 'Boxes (stock)',
@@ -87,6 +104,8 @@ $SECTIONS = [
             // AUDIT-12 decision 48 (A12-L6-W3-G5-1) — all six cards opened the
             // same unfiltered catalog. Checked on save below.
             ['key' => 'link',        'type' => 'text',     'label' => 'Links to (a page of this website, e.g. /services)', 'full' => true],
+            // Keagan 2026-10-17 — shown only by the Light homepage layout.
+            ['key' => 'photo',       'type' => 'text',     'labelHtml' => true, 'label' => 'Photo — Light homepage layout only (empty: no photo)<br><small style="font-weight:400;color:#4b5563">A picture already on your server, such as <code>images/site/IPC-Building.jpg</code> or <code>uploads/site/…</code>. Putting a new one on the server: Help → "Putting a new photo or logo on the server".</small>', 'full' => true],
         ],
     ],
     'stats' => [
@@ -346,7 +365,11 @@ $COPY_GROUPS = [
         ['key' => 'bandTeamPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage band — team photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',     'default' => 'images/site/staff.jpg'],
         ['key' => 'bandBuildingPhoto',  'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage band — building photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/IPC-Building.jpg'],
         ['key' => 'aboutPhoto',         'type' => 'text', 'labelHtml' => true, 'label' => 'About page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',             'default' => 'images/site/IPC-Building.jpg'],
-        ['key' => 'servicesPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
+        // Keagan 2026-10-17 — the Bold homepage layout's two photos. Shown
+        // only while Business Details → Branding → Homepage layout is Bold.
+        ['key' => 'boldHeroPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage — spools photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Used by the <b>Bold</b>, <b>Distributor catalog</b> and <b>Corporate</b> homepage layouts (Business Details → Branding → Homepage layout). Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/bold-hero-spools.jpg'],
+        ['key' => 'boldFeaturePhoto',   'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage — featured product photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">The large first Products &amp; Services card in the <b>Bold</b> layout, and the Products panel and product list in the <b>Corporate</b> layout. Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/bold-heat-shrink.jpg'],
+        ['key' => 'servicesPhoto',     'type' => 'text', 'labelHtml' => true, 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
     ]],
     // ADM-8 + NEW-V2-3 (audit 2026-09-27) — business claims that were
     // hardcoded in src/App.jsx with no admin screen. Made editable on the
@@ -380,7 +403,10 @@ $COPY_GROUPS = [
         ['key' => 'headlineAccent',    'type' => 'text',     'label' => 'Headline — line 2 (accent color)'],
         ['key' => 'headlineLine3',     'type' => 'text',     'label' => 'Headline — line 3'],
         ['key' => 'subhead',           'type' => 'textarea', 'label' => 'Sub-headline paragraph'],
-        ['key' => 'ctaPrimaryLabel',   'type' => 'text',     'label' => 'Primary button text'],
+        // Keagan 2026-10-17 — the Bold layout's hero has room for one
+        // sentence; the paragraph above is used by the Classic layout.
+        ['key' => 'boldSubhead',       'type' => 'text',     'label' => 'Bold and Light layouts only — short sub-headline (one sentence)', 'full' => true],
+        ['key' => 'ctaPrimaryLabel',  'type' => 'text',     'label' => 'Primary button text'],
         ['key' => 'ctaPrimaryPage',    'type' => 'page',     'label' => 'Primary button links to', 'options' => $PAGE_OPTIONS],
         ['key' => 'ctaSecondaryLabel', 'type' => 'text',     'label' => 'Secondary button text'],
         ['key' => 'ctaSecondaryPage',  'type' => 'page',     'label' => 'Secondary button links to', 'options' => $PAGE_OPTIONS],
@@ -704,6 +730,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $t = is_array($p) ? trim((string)($p['partType'] ?? '')) : '';
         if ($t !== '') $familyNames[$t] = true;
     }
+    // Keagan 2026-10-17 — a card's Photo box (Light layout). The site paints
+    // only a picture path on this website (App.jsx cardPhotoSrc), so anything
+    // else is refused here, naming the card, rather than saved and ignored.
+    foreach (($out['features'] ?? []) as $fi => $row) {
+        $ph = trim((string)($row['photo'] ?? ''));
+        $out['features'][$fi]['photo'] = $ph;
+        if ($ph === '') continue;
+        if (!preg_match('#^/?(images|uploads)/[A-Za-z0-9._ ()/-]+\.(jpe?g|png|webp|gif)$#i', $ph) || strpos($ph, '..') !== false) {
+            $card = trim((string)($row['title'] ?? ''));
+            $errors[] = 'The Photo box on the "' . ($card !== '' ? $card : 'card ' . ($fi + 1)) . '" card must be a picture on this website, such as images/site/IPC-Building.jpg or uploads/site/my-photo.jpg. Nothing was saved.';
+        }
+    }
     foreach (($out['features'] ?? []) as $fi => $row) {
         $link = trim((string)($row['link'] ?? ''));
         $out['features'][$fi]['link'] = $link;
@@ -952,6 +990,12 @@ function field_id(string $name): string {
 function render_field(string $section, int $i, array $f, array $row, string $sectionTitle = ''): string {
     $key  = $f['key'];
     $raw  = $row[$key] ?? '';
+    // A card saved before the Photo box existed has no `photo` key at all:
+    // show the built-in picture the site already shows for it, so a Save
+    // keeps it. A key that is present (even "") is shown as stored.
+    if ($section === 'features' && $key === 'photo' && $row !== [] && !array_key_exists('photo', $row)) {
+        $raw = FEATURE_PHOTO_DEFAULTS[(string)($row['iconKey'] ?? '')] ?? '';
+    }
     $val  = is_array($raw) ? $raw : (string)$raw;
     $name = $section . '[' . $i . '][' . $key . ']';
     $id   = field_id($name);

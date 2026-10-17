@@ -37,6 +37,9 @@ const DEFAULTS = {
   bandTeamPhoto: 'images/site/staff.jpg',
   bandBuildingPhoto: 'images/site/IPC-Building.jpg',
   aboutPhoto: 'images/site/IPC-Building.jpg',
+  // 2026-10-17 — the Bold homepage layout's two slots.
+  boldHeroPhoto: 'images/site/bold-hero-spools.jpg',
+  boldFeaturePhoto: 'images/site/bold-heat-shrink.jpg',
   servicesPhoto: 'images/site/Marker-Sample-2.jpg',
 };
 
@@ -113,14 +116,14 @@ async function saveForm(page) {
     'before any save, / paints 3 images/site/ photos and the band section',
     JSON.stringify(before));
 
-  // ── 3. the admin prefills the five Site Images fields with the defaults ─
+  // ── 3. the admin prefills the Site Images fields (seven since 2026-10-17) with the defaults ─
   const admin = await adminPage(browser);
   const fields = await admin.page.evaluate(() =>
     Object.fromEntries([...document.querySelectorAll('input[name^="copy[siteImages]"]')]
       .map((i) => [i.name.replace(/^copy\[siteImages\]\[(.*)\]$/, '$1'), i.value])));
   const wrong = Object.entries(DEFAULTS).filter(([k, v]) => fields[k] !== v);
-  note(Object.keys(fields).length === 5 && wrong.length === 0,
-    'content.php prefills the five Site Images fields with the default paths, not empty',
+  note(Object.keys(fields).length === Object.keys(DEFAULTS).length && wrong.length === 0,
+    'content.php prefills the seven Site Images fields with the default paths, not empty',
     'saw ' + JSON.stringify(fields));
 
   // ── 4. Rick's smallest realistic edit: one stray space, then Save ───────

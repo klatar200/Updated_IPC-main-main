@@ -1889,11 +1889,130 @@ const HERO_TRUST = [
 //
 // 4.32's rule that decides the shapes below: NO CROP in the encoder. Each file
 // keeps its own aspect ratio and any crop happens at render time with
-// object-fit — which is also what lets the band trim IPC-Building's baked-in
-// white border, a defect in the pixels that no re-encode may retouch away.
+// object-fit.
+//
+// One exception, Keagan 2026-10-16: IPC-Building.jpg had a white mat baked
+// into its pixels (6/7px top/bottom, 11/13px left/right, measured), which
+// object-fit could not remove — a 16:9 crop trims only top and bottom, so the
+// side mat showed in every card (AUDIT-12 A12-L11-02-1). The file was cropped
+// once to the photograph itself, 425x281 -> 397x264. Nothing but the mat was
+// removed; the rule above still holds for every other file.
 const HERO_PHOTO = { w: 1000, h: 667 };      // Marker-Sample-2.jpg, 3:2
 const BAND_TEAM = { w: 726, h: 408 };        // staff.jpg
-const BAND_BUILDING = { w: 425, h: 281 };    // IPC-Building.jpg
+const BAND_BUILDING = { w: 397, h: 264 };    // IPC-Building.jpg (mat cropped 2026-10-16)
+
+/**
+ * The end of the homepage band's "IPC has stocked, cut and shipped from …
+ * for over fifty years" sentence (AUDIT-12 decision 12, §1aq): the Structure
+ * claim from Page Content → Company Claims and the ISO label from Business
+ * Details, each dropped cleanly when emptied. Shared by the Classic band and
+ * the Bold layout's About section (2026-10-17) so the two say the same thing.
+ */
+function bandStructureTail(site, copy) {
+  const iso = site.certifications.iso;
+  const typed = String((copy.claims && copy.claims.aboutStructureClaim) || "").trim();
+  const shipped = typed.toLowerCase() === COPY_DEFAULTS.claims.aboutStructureClaim.toLowerCase();
+  if (!typed) return iso ? <> and is {iso} registered.</> : ".";
+  if (shipped) return iso ? <> — privately held, independent, and {iso} registered.</> : <> — privately held and independent.</>;
+  return iso ? <> — {typed}, and {iso} registered.</> : <> — {typed}.</>;
+}
+
+// Homepage team/building band (Keagan 2026-10-16). Neutral slate rather than
+// a brand colour on purpose: a shadow is depth, not branding, and must not
+// turn pink when the owner re-skins the site.
+const BAND_SHADOW = "0 22px 44px -26px rgba(15, 23, 42, 0.5), 0 2px 6px rgba(15, 23, 42, 0.06)";
+
+// A caption laid over the bottom-left of a band photo. The pill is near-opaque
+// slate so white text holds well above AA on any photograph the owner swaps
+// in — a light sky or a white wall included.
+function BandCaption({ children }) {
+  return (
+    <figcaption
+      style={{
+        position: "absolute",
+        left: 12,
+        bottom: 12,
+        maxWidth: "calc(100% - 24px)",
+        padding: "6px 12px",
+        borderRadius: 999,
+        background: "rgba(15, 23, 42, 0.8)",
+        color: "#ffffff",
+        fontSize: 12.5,
+        fontWeight: 600,
+        lineHeight: 1.35,
+      }}
+    >
+      {children}
+    </figcaption>
+  );
+}
+
+// "Visit us" — fills the column under the building photo. Every value is a
+// Business Details field (address, phone, hours, founded year, ISO), so it
+// states nothing the owner has not entered and follows every edit; the ISO
+// chip goes when that box is emptied (§1aq), as everywhere else.
+// The card IS --brand-dark, so its accent text is --brand-accent1-on-dark
+// (solved against that colour), never --brand-accent-on-deep (solved against
+// --brand-primary-deep): the first draft used the latter and lowsC2-palettes
+// measured 1.01–1.44:1 on five owner palettes.
+function BandVisitCard({ site }) {
+  const a = site.address || {};
+  const cityLine = [a.city, [a.state, a.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const query = [a.street, cityLine].filter(Boolean).join(", ");
+  const facts = [
+    site.company && site.company.foundedYear ? `Since ${site.company.foundedYear}` : null,
+    site.certifications && site.certifications.iso ? site.certifications.iso : null,
+  ].filter(Boolean);
+  return (
+    <div
+      className="rounded-2xl p-6 flex flex-col"
+      style={{ background: "var(--brand-dark)", color: "var(--brand-dark-ink)", boxShadow: BAND_SHADOW, flex: "1 1 auto" }}
+    >
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--brand-accent1-on-dark)" }}>
+        Visit us
+      </div>
+      <address style={{ fontStyle: "normal", marginTop: 8, fontSize: 17, fontWeight: 700, lineHeight: 1.4 }}>
+        {a.street}
+        {cityLine ? <><br />{cityLine}</> : null}
+      </address>
+      <div style={{ marginTop: 10, fontSize: 14, lineHeight: 1.7, color: "rgba(var(--brand-dark-ink-rgb), 0.85)" }}>
+        <a href={`tel:${site.contact.phoneDial}`} style={{ color: "var(--brand-dark-ink)", fontWeight: 600 }}>{site.contact.phone}</a>
+        {site.hours && site.hours.text ? <div>{site.hours.text}</div> : null}
+      </div>
+      {facts.length ? (
+        <div className="flex flex-wrap gap-2" style={{ marginTop: 14 }}>
+          {facts.map((f) => (
+            <span
+              key={f}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "4px 10px",
+                borderRadius: 999,
+                background: "rgba(var(--brand-dark-ink-rgb), 0.1)",
+                border: "1px solid rgba(var(--brand-dark-ink-rgb), 0.22)",
+              }}
+            >
+              {f}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {query ? (
+        <div style={{ marginTop: "auto", paddingTop: 16 }}>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "var(--brand-accent1-on-dark)", fontWeight: 700, fontSize: 14 }}
+          >
+            Get directions →<span className="sr-only"> (Google Maps, opens in a new tab)</span>
+          </a>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function Hero() {
   const { copy, heroProofPoints, heroTrust } = useContent();
@@ -1920,6 +2039,11 @@ function Hero() {
         }}
       />
 
+      {/* 2026-10-17 — a 1.25fr:1fr split was tried so the larger headline
+          wrapped by sentence, and reverted: it slid the proof cards ~60px
+          right onto a lighter stretch of the gradient, and on a pale palette
+          one more label fell under 4.5:1 (smalltext1as ratchet 13 → 14). The
+          headline cap below is what keeps it to a sensible number of lines. */}
       <div className="relative ipc-container px-6 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         {/* Left — value proposition */}
         <div>
@@ -1943,9 +2067,11 @@ function Hero() {
             />
             {c.badge}
           </div>
+          {/* Keagan 2026-10-17 — larger and tighter (was up to 52px at 1.25
+              line height), so the hero reads as a statement, not a list. */}
           <h1
-            className="font-extrabold leading-tight mb-6"
-            style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)", color: "rgb(var(--brand-hero-ink-rgb))" }}
+            className="font-extrabold mb-6"
+            style={{ fontSize: "clamp(2.25rem, 3.6vw, 3.4rem)", lineHeight: 1.05, letterSpacing: "-0.025em", color: "rgb(var(--brand-hero-ink-rgb))" }}
           >
             {c.headlineLine1}
             <br />
@@ -1954,8 +2080,8 @@ function Hero() {
             {c.headlineLine3}
           </h1>
           <p
-            className="text-base leading-relaxed mb-8 max-w-lg"
-            style={{ color: "var(--brand-hero-muted-75)" }}
+            className="leading-relaxed mb-8 max-w-xl"
+            style={{ fontSize: "clamp(1rem, 1.3vw, 1.125rem)", color: "var(--brand-hero-muted-75)" }}
           >
             {c.subhead}
           </p>
@@ -2194,82 +2320,80 @@ function Hero() {
 // The whole card is one navigational control, so the card itself is the anchor
 // — a nested <a> would be invalid and only the inner text would be crawlable.
 // `flex` in the className supplies the display an <a> lacks. (PLAN-1 4.21)
-function FeatureCard({ icon, title, description, page, params, hash }) {
+// Keagan 2026-10-17 — was a 14px title and 12.5px grey body beside a pale
+// icon tile: six near-identical small boxes. Now a taller card with a
+// numbered head, a 19px title, 15px body text and an explicit "Learn more",
+// lifted on hover. The icon stays (the admin offers it per card) but plain.
+const FEATURE_CARD_SHADOW = "0 1px 2px rgba(15, 23, 42, 0.04)";
+const FEATURE_CARD_SHADOW_HOVER = "0 24px 44px -24px rgba(15, 23, 42, 0.45)";
+function FeatureCard({ icon, index, title, description, page, params, hash }) {
   return (
     <PageLink
       page={page}
       params={params}
       hash={hash}
-      className="flex gap-5 p-6 rounded-xl cursor-pointer transition-all duration-200"
+      className="flex flex-col p-7 rounded-2xl cursor-pointer transition-all duration-200"
       style={{
         background: "#ffffff",
-        border: "1px solid #e5e9ee",
-        boxShadow: "0 1px 4px rgba(var(--brand-primary-rgb),0.05)",
+        border: "1px solid var(--ipc-card-border)",
+        boxShadow: FEATURE_CARD_SHADOW,
+        minHeight: 248,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = "var(--brand-primary)";
-        e.currentTarget.style.boxShadow = "0 4px 20px rgba(var(--brand-primary-rgb),0.12)";
-        e.currentTarget.style.transform = "translateY(-2px)";
-        const iconEl = e.currentTarget.querySelector(".fc-icon");
-        if (iconEl) {
-          iconEl.style.background = "rgba(var(--brand-primary-rgb),0.12)";
-          iconEl.style.borderColor = "var(--brand-primary)";
-        }
+        e.currentTarget.style.boxShadow = FEATURE_CARD_SHADOW_HOVER;
+        e.currentTarget.style.transform = "translateY(-3px)";
         const titleEl = e.currentTarget.querySelector(".fc-title");
         if (titleEl) titleEl.style.color = "var(--brand-primary-hover)";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "#e5e9ee";
-        e.currentTarget.style.boxShadow = "0 1px 4px rgba(var(--brand-primary-rgb),0.05)";
+        e.currentTarget.style.borderColor = "var(--ipc-card-border)";
+        e.currentTarget.style.boxShadow = FEATURE_CARD_SHADOW;
         e.currentTarget.style.transform = "";
-        const iconEl = e.currentTarget.querySelector(".fc-icon");
-        if (iconEl) {
-          iconEl.style.background = "rgba(var(--brand-primary-rgb),0.07)";
-          iconEl.style.borderColor = "transparent";
-        }
         const titleEl = e.currentTarget.querySelector(".fc-title");
         if (titleEl) titleEl.style.color = "#141414";
       }}
     >
-      {/* Icon — JS-driven hover (inline styles win over Tailwind; no group-hover needed) */}
-      <div
-        className="fc-icon flex-shrink-0 flex items-center justify-center rounded-lg"
+      <div className="flex items-center justify-between" style={{ marginBottom: 22 }}>
+        <div className="fc-icon flex-shrink-0" style={{ color: "var(--brand-primary-text)", lineHeight: 0 }}>
+          <span aria-hidden="true" style={{ display: "contents" }}>{icon}</span>{/* A12-L7-W3-G5-1 */}
+        </div>
+        {index ? (
+          <span aria-hidden="true" style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", color: "#64748b", fontVariantNumeric: "tabular-nums" }}>
+            {index}
+          </span>
+        ) : null}
+      </div>
+      <h3
+        className="fc-title"
         style={{
-          width: 48,
-          height: 48,
-          background: "rgba(var(--brand-primary-rgb),0.07)",
-          color: "var(--brand-primary-text)",
-          border: "1px solid transparent",
-          transition: "background 0.2s, border-color 0.2s",
+          fontSize: 19,
+          fontWeight: 700,
+          color: "#141414",
+          marginBottom: 10,
+          lineHeight: 1.25,
+          letterSpacing: "-0.01em",
+          transition: "color 0.2s",
         }}
       >
-        <span aria-hidden="true" style={{ display: "contents" }}>{icon}</span>{/* A12-L7-W3-G5-1 */}
-      </div>
-      <div className="min-w-0">
-        <h3
-          className="fc-title"
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: "#141414",
-            marginBottom: 6,
-            lineHeight: 1.3,
-            transition: "color 0.2s",
-          }}
-        >
-          {title}
-        </h3>
-        <p
-          style={{
-            fontSize: 12.5,
-            lineHeight: 1.6,
-            color: "#6b7280",
-            margin: 0,
-          }}
-        >
-          {description}
-        </p>
-      </div>
+        {title}
+      </h3>
+      <p
+        style={{
+          fontSize: 15,
+          lineHeight: 1.65,
+          color: "#4b5563",
+          margin: 0,
+        }}
+      >
+        {description}
+      </p>
+      <span
+        aria-hidden="true"
+        style={{ marginTop: "auto", paddingTop: 20, fontSize: 14, fontWeight: 700, color: "var(--brand-primary-text)" }}
+      >
+        Learn more →
+      </span>
     </PageLink>
   );
 }
@@ -2286,27 +2410,34 @@ function SectionHeader({ eyebrow, title, subtitle, action }) {
   return (
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
       <div>
+        {/* Keagan 2026-10-17 — larger heading, a darker and larger subtitle
+            (14px #6b7280 read as fine print), and the same accent rule before
+            the eyebrow as the team/building band, so the homepage's section
+            heads match. */}
         {eyebrow && (
           <div
+            className="flex items-center gap-3"
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
               color: "var(--brand-primary-text)",
-              marginBottom: 8,
+              marginBottom: 12,
             }}
           >
+            <span aria-hidden="true" style={{ width: 28, height: 2, background: "var(--brand-accent-2)", borderRadius: 2, flexShrink: 0 }} />
             {eyebrow}
           </div>
         )}
         <h2
           style={{
-            fontSize: "clamp(1.6rem, 3vw, 2rem)",
+            fontSize: "clamp(1.85rem, 3.4vw, 2.6rem)",
             fontWeight: 800,
             color: "#141414",
             margin: 0,
-            lineHeight: 1.2,
+            lineHeight: 1.12,
+            letterSpacing: "-0.02em",
           }}
         >
           {title}
@@ -2314,11 +2445,11 @@ function SectionHeader({ eyebrow, title, subtitle, action }) {
         {subtitle && (
           <p
             style={{
-              marginTop: 10,
-              fontSize: 14,
-              color: "#6b7280",
-              maxWidth: 520,
-              lineHeight: 1.6,
+              marginTop: 14,
+              fontSize: 16,
+              color: "#4b5563",
+              maxWidth: 600,
+              lineHeight: 1.65,
             }}
           >
             {subtitle}
@@ -2549,7 +2680,7 @@ function Features() {
     // A10-007 (§1at) — px-6 on the container, not the section, like every
     // other block: on the section it put these headings 24px left of the
     // logo, hero and footer at 1440 (the container is capped at 1280).
-    <section id="ipc-sec-features" className="py-20" style={{ background: "#f5f7fa" }}>
+    <section id="ipc-sec-features" className="py-20 md:py-24" style={{ background: "#f5f7fa" }}>
       <div className="ipc-container px-6">
         {/* A12-L6-13-1 — an emptied card list (invariant 3: [] is a
             deletion) takes its heading and "View Full Catalog" with it; the
@@ -2560,12 +2691,13 @@ function Features() {
           title={c.title}
           action={{ label: "View Full Catalog →", page: "products" }}
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f, i) => {
             const to = featureLinkTarget(f);
             return (
             <FeatureCard
               key={`${i}-${f.title}`}
+              index={String(i + 1).padStart(2, "0")}
               icon={
                 <div style={{ color: "var(--brand-primary-text)" }}>
                   <span aria-hidden="true" style={{ display: "contents" }}>{FEATURES_ICONS[f.iconKey]}</span>
@@ -2623,7 +2755,7 @@ const STATS_ICONS = {
       height="22"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#005da3"
+      stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -2640,7 +2772,7 @@ const STATS_ICONS = {
       height="22"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#005da3"
+      stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -2656,7 +2788,7 @@ const STATS_ICONS = {
       height="22"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#005da3"
+      stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -2671,7 +2803,7 @@ const STATS_ICONS = {
       height="22"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#005da3"
+      stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -2745,58 +2877,60 @@ const STATS_DATA = [
  * Borders: right border via inline style per cell; bottom border via ipc-stat-bottom-border CSS class.
  * Fix 13: dead divide-x divide-gray-200 Tailwind classes removed (don't work on CSS grid, borders handled separately).
  */
-function StatsBar() {
-  const { stats } = useContent();
-  // Decision 50 — the live counts behind {datasheets} / {products}. Until the
-  // catalog has arrived (or if it fails) the number is left out rather than
-  // guessed; the row keeps its height.
+/**
+ * Decision 50 — a stat's value with the live counts behind {datasheets} /
+ * {products} filled in. Until the catalog has arrived (or if it fails) the
+ * number is left out rather than guessed. Shared by StatsBar and the Bold
+ * homepage's stats band (2026-10-17), so the two cannot count differently.
+ */
+function useStatValue() {
   const catalog = useContext(CatalogContext);
   const counts = Array.isArray(catalog) && catalog.length ? catalogCounts(catalog) : null;
-  const statValue = (v) => {
+  return (v) => {
     const t = asText(v);
     if (!/\{(datasheets|products)\}/i.test(t)) return t;
     return counts ? t.replace(/\{(datasheets|products)\}/gi, (_, k) => String(counts[k.toLowerCase()])) : "";
   };
+}
+
+function StatsBar() {
+  const { stats } = useContent();
+  const statValue = useStatValue();
+  // Keagan 2026-10-17 — the row was 20px numbers beside pale icon tiles on
+  // white, the quietest strip on the page for its four strongest facts. It is
+  // now a large-number band on --brand-dark directly under the hero, so the
+  // top of the page reads as one dark block. Every colour is a token solved
+  // against --brand-dark (ink, accent1-on-dark, dark-muted-60), so an owner
+  // palette keeps it readable — lowsC2-palettes holds that.
   return (
-    <section id="ipc-sec-stats" className="bg-white border-b border-gray-200">
+    <section id="ipc-sec-stats" style={{ background: "var(--brand-dark)" }}>
       <div className="ipc-container px-6 grid grid-cols-2 md:grid-cols-4 ipc-stats-grid">
         {stats.map((s, i) => (
           <div
             key={`${i}-${s.label}`}
-            className={`py-5 px-4 md:py-7 md:px-6 flex items-center gap-4
-              ${i < 2 ? "ipc-stat-bottom-border" : ""}
-              ${i % 2 === 0 ? "border-r border-gray-200" : ""}
-              ${i === 1 ? "md:border-r md:border-gray-200" : ""}
-              ${i === 3 ? "border-r-0" : ""}
-            `}
+            className="py-8 px-4 md:py-12 md:px-8 flex flex-col gap-4"
           >
-            <div
-              className="flex-shrink-0 flex items-center justify-center rounded-lg bg-blue-50"
-              style={{ width: 44, height: 44 }}
-            >
+            {/* The admin still offers an icon per stat, so it stays — small,
+                in currentColor, above the number rather than in a tile. */}
+            <div className="flex-shrink-0" style={{ color: "var(--brand-accent1-on-dark)", lineHeight: 0 }}>
               <span aria-hidden="true" style={{ display: "contents" }}>{STATS_ICONS[s.iconKey]}</span>{/* A12-L7-W3-G5-1 */}
             </div>
             <div className="min-w-0" style={{ overflowWrap: "anywhere" }}>
               <div
-                className="font-extrabold leading-tight"
-                style={{ fontSize: 20, color: "var(--brand-primary-text)" }}
+                className="font-extrabold"
+                style={{ fontSize: "clamp(2rem, 4.2vw, 3.5rem)", lineHeight: 1, letterSpacing: "-0.03em", color: "var(--brand-dark-ink)" }}
               >
                 {statValue(s.value) || "\u00a0"}
               </div>
               <div
-                className="text-xs font-semibold mt-0.5"
-                style={{ color: "#141414" }}
+                style={{ marginTop: 12, fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--brand-accent1-on-dark)" }}
               >
                 {s.label}
               </div>
-              {/* B9 — an inline token, not the utility class.
-                  This was the ONLY gray-400 on the site expressed as a Tailwind
-                  class rather than a hex, so replacing the 16 literal
-                  occurrences left these four homepage stat sub-lines behind at
-                  2.54:1 — "Founded July 1, 1974" and its three neighbours.
-                  The measurement caught it; a grep for the hex would not
-                  have. */}
-              <div className="text-xs mt-0.5" style={{ color: "#4b5563" }}>{s.sub}</div>
+              {/* B9 — this sub-line once sat at 2.54:1 as a utility-class grey.
+                  On the dark band it is --brand-dark-muted-60, which
+                  ThemeInjector raises only as far as 4.5:1 needs. */}
+              <div style={{ marginTop: 4, fontSize: 14, lineHeight: 1.5, color: "var(--brand-dark-muted-60)" }}>{s.sub}</div>
             </div>
           </div>
         ))}
@@ -3122,7 +3256,7 @@ function ApprovalFilter({ products, scope, selected, onToggle, onClear }) {
   return (
     <div
       className="rounded-lg mb-4"
-      style={{ border: "1px solid #e5e9ee", background: "#ffffff", padding: "14px 16px" }}
+      style={{ border: "1px solid var(--ipc-card-border)", background: "#ffffff", padding: "14px 16px" }}
     >
       <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
         <span
@@ -3369,7 +3503,7 @@ function DatasheetsPage({ products }) {
           /* A12-L6-13-5 — nothing to list and nothing typed: an empty or
              malformed catalog. This said Nothing matches "" over a "Clear
              filter" button that did nothing. */
-          <div className="bg-white rounded-xl p-8 text-center" style={{ border: "1px solid #e5e9ee" }}>
+          <div className="bg-white rounded-xl p-8 text-center" style={{ border: "1px solid var(--ipc-card-border)" }}>
             <div className="text-base font-bold" style={{ color: "#141414" }}>
               No datasheets are listed right now
             </div>
@@ -3385,7 +3519,7 @@ function DatasheetsPage({ products }) {
              the placeholder because "1/2 inch" returning nothing is only
              confusing at the moment it happens: sizes live in each product's
              spec table, which this filter does not read. */
-          <div className="bg-white rounded-xl p-8 text-center" style={{ border: "1px solid #e5e9ee" }}>
+          <div className="bg-white rounded-xl p-8 text-center" style={{ border: "1px solid var(--ipc-card-border)" }}>
             <div className="text-base font-bold" style={{ color: "#141414" }}>
               No datasheets found
             </div>
@@ -3435,7 +3569,7 @@ function DatasheetsPage({ products }) {
                       rel="noopener noreferrer"
                       className="rounded-lg flex items-start gap-3 transition-all duration-150 hover:shadow-md"
                       style={{
-                        border: "1px solid #e5e9ee", background: "#ffffff",
+                        border: "1px solid var(--ipc-card-border)", background: "#ffffff",
                         padding: "13px 15px", textDecoration: "none",
                       }}
                     >
@@ -3490,8 +3624,6 @@ function HomePage() {
   const mk = copy.homeMarkets;
   const img = copy.siteImages;
   const [slot, onSlotError] = useSiteImageSlots(img);
-  // A12-L6-03-W5-2 — both band photos present (see the band below).
-  const bandPair = !!(slot("bandTeamPhoto") && slot("bandBuildingPhoto"));
 
   /**
    * C30 — the fragment for a market card, or undefined if there is no section
@@ -3511,6 +3643,14 @@ function HomePage() {
     );
     return idx === -1 ? undefined : industryAnchor(industryDetail, idx);
   };
+  // Keagan 2026-10-17 — Business Details → Branding → Homepage layout.
+  // Every hook above runs in both layouts, so switching never changes the
+  // hook order; Bold reads the same content and Business Details.
+  if (homeLayoutOf(site) === "bold") return <BoldHome marketAnchor={marketAnchor} />;
+  if (homeLayoutOf(site) === "light") return <LightHome marketAnchor={marketAnchor} />;
+  if (homeLayoutOf(site) === "distributor") return <DistributorHome marketAnchor={marketAnchor} />;
+  if (homeLayoutOf(site) === "corporate") return <CorporateHome />;
+  if (homeLayoutOf(site) === "sidebar") return <SidebarHome />;
   return (
     <div>
       <Hero />
@@ -3533,7 +3673,12 @@ function HomePage() {
           the 12/13px side border still shows.) Both files are at their resolution
           ceiling and cannot go larger or retina — measured in the amendment. */}
       {(slot("bandTeamPhoto") || slot("bandBuildingPhoto")) ? (
-      <section className="py-14" style={{ background: "#f5f7fa" }}>
+      // Keagan 2026-10-16 — the band read as one more grey strip: same
+      // #f5f7fa as Features above it, small heading, a half-empty right
+      // column. It is now a white section framed by hairlines (Markets below
+      // is white too, so the bottom rule is what separates them), with a
+      // larger heading, captioned photos and a "Visit us" card.
+      <section className="py-16 md:py-20" style={{ background: "#ffffff", borderTop: "1px solid var(--ipc-card-border)", borderBottom: "1px solid var(--ipc-card-border)" }}>
         {/* F14 — these two photographs sat between "Talk to Our Sales Team"
             and "Industries Served" with no heading, caption or link: a sighted
             visitor saw two uncaptioned images and had to guess, while the alt
@@ -3543,16 +3688,17 @@ function HomePage() {
             for a fifty-year-old firm — and were doing none of that work. The
             alt text is left alone; it describes the image, which is its job.
             This is the on-screen sentence it was missing. */}
-        <div className="ipc-container px-6 mb-6">
+        <div className="ipc-container px-6 mb-10">
           <div
-            className="text-xs font-bold tracking-widest uppercase"
+            className="text-xs font-bold tracking-widest uppercase flex items-center gap-3"
             style={{ color: "var(--brand-primary-text)" }}
           >
+            <span aria-hidden="true" style={{ width: 28, height: 2, background: "var(--brand-accent-2)", borderRadius: 2 }} />
             {withBusinessFacts("Bolingbrook, Illinois", site)}
           </div>
           <h2
-            className="text-2xl font-extrabold mt-1"
-            style={{ color: "#141414" }}
+            className="font-extrabold mt-3"
+            style={{ color: "#141414", fontSize: "clamp(1.75rem, 3.2vw, 2.4rem)", lineHeight: 1.15, letterSpacing: "-0.01em" }}
           >
             {/* AUDIT-12 decision 6 (A12-L8-W4-G3-1) — this heading read "The
                 same team, the same building, since 1974": a claim written
@@ -3560,7 +3706,7 @@ function HomePage() {
                 admin field holds. It now describes the two photographs. */}
             {withBusinessFacts("Bolingbrook, Illinois — our team and our building", site)}
           </h2>
-          <p className="mt-2 text-sm max-w-2xl" style={{ color: "#4b5563" }}>
+          <p className="mt-4 text-base max-w-2xl" style={{ color: "#4b5563", lineHeight: 1.65 }}>
             {/* A-9.P4-6 — this sentence and the two facility `alt`s spelled the
                 street "Drive" in full, while every other rendering of the same
                 address (footer, /contact, privacy §7, Organization JSON-LD)
@@ -3579,14 +3725,7 @@ function HomePage() {
                 the About fact row does: emptied, it goes; other wording is
                 shown as typed. It was the one ADM-8 location left hardcoded. */}
             IPC has stocked, cut and shipped from {site.address.street} for over
-            fifty years{(() => {
-              const iso = site.certifications.iso;
-              const typed = String((copy.claims && copy.claims.aboutStructureClaim) || "").trim();
-              const shipped = typed.toLowerCase() === COPY_DEFAULTS.claims.aboutStructureClaim.toLowerCase();
-              if (!typed) return iso ? <> and is {iso} registered.</> : ".";
-              if (shipped) return iso ? <> — privately held, independent, and {iso} registered.</> : <> — privately held and independent.</>;
-              return iso ? <> — {typed}, and {iso} registered.</> : <> — {typed}.</>;
-            })()}{" "}
+            fifty years{bandStructureTail(site, copy)}{" "}
             <PageLink
               page="about"
               style={{
@@ -3603,9 +3742,20 @@ function HomePage() {
             & Logo offers Remove Photo for each), the survivor stayed in its
             own column at the left and the band was up to 69% empty. Alone, a
             photo is centred at the two-column width the team photo has. */}
-        <div className={`ipc-container px-6 grid grid-cols-1 ${bandPair ? "md:grid-cols-3" : ""} gap-5`}>
+        {/* Keagan 2026-10-16 — the column under the building photo was plain
+            section background (the figure hugs its photo, PLAN-9 item 4, and
+            still does). A "Visit us" card built from Business Details now
+            fills it. With the team photo removed, the building photo and the
+            card share the band half and half; with the building photo
+            removed, the card takes its column. Never an empty column.
+            The 2:1 split with a right-hand column starts only at xl: below
+            it that column is too narrow for photo plus card, and filling the
+            row height squared the team photo off (465x453 at 768). There the
+            team photo has the full row at 16:9 and the building photo and
+            the card sit side by side beneath it. */}
+        <div className={`ipc-container px-6 grid grid-cols-1 ${slot("bandTeamPhoto") ? "md:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2"} gap-6`}>
           {slot("bandTeamPhoto") ? (
-          <figure className={`${bandPair ? "md:col-span-2" : "md:w-2/3 md:justify-self-center"} m-0 rounded-2xl overflow-hidden`} style={{ border: "1px solid #e5e9ee" }}>
+          <figure className="md:col-span-2 m-0 rounded-2xl overflow-hidden relative" style={{ border: "1px solid var(--ipc-card-border)", boxShadow: BAND_SHADOW }}>
             <img
               src={slot("bandTeamPhoto")}
               onError={onSlotError}
@@ -3614,19 +3764,29 @@ function HomePage() {
               decoding="async"
               width={BAND_TEAM.w}
               height={BAND_TEAM.h}
-              className="w-full"
+              /* 2026-10-16 — at xl the right-hand column (building photo plus
+                 the Visit us card) is a little taller than a 16:9 team photo,
+                 and the stretched figure showed a white strip under it. The
+                 photo fills its figure instead; object-fit trims a sliver of
+                 each side. Below xl it has its own row and stays 16:9. */
+              className="w-full xl:h-full"
               style={{ aspectRatio: "16 / 9", objectFit: "cover", display: "block" }}
             />
+            <BandCaption>{withBusinessFacts("Our team in Bolingbrook, Illinois", site)}</BandCaption>
           </figure>
           ) : null}
-          {slot("bandBuildingPhoto") ? (
-          /* PLAN-9 item 4 — md:self-start: grid items stretch to the row
-             height by default, and the team figure (two columns of 16:9)
-             sets a taller row than one column of 16:9 fills — the bordered
-             card ran 246px past its photo at 1440. Hugging the image beats
-             stretching or cropping it: the file is at its resolution ceiling
-             (PLAN-7 measured the upscale harm). */
-          <figure className={`${bandPair ? "" : "md:w-2/3 md:justify-self-center "}m-0 rounded-2xl overflow-hidden md:self-start`} style={{ border: "1px solid #e5e9ee" }}>
+          {(() => {
+          const building = slot("bandBuildingPhoto") ? (
+          /* PLAN-9 item 4 — the building figure must hug its photo: grid
+             items stretch to the row height by default, and the team figure
+             (two columns of 16:9) sets a taller row than one column of 16:9
+             fills — the bordered card ran 246px past its photo at 1440.
+             Hugging the image beats stretching it: the file is at its
+             resolution ceiling (PLAN-7 measured the upscale harm). As a grid
+             item beside the card it aligns to the top of its cell; at xl,
+             inside the right-hand column, it is a column-flex child, where a
+             start alignment would shrink its WIDTH, so it goes back to auto. */
+          <figure className={`${slot("bandTeamPhoto") ? "md:self-start xl:self-auto " : "md:self-start "}m-0 rounded-2xl overflow-hidden relative`} style={{ border: "1px solid var(--ipc-card-border)", boxShadow: BAND_SHADOW }}>
             <img
               src={slot("bandBuildingPhoto")}
               onError={onSlotError}
@@ -3638,8 +3798,16 @@ function HomePage() {
               className="w-full"
               style={{ aspectRatio: "16 / 9", objectFit: "cover", display: "block" }}
             />
+            <BandCaption>{[site.address.street, site.address.city].filter(Boolean).join(", ")}</BandCaption>
           </figure>
-          ) : null}
+          ) : null;
+          const visit = <BandVisitCard site={site} />;
+          return slot("bandTeamPhoto")
+            // Between md and xl the wrapper dissolves (display: contents) so
+            // the photo and the card are two cells of the two-column grid.
+            ? <div className="flex flex-col gap-6 min-w-0 md:contents xl:flex">{building}{visit}</div>
+            : <>{building}{visit}</>;
+          })()}
         </div>
       </section>
       ) : null}
@@ -3682,7 +3850,7 @@ function HomePage() {
                 hash={marketAnchor(m)}
                 className="group rounded-xl p-6 text-left transition-all duration-200 flex flex-col hover:-translate-y-0.5 hover:shadow-lg ipc-hover-border ipc-hover-tint"
                 style={{
-                  border: "1px solid #e5e9ee",
+                  border: "1px solid var(--ipc-card-border)",
                   background: "#ffffff",
                   cursor: "pointer",
                 }}
@@ -3810,13 +3978,824 @@ function HomePage() {
   );
 }
 
+/**
+ * The Bold homepage layout (Keagan 2026-10-17), chosen in Business Details →
+ * Branding → Homepage layout. It reads EXACTLY the content Classic reads —
+ * hero copy, stats, the trust items, the Products & Services cards, the
+ * markets, the team photo and Business Details — so Rick edits one set of
+ * words whichever layout is on. Differences, all deliberate:
+ *   - hero: one statement (lines 1–3 of the headline), the one-sentence
+ *     `boldSubhead`, and the `boldHeroPhoto` slot on the right. No ink crosses
+ *     the photo (PLAN-7's rule): on wide screens it sits beside the copy and
+ *     fades into it; below lg it stacks above.
+ *   - Hero Proof Points are not shown (the stats band is the numbers); the
+ *     trust items become a static strip instead of a marquee.
+ *   - the first Products & Services card is featured, with `boldFeaturePhoto`.
+ * Colours are theme tokens solved for the surface they sit on (dark-ink,
+ * dark-muted-60, accent1-on-dark, primary-ink), so an owner palette keeps
+ * every line readable. Styles are the .ipcb-* rules in src/index.css, which
+ * load with the page (invariant 9's reasoning) and use the self-hosted IBM
+ * Plex imported in src/main.jsx.
+ */
+function BoldHome({ marketAnchor }) {
+  const site = useSiteInfo();
+  const { copy, stats, heroTrust, features, markets } = useContent();
+  const [slot, onSlotError] = useSiteImageSlots(copy.siteImages);
+  const statValue = useStatValue();
+  const c = copy.hero;
+  const hf = copy.homeFeatures;
+  const mk = copy.homeMarkets;
+  const trustItems = heroTrust.map((t) => t.text).filter(Boolean);
+  const [lead, ...rest] = features;
+  const accentLine = [c.headlineAccent, c.headlineLine3].filter(Boolean).join(" ");
+  const heroPhoto = slot("boldHeroPhoto");
+  const featurePhoto = slot("boldFeaturePhoto");
+  const teamPhoto = slot("bandTeamPhoto");
+  const pad2 = (i) => String(i).padStart(2, "0");
+
+  return (
+    <div className="ipcb">
+      {/* ── Hero + stats ───────────────────────────────────────────────── */}
+      <section className={`ipcb-hero${heroPhoto ? " ipcb-hero--photo" : ""}`}>
+        {heroPhoto ? (
+          <div className="ipcb-hero-photo">
+            <img src={heroPhoto} onError={onSlotError} alt="" decoding="async" />
+          </div>
+        ) : null}
+        <div className="ipc-container px-6 ipcb-hero-body">
+          <div className="ipcb-hero-copy">
+            {c.badge ? <div className="ipcb-label ipcb-label--on-dark">{c.badge}</div> : null}
+            <h1 className="ipcb-h1">
+              {c.headlineLine1}
+              {accentLine ? <> <span className="ipcb-h1-accent">{accentLine}</span></> : null}
+            </h1>
+            {c.boldSubhead ? <p className="ipcb-lede">{withBusinessFacts(c.boldSubhead, site)}</p> : null}
+            <div className="ipcb-ctas">
+              <PageLink page={c.ctaPrimaryPage} className="ipcb-btn ipcb-btn--primary">{c.ctaPrimaryLabel}</PageLink>
+              <PageLink page={c.ctaSecondaryPage} className="ipcb-btn ipcb-btn--ghost">{c.ctaSecondaryLabel}</PageLink>
+            </div>
+          </div>
+          {stats.length ? (
+            <div id="ipc-sec-stats" className="ipcb-stats">
+              {stats.map((s, i) => (
+                <div key={`${i}-${s.label}`} className="ipcb-stat">
+                  <div className="min-w-0">
+                    <div className="ipcb-stat-value">{statValue(s.value) || " "}</div>
+                    <div className="ipcb-label ipcb-label--on-dark">{s.label}</div>
+                    <div className="ipcb-stat-sub">{s.sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {/* ── Trust strip (the Classic hero's marquee, as a static list) ──── */}
+      {trustItems.length ? (
+        <div id="ipc-sec-heroTrust" className="ipcb-strip">
+          <div className="ipc-container px-6 ipcb-strip-inner">
+            <ul aria-label="Certifications and standards">
+              {trustItems.map((t, i) => <li key={`${i}-${t}`}>{t}</li>)}
+            </ul>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Products & Services ─────────────────────────────────────────── */}
+      {lead ? (
+        <section id="ipc-sec-features" className="ipcb-section">
+          <div className="ipc-container px-6">
+            <div className="ipcb-head">
+              <div>
+                {hf.eyebrow ? <div className="ipcb-label ipcb-label--brand">{hf.eyebrow}</div> : null}
+                <h2 className="ipcb-h2">{hf.title}</h2>
+              </div>
+              <PageLink page="products" className="ipcb-textlink">View full catalog →</PageLink>
+            </div>
+            <div className={`ipcb-prod${rest.length ? "" : " ipcb-prod--single"}`}>
+              {(() => {
+                const to = featureLinkTarget(lead);
+                return (
+                  <PageLink page={to.page} params={to.params} hash={to.hash} className="ipcb-feat">
+                    {featurePhoto ? (
+                      <img className="ipcb-feat-photo" src={featurePhoto} onError={onSlotError} alt="" loading="lazy" decoding="async" />
+                    ) : null}
+                    <div className="ipcb-feat-body">
+                      <span className="ipcb-label ipcb-label--on-dark">01</span>
+                      <h3 className="ipcb-feat-title">{lead.title}</h3>
+                      <p className="ipcb-feat-text">{lead.description}</p>
+                      <span className="ipcb-feat-go" aria-hidden="true">Learn more →</span>
+                    </div>
+                  </PageLink>
+                );
+              })()}
+              {rest.length ? (
+                <div className="ipcb-rows">
+                  {rest.map((f, i) => {
+                    const to = featureLinkTarget(f);
+                    return (
+                      <PageLink key={`${i}-${f.title}`} page={to.page} params={to.params} hash={to.hash} className="ipcb-row">
+                        <div className="min-w-0">
+                          <span className="ipcb-label ipcb-label--muted">{pad2(i + 2)}</span>
+                          <h3 className="ipcb-row-title">{f.title}</h3>
+                          <p className="ipcb-row-text">{f.description}</p>
+                        </div>
+                        <span className="ipcb-row-arrow" aria-hidden="true">→</span>
+                      </PageLink>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── Industries ──────────────────────────────────────────────────── */}
+      {markets.length ? (
+        <section id="ipc-sec-markets" className="ipcb-section ipcb-dark">
+          <div className="ipc-container px-6">
+            <div className="ipcb-head">
+              <div>
+                {mk.eyebrow ? <div className="ipcb-label ipcb-label--on-dark">{mk.eyebrow}</div> : null}
+                <h2 className="ipcb-h2">{mk.title}</h2>
+                {mk.subtitle ? <p className="ipcb-sub">{mk.subtitle}</p> : null}
+              </div>
+              <PageLink page="industries" className="ipcb-textlink">View all industries →</PageLink>
+            </div>
+            <div className="ipcb-ind">
+              {markets.map((m, i) => (
+                <PageLink key={`${i}-${m.label}`} page={m.page} hash={marketAnchor(m)} className="ipcb-ind-item">
+                  <span className="ipcb-label ipcb-label--dim">{pad2(i + 1)}</span>
+                  <h3 className="ipcb-ind-title">{m.label}</h3>
+                  <p className="ipcb-ind-text">{m.desc}</p>
+                  <span className="ipcb-ind-go" aria-hidden="true">Learn more →</span>
+                </PageLink>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── About / visit ───────────────────────────────────────────────── */}
+      <section className="ipcb-section">
+        <div className={`ipc-container px-6 ipcb-co${teamPhoto ? "" : " ipcb-co--single"}`}>
+          {teamPhoto ? (
+            <img
+              className="ipcb-co-photo"
+              src={teamPhoto}
+              onError={onSlotError}
+              alt={withBusinessFacts("The Insulation Products Corporation team outside the Bolingbrook facility", site)}
+              loading="lazy"
+              decoding="async"
+              width={BAND_TEAM.w}
+              height={BAND_TEAM.h}
+            />
+          ) : null}
+          <div>
+            <div className="ipcb-label ipcb-label--brand">About IPC</div>
+            <h2 className="ipcb-h2">{withBusinessFacts("Bolingbrook, Illinois", site)}</h2>
+            <p className="ipcb-sub ipcb-sub--light">
+              IPC has stocked, cut and shipped from {site.address.street} for over fifty years{bandStructureTail(site, copy)}{" "}
+              <PageLink page="about" className="ipcb-inline-link">More about IPC →</PageLink>
+            </p>
+            <dl className="ipcb-facts">
+              <div><dt>Address</dt><dd>{[site.address.street, [site.address.city, [site.address.state, site.address.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean).join(", ")}</dd></div>
+              {site.hours && site.hours.text ? <div><dt>Hours</dt><dd>{site.hours.text}</dd></div> : null}
+              <div><dt>Phone</dt><dd><a href={`tel:${site.contact.phoneDial}`}>{site.contact.phone}</a></dd></div>
+              {site.contact.email ? <div><dt>Email</dt><dd><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></dd></div> : null}
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Closing call to action (Classic's ribbon + quote band, as one) ── */}
+      <section className="ipcb-cta">
+        <div className="ipc-container px-6 ipcb-cta-inner">
+          <h2 className="ipcb-h2">{hf.ctaText}</h2>
+          <div className="ipcb-cta-side">
+            <a className="ipcb-cta-phone" href={`tel:${site.contact.phoneDial}`}>{site.contact.phone}</a>
+            {site.hours && site.hours.text ? <div className="ipcb-cta-note">{site.hours.text}</div> : null}
+            <PageLink page="contact" className="ipcb-btn ipcb-btn--light">{hf.ctaButton}</PageLink>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * The Light homepage layout (Keagan 2026-10-17), the third choice in Business
+ * Details → Branding → Homepage layout. Bright and product-led: the hero photo
+ * (the Classic `heroPhoto` slot) full width behind a white card, the stats on
+ * white, the trust items as a strip, every Products & Services card as a
+ * photo tile (each card's Photo box, cardPhotoSrc), industries as white cards
+ * on a neutral band, About/visit, and a light closing call to action. Reads
+ * the same content as Classic and Bold; Hero Proof Points are not shown.
+ * Text sits on white or on the neutral #f3f6f9 band only, never on the photo
+ * (the card is opaque), so the white-surface tokens hold on any palette —
+ * homelayout.js scores it on the shipped and two pale palettes.
+ */
+function LightHome({ marketAnchor }) {
+  const site = useSiteInfo();
+  const { copy, stats, heroTrust, features, markets } = useContent();
+  const [slot, onSlotError] = useSiteImageSlots(copy.siteImages);
+  const statValue = useStatValue();
+  // A card photo that fails to load is dropped like a cleared one (the
+  // useSiteImageSlots rule), keyed on its resolved src.
+  const [brokenCards, setBrokenCards] = useState(() => new Set());
+  const onCardError = useCallback((e) => {
+    const s = e.currentTarget.getAttribute("src");
+    if (s) setBrokenCards((prev) => (prev.has(s) ? prev : new Set(prev).add(s)));
+  }, []);
+  const c = copy.hero;
+  const hf = copy.homeFeatures;
+  const mk = copy.homeMarkets;
+  const trustItems = heroTrust.map((t) => t.text).filter(Boolean);
+  const accentLine = [c.headlineAccent, c.headlineLine3].filter(Boolean).join(" ");
+  const heroPhoto = slot("heroPhoto");
+  const teamPhoto = slot("bandTeamPhoto");
+
+  return (
+    <div className="ipcl">
+      {/* ── Hero: the photo full width, the copy on an opaque white card ── */}
+      <section className={`ipcl-hero${heroPhoto ? " ipcl-hero--photo" : ""}`}>
+        {heroPhoto ? (
+          <img className="ipcl-hero-photo" src={heroPhoto} onError={onSlotError}
+            alt="Custom-printed heat shrink sleeves and wire markers produced by IPC" decoding="async" />
+        ) : null}
+        <div className="ipc-container px-6 ipcl-hero-inner">
+          <div className="ipcl-card">
+            {c.badge ? <div className="ipcl-eyebrow">{c.badge}</div> : null}
+            <h1 className="ipcl-h1">
+              {c.headlineLine1}
+              {accentLine ? <span className="ipcl-h1-accent">{accentLine}</span> : null}
+            </h1>
+            {c.boldSubhead ? <p className="ipcl-lede">{withBusinessFacts(c.boldSubhead, site)}</p> : null}
+            <div className="ipcl-ctas">
+              <PageLink page={c.ctaPrimaryPage} className="ipcl-btn ipcl-btn--primary">{c.ctaPrimaryLabel}</PageLink>
+              <PageLink page={c.ctaSecondaryPage} className="ipcl-btn ipcl-btn--outline">{c.ctaSecondaryLabel}</PageLink>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Stats ──────────────────────────────────────────────────────── */}
+      {stats.length ? (
+        <div id="ipc-sec-stats" className="ipcl-stats">
+          <div className="ipc-container px-6 ipcl-stats-grid">
+            {stats.map((s, i) => (
+              <div key={`${i}-${s.label}`} className="ipcl-stat">
+                <div className="min-w-0">
+                  <div className="ipcl-stat-value">{statValue(s.value) || " "}</div>
+                  <div className="ipcl-stat-label">{s.label}</div>
+                  <div className="ipcl-stat-sub">{s.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Trust strip (shared style with Bold) ───────────────────────── */}
+      {trustItems.length ? (
+        <div id="ipc-sec-heroTrust" className="ipcb-strip">
+          <div className="ipc-container px-6 ipcb-strip-inner">
+            <ul aria-label="Certifications and standards">
+              {trustItems.map((t, i) => <li key={`${i}-${t}`}>{t}</li>)}
+            </ul>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Products & Services: a photo tile per card ─────────────────── */}
+      {features.length ? (
+        <section id="ipc-sec-features" className="ipcl-section">
+          <div className="ipc-container px-6">
+            <div className="ipcl-head">
+              <div>
+                {hf.eyebrow ? <div className="ipcl-eyebrow">{hf.eyebrow}</div> : null}
+                <h2 className="ipcl-h2">{hf.title}</h2>
+              </div>
+              <PageLink page="products" className="ipcl-textlink">View full catalog →</PageLink>
+            </div>
+            <div className="ipcl-tiles">
+              {features.map((f, i) => {
+                const to = featureLinkTarget(f);
+                const src = cardPhotoSrc(f);
+                const photo = src && !brokenCards.has(src) ? src : "";
+                return (
+                  <PageLink key={`${i}-${f.title}`} page={to.page} params={to.params} hash={to.hash} className="ipcl-tile">
+                    {photo ? (
+                      <img className="ipcl-tile-photo" src={photo} onError={onCardError} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="ipcl-tile-icon" aria-hidden="true">{FEATURES_ICONS[f.iconKey]}</div>
+                    )}
+                    <div className="ipcl-tile-body">
+                      <h3 className="ipcl-tile-title">{f.title}</h3>
+                      <p className="ipcl-tile-text">{f.description}</p>
+                      <span className="ipcl-go" aria-hidden="true">Learn more →</span>
+                    </div>
+                  </PageLink>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── Industries ──────────────────────────────────────────────────── */}
+      {markets.length ? (
+        <section id="ipc-sec-markets" className="ipcl-section ipcl-tinted">
+          <div className="ipc-container px-6">
+            <div className="ipcl-head">
+              <div>
+                {mk.eyebrow ? <div className="ipcl-eyebrow">{mk.eyebrow}</div> : null}
+                <h2 className="ipcl-h2">{mk.title}</h2>
+                {mk.subtitle ? <p className="ipcl-sub">{mk.subtitle}</p> : null}
+              </div>
+              <PageLink page="industries" className="ipcl-textlink">View all industries →</PageLink>
+            </div>
+            <div className="ipcl-ind">
+              {markets.map((m, i) => (
+                <PageLink key={`${i}-${m.label}`} page={m.page} hash={marketAnchor(m)} className="ipcl-ind-card">
+                  <span className="ipcl-ind-icon" aria-hidden="true">{MktIcons[m.iconKey]}</span>
+                  <h3 className="ipcl-ind-title">{m.label}</h3>
+                  <p className="ipcl-ind-text">{m.desc}</p>
+                  <span className="ipcl-go" aria-hidden="true">Learn more →</span>
+                </PageLink>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── About / visit ───────────────────────────────────────────────── */}
+      <section className="ipcl-section">
+        <div className={`ipc-container px-6 ipcl-co${teamPhoto ? "" : " ipcl-co--single"}`}>
+          {teamPhoto ? (
+            <img className="ipcl-co-photo" src={teamPhoto} onError={onSlotError}
+              alt={withBusinessFacts("The Insulation Products Corporation team outside the Bolingbrook facility", site)}
+              loading="lazy" decoding="async" width={BAND_TEAM.w} height={BAND_TEAM.h} />
+          ) : null}
+          <div>
+            <div className="ipcl-eyebrow">About IPC</div>
+            <h2 className="ipcl-h2">{withBusinessFacts("Bolingbrook, Illinois", site)}</h2>
+            <p className="ipcl-sub">
+              IPC has stocked, cut and shipped from {site.address.street} for over fifty years{bandStructureTail(site, copy)}{" "}
+              <PageLink page="about" className="ipcl-textlink">More about IPC →</PageLink>
+            </p>
+            <dl className="ipcl-visit">
+              <div><dt>Address</dt><dd>{[site.address.street, [site.address.city, [site.address.state, site.address.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean).join(", ")}</dd></div>
+              {site.hours && site.hours.text ? <div><dt>Hours</dt><dd>{site.hours.text}</dd></div> : null}
+              <div><dt>Phone</dt><dd><a href={`tel:${site.contact.phoneDial}`}>{site.contact.phone}</a></dd></div>
+              {site.contact.email ? <div><dt>Email</dt><dd><a href={`mailto:${site.contact.email}`}>{site.contact.email}</a></dd></div> : null}
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Closing call to action ──────────────────────────────────────── */}
+      <section className="ipcl-cta">
+        <div className="ipc-container px-6 ipcl-cta-inner">
+          <h2 className="ipcl-h2">{hf.ctaText}</h2>
+          <div className="ipcl-cta-side">
+            <a className="ipcl-cta-phone" href={`tel:${site.contact.phoneDial}`}>
+              {site.contact.phone}
+              {site.hours && site.hours.text ? <small>{site.hours.text}</small> : null}
+            </a>
+            <PageLink page="contact" className="ipcl-btn ipcl-btn--primary">{hf.ctaButton}</PageLink>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ── Industry-pattern homepage layouts (Keagan 2026-10-17) ─────────────────
+// Distributor catalog, Corporate and Classic distributor (sidebar): page
+// structures borrowed from other suppliers in IPC's industry, chosen in
+// Business Details → Branding → Homepage layout. They read the live catalog
+// (families, counts, photos, approvals, datasheets) and the same Page Content
+// and Business Details as the other layouts — nothing in them is typed twice.
+
+/** A catalog product's photo, only if it is a picture path on this website. */
+function productPhotoSrc(p) {
+  const s = slotSrc(p && typeof p.photoUrl === "string" ? p.photoUrl.trim() : "");
+  return /^\/(images|uploads)\/[^?#]*$/i.test(s) && !s.includes("..") ? s : "";
+}
+
+/**
+ * The catalog as the industry layouts show it: every product family that has
+ * products, in the Page Content family order (then any family it does not
+ * list), with its count and the first product photo in it; and every approval
+ * the catalog carries, with how many products carry it, most common first.
+ */
+function useHomeCatalog() {
+  const catalog = useContext(CatalogContext);
+  const content = useContent();
+  return useMemo(() => {
+    const list = Array.isArray(catalog) ? catalog.filter((p) => p && !SIDEBAR_EXCLUDED.has(p.sku || "")) : [];
+    const order = familyOrder(content);
+    const seen = [...new Set(list.map((p) => p.partType).filter(Boolean))];
+    const names = [...order, ...seen.filter((n) => !order.includes(n))];
+    const families = names
+      .map((name) => {
+        const rows = list.filter((p) => p.partType === name);
+        return { name, count: rows.length, rows, photo: rows.map(productPhotoSrc).find(Boolean) || "" };
+      })
+      .filter((f) => f.count > 0);
+    const approvals = APPROVAL_NAMES
+      .map((n) => [n, list.filter((p) => productApprovals(p).includes(n)).length])
+      .filter(([, c]) => c > 0)
+      .sort((a, b) => b[1] - a[1]);
+    const counts = list.length ? catalogCounts(list) : { products: 0, datasheets: 0 };
+    return { list, families, approvals, counts, allHaveSheets: list.length > 0 && list.every((p) => p.pdfUrl) };
+  }, [catalog, content]);
+}
+
+/** A product search that opens the Product Index with the words already in it. */
+function HomeSearch({ className, placeholder }) {
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+  return (
+    <form
+      role="search"
+      className={className}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const t = q.trim();
+        navigate(t ? `/dashboard?q=${encodeURIComponent(t)}` : "/dashboard");
+      }}
+    >
+      <label htmlFor="home-search" className="sr-only">Search products</label>
+      <input id="home-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} autoComplete="off" />
+      <button type="submit">Search</button>
+    </form>
+  );
+}
+
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+// Quick-link icons for the industry layouts (stroke = currentColor).
+const homeIcon = (d) => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+);
+const HOME_ICONS = {
+  doc: homeIcon(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></>),
+  search: homeIcon(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>),
+  chat: homeIcon(<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />),
+  shield: homeIcon(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></>),
+  cut: homeIcon(<><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" /></>),
+};
+
+/**
+ * Distributor catalog — the pattern of Allied Wire & Cable / Lapp Tannehill /
+ * CableOrganizer: a split hero, the trust items as a strip, a product search,
+ * every product family as a photo tile with its count, the services as an
+ * icon row, industries, the approvals the catalog carries (each opens the
+ * Product Index filtered to it), a quote band and three quick links.
+ */
+function DistributorHome({ marketAnchor }) {
+  const site = useSiteInfo();
+  const { copy, heroTrust, services, markets } = useContent();
+  const [slot, onSlotError] = useSiteImageSlots(copy.siteImages);
+  const { families, approvals, counts } = useHomeCatalog();
+  const c = copy.hero;
+  const hf = copy.homeFeatures;
+  const mk = copy.homeMarkets;
+  const accentLine = [c.headlineAccent, c.headlineLine3].filter(Boolean).join(" ");
+  const photo = slot("boldHeroPhoto");
+  const trust = heroTrust.map((t) => t.text).filter(Boolean);
+  return (
+    <div className="ipcd">
+      <section className={`ipcd-hero${photo ? "" : " ipcd-hero--single"}`}>
+        {photo ? <img className="ipcd-hero-photo" src={photo} onError={onSlotError} alt="" decoding="async" /> : null}
+        <div className="ipcd-hero-panel">
+          {c.badge ? <div className="ipcd-eyebrow ipcd-eyebrow--dark">{c.badge}</div> : null}
+          <h1 className="ipcd-h1">{c.headlineLine1}{accentLine ? <span>{accentLine}</span> : null}</h1>
+          {c.subhead ? <p className="ipcd-hero-text">{withBusinessFacts(c.subhead, site)}</p> : null}
+          <div className="ipcd-ctas">
+            <PageLink page={c.ctaPrimaryPage} className="ipcd-btn ipcd-btn--onDark">{c.ctaPrimaryLabel}</PageLink>
+            <PageLink page={c.ctaSecondaryPage} className="ipcd-btn ipcd-btn--ghostDark">{c.ctaSecondaryLabel}</PageLink>
+          </div>
+        </div>
+      </section>
+      {trust.length ? (
+        <div id="ipc-sec-heroTrust" className="ipcd-ticker">
+          <ul className="ipc-container px-6" aria-label="Certifications and standards">{trust.map((t, i) => <li key={`${i}-${t}`}>{t}</li>)}</ul>
+        </div>
+      ) : null}
+
+      <section id="ipc-sec-features" className="ipcd-section">
+        <div className="ipc-container px-6">
+          <div className="ipcd-center">
+            <h2 className="ipcd-h2">Shop by Product Family</h2>
+            <p className="ipcd-lead">{plural(counts.products, "product", "products")} across {plural(families.length, "family", "families")}.</p>
+            <HomeSearch className="ipcd-search" placeholder="Search by part number, material or spec — e.g. IP33TW" />
+          </div>
+          <div className="ipcd-fam">
+            {families.map((f) => (
+              <PageLink key={f.name} page="products" params={{ family: f.name }} className="ipcd-fam-tile">
+                {f.photo ? <img src={f.photo} alt="" loading="lazy" decoding="async" /> : <span className="ipcd-fam-blank" aria-hidden="true" />}
+                <b>{f.name}</b>
+                <small>{plural(f.count, "product", "products")}</small>
+              </PageLink>
+            ))}
+            <PageLink page="dashboard" className="ipcd-fam-tile ipcd-fam-all">
+              <span className="ipcd-fam-allbox">All {counts.products} →</span>
+              <b>Full catalog</b>
+              <small>Product Index</small>
+            </PageLink>
+          </div>
+        </div>
+      </section>
+
+      {services.length ? (
+        <section className="ipcd-section ipcd-rule">
+          <div className="ipc-container px-6 ipcd-center">
+            <h2 className="ipcd-h2">Value-Added Services</h2>
+            <div className="ipcd-svc">
+              {services.map((s, i) => (
+                <PageLink key={`${i}-${s.title}`} page="services" className="ipcd-svc-item">
+                  <span className="ipcd-ring" aria-hidden="true">{SvcIcons[s.iconKey] || SvcIcons.cut}</span>
+                  <b>{s.title}</b>
+                  {s.desc ? <small>{trimToWord(asText(s.desc), 90)}</small> : null}
+                </PageLink>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {markets.length ? (
+        <section id="ipc-sec-markets" className="ipcd-section ipcd-tint">
+          <div className="ipc-container px-6 ipcd-center">
+            <h2 className="ipcd-h2">{mk.title}</h2>
+            <div className="ipcd-ind">
+              {markets.map((m, i) => (
+                <PageLink key={`${i}-${m.label}`} page={m.page} hash={marketAnchor(m)} className="ipcd-ind-card">
+                  <span className="ipcd-ind-icon" aria-hidden="true">{MktIcons[m.iconKey]}</span>
+                  <b>{m.label}</b>
+                  <small>{trimToWord(asText(m.desc), 80)}</small>
+                </PageLink>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {approvals.length ? (
+        <section className="ipcd-section">
+          <div className="ipc-container px-6 ipcd-center">
+            <h2 className="ipcd-h2">Approvals Across Our Catalog</h2>
+            <p className="ipcd-lead">Each opens the Product Index showing the products that carry it.</p>
+            <div className="ipcd-appr">
+              {approvals.map(([n, count]) => (
+                <PageLink key={n} page="dashboard" params={{ approval: n }} className="ipcd-badge">
+                  {n}<small>{count}</small>
+                </PageLink>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <div className="ipcd-rfq">
+        <div className="ipc-container px-6 ipcd-rfq-inner">
+          <b>{hf.ctaText}</b>
+          <PageLink page="contact" className="ipcd-btn ipcd-btn--onPrimary">{hf.ctaButton}</PageLink>
+        </div>
+      </div>
+
+      <section className="ipcd-section">
+        <div className="ipc-container px-6 ipcd-tools">
+          <PageLink page="datasheets" className="ipcd-tool">
+            <span aria-hidden="true">{HOME_ICONS.doc}</span>
+            <b>Datasheet Library</b>
+            <small>{plural(counts.datasheets, "datasheet", "datasheets")} to download directly.</small>
+          </PageLink>
+          <PageLink page="dashboard" className="ipcd-tool">
+            <span aria-hidden="true">{HOME_ICONS.search}</span>
+            <b>Product Index</b>
+            <small>All {counts.products} products, sortable and filterable.</small>
+          </PageLink>
+          <PageLink page="faq" className="ipcd-tool">
+            <span aria-hidden="true">{HOME_ICONS.chat}</span>
+            <b>Resources &amp; FAQ</b>
+            <small>Sizing, materials and ordering answers.</small>
+          </PageLink>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Corporate — the pattern of Lapp Tannehill / Pexco / Zeus: a split hero with
+ * a solid brand panel, the Business Details description as one statement,
+ * three photo panels (products, capabilities, industries), the product range
+ * as link columns, the stats on a dark band, and a closing call to action.
+ * Panel text sits on an opaque-enough scrim, never on bare photograph.
+ */
+function CorporateHome() {
+  const site = useSiteInfo();
+  const { copy, stats, services, markets } = useContent();
+  const [slot, onSlotError] = useSiteImageSlots(copy.siteImages);
+  const statValue = useStatValue();
+  const { families, counts, allHaveSheets } = useHomeCatalog();
+  const c = copy.hero;
+  const hf = copy.homeFeatures;
+  const accentLine = [c.headlineAccent, c.headlineLine3].filter(Boolean).join(" ");
+  const heroPhoto = slot("heroPhoto");
+  const panels = [
+    { title: "Products", page: "products", photo: slot("boldFeaturePhoto"),
+      text: `${plural(counts.products, "product", "products")} across ${plural(families.length, "family", "families")}${allHaveSheets ? ", each with a published datasheet" : ""}.`,
+      link: "Browse the catalog" },
+    { title: "Capabilities", page: "services", photo: slot("boldHeroPhoto"),
+      text: services.map((s) => s.title).filter(Boolean).join(", "), link: "See our services" },
+    { title: "Industries", page: "industries", photo: slot("bandBuildingPhoto"),
+      text: markets.map((m) => m.label).filter(Boolean).join(", "), link: "Industries we serve" },
+  ];
+  return (
+    <div className="ipcc">
+      <section className={`ipcc-hero${heroPhoto ? "" : " ipcc-hero--single"}`}>
+        {heroPhoto ? <img className="ipcc-hero-photo" src={heroPhoto} onError={onSlotError} alt="Custom-printed heat shrink sleeves and wire markers produced by IPC" decoding="async" /> : null}
+        <div className="ipcc-hero-panel">
+          {c.badge ? <div className="ipcc-eyebrow">{c.badge}</div> : null}
+          <h1 className="ipcc-h1">{c.headlineLine1}{accentLine ? <span>{accentLine}</span> : null}</h1>
+          {c.boldSubhead ? <p>{withBusinessFacts(c.boldSubhead, site)}</p> : null}
+          <PageLink page={c.ctaPrimaryPage} className="ipcc-btn ipcc-btn--onPrimary">{c.ctaPrimaryLabel}</PageLink>
+        </div>
+      </section>
+
+      {site.company.description ? (
+        <section className="ipcc-state"><div className="ipc-container px-6"><p>{withBusinessFacts(site.company.description, site)}</p></div></section>
+      ) : null}
+
+      <section id="ipc-sec-features" className="ipcc-panels" aria-label="What IPC does">
+        {panels.map((p) => (
+          <PageLink key={p.title} page={p.page} className="ipcc-panel">
+            {p.photo ? <img src={p.photo} onError={onSlotError} alt="" loading="lazy" decoding="async" /> : null}
+            <span className="ipcc-panel-title"><b>{p.title}</b></span>
+            <span className="ipcc-panel-body">{p.text}<span className="ipcc-arrow">{p.link}</span></span>
+          </PageLink>
+        ))}
+      </section>
+
+      <section className="ipcc-list">
+        <div className={`ipc-container px-6 ipcc-list-grid${slot("boldFeaturePhoto") ? "" : " ipcc-list-grid--single"}`}>
+          {slot("boldFeaturePhoto") ? <img src={slot("boldFeaturePhoto")} onError={onSlotError} alt="" loading="lazy" decoding="async" /> : null}
+          <div>
+            <h2 className="ipcc-h2">Our Products</h2>
+            <div className="ipcc-cols">
+              {families.map((f) => (
+                <PageLink key={f.name} page="products" params={{ family: f.name }}>{f.name}<small>{f.count}</small></PageLink>
+              ))}
+            </div>
+            <PageLink page="dashboard" className="ipcc-arrow ipcc-more">View all {counts.products} products</PageLink>
+          </div>
+        </div>
+      </section>
+
+      {stats.length ? (
+        <section id="ipc-sec-stats" className="ipcc-band">
+          <div className="ipc-container px-6 ipcc-nums">
+            {stats.map((s, i) => (
+              <div key={`${i}-${s.label}`}>
+                <div className="min-w-0">
+                  <div className="ipcc-num">{statValue(s.value) || " "}</div>
+                  <div className="ipcc-num-label">{s.label}</div>
+                  <div className="ipcc-num-sub">{s.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="ipcc-close">
+        <div className="ipc-container px-6 ipcc-close-inner">
+          <h2 className="ipcc-h2">{hf.ctaText}</h2>
+          <div className="ipcc-close-side">
+            <a className="ipcc-phone" href={`tel:${site.contact.phoneDial}`}>{site.contact.phone}{site.hours && site.hours.text ? <small>{site.hours.text}</small> : null}</a>
+            <PageLink page="contact" className="ipcc-btn ipcc-btn--primary">{hf.ctaButton}</PageLink>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Classic distributor (sidebar) — the pattern of Qualtek and Pexco's category
+ * pages: quick links, a product search, every family in a left sidebar with
+ * its count, a banner, featured products (the first photographed product of
+ * each of the first four families) with approval chips and a Datasheet link,
+ * the services and the approvals.
+ */
+function SidebarHome() {
+  const site = useSiteInfo();
+  const { copy, services } = useContent();
+  const [slot, onSlotError] = useSiteImageSlots(copy.siteImages);
+  const { families, approvals, counts } = useHomeCatalog();
+  const c = copy.hero;
+  const banner = slot("heroPhoto");
+  const featured = families
+    .map((f) => f.rows.find((p) => productPhotoSrc(p)))
+    .filter(Boolean)
+    .slice(0, 4);
+  return (
+    <div className="ipcs">
+      <div className="ipcs-quick">
+        <div className="ipc-container px-6 ipcs-quick-grid">
+          <PageLink page="contact" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.chat}</span><span><b>Request a Quote</b><small>Pricing and lead time</small></span></PageLink>
+          <PageLink page="datasheets" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.doc}</span><span><b>Datasheets</b><small>{plural(counts.datasheets, "PDF", "PDFs")} to download</small></span></PageLink>
+          <PageLink page="services" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.cut}</span><span><b>Custom Fabrication</b><small>Cut, mark, spool and kit</small></span></PageLink>
+          {site.certifications.iso ? (
+            <PageLink page="about" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.shield}</span><span><b>{site.certifications.iso}</b><small>Registered quality system</small></span></PageLink>
+          ) : null}
+        </div>
+      </div>
+      <div className="ipc-container px-6 ipcs-searchrow">
+        <h1 className="ipcs-h1">{c.headlineLine1}</h1>
+        <HomeSearch className="ipcs-search" placeholder="Search part number or keyword…" />
+      </div>
+      <div className="ipc-container px-6 ipcs-main">
+        <aside className="ipcs-side" aria-label="Product families">
+          <nav className="ipcs-cats">
+            {families.map((f) => (
+              <PageLink key={f.name} page="products" params={{ family: f.name }}>{f.name}<small>{f.count} ›</small></PageLink>
+            ))}
+          </nav>
+          {services.length ? (
+            <div className="ipcs-svc-side">
+              <h2>Services</h2>
+              {services.map((s, i) => (
+                <PageLink key={`${i}-${s.title}`} page="services"><span aria-hidden="true">{SvcIcons[s.iconKey] || SvcIcons.cut}</span>{s.title}</PageLink>
+              ))}
+            </div>
+          ) : null}
+        </aside>
+        <div className="ipcs-content">
+          {banner ? (
+            <div className="ipcs-banner">
+              <img src={banner} onError={onSlotError} alt="Custom-printed heat shrink sleeves and wire markers produced by IPC" decoding="async" />
+              {c.headlineLine3 ? <div className="ipcs-banner-cap"><b>{c.headlineLine3}</b>{c.badge ? <small>{c.badge}</small> : null}</div> : null}
+            </div>
+          ) : null}
+          {featured.length ? (
+            <section id="ipc-sec-features">
+              <div className="ipcs-sec"><h2>Featured Products</h2><PageLink page="dashboard">View all {counts.products} →</PageLink></div>
+              <div className="ipcs-feat">
+                {featured.map((p) => {
+                  const id = p.sku || p.id;
+                  const pdf = safeHref(p.pdfUrl);
+                  return (
+                    <div key={id} className="ipcs-card">
+                      <img src={productPhotoSrc(p)} alt="" loading="lazy" decoding="async" />
+                      <div className="ipcs-card-body">
+                        <span className="ipcs-fam">{p.partType}</span>
+                        <span className="ipcs-sku">{id}</span>
+                        <span className="ipcs-name">{p.name}</span>
+                        {productApprovals(p).length ? (
+                          <span className="ipcs-chips">{productApprovals(p).map((a) => <span key={a}>{a}</span>)}</span>
+                        ) : null}
+                        <span className="ipcs-act">
+                          <PageLink page="products" params={{ productId: id }}>Details<span className="sr-only"> for {id}</span></PageLink>
+                          {pdf ? <a className="ipcs-pdf" href={pdf} target="_blank" rel="noopener noreferrer">Datasheet<span className="sr-only"> for {id} (PDF, opens in a new tab)</span></a> : null}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+          {approvals.length ? (
+            <section>
+              <div className="ipcs-sec"><h2>Approvals in Our Catalog</h2></div>
+              <div className="ipcs-appr">
+                {approvals.map(([n, count]) => (
+                  <PageLink key={n} page="dashboard" params={{ approval: n }}>{n}<small>{count}</small></PageLink>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** IPC capability card — used on About page. Avatar is an emoji in a styled circle. */
 function TeamCard({ name, role, avatar }) {
   return (
     <div
       className="rounded-xl p-6 text-center transition-all duration-200"
       style={{
-        border: "1px solid #e5e9ee",
+        border: "1px solid var(--ipc-card-border)",
         background: "#ffffff",
         cursor: "default",
         // A12-L6-07-2 — "Fabrication Shop" ran the About page off the right
@@ -3830,7 +4809,7 @@ function TeamCard({ name, role, avatar }) {
         e.currentTarget.style.transform = "translateY(-2px)";
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "#e5e9ee";
+        e.currentTarget.style.borderColor = "var(--ipc-card-border)";
         e.currentTarget.style.boxShadow = "none";
         e.currentTarget.style.transform = "none";
       }}
@@ -4081,7 +5060,7 @@ function AboutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div
             className="lg:col-span-2 bg-white rounded-2xl p-8 space-y-5"
-            style={{ border: "1px solid #e5e9ee" }}
+            style={{ border: "1px solid var(--ipc-card-border)" }}
           >
             <h2 className="text-2xl font-bold" style={{ color: "#141414" }}>
               {c.storyTitle}
@@ -4113,7 +5092,7 @@ function AboutPage() {
               width={BAND_BUILDING.w}
               height={BAND_BUILDING.h}
               className="w-full rounded-xl"
-              style={{ aspectRatio: "3 / 2", objectFit: "cover", border: "1px solid #e5e9ee", maxWidth: aboutCap }}
+              style={{ aspectRatio: "3 / 2", objectFit: "cover", border: "1px solid var(--ipc-card-border)", maxWidth: aboutCap }}
             />
             ) : null}
           </div>
@@ -4139,7 +5118,7 @@ function AboutPage() {
               <div
                 key={item.label}
                 className="bg-white rounded-xl px-5 py-3.5 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between"
-                style={{ border: "1px solid #e5e9ee" }}
+                style={{ border: "1px solid var(--ipc-card-border)" }}
               >
                 <span
                   className="text-xs font-medium"
@@ -4256,7 +5235,7 @@ function AboutPage() {
                   <div
                     className="bg-white rounded-xl px-5 py-4 transition-colors duration-200 ipc-hover-border"
                     style={{
-                      border: "1px solid #e5e9ee",
+                      border: "1px solid var(--ipc-card-border)",
                       marginBottom: isLast ? 0 : 10,
                       overflowWrap: "anywhere",
                     }}
@@ -4302,14 +5281,14 @@ function AboutPage() {
               <div
                 key={`${i}-${c.title}`}
                 className="bg-white rounded-xl p-5 flex gap-4 items-start transition-all duration-200"
-                style={{ border: "1px solid #e5e9ee" }}
+                style={{ border: "1px solid var(--ipc-card-border)" }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = "var(--brand-primary)";
                   e.currentTarget.style.boxShadow =
                     "0 2px 8px rgba(var(--brand-primary-rgb),0.08)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#e5e9ee";
+                  e.currentTarget.style.borderColor = "var(--ipc-card-border)";
                   e.currentTarget.style.boxShadow = "none";
                 }}
               >
@@ -4500,7 +5479,7 @@ function FaqItem({ question, answer, open, onToggle }) {
     <div
       className={`rounded-xl overflow-hidden transition-all duration-200 ${open ? "shadow-md" : ""}`}
       style={{
-        border: `1px solid ${open ? "var(--brand-primary)" : "#e5e9ee"}`,
+        border: `1px solid ${open ? "var(--brand-primary)" : "var(--ipc-card-border)"}`,
         background: "#ffffff",
       }}
     >
@@ -5782,7 +6761,7 @@ function ContactPage() {
               is what PLAN-8 rules out. */}
           <div
             className="lg:hidden mb-5 rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1"
-            style={{ background: "#ffffff", border: "1px solid #e5e9ee" }}
+            style={{ background: "#ffffff", border: "1px solid var(--ipc-card-border)" }}
           >
             <span
               style={{
@@ -5929,7 +6908,7 @@ function ContactPage() {
                  field" from landing behind the sticky header. */
               className="ipc-validated-form bg-white rounded-2xl p-5 sm:p-8 space-y-5"
               style={{
-                border: "1px solid #e5e9ee",
+                border: "1px solid var(--ipc-card-border)",
                 boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
               }}
             >
@@ -6254,7 +7233,7 @@ function ContactPage() {
                  PLAN-10 item 3 and hides the same 46.0 of 46.0px at 390. */
               className="ipc-validated-form bg-white rounded-2xl p-5 sm:p-8 space-y-5"
               style={{
-                border: "1px solid #e5e9ee",
+                border: "1px solid var(--ipc-card-border)",
                 boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
               }}
             >
@@ -6479,7 +7458,7 @@ function ContactPage() {
             <div
               key={item.title}
               className="bg-white rounded-xl p-4 flex gap-3 items-start"
-              style={{ border: "1px solid #e5e9ee" }}
+              style={{ border: "1px solid var(--ipc-card-border)" }}
             >
               <span
                 aria-hidden="true"
@@ -6847,9 +7826,15 @@ function GlobalStyles() {
          subject. Widening the sub-line into it would make a 1232px measure,
          which is worse typography, not better.
          (The rule itself moved to src/index.css — AUDIT-12 A12-L11-03-1.) */
-      /* StatsBar responsive dividers — only bottom border needed (right uses Tailwind divide-x) */
-      .ipc-stat-bottom-border { border-bottom: 1px solid #e5e9ee; }
-      @media (min-width: 768px) { .ipc-stat-bottom-border { border-bottom: none !important; } }
+      /* StatsBar dividers (2026-10-17: the band is on --brand-dark now, so the
+         rules are the dark surface's ink at 14%). Two columns: a rule between
+         the pair and above the second row; four columns: rules between. */
+      .ipc-stats-grid > div:nth-child(2n) { border-left: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
+      .ipc-stats-grid > div:nth-child(n+3) { border-top: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
+      @media (min-width: 768px) {
+        .ipc-stats-grid > div:nth-child(n+3) { border-top: none; }
+        .ipc-stats-grid > div + div { border-left: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
+      }
       /* A12-L6-01-2 — a 44px icon, a 16px gap and the text do not fit two to a
          row below ~280px (a phone at 200% zoom is 195px): the left tiles' text
          ran under the right tiles' icons and the right ones spilled off. One
@@ -6859,7 +7844,7 @@ function GlobalStyles() {
         .ipc-idx-head { flex-wrap: wrap; }
         .ipc-idx-head > div { flex: 1 1 120px; overflow-wrap: anywhere; }
         .ipc-stats-grid.ipc-stats-grid { grid-template-columns: minmax(0, 1fr); }
-        .ipc-stats-grid > div { border-right: none !important; border-bottom: 1px solid #e5e9ee; }
+        .ipc-stats-grid > div { border-left: none !important; border-top: none !important; border-bottom: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
       }
       /* Dropdown entrance — scale + fade from top */
       @keyframes ipc-dropdown-in {
@@ -7256,9 +8241,46 @@ const SITE_DEFAULTS = {
     accentColor: "#00bef2",
     accent2Color: "#119ec8",
     logoUrl: "/logo.svg",
+    // Keagan 2026-10-17 — which homepage design Business Details → Branding
+    // has selected. HOME_LAYOUTS lists the values; anything else (a typo, a
+    // layout since removed) renders "classic".
+    homeLayout: "classic",
   },
   catalogPdfUrl: "",
 };
+
+// The homepage designs Rick can choose between (Business Details → Branding).
+// The same list, with the same keys, is HOME_LAYOUTS in admin/settings.php.
+const HOME_LAYOUTS = ["classic", "bold", "light", "distributor", "corporate", "sidebar"];
+
+// The Light layout's picture for a Products & Services card whose Photo box
+// has never been saved, by the card's icon. Same values as
+// FEATURE_PHOTO_DEFAULTS in admin/content.php (homelayout.js compares them).
+const FEATURE_PHOTO_DEFAULTS = {
+  heatshrink: "images/site/bold-heat-shrink.jpg",
+  sleeving: "images/products/IP64FS-IP65VC-IP66AC-IP67SC.jpg",
+  adhesives: "images/products/IP75AD.png",
+  cut: "images/products/value-added.png",
+  marking: "images/site/id-markers.png",
+  quality: "images/site/IPC-Building.jpg",
+};
+/**
+ * A card's photo for the Light layout: the stored Photo box if the key is
+ * present ("" = no photo, chosen), else the built-in picture for its icon.
+ * Only a picture path on this website is painted — the rule content.php
+ * enforces on save, repeated here for a hand-edited file.
+ */
+function cardPhotoSrc(card) {
+  if (!card || typeof card !== "object") return "";
+  const p = typeof card.photo === "string" ? card.photo.trim()
+    : card.photo === undefined ? (FEATURE_PHOTO_DEFAULTS[card.iconKey] || "") : "";
+  const s = slotSrc(p);
+  return /^\/(images|uploads)\/[^?#]*$/i.test(s) && !s.includes("..") ? s : "";
+}
+function homeLayoutOf(site) {
+  const v = site && site.theme && site.theme.homeLayout;
+  return HOME_LAYOUTS.includes(v) ? v : "classic";
+}
 
 // Shallow-merge each top-level section over the defaults so any missing field
 // falls back rather than rendering blank.
@@ -7939,6 +8961,10 @@ const COPY_DEFAULTS = {
     bandTeamPhoto: "images/site/staff.jpg",
     bandBuildingPhoto: "images/site/IPC-Building.jpg",
     aboutPhoto: "images/site/IPC-Building.jpg",
+    // 2026-10-17 — the Bold homepage layout's two photos (Business Details →
+    // Branding → Homepage layout). Same defaults as admin/content.php.
+    boldHeroPhoto: "images/site/bold-hero-spools.jpg",
+    boldFeaturePhoto: "images/site/bold-heat-shrink.jpg",
     servicesPhoto: "images/site/Marker-Sample-2.jpg",
   },
   /**
@@ -7977,6 +9003,11 @@ const COPY_DEFAULTS = {
     headlineLine3: "Custom Marking & Fabrication.",
     subhead:
       "Insulation Products Corporation is a spec-grade stocking distributor of heat-shrinkable & extruded tubing, electrical sleeving, and industrial adhesives. $50 minimum order. UL, CSA, MIL-SPEC, and RoHS compliant product line. Quick, accurate, courteous service since 1974 — the customer is always number one.",
+    // 2026-10-17 — the Bold layout's one-sentence version. No figure in it
+    // (the minimum order is a Business Details field the owner can change or
+    // clear), and the town goes through withBusinessFacts like the band's.
+    boldSubhead:
+      "Spec-grade heat-shrinkable and extruded tubing, electrical sleeving and industrial adhesives, stocked in Bolingbrook and cut to your spec.",
     ctaPrimaryLabel: "Browse Products →",
     ctaPrimaryPage: "products",
     ctaSecondaryLabel: "Request a Quote",
@@ -9842,7 +10873,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
                   minHeight: 44,
                   borderRadius: 8,
                   background: active ? "var(--brand-primary)" : "#ffffff",
-                  border: active ? "none" : "1px solid #e5e9ee",
+                  border: active ? "none" : "1px solid var(--ipc-card-border)",
                   cursor: "pointer",
                 }}
               >
@@ -9898,7 +10929,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
         ref={railRef}
         className="ipc-scroll-cue hidden lg:block sticky top-20 rounded-xl overflow-hidden"
         style={{
-          border: "1px solid #e5e9ee",
+          border: "1px solid var(--ipc-card-border)",
           boxShadow: "0 1px 4px rgba(var(--brand-primary-rgb),0.06)",
           maxHeight: "80vh",
           overflowY: "auto",
@@ -10200,7 +11231,7 @@ function SpecTable1({ table }) {
       // A12-L6-W3-R1-1-2 — the values below already broke anywhere; the title
       // bar and the labels did not, so at 200% zoom on a phone "SPECIFICATIONS:"
       // and "Threadlockers/Anaerobics:" were cut by overflow-hidden.
-      style={{ border: "1px solid #e5e9ee", overflowWrap: "anywhere" }}
+      style={{ border: "1px solid var(--ipc-card-border)", overflowWrap: "anywhere" }}
     >
       <h2
         className="px-4 py-3 text-center text-sm font-bold uppercase tracking-wide"
@@ -10550,7 +11581,7 @@ function ProductDetail({ product, allProducts }) {
     <div
       className="bg-white rounded-2xl overflow-hidden"
       style={{
-        border: "1px solid #e5e9ee",
+        border: "1px solid var(--ipc-card-border)",
         boxShadow: "0 4px 24px rgba(var(--brand-primary-rgb),0.07)",
       }}
     >
@@ -10821,7 +11852,7 @@ function ProductDetail({ product, allProducts }) {
               // exactly while making the height predictable before load.
               // maxHeight is gone because aspectRatio now governs; leaving both
               // would let the cap fight the ratio at wide column widths.
-              style={{ border: "1px solid #e5e9ee", aspectRatio: "3 / 2", maxWidth: photoNaturalW || undefined }}
+              style={{ border: "1px solid var(--ipc-card-border)", aspectRatio: "3 / 2", maxWidth: photoNaturalW || undefined }}
             />
           ) : (
             <div
@@ -11029,7 +12060,7 @@ function ProductDetail({ product, allProducts }) {
                 style={{
                   display: "block",
                   background: "#ffffff",
-                  border: "1px solid #e5e9ee",
+                  border: "1px solid var(--ipc-card-border)",
                   cursor: "pointer",
                   textDecoration: "none",
                 }}
@@ -11037,7 +12068,7 @@ function ProductDetail({ product, allProducts }) {
                   e.currentTarget.style.borderColor = "var(--brand-primary)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#e5e9ee";
+                  e.currentTarget.style.borderColor = "var(--ipc-card-border)";
                 }}
               >
                 <div
@@ -11314,7 +12345,7 @@ function CatalogCard({ product: p }) {
       data-ipc-catalog-card=""
       className="bg-white rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
       style={{
-        border: "1px solid #e5e9ee",
+        border: "1px solid var(--ipc-card-border)",
         boxShadow: "0 2px 10px rgba(var(--brand-primary-rgb),0.05)",
         textDecoration: "none",
         display: "flex",
@@ -12158,6 +13189,30 @@ function DashboardPage({ products }) {
     }
   }, [familyParam]);
 
+  // Keagan 2026-10-17 — ?q= (search words) and ?approval= (one approval name)
+  // let a link open the index already searched or filtered: the part-number
+  // search box and the approval badges on the Distributor and Sidebar
+  // homepage layouts point here. Read once on arrival, then removed with ONE
+  // replace (two separate setter calls lose an update — see the PageLink
+  // note — and a push would trap Back, T2.3). An unknown approval is ignored.
+  const [urlParams, setUrlParams] = useSearchParams();
+  useEffect(() => {
+    const q = urlParams.get("q");
+    const ap = urlParams.get("approval");
+    if (q === null && ap === null) return;
+    if (q !== null) setSearch(q.slice(0, 100));
+    if (ap !== null) {
+      const hit = APPROVAL_NAMES.find((n) => n.toLowerCase() === ap.trim().toLowerCase());
+      if (hit) setApprovals([hit]);
+    }
+    setUrlParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("q");
+      next.delete("approval");
+      return next;
+    }, { replace: true });
+  }, [urlParams]);
+
   // HOISTING FIX: tableRows must be defined BEFORE families useMemo.
   // C3 fix: memoized. P7 fix: reuses SIDEBAR_EXCLUDED (module-level) — single source of truth.
   // SIDEBAR_EXCLUDED is defined at module level above ProductSidebar.
@@ -12665,7 +13720,7 @@ function DashboardPage({ products }) {
         {/* Mobile-only card list — replaces the table below 640px */}
         <div className="sm:hidden space-y-3">
           {filtered.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-500">
+            <div className="bg-white rounded-xl border p-6 text-center text-sm text-gray-500" style={{ borderColor: "var(--ipc-card-border)" }}>
               {/* L3 — DashboardPage renders only after loading is false, so zero
                    rows means the catalog is EMPTY, not still arriving. This said
                    "Loading catalog…" forever, where /products says honestly that
@@ -12682,7 +13737,7 @@ function DashboardPage({ products }) {
                 style={{
                   background: '#ffffff',
                   borderRadius: 12,
-                  border: '1px solid #e5e9ee',
+                  border: '1px solid var(--ipc-card-border)',
                   padding: 16,
                 }}
               >
@@ -12784,7 +13839,7 @@ function DashboardPage({ products }) {
         <div
           className="hidden sm:block rounded-xl overflow-hidden"
           style={{
-            border: "1px solid #e5e9ee",
+            border: "1px solid var(--ipc-card-border)",
             boxShadow: "0 2px 12px rgba(var(--brand-primary-rgb),0.07)",
           }}
         >
@@ -13480,7 +14535,7 @@ function IndustriesPage() {
               // ("Duplicate \"style\" attribute") and the offset was silently
               // dropped. Merged into the one object that survives.
               scrollMarginTop: 84,
-              border: "1px solid #e5e9ee",
+              border: "1px solid var(--ipc-card-border)",
               boxShadow: "0 2px 12px rgba(var(--brand-primary-rgb),0.06)",
             }}
           >
@@ -14160,7 +15215,7 @@ function ServicesPage() {
             21:9 rather than the file's 3:2: this is a band under a banner, not
             a feature image, and object-fit does the crop. */}
         {slot("servicesPhoto") ? (
-        <figure className="m-0 mb-12 rounded-2xl overflow-hidden" style={{ border: "1px solid #e5e9ee" }}>
+        <figure className="m-0 mb-12 rounded-2xl overflow-hidden" style={{ border: "1px solid var(--ipc-card-border)" }}>
           <img
             src={slot("servicesPhoto")}
             onError={onSlotError}
@@ -14182,7 +15237,7 @@ function ServicesPage() {
               key={`${i}-${svc.title}`}
               className="bg-white rounded-2xl overflow-hidden flex flex-col"
               style={{
-                border: "1px solid #e5e9ee",
+                border: "1px solid var(--ipc-card-border)",
                 boxShadow: "0 1px 4px rgba(var(--brand-primary-rgb),0.05)",
               }}
             >
@@ -14442,7 +15497,7 @@ function PrivacyPage() {
         <div
           className="bg-white rounded-2xl p-8 space-y-8"
           style={{
-            border: "1px solid #e5e9ee",
+            border: "1px solid var(--ipc-card-border)",
             boxShadow: "0 2px 12px rgba(var(--brand-primary-rgb),0.06)",
           }}
         >
@@ -15043,7 +16098,7 @@ function CatalogSkeleton({ page }) {
       key={i}
       style={{
         background: "#fff",
-        border: "1px solid #e5e9ee",
+        border: "1px solid var(--ipc-card-border)",
         borderRadius: 12,
         padding: 16,
         display: "flex",
@@ -15085,7 +16140,7 @@ function CatalogSkeleton({ page }) {
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
           {bar("min(420px, 100%)", 40, { borderRadius: 8 })}
           {page === "dashboard" ? (
-            <div style={{ background: "#fff", border: "1px solid #e5e9ee", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ background: "#fff", border: "1px solid var(--ipc-card-border)", borderRadius: 12, overflow: "hidden" }}>
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div key={i} style={{ display: "flex", gap: 16, padding: "14px 16px", borderTop: i > 1 ? "1px solid #e5e9ee" : "none" }}>
                   {bar("18%", 12)}
