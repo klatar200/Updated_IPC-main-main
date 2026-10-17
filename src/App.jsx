@@ -4403,16 +4403,37 @@ function useHomeCatalog() {
     const families = names
       .map((name) => {
         const rows = list.filter((p) => p.partType === name);
-        return { name, count: rows.length, rows, photo: rows.map(productPhotoSrc).find(Boolean) || "" };
+        return { name, count: rows.length, rows, photos: rows.map(productPhotoSrc).filter(Boolean) };
       })
       .filter((f) => f.count > 0);
     const approvals = APPROVAL_NAMES
       .map((n) => [n, list.filter((p) => productApprovals(p).includes(n)).length])
       .filter(([, c]) => c > 0)
       .sort((a, b) => b[1] - a[1]);
-    const counts = list.length ? catalogCounts(list) : { products: 0, datasheets: 0 };
-    return { list, families, approvals, counts, allHaveSheets: list.length > 0 && list.every((p) => p.pdfUrl) };
+    // Audit 2026-10-17 — the homepage is not behind the catalog gate, so the
+    // catalog is [] until it arrives, and stays [] if the fetch fails. Counts
+    // are null then and every count line is left out or worded without a
+    // number, as useStatValue does (decision 50), never "0 products".
+    const counts = list.length ? catalogCounts(list) : null;
+    const skus = list.map((p) => p.sku).filter(Boolean);
+    const exampleSku = skus.includes("IP33TW") ? "IP33TW" : skus[0] || "";
+    return { list, families, approvals, counts, exampleSku, allHaveSheets: list.length > 0 && list.every((p) => p.pdfUrl) };
   }, [catalog, content]);
+}
+
+/**
+ * Catalog photos on the industry layouts follow the T2.7 rule the product page
+ * and the page-photo slots follow: a file that fails to load is dropped (the
+ * caller then shows the next candidate or a blank tile), never painted as a
+ * broken-picture box. Keyed on the src, like useSiteImageSlots.
+ */
+function useBrokenSrcs() {
+  const [broken, setBroken] = useState(() => new Set());
+  const onError = useCallback((e) => {
+    const s = e.currentTarget.getAttribute("src");
+    if (s) setBroken((prev) => (prev.has(s) ? prev : new Set(prev).add(s)));
+  }, []);
+  return [useCallback((s) => !!s && !broken.has(s), [broken]), onError];
 }
 
 /** A product search that opens the Product Index with the words already in it. */
@@ -4459,9 +4480,10 @@ const HOME_ICONS = {
  */
 function DistributorHome({ marketAnchor }) {
   const site = useSiteInfo();
-  const { copy, heroTrust, services, markets } = useContent();
+  const { copy, heroTrust, services, markets, faq } = useContent();
   const [slot, onSlotError] = useSiteImageSlots(copy.siteImages);
-  const { families, approvals, counts } = useHomeCatalog();
+  const { families, approvals, counts, exampleSku } = useHomeCatalog();
+  const [photoOk, onPhotoError] = useBrokenSrcs();
   const c = copy.hero;
   const hf = copy.homeFeatures;
   const mk = copy.homeMarkets;
@@ -4492,19 +4514,22 @@ function DistributorHome({ marketAnchor }) {
         <div className="ipc-container px-6">
           <div className="ipcd-center">
             <h2 className="ipcd-h2">Shop by Product Family</h2>
-            <p className="ipcd-lead">{plural(counts.products, "product", "products")} across {plural(families.length, "family", "families")}.</p>
-            <HomeSearch className="ipcd-search" placeholder="Search by part number, material or spec — e.g. IP33TW" />
+            {counts ? <p className="ipcd-lead">{plural(counts.products, "product", "products")}{families.length ? ` across ${plural(families.length, "family", "families")}` : ""}.</p> : null}
+            <HomeSearch className="ipcd-search" placeholder={`Search by part number, material or spec${exampleSku ? ` — e.g. ${exampleSku}` : ""}`} />
           </div>
           <div className="ipcd-fam">
-            {families.map((f) => (
+            {families.map((f) => {
+              const photo = f.photos.find(photoOk);
+              return (
               <PageLink key={f.name} page="products" params={{ family: f.name }} className="ipcd-fam-tile">
-                {f.photo ? <img src={f.photo} alt="" loading="lazy" decoding="async" /> : <span className="ipcd-fam-blank" aria-hidden="true" />}
+                {photo ? <img src={photo} onError={onPhotoError} alt="" loading="lazy" decoding="async" /> : <span className="ipcd-fam-blank" aria-hidden="true" />}
                 <b>{f.name}</b>
                 <small>{plural(f.count, "product", "products")}</small>
               </PageLink>
-            ))}
+              );
+            })}
             <PageLink page="dashboard" className="ipcd-fam-tile ipcd-fam-all">
-              <span className="ipcd-fam-allbox">All {counts.products} →</span>
+              <span className="ipcd-fam-allbox">{counts ? `All ${counts.products} →` : "All products →"}</span>
               <b>Full catalog</b>
               <small>Product Index</small>
             </PageLink>
@@ -4574,18 +4599,20 @@ function DistributorHome({ marketAnchor }) {
           <PageLink page="datasheets" className="ipcd-tool">
             <span aria-hidden="true">{HOME_ICONS.doc}</span>
             <b>Datasheet Library</b>
-            <small>{plural(counts.datasheets, "datasheet", "datasheets")} to download directly.</small>
+            <small>{counts && counts.datasheets ? `${plural(counts.datasheets, "datasheet", "datasheets")} to download directly.` : "Datasheets to download directly."}</small>
           </PageLink>
           <PageLink page="dashboard" className="ipcd-tool">
             <span aria-hidden="true">{HOME_ICONS.search}</span>
             <b>Product Index</b>
-            <small>All {counts.products} products, sortable and filterable.</small>
+            <small>{counts ? `All ${counts.products} products, sortable and filterable.` : "Every product, sortable and filterable."}</small>
           </PageLink>
-          <PageLink page="faq" className="ipcd-tool">
-            <span aria-hidden="true">{HOME_ICONS.chat}</span>
-            <b>Resources &amp; FAQ</b>
-            <small>Sizing, materials and ordering answers.</small>
-          </PageLink>
+          {faq.length ? (
+            <PageLink page="faq" className="ipcd-tool">
+              <span aria-hidden="true">{HOME_ICONS.chat}</span>
+              <b>Resources &amp; FAQ</b>
+              <small>Sizing, materials and ordering answers.</small>
+            </PageLink>
+          ) : null}
         </div>
       </section>
     </div>
@@ -4611,13 +4638,15 @@ function CorporateHome() {
   const heroPhoto = slot("heroPhoto");
   const panels = [
     { title: "Products", page: "products", photo: slot("boldFeaturePhoto"),
-      text: `${plural(counts.products, "product", "products")} across ${plural(families.length, "family", "families")}${allHaveSheets ? ", each with a published datasheet" : ""}.`,
+      text: counts ? `${plural(counts.products, "product", "products")}${families.length ? ` across ${plural(families.length, "family", "families")}` : ""}${allHaveSheets ? ", each with a published datasheet" : ""}.` : "The full IPC range, by product family.",
       link: "Browse the catalog" },
     { title: "Capabilities", page: "services", photo: slot("boldHeroPhoto"),
       text: services.map((s) => s.title).filter(Boolean).join(", "), link: "See our services" },
     { title: "Industries", page: "industries", photo: slot("bandBuildingPhoto"),
       text: markets.map((m) => m.label).filter(Boolean).join(", "), link: "Industries we serve" },
-  ];
+  // A panel whose Page Content list was emptied has nothing to say: left out
+  // rather than shown as a bare title over a photo.
+  ].filter((p) => p.text);
   return (
     <div className="ipcc">
       <section className={`ipcc-hero${heroPhoto ? "" : " ipcc-hero--single"}`}>
@@ -4654,7 +4683,7 @@ function CorporateHome() {
                 <PageLink key={f.name} page="products" params={{ family: f.name }}>{f.name}<small>{f.count}</small></PageLink>
               ))}
             </div>
-            <PageLink page="dashboard" className="ipcc-arrow ipcc-more">View all {counts.products} products</PageLink>
+            <PageLink page="dashboard" className="ipcc-arrow ipcc-more">{counts ? `View all ${counts.products} products` : "View all products"}</PageLink>
           </div>
         </div>
       </section>
@@ -4700,10 +4729,13 @@ function SidebarHome() {
   const { copy, services } = useContent();
   const [slot, onSlotError] = useSiteImageSlots(copy.siteImages);
   const { families, approvals, counts } = useHomeCatalog();
+  const [photoOk, onPhotoError] = useBrokenSrcs();
   const c = copy.hero;
   const banner = slot("heroPhoto");
+  // A product whose photo fails to load gives its place to the next
+  // photographed product in the same family.
   const featured = families
-    .map((f) => f.rows.find((p) => productPhotoSrc(p)))
+    .map((f) => f.rows.find((p) => photoOk(productPhotoSrc(p))))
     .filter(Boolean)
     .slice(0, 4);
   return (
@@ -4711,8 +4743,10 @@ function SidebarHome() {
       <div className="ipcs-quick">
         <div className="ipc-container px-6 ipcs-quick-grid">
           <PageLink page="contact" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.chat}</span><span><b>Request a Quote</b><small>Pricing and lead time</small></span></PageLink>
-          <PageLink page="datasheets" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.doc}</span><span><b>Datasheets</b><small>{plural(counts.datasheets, "PDF", "PDFs")} to download</small></span></PageLink>
-          <PageLink page="services" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.cut}</span><span><b>Custom Fabrication</b><small>Cut, mark, spool and kit</small></span></PageLink>
+          <PageLink page="datasheets" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.doc}</span><span><b>Datasheets</b><small>{counts && counts.datasheets ? `${plural(counts.datasheets, "PDF", "PDFs")} to download` : "PDFs to download"}</small></span></PageLink>
+          {services.length ? (
+            <PageLink page="services" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.cut}</span><span><b>Custom Fabrication</b><small>Cut, mark, spool and kit</small></span></PageLink>
+          ) : null}
           {site.certifications.iso ? (
             <PageLink page="about" className="ipcs-q"><span aria-hidden="true">{HOME_ICONS.shield}</span><span><b>{site.certifications.iso}</b><small>Registered quality system</small></span></PageLink>
           ) : null}
@@ -4747,14 +4781,14 @@ function SidebarHome() {
           ) : null}
           {featured.length ? (
             <section id="ipc-sec-features">
-              <div className="ipcs-sec"><h2>Featured Products</h2><PageLink page="dashboard">View all {counts.products} →</PageLink></div>
+              <div className="ipcs-sec"><h2>Featured Products</h2><PageLink page="dashboard">{counts ? `View all ${counts.products} →` : "View all →"}</PageLink></div>
               <div className="ipcs-feat">
                 {featured.map((p) => {
                   const id = p.sku || p.id;
                   const pdf = safeHref(p.pdfUrl);
                   return (
                     <div key={id} className="ipcs-card">
-                      <img src={productPhotoSrc(p)} alt="" loading="lazy" decoding="async" />
+                      <img src={productPhotoSrc(p)} onError={onPhotoError} alt="" loading="lazy" decoding="async" />
                       <div className="ipcs-card-body">
                         <span className="ipcs-fam">{p.partType}</span>
                         <span className="ipcs-sku">{id}</span>

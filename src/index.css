@@ -971,7 +971,8 @@ body.ipc-has-sticky-rfq {
 @media (min-width: 640px) {
   .ipcd-fam { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .ipcd-svc, .ipcd-ind { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .ipcd-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* One column per tool, however many are shown (FAQ hides with its list). */
+  .ipcd-tools { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 }
 @media (min-width: 1024px) {
   .ipcd-hero { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); min-height: 380px; }
@@ -1027,7 +1028,8 @@ body.ipc-has-sticky-rfq {
 .ipcc-phone { font-size: 24px; font-weight: 600; color: #1f2933; }
 .ipcc-phone small { display: block; font-size: 13px; font-weight: 400; color: #4b5563; }
 @media (min-width: 768px) {
-  .ipcc-panels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* One column per panel: a panel whose Page Content list is empty is left out. */
+  .ipcc-panels { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
   .ipcc-panel { min-height: 420px; }
   .ipcc-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ipcc-nums { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -1094,7 +1096,8 @@ body.ipc-has-sticky-rfq {
   .ipcs-feat { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (min-width: 1024px) {
-  .ipcs-quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* One column per quick link (ISO and services links hide when empty). */
+  .ipcs-quick-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
   .ipcs-main { grid-template-columns: 280px minmax(0, 1fr); gap: 30px; }
   .ipcs-banner img { height: 300px; }
   .ipcs-feat { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -1103,3 +1106,12 @@ body.ipc-has-sticky-rfq {
   .ipcd-fam-tile img, .ipcd-fam-allbox, .ipcc-panel img { transition: none; }
   .ipcd-fam-tile:hover img, .ipcd-fam-tile:hover .ipcd-fam-allbox, .ipcc-panel:hover img { transform: none; }
 }
+
+/* Audit 2026-10-17 — the five homepage layouts print catalog and Page Content
+   text the owner controls (family names, SKUs, card titles). One long word
+   with no spaces — a 32-character family name was enough on a 375px phone —
+   sat inside a flex or grid child that would not shrink below it and pushed
+   the whole page sideways. `anywhere` (not `break-word`) also lowers the
+   min-content width, which is what lets those children shrink. A word only
+   breaks when it cannot fit its box; ordinary text is untouched. */
+.ipcb, .ipcl, .ipcd, .ipcc, .ipcs { overflow-wrap: anywhere; }

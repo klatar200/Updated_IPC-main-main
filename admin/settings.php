@@ -519,7 +519,7 @@ $navActive = 'settings';
               <option value="<?= h($key) ?>"<?= $key === $layNow ? ' selected' : '' ?>><?= h($label) ?></option>
             <?php endforeach; ?>
           </select>
-          <div class="hint">Both layouts show the same content from Page Content and these Business Details — switching changes only how the homepage looks, and you can switch back at any time. In <b>Bold</b>, the first Products &amp; Services card is shown large with a photo (set it on <a href="site-images.php">Site Images &amp; Logo</a>), and the Hero Proof Points are not shown. In <b>Light</b>, every Products &amp; Services card has a photo (each card's <i>Photo</i> box on Page Content), the hero photo is the Homepage — hero photo on Site Images &amp; Logo, and the Hero Proof Points are not shown. <a href="/" target="_blank" rel="noopener">View the homepage ↗</a></div>
+          <div class="hint">Every layout shows the same content from Page Content, these Business Details and your Products — switching changes only how the homepage looks, and you can switch back at any time. The Hero Proof Points are shown only in <b>Classic</b>. In <b>Bold</b>, the first Products &amp; Services card is shown large with a photo (set it on <a href="site-images.php">Site Images &amp; Logo</a>). In <b>Light</b>, every Products &amp; Services card has a photo (each card's <i>Photo</i> box on Page Content). <b>Distributor catalog</b>, <b>Corporate</b> and <b>Classic distributor</b> build their product families, counts and featured products from your Products automatically. Help → Business Details → Homepage layout describes each one. <a href="/" target="_blank" rel="noopener">View the homepage ↗</a></div>
         </div>
       </div>
 

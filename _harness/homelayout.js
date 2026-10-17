@@ -25,6 +25,8 @@
  *      first save keeps it); an unsafe path is refused and nothing is saved;
  *      an emptied box saves "" and the tile shows its icon instead.
  *   8. Switching back to Classic renders Classic again.
+ *   9. Distributor, Corporate and Classic distributor, with the catalog fetch
+ *      blocked, print no "0 products" style count (audit 2026-10-17).
  *
  * Restores site-info.json and content.json byte for byte and asserts it.
  * Usage: node _harness/homelayout.js      (needs the mirror on :8123)
@@ -271,6 +273,21 @@ const SCORE = (rootSel) => {
           ok(r.tileImgs === features && r.tileLoaded === features,
             `light: every shipped card shows its photo (${features} tiles, all loaded)`, `${r.tileLoaded}/${r.tileImgs} of ${features}`);
         }
+        await page.close();
+      }
+      // 9 (audit 2026-10-17) — the homepage is outside the catalog gate. With
+      // the catalog fetch blocked, a catalog-driven layout must not print a
+      // count it does not have ("0 products across 0 families" shipped).
+      if (L.families || L.featured) {
+        const page = await browser.newPage({ viewport: { width: 390, height: 900 } });
+        await page.route('**/data/products-all.json*', (rt) => rt.abort());
+        await page.goto(BASE + '/?v=' + Date.now(), { waitUntil: 'networkidle' });
+        await page.waitForTimeout(400);
+        const z = await page.evaluate((root) => {
+          const t = (document.querySelector(root) || {}).innerText || '';
+          return { here: !!document.querySelector(root), zero: t.match(/\b0 (products?|datasheets?|PDFs?|famil\w+)\b|All 0\b/gi) || [] };
+        }, L.root);
+        ok(z.here && z.zero.length === 0, `${layout}: with the catalog unavailable, no "0 products" style count is shown (decision 50)`, z.zero.join(' | '));
         await page.close();
       }
       for (const [name, patch] of Object.entries(PALETTES)) {
