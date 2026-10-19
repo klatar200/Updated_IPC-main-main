@@ -2038,6 +2038,12 @@ function Hero() {
                 border: "1px solid rgba(255,255,255,0.12)",
                 borderLeft: "3px solid var(--brand-accent)",
                 backdropFilter: "blur(8px)",
+                // Home-layouts audit 2026-10-19 — a word wider than the card
+                // ("Polytetrafluoroethylene" in a label) ran into the next
+                // card at 375. It breaks inside the card now, as the stat
+                // strip's text already did.
+                minWidth: 0,
+                overflowWrap: "anywhere",
               }}
             >
               <div
@@ -2281,7 +2287,9 @@ function FeatureCard({ icon, title, description, page, params, hash }) {
       >
         <span aria-hidden="true" style={{ display: "contents" }}>{icon}</span>{/* A12-L7-W3-G5-1 */}
       </div>
-      <div className="min-w-0">
+      {/* overflowWrap — home-layouts audit 2026-10-19: a title word wider
+          than the column ran past the card's edge at 375. */}
+      <div className="min-w-0" style={{ overflowWrap: "anywhere" }}>
         <h3
           className="fc-title"
           style={{
@@ -2796,17 +2804,31 @@ function StatsBar() {
   // A12-L6-13-1, the one list it missed (home-layouts audit 2026-10-19): an
   // emptied stat strip left its bordered white section behind as a 1px rule.
   if (!stats.length) return null;
+  // Home-layouts audit 2026-10-19 — the dividers were written for exactly four
+  // cells (by index: 0 and 2 right, 1 right from md, 0 and 1 bottom on
+  // phones), so a fifth stat started a second row with no line above it and
+  // the wrong right edges, and three stats left a blank quarter at md. They
+  // are now derived from the count: up to two columns on phones and four from
+  // md, a right line on every cell but the last in its row, a bottom line on
+  // every row but the last. Four stats get exactly the lines they had.
+  const n = stats.length;
+  const colsSm = Math.min(n, 2);
+  const colsMd = Math.min(n, 4);
+  const endsRow = (i, c) => i % c === c - 1 || i === n - 1;
+  const inLastRow = (i, c) => Math.floor(i / c) === Math.floor((n - 1) / c);
+  const gridSm = { 1: "grid-cols-1", 2: "grid-cols-2" }[colsSm];
+  const gridMd = { 1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4" }[colsMd];
   return (
     <section id="ipc-sec-stats" className="bg-white border-b border-gray-200">
-      <div className="ipc-container px-6 grid grid-cols-2 md:grid-cols-4 ipc-stats-grid">
+      <div className={`ipc-container px-6 grid ${gridSm} ${gridMd} ipc-stats-grid`}>
         {stats.map((s, i) => (
           <div
             key={`${i}-${s.label}`}
-            className={`py-5 px-4 md:py-7 md:px-6 flex items-center gap-4
-              ${i < 2 ? "ipc-stat-bottom-border" : ""}
-              ${i % 2 === 0 ? "border-r border-gray-200" : ""}
-              ${i === 1 ? "md:border-r md:border-gray-200" : ""}
-              ${i === 3 ? "border-r-0" : ""}
+            className={`py-5 px-4 md:py-7 md:px-6 flex items-center gap-4 border-gray-200
+              ${endsRow(i, colsSm) ? "" : "border-r"}
+              ${endsRow(i, colsMd) ? "md:border-r-0" : "md:border-r"}
+              ${inLastRow(i, colsSm) ? "" : "ipc-stat-bottom-border"}
+              ${inLastRow(i, colsMd) ? "" : "ipc-stat-bottom-md"}
             `}
           >
             <div
@@ -3724,6 +3746,10 @@ function HomePage() {
                   border: "1px solid #e5e9ee",
                   background: "#ffffff",
                   cursor: "pointer",
+                  // Home-layouts audit 2026-10-19 — "Polytetrafluoroethylene"
+                  // as a market name spilled ~45px past the card at 375.
+                  minWidth: 0,
+                  overflowWrap: "anywhere",
                 }}
               >
                 <div
@@ -6889,6 +6915,9 @@ function GlobalStyles() {
       /* StatsBar responsive dividers — only bottom border needed (right uses Tailwind divide-x) */
       .ipc-stat-bottom-border { border-bottom: 1px solid #e5e9ee; }
       @media (min-width: 768px) { .ipc-stat-bottom-border { border-bottom: none !important; } }
+      /* A row below it at md — only with more than four stats. After the rule
+         above on purpose: both are !important, so source order decides. */
+      @media (min-width: 768px) { .ipc-stat-bottom-md { border-bottom: 1px solid #e5e9ee !important; } }
       /* A12-L6-01-2 — a 44px icon, a 16px gap and the text do not fit two to a
          row below ~280px (a phone at 200% zoom is 195px): the left tiles' text
          ran under the right tiles' icons and the right ones spilled off. One

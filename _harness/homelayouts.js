@@ -19,10 +19,14 @@
  *  - an emptied stat strip and an emptied proof-point column leave nothing
  *    behind (a 1px bordered section; 64px of dead hero below lg).
  *
- * Not asserted, on purpose: the stat strip's dividers with more than four
- * items (Page Content says "works best with exactly 4"), and a single
- * unbroken word longer than a phone card (e.g. "Polytetrafluoroethylene" as
- * a market name spills ~45px at 375). Both are recorded in WHATS_LEFT.
+ * And the two first recorded as not fixed, then fixed the same day:
+ *  - the stat strip's dividers, which were written for exactly four cells —
+ *    every cell now has a right line iff a cell sits to its right and a
+ *    bottom line iff a cell sits below it, and no column is left empty
+ *    (1, 3, 4 and 8 stats, at 375 and 1440);
+ *  - a single word wider than a phone card ("Polytetrafluoroethylene") —
+ *    no text box on the page may be wider than its own box (the ticker,
+ *    which scrolls by design, excepted).
  *
  * Needs the mirror on :8123 and php -S logging to _harness/out/php8123.log
  * if PHP warnings are to be read (skipped when that file is absent).
@@ -126,7 +130,12 @@ const VARIANTS = [
      for (const s of ['features', 'markets', 'stats', 'heroProofPoints']) { rows(s).at(-1).querySelector('[data-action="up"]').click(); rows(s)[1].querySelector('[data-action="up"]').click(); }`)]],
   ['11-pale-palette-no-min-fax-iso', async (p) => [await settings(p, { ...PALE, stats_min: '', contact_fax: '', cert_iso: '' })]],
   ['12-dark-palette', async (p) => [await settings(p, { theme_primary: '#1a1a1a', theme_dark: '#000000', theme_accent: '#ff0000', theme_accent2: '#550000' })]],
-  ['13-minimal-everything', async (p) => [
+  ['13-long-single-words', async (p) => [await content(p, `
+     const W = 'Polytetrafluoroethylene';
+     set('features', 0, 'title', W + ' ' + W); set('markets', 0, 'label', W);
+     set('heroProofPoints', 0, 'label', W); set('heroProofPoints', 1, 'stat', '1,000,000');
+     set('stats', 0, 'label', W);`)]],
+  ['14-minimal-everything', async (p) => [
     await removePhoto(p, 'heroPhoto'), await removePhoto(p, 'bandTeamPhoto'), await removePhoto(p, 'bandBuildingPhoto'),
     await content(p, `for (const s of ${JSON.stringify(LISTS)}) removeAll(s);`),
     await settings(p, { stats_min: '', contact_fax: '', cert_iso: '' })]],
@@ -158,6 +167,11 @@ function pageChecks() {
   }
   for (const a of document.querySelectorAll('a[href]')) { const h = a.getAttribute('href'); if (/^(tel|mailto):$/.test(h) || h === '' || /undefined/.test(h)) o.bad.push('href "' + h + '"'); }
   for (const h of document.querySelectorAll('h1, h2, h3')) if (!h.textContent.trim()) o.bad.push('empty ' + h.tagName);
+  for (const el of document.querySelectorAll('body *')) {
+    if (el.closest('.ipc-marquee-track') || !el.clientWidth) continue;
+    if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+    if (el.scrollWidth > el.clientWidth + 1) o.bad.push('text wider than its box: "' + el.textContent.trim().slice(0, 30) + '" ' + el.scrollWidth + '>' + el.clientWidth);
+  }
   for (const s of document.querySelectorAll('section')) { const b = s.getBoundingClientRect(); if (b.height > 0 && b.height < 40) o.residue.push('section ' + (s.id || s.className.slice(0, 40)) + ' h=' + Math.round(b.height)); }
   // A displayed grid item with no height still takes the grid's gap.
   for (const g of document.querySelectorAll('.grid')) {
@@ -174,6 +188,27 @@ function pageChecks() {
     });
   }
   return o;
+}
+
+// Stat strip lines: right iff a cell sits to the right in the same row,
+// bottom iff a cell sits below; the cells span the whole strip.
+function statLines() {
+  const g = document.querySelector('#ipc-sec-stats .ipc-stats-grid');
+  if (!g) return [];
+  const cells = [...g.children].map((c) => ({ b: c.getBoundingClientRect(), cs: getComputedStyle(c) }));
+  const out = [];
+  cells.forEach(({ b, cs }, i) => {
+    const rightN = cells.some((o) => o.b.left >= b.right - 1 && Math.abs(o.b.top - b.top) < 2);
+    const below = cells.some((o) => o.b.top >= b.bottom - 1);
+    const hasR = parseFloat(cs.borderRightWidth) > 0, hasB = parseFloat(cs.borderBottomWidth) > 0;
+    if (hasR !== rightN) out.push(`cell ${i}: right line ${hasR} but neighbour ${rightN}`);
+    if (hasB !== below) out.push(`cell ${i}: bottom line ${hasB} but row below ${below}`);
+  });
+  const cs = getComputedStyle(g);
+  const inner = g.getBoundingClientRect().right - parseFloat(cs.paddingRight);
+  const widest = Math.max(...cells.map((c) => c.b.right));
+  if (inner - widest > 2) out.push(`an empty column: cells end ${Math.round(inner - widest)}px short of the strip`);
+  return out;
 }
 
 // End of a marquee cycle: does the track still cover the rail?
@@ -248,6 +283,14 @@ function iconContrast() {
           note(t && t.right >= t.rail && t.named === n,
             `${name} @${w}: at the end of a ticker cycle the track still reaches the rail's edge, and ${n} item(s) are read once`,
             JSON.stringify(t));
+          await ctx.close();
+        }
+      }
+      if (['00-baseline', '06-one-of-each', '07-three-of-each', '08-many-rows'].includes(name)) {
+        for (const w of [375, 1440]) {
+          const { ctx, page } = await render(browser, w);
+          const bad = await page.evaluate(statLines);
+          note(!bad.length, `${name} @${w}: stat strip lines match the cells' neighbours (${snap.stats.length} stats), no empty column`, bad.join('; '));
           await ctx.close();
         }
       }
