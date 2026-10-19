@@ -1903,6 +1903,35 @@ function Hero() {
   const proofPoints = heroProofPoints;
   const trustItems = heroTrust.map((t) => t.text);
   const reducedMotion = usePrefersReducedMotion();
+  // Home-layouts audit 2026-10-19 — translateX(-50%) is only seamless when
+  // one half of the track is at least as wide as the rail. The shipped nine
+  // items measure 2,164px, so on a 2560 screen the last ~400px of the rail
+  // ran empty before every jump, and a ticker cut to three items in Page
+  // Content (753px) did the same at 834. Each half now repeats the list
+  // until it covers the rail; reps is 1 for the shipped list up to 2,164px,
+  // so that case renders exactly as before.
+  const trackRef = useRef(null);
+  const [marqueeReps, setMarqueeReps] = useState(1);
+  const trustKey = trustItems.join("\u0000");
+  useEffect(() => {
+    if (reducedMotion || !trustItems.length) return undefined;
+    const measure = () => {
+      const t = trackRef.current;
+      if (!t || !t.parentElement) return;
+      let set = 0;
+      for (let i = 0; i < trustItems.length && i < t.children.length; i++) {
+        set += t.children[i].getBoundingClientRect().width;
+      }
+      if (!set) return;
+      const need = Math.max(1, Math.ceil(t.parentElement.clientWidth / set));
+      setMarqueeReps((r) => (r === need ? r : need));
+    };
+    measure();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reducedMotion, trustKey]);
 
   return (
     <section
@@ -1991,8 +2020,12 @@ function Hero() {
         {/* Right column. The wrapper is load-bearing: the proof-cards grid used
             to BE this column, so PLAN-7's photograph appended after it became a
             third item in the outer two-column grid and wrapped to a new row at
-            x=104 — under the headline, not beside it. Measured, not guessed. */}
-        <div>
+            x=104 — under the headline, not beside it. Measured, not guessed.
+            Home-layouts audit 2026-10-19 — with every proof point deleted the
+            column holds only the photo, which is lg-only, so below lg it was
+            an empty grid item that still took the gap-16: 64px of dead hero
+            under the buttons on phones and tablets. */}
+        <div className={proofPoints.length ? undefined : "hidden lg:block"}>
         {/* Proof cards: 2×2 grid on desktop, stacked 2×2 with tighter padding on mobile */}
         <div id="ipc-sec-heroProofPoints" className="grid grid-cols-2 gap-3">
           {proofPoints.map((p, i) => (
@@ -2054,7 +2087,7 @@ function Hero() {
             lg:block, and the <picture> below is why: a hidden <img> is still
             downloaded, which was the one defect in the mockup. */}
         {slot("heroPhoto") ? (
-        <picture className="hidden lg:block mt-6">
+        <picture className={proofPoints.length ? "hidden lg:block mt-6" : "hidden lg:block"}>
           <source media="(min-width: 1024px)" srcSet={slot("heroPhoto")} />
           <img
             src={slot("heroPhoto")}
@@ -2153,9 +2186,12 @@ function Hero() {
                   role: "group",
                   "aria-label": "Certifications and standards — focus to pause the scrolling",
                 })}
-            style={{ padding: "14px 0" }}
+            ref={trackRef}
+            // 32s per copy of the list, so a repeated half scrolls at the
+            // same speed as a single one.
+            style={{ padding: "14px 0", ...(marqueeReps > 1 ? { animationDuration: `${32 * marqueeReps}s` } : {}) }}
           >
-            {(reducedMotion ? trustItems : [...trustItems, ...trustItems]).map((item, idx) => (
+            {(reducedMotion ? trustItems : Array.from({ length: 2 * marqueeReps }, () => trustItems).flat()).map((item, idx) => (
               <span
                 key={idx}
                 // A12-L7-W3-G2-4 — the second copy exists only so the
@@ -2757,6 +2793,9 @@ function StatsBar() {
     if (!/\{(datasheets|products)\}/i.test(t)) return t;
     return counts ? t.replace(/\{(datasheets|products)\}/gi, (_, k) => String(counts[k.toLowerCase()])) : "";
   };
+  // A12-L6-13-1, the one list it missed (home-layouts audit 2026-10-19): an
+  // emptied stat strip left its bordered white section behind as a 1px rule.
+  if (!stats.length) return null;
   return (
     <section id="ipc-sec-stats" className="bg-white border-b border-gray-200">
       <div className="ipc-container px-6 grid grid-cols-2 md:grid-cols-4 ipc-stats-grid">

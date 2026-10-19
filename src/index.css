@@ -144,8 +144,18 @@
 
 /* A handful of SVG icons still carry the brand color as a presentation
    attribute (stroke="#005da3"), where CSS var() can't be used. A CSS rule,
-   however, overrides presentation attributes — so this re-themes them too. */
+   however, overrides presentation attributes — so this re-themes them too.
+   --brand-primary-text, not --brand-primary (home-layouts audit 2026-10-19):
+   the stat-bar and About certification icons sit on near-white tiles, and a
+   pale primary such as #e8f4ff painted them at 1.03:1 — invisible — while
+   the stat value beside them took the derived ink. On the shipped palette
+   the two tokens are both #005da3. The footer icons sit on the fixed navy
+   footer, where the derived light-surface ink is the wrong answer, so they
+   keep the raw primary exactly as before. */
 svg[stroke="#005da3"] {
+  stroke: var(--brand-primary-text);
+}
+footer svg[stroke="#005da3"] {
   stroke: var(--brand-primary);
 }
 
