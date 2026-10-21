@@ -1903,6 +1903,35 @@ function Hero() {
   const proofPoints = heroProofPoints;
   const trustItems = heroTrust.map((t) => t.text);
   const reducedMotion = usePrefersReducedMotion();
+  // Home-layouts audit 2026-10-19 — translateX(-50%) is only seamless when
+  // one half of the track is at least as wide as the rail. The shipped nine
+  // items measure 2,164px, so on a 2560 screen the last ~400px of the rail
+  // ran empty before every jump, and a ticker cut to three items in Page
+  // Content (753px) did the same at 834. Each half now repeats the list
+  // until it covers the rail; reps is 1 for the shipped list up to 2,164px,
+  // so that case renders exactly as before.
+  const trackRef = useRef(null);
+  const [marqueeReps, setMarqueeReps] = useState(1);
+  const trustKey = trustItems.join("\u0000");
+  useEffect(() => {
+    if (reducedMotion || !trustItems.length) return undefined;
+    const measure = () => {
+      const t = trackRef.current;
+      if (!t || !t.parentElement) return;
+      let set = 0;
+      for (let i = 0; i < trustItems.length && i < t.children.length; i++) {
+        set += t.children[i].getBoundingClientRect().width;
+      }
+      if (!set) return;
+      const need = Math.max(1, Math.ceil(t.parentElement.clientWidth / set));
+      setMarqueeReps((r) => (r === need ? r : need));
+    };
+    measure();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reducedMotion, trustKey]);
 
   return (
     <section
@@ -1991,8 +2020,12 @@ function Hero() {
         {/* Right column. The wrapper is load-bearing: the proof-cards grid used
             to BE this column, so PLAN-7's photograph appended after it became a
             third item in the outer two-column grid and wrapped to a new row at
-            x=104 — under the headline, not beside it. Measured, not guessed. */}
-        <div>
+            x=104 — under the headline, not beside it. Measured, not guessed.
+            Home-layouts audit 2026-10-19 — with every proof point deleted the
+            column holds only the photo, which is lg-only, so below lg it was
+            an empty grid item that still took the gap-16: 64px of dead hero
+            under the buttons on phones and tablets. */}
+        <div className={proofPoints.length ? undefined : "hidden lg:block"}>
         {/* Proof cards: 2×2 grid on desktop, stacked 2×2 with tighter padding on mobile */}
         <div id="ipc-sec-heroProofPoints" className="grid grid-cols-2 gap-3">
           {proofPoints.map((p, i) => (
@@ -2005,6 +2038,12 @@ function Hero() {
                 border: "1px solid rgba(255,255,255,0.12)",
                 borderLeft: "3px solid var(--brand-accent)",
                 backdropFilter: "blur(8px)",
+                // Home-layouts audit 2026-10-19 — a word wider than the card
+                // ("Polytetrafluoroethylene" in a label) ran into the next
+                // card at 375. It breaks inside the card now, as the stat
+                // strip's text already did.
+                minWidth: 0,
+                overflowWrap: "anywhere",
               }}
             >
               <div
@@ -2054,7 +2093,7 @@ function Hero() {
             lg:block, and the <picture> below is why: a hidden <img> is still
             downloaded, which was the one defect in the mockup. */}
         {slot("heroPhoto") ? (
-        <picture className="hidden lg:block mt-6">
+        <picture className={proofPoints.length ? "hidden lg:block mt-6" : "hidden lg:block"}>
           <source media="(min-width: 1024px)" srcSet={slot("heroPhoto")} />
           <img
             src={slot("heroPhoto")}
@@ -2153,9 +2192,12 @@ function Hero() {
                   role: "group",
                   "aria-label": "Certifications and standards — focus to pause the scrolling",
                 })}
-            style={{ padding: "14px 0" }}
+            ref={trackRef}
+            // 32s per copy of the list, so a repeated half scrolls at the
+            // same speed as a single one.
+            style={{ padding: "14px 0", ...(marqueeReps > 1 ? { animationDuration: `${32 * marqueeReps}s` } : {}) }}
           >
-            {(reducedMotion ? trustItems : [...trustItems, ...trustItems]).map((item, idx) => (
+            {(reducedMotion ? trustItems : Array.from({ length: 2 * marqueeReps }, () => trustItems).flat()).map((item, idx) => (
               <span
                 key={idx}
                 // A12-L7-W3-G2-4 — the second copy exists only so the
@@ -2245,7 +2287,9 @@ function FeatureCard({ icon, title, description, page, params, hash }) {
       >
         <span aria-hidden="true" style={{ display: "contents" }}>{icon}</span>{/* A12-L7-W3-G5-1 */}
       </div>
-      <div className="min-w-0">
+      {/* overflowWrap — home-layouts audit 2026-10-19: a title word wider
+          than the column ran past the card's edge at 375. */}
+      <div className="min-w-0" style={{ overflowWrap: "anywhere" }}>
         <h3
           className="fc-title"
           style={{
@@ -2757,17 +2801,34 @@ function StatsBar() {
     if (!/\{(datasheets|products)\}/i.test(t)) return t;
     return counts ? t.replace(/\{(datasheets|products)\}/gi, (_, k) => String(counts[k.toLowerCase()])) : "";
   };
+  // A12-L6-13-1, the one list it missed (home-layouts audit 2026-10-19): an
+  // emptied stat strip left its bordered white section behind as a 1px rule.
+  if (!stats.length) return null;
+  // Home-layouts audit 2026-10-19 — the dividers were written for exactly four
+  // cells (by index: 0 and 2 right, 1 right from md, 0 and 1 bottom on
+  // phones), so a fifth stat started a second row with no line above it and
+  // the wrong right edges, and three stats left a blank quarter at md. They
+  // are now derived from the count: up to two columns on phones and four from
+  // md, a right line on every cell but the last in its row, a bottom line on
+  // every row but the last. Four stats get exactly the lines they had.
+  const n = stats.length;
+  const colsSm = Math.min(n, 2);
+  const colsMd = Math.min(n, 4);
+  const endsRow = (i, c) => i % c === c - 1 || i === n - 1;
+  const inLastRow = (i, c) => Math.floor(i / c) === Math.floor((n - 1) / c);
+  const gridSm = { 1: "grid-cols-1", 2: "grid-cols-2" }[colsSm];
+  const gridMd = { 1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4" }[colsMd];
   return (
     <section id="ipc-sec-stats" className="bg-white border-b border-gray-200">
-      <div className="ipc-container px-6 grid grid-cols-2 md:grid-cols-4 ipc-stats-grid">
+      <div className={`ipc-container px-6 grid ${gridSm} ${gridMd} ipc-stats-grid`}>
         {stats.map((s, i) => (
           <div
             key={`${i}-${s.label}`}
-            className={`py-5 px-4 md:py-7 md:px-6 flex items-center gap-4
-              ${i < 2 ? "ipc-stat-bottom-border" : ""}
-              ${i % 2 === 0 ? "border-r border-gray-200" : ""}
-              ${i === 1 ? "md:border-r md:border-gray-200" : ""}
-              ${i === 3 ? "border-r-0" : ""}
+            className={`py-5 px-4 md:py-7 md:px-6 flex items-center gap-4 border-gray-200
+              ${endsRow(i, colsSm) ? "" : "border-r"}
+              ${endsRow(i, colsMd) ? "md:border-r-0" : "md:border-r"}
+              ${inLastRow(i, colsSm) ? "" : "ipc-stat-bottom-border"}
+              ${inLastRow(i, colsMd) ? "" : "ipc-stat-bottom-md"}
             `}
           >
             <div
@@ -3685,6 +3746,10 @@ function HomePage() {
                   border: "1px solid #e5e9ee",
                   background: "#ffffff",
                   cursor: "pointer",
+                  // Home-layouts audit 2026-10-19 — "Polytetrafluoroethylene"
+                  // as a market name spilled ~45px past the card at 375.
+                  minWidth: 0,
+                  overflowWrap: "anywhere",
                 }}
               >
                 <div
@@ -6850,6 +6915,9 @@ function GlobalStyles() {
       /* StatsBar responsive dividers — only bottom border needed (right uses Tailwind divide-x) */
       .ipc-stat-bottom-border { border-bottom: 1px solid #e5e9ee; }
       @media (min-width: 768px) { .ipc-stat-bottom-border { border-bottom: none !important; } }
+      /* A row below it at md — only with more than four stats. After the rule
+         above on purpose: both are !important, so source order decides. */
+      @media (min-width: 768px) { .ipc-stat-bottom-md { border-bottom: 1px solid #e5e9ee !important; } }
       /* A12-L6-01-2 — a 44px icon, a 16px gap and the text do not fit two to a
          row below ~280px (a phone at 200% zoom is 195px): the left tiles' text
          ran under the right tiles' icons and the right ones spilled off. One
