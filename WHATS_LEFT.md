@@ -31,7 +31,7 @@ in the box, and nothing here is a code change. History: §2r, §1ao and §1aq.
 | Certification marks, then spellings (A-9.P4-3, then A-9.P5a-5) | Products → Edit (nearly all: e.g. `U/L` ×65 in the catalog); Page Content for one `USFDA` | First settle A-9.P4-3: the catalog cites categories no body issues (`U/L Approved`, `UL Approved`, `CSA Approved`, `FDA Approved`, `GFR 21`). Then spell UL, CSA, MIL-SPEC, AMS, RoHS as on the certificates — in that order, or the spelling pass is done twice (GO-LIVE §A) |
 | Two badge pairs (A-9.P5a-8 remainder) | Products → Edit | `Low Temperature Flexibility` vs `Low-Temperature Flexibility`, `125°C Rated` vs `Rated 125°C` — one product each, no majority; pick one (GO-LIVE §A) |
 | Five products without a photograph (A-9.P4-8) | Products → Edit → Photo | `IP12GA-IP1274`, `IP13SP`, `IP25PU`, `IP30UV`, `IP47HV` show the branded "image coming soon" panel. Photograph them, or confirm the panel is what they should show |
-| Commercial promises (claims register: inherited, unsourced) | Business Details (Minimum Order, Feet In Stock) / Page Content | 25M+ feet in stock, $50 minimum, same- or next-business-day shipping, custom work in a week or less, JIT programs, PPAP and IMDS packages, certificates of conformance — came from IPC's old site and nothing in this repo backs them. Still true? |
+| Commercial promises (claims register: inherited, unsourced) | Business Details (Minimum Order, Feet In Stock) / Page Content | 25M+ feet in stock, $50 minimum, custom work in a week or less, JIT programs, PPAP and IMDS packages, certificates of conformance — came from IPC's old site and nothing in this repo backs them. Still true? |
 | Claims to confirm, reword or remove (AUDIT-12 decision 5: A12-L8-01-W5-3, A12-L8-W4-G1-1, A12-L8-W5-G5-1, A12-L8-W4-G1-2, A12-L8-W4-G5-2, A12-L8-01-10, A12-L8-04-4, A12-L8-W4-G5-1) | Page Content (Industries Grid / Detail Sections, Services, Hero, FAQ) | "Ford LP Approved Variants" (only Ford reference is `Ford Spec. LP390` on IP13SP); "M23053/8 QPL Available" and QPL "in stock" (IP35KY's sheet never says QPL); "entire line RoHS compliant" (2 of 42 products say RoHS); "Class C" for the 130°C vinyl-coated fiberglass sleeving (130°C is Class B); cable ties stocked (not among the 42 products); "Clean room environment" vs "clean environment"; services ship "in one week or less" vs the Hot-Stamp brochure's "one to two weeks"; CT called "Liquid-Tight … UL & CUL Listed" on Industries vs "Non-Metallic Electrical Conduit Tubing" on its own page. |
 | Catalog edits to glance at, and data-sheet questions (AUDIT-12 decisions 2, 3, 4; open: A12-L8-01-4, A12-L8-06-1) | Products → Edit | 35 product records were changed to match their own data sheets on 2026-10-14 (specs, approval marks, families; IP33TW and IP33PO were the two High errors); the per-field list with the sheet line for each is in the commits `0b1b9cb`, `391d572`, `c0918a5`, `016ad21`. Still open, because the sheet is unclear: which IP1274 sheet is current (decision 3); IP33PO's 5" and 6" sizes (not on its sheet); IP30HS 5/16" recovered diameter; IP17TW's low limit (-70°C text vs -275°F spec); IP49VP tensile "+/- 5%"; IP69HT elongation "600 P.S.I."; IP3L cold brittleness 20°C (probably -20°C); CT "except where noted"; IP52EC operating temperature (now blank); IP55FL AMS-3632C (CLAIM-3); Slit Guard UL-94 V2 on the polypropylene version; IP10EX badge "U/L CSA Certified". |
 | Minimum order (AUDIT-12 decision 14) | Business Details → Minimum Order; Page Content | Empty the box to say "no minimum". Four Page Content rows state the figure in their own words (Trust Bar Stats, a Hero Proof Point, the Trust Ticker, an FAQ) — edit those if it changes. |
@@ -44,8 +44,12 @@ in the box, and nothing here is a code change. History: §2r, §1ao and §1aq.
 The handoff email (`Email to Rick - Admin Dashboard Handoff.md`) carries this
 list in owner language. (2026-10-13: the rows for certification marks, badge
 pairs, the five photo-less products and the commercial promises, and the
-corrected screens for RoHS / AMS / "42", were added here from AUDIT-12 and are
-not yet in the email.)
+corrected screens for RoHS / AMS / "42", were added here from AUDIT-12 and were
+not yet in the email. 2026-10-29: the email now carries every row of this
+table, the AUDIT-12 claims list and data-sheet questions included; it leaves
+out "same- or next-business-day shipping" from the commercial-promises row,
+because the site has not said it since 2026-09-15 — only the reply-time
+"same day" remains, which Keagan confirmed.)
 
 ## Open — deploy day / the host ([GO-LIVE.md](GO-LIVE.md) §A–§C)
 
