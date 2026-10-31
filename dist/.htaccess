@@ -30,10 +30,21 @@ RewriteBase /
 # The X-Forwarded-Proto condition is not optional: behind a TLS-terminating
 # proxy %{HTTPS} is "off" on every request and the first condition alone
 # redirect-loops. (audit-runs/audit1.md A-02)
+#
+# The target is built from THE_REQUEST (the visitor's own request line), not
+# REQUEST_URI. On the live host REQUEST_URI carries an internal
+# /~<account>/htdocs/ prefix for file requests, and it leaked into the target:
+# http://…/admin/auth.php went to https://…/~4326420.4972505/htdocs/admin/auth.php
+# (measured 2026-10-31). %1 is the path ONLY: Apache appends the query string
+# itself, and a "?" that arrives through a back-reference is answered 403 by
+# Apache 2.4.56+ (the CVE-2023-25690 fix) — the first live attempt did exactly
+# that to every http:// URL with a query. NE keeps an already-encoded path
+# (%20 …) from being escaped twice. _harness/lowsE-apache.js holds all three.
 <IfModule mod_rewrite.c>
   RewriteCond %{HTTPS} !=on
   RewriteCond %{HTTP:X-Forwarded-Proto} !=https
-  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+  RewriteCond %{THE_REQUEST} ^\S+\s(/[^?\s]*)
+  RewriteRule ^ https://%{HTTP_HOST}%1 [R=301,L,NE]
 </IfModule>
 
 # Defense-in-depth response headers, mirroring admin/.htaccess.

@@ -174,7 +174,7 @@ $SECTIONS = [
     ],
     'stats' => [
         'title'    => 'Trust Bar Stats',
-        'sub'      => 'The four-up stat strip below the hero. Works best with exactly 4 items so the row stays balanced.',
+        'sub'      => 'The stat strip below the hero. Any number of items works: up to four sit in one row on a computer screen (two on a phone), and more start a new row.',
         'page'     => '/',
         'anchor'   => 'ipc-sec-stats',
         'addLabel' => 'Stat',

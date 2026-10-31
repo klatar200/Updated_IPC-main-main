@@ -2022,6 +2022,35 @@ function Hero() {
   const proofPoints = heroProofPoints;
   const trustItems = heroTrust.map((t) => t.text);
   const reducedMotion = usePrefersReducedMotion();
+  // Home-layouts audit 2026-10-19 — translateX(-50%) is only seamless when
+  // one half of the track is at least as wide as the rail. The shipped nine
+  // items measure 2,164px, so on a 2560 screen the last ~400px of the rail
+  // ran empty before every jump, and a ticker cut to three items in Page
+  // Content (753px) did the same at 834. Each half now repeats the list
+  // until it covers the rail; reps is 1 for the shipped list up to 2,164px,
+  // so that case renders exactly as before.
+  const trackRef = useRef(null);
+  const [marqueeReps, setMarqueeReps] = useState(1);
+  const trustKey = trustItems.join("\u0000");
+  useEffect(() => {
+    if (reducedMotion || !trustItems.length) return undefined;
+    const measure = () => {
+      const t = trackRef.current;
+      if (!t || !t.parentElement) return;
+      let set = 0;
+      for (let i = 0; i < trustItems.length && i < t.children.length; i++) {
+        set += t.children[i].getBoundingClientRect().width;
+      }
+      if (!set) return;
+      const need = Math.max(1, Math.ceil(t.parentElement.clientWidth / set));
+      setMarqueeReps((r) => (r === need ? r : need));
+    };
+    measure();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reducedMotion, trustKey]);
 
   return (
     <section
@@ -2117,8 +2146,12 @@ function Hero() {
         {/* Right column. The wrapper is load-bearing: the proof-cards grid used
             to BE this column, so PLAN-7's photograph appended after it became a
             third item in the outer two-column grid and wrapped to a new row at
-            x=104 — under the headline, not beside it. Measured, not guessed. */}
-        <div>
+            x=104 — under the headline, not beside it. Measured, not guessed.
+            Home-layouts audit 2026-10-19 — with every proof point deleted the
+            column holds only the photo, which is lg-only, so below lg it was
+            an empty grid item that still took the gap-16: 64px of dead hero
+            under the buttons on phones and tablets. */}
+        <div className={proofPoints.length ? undefined : "hidden lg:block"}>
         {/* Proof cards: 2×2 grid on desktop, stacked 2×2 with tighter padding on mobile */}
         <div id="ipc-sec-heroProofPoints" className="grid grid-cols-2 gap-3">
           {proofPoints.map((p, i) => (
@@ -2131,6 +2164,12 @@ function Hero() {
                 border: "1px solid rgba(255,255,255,0.12)",
                 borderLeft: "3px solid var(--brand-accent)",
                 backdropFilter: "blur(8px)",
+                // Home-layouts audit 2026-10-19 — a word wider than the card
+                // ("Polytetrafluoroethylene" in a label) ran into the next
+                // card at 375. It breaks inside the card now, as the stat
+                // strip's text already did.
+                minWidth: 0,
+                overflowWrap: "anywhere",
               }}
             >
               <div
@@ -2180,7 +2219,7 @@ function Hero() {
             lg:block, and the <picture> below is why: a hidden <img> is still
             downloaded, which was the one defect in the mockup. */}
         {slot("heroPhoto") ? (
-        <picture className="hidden lg:block mt-6">
+        <picture className={proofPoints.length ? "hidden lg:block mt-6" : "hidden lg:block"}>
           <source media="(min-width: 1024px)" srcSet={slot("heroPhoto")} />
           <img
             src={slot("heroPhoto")}
@@ -2279,9 +2318,12 @@ function Hero() {
                   role: "group",
                   "aria-label": "Certifications and standards — focus to pause the scrolling",
                 })}
-            style={{ padding: "14px 0" }}
+            ref={trackRef}
+            // 32s per copy of the list, so a repeated half scrolls at the
+            // same speed as a single one.
+            style={{ padding: "14px 0", ...(marqueeReps > 1 ? { animationDuration: `${32 * marqueeReps}s` } : {}) }}
           >
-            {(reducedMotion ? trustItems : [...trustItems, ...trustItems]).map((item, idx) => (
+            {(reducedMotion ? trustItems : Array.from({ length: 2 * marqueeReps }, () => trustItems).flat()).map((item, idx) => (
               <span
                 key={idx}
                 // A12-L7-W3-G2-4 — the second copy exists only so the
@@ -2338,6 +2380,9 @@ function FeatureCard({ icon, index, title, description, page, params, hash }) {
         border: "1px solid var(--ipc-card-border)",
         boxShadow: FEATURE_CARD_SHADOW,
         minHeight: 248,
+        // Home-layouts audit 2026-10-19: a title word wider than the column
+        // ran past the card's edge at 375.
+        overflowWrap: "anywhere",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = "var(--brand-primary)";
@@ -2874,7 +2919,7 @@ const STATS_DATA = [
 
 /**
  * IPC Trust & Proof rail — verified company stats with SVG icons.
- * Borders: right border via inline style per cell; bottom border via ipc-stat-bottom-border CSS class.
+ * Borders: .ipc-stat-r / .ipc-stat-b (and -md twins), put on per cell by StatsBar from the stat count.
  * Fix 13: dead divide-x divide-gray-200 Tailwind classes removed (don't work on CSS grid, borders handled separately).
  */
 /**
@@ -2896,19 +2941,40 @@ function useStatValue() {
 function StatsBar() {
   const { stats } = useContent();
   const statValue = useStatValue();
+  // A12-L6-13-1, the one list it missed (home-layouts audit 2026-10-19): an
+  // emptied stat strip left its section behind as an empty band.
+  if (!stats.length) return null;
   // Keagan 2026-10-17 — the row was 20px numbers beside pale icon tiles on
   // white, the quietest strip on the page for its four strongest facts. It is
   // now a large-number band on --brand-dark directly under the hero, so the
   // top of the page reads as one dark block. Every colour is a token solved
   // against --brand-dark (ink, accent1-on-dark, dark-muted-60), so an owner
   // palette keeps it readable — lowsC2-palettes holds that.
+  // Home-layouts audit 2026-10-19 — the dividers were written for exactly four
+  // cells, so a fifth stat started a second row with no line above it, and
+  // three stats left a blank quarter at md. They are derived from the count:
+  // up to two columns on phones and four from md, a right line on every cell
+  // but the last in its row, a bottom line on every row but the last
+  // (.ipc-stat-r / -b, and their -md twins, in GlobalStyles).
+  const n = stats.length;
+  const colsSm = Math.min(n, 2);
+  const colsMd = Math.min(n, 4);
+  const endsRow = (i, c) => i % c === c - 1 || i === n - 1;
+  const inLastRow = (i, c) => Math.floor(i / c) === Math.floor((n - 1) / c);
+  const gridSm = { 1: "grid-cols-1", 2: "grid-cols-2" }[colsSm];
+  const gridMd = { 1: "md:grid-cols-1", 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-4" }[colsMd];
   return (
     <section id="ipc-sec-stats" style={{ background: "var(--brand-dark)" }}>
-      <div className="ipc-container px-6 grid grid-cols-2 md:grid-cols-4 ipc-stats-grid">
+      <div className={`ipc-container px-6 grid ${gridSm} ${gridMd} ipc-stats-grid`}>
         {stats.map((s, i) => (
           <div
             key={`${i}-${s.label}`}
-            className="py-8 px-4 md:py-12 md:px-8 flex flex-col gap-4"
+            className={`py-8 px-4 md:py-12 md:px-8 flex flex-col gap-4
+              ${endsRow(i, colsSm) ? "" : "ipc-stat-r"}
+              ${endsRow(i, colsMd) ? "" : "ipc-stat-r-md"}
+              ${inLastRow(i, colsSm) ? "" : "ipc-stat-b"}
+              ${inLastRow(i, colsMd) ? "" : "ipc-stat-b-md"}
+            `}
           >
             {/* The admin still offers an icon per stat, so it stays — small,
                 in currentColor, above the number rather than in a tile. */}
@@ -3853,6 +3919,10 @@ function HomePage() {
                   border: "1px solid var(--ipc-card-border)",
                   background: "#ffffff",
                   cursor: "pointer",
+                  // Home-layouts audit 2026-10-19 — "Polytetrafluoroethylene"
+                  // as a market name spilled ~45px past the card at 375.
+                  minWidth: 0,
+                  overflowWrap: "anywhere",
                 }}
               >
                 <div
@@ -7863,14 +7933,19 @@ function GlobalStyles() {
          subject. Widening the sub-line into it would make a 1232px measure,
          which is worse typography, not better.
          (The rule itself moved to src/index.css — AUDIT-12 A12-L11-03-1.) */
-      /* StatsBar dividers (2026-10-17: the band is on --brand-dark now, so the
-         rules are the dark surface's ink at 14%). Two columns: a rule between
-         the pair and above the second row; four columns: rules between. */
-      .ipc-stats-grid > div:nth-child(2n) { border-left: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
-      .ipc-stats-grid > div:nth-child(n+3) { border-top: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
+      /* StatsBar dividers (2026-10-17: the band is on --brand-dark, so the
+         rules are the dark surface's ink at 14%). StatsBar puts the classes on
+         from the stat count (home-layouts audit 2026-10-19): -r a cell with a
+         neighbour to its right, -b a cell with a row below; the -md twins
+         take over from 768px. Same specificity, so the md block must stay
+         after the base rules. */
+      .ipc-stat-r { border-right: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
+      .ipc-stat-b { border-bottom: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
       @media (min-width: 768px) {
-        .ipc-stats-grid > div:nth-child(n+3) { border-top: none; }
-        .ipc-stats-grid > div + div { border-left: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
+        .ipc-stat-r { border-right-width: 0; }
+        .ipc-stat-b { border-bottom-width: 0; }
+        .ipc-stat-r-md { border-right: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
+        .ipc-stat-b-md { border-bottom: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
       }
       /* A12-L6-01-2 — a 44px icon, a 16px gap and the text do not fit two to a
          row below ~280px (a phone at 200% zoom is 195px): the left tiles' text
@@ -7881,7 +7956,8 @@ function GlobalStyles() {
         .ipc-idx-head { flex-wrap: wrap; }
         .ipc-idx-head > div { flex: 1 1 120px; overflow-wrap: anywhere; }
         .ipc-stats-grid.ipc-stats-grid { grid-template-columns: minmax(0, 1fr); }
-        .ipc-stats-grid > div { border-left: none !important; border-top: none !important; border-bottom: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
+        .ipc-stats-grid > div { border-right-width: 0 !important; border-bottom: 1px solid rgba(var(--brand-dark-ink-rgb), 0.14); }
+        .ipc-stats-grid > div:last-child { border-bottom-width: 0; }
       }
       /* Dropdown entrance — scale + fade from top */
       @keyframes ipc-dropdown-in {
