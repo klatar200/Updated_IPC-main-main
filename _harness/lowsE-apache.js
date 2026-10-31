@@ -140,6 +140,17 @@ DocumentRoot ${PUB}
     proxied.h('Strict-Transport-Security')].join(' | ');
   note(/max-age/.test(anyHsts) && !/includeSubDomains/i.test(anyHsts), 'PUB-1: HSTS does not claim includeSubDomains (subdomain TLS is unverified)', anyHsts);
 
+  // ── HTTPS redirect (live 2026-10-31) ── the target is the visitor's own path
+  // and query, once: a "?" through a back-reference is a 403 on 2.4.56+, and
+  // REQUEST_URI leaked the live host's /~<account>/htdocs/ prefix. The leak
+  // needs that host to show; the 403, the query and the encoding show here.
+  const host = `127.0.0.1:${HTTP}`;
+  for (const [label, p] of [['an SPA route with a query', '/products?x=1&y=a%20b'], ['an encoded path', '/a%20b'],
+    ['an admin file with a query', '/admin/index.php?x=1']]) {
+    const r = head(`${P}${p}`);
+    note(r.status === 301 && r.h('Location') === `https://${host}${p}`, `HTTPS: plain HTTP on ${label} is one 301 to the same path and query`, `status ${r.status}, Location "${r.h('Location')}"`);
+  }
+
   // ── PUB-10 ──
   const img = head(`${S}/uploads/images/CC.png`);
   note(img.status === 200 && /no-cache/.test(img.h('Cache-Control')), 'PUB-10: an uploaded photo is revalidated on every use (no-cache), not cached for a day', `status ${img.status}, Cache-Control "${img.h('Cache-Control')}"`);
