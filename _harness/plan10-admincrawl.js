@@ -29,7 +29,7 @@
  *                   edit.php or upload-pdf.php at 12), so it is the real worst
  *                   case for A10-021 and is shot deliberately.
  *
- * Read-only. Nothing here submits a form, so no `data/*.json`, `pdfs/` or
+ * Read-only. Nothing here submits a form, so no `site-data/*.json`, `pdfs/` or
  * `uploads/` write is possible and no pristine restore is owed. The two POST
  * pages that would mutate state (`delete.php`, the upload handlers) are opened
  * at their CONFIRMATION step and never confirmed.

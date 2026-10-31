@@ -37,8 +37,8 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const MK = path.join(SITE, 'pdfs', 'marketing');
 const results = [];
 const note = (ok, label, detail) => { results.push({ ok }); console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${!ok && detail ? `\n       → ${detail}` : ''}`); };
-const info = () => JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'site-info.json'), 'utf8'));
-const content = () => JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'content.json'), 'utf8'));
+const info = () => JSON.parse(fs.readFileSync(path.join(SITE, 'site-data', 'site-info.json'), 'utf8'));
+const content = () => JSON.parse(fs.readFileSync(path.join(SITE, 'site-data', 'content.json'), 'utf8'));
 const md5 = (f) => crypto.createHash('md5').update(fs.readFileSync(f)).digest('hex');
 const pdf = (tag) => Buffer.from(`%PDF-1.4\n% ${tag}\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n`);
 const lastLog = () => JSON.parse(fs.readFileSync(path.join(SITE, 'admin', 'admin-log.jsonl'), 'utf8').trim().split('\n').pop());
@@ -71,7 +71,7 @@ const footerCatalog = async (browser) => {
   if (spawnSync('curl', ['-s', '-o', '/dev/null', '--max-time', '2', BASE + '/']).status === 0) { console.log(`marketingpdfs: port ${PORT} in use`); process.exit(2); }
   fs.rmSync(SITE, { recursive: true, force: true });
   execFileSync('cp', ['-r', path.join(H, 'site'), SITE]);
-  for (const f of ['products-all.json', 'site-info.json', 'content.json']) fs.copyFileSync(path.join(H, 'pristine', f), path.join(SITE, 'data', f));
+  for (const f of ['products-all.json', 'site-info.json', 'content.json']) fs.copyFileSync(path.join(H, 'pristine', f), path.join(SITE, 'site-data', f));
   const before = new Set(fs.readdirSync(MK));
   const srv = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', SITE, path.join(H, 'router.php')], { cwd: SITE, stdio: 'ignore' });
   await new Promise((r) => setTimeout(r, 700));
@@ -143,7 +143,7 @@ const footerCatalog = async (browser) => {
     note(lt.action === 'marketing-pdf' && /off the website/.test(lt.detail), 'audit: "Take Off the Website" is logged as marketing-pdf', JSON.stringify(lt));
 
     // damaged
-    const si = path.join(SITE, 'data', 'site-info.json');
+    const si = path.join(SITE, 'site-data', 'site-info.json');
     const good = fs.readFileSync(si, 'utf8');
     fs.writeFileSync(si, good.replace(/\}\s*$/, ',}'));
     const n1 = fs.readdirSync(MK).length;

@@ -6,7 +6,7 @@
  *
  * One Apache instance, two listeners: plain HTTP on :8731 and HTTPS on :8732
  * with a throwaway self-signed certificate. The docroot is dist/ plus the
- * repo's admin/, uploads/, pdfs/ and data/ .htaccess files, built under
+ * repo's admin/, uploads/, pdfs/ and site-data/ .htaccess files, built under
  * /var/tmp (the Apache user cannot traverse /tmp/claude-0). 13 checks (the
  * suite prints its own count — trust that over this line):
  *   PUB-1   HSTS is sent over HTTPS on /, on a rewritten SPA route and on
@@ -66,13 +66,13 @@ try {
   fs.mkdirSync(PUB, { recursive: true });
   spawnSync('cp', ['-r', (process.env.LOWSE_DIST || path.join(ROOT, 'dist')) + '/.', PUB]);   // path.join would drop the '/.'; LOWSE_DIST: test another build
   fs.writeFileSync(path.join(PUB, '.htaccess'), src('public/.htaccess'));
-  for (const d of ['admin', 'uploads', 'uploads/images', 'pdfs', 'data', 'images']) fs.mkdirSync(path.join(PUB, d), { recursive: true });
+  for (const d of ['admin', 'uploads', 'uploads/images', 'pdfs', 'site-data', 'images']) fs.mkdirSync(path.join(PUB, d), { recursive: true });
   fs.writeFileSync(path.join(PUB, 'admin', '.htaccess'), src('admin/.htaccess'));
   fs.writeFileSync(path.join(PUB, 'admin', 'index.php'), '<?php echo "admin";');
   fs.writeFileSync(path.join(PUB, 'uploads', '.htaccess'), src('uploads/.htaccess'));
   fs.writeFileSync(path.join(PUB, 'pdfs', '.htaccess'), src('pdfs/.htaccess'));
-  fs.writeFileSync(path.join(PUB, 'data', '.htaccess'), src('data/.htaccess'));
-  fs.copyFileSync(path.join(ROOT, 'data', 'products-all.json'), path.join(PUB, 'data', 'products-all.json'));
+  fs.writeFileSync(path.join(PUB, 'site-data', '.htaccess'), src('site-data/.htaccess'));
+  fs.copyFileSync(path.join(ROOT, 'site-data', 'products-all.json'), path.join(PUB, 'site-data', 'products-all.json'));
   fs.writeFileSync(path.join(PUB, 'uploads', 'images', 'CC.png'), Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8ffff3f0005fe02fea7d6a4540000000049454e44ae426082', 'hex'));
   fs.writeFileSync(path.join(PUB, 'pdfs', 'CC.pdf'), '%PDF-1.4\n%%EOF\n');
   fs.rmSync(path.join(PUB, 'favicon.ico'), { force: true });
@@ -158,7 +158,7 @@ DocumentRoot ${PUB}
   note(pdf.status === 200 && /no-cache/.test(pdf.h('Cache-Control')), 'PUB-10: a data sheet is revalidated on every use (was: no Cache-Control at all)', `status ${pdf.status}, Cache-Control "${pdf.h('Cache-Control')}"`);
 
   // ── PUB-11 ──
-  const missing = ['/pdfs/nope.pdf', '/uploads/images/nope.png', '/images/nope.jpg', '/data/nope.json', '/favicon.ico'];
+  const missing = ['/pdfs/nope.pdf', '/uploads/images/nope.png', '/images/nope.jpg', '/site-data/nope.json', '/favicon.ico'];
   const shells = missing.map((u) => [u, head(`${S}${u}`)]).filter(([, r]) => r.status !== 404).map(([u, r]) => `${u} ${r.status} ${r.h('Content-Type')}`);
   note(shells.length === 0, 'PUB-11: a missing data sheet, photo, image, data file or favicon is a real 404, not the site shell', shells.join(' | '));
   const route = head(`${S}/products`);
@@ -169,7 +169,7 @@ DocumentRoot ${PUB}
   note(ini.length === 0, 'N3-1: a php.ini in the web folder (root or admin/) is refused, not served', ini.map(([u, st]) => `${u} ${st}`).join(' | '));
 
   // ── N3-6 ──
-  const over = ['admin/.htaccess', 'data/.htaccess', 'pdfs/.htaccess'].filter((f) => {
+  const over = ['admin/.htaccess', 'site-data/.htaccess', 'pdfs/.htaccess'].filter((f) => {
     const t = src(f);
     const i = t.indexOf('<LimitExcept');
     return !/TRACE/.test(t.slice(Math.max(0, i - 700), i));

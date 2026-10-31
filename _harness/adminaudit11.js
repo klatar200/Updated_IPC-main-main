@@ -52,7 +52,7 @@ const TMP = path.join(H, 'out', 'aa11-tmp');
 const PORT = 8742, LIMITED = 8743;
 const BASE = `http://127.0.0.1:${PORT}`;
 const PASS = 'audit-pass-123';
-const D = (f) => path.join(SITE, 'data', f);
+const D = (f) => path.join(SITE, 'site-data', f);
 
 const results = [];
 const note = (ok, label, detail) => {
@@ -64,7 +64,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const cat = () => JSON.parse(fs.readFileSync(D('products-all.json'), 'utf8'));
 const prod = (sku) => cat().find((p) => p.sku === sku);
 const onDisk = (url) => !!url && fs.existsSync(path.join(SITE, url));
-const backups = (prefix) => fs.readdirSync(path.join(SITE, 'data')).filter((n) => n.startsWith(prefix + '.backup.'));
+const backups = (prefix) => fs.readdirSync(path.join(SITE, 'site-data')).filter((n) => n.startsWith(prefix + '.backup.'));
 const newestBackup = (prefix) => backups(prefix).sort((a, b) => fs.statSync(D(a)).mtimeMs - fs.statSync(D(b)).mtimeMs || (a < b ? -1 : 1)).pop();
 const reset = () => { for (const f of ['products-all.json', 'site-info.json', 'content.json']) fs.copyFileSync(path.join(H, 'pristine', f), D(f)); };
 

@@ -46,7 +46,7 @@
  *      not extend it, and once the window passes a correct password works.
  *
  * The mirror's admin/.login-throttle.json is the only file written. The repo's
- * data/, pdfs/ and uploads/ are never touched.
+ * site-data/, pdfs/ and uploads/ are never touched.
  *
  * Usage: node _harness/plan5-throttle.js
  */

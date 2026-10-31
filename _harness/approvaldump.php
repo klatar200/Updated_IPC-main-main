@@ -10,7 +10,7 @@
  * spelling differences that do not change behaviour while passing on ones that
  * do.
  *
- * Reads pristine/, never data/. Prints JSON to stdout and nothing else.
+ * Reads pristine/, never site-data/. Prints JSON to stdout and nothing else.
  *
  * Usage: php _harness/approvaldump.php
  */

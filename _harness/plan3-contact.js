@@ -25,7 +25,7 @@
  *   - the copy still comes from the owner-editable cf.networkError
  *
  * Needs the mirror on :8123 (started with -t _harness/site). Posts only invalid
- * submissions plus intercepted ones; never writes data/.
+ * submissions plus intercepted ones; never writes site-data/.
  *
  * Usage: node _harness/plan3-contact.js
  */
@@ -241,7 +241,7 @@ async function readErrorRegion(form) {
         // with a distinct marker in that one key (in the browser only — the
         // mirror file is not touched) and require the marker on screen.
         const NET_MARK = `Network error marker ${process.pid}-${width}-${tab.id}. Please call us.`;
-        await ctx.route('**/data/content.json*', async (route) => {
+        await ctx.route('**/site-data/content.json*', async (route) => {
           const res = await route.fetch();
           const setNet = (o) => { if (o && typeof o === 'object') for (const k of Object.keys(o)) { if (k === 'networkError' && typeof o[k] === 'string') o[k] = NET_MARK; else setNet(o[k]); } };
           const body = await res.json();

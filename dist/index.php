@@ -5,7 +5,7 @@
  * public/.htaccess sends every request that is not a real file here, and
  * `DirectoryIndex index.php index.html` sends `/` here too. This file serves
  * the BUILT index.html — the same shell the site has always served — with two
- * things filled in from the live data/*.json:
+ * things filled in from the live site-data/*.json:
  *
  *   1. the head: <title>, description, canonical, robots and og:* for THIS
  *      route and THIS product, instead of the homepage's for every URL;
@@ -14,7 +14,7 @@
  *      request read — the stored business details, the Company Claims, and on
  *      a product URL the product row and its photo's size — so the browser
  *      starts from Rick's data instead of the bundle's shipped copy, and keeps
- *      it when its own /data/ request fails (AUDIT-12 decisions 9, 10, 11, 24).
+ *      it when its own /site-data/ request fails (AUDIT-12 decisions 9, 10, 11, 24).
  *
  * ── Why ─────────────────────────────────────────────────────────────────────
  *
@@ -1040,10 +1040,10 @@ if ($shell === false || $shell === '') {
     http_response_code(500);
     header('Content-Type: text/plain; charset=UTF-8');
     // A12-L6-W5-G2-1 — still a way to reach IPC: the live Business Details if
-    // data/ is up, else the shipped ones.
+    // site-data/ is up, else the shipped ones.
     $site = ipc_site_defaults();
     try {
-        $site = ipc_merge_site(ipc_load_json(__DIR__ . '/data/site-info.json'));
+        $site = ipc_merge_site(ipc_load_json(__DIR__ . '/site-data/site-info.json'));
     } catch (Throwable $e) {
     }
     echo "The site is being updated. Please try again in a minute.\n\n"
@@ -1063,7 +1063,7 @@ set_error_handler(function ($severity, $message, $file, $line) {
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 try {
-    $st = ipc_route_state(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/', __DIR__ . '/data/');
+    $st = ipc_route_state(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/', __DIR__ . '/site-data/');
     $html = ipc_render_head($shell, $st);
     $html = ipc_replace_one('#<div id="root"></div>#', '<div id="root">' . ipc_render_body($st) . '</div>', $html);
     // The shell's <noscript> block (C38) is a FIXED copy of the contact

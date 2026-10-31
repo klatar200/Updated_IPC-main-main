@@ -1,15 +1,15 @@
 /**
  * A-9.P5a-4, A-9.P5a-8 (the half the data settles) and A-9.P4-10 — catalog text.
  *
- * Written BEFORE the edits and watched failing. These are `data/` changes,
+ * Written BEFORE the edits and watched failing. These are `site-data/` changes,
  * which PLAN-11 §7.3 put on the owner's side; they are made here on Keagan's
  * explicit instruction, and only where the defect is unambiguous or the catalog
  * itself names the majority form. What is deliberately NOT changed is asserted
  * too, so a later pass cannot quietly "finish the job" on the three that need a
  * decision.
  *
- * STEP 0 recorded the site as NOT LIVE, so `data/` has not yet become live
- * customer state: the runbook is on branch B (first deploy), where `data/` is
+ * STEP 0 recorded the site as NOT LIVE, so `site-data/` has not yet become live
+ * customer state: the runbook is on branch B (first deploy), where `site-data/` is
  * uploaded from the repo. After the first deploy these same edits would be
  * admin work, never a file change.
  *
@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const products = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'products-all.json'), 'utf8'));
+const products = JSON.parse(fs.readFileSync(path.join(ROOT, 'site-data', 'products-all.json'), 'utf8'));
 const Q = String.fromCharCode(34);
 
 const results = [];

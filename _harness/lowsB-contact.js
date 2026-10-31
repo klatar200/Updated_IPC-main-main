@@ -24,7 +24,7 @@ const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
 const SITE = path.join(__dirname, 'site');
-const DATA = path.join(SITE, 'data');
+const DATA = path.join(SITE, 'site-data');
 const ADMIN = path.join(SITE, 'admin');
 const PRISTINE = path.join(__dirname, 'pristine');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'ipc-lowsB-'));

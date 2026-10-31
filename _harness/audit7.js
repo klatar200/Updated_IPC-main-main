@@ -15,11 +15,11 @@
  *
  *     "`pdfUrl` and `additionalPdfs[].url` are gated where they are WRITTEN …
  *      but not where they are rendered, which is the same argument A1 rejected
- *      for the footer link: data/ is a plain file, so an FTP edit or a backup
+ *      for the footer link: site-data/ is a plain file, so an FTP edit or a backup
  *      restored from before those gates existed reaches the component with
  *      nothing in between."
  *
- * A write gate is not enough for `data/`, and for spec tables the consequence
+ * A write gate is not enough for `site-data/`, and for spec tables the consequence
  * is worse than a dead link: the product page throws into the ErrorBoundary.
  *
  * The reachable path needs no FTP at all. `BACKUP_KEEP` is 90 per prefix and
@@ -61,7 +61,7 @@
  *
  * ── Restore ────────────────────────────────────────────────────────────────
  *
- * The MIRROR's catalog is mutated; the repo's `data/` is never touched. The
+ * The MIRROR's catalog is mutated; the repo's `site-data/` is never touched. The
  * mirror is restored from `_harness/pristine/` in a `finally` and the restore
  * is asserted byte-for-byte before any result is reported, the same discipline
  * `plan10-auditlog.js` uses.
@@ -76,7 +76,7 @@ const path = require('path');
 const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
-const MIRROR_DATA = path.join(__dirname, 'site', 'data');
+const MIRROR_DATA = path.join(__dirname, 'site', 'site-data');
 const PRISTINE = path.join(__dirname, 'pristine');
 const CATALOG_MIRROR = path.join(MIRROR_DATA, 'products-all.json');
 const CATALOG_PRISTINE = path.join(PRISTINE, 'products-all.json');
@@ -283,14 +283,14 @@ async function arm(page, tag, description, mutate) {
     {
       const hang = await browser.newPage({ viewport: { width: 1440, height: 900 } });
       const state = new Map();   // url → 'pending' | 'failed' | 'finished'
-      const track = (u) => u.includes('/data/site-info.json') || u.includes('/data/products-all.json');
+      const track = (u) => u.includes('/site-data/site-info.json') || u.includes('/site-data/products-all.json');
       hang.on('request', (r) => { if (track(r.url())) state.set(r.url(), 'pending'); });
       hang.on('requestfailed', (r) => { if (track(r.url())) state.set(r.url(), 'failed'); });
       hang.on('requestfinished', (r) => { if (track(r.url())) state.set(r.url(), 'finished'); });
 
       // Never fulfil, never abort: the connection is accepted and then hangs.
-      await hang.route('**/data/site-info.json*', () => {});
-      await hang.route('**/data/products-all.json*', () => {});
+      await hang.route('**/site-data/site-info.json*', () => {});
+      await hang.route('**/site-data/products-all.json*', () => {});
 
       await hang.goto(`${BASE}/`, { waitUntil: 'commit' }).catch(() => {});
       // The guard is 12 s (PRODUCTS_FETCH_TIMEOUT_MS). Give it a margin.
@@ -300,8 +300,8 @@ async function arm(page, tag, description, mutate) {
         for (const [u, st] of state) if (u.includes(needle)) return st;
         return 'never-requested';
       };
-      const siteInfo = verdict('/data/site-info.json');
-      const catalog = verdict('/data/products-all.json');
+      const siteInfo = verdict('/site-data/site-info.json');
+      const catalog = verdict('/site-data/products-all.json');
 
       note(
         catalog === 'failed',

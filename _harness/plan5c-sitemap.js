@@ -9,7 +9,7 @@
  * BUILD time has the same defect one step removed — the build runs on a laptop,
  * the catalog lives on the server, and they diverge the first time he saves.
  *
- * `sitemap.php` reads `data/products-all.json` on each request, so the two
+ * `sitemap.php` reads `site-data/products-all.json` on each request, so the two
  * cannot disagree. That is the claim, and this suite tests exactly it: the
  * decisive assertions add and remove a product IN THE MIRROR and check that the
  * sitemap changes to match, with no rebuild and no deploy step in between.
@@ -31,10 +31,10 @@
  *     checked by backdating the file — "today, every day" is a lie a crawler
  *     learns to ignore
  *
- * Writes ONLY `_harness/site/data/products-all.json`, restores it from
+ * Writes ONLY `_harness/site/site-data/products-all.json`, restores it from
  * `_harness/pristine/` at the end (a byte compare that throws on failure — a
  * cleanup precondition, not a counted check: AUDIT-12 A12-L13-20-1).
- * The repo's `data/` is never touched.
+ * The repo's `site-data/` is never touched.
  *
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
@@ -49,7 +49,7 @@ const BASE = 'http://127.0.0.1:8123';
 const APP = path.join(__dirname, '..', 'src', 'App.jsx');
 const ROBOTS = path.join(__dirname, '..', 'public', 'robots.txt');
 const PRISTINE = path.join(__dirname, 'pristine', 'products-all.json');
-const MIRROR = path.join(__dirname, 'site', 'data', 'products-all.json');
+const MIRROR = path.join(__dirname, 'site', 'site-data', 'products-all.json');
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -248,7 +248,7 @@ const writeMirror = (obj) => fs.writeFileSync(MIRROR, JSON.stringify(obj, null, 
   // it could never fail; it is a cleanup precondition, not a counted check
   // (AUDIT-12 A12-L13-20-1).
   if (!fs.readFileSync(MIRROR).equals(fs.readFileSync(PRISTINE))) {
-    throw new Error('cleanup: the mirror was left modified — check _harness/site/data/products-all.json');
+    throw new Error('cleanup: the mirror was left modified — check _harness/site/site-data/products-all.json');
   }
 
   const bad = results.filter((r) => !r.ok).length;

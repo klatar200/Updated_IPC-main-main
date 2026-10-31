@@ -13,7 +13,7 @@
  *   - the measured edge-to-edge gap between ✕ and the nearest arrow is >= 24px
  *   - the touch hit target is >= 44px when the pointer is coarse
  *
- * Needs the mirror on :8123. Does not save, so data/ is never written.
+ * Needs the mirror on :8123. Does not save, so site-data/ is never written.
  *
  * Usage: node _harness/plan2-delete.js
  */

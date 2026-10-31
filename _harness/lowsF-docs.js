@@ -52,8 +52,8 @@ async function armN33() {
     }
     const hash = spawnSync('php', ['-r', "echo password_hash('lowsF-pass-123', PASSWORD_BCRYPT);"], { encoding: 'utf8' }).stdout;
     fs.writeFileSync(path.join(admin, 'config.local.php'), `<?php\ndefine('ADMIN_PASSWORD_HASH', '${hash}');\n`);
-    for (const d of ['uploads/images', 'data', 'pdfs']) fs.mkdirSync(path.join(tmp, d), { recursive: true });
-    fs.copyFileSync(path.join(ROOT, 'data', 'products-all.json'), path.join(tmp, 'data', 'products-all.json'));
+    for (const d of ['uploads/images', 'site-data', 'pdfs']) fs.mkdirSync(path.join(tmp, d), { recursive: true });
+    fs.copyFileSync(path.join(ROOT, 'site-data', 'products-all.json'), path.join(tmp, 'site-data', 'products-all.json'));
     fs.symlinkSync('/nonexistent-dir/.htaccess', path.join(tmp, 'uploads', '.htaccess'));
     const PORT = 8721;
     const srv = require('child_process').spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', tmp], { cwd: tmp, stdio: 'ignore' });

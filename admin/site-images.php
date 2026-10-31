@@ -108,7 +108,7 @@ function slot_current(string $slot, array $content, array $info): array {
 function slot_write(string $slot, string $value, array &$errors): bool {
     if ($slot === 'logo') {
         if (data_file_damaged(SITE_INFO_JSON)) {
-            $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.';
+            $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.';
             return false;
         }
         $url = $value === '' ? '' : '/' . ltrim($value, '/');
@@ -120,7 +120,7 @@ function slot_write(string $slot, string $value, array &$errors): bool {
         return true;
     }
     if (data_file_damaged(CONTENT_JSON)) {
-        $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.';
+        $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.';
         return false;
     }
     $content = load_content();
@@ -146,8 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // The target file is checked BEFORE anything is uploaded, so a damaged
     // data file never leaves an orphan picture behind.
     $damagedMsg = !isset($SLOTS[$slot]) ? '' : ($slot === 'logo'
-        ? (data_file_damaged(SITE_INFO_JSON) ? 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.' : '')
-        : (data_file_damaged(CONTENT_JSON) ? 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.' : ''));
+        ? (data_file_damaged(SITE_INFO_JSON) ? 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.' : '')
+        : (data_file_damaged(CONTENT_JSON) ? 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.' : ''));
     if (!isset($SLOTS[$slot])) {
         $errors[] = 'Unknown picture slot.';
     } elseif ($damagedMsg !== '') {

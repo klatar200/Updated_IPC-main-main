@@ -38,7 +38,7 @@
  * a config.local.php.bak.<stamp>. The finally block writes the original
  * config.local.php bytes back and deletes the backups this run created. So it
  * must not run alongside another suite that signs in to the same mirror. The
- * repo's data/ is untouched. (This header said "reads (never rewrites)" until
+ * repo's site-data/ is untouched. (This header said "reads (never rewrites)" until
  * AUDIT-12 A12-L13-02-W5-1.)
  *
  * Needs the mirror on :8123 (started with -t _harness/site).

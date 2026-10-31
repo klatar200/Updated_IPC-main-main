@@ -1,5 +1,5 @@
 /**
- * Every photoUrl and pdfUrl in data/products-all.json points at a file that
+ * Every photoUrl and pdfUrl in site-data/products-all.json points at a file that
  * really exists — with byte-exact case.
  *
  * Why this suite exists
@@ -32,7 +32,7 @@
  * bytes of each name, and the comparison is a plain string `===` in JS, where
  * case always matters regardless of the host.
  *
- * Reads `data/` and not `_harness/pristine/`: this checks the catalog the site
+ * Reads `site-data/` and not `_harness/pristine/`: this checks the catalog the site
  * actually ships, and pristine is a frozen reference seeded once (see sync.sh).
  *
  * Usage:  node _harness/imgcheck.js        (exit 0 = clean, 1 = broken paths)
@@ -84,7 +84,7 @@ function resolveExact(rootDir, relPath) {
 }
 
 const productsRaw = JSON.parse(
-  fs.readFileSync(path.join(ROOT, 'data', 'products-all.json'), 'utf8'),
+  fs.readFileSync(path.join(ROOT, 'site-data', 'products-all.json'), 'utf8'),
 );
 const products = productsRaw.products || productsRaw;
 
@@ -165,7 +165,7 @@ for (const f of failures) {
 }
 
 if (failures.length) {
-  console.log('FAIL: fix the path in data/products-all.json, or rename the file to match.');
+  console.log('FAIL: fix the path in site-data/products-all.json, or rename the file to match.');
   console.log('      Note the site returns 200 + index.html for these, so a browser');
   console.log('      check that only looks at status codes will not show it.');
   process.exit(1);

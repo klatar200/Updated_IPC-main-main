@@ -10,7 +10,7 @@
  * Unavailable". /products and /dashboard kept their heads; only product URLs
  * were hit.
  *
- * Intercepts /data/products-all.json in the browser (no mirror change):
+ * Intercepts /site-data/products-all.json in the browser (no mirror change):
  *   outage-503 / outage-abort   no noindex, title is not "Part not found",
  *                               and no canonical pointing at /products —
  *                               with the page index.php sent (AUDIT-12
@@ -45,7 +45,7 @@ const note = (ok, label, detail) => {
     // The page as the bare index.html would serve it: index.php's #ipc-boot
     // block (the server's copy of the product) taken out, as when index.php
     // fails closed.
-    const bare = (page) => page.route((u) => !/\/(data|assets)\//.test(u.pathname) && !/\.\w+$/.test(u.pathname), async (r) => {
+    const bare = (page) => page.route((u) => !/\/(site-data|assets)\//.test(u.pathname) && !/\.\w+$/.test(u.pathname), async (r) => {
       const res = await r.fetch();
       const body = (await res.text()).replace(/<script type="application\/json" id="ipc-boot">[\s\S]*?<\/script>\n?/, '');
       await r.fulfill({ response: res, body });
@@ -54,8 +54,8 @@ const note = (ok, label, detail) => {
       const ctx = await browser.newContext();
       const page = await ctx.newPage();
       if (noBoot) await bare(page);
-      if (mode === '503') await page.route('**/data/products-all.json*', (r) => r.fulfill({ status: 503, body: 'down' }));
-      if (mode === 'abort') await page.route('**/data/products-all.json*', (r) => r.abort('timedout'));
+      if (mode === '503') await page.route('**/site-data/products-all.json*', (r) => r.fulfill({ status: 503, body: 'down' }));
+      if (mode === 'abort') await page.route('**/site-data/products-all.json*', (r) => r.abort('timedout'));
       await page.goto(BASE + url, { waitUntil: 'networkidle' });
       await page.waitForTimeout(500);
       const h = await page.evaluate(() => ({
@@ -99,7 +99,7 @@ const note = (ok, label, detail) => {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
       const page = await ctx.newPage();
       if (noBoot) await bare(page);
-      await page.route('**/data/products-all.json*', () => {});     // never answered
+      await page.route('**/site-data/products-all.json*', () => {});     // never answered
       await page.goto(BASE + u, { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(() => /Catalog Unavailable/i.test(document.body.innerText), null, { timeout: 20000 }).catch(() => {});
       const h = await page.evaluate(() => ({
@@ -118,7 +118,7 @@ const note = (ok, label, detail) => {
       // through the stall and past the 12 s abort: no skeleton, no panel.
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
       const page = await ctx.newPage();
-      await page.route('**/data/products-all.json*', () => {});     // never answered
+      await page.route('**/site-data/products-all.json*', () => {});     // never answered
       await page.goto(BASE + url, { waitUntil: 'domcontentloaded' });
       const early = await page.waitForFunction(() => /General Purpose Vinyl Tubing/.test(document.body.innerText), null, { timeout: 5000 }).then(() => true).catch(() => false);
       await page.waitForTimeout(13500);

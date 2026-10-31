@@ -30,7 +30,7 @@ const products = JSON.parse(
 // what a pre-V2-1 catalog or a restored backup holds: put it back in the
 // mirror for this run, restored from pristine/ at the end.
 products.find((p) => p.sku === 'IP12GA-IP1274').id = 'IP12GA - IP1274';
-const MIRROR_CATALOG = path.join(__dirname, 'site', 'data', 'products-all.json');
+const MIRROR_CATALOG = path.join(__dirname, 'site', 'site-data', 'products-all.json');
 fs.writeFileSync(MIRROR_CATALOG, JSON.stringify(products, null, 4));
 process.on('exit', () => fs.copyFileSync(path.join(__dirname, 'pristine', 'products-all.json'), MIRROR_CATALOG));
 const byId = (id) => products.find((p) => p.id === id);

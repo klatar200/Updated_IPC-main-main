@@ -25,7 +25,7 @@
  * compared by eye — quality loss on a product photo is a business problem, not
  * a technical one.
  *
- * Reads only. Nothing under data/ is written.
+ * Reads only. Nothing under site-data/ is written.
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
  * NOTE on --tag before: the weight assertions always read public/images as it
@@ -143,7 +143,7 @@ function walk(dir) {
     // index.html and a 200, so the browser was handed HTML where it asked for
     // an image and fell back to the branded placeholder — 4 of 42 product
     // pages showing a placeholder instead of a photograph that exists.
-    // Corrected in data/products-all.json on Keagan's instruction (the only
+    // Corrected in site-data/products-all.json on Keagan's instruction (the only
     // change to that file, and it is server-owned in production — the same
     // four edits have to be made on the deployed copy). This is now a plain
     // zero, with no exceptions carried.

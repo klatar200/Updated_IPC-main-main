@@ -22,7 +22,7 @@ const { spawn, spawnSync } = require('child_process');
 const { launch } = require('./browser');
 
 const SITE = path.join(__dirname, 'site');
-const DATA = path.join(SITE, 'data');
+const DATA = path.join(SITE, 'site-data');
 const PRISTINE = path.join(__dirname, 'pristine');
 const PORT = 8720;
 const BASE = `http://127.0.0.1:${PORT}`;

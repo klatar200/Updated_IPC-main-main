@@ -53,7 +53,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) +
   const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'ipc-r3shades-'));
   const SITE = path.join(TMP, 'site');
   fs.cpSync(MIRROR, SITE, { recursive: true, filter: (p) => !/\/(admin|pdfs|uploads)(\/|$)/.test(p) });
-  const INFO = path.join(SITE, 'data', 'site-info.json');
+  const INFO = path.join(SITE, 'site-data', 'site-info.json');
   const shipped = fs.readFileSync(path.join(__dirname, 'pristine', 'site-info.json'), 'utf8');
   const srv = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', SITE, path.join(__dirname, 'router.php')], { cwd: SITE, stdio: 'ignore' });
   let browser = null;

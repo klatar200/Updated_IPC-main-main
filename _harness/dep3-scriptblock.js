@@ -1,5 +1,5 @@
 /**
- * DEP-3 — script execution in uploads/ and data/, measured on a REAL Apache.
+ * DEP-3 — script execution in uploads/ and site-data/, measured on a REAL Apache.
  *
  * `php -S` ignores .htaccess (GUARDRAILS 4.3), so every other suite is blind
  * to this. audit-runs/audit-2026-09-27.md DEP-3 / §6: on a host that maps PHP
@@ -13,7 +13,7 @@
  *     <FilesMatch> with `Order Deny,Allow` / `Allow from all`. Apache merges
  *     matching sections in order, so it re-allowed any name ending in an
  *     image extension even when the deny above had matched it;
- *   - data/.htaccess's regex was `$`-anchored, case-sensitive and had no
+ *   - site-data/.htaccess's regex was `$`-anchored, case-sensitive and had no
  *     `phar`, so `x.phar` executed even under Ubuntu's stock handler.
  * pdfs/.htaccess (broad `(\.|$)` rule, no allow section) was the one that
  * held, and it is the control here.
@@ -87,7 +87,7 @@ const DIRS = {
   'uploads/site': { ht: null, legit: [['hero.v2.png', PNG], ['logo.svg', SVG]] },
   'rt/uploads': { ht: null, legit: [['ok.png', PNG]] }, // runtime copy, filled below
   'rt/uploads/images': { ht: null, legit: [['CC.webp', PNG], ['logo.svg', SVG]] },
-  'data': { ht: fs.readFileSync(path.join(ROOT, 'data/.htaccess')), legit: [['products-all.json', '[]\n']] },
+  'data': { ht: fs.readFileSync(path.join(ROOT, 'site-data/.htaccess')), legit: [['products-all.json', '[]\n']] },
   'pdfs': { ht: fs.readFileSync(path.join(ROOT, 'pdfs/.htaccess')), legit: [['CC.pdf', '%PDF-1.4\n%%EOF\n']] },
 };
 

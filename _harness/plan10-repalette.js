@@ -19,7 +19,7 @@
  * Three arms, because "does it follow the palette" has two different meanings
  * and only one of them is what Rick experiences:
  *
- *   owner  — the REAL path. /data/site-info.json is intercepted and its
+ *   owner  — the REAL path. /site-data/site-info.json is intercepted and its
  *            `theme` block rewritten, exactly as saving Business Details ->
  *            Branding would. ThemeInjector then derives every --brand-* custom
  *            property from that data. This arm proves BOTH halves of item 11:
@@ -64,7 +64,7 @@ fs.mkdirSync(OUT, { recursive: true });
 // ---------------------------------------------------------------- the palette
 // The audit's test palette, which has no blue in it at all, so anything still
 // blue afterwards is unambiguous. Same four owner-settable colours the admin's
-// Branding editor writes into data/site-info.json.
+// Branding editor writes into site-data/site-info.json.
 const OWNER_THEME = {
   primaryColor: '#8a1c5a',
   darkColor: '#3a1200',
@@ -312,10 +312,10 @@ async function settle(page) {
     const varsNamed = await page.evaluate(NAMED);
     await page.close();
 
-    // ---- arm `owner`: rewrite the theme in /data/site-info.json -----------
+    // ---- arm `owner`: rewrite the theme in /site-data/site-info.json -----------
     const page2 = await ctx.newPage();
     let intercepted = false;
-    await page2.route('**/data/site-info.json*', async (route) => {
+    await page2.route('**/site-data/site-info.json*', async (route) => {
       const res = await route.fetch();
       let body;
       try { body = JSON.parse(await res.text()); } catch { return route.fulfill({ response: res }); }

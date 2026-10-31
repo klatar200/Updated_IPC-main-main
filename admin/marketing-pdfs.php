@@ -126,14 +126,14 @@ function marketing_pdf_uses_of(string $name, array $info, array $content): array
  */
 function marketing_pdf_assign(string $target, string $url, array &$errors): string {
     if ($target === 'catalog') {
-        if (data_file_damaged(SITE_INFO_JSON)) { $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.'; return ''; }
+        if (data_file_damaged(SITE_INFO_JSON)) { $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.'; return ''; }
         $info = load_site_info();
         $info['catalogPdfUrl'] = $url;
         if (!save_site_info($info)) { $errors[] = save_failed_message(); return ''; }   // AUDIT-12 decision 31
         return 'the full product catalog link in the footer';
     }
     if (!preg_match('/^service:(\d+)(?::[0-9a-f]{10})?$/', $target, $m)) { $errors[] = 'Choose where to use this PDF.'; return ''; }
-    if (data_file_damaged(CONTENT_JSON)) { $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.'; return ''; }
+    if (data_file_damaged(CONTENT_JSON)) { $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.'; return ''; }
     if (($tp = marketing_target_problem($target)) !== '') { $errors[] = $tp; return ''; }
     $content = load_content();
     $i = (int)$m[1];
@@ -183,9 +183,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($lockFor === 'site-info' && data_file_damaged(SITE_INFO_JSON)) {
             // Checked BEFORE the file is stored, so a damaged data file never
             // leaves an orphan PDF behind.
-            $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.';
+            $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.';
         } elseif ($lockFor === 'content' && data_file_damaged(CONTENT_JSON)) {
-            $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.';
+            $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.';
         } elseif ($lockFor === 'content' && ($tp = marketing_target_problem($target)) !== '') {
             $errors[] = $tp . ' The PDF was not uploaded.';   // A12-L3-12-1 — checked before storing
         } elseif (($name = marketing_pdf_name((string)$_FILES['pdf_file']['name'])) === '') {

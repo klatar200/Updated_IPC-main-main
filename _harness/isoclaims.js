@@ -20,8 +20,8 @@
  * Two things about the sentence above were incomplete, which is what this
  * check is really for:
  *
- *   1. "in three places" — `data/content.json` carries three `ISO 9001:2008`
- *      strings, and `data/products-all.json` carries three `ISO9001:2000`
+ *   1. "in three places" — `site-data/content.json` carries three `ISO 9001:2008`
+ *      strings, and `site-data/products-all.json` carries three `ISO9001:2000`
  *      strings on the VALUE-ADDED product. **2000 was superseded in 2008.**
  *      No audit before round 8 named those three at all.
  *   2. "owner-editable in Page Content" — the content.json three are. The
@@ -67,9 +67,9 @@ const CURRENT = '2015';
 
 /** Where a string in each file is edited, so the report is actionable. */
 const EDIT_SCREEN = {
-  'data/content.json': 'Admin → Page Content',
-  'data/site-info.json': 'Admin → Business Details',
-  'data/products-all.json': 'Admin → Products → Edit (that product)',
+  'site-data/content.json': 'Admin → Page Content',
+  'site-data/site-info.json': 'Admin → Business Details',
+  'site-data/products-all.json': 'Admin → Products → Edit (that product)',
 };
 
 const results = [];
@@ -89,7 +89,7 @@ function* strings(node, trail = []) {
   }
 }
 
-const FILES = ['data/content.json', 'data/site-info.json', 'data/products-all.json'];
+const FILES = ['site-data/content.json', 'site-data/site-info.json', 'site-data/products-all.json'];
 // "ISO 9001:2008", "ISO9001:2000", "ISO 9001 : 2015" — and bare "ISO 9001".
 // Also "ISO 9001-2008", "ISO 9001/2008", "ISO 9001–2008" and "ISO 9001 (2008)":
 // the year was only captured after ':' or whitespace, so a withdrawn revision
@@ -171,7 +171,7 @@ note(
 // fail on ANY revision, so the documented owner action — entering 2015 — went
 // red: AUDIT-12 A12-L13-18-1.)
 const siteInfoVersioned = found.filter(
-  (f) => f.file === 'data/site-info.json' && f.revision && f.revision !== CURRENT
+  (f) => f.file === 'site-data/site-info.json' && f.revision && f.revision !== CURRENT
 );
 note(
   siteInfoVersioned.length === 0,

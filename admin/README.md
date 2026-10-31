@@ -11,7 +11,7 @@ appears on the public website within ~60 seconds.
    Public visitors  ───→  │ React site at yourdomain.com │  ──┐
                           └──────────────────────────────┘    │  fetches
                                                               ↓
-                                                  /data/products-all.json
+                                                  /site-data/products-all.json
                                                               ↑
                           ┌──────────────────────────────┐    │  reads / writes
    You (admin)      ───→  │ Admin at yourdomain.com/admin│  ──┘
@@ -26,13 +26,13 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 
 | Path | Access |
 |---|---|
-| `data/products-all.json` | read / write |
-| `data/site-info.json` | read / write |
-| `data/content.json` | read / write |
-| `data/*.json.<pid>-<n>.tmp` | write then rename over the target (atomic save); a leftover means a killed process |
-| `data/*.backup.*.json` | write / prune (90 kept per prefix, `BACKUP_KEEP`) |
-| `data/.products-write.lock` | create / `flock` around every catalog save (SEC-5) |
-| `data/.content-write.lock`, `data/.site-info-write.lock` | create / `flock` around every Page Content / Business Details write (`data_write_lock()`, WHATS_LEFT §1an) |
+| `site-data/products-all.json` | read / write |
+| `site-data/site-info.json` | read / write |
+| `site-data/content.json` | read / write |
+| `site-data/*.json.<pid>-<n>.tmp` | write then rename over the target (atomic save); a leftover means a killed process |
+| `site-data/*.backup.*.json` | write / prune (90 kept per prefix, `BACKUP_KEEP`) |
+| `site-data/.products-write.lock` | create / `flock` around every catalog save (SEC-5) |
+| `site-data/.content-write.lock`, `site-data/.site-info-write.lock` | create / `flock` around every Page Content / Business Details write (`data_write_lock()`, WHATS_LEFT §1an) |
 | `pdfs/` | read / write (created if absent, with `pdfs/.htaccess` written if missing — `pdfs_protection_problem()`); removed and replaced-by-rename data sheets go to `.deleted.*`, not deleted |
 | `pdfs/marketing/` | read / write, never erased (created at runtime if absent by `marketing-pdfs.php`); catalog and brochure PDFs, named from the uploaded file's own name, never overwritten (`-2`, `-3` …). **Take Off the Website** renames a PDF no current use points at to `.deleted.<name>` (`file_to_trash()`, AUDIT-12 decision 39); nothing prunes or restores those |
 | `uploads/images/` | read / write / delete (created at runtime if absent); every JPG/PNG/WEBP upload is re-encoded by gd into `.upload-<pid>-<rand>.tmp` in the target folder and renamed in (AUDIT-12 decisions 23/27; `uploads/site/` the same) |
@@ -52,12 +52,12 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 | `admin/ALLOW-PASSWORD-RESET` | read / delete — you create it over FTP; the admin never does |
 
 `public/contact.php` is a **second** dynamic piece: it ships into `dist/`,
-reads `data/site-info.json` and `data/content.json`, calls `mail()`, appends to
+reads `site-data/site-info.json` and `site-data/content.json`, calls `mail()`, appends to
 `admin/inquiries.jsonl` (rotating it at 16 MB), writes and clears
 `admin/.inquiry-log-failed.json`, and keeps its rate-limit / auto-reply-cap
 state as `ipc_rl_*`, `ipc_ar_*`, `ipc_lk_*` files in the PHP temp dir.
 
-The React site reads the three `data/*.json` files at runtime. The React build
+The React site reads the three `site-data/*.json` files at runtime. The React build
 itself is fully static.
 
 ## Server file layout (on Network Solutions, under `public_html/`)
@@ -65,7 +65,7 @@ itself is fully static.
 ```
 public_html/
 ├── index.html              ← React app (FTP'd from your local /dist)
-├── index.php               ← front controller: every page's head + plain-HTML body from data/ (A-5.10)
+├── index.php               ← front controller: every page's head + plain-HTML body from site-data/ (A-5.10)
 ├── assets/                 ← Hashed JS/CSS from Vite
 ├── contact.php             ← Contact/RFQ mail handler (ships inside dist/)
 ├── sitemap.php             ← Live sitemap, served at /sitemap.xml (there is no sitemap.xml file)
@@ -73,7 +73,7 @@ public_html/
 ├── .htaccess               ← rewrite to index.php + cache headers + dotfile block
 ├── .user.ini               ← PHP limits for public_html/ and everything under it
 ├── images/                 ← Static site imagery
-├── data/
+├── site-data/
 │   ├── .htaccess           ← Blocks backups, dotfiles, PHP execution
 │   ├── products-all.json   ← Live product catalog (admin edits this)
 │   ├── site-info.json      ← Business details (admin edits this)
@@ -98,7 +98,7 @@ public_html/
     ├── settings.php        ← Business Details editor  (site-info.json)
     ├── content.php         ← Page Content editor      (content.json)
     ├── inquiries.php       ← Contact-form lead viewer (inquiries.jsonl)
-    ├── backups.php         ← Self-service restore of any data/*.json backup
+    ├── backups.php         ← Self-service restore of any site-data/*.json backup
     ├── password.php        ← Signed-in password change
     ├── upload-pdf.php      ← Upload, replace, or remove a PDF
     ├── upload-image.php    ← Upload or remove a product photo
@@ -128,20 +128,20 @@ public_html/
 ## First-time deploy (one-time setup)
 
 > **Which deploy is this? Answer before following anything below.** Open
-> `https://www.insulationproducts.com/data/products-all.json`. A catalog of
+> `https://www.insulationproducts.com/site-data/products-all.json`. A catalog of
 > products means the site is live and this section is history — use the
 > manifest in the root [README.md](../README.md), and **never upload the
-> contents of `data/`, `pdfs/` or `uploads/` from the repo**, because they are live customer state, an FTP
+> contents of `site-data/`, `pdfs/` or `uploads/` from the repo**, because they are live customer state, an FTP
 > overwrite creates no backup, and it destroys every edit the owner has made.
 > A 404 means this is the **first** deploy, the steps below are the ones to
-> follow, and `data/`, `pdfs/` and `uploads/` go up exactly once, now.
+> follow, and `site-data/`, `pdfs/` and `uploads/` go up exactly once, now.
 > [`GO-LIVE.md`](../GO-LIVE.md) STEP 0 is the same question with the full
 > branch either way.
 >
 > This paragraph opened "**This site is already live.**" until 2026-09-14,
 > when audit 9 measured the host answering **404** for all three data files:
 > the guidance was the exact opposite of what the operator needed, on the one
-> deploy where skipping `data/` means shipping a site with no catalog.
+> deploy where skipping `site-data/` means shipping a site with no catalog.
 > (A-9.B2-12. Settled 2026-08-04 for the re-deploy branch; AUDIT_v3 D7/D9.)
 
 The full checklist is [`GO-LIVE.md`](../GO-LIVE.md) §B; the file list is the
@@ -162,7 +162,7 @@ root [README.md](../README.md) deploy tables. In short:
       `admin/.htaccess`; not your local `*.jsonl`, `.login-throttle.json`,
       `.inquiries-seen.json`, `.inquiry-log-failed.json`, `.pdf-renames.json`,
       `.sessions/` or `config.local.php*`)
-   3. **`data/`**, **`pdfs/`** and **`uploads/`** folders, each **with its
+   3. **`site-data/`**, **`pdfs/`** and **`uploads/`** folders, each **with its
       `.htaccess`** (**first deploy only — never again**). Upload `uploads/`
       from the repo; never create it by hand on the server — without its
       `.htaccess`, PHP can execute files placed in it (NEW-N3-3).
@@ -173,8 +173,8 @@ root [README.md](../README.md) deploy tables. In short:
 
    | Path | Permissions |
    |---|---|
-   | `public_html/data/` | 755 |
-   | `public_html/data/*.json` | 644 — never 666 (see "Failed to save" under Troubleshooting) |
+   | `public_html/site-data/` | 755 |
+   | `public_html/site-data/*.json` | 644 — never 666 (see "Failed to save" under Troubleshooting) |
    | `public_html/pdfs/` | 755 |
    | `public_html/uploads/images/` | 755 |
    | `public_html/uploads/site/` | 755 |
@@ -208,7 +208,7 @@ FTP the **contents** of `/dist` into `public_html/` — `assets/`, `images/`,
 small root files — in the order `GO-LIVE.md` §B2 gives: `assets/` **before**
 `index.html`, or every visitor between the two uploads gets a shell pointing at
 a bundle that is not there yet.
-**Do NOT re-upload `data/`, `pdfs/` or `uploads/`** — those are live customer
+**Do NOT re-upload `site-data/`, `pdfs/` or `uploads/`** — those are live customer
 state on the server and your local copies are stale.
 **`admin/` is re-uploaded only when admin code changed**, and then only its
 tracked files (`git ls-files admin/`). Never its live-state files:
@@ -218,11 +218,11 @@ tracked files (`git ls-files admin/`). Never its live-state files:
 re-upload `admin/`" unqualified, and listed `dist/` as only `index.html` +
 `assets/` — audit 2026-09-27 R3-l4-2.)
 
-**With one exception:** `data/.htaccess`, `pdfs/.htaccess` and
+**With one exception:** `site-data/.htaccess`, `pdfs/.htaccess` and
 `uploads/.htaccess` are repo code that happens to live inside those folders.
 Vite never copies them into `dist/`, so nothing downstream carries them.
 Upload the **file**, never the folder, whenever one of them has changed.
-`data/.htaccess` alone holds the `AddType application/json` the site's loader
+`site-data/.htaccess` alone holds the `AddType application/json` the site's loader
 requires and the `X-Robots-Tag: noindex` half of the catalog-indexing fix.
 (A-6.2 closed this in the root README; the same unqualified rule was still
 here — A-9.B2-12.)
@@ -449,10 +449,10 @@ at once there too.
 | Symptom | Cause / fix |
 |---|---|
 | Login loops back to the login page | Cookies blocked, or password wrong. Six tries in a row are checked; after the sixth wrong one the page pauses before the next try: 15 seconds, doubling each time, up to a 5-minute ceiling (`LOGIN_FREE_ATTEMPTS` / `LOGIN_COOLOFF_BASE` / `LOGIN_COOLOFF_MAX`). This row said "1-8 second delay" until 2026-09-14 — A-9.B2-14 — and "after 5" until 2026-09-28 — NEW-N3-10. |
-| "Failed to save" on Add or Edit | The `data/` **folder** is not writable by PHP. A save writes a temporary file in `data/` and renames it over `products-all.json`, so the file's own mode does not matter: set `data/` to 755, or 775. If it still fails, the host runs PHP as a different user from your FTP account — ask them to run PHP as your account user ([`GO-LIVE.md`](../GO-LIVE.md) §B3). Leave the JSON files at 644: 666 does not fix this, and every later save keeps it, leaving the catalog writable by other accounts on a shared server. |
+| "Failed to save" on Add or Edit | The `site-data/` **folder** is not writable by PHP. A save writes a temporary file in `site-data/` and renames it over `products-all.json`, so the file's own mode does not matter: set `site-data/` to 755, or 775. If it still fails, the host runs PHP as a different user from your FTP account — ask them to run PHP as your account user ([`GO-LIVE.md`](../GO-LIVE.md) §B3). Leave the JSON files at 644: 666 does not fix this, and every later save keeps it, leaving the catalog writable by other accounts on a shared server. |
 | PDF upload errors with "Upload failed" | `pdfs/` is not writable — chmod 755 (or 775) |
 | Public site doesn't show my edit | Wait 60 seconds, then hard-refresh (Ctrl+Shift+R) |
-| Public site says "Catalog Unavailable" | Open `/data/products-all.json` directly. If it is missing, will not open as a catalog, or is not served as `application/json` (`data/.htaccess` missing), that is the server fault to fix — a damaged catalog can be restored from **Backups**. If it opens fine and the site loads for you, nothing on the server is wrong: the visitor's own connection dropped, or did not finish loading the catalog within 12 seconds, and that shows the same screen. Ask them to tap **Retry** on a better signal. |
+| Public site says "Catalog Unavailable" | Open `/site-data/products-all.json` directly. If it is missing, will not open as a catalog, or is not served as `application/json` (`site-data/.htaccess` missing), that is the server fault to fix — a damaged catalog can be restored from **Backups**. If it opens fine and the site loads for you, nothing on the server is wrong: the visitor's own connection dropped, or did not finish loading the catalog within 12 seconds, and that shows the same screen. Ask them to tap **Retry** on a better signal. |
 | "Another product already uses SKU X" | You tried to rename an SKU to one that already exists — pick a different SKU |
 | Spec table change won't save | The JSON has a syntax error — the message shows what's wrong (missing comma, bad bracket, etc.) |
 

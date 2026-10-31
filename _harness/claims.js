@@ -39,7 +39,7 @@ const { launch } = require('./browser');
 
 const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
-const CONTENT = path.join(SITE, 'data', 'content.json');
+const CONTENT = path.join(SITE, 'site-data', 'content.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'content.json');
 const PORT = 8746;   // was 8732 until 2026-10-05, which lowsE-apache also uses for HTTPS
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -72,7 +72,7 @@ const dump = spawnSync('php', [path.join(__dirname, 'dump-copy-groups.php')], { 
 const PHP = Object.fromEntries(JSON.parse(dump.stdout).filter((f) => f.group === 'claims').map((f) => [f.key, f.default]));
 const CLEARABLE = new RegExp(/const COPY_CLEARABLE = \/(.*)\/;/.exec(app)[1]);
 const KEYS = Object.keys(JS);
-const minOrder = JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'site-info.json'), 'utf8')).stats.minimumOrder;
+const minOrder = JSON.parse(fs.readFileSync(path.join(SITE, 'site-data', 'site-info.json'), 'utf8')).stats.minimumOrder;
 
 /** Everything the seven surfaces show, read from the rendered site. */
 async function surfaces(browser) {
@@ -166,7 +166,7 @@ const footerText = (...parts) => parts.filter(Boolean).join(' ');
   const srv = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', SITE, path.join(__dirname, 'router.php')], { cwd: SITE, stdio: 'ignore' });
   const browser = await launch();
   try {
-    // FIXTURE, 2026-10-05 (WHATS_LEFT §1ap, DI-8): data/content.json now SHIPS
+    // FIXTURE, 2026-10-05 (WHATS_LEFT §1ap, DI-8): site-data/content.json now SHIPS
     // with copy.claims, as the admin writes it. The claims-free file this suite
     // protects is what a site deployed before §1ao holds, so build it —
     // pristine minus the key — the way plan9-firstsave builds its pre-3a file.

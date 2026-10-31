@@ -7644,21 +7644,21 @@ function ContactPage() {
 /**
  * Storage URL for the consolidated IPC product catalog.
  *
- * Reads from /data/products-all.json on the same origin. That file is
+ * Reads from /site-data/products-all.json on the same origin. That file is
  * managed live by the PHP admin at /admin/ — edits there appear here as
- * soon as the 5-minute Apache cache (see /data/.htaccess) clears, or
+ * soon as the 5-minute Apache cache (see /site-data/.htaccess) clears, or
  * immediately on a hard refresh.
  *
- * NOTE: /data/ is NOT part of the Vite build output (no longer in /public),
+ * NOTE: /site-data/ is NOT part of the Vite build output (no longer in /public),
  * so rebuilding the React app cannot clobber the live catalog on the server.
- * On first deploy, FTP /data/products-all.json into public_html/data/ once.
+ * On first deploy, FTP /site-data/products-all.json into public_html/site-data/ once.
  */
-// All three runtime JSON files are read from /data/ in BOTH modes. Dev used to
+// All three runtime JSON files are read from /site-data/ in BOTH modes. Dev used to
 // point at a public/products-all.json snapshot; that was a fourth copy of the
-// catalog, it drifted from data/ silently, and when it was finally deleted this
-// branch pointed at nothing. vite.config.js now serves the real data/ folder in
+// catalog, it drifted from site-data/ silently, and when it was finally deleted this
+// branch pointed at nothing. vite.config.js now serves the real site-data/ folder in
 // dev, so there is no special case left to rot. (AUDIT_v3 4.24)
-const PRODUCTS_JSON_URL = "/data/products-all.json";
+const PRODUCTS_JSON_URL = "/site-data/products-all.json";
 
 /**
  * The canonical origin, asserted in one place.
@@ -8156,7 +8156,7 @@ function fetchProductsCached() {
   }
   if (_productsFetchPromise) return _productsFetchPromise;
   // Per-minute cache-buster so admin edits become visible within ~60s. The
-  // matching data/.htaccess sets Cache-Control max-age=60 must-revalidate,
+  // matching site-data/.htaccess sets Cache-Control max-age=60 must-revalidate,
   // so this query stamp + the server header bound staleness at ~1 minute.
   // (The earlier daily granularity made admin edits invisible for up to 24h
   // because both browser and Apache caches keyed by URL stayed warm all day.)
@@ -8248,7 +8248,7 @@ function useProducts() {
   // this effect's deps are []. Nothing ever re-evaluated the TTL during a page
   // session, and across a full reload the module-level cache is reset anyway —
   // so the ~60 s bound that 4.25 claimed came entirely from the per-minute
-  // cache-buster and data/.htaccess, neither of which is the TTL. Measured:
+  // cache-buster and site-data/.htaccess, neither of which is the TTL. Measured:
   // catalog edited on disk, 100 s of SPA navigation, still the old 41 products.
   //
   // Re-check when the tab is brought back to the front, which is exactly the
@@ -8307,10 +8307,10 @@ function useProducts() {
 
 /* ─── Business details (site-info.json) ──────────────────────────────────────
  * Editable in the admin ("Business Details"). Fetched at runtime from the same
- * data/ folder the admin writes to, so edits appear on the site within ~60s.
+ * site-data/ folder the admin writes to, so edits appear on the site within ~60s.
  * SITE_DEFAULTS mirrors the current values so the site renders correctly even
  * if the file is briefly unavailable or a field is missing. */
-const SITE_INFO_URL = "/data/site-info.json";
+const SITE_INFO_URL = "/site-data/site-info.json";
 
 const SITE_DEFAULTS = {
   company: {
@@ -8919,7 +8919,7 @@ function SiteInfoProvider({ children }) {
 // if content.json is missing or malformed the site renders exactly as before.
 // The admin (content.php) writes the whole object, so every section is present.
 // ---------------------------------------------------------------------------
-const CONTENT_URL = "/data/content.json";
+const CONTENT_URL = "/site-data/content.json";
 
 // FAQ is stored/edited as a flat list of {category, question, answer}; the page
 // groups it back into categories (preserving first-seen order) for rendering.
@@ -8980,7 +8980,7 @@ function groupFaq(flat) {
 // `pdfUrl` and `additionalPdfs[].url` are gated where they are WRITTEN —
 // upload-pdf.php derives the name, edit.php's F6 regex validates the extras —
 // but not where they are rendered, which is the same argument A1 rejected for
-// the footer link: data/ is a plain file, so an FTP edit or a backup restored
+// the footer link: site-data/ is a plain file, so an FTP edit or a backup restored
 // from before those gates existed reaches the component with nothing in
 // between. One call per sink, using the guard that already exists.
 function safeHref(value) {
@@ -8995,7 +8995,7 @@ function safeHref(value) {
  * before `safeHref()` — the guard that is already there — is ever reached. L4
  * hardened the URL and left the row itself unguarded, so this closes the same
  * sink from one step further out. `edit.php`'s F6 regex validates these on
- * write; `data/` is still a plain file, and `backups.php` restores through
+ * write; `site-data/` is still a plain file, and `backups.php` restores through
  * `save_products()`, which does not.
  */
 function productExtraPdfs(product) {
@@ -9755,10 +9755,10 @@ const LANDING_URL =
  *
  *   siteInfo   site-info.json as stored. SiteInfoProvider starts from it, so
  *              the bundle's shipped phone number never flashes, and never
- *              stays when /data/site-info.json fails (A12-L11-W3-G2-1).
+ *              stays when /site-data/site-info.json fails (A12-L11-W3-G2-1).
  *   claims     content.json's Company Claims. ContentProvider starts from
  *              them, so a claim Rick emptied is not re-shown when
- *              /data/content.json fails (A12-L9-W5-G3-1).
+ *              /site-data/content.json fails (A12-L9-W5-G3-1).
  *   product    the catalog row the product URL names, as stored. A failed or
  *              slow catalog download keeps that product page and its head
  *              instead of "Catalog Unavailable" (A12-L5-W5-G3-1,
@@ -11305,7 +11305,7 @@ function ProductSidebar({ products, selectedId, onNavigate, activeFamily, onFami
  * A-5.12 ("a malformed-but-savable spec table crashes the product page") was
  * closed write-side only: add.php, edit.php and config.php gained shape
  * validation and this file was never touched. That is the same reasoning the L4
- * comment above safeHref() already rejected for pdfUrl — data/ is a plain file,
+ * comment above safeHref() already rejected for pdfUrl — site-data/ is a plain file,
  * so an FTP edit, or a backup restored from before those gates existed, reaches
  * the component with nothing in between. backups.php restores through
  * save_products(), which runs none of the form-level shape checks, so the path

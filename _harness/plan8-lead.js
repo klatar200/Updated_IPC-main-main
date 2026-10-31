@@ -234,7 +234,7 @@ async function submitRfq(page) {
   // ── B22 ───────────────────────────────────────────────────────────────────
   const dated = rec.placeholders.filter((p) => /\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|\b(19|20)\d{2}\b/.test(p));
   // A RATCHET, because this one is half DATA and this plan may not edit
-  // data/*.json.
+  // site-data/*.json.
   //
   // The COPY_DEFAULTS value is fixed, so a fresh install has no date in any
   // placeholder. The LIVE string is saved in content.json — the owner typed it
@@ -247,7 +247,7 @@ async function submitRfq(page) {
   // owner-owned string" holds the line against a NEW hardcoded date arriving
   // in code, which is the part this plan controls.
   //
-  // That owner string has since been replaced in data/ ("e.g. ASAP, end of
+  // That owner string has since been replaced in site-data/ ("e.g. ASAP, end of
   // month, or a specific date"), so the allowance of one covered nothing and
   // let a NEW dated placeholder in any field pass under the Required-date
   // label (AUDIT-12 A12-L13-21-2). The ceiling is now 0.

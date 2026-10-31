@@ -221,7 +221,7 @@ $navActive = 'backups';
   </div>
   <?php endforeach; ?>
 
-  <p class="note">Backups live in the <code>data/</code> folder on the server and are not publicly accessible.</p>
+  <p class="note">Backups live in the <code>site-data/</code> folder on the server and are not publicly accessible.</p>
 </main>
 <script src="confirm.js"></script>
 </body>

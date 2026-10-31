@@ -19,11 +19,11 @@ the settled decisions and a summary of what was done.
 npm install
 npm run dev       # Vite dev server on http://localhost:5173
 npm run build     # → /dist  (FTP contents to public_html/ on Network Solutions)
-npm run preview   # serve the built bundle locally — WITHOUT data/ (see below)
+npm run preview   # serve the built bundle locally — WITHOUT site-data/ (see below)
 ```
 
-`npm run preview` does not serve `data/`: the `/data/` middleware below is
-dev-only, so every `/data/*.json` answers with `index.html` and `/products`
+`npm run preview` does not serve `site-data/`: the `/site-data/` middleware below is
+dev-only, so every `/site-data/*.json` answers with `index.html` and `/products`
 shows "Catalog Unavailable". That is the preview, not the build. To look at a
 production build with its data, use the `php -S` mirror (`_harness/README.md`).
 
@@ -36,19 +36,19 @@ bitten before").
 No test runner, linter, or formatter is configured — `package.json` defines only
 `dev`, `build`, and `preview`. Verification is done by standing the site up:
 `php -S` over a `public_html` mirror plus Playwright. `php -S` ignores
-`.htaccess`, so the `admin/` and `data/` file-blocking rules are NOT exercised
+`.htaccess`, so the `admin/` and `site-data/` file-blocking rules are NOT exercised
 locally — Apache is the real gate, don't report those as findings.
 
-### Local dev serves the real `data/`
+### Local dev serves the real `site-data/`
 
 `vite.config.mjs` carries a dev-only middleware (`serveDataDir`, `apply: 'serve'`)
-that maps `/data/*` onto the repo's top-level `data/` folder, with `..`
+that maps `/site-data/*` onto the repo's top-level `site-data/` folder, with `..`
 containment and a real 404 on a miss. So `npm run dev` exercises the same three
 files and the same code paths as production — including `mergeSiteInfo` and
 `mergeContent`, which hold invariants 3 and 4 and were previously never run
 locally at all.
 
-There is no `import.meta.env.DEV` branch left: all three URLs are `/data/…` in
+There is no `import.meta.env.DEV` branch left: all three URLs are `/site-data/…` in
 both modes. The old `public/products-all.json` snapshot is gone — it was a fourth
 copy of the catalog that drifted silently, and when it was deleted the DEV branch
 pointed at nothing. The `npx serve .` workaround is obsolete.
@@ -70,11 +70,15 @@ two upload folders.
 | `public/*` | `public_html/` | — | `.htaccess`, `.user.ini`, `index.php`, `contact.php`, `sitemap.php`, images change |
 | `admin/` | `public_html/admin/` | (PHP, copied) | admin code changes |
 | `admin/config.local.php` | `public_html/admin/` | **never uploaded** — written on the server by the `ALLOW-PASSWORD-RESET` flow (GO-LIVE B4) | — (gitignored) |
-| `data/` | `public_html/data/` | — | **first deploy only** |
+| `site-data/` | `public_html/site-data/` | — | **first deploy only** |
 | `pdfs/` | `public_html/pdfs/` | — | **first deploy only** |
 | `uploads/` | `public_html/uploads/` | — | **first deploy only** |
 
-After first deploy, `data/`, `pdfs/` and `uploads/` are live customer state.
+The data folder is `site-data/`, not `data/`: the host reserves `/data/` (it
+answers 403/404 there whatever is on disk; measured 2026-10-31), so the Oct 30
+deploy renamed it and the repo followed. Do not rename it back.
+
+After first deploy, `site-data/`, `pdfs/` and `uploads/` are live customer state.
 Re-uploading them destroys his edits and an FTP overwrite creates no backup.
 
 ### React side ([src/App.jsx](src/App.jsx))
@@ -117,7 +121,7 @@ Re-uploading them destroys his edits and an FTP overwrite creates no backup.
   without them both pass on the old code. `index.php` fails closed: any error, or a damaged
   `site-info.json` / `content.json`, serves `index.html` unmodified.
 - **Data fetch.** Three files, per-minute cache-buster, 12 s abort timeout,
-  60 s in-memory TTL. `data/.htaccess` caches ~60 s.
+  60 s in-memory TTL. `site-data/.htaccess` caches ~60 s.
 - **Vite config** sets `base: '/'` (changed from `'./'` in PLAN-8 A5 —
   relative asset URLs broke deep links).
 
@@ -144,7 +148,7 @@ archives, temp files, session store and trash (audit 2026-09-27 DEP-11).
 Every path below is in `admin/config.php` or an `admin/*.php` page;
 `admin/README.md`'s table is the same list.
 
-- **`data/`** — read/write `products-all.json`, `site-info.json`,
+- **`site-data/`** — read/write `products-all.json`, `site-info.json`,
   `content.json`, each written as `<file>.<pid>-<rand>.tmp` then renamed in
   (`json_write_atomic()`); write/prune `<prefix>.backup.<stamp>[-NN].json`
   (`BACKUP_KEEP`); create/`flock` `.products-write.lock` (SEC-5) and
@@ -195,27 +199,27 @@ Every path below is in `admin/config.php` or an `admin/*.php` page;
   not writable).
 
 `public/contact.php` is a **second** dynamic piece: it ships into `dist/`, reads
-`data/site-info.json` and `data/content.json`, calls `mail()`, appends to
+`site-data/site-info.json` and `site-data/content.json`, calls `mail()`, appends to
 `admin/inquiries.jsonl` (rotating it to `inquiries-<stamp>.jsonl` at 16 MB),
 writes and clears `admin/.inquiry-log-failed.json`, and keeps its rate-limit /
 auto-reply-cap state as `ipc_rl_*`, `ipc_ar_*`, `ipc_lk_*` files in the PHP
 temp dir (pruned).
 
 `public/sitemap.php` is a **third**: it ships into `dist/`, reads
-`data/products-all.json` on every request, and is served at `/sitemap.xml`
+`site-data/products-all.json` on every request, and is served at `/sitemap.xml`
 through a rewrite in `public/.htaccess`. There is deliberately **no
 `sitemap.xml` file** — if one existed, the catch-all's `!-f` condition would
 serve it and the rewrite would look like it worked while a stale file shipped.
 It reads only; it starts no session and does not include `admin/config.php`.
 
 `public/index.php` is a **fourth**: every page route is served through it
-(A-5.10). It reads `index.html` and the three `data/*.json` files (and, to
+(A-5.10). It reads `index.html` and the three `site-data/*.json` files (and, to
 declare `og:image` width/height, the product photo itself via
 `getimagesize()`, contained to the document root), writes nothing, starts no
 session, and does not include `admin/config.php`. It embeds what it read as a
 non-executing JSON block, `#ipc-boot`, which `SiteInfoProvider`,
 `ContentProvider` and the product page start from, so a failed or slow
-`/data/*.json` fetch in the browser cannot show older text than the server
+`/site-data/*.json` fetch in the browser cannot show older text than the server
 sent (AUDIT-12 decisions 9–11).
 
 ## Invariants — each of these caused a real defect
@@ -337,7 +341,7 @@ incident.
     script deny, `x.php.jpg` matched both, was re-allowed, answered 200 and
     ran under mod_php; the regex was also `$`-anchored, so it never matched
     `x.php.jpg` at all. The deny pattern ends `(\.|$)`, not `$`, for that
-    reason, and the same `(\.|$)` rule holds in `data/.htaccess` and
+    reason, and the same `(\.|$)` rule holds in `site-data/.htaccess` and
     `pdfs/.htaccess`. Enforced on real Apache by
     `_harness/dep3-scriptblock.js` under both PHP handler models.
     (audit 2026-09-27 DEP-3; made an invariant 2026-10-02)

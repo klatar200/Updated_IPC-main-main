@@ -34,7 +34,7 @@ const { adminHttp } = require('./adminhttp');
 
 const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
-const DATA = path.join(SITE, 'data');
+const DATA = path.join(SITE, 'site-data');
 const CONFIG = path.join(SITE, 'admin', 'config.php');
 const PRISTINE = path.join(__dirname, 'pristine');
 const PORT = 8727;

@@ -37,14 +37,14 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const OUT = path.join(__dirname, 'out', 'plan8-chrome');
-const SITE_CONTENT = path.join(__dirname, 'site', 'data', 'content.json');
+const SITE_CONTENT = path.join(__dirname, 'site', 'site-data', 'content.json');
 const PRISTINE_CONTENT = path.join(__dirname, 'pristine', 'content.json');
 
 const products = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'pristine', 'products-all.json'), 'utf8')
 );
 /** The five the audit names, plus a control with a real photograph. Their
- *  dead placehold.co photoUrls were cleared from data/ on 2026-10-02 (A7's
+ *  dead placehold.co photoUrls were cleared from site-data/ on 2026-10-02 (A7's
  *  data half, Keagan's decision — WHATS_LEFT §1an), so they are now the products
  *  with no photoUrl at all; either shape must render the branded panel. */
 const PLACEHOLD = products.filter((p) => !p.photoUrl || /placehold\.co/.test(String(p.photoUrl)));

@@ -107,13 +107,13 @@ async function tab(page, which) {
   // `phonePlaceholder: "Optional"` saved, so — exactly like B22's date
   // placeholder — the live string is the owner's and only the DEFAULT can be
   // fixed here. Asserting the rendered value against live data would be
-  // asserting that this repo edited data/*.json, which GUARDRAILS forbids.
+  // asserting that this repo edited site-data/*.json, which GUARDRAILS forbids.
   //
   // So the default is driven the way plan6-families drives day-one state: the
   // key is REMOVED from the served content.json, which is the shape a fresh
   // install has, and the rendered value is then the default under test.
   // 2026-10-02: owner action 8 was TAKEN — Keagan decided to change the stored
-  // value before the first deploy (WHATS_LEFT §1an), so data/ now carries the
+  // value before the first deploy (WHATS_LEFT §1an), so site-data/ now carries the
   // default's own wording. This arm asserted "still Optional (data untouched)"
   // until then; it now asserts the decided live value instead.
   const rfq = await tab(page, 'rfq');
@@ -123,7 +123,7 @@ async function tab(page, which) {
 
   const ctxD = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const pageD = await ctxD.newPage();
-  await pageD.route('**/data/content.json*', async (route) => {
+  await pageD.route('**/site-data/content.json*', async (route) => {
     const res = await route.fetch();
     const json = JSON.parse(await res.text());
     if (json.copy && json.copy.contactForm) delete json.copy.contactForm.phonePlaceholder;
@@ -162,7 +162,7 @@ async function tab(page, which) {
   // stub the fetch so the page receives an edited content.json.
   const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page2 = await ctx2.newPage();
-  await page2.route('**/data/content.json*', async (route) => {
+  await page2.route('**/site-data/content.json*', async (route) => {
     const res = await route.fetch();
     const json = JSON.parse(await res.text());
     json.copy = json.copy || {};

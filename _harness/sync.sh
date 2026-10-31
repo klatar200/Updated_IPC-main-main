@@ -11,16 +11,16 @@ cd "$(dirname "$0")/.."
 
 # Bootstrap after a fresh clone: site/, pristine/ and out/ are gitignored, so
 # they do not exist yet. pristine/ is the reference copy the suites restore from
-# and compare against with cmp — it is seeded from data/ ONCE and then left
+# and compare against with cmp — it is seeded from site-data/ ONCE and then left
 # alone, so a suite that accidentally writes to the mirror can still be caught.
-# It is deliberately NOT re-copied on every sync: refreshing it from data/ each
+# It is deliberately NOT re-copied on every sync: refreshing it from site-data/ each
 # time would silently launder exactly the corruption it exists to detect.
 if [ ! -d _harness/pristine ]; then
-  echo "bootstrap: seeding _harness/pristine from data/"
+  echo "bootstrap: seeding _harness/pristine from site-data/"
   mkdir -p _harness/pristine
-  cp data/content.json data/site-info.json data/products-all.json _harness/pristine/
+  cp site-data/content.json site-data/site-info.json site-data/products-all.json _harness/pristine/
 fi
-mkdir -p _harness/site/data _harness/site/admin _harness/out
+mkdir -p _harness/site/site-data _harness/site/admin _harness/out
 
 rm -rf _harness/site/assets
 cp -r dist/. _harness/site/
@@ -65,9 +65,9 @@ cp -ru uploads/images/. _harness/site/uploads/images/ 2>/dev/null || true
 # the admin checks, exactly as on the real server.
 cp uploads/.htaccess _harness/site/uploads/.htaccess
 
-cp _harness/pristine/content.json      _harness/site/data/content.json
-cp _harness/pristine/site-info.json    _harness/site/data/site-info.json
-cp _harness/pristine/products-all.json _harness/site/data/products-all.json
+cp _harness/pristine/content.json      _harness/site/site-data/content.json
+cp _harness/pristine/site-info.json    _harness/site/site-data/site-info.json
+cp _harness/pristine/products-all.json _harness/site/site-data/products-all.json
 
 php _harness/setpw.php
 

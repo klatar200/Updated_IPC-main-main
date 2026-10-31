@@ -73,7 +73,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   fs.writeFileSync(path.join(DOCROOT, 'sitemap.php'), '<?php header("Content-Type: application/xml"); echo "<urlset>DOCROOT-SITEMAP</urlset>";\n');
 
   // The other side of each divergence, created in the sweep mirror and removed
-  // in the finally block. Never touches data/, pdfs/ or uploads/.
+  // in the finally block. Never touches site-data/, pdfs/ or uploads/.
   const sweepOnly = path.join(SWEEP, SWEEP_ONLY);
   const sweepBoth = path.join(SWEEP, BOTH);
   fs.writeFileSync(sweepOnly, 'SWEEP-ONLY-MARKER\n');
@@ -134,9 +134,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     try {
       let e = { status: 0, body: '' };
-      for (let i = 0; i < 40 && !e.status; i++) { await sleep(250); e = await get('/data/site-info.json', PORT + 1); }
+      for (let i = 0; i < 40 && !e.status; i++) { await sleep(250); e = await get('/site-data/site-info.json', PORT + 1); }
       let info = null; try { info = JSON.parse(e.body); } catch (_) { /* stays null */ }
-      ok('E/compat  -t _harness/site serves the real data/site-info.json (no regression for the sweep shape)',
+      ok('E/compat  -t _harness/site serves the real site-data/site-info.json (no regression for the sweep shape)',
         e.status === 200 && !!info && !!info.company, `status ${e.status}, body began ${JSON.stringify(e.body.slice(0, 40))}`);
       const e2 = await get(`/${BOTH}`, PORT + 1);
       ok('E/control and a file in both trees comes from _harness/site there', e2.body.includes('FROM-SWEEP'),

@@ -19,7 +19,7 @@ const MIRROR = path.resolve(process.env.MIRROR || '_harness/out/audit9/site-Iadm
 const OUT = path.resolve(process.env.OUT || '_harness/out/audit9/I-admin');
 const PASSWORD = 'audit-pass-123'; // never written to any output
 const SKU = 'AUDIT9-TEST';
-const DATA_DIR = path.join(MIRROR, 'data');
+const DATA_DIR = path.join(MIRROR, 'site-data');
 const ADMIN_DIR = path.join(MIRROR, 'admin');
 const PRISTINE_DIR = path.resolve('_harness/pristine');
 const ERROR_LOG = process.env.PHP_ERROR_LOG || '';
@@ -330,7 +330,7 @@ async function main() {
       [['backup', newest], ['csrf_token', extractCsrf(g._body.toString('utf8'))]]);
   } else {
     seq += 1;
-    const rec = { seq, phase: 'mutate', label: 'backups.php (restore content — SKIPPED)', method: 'POST', path: '/admin/backups.php', status: null, note: 'no content.backup.*.json exists in MIRROR/data — nothing to restore' };
+    const rec = { seq, phase: 'mutate', label: 'backups.php (restore content — SKIPPED)', method: 'POST', path: '/admin/backups.php', status: null, note: 'no content.backup.*.json exists in MIRROR/site-data — nothing to restore' };
     fs.appendFileSync(stepsPath, JSON.stringify(rec) + '\n');
     fs.appendFileSync(mdPath, `| ${seq} | mutate | POST | /admin/backups.php | - | - | SKIPPED: no content backup present |\n`);
   }
@@ -362,7 +362,7 @@ async function main() {
   ]);
   await get('sitemap', 'sitemap.xml', '/sitemap.xml');
 
-  // Restore MIRROR/data/*.json from pristine and prove byte-equality.
+  // Restore MIRROR/site-data/*.json from pristine and prove byte-equality.
   const restore = {};
   for (const [key, file] of Object.entries(DATA_FILES)) {
     const pristineFile = path.join(PRISTINE_DIR, path.basename(file));
@@ -375,7 +375,7 @@ async function main() {
     base_url: BASE_URL, mirror: MIRROR, out: OUT, steps: seq, status_counts: statusCounts,
     data_changed_steps: dataChangedSteps, error_log_lines: totalErrorLogLines, restore,
   }, null, 2));
-  fs.appendFileSync(mdPath, `\n## Restore\n\nMIRROR/data/*.json restored from _harness/pristine/: ${JSON.stringify(restore)}\n` +
+  fs.appendFileSync(mdPath, `\n## Restore\n\nMIRROR/site-data/*.json restored from _harness/pristine/: ${JSON.stringify(restore)}\n` +
     `(the mirror itself, ${MIRROR}, is otherwise left as the drive produced it — disposable.)\n`);
 
   console.log(`steps ${seq} · statuses {${statusLine}} · data-changed-steps ${dataChangedSteps} · error-log-lines ${totalErrorLogLines}`);

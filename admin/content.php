@@ -3,7 +3,7 @@ require_once 'config.php';
 require_auth();
 
 /**
- * Page Content editor — edits data/content.json, the homepage section arrays
+ * Page Content editor — edits site-data/content.json, the homepage section arrays
  * (Products & Services cards, the trust-bar stats, and the Industries grid)
  * that the React site reads at runtime. Mirrors settings.php conventions.
  */
@@ -679,7 +679,7 @@ $storedContent = load_content();
 $storedSig     = sha1(json_encode($storedContent));
 // NEW-N2-1 — say so on arrival, not only after he has typed and pressed Save.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' && data_file_damaged(CONTENT_JSON)) {
-    $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read. The sections below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Page Content entry.';
+    $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read. The sections below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Page Content entry.';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -702,7 +702,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // reads empty, and saving would write [] (a deletion, invariant 3) over the
     // whole site. Refuse; the dashboard banner says how to repair it.
     if (data_file_damaged(CONTENT_JSON)) {
-        $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved — saving now would erase every section of the website. Go to Backups and restore the most recent Page Content entry, then make your change again.';
+        $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved — saving now would erase every section of the website. Go to Backups and restore the most recent Page Content entry, then make your change again.';
     }
 
     $submittedSig = $_POST['orig_sig'] ?? '';
@@ -778,7 +778,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // here while the website shows its built-in text. Writing [] for it
         // would turn "not saved yet" into "deleted" (invariant 3) the first
         // time Rick pressed Save for any other reason — e.g. after a release
-        // that adds a section, since data/ is never re-uploaded. Leave it
+        // that adds a section, since site-data/ is never re-uploaded. Leave it
         // absent unless he actually added rows. Emptying a section that IS
         // saved still deletes it, exactly as before.
         if ($clean === [] && !array_key_exists($sec, $storedContent)) continue;

@@ -18,21 +18,21 @@ The rest of the file branches here, and getting it wrong is destructive in both
 directions.
 
 ```
-Open https://www.insulationproducts.com/data/products-all.json in a browser.
+Open https://www.insulationproducts.com/site-data/products-all.json in a browser.
 ```
 
 | What you see | You are doing | Then |
 |---|---|---|
-| A JSON catalog of products | **a re-deploy** onto a live site | Check **A**, then follow **B** — skipping B2.0 and B2.7. Never upload `data/`, `pdfs/` or `uploads/` contents — they are Rick's live edits and an FTP overwrite creates no backup. |
+| A JSON catalog of products | **a re-deploy** onto a live site | Check **A**, then follow **B** — skipping B2.0 and B2.7. Never upload `site-data/`, `pdfs/` or `uploads/` contents — they are Rick's live edits and an FTP overwrite creates no backup. |
 | 404, or nothing there | **the first deploy** | Do **A** first (before deploy day), then **B**. The three data folders go up exactly once, in B2.7. |
-| A certificate / "not secure" warning before any page | **nothing yet** | Stop: that is the §A **certificate GATE** (apex/`www` item) — no deploy until the host fixes it. To answer this step meanwhile, `curl -sk -o /dev/null -w '%{http_code}\n' https://www.insulationproducts.com/data/products-all.json` (`-k` skips the certificate check for this one read-only request) and use the 200 / 404 rows. |
+| A certificate / "not secure" warning before any page | **nothing yet** | Stop: that is the §A **certificate GATE** (apex/`www` item) — no deploy until the host fixes it. To answer this step meanwhile, `curl -sk -o /dev/null -w '%{http_code}\n' https://www.insulationproducts.com/site-data/products-all.json` (`-k` skips the certificate check for this one read-only request) and use the 200 / 404 rows. |
 
 **A catalog here does not always mean a re-deploy.** If an earlier first-deploy
 attempt stopped part-way (after B2.7 but before B4) or was backed out with the
 first-deploy rollback, the catalog is on the server but the site never went
 live. If `/admin/` shows **"Admin Not Configured"**, or `/` still redirects to
 `/site/` (STEP 0b), this is **still the first deploy**: do B2.0 and B4. B2.7
-can be skipped only if nobody has edited anything since — the `data/` on the
+can be skipped only if nobody has edited anything since — the `site-data/` on the
 server is the repo's own.
 
 A redirect is not expected here: re-measured 2026-09-27, this URL answers 404
@@ -41,7 +41,7 @@ directly and only `/` redirects — STEP 0b handles that
 STEP 0b before deciding.
 
 If it loads but the products look wrong or old, stop and diff it against
-`data/products-all.json` in the repo before deciding. **Downloading the
+`site-data/products-all.json` in the repo before deciding. **Downloading the
 server's copy costs a minute; overwriting it is irreversible.**
 
 ### STEP 0b — and then check where the front door goes
@@ -175,14 +175,14 @@ the last minute.
       `audit-runs/live-triage-2026-09-15.md` §8.
 - [ ] **Apply the two corrected privacy-policy sections.** ⚠ **On a re-deploy
       this is an ADMIN EDIT, not a file upload.** The policy renders from
-      `data/content.json`, which is live customer state and is *never*
+      `site-data/content.json`, which is live customer state and is *never*
       re-uploaded — and `mergeContent()` prefers live data over the built-in
       defaults, so the corrected text in the bundle will not appear on a site
       that already has its own `content.json`. Paste it in at
       **Admin → Page Content**, the block headed **"Privacy Policy —
       Sections"**. Find the row whose *Section heading* matches, and replace
       the whole of its *Section text*. Both fields are textareas with no length
-      cap, so paste the full paragraph. (On a *first* deploy the repo's `data/`
+      cap, so paste the full paragraph. (On a *first* deploy the repo's `site-data/`
       is uploaded and this is already done — nothing to do.)
 
       Why they changed (`audit-runs/audit8.md` A-8.7, A-8.8): the old text
@@ -210,15 +210,15 @@ the last minute.
 
 ### Added 2026-09-14 by audit 9 — admin edits, not file uploads
 
-All of these render from `data/content.json` or `data/products-all.json`.
+All of these render from `site-data/content.json` or `site-data/products-all.json`.
 **Make the decisions this week; where you apply them depends on STEP 0:**
 
 - **First deploy** — there is no admin to sign into before launch. Either
-  apply the decided change to the repo's `data/*.json` before B2.7, so it ships
-  with `data/` (as the ticked item below was), or do it in the dashboard
+  apply the decided change to the repo's `site-data/*.json` before B2.7, so it ships
+  with `site-data/` (as the ticked item below was), or do it in the dashboard
   straight after C passes (D lists it). Nothing here blocks the upload.
-- **Re-deploy** — `data/` is live customer state: do them in the dashboard,
-  never by re-uploading `data/`.
+- **Re-deploy** — `site-data/` is live customer state: do them in the dashboard,
+  never by re-uploading `site-data/`.
 
 (NEW-V4-6.) Full records in `audit-runs/audit9.md` §2, summarised in §5.1.
 
@@ -244,7 +244,7 @@ All of these render from `data/content.json` or `data/products-all.json`.
       over the token in Page Content → Trust Bar Stats.
 - [ ] **Rewrite FAQ row #15** — *"Where can I download product data sheets?"*
       (**A-9.P5a-2**), at **Admin → Page Content → FAQ**; in the repo it is
-      `faq[14]` of `data/content.json`, which is where the old "answer 14"
+      `faq[14]` of `site-data/content.json`, which is where the old "answer 14"
       came from (NEW-V4-5). Two things in it are wrong. It tells the buyer to
       click a **"Data Sheet"** button; audit 9 gave that control one name
       across the product page and the name is **`Datasheet`**. It also promises "the full
@@ -260,11 +260,11 @@ All of these render from `data/content.json` or `data/products-all.json`.
       changes which mark each string names, so a spelling pass done first has to
       be done twice.
 - [x] ~~**One sitting on Products → Edit for the rest**~~ — **done in the repo
-      2026-09-15**, before first deploy, so it ships with `data/`: the six
+      2026-09-15**, before first deploy, so it ships with `site-data/`: the six
       misspellings (**A-9.P5a-4**), the inch mark on 21 cells across three SKUs
       (**A-9.P4-10**), and the three badge families whose majority form the
       catalog itself names (**A-9.P5a-8**, part). Nothing to do here on a first
-      deploy. ⚠ On a **re-deploy** this does not apply: `data/` is live customer
+      deploy. ⚠ On a **re-deploy** this does not apply: `site-data/` is live customer
       state and is never re-uploaded, so the same corrections would have to be
       made in the dashboard instead.
 - [ ] **Two badge pairs and the certification marks still need you**
@@ -341,15 +341,15 @@ pointing at a file that does not exist.
        `audit-pass-123`, and any hash from git history is public. On a first
        deploy the password is set on the server in **B4**; on a re-deploy the
        server's own file is live state — never overwrite it. (DEP-6, NEW-V4-2)
-7. [ ] **first deploy only:** `data/`, `pdfs/`, `uploads/` → `public_html/`
-8. [ ] **`data/.htaccess`, `pdfs/.htaccess`, `uploads/.htaccess`** — upload the
+7. [ ] **first deploy only:** `site-data/`, `pdfs/`, `uploads/` → `public_html/`
+8. [ ] **`site-data/.htaccess`, `pdfs/.htaccess`, `uploads/.htaccess`** — upload the
        **file**, never the folder, whenever it has changed since the last
        deploy. Nothing on the server records which release is live, so if you
        cannot tell, upload it: an unchanged file costs nothing, a skipped
        changed one (a security block in `uploads/.htaccess`, say) fails
        silently. These are the only
        files in the tree Vite never copies into `dist/`, so nothing downstream
-       carries them. `data/.htaccess` alone holds the
+       carries them. `site-data/.htaccess` alone holds the
        `AddType application/json` that the site's `jsonOrThrow()` requires and
        the `X-Robots-Tag: noindex` half of the A-5.2 fix.
 9. [ ] **Do B3 (Permissions) now, then `index.html` → `public_html/` — LAST.**
@@ -363,10 +363,10 @@ pointing at a file that does not exist.
 10. [ ] **After C has passed — re-check `/site/` for owner edits, then delete
         `public_html/site/`.** The triage was 2026-09-15; anything saved there
         since would be lost with the folder. First download
-        `public_html/site/data/*.json` (on 2026-09-15 only `products-all.json`
+        `public_html/site/site-data/*.json` (on 2026-09-15 only `products-all.json`
         existed; `site-info.json` and `content.json` answered 404 — look again)
         and `public_html/site/admin/inquiries.jsonl`, and diff each against the
-        repo's `data/` and the copy retrieved in §A. Anything new: carry it into
+        repo's `site-data/` and the copy retrieved in §A. Anything new: carry it into
         the live site through the dashboard, or keep the download, before
         deleting. (NEW-V4-3)
 
@@ -384,7 +384,7 @@ moment it is safe to.
 
 | Path | Mode | Why |
 |---|---|---|
-| `public_html/data/` | 755, writable by **PHP** | every admin save |
+| `public_html/site-data/` | 755, writable by **PHP** | every admin save |
 | `public_html/pdfs/` | 755, writable by PHP | data-sheet uploads |
 | `public_html/uploads/images/` | 755, writable by PHP | photo uploads |
 | `public_html/uploads/site/` | 755, writable by PHP | page photos and logo uploads (Site Images & Logo) |
@@ -448,7 +448,7 @@ one of these files uses Apache 2.2 `Order`/`Deny` syntax, served on 2.4 only by
 `mod_access_compat`.
 
 ```bash
-curl -sI https://www.insulationproducts.com/data/products-all.json
+curl -sI https://www.insulationproducts.com/site-data/products-all.json
 #  expect: 200 · Content-Type: application/json · X-Robots-Tag: noindex
 #  a 500 here means mod_access_compat is absent — and then the WHOLE SITE is
 #  down, not just the catalog: public/.htaccess uses Order/Deny too (NEW-N3-7)
@@ -471,8 +471,8 @@ curl -sI -H 'Accept-Encoding: gzip' "https://www.insulationproducts.com/$JS"
 curl -s 'https://www.insulationproducts.com/products?productId=CC' | grep -E '<title>|rel="canonical"'
 #  expect the product's own title and a canonical ending ?productId=CC — not
 #  the homepage title. The homepage title means index.php ran and fell back
-#  to the plain shell: a PHP error on this host's PHP, or data/site-info.json
-#  or data/content.json missing or unparseable — look in data/ and the PHP
+#  to the plain shell: a PHP error on this host's PHP, or site-data/site-info.json
+#  or site-data/content.json missing or unparseable — look in site-data/ and the PHP
 #  error log, not at the upload. The page still works, but every shared link
 #  previews as the homepage (A-5.10, §1ar). A 404 here instead means
 #  index.php or .htaccess is missing.
@@ -567,7 +567,7 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
 - [ ] Re-run C4 a week later. A form that worked on Saturday and silently stops
       is the failure mode with no symptom.
 - [ ] **First deploy:** any §A "admin edits" item not already made in the
-      repo's `data/` before B2.7 — do it now in the dashboard. (NEW-V4-6)
+      repo's `site-data/` before B2.7 — do it now in the dashboard. (NEW-V4-6)
 - [ ] Check **Admin → Inquiries** in the first week even if no email arrived —
       that is exactly what the log is for.
 
@@ -584,7 +584,7 @@ curl -si -X TRACE https://www.insulationproducts.com/ | head -1
 | Blank page, console error about a missing `assets/…js` | `index.html` went up before `assets/`. Upload `assets/` and it resolves. |
 | Deep links 404 on refresh | `.htaccess` is missing from `public_html/` — it is a hidden dotfile |
 | Every page 404s (or every page but `/`) right after uploading `.htaccess` | `index.php` is not in `public_html/` yet — upload it (B2 step 3). `.htaccess` sends every page to it |
-| "Catalog Unavailable" | `data/products-all.json` missing, unreadable, malformed, or served without `Content-Type: application/json` (that is `data/.htaccess`, step B2.8). If the file opens fine and the site loads for you, the visitor's connection dropped or took over 12 s — the screen is the same; ask them to tap Retry |
+| "Catalog Unavailable" | `site-data/products-all.json` missing, unreadable, malformed, or served without `Content-Type: application/json` (that is `site-data/.htaccess`, step B2.8). If the file opens fine and the site loads for you, the visitor's connection dropped or took over 12 s — the screen is the same; ask them to tap Retry |
 | Admin rejects a known-good password | `config.local.php` missing or overwritten (never with a local copy — B2.6). Recovery: FTP an empty file named `ALLOW-PASSWORD-RESET` into `public_html/admin/`, open `/admin/`, set a new password. Deleting `config.local.php` on its own **locks the admin**, it does not reset it |
 | Form says "mail server could not send" | The `noreply@` mailbox does not exist on the account (step A) |
 | Leads in email but not in Inquiries | `admin/` is not writable by PHP. The dashboard banner says so |
@@ -616,6 +616,6 @@ back to the predecessor — the reason B2.10 waits until C has passed.
   `public_html/.htaccess` is there. Restore it in the panel, or as
   `RedirectMatch 302 ^/$ /site/`, instead.
 
-This is the **frontend only**. `data/` rolls back through **Admin → Backups**,
+This is the **frontend only**. `site-data/` rolls back through **Admin → Backups**,
 which keeps the 90 most recent saves per file and backs up the current state
 before restoring, so a restore can itself be undone.

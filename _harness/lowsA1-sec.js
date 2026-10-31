@@ -117,7 +117,7 @@ const INQ = path.join(ADMIN, 'inquiries.jsonl');
 const SEEN = path.join(ADMIN, '.inquiries-seen.json');
 const FLAG = path.join(ADMIN, 'ALLOW-PASSWORD-RESET');
 const LOCAL = path.join(ADMIN, 'config.local.php');
-const CATALOG = path.join(SITE, 'data', 'products-all.json');
+const CATALOG = path.join(SITE, 'site-data', 'products-all.json');
 
 (async () => {
   if (spawnSync('curl', ['-s', '-o', '/dev/null', '--max-time', '2', BASE + '/']).status === 0) {

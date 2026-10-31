@@ -7,7 +7,7 @@
  * products, dashboard, datasheets, industries, services, about, faq, contact,
  * privacy; `pageToPath()` maps "home" -> "/" and everything else to "/<page>"),
  * one unknown route (/no-such-page), all 42 product pages
- * (/products?productId=<sku>, one per sku in data/products-all.json), and the
+ * (/products?productId=<sku>, one per sku in site-data/products-all.json), and the
  * 13 admin pages signed in plus auth.php signed out. Public/product routes run
  * at 390x844, 834x1194, 1440x900, 1920x1080, 2560x1440; admin at 390x844 and
  * 1440x900 only.
@@ -78,9 +78,9 @@ const routeToPath = (page) => (page === 'home' ? '/' : `/${page}`);
 const PUBLIC_PAGES = KNOWN_ROUTES.map((r) => ({ slug: r, url: routeToPath(r), catalog: true }));
 PUBLIC_PAGES.push({ slug: 'unknown-route', url: '/no-such-page', catalog: true });
 
-// ── Products — every SKU in data/products-all.json ─────────────────────────
+// ── Products — every SKU in site-data/products-all.json ─────────────────────────
 const productsRaw = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '..', 'data', 'products-all.json'), 'utf8')
+  fs.readFileSync(path.join(__dirname, '..', 'site-data', 'products-all.json'), 'utf8')
 );
 const PRODUCTS = Array.isArray(productsRaw) ? productsRaw : productsRaw.products || [];
 const SKUS = PRODUCTS.map((p) => p.sku).filter(Boolean);

@@ -33,7 +33,7 @@ const { launch } = require('./browser');
 
 const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
-const CATALOG = path.join(SITE, 'data', 'products-all.json');
+const CATALOG = path.join(SITE, 'site-data', 'products-all.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'products-all.json');
 const SITE_PDFS = path.join(SITE, 'pdfs');
 const IMGDIR = path.join(SITE, 'uploads', 'images');
@@ -144,7 +144,7 @@ const listDir = (d) => (fs.existsSync(d) ? fs.readdirSync(d) : []);
       if (!fs.existsSync(path.join(SITE_PDFS, f)) && fs.existsSync(src)) fs.copyFileSync(src, path.join(SITE_PDFS, f));
     }
     for (const f of listDir(IMGDIR)) if (!before.imgs.includes(f)) fs.rmSync(path.join(IMGDIR, f), { force: true });
-    for (const f of listDir(path.join(SITE, 'data'))) if (/\.backup\./.test(f)) fs.rmSync(path.join(SITE, 'data', f));
+    for (const f of listDir(path.join(SITE, 'site-data'))) if (/\.backup\./.test(f)) fs.rmSync(path.join(SITE, 'site-data', f));
     fs.rmSync(TMP, { recursive: true, force: true });
   }
   note(fs.readFileSync(CATALOG).equals(fs.readFileSync(PRISTINE)), 'mirror catalog restored byte-for-byte');

@@ -28,7 +28,7 @@
  *   - the filter narrows the list and clearing it restores the full set
  *   - no horizontal overflow at 375
  *
- * Reads only. Nothing under data/ is written.
+ * Reads only. Nothing under site-data/ is written.
  * Needs the mirror on :8123 (started with -t _harness/site), and sync.sh must
  * have copied pdfs/ into it — without that every link 404s for the wrong
  * reason and this suite is measuring the harness, not the site.

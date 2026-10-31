@@ -31,7 +31,7 @@ const { spawn } = require('child_process');
 
 const SITE = path.join(__dirname, 'site');
 const CONFIG = path.join(SITE, 'admin', 'config.php');
-const CATALOG = path.join(SITE, 'data', 'products-all.json');
+const CATALOG = path.join(SITE, 'site-data', 'products-all.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'products-all.json');
 
 const results = [];

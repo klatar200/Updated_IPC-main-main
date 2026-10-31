@@ -33,8 +33,8 @@
  *      admin/content.php, save, and confirm the PUBLIC order matches. This is
  *      the check that catches a bad index-based key.
  *
- * Writes the MIRROR's data/content.json only (_harness/site/data/). The repo's
- * data/ is never touched; the suite restores the mirror from pristine/ and
+ * Writes the MIRROR's site-data/content.json only (_harness/site/site-data/). The repo's
+ * site-data/ is never touched; the suite restores the mirror from pristine/ and
  * rebuilds the production bundle on the way out.
  *
  * Needs the mirror on :8123 (started with -t _harness/site).
@@ -50,7 +50,7 @@ const { launch } = require('./browser');
 const ROOT = path.join(__dirname, '..');
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
-const MIRROR_DATA = path.join(__dirname, 'site', 'data');
+const MIRROR_DATA = path.join(__dirname, 'site', 'site-data');
 const PRISTINE = path.join(__dirname, 'pristine');
 const SITE = path.join(__dirname, 'site');
 const DEVDIST = path.join(__dirname, 'devdist');

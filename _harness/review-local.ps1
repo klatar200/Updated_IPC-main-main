@@ -6,10 +6,10 @@
 #   powershell -ExecutionPolicy Bypass -File _harness\review-local.ps1 -Port 8090 -NoBuild
 #
 # Every run rebuilds _harness\site (gitignored) from scratch: dist\ after
-# `npm run build`, admin\, data\, pdfs\, uploads\ -- the same set
-# _harness/sync.sh copies, except data\ comes straight from the repo, not
+# `npm run build`, admin\, site-data\, pdfs\, uploads\ -- the same set
+# _harness/sync.sh copies, except site-data\ comes straight from the repo, not
 # _harness\pristine. So anything changed in the review admin is thrown away
-# on the next run, and the repo's own data\ is never written.
+# on the next run, and the repo's own site-data\ is never written.
 #
 # Admin: http://127.0.0.1:<port>/admin/  password audit-pass-123 (this mirror
 # only, written by _harness\setpw.php; never admin\config.local.php).
@@ -57,10 +57,10 @@ Get-ChildItem -Path (Join-Path $repo 'admin') -File -Force |
   Where-Object { ($_.Extension -eq '.php' -and $_.Name -ne 'config.local.php') -or $_.Extension -eq '.js' -or $_.Name -eq 'logo.svg' -or $_.Name -eq '.htaccess' } |
   Copy-Item -Destination $adm -Force
 
-$dat = Join-Path $site 'data'
+$dat = Join-Path $site 'site-data'
 New-Item -ItemType Directory -Path $dat | Out-Null
 foreach ($f in 'content.json', 'site-info.json', 'products-all.json') {
-  Copy-Item -Path (Join-Path $repo "data\$f") -Destination $dat -Force
+  Copy-Item -Path (Join-Path $repo "site-data\$f") -Destination $dat -Force
 }
 
 Copy-Item -Path (Join-Path $repo 'pdfs') -Destination $site -Recurse -Force

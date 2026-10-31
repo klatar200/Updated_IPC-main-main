@@ -27,7 +27,7 @@ const { launch } = require('./browser');
 
 const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
-const CATALOG = path.join(SITE, 'data', 'products-all.json');
+const CATALOG = path.join(SITE, 'site-data', 'products-all.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'products-all.json');
 const IMGDIR = path.join(SITE, 'uploads', 'images');
 const PORT = 8704;
@@ -113,7 +113,7 @@ const stub = (sku, extra = {}) => ({ id: sku, sku, name: `SEC-1 ${sku}`, partTyp
     srv.kill();
     fs.copyFileSync(PRISTINE, CATALOG);
     for (const f of listImgs()) if (!beforeImgs.includes(f)) fs.rmSync(path.join(IMGDIR, f), { force: true });
-    for (const f of fs.readdirSync(path.join(SITE, 'data'))) if (/\.backup\./.test(f)) fs.rmSync(path.join(SITE, 'data', f));
+    for (const f of fs.readdirSync(path.join(SITE, 'site-data'))) if (/\.backup\./.test(f)) fs.rmSync(path.join(SITE, 'site-data', f));
     fs.rmSync(TMP, { recursive: true, force: true });
   }
   // Cleanup precondition, not a counted check: the copy in the finally lands

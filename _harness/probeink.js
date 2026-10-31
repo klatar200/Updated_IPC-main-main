@@ -8,7 +8,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
-const MIRROR_SITE = path.join(__dirname, 'site/data/site-info.json');
+const MIRROR_SITE = path.join(__dirname, 'site/site-data/site-info.json');
 const PRISTINE_SITE = path.join(__dirname, 'pristine/site-info.json');
 
 const PRIMARY = '#1ABC9C';

@@ -14,7 +14,7 @@
  * This suite is expected to FAIL against the pre-fix content.php. Run it
  * against an un-synced mirror to see that, then re-sync and run it again.
  *
- * Needs the mirror on :8123. Restores data/content.json from pristine.
+ * Needs the mirror on :8123. Restores site-data/content.json from pristine.
  *
  * Usage: node _harness/plan2-sku.js
  */
@@ -25,7 +25,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
-const DIR = path.join(__dirname, 'site/data');
+const DIR = path.join(__dirname, 'site/site-data');
 const MIRROR_CONTENT = path.join(DIR, 'content.json');
 const PRISTINE_CONTENT = path.join(__dirname, 'pristine/content.json');
 const PRISTINE_PRODUCTS = path.join(__dirname, 'pristine/products-all.json');

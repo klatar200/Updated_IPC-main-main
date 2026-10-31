@@ -5,13 +5,13 @@
  */
 
 // Path to products-all.json — relative to document root
-define('PRODUCTS_JSON', __DIR__ . '/../data/products-all.json');
+define('PRODUCTS_JSON', __DIR__ . '/../site-data/products-all.json');
 
 // Path to site-info.json (business details read by the React site) — same folder
-define('SITE_INFO_JSON', __DIR__ . '/../data/site-info.json');
+define('SITE_INFO_JSON', __DIR__ . '/../site-data/site-info.json');
 
 // Path to content.json (editable page content — homepage sections, etc.) — same folder
-define('CONTENT_JSON', __DIR__ . '/../data/content.json');
+define('CONTENT_JSON', __DIR__ . '/../site-data/content.json');
 
 // Path to PDF storage folder — relative to document root
 define('PDF_DIR', __DIR__ . '/../pdfs/');
@@ -850,7 +850,7 @@ function require_auth(): void {
  * the whole old file or the whole new one, and a failed write never touches the
  * live file. The byte count is checked before the rename.
  *
- * The temp name ends in `.tmp` on purpose — data/.htaccess blocks that suffix,
+ * The temp name ends in `.tmp` on purpose — site-data/.htaccess blocks that suffix,
  * so a leftover from a killed process is not web-readable.
  * (audit-runs/audit5.md A-5.5)
  */
@@ -887,9 +887,9 @@ function json_write_atomic(string $path, string $json): bool {
 // ends: the handle lives in a static and PHP releases the flock when the
 // process closes it, so nothing has to remember to unlock. Blocking, bounded
 // by max_execution_time; one owner, so the wait is one other save at most.
-// If the lock file cannot be opened (data/ unwritable) it proceeds unlocked,
+// If the lock file cannot be opened (site-data/ unwritable) it proceeds unlocked,
 // and the save fails anyway with the banner that condition already raises.
-// The dot name keeps it web-blocked by data/.htaccess.
+// The dot name keeps it web-blocked by site-data/.htaccess.
 function products_write_lock(): void {
     static $fh = null;
     if ($fh !== null) return;
@@ -1203,7 +1203,7 @@ function save_json_with_backup(string $path, string $prefix, string $json, strin
  * "directory". Which sentence depends on the cause: a folder the server will
  * not let the dashboard write to (the shared one), a folder it may write to
  * but could not (a full disk), or text that cannot be stored at all.
- * $dir/$name name the folder ('data' for the three data files).
+ * $dir/$name name the folder ('site-data' for the three data files).
  */
 function write_failed_message(string $dir, string $name): string {
     if (is_dir($dir) && !is_writable($dir)) {
@@ -1223,10 +1223,10 @@ function save_failed_message(): string {
             return 'Nothing was changed: the server\'s disk is full, so it could not first keep a copy of the current version, '
                  . 'and without that copy this could not be undone. Free up space on your hosting account (or ask your host to), then try again.';
         case 'damaged':
-            return 'Nothing was saved: the product catalog file (data/products-all.json) is damaged. '
+            return 'Nothing was saved: the product catalog file (site-data/products-all.json) is damaged. '
                  . 'Go to Backups and restore the most recent Product Catalog entry, then try again.';
     }
-    return write_failed_message(dirname(PRODUCTS_JSON), 'data');
+    return write_failed_message(dirname(PRODUCTS_JSON), 'site-data');
 }
 
 // All backups for one prefix, OLDEST FIRST.
@@ -1887,7 +1887,7 @@ function admin_writable(): bool {
     return is_writable(__DIR__);
 }
 
-// True when data/ can be written — product/content/settings saves and every
+// True when site-data/ can be written — product/content/settings saves and every
 // backup depend on it.
 function data_writable(): bool {
     return is_writable(dirname(PRODUCTS_JSON));
@@ -2374,7 +2374,7 @@ function sku_problems(string $sku): array {
  * protocol-relative, not local. Kept deliberately identical in effect to the
  * client-side guard, and both are needed — the client guard is what actually
  * stops a script-scheme href reaching a visitor, including for values already
- * sitting in data/ from before this check existed, while this one is what stops
+ * sitting in site-data/ from before this check existed, while this one is what stops
  * the owner from saving a broken link and getting no explanation for why it
  * never appeared. (audit-runs/audit4.md D-01)
  *

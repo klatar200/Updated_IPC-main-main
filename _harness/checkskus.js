@@ -1,6 +1,6 @@
 /**
- * One-shot audit: do the industry product codes already in data/content.json
- * match the catalog in data/products-all.json?
+ * One-shot audit: do the industry product codes already in site-data/content.json
+ * match the catalog in site-data/products-all.json?
  *
  * Written because plan2-sku.js's "a valid code produces no warning" case
  * failed AFTER the 4.12 fix landed — the suspicion being that the warning was

@@ -3,7 +3,7 @@
  *
  * A site-wide claim ("Full RoHS Compliant Product Line", "UL · CSA · MIL-SPEC ·
  * AMS Rated Products") is checkable against the one body of product data IPC
- * publishes: `data/products-all.json`. That is not proof the claim is false —
+ * publishes: `site-data/products-all.json`. That is not proof the claim is false —
  * a datasheet can carry a certification the catalog copy never mentions — but
  * it is the only independent number available offline, and a whole-line claim
  * backed by 4 of 42 records is a different conversation from one backed by 42.
@@ -20,7 +20,7 @@ const fs = require('fs');
 const path = require('path');
 
 const products = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '..', 'data', 'products-all.json'), 'utf8'));
+  path.join(__dirname, '..', 'site-data', 'products-all.json'), 'utf8'));
 
 function textOf(p) {
   const out = [];

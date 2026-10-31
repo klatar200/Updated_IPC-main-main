@@ -31,7 +31,7 @@ const { SOURCE, ratio } = require('./backdrop');
 
 const SITE = process.env.LOWSC2_SITE || path.join(__dirname, 'site');
 const PRISTINE = process.env.LOWSC2_PRISTINE || path.join(__dirname, 'pristine', 'site-info.json');
-const INFO = path.join(SITE, 'data', 'site-info.json');
+const INFO = path.join(SITE, 'site-data', 'site-info.json');
 const PORT = 8722;
 const BASE = `http://127.0.0.1:${PORT}`;
 const ROUTES = ['/', '/products', '/dashboard', '/industries', '/services', '/about', '/faq', '/contact', '/privacy'];

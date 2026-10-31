@@ -52,7 +52,7 @@ const SLOTS = [
 async function withCopy(browser, patch, route) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
-  await page.route('**/data/content.json*', (r) => {
+  await page.route('**/site-data/content.json*', (r) => {
     const json = JSON.parse(JSON.stringify(PRISTINE));
     json.copy = json.copy || {};
     if (patch === null) delete json.copy.siteImages;

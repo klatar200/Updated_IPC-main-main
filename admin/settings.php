@@ -61,14 +61,14 @@ function sfList(string $key, $current, string $sep = "\n"): array {
 // unreadable file. Say so on arrival, and refuse the save.
 $siteInfoDamaged = data_file_damaged(SITE_INFO_JSON);
 if ($siteInfoDamaged && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read. The boxes below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Business Details entry.';
+    $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read. The boxes below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Business Details entry.';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
 
     if ($siteInfoDamaged) {
-        $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved — saving now would replace them with this mostly empty form. Go to Backups and restore the most recent Business Details entry, then make your change again.';
+        $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved — saving now would replace them with this mostly empty form. Go to Backups and restore the most recent Business Details entry, then make your change again.';
     }
 
     $submittedSig = $_POST['orig_sig'] ?? '';

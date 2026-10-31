@@ -53,12 +53,12 @@ echo "node --check              " . count($jsFiles) . " admin JS files, $jsFail 
 // only surface it at runtime.
 $counts = [];
 foreach ([
-    'content'      => $root . '/data/content.json',
-    'site-info'    => $root . '/data/site-info.json',
-    'products-all' => $root . '/data/products-all.json',
+    'content'      => $root . '/site-data/content.json',
+    'site-info'    => $root . '/site-data/site-info.json',
+    'products-all' => $root . '/site-data/products-all.json',
 ] as $name => $p) {
     $data = json_decode((string)@file_get_contents($p), true);
-    if (!is_array($data)) { $fail++; echo "FAIL  data/$name.json does not parse\n"; continue; }
+    if (!is_array($data)) { $fail++; echo "FAIL  site-data/$name.json does not parse\n"; continue; }
     $counts[] = "$name " . count($data);
 }
 echo "JSON parse                " . implode(' / ', $counts) . " entries\n";

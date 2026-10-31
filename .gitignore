@@ -56,19 +56,19 @@ uploads/site/*
 *.zip
 
 # Data backups written by save_products() / save_site_info() / save_content()
-data/products-all.backup.*.json
-data/site-info.backup.*.json
-data/content.backup.*.json
+site-data/products-all.backup.*.json
+site-data/site-info.backup.*.json
+site-data/content.backup.*.json
 # Verification harness. The CODE is tracked — those suites are the executable
 # form of this release's acceptance criteria, and a blanket ignore meant every
 # session rebuilt them from nothing. Never deployed; nothing here ships.
 #
 # The three generated directories stay out, and two of them are not merely
 # noise:
-#   site/     ~21 MB mirror of dist/ + admin/ + data/, rebuilt by sync.sh. It
+#   site/     ~21 MB mirror of dist/ + admin/ + site-data/, rebuilt by sync.sh. It
 #             also holds admin/config.local.php, which carries a WORKING ADMIN
 #             CREDENTIAL — and this repo is public.
-#   pristine/ a copy of data/*.json. Tracking it would create a second source
+#   pristine/ a copy of site-data/*.json. Tracking it would create a second source
 #             of truth for live customer state that can drift from the first,
 #             which is exactly the public/products-all.json incident.
 #   out/      screenshots and measurements, regenerable by re-running a suite.
@@ -81,10 +81,10 @@ _harness/out/
 # (vite.devreact.js); rebuilt on every run, never source.
 _harness/devdist/
 # SEC-5 catalog write lock, created at runtime by admin/config.php
-data/.products-write.lock
+site-data/.products-write.lock
 # Its content.json / site-info.json siblings (data_write_lock(), WHATS_LEFT §1an)
-data/.content-write.lock
-data/.site-info-write.lock
+site-data/.content-write.lock
+site-data/.site-info-write.lock
 # SEC-4 private session store, created at runtime by admin/config.php
 admin/.sessions/
 # DI-1 rename record, written by edit.php (WHATS_LEFT §1ap)

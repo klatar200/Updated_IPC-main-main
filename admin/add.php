@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // catalog file is damaged (NEW-N2-1); "check file permissions" sent the
         // owner to the wrong fix.
         $errors[] = products_load_damaged()
-            ? 'The product catalog (data/products-all.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Product Catalog entry, then add the product again.'
+            ? 'The product catalog (site-data/products-all.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Product Catalog entry, then add the product again.'
             : save_failed_message();   // AUDIT-12 decision 31
     }
 

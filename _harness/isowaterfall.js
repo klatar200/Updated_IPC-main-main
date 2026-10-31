@@ -63,7 +63,7 @@ const path = require('path');
 const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
-const MIRROR_SI = path.join(__dirname, 'site', 'data', 'site-info.json');
+const MIRROR_SI = path.join(__dirname, 'site', 'site-data', 'site-info.json');
 const PRISTINE_SI = path.join(__dirname, 'pristine', 'site-info.json');
 const OUT = path.join(__dirname, 'out', 'isowaterfall');
 fs.mkdirSync(OUT, { recursive: true });

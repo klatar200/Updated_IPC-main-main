@@ -175,7 +175,7 @@ $navActive = 'products';
       [SITE_INFO_JSON,'site-info.json',    'Business Details','The website is showing its built-in business details'],
   ] as [$dfPath, $dfName, $dfLabel, $dfEffect]) {
       if (data_file_damaged($dfPath)) {
-          $healthProblems[] = '<strong>The file <code>data/' . h($dfName) . '</code> is damaged</strong> — it cannot be read, '
+          $healthProblems[] = '<strong>The file <code>site-data/' . h($dfName) . '</code> is damaged</strong> — it cannot be read, '
             . 'usually because it was edited by hand or only partly uploaded. ' . h($dfEffect) . ' so that nothing is overwritten. '
             . 'Go to <a href="backups.php">Backups</a> and restore the most recent <em>' . h($dfLabel) . '</em> entry, '
             . 'or ask your developer to repair the file.';
@@ -215,8 +215,8 @@ $navActive = 'products';
       }
   }
   if (!data_writable()) {
-      $healthProblems[] = 'The <code>data</code> folder is not writable by the web server. '
-        . 'Nothing you edit on any page can be saved. Set data/ to 755 (or 775) over FTP.' . $permFallback;
+      $healthProblems[] = 'The <code>site-data</code> folder is not writable by the web server. '
+        . 'Nothing you edit on any page can be saved. Set site-data/ to 755 (or 775) over FTP.' . $permFallback;
   }
   if (!is_dir(IMG_DIR) || !is_writable(IMG_DIR)) {
       $healthProblems[] = 'The <code>uploads/images</code> folder is missing or not writable. '

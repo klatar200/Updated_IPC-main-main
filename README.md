@@ -28,7 +28,7 @@ Updated_IPC-main-main/
 ├── postcss.config.mjs
 ├── public/                 Copied verbatim into dist/ on build
 │   ├── .htaccess           Rewrite to index.php + cache headers  (LOAD-BEARING, see below)
-│   ├── index.php           Front controller: each route's head + plain-HTML body from data/ (A-5.10, §1ar)
+│   ├── index.php           Front controller: each route's head + plain-HTML body from site-data/ (A-5.10, §1ar)
 │   ├── .user.ini           PHP upload / form limits for the admin
 │   ├── contact.php         Contact + RFQ handler (mail() + inquiry log)
 │   ├── sitemap.php         Sitemap, generated from the live catalog per request
@@ -38,7 +38,7 @@ Updated_IPC-main-main/
 │   ├── main.jsx
 │   ├── App.jsx             Entire React app (single file, 14,096 lines on 2026-10-13 — re-measure with `wc -l`)
 │   └── index.css           Tailwind entry + first-paint-critical CSS
-├── data/                   NOT bundled by Vite — deploy separately, ONCE
+├── site-data/                   NOT bundled by Vite — deploy separately, ONCE
 │   ├── .htaccess           Blocks backups, dotfiles, PHP execution
 │   ├── products-all.json   Live catalog        — read by React, written by admin
 │   ├── site-info.json      Business details    — read by React, written by admin
@@ -83,7 +83,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-`npm run dev` serves the repo's real `data/` folder at `/data/*`, through the
+`npm run dev` serves the repo's real `site-data/` folder at `/site-data/*`, through the
 `serveDataDir` middleware in `vite.config.mjs`. All three runtime files —
 `products-all.json`, `site-info.json`, `content.json` — are fetched from the
 same URLs in dev and in production, so `mergeSiteInfo` and `mergeContent` (which
@@ -95,7 +95,7 @@ logs on localhost. Vite's own dev server serves the repository root too; a secon
 dev-only middleware in `vite.config.mjs` (`denyRepoInternals`) answers 404 for
 `admin/`, `_harness/`, `audit-runs/`, `plans/`, dot-folders such as `.git/`, and
 any `*.php`, `*.jsonl`, `*.md`, `*.ini`, `*.log`, `*.bak` or `*.sh` path, so do
-not take it out before running `npm run dev -- --host`. A missing file under `/data/` returns a real 404 rather than
+not take it out before running `npm run dev -- --host`. A missing file under `/site-data/` returns a real 404 rather than
 the SPA shell, because a 200 carrying `index.html` is precisely the failure that
 hid a deleted catalog once already.
 
@@ -142,8 +142,8 @@ it on the server.
 | `images/` | `dist/images/` (copied from `public/images/`) | every frontend deploy (GO-LIVE B2 step 2) |
 | `admin/` — **tracked files only** (`git ls-files admin/`, including the dotfile `admin/.htaccess`) | `admin/` | first deploy; afterwards when the admin code changed. Never its live-state files — `config.local.php*`, `*.jsonl`, `.login-throttle.json`, `.inquiries-seen.json`, `.inquiry-log-failed.json`, `.pdf-renames.json`, `.sessions/`, `ALLOW-PASSWORD-RESET`: locally they are test leftovers, on the server live state (GO-LIVE B2.5, NEW-V4-8) |
 | `admin/config.local.php` | never uploaded — written on the server by the `ALLOW-PASSWORD-RESET` flow (GO-LIVE B4) | first deploy |
-| `data/.htaccess`, `pdfs/.htaccess`, `uploads/.htaccess` | the repo, **not** `dist/` | **when changed since the last deploy — see below. If you cannot tell, upload it: re-uploading an unchanged `.htaccess` is harmless, leaving a changed one behind fails silently** |
-| **`data/`, `pdfs/`, `uploads/` — their contents** | the repo | **first deploy only — once.** `GO-LIVE.md` STEP 0 tells you which deploy this is. Skip this row on a first deploy and the site shows "Catalog Unavailable"; follow it on a re-deploy and you overwrite Rick's live edits. (DEP-1) |
+| `site-data/.htaccess`, `pdfs/.htaccess`, `uploads/.htaccess` | the repo, **not** `dist/` | **when changed since the last deploy — see below. If you cannot tell, upload it: re-uploading an unchanged `.htaccess` is harmless, leaving a changed one behind fails silently** |
+| **`site-data/`, `pdfs/`, `uploads/` — their contents** | the repo | **first deploy only — once.** `GO-LIVE.md` STEP 0 tells you which deploy this is. Skip this row on a first deploy and the site shows "Catalog Unavailable"; follow it on a re-deploy and you overwrite Rick's live edits. (DEP-1) |
 
 **The three `.htaccess` files are the exception to the do-not-upload rule, and
 they are easy to miss.** They live inside folders that are otherwise live
@@ -154,10 +154,10 @@ repo code and has to be re-uploaded whenever it changes. Upload the file, never
 the folder.
 
 This is not hypothetical. Audit 5 changed all three, and the release before this
-one shipped `robots.txt` — which is in `dist/` — dropping `Disallow: /data/`,
-while the compensating `X-Robots-Tag: noindex` in `data/.htaccess` stayed on the
+one shipped `robots.txt` — which is in `dist/` — dropping `Disallow: /data/` (the
+folder's name then), while the compensating `X-Robots-Tag: noindex` in its `.htaccess` stayed on the
 laptop. The two halves of one fix travel on different trees, and only one of
-them travels by itself. `data/.htaccess` also carries the
+them travels by itself. `site-data/.htaccess` also carries the
 `AddType application/json .json` line that `jsonOrThrow()` in `src/App.jsx`
 depends on. (audit-runs/audit6.md A-6.2.)
 
@@ -165,16 +165,16 @@ depends on. (audit-runs/audit6.md A-6.2.)
 
 | Path | Why |
 |---|---|
-| `data/products-all.json` | Live customer state. Settled 2026-08-04: download the server's copy, diff, and merge only if the repo copy is genuinely ahead. An FTP overwrite is irreversible and creates no backup. |
-| `data/site-info.json`, `data/content.json` | Same — the owner edits these through the admin. |
+| `site-data/products-all.json` | Live customer state. Settled 2026-08-04: download the server's copy, diff, and merge only if the repo copy is genuinely ahead. An FTP overwrite is irreversible and creates no backup. |
+| `site-data/site-info.json`, `site-data/content.json` | Same — the owner edits these through the admin. |
 | `pdfs/` | Live customer state. Same rule. |
 | `uploads/` | Live customer state (product photos, and the owner's photos in `uploads/site/`). If `uploads/.htaccess` is missing, the photo and Site Images uploads try to write it (`uploads_protection_problem()`) and refuse uploads until it exists — the fix is uploading the shipped file, never creating the folder by hand without it (NEW-N3-3). |
 | `_harness/`, `node_modules/`, `src/`, `*.md` | Not part of the deployed site. |
 
-The `data/`, `pdfs/` and `uploads/` rows mean each folder's **contents**. The
+The `site-data/`, `pdfs/` and `uploads/` rows mean each folder's **contents**. The
 `.htaccess` inside each one is repo code and belongs in the upload table above.
 
-`data/`, `pdfs/` and `uploads/` go up exactly once, on the first deploy; from then
+`site-data/`, `pdfs/` and `uploads/` go up exactly once, on the first deploy; from then
 on they are owned by the customer, and re-uploading them destroys his edits.
 
 ### Permissions
@@ -186,8 +186,8 @@ never reaches Admin → Inquiries, and nothing records that it is missing
 
 | Path | Permission | Why |
 |---|---|---|
-| `public_html/data/` | 755, **writable by PHP** | every admin save writes here |
-| `public_html/data/*.json` | 644 — never 666 | a save writes a new file in `data/` and renames it in, so only the folder's permission matters; 666 does not fix "Failed to save" and leaves the catalog writable by other accounts |
+| `public_html/site-data/` | 755, **writable by PHP** | every admin save writes here |
+| `public_html/site-data/*.json` | 644 — never 666 | a save writes a new file in `site-data/` and renames it in, so only the folder's permission matters; 666 does not fix "Failed to save" and leaves the catalog writable by other accounts |
 | `public_html/pdfs/` | 755, **writable by PHP** | data-sheet uploads |
 | `public_html/uploads/images/` | 755, **writable by PHP** | product photo uploads |
 | `public_html/uploads/site/` | 755, **writable by PHP** | page photos and logo (Site Images & Logo page) |
@@ -276,7 +276,7 @@ A-8.3.)
 `public/.htaccess` sends every page — `/` included, through its
 `DirectoryIndex` — to `index.php`. That front controller serves the built
 `index.html` with each route's title, description, canonical, share card and a
-plain-HTML body filled in from `data/*.json`, and on any error it serves
+plain-HTML body filled in from `site-data/*.json`, and on any error it serves
 `index.html` unmodified. A `.htaccess` that arrives before `index.php` points
 every page at a file that is not there yet. `index.php` reads whichever
 `index.html` is on the server, so it can go up any time before `.htaccess`.
@@ -290,14 +290,14 @@ old bundle. `index.html` alone is not enough: since A-5.10 every page is served
 through `index.php` and the quote form is `contact.php`, so a fault in either
 survives an `index.html`-only rollback. Keep the whole `dist/` you deployed last
 time (or download those files before overwriting them); `dist/` is also
-committed, so any earlier release can be recovered from git. (This is only the frontend: `data/` rolls back through Admin →
+committed, so any earlier release can be recovered from git. (This is only the frontend: `site-data/` rolls back through Admin →
 Backups, which is a different mechanism. audit-runs/audit8.md A-8.4.)
 
-Do not re-upload the **contents** of `data/`, `pdfs/` or `uploads/` — they are
+Do not re-upload the **contents** of `site-data/`, `pdfs/` or `uploads/` — they are
 live customer state — and do not re-upload `admin/` unless you intend to change
 the admin code itself, and then only its tracked files (the manifest row above).
 
-⚠ **The one exception, and it is easy to miss:** `data/.htaccess`,
+⚠ **The one exception, and it is easy to miss:** `site-data/.htaccess`,
 `pdfs/.htaccess` and `uploads/.htaccess` are repo code living inside folders
 that are otherwise customer state. They are the only files in this tree Vite
 never copies into `dist/`, so nothing downstream carries them. **Upload the
@@ -305,16 +305,16 @@ file, never the folder**, whenever it has changed since the last deploy — see
 the manifest above. Nothing on the server records which release is live, so if
 you cannot tell, upload it: an unchanged file costs nothing, a skipped changed
 one fails silently.
-`data/.htaccess` alone carries the `AddType application/json` that
+`site-data/.htaccess` alone carries the `AddType application/json` that
 `jsonOrThrow()` requires and the `X-Robots-Tag` half of the A-5.2 fix.
 (audit-runs/audit6.md A-6.2; this paragraph existed only in the manifest table
 until audit-runs/audit8.md A-8.2.)
 
 ## Architecture notes
 
-- **Three-file round-trip.** React fetches `/data/products-all.json`,
-  `/data/site-info.json` and `/data/content.json` at runtime with a per-minute
-  cache-buster; `data/.htaccess` caches for ~60 s. Admin edits appear publicly
+- **Three-file round-trip.** React fetches `/site-data/products-all.json`,
+  `/site-data/site-info.json` and `/site-data/content.json` at runtime with a per-minute
+  cache-buster; `site-data/.htaccess` caches for ~60 s. Admin edits appear publicly
   within about a minute of a page load.
   For a tab that is *already open*, **all three** re-check when the tab is
   brought back to the front or the window regains focus, past a 60 s TTL:
@@ -343,7 +343,7 @@ until audit-runs/audit8.md A-8.2.)
 - **`public/index.php` is the page every route is served through** (A-5.10,
   WHATS_LEFT §1ar). It fills the built `index.html`'s head (title,
   description, canonical, robots, `og:*`) and a plain-HTML body from
-  `data/*.json`, for link unfurlers and crawlers that never run the bundle.
+  `site-data/*.json`, for link unfurlers and crawlers that never run the bundle.
   It is a port of `PageMeta` in `src/App.jsx` — change one, change the other,
   and run `npm run build && sh _harness/sync.sh && node _harness/prerender.js`,
   which diffs the two on every route and product. The build and re-sync are
@@ -360,9 +360,9 @@ until audit-runs/audit8.md A-8.2.)
 | Refresh on a deep path 404s | `.htaccess` missing from `public_html/` — it ships in `dist/` (from `public/`) |
 | Every page 404s (or every page but `/`) | `.htaccess` is there but `index.php` is not — upload `dist/index.php` |
 | Every page 500s with "The site is being updated. Please try again in a minute." | `index.php` is there but `index.html` is not. Expected on a first deploy from GO-LIVE B2 step 4 until step 9 uploads `index.html` |
-| A shared link previews as the homepage (status 200) | `index.php` ran and fell back to the plain shell: a PHP error, or `data/site-info.json` / `content.json` missing or unparseable — check `data/` and the PHP error log (GO-LIVE C1's product-title check). A missing `index.php` or `.htaccess` gives a 404 instead |
-| Products don't load | `data/products-all.json` not uploaded, not readable (644), malformed, or not served as `application/json` (`data/.htaccess` missing). If the file opens fine and the site loads for you, the visitor's connection dropped or took over 12 s — the screen is the same; ask them to tap Retry |
-| "Failed to save" in admin | `data/` not writable by PHP |
+| A shared link previews as the homepage (status 200) | `index.php` ran and fell back to the plain shell: a PHP error, or `site-data/site-info.json` / `content.json` missing or unparseable — check `site-data/` and the PHP error log (GO-LIVE C1's product-title check). A missing `index.php` or `.htaccess` gives a 404 instead |
+| Products don't load | `site-data/products-all.json` not uploaded, not readable (644), malformed, or not served as `application/json` (`site-data/.htaccess` missing). If the file opens fine and the site loads for you, the visitor's connection dropped or took over 12 s — the screen is the same; ask them to tap Retry |
+| "Failed to save" in admin | `site-data/` not writable by PHP |
 | Inquiries page always empty | `admin/` not writable by PHP — leads are being dropped. The dashboard banner says so |
 | Upload rejected as "too large" | Admin → Help → What your server allows. The effective ceiling is `min(upload_max_filesize, 20MB)` for PDFs and `min(…, 8MB)` for photos — the second figure is hardcoded in `uploaded_pdf_problem()` / `uploaded_image_problem()` in `admin/config.php` (shared by every upload page), so raising `public/.user.ini` alone will not lift it (AUDIT_v3 D6) |
 | "Content saved" but the page didn't change | Hard-refresh; the JSON is cached ~60 s |
@@ -379,6 +379,6 @@ until audit-runs/audit8.md A-8.2.)
 | [public/.htaccess](public/.htaccess) | Ships into `dist/` — **load-bearing** rewrite to `index.php` + asset caching |
 | [public/index.php](public/index.php) | Ships into `dist/` — every page's server-side head and plain-HTML body (A-5.10) |
 | [public/.user.ini](public/.user.ini) | PHP upload and form-field limits |
-| [data/.htaccess](data/.htaccess) | Blocks backups and PHP in the JSON folder |
+| [site-data/.htaccess](site-data/.htaccess) | Blocks backups and PHP in the JSON folder |
 | [DEPLOY_READINESS_v2.md](DEPLOY_READINESS_v2.md) | The audit this release was built against. Its §7 manifest is frozen history — deploy from the tables above and `GO-LIVE.md`, not from §7 |
 | [WHATS_LEFT.md](WHATS_LEFT.md) | Open work, deliberately deferred items, and settled decisions; the full history (and every pre-2026-10-07 `§` reference) is in [audit-runs/WHATS_LEFT-history.md](audit-runs/WHATS_LEFT-history.md) |

@@ -18,7 +18,7 @@
  * Elements are found by their computed background-color rather than by CSS
  * selector, so the measurement follows what the browser really painted.
  *
- * Needs the mirror on :8123. Restores data/site-info.json from pristine.
+ * Needs the mirror on :8123. Restores site-data/site-info.json from pristine.
  *
  * Usage: node _harness/plan2-contrast.js
  */
@@ -29,7 +29,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
-const DIR = path.join(__dirname, 'site/data');
+const DIR = path.join(__dirname, 'site/site-data');
 const MIRROR_SITE = path.join(DIR, 'site-info.json');
 const PRISTINE_SITE = path.join(__dirname, 'pristine/site-info.json');
 const OUT = path.join(__dirname, 'out/contrast');

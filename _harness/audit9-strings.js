@@ -305,9 +305,9 @@ flushTextRun();
 
 /* ================= public-data: three JSON files ========================== */
 const DATA_FILES = {
-  'data/content.json': 'Page Content',
-  'data/site-info.json': 'Business Details',
-  'data/products-all.json': null, // per-record, see below
+  'site-data/content.json': 'Page Content',
+  'site-data/site-info.json': 'Business Details',
+  'site-data/products-all.json': null, // per-record, see below
 };
 function walkJson(val, filePath, jsonPath, editableOn, surface) {
   if (val === null || val === undefined) return;

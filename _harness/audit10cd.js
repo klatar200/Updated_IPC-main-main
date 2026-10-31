@@ -404,7 +404,7 @@ async function publicArms(browser) {
   // ── A10-043 — one apostrophe convention; one term for the grade
   {
     note(!/&rsquo;/.test(app), 'A10-043: no curly-apostrophe entity left in App.jsx (the site uses a straight one)');
-    const files = ['src/App.jsx', 'public/index.php', 'data/content.json'].map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8'));
+    const files = ['src/App.jsx', 'public/index.php', 'site-data/content.json'].map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8'));
     note(files.every((t) => !/specification-grade/.test(t)), 'A10-043: "specification-grade" is "spec-grade" everywhere it ships');
   }
 }

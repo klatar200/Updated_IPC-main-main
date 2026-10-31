@@ -23,7 +23,7 @@
  * associated with anything, which is exactly this defect.
  *
  * Needs the mirror on :8123. 4.30's round-trip SAVES; the caller restores
- * data/ from _harness/pristine (a cleanup step that throws if it fails; not a
+ * site-data/ from _harness/pristine (a cleanup step that throws if it fails; not a
  * counted check — AUDIT-12 A12-L13-12-3).
  *
  * Usage: node _harness/plan4-admin.js
@@ -36,7 +36,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
-const MIRROR_DATA = path.join(__dirname, 'site/data');
+const MIRROR_DATA = path.join(__dirname, 'site/site-data');
 const PRISTINE = path.join(__dirname, 'pristine');
 
 // Measured on the unmodified page. 2026-08-06: 421 (the PLAN-4 doc says 423 —
@@ -59,18 +59,18 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // group. Measured 441 -> 446, i.e. exactly the five fields and nothing else.
 // plan2-trunc.js re-run at 446 against the real max_input_vars=100 server.
 // 2026-09-28: **445** — d922525 (2026-09-15) removed the same-day-shipping
-// row from `heroTrust` in data/content.json (10 -> 9 rows, one text field
+// row from `heroTrust` in site-data/content.json (10 -> 9 rows, one text field
 // each) and did not update this constant, so the suite read 18/19 on main
 // until the 2026-09-28 build test caught it. Proven data-only: against
 // d922525~1's content.json this suite is 19/19 unmodified. Count moves with
 // the shipped row count, not with the form's structure.
 // 2026-10-02: **447** — the Datasheets row added to footerLinks in
-// data/content.json (WHATS_LEFT §1an, C35) is one more row of two fields
+// site-data/content.json (WHATS_LEFT §1an, C35) is one more row of two fields
 // (label, page). Data-only, like 2026-09-28's; plan2-trunc re-run at 447.
 // 2026-10-02: **458** — Company Claims (WHATS_LEFT §1ao, ADM-8 + NEW-V2-3)
 // adds eleven fixed copy fields, one posted variable each. Structural this
 // time, not data: the new group is the whole delta (447 + 11).
-// 2026-10-14: **462** — AUDIT-12 decision 2 grew data/content.json
+// 2026-10-14: **462** — AUDIT-12 decision 2 grew site-data/content.json
 // productFamilies from 11 to 15 rows (PVC, PTFE and FEP, Polyester (Mylar),
 // Extruded Tubing), one posted field each. Data-only, like 2026-09-28's.
 // 2026-10-14: **468** — AUDIT-12 decision 48 gave each of the six homepage

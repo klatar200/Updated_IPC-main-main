@@ -5,7 +5,7 @@
  *
  * Own `php -S` on :8715 over the mirror (php-mail.ini), the real admin pages
  * through `adminhttp.js`, plus PHP CLI calls into the mirror's config.php.
- * Restores data/, pdfs/, the inquiry log and marks, the audit log and the
+ * Restores site-data/, pdfs/, the inquiry log and marks, the audit log and the
  * mirror's uploads in a finally.
  *
  *   node _harness/lowsA2-admin.js
@@ -19,7 +19,7 @@ const { adminHttp } = require('./adminhttp');
 const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
 const ADMIN = path.join(SITE, 'admin');
-const DATA = path.join(SITE, 'data');
+const DATA = path.join(SITE, 'site-data');
 const PRISTINE = path.join(__dirname, 'pristine');
 const PORT = 8715;
 const BASE = `http://127.0.0.1:${PORT}`;

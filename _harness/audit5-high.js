@@ -119,7 +119,7 @@ const POST = (p, o, extra = {}) => req({ path: p, method: 'POST',
   // (AUDIT-12 A12-L13-W1-G1-1).
   {
     const t = fs.mkdtempSync(path.join(require('os').tmpdir(), 'a54-'));
-    fs.mkdirSync(path.join(t, 'admin')); fs.mkdirSync(path.join(t, 'data'));
+    fs.mkdirSync(path.join(t, 'admin')); fs.mkdirSync(path.join(t, 'site-data'));
     for (const f of fs.readdirSync(path.join(ROOT, 'admin'))) {
       if (/\.php$/.test(f) && f !== 'config.local.php') fs.copyFileSync(path.join(ROOT, 'admin', f), path.join(t, 'admin', f));
     }
@@ -189,7 +189,7 @@ array_map('unlink', glob($dir . '/*')); @rmdir($dir);
   // stayed 30/30 with every one of the behaviours switched off
   // (AUDIT-12 A12-L13-W1-G1-1). Two private servers over a COPY of the mirror:
   //   :8750  as root, its temp dir private, for the limiter / auto-reply arms;
-  //   :8751  as `nobody` with admin/ and data/ root-owned (so not writable) and
+  //   :8751  as `nobody` with admin/ and site-data/ root-owned (so not writable) and
   //          a temp dir that does not exist — the state the banners describe.
   //          Root writes everywhere, so only another user can measure this.
   const os = require('os');
@@ -251,7 +251,7 @@ array_map('unlink', glob($dir . '/*')); @rmdir($dir);
     ok(!autoRepliedTo('a59-unstored@example.com'),
        'A-5.9 the auto-reply fails CLOSED when the cap cannot be stored');
 
-    // :8751 — the dashboard as Rick sees it on a host with admin/, data/ and the
+    // :8751 — the dashboard as Rick sees it on a host with admin/, site-data/ and the
     // temp dir unwritable.
     if (process.getuid && process.getuid() === 0 && spawnSync('runuser', ['--help']).status === 0) {
       start(8751, path.join(TT, 'no-such-temp-dir'), true);

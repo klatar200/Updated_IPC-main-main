@@ -194,8 +194,8 @@ async function crawl(browser) {
   const SITE = path.join(TMP, 'site');
   const MAIL = path.join(TMP, 'mail.log');
   fs.cpSync(MIRROR, SITE, { recursive: true, filter: (p) => !/\/admin\/(\.sessions|.*\.jsonl$|\.login-throttle\.json$|\.inquiries-seen\.json$)/.test(p) });
-  for (const f of ['products-all.json', 'content.json', 'site-info.json']) fs.copyFileSync(path.join(__dirname, 'pristine', f), path.join(SITE, 'data', f));
-  for (const x of fs.readdirSync(path.join(SITE, 'data'))) if (/\.backup\./.test(x)) fs.rmSync(path.join(SITE, 'data', x));
+  for (const f of ['products-all.json', 'content.json', 'site-info.json']) fs.copyFileSync(path.join(__dirname, 'pristine', f), path.join(SITE, 'site-data', f));
+  for (const x of fs.readdirSync(path.join(SITE, 'site-data'))) if (/\.backup\./.test(x)) fs.rmSync(path.join(SITE, 'site-data', x));
   fs.copyFileSync(path.join(__dirname, 'fakemail.sh'), path.join(TMP, 'fakemail.sh'));   // php-mail.ini: sendmail_path = ../fakemail.sh
   // Its own temp dir: contact.php keeps its per-IP rate limit and auto-reply
   // cap there, and the shared one fills up after a couple of runs (measured:
@@ -222,7 +222,7 @@ async function crawl(browser) {
     const eg = await a.req('GET', `/admin/edit.php?sku=${SKU}`);
     const er = await a.post(`/admin/edit.php?sku=${SKU}`, markProduct(a.formFields(eg.body, /orig_sig/)));
     note(er.status === 302, `setup: product ${SKU} saves with a marker in its text fields`, `status ${er.status}`);
-    const disk = ['content.json', 'site-info.json', 'products-all.json'].map((f) => fs.readFileSync(path.join(SITE, 'data', f), 'utf8').toLowerCase()).join('\n');
+    const disk = ['content.json', 'site-info.json', 'products-all.json'].map((f) => fs.readFileSync(path.join(SITE, 'site-data', f), 'utf8').toLowerCase()).join('\n');
     const lost = Object.entries(markers).filter(([m]) => !disk.includes(m)).map(([, f]) => f);
     note(lost.length === 0, `setup: all ${Object.keys(markers).length} markers reached the data files`, lost.slice(0, 8).join(', '));
 
@@ -320,7 +320,7 @@ async function crawl(browser) {
       note(/No datasheets found/.test(ds) && ds.includes(NEWPHONE) && !ds.includes('630.771.0700'), '§2t: /datasheets "No datasheets found" gives the Business Details phone');
       const pr = await read('/products', 'Search by part number');
       note(/No products found/.test(pr) && pr.includes(NEWPHONE) && !pr.includes('630.771.0700'), '§2t: /products "No products found" gives the Business Details phone');
-      const cat = path.join(SITE, 'data', 'products-all.json');
+      const cat = path.join(SITE, 'site-data', 'products-all.json');
       const keep = fs.readFileSync(cat);
       fs.writeFileSync(cat, '[]');
       const dash = await read('/dashboard');

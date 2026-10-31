@@ -11,7 +11,7 @@
  * the audit log could not answer the only question it exists for.
  *
  * This suite MUTATES real content, so it:
- *   - snapshots _harness/site/data/content.json before it starts,
+ *   - snapshots _harness/site/site-data/content.json before it starts,
  *   - restores it from _harness/pristine/ at the end, in a finally block, and
  *   - verifies the restore byte-for-byte before reporting.
  * A suite that leaves the mirror dirty poisons every later run.
@@ -33,7 +33,7 @@ const { launch } = require('./browser');
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
 const OUT = path.join(__dirname, 'out', 'plan10');
-const MIRROR = path.join(__dirname, 'site', 'data', 'content.json');
+const MIRROR = path.join(__dirname, 'site', 'site-data', 'content.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'content.json');
 const LOG = path.join(__dirname, 'site', 'admin', 'admin-log.jsonl');
 fs.mkdirSync(OUT, { recursive: true });
