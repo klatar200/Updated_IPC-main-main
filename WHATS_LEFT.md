@@ -53,7 +53,7 @@ not yet in the email.)
 | Apex → `www` 301 (TLS done 2026-10-31) | `insulationproducts.com` still answers 200 over HTTPS. `SITE_ORIGIN`, `sitemap.php`, `index.php` and `robots.txt` all say `https://www.insulationproducts.com` |
 | PHP ≥ 7.4, `mod_rewrite`, `mod_access_compat` | §A; GO-LIVE C1 has the curl checks |
 | **Upload `index.php` before `.htaccess`** | The new `.htaccess` sends every page to `index.php` (A-5.10) |
-| **Quote email does not send** — `noreply@` mailbox; SPF / DKIM / DMARC; then `IPC_ENVELOPE_FROM` | Measured 2026-10-31 (GO-LIVE C4, one test RFQ from the live Contact page): `mail()` returned false, the buyer saw "The mail server could not send your message…", and Inquiries shows the row as EMAIL FAILED. The lead was kept; nobody was notified. A read-only probe (uploaded, read, deleted the same day) showed `mail()` is enabled — `disable_functions` lists only `shell_exec,passthru,exec,system,pcntl_exec`; `sendmail_path` `/usr/sbin/sendmail -t -i`, no forced `-f`, no `sendmail_from` — so the host's sendmail itself refuses the message. Most likely cause, per GO-LIVE A: `From: noreply@insulationproducts.com` is not a mailbox on the Network Solutions account (the domain's mail is Microsoft 365). Fix: create that mailbox at Network Solutions, or ask their support what sender their sendmail requires; or send through Microsoft 365 SMTP instead (code change plus a mailbox login from IPC). Then, in that order: SPF / DKIM / DMARC, then the envelope sender — setting it before SPF is right breaks every notification (DEP-2). |
+| **Quote email does not send** — `noreply@` mailbox; SPF / DKIM / DMARC; then `IPC_ENVELOPE_FROM` | Measured 2026-10-31 (GO-LIVE C4, one test RFQ from the live Contact page): `mail()` returned false, the buyer saw "The mail server could not send your message…", and Inquiries shows the row as EMAIL FAILED. The lead was kept; nobody was notified. A read-only probe (uploaded, read, deleted the same day) showed `mail()` is enabled — `disable_functions` lists only `shell_exec,passthru,exec,system,pcntl_exec`; `sendmail_path` `/usr/sbin/sendmail -t -i`, no forced `-f`, no `sendmail_from` — so the host's sendmail itself refuses the message. Most likely cause, per GO-LIVE A: `From: noreply@insulationproducts.com` was not a mailbox on the Network Solutions account (the domain's mail is Microsoft 365). Same day: `noreply@` created as a free "Hosting Package Email" box (NS: up to 4 h to take effect). **Creating it silently rewrote the domain's DNS in the NS dashboard** — MX to `mx001…mx004.netsol.xion.oxcs.net` and SPF to `include:spf.registeredsite.com include:spf.cloudus.oxcs.net ~all` — which would have sent all of IPC's mail to NS; caught before the MX reached any public resolver and put back by hand: one MX `0 insulationproducts-com.mail.protection.outlook.com`, SPF `v=spf1 include:spf.protection.outlook.com include:spf.registeredsite.com -all` (6 DNS lookups). **Anyone adding an NS mailbox again must re-check MX and SPF straight after.** Still to do: retest the quote form once the mailbox is active; then `IPC_ENVELOPE_FROM`. Fallback if `mail()` still fails: send through Microsoft 365 SMTP (code change plus a mailbox login from IPC). Then, in that order: SPF / DKIM / DMARC, then the envelope sender — setting it before SPF is right breaks every notification (DEP-2). |
 | TRACE off | A host setting; `.htaccess` cannot do it |
 
 ## Open — deferred by decision (not to be built without a new decision)
@@ -193,6 +193,12 @@ is in the history file at the § given.
 | Old site admin at `/site/admin/` | Keagan 2026-10-13: keep it running and skip its password change for now. AUDIT-12 A12-L3-W5-G2-2 stays open as a risk, not a task. | AUDIT-12 |
 
 Corrections to the table above (rows left as written; dated here):
+
+- **2026-10-31:** "Old site admin at `/site/admin/`" is **superseded**. Keagan
+  approved moving `site/`, `public_html/`, `newsite/` and `OLD SITE INFECTED/`
+  out of the live web root into `backup/` the same day, after both old admins and
+  a public `_hash.php` were found answering (Done row of 2026-10-31). AUDIT-12
+  A12-L3-W5-G2-2 is closed by that move.
 
 - **2026-10-13 (AUDIT-12 A12-L14-03-1):** "Product-page footer layout shift"
   — its record is history §2d, and the "Accepted" decision is in §1aq; §2b,

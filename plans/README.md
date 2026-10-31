@@ -30,6 +30,11 @@ with the Workflow tool:
 Written and tested 2026-10-07; **run 2026-10-07 → 2026-10-13** — report in
 [`audit-runs/audit12.md`](../audit-runs/audit12.md) (no fixes). The kickoff prompt is its §14.
 
+**Proposed, not started: [PLAN-13](PLAN-13-admin-dashboard-ux.md)** — the
+admin dashboard's navigation, layout and readability (2026-10-31). Its §6 lists
+the decisions needed before Phase 2; the first (sticky top bar, not a sidebar)
+is made.
+
 ---
 
 ## Where the earlier plans went
