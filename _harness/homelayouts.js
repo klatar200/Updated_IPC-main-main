@@ -168,14 +168,19 @@ function pageChecks() {
   for (const a of document.querySelectorAll('a[href]')) { const h = a.getAttribute('href'); if (/^(tel|mailto):$/.test(h) || h === '' || /undefined/.test(h)) o.bad.push('href "' + h + '"'); }
   for (const h of document.querySelectorAll('h1, h2, h3')) if (!h.textContent.trim()) o.bad.push('empty ' + h.tagName);
   for (const el of document.querySelectorAll('body *')) {
-    if (el.closest('.ipc-marquee-track') || !el.clientWidth) continue;
+    // A 1px box is the sr-only pattern (clip, width 1px) — hidden by design;
+    // the "Visit us" card's "(Google Maps, opens in a new tab)" is one.
+    if (el.closest('.ipc-marquee-track') || el.clientWidth <= 1) continue;
     if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
     if (el.scrollWidth > el.clientWidth + 1) o.bad.push('text wider than its box: "' + el.textContent.trim().slice(0, 30) + '" ' + el.scrollWidth + '>' + el.clientWidth);
   }
   for (const s of document.querySelectorAll('section')) { const b = s.getBoundingClientRect(); if (b.height > 0 && b.height < 40) o.residue.push('section ' + (s.id || s.className.slice(0, 40)) + ' h=' + Math.round(b.height)); }
   // A displayed grid item with no height still takes the grid's gap.
   for (const g of document.querySelectorAll('.grid')) {
-    const kids = [...g.children].filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.getBoundingClientRect());
+    // display:contents has no box of its own — its children are the grid
+    // items (the photo band's side column is md:contents between md and xl).
+    const items = (el) => [...el.children].flatMap((c) => getComputedStyle(c).display === 'contents' ? items(c) : [c]);
+    const kids = items(g).filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.getBoundingClientRect());
     // Side by side, the hero's empty right column (no photo, no proof points)
     // costs no height; stacked, it costs the gap.
     const sideBySide = /lg:grid-cols-2/.test(g.className) && vw >= 1024;
@@ -226,7 +231,9 @@ function tickerEnd() {
 function iconContrast() {
   const lum = (c) => { const m = c.match(/[\d.]+/g).map(Number); const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); };
   return [...document.querySelectorAll('#ipc-sec-stats svg[stroke]')].map((s) => {
-    const a = lum(getComputedStyle(s).stroke), b = lum(getComputedStyle(s.parentElement.closest('.rounded-lg')).backgroundColor);
+    // The tile, where there is one; the 2026-10-17 dark band has none, so the
+    // icon sits straight on the section.
+    const a = lum(getComputedStyle(s).stroke), b = lum(getComputedStyle(s.parentElement.closest('.rounded-lg, section')).backgroundColor);
     return +((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toFixed(2);
   });
 }

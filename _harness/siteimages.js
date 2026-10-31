@@ -85,7 +85,9 @@ const sizeOf = (file) => spawnSync('php', ['-r', '$s=getimagesize($argv[1]); ech
     note(out.status === 302 && /auth\.php/.test(out.headers.location || ''), 'guards: signed out → sign-in page');
     if (!(await a.login(PW))) throw new Error('sign-in failed');
     const page = await a.req('GET', '/admin/site-images.php');
-    note(page.status === 200 && (page.body.match(/<section class="card" id="slot-/g) || []).length === 6, 'the page lists six slots (five page photos + logo)');
+    // Eight since 2026-10-17: the Bold homepage layout's hero and featured-
+    // product photos joined the five page photos and the logo.
+    note(page.status === 200 && (page.body.match(/<section class="card" id="slot-/g) || []).length === 8, 'the page lists eight slots (seven page photos + logo)');
     // AUDIT-12 decision 35 (A12-L8-09-5): shipped pictures are listed by a
     // readable name, not their file name ("coulplings1.png"), and the files
     // themselves are not renamed.

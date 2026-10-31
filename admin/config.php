@@ -3379,6 +3379,30 @@ function upload_error_message(int $code, string $what = 'file', int $ownCapMb = 
 
 // Helper: sanitize a string for display.
 // No `mixed` type-hint so this works on PHP 7.4+ as well as 8.x — some
+/**
+ * Keagan 2026-10-17 — the homepage designs offered under Business Details →
+ * Branding → Homepage layout. The keys are stored in site-info.json
+ * theme.homeLayout; the same list is HOME_LAYOUTS in src/App.jsx, which
+ * renders "classic" for any other value. settings.php offers and saves it;
+ * content.php reads it to mark the boxes the chosen layout does not show.
+ */
+const HOME_LAYOUTS = [
+    'classic' => 'Classic — the original homepage',
+    'bold'    => 'Bold — large photo hero, big numbers, featured product line',
+    'light'   => 'Light — bright, photo tiles for every product line and service',
+    // 2026-10-17 — three layouts modelled on other suppliers in IPC's
+    // industry (Allied Wire & Cable / Lapp Tannehill; Pexco / Zeus; Qualtek).
+    'distributor' => 'Distributor catalog — product search and every product family as a photo tile',
+    'corporate'   => 'Corporate — split hero, large photo panels, the full product range as a list',
+    'sidebar'     => 'Classic distributor — product families in a sidebar, featured products with datasheets',
+];
+
+/** The stored homepage layout key, or "classic" for anything unlisted. */
+function home_layout_current(array $info): string {
+    $v = $info['theme']['homeLayout'] ?? '';
+    return is_string($v) && array_key_exists($v, HOME_LAYOUTS) ? $v : 'classic';
+}
+
 // Network Solutions shared-hosting plans still default to older PHP.
 function h($val): string {
     return htmlspecialchars((string)($val ?? ''), ENT_QUOTES, 'UTF-8');

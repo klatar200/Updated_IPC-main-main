@@ -19,6 +19,87 @@ $FEATURE_ICONS = [
     'marking'    => 'Marking / label',
     'quality'    => 'Quality / shield',
 ];
+/**
+ * Keagan 2026-10-17 — the Light homepage layout shows each Products & Services
+ * card with a photo. A card that has never had its Photo box saved shows the
+ * built-in picture for its icon (this list); a box emptied on purpose shows
+ * none. The form prefills an absent box with the same value, so the first
+ * Save after this release keeps the photos rather than writing "" over them.
+ * The same list, with the same values, is FEATURE_PHOTO_DEFAULTS in
+ * src/App.jsx (homelayout.js compares the two).
+ */
+const FEATURE_PHOTO_DEFAULTS = [
+    'heatshrink' => 'images/site/bold-heat-shrink.jpg',
+    'sleeving'   => 'images/products/IP64FS-IP65VC-IP66AC-IP67SC.jpg',
+    'adhesives'  => 'images/products/IP75AD.png',
+    'cut'        => 'images/products/value-added.png',
+    'marking'    => 'images/site/id-markers.png',
+    'quality'    => 'images/site/IPC-Building.jpg',
+];
+/**
+ * Audit 2026-10-17 — which homepage layouts show each homepage box on this
+ * page. Every layout is edited here, but no layout shows every box (the
+ * Distributor catalog has no Products & Services cards, Classic has no
+ * Distributor headings …), and a box edited under a layout that does not show
+ * it saved under a green banner and changed nothing Rick could see. A box
+ * listed here whose layouts do not include the current one is marked "Not
+ * shown by your current homepage layout". Keys are a list section name or
+ * "group.key" for a copy box. Taken from BoldHome … SidebarHome and Classic's
+ * Hero / StatsBar / Features / Markets in src/App.jsx; homelayout.js checks
+ * every mark against the rendered homepage.
+ */
+const HOME_LAYOUT_USES = [
+    'features'        => ['classic', 'bold', 'light'],
+    'stats'           => ['classic', 'bold', 'light', 'corporate'],
+    'markets'         => ['classic', 'bold', 'light', 'distributor', 'corporate'],
+    'heroProofPoints' => ['classic'],
+    'heroTrust'       => ['classic', 'bold', 'light', 'distributor'],
+    'hero.headlineAccent'      => ['classic', 'bold', 'light', 'distributor', 'corporate'],
+    'hero.subhead'             => ['classic', 'distributor'],
+    'hero.boldSubhead'         => ['bold', 'light', 'corporate'],
+    'hero.ctaPrimaryLabel'     => ['classic', 'bold', 'light', 'distributor', 'corporate'],
+    'hero.ctaPrimaryPage'      => ['classic', 'bold', 'light', 'distributor', 'corporate'],
+    'hero.ctaSecondaryLabel'   => ['classic', 'bold', 'light', 'distributor'],
+    'hero.ctaSecondaryPage'    => ['classic', 'bold', 'light', 'distributor'],
+    'homeFeatures.eyebrow'     => ['classic', 'bold', 'light'],
+    'homeFeatures.title'       => ['classic', 'bold', 'light'],
+    'homeFeatures.ctaText'     => ['classic', 'bold', 'light', 'distributor', 'corporate'],
+    'homeFeatures.ctaButton'   => ['classic', 'bold', 'light', 'distributor', 'corporate'],
+    'homeMarkets.eyebrow'      => ['classic', 'bold', 'light'],
+    'homeMarkets.title'        => ['classic', 'bold', 'light', 'distributor'],
+    'homeMarkets.subtitle'     => ['classic', 'bold', 'light'],
+    'siteImages.heroPhoto'         => ['classic', 'light', 'corporate', 'sidebar'],
+    'siteImages.bandTeamPhoto'     => ['classic', 'bold', 'light'],
+    'siteImages.bandBuildingPhoto' => ['classic', 'corporate'],
+    'siteImages.boldHeroPhoto'     => ['bold', 'distributor', 'corporate'],
+    'siteImages.boldFeaturePhoto'  => ['bold', 'corporate'],
+    'homeLayouts.familiesTitle'          => ['distributor'],
+    'homeLayouts.servicesTitle'          => ['distributor'],
+    'homeLayouts.approvalsTitle'         => ['distributor'],
+    'homeLayouts.approvalsLead'          => ['distributor'],
+    'homeLayouts.faqText'                => ['distributor'],
+    'homeLayouts.productsPanelTitle'     => ['corporate'],
+    'homeLayouts.capabilitiesPanelTitle' => ['corporate'],
+    'homeLayouts.industriesPanelTitle'   => ['corporate'],
+    'homeLayouts.productsListTitle'      => ['corporate'],
+    'homeLayouts.featuredTitle'          => ['sidebar'],
+    'homeLayouts.sidebarApprovalsTitle'  => ['sidebar'],
+    'homeLayouts.sidebarServicesTitle'   => ['sidebar'],
+    'homeLayouts.quoteLinkTitle'         => ['sidebar'],
+    'homeLayouts.quoteLinkText'          => ['sidebar'],
+    'homeLayouts.fabLinkTitle'           => ['sidebar'],
+    'homeLayouts.fabLinkText'            => ['sidebar'],
+    'homeLayouts.isoLinkText'            => ['sidebar'],
+];
+
+/** The "not shown by your layout" note for a box, or "" when it is shown. */
+function home_layout_off_note(string $key, string $layout): string {
+    $uses = HOME_LAYOUT_USES[$key] ?? null;
+    if ($uses === null || in_array($layout, $uses, true)) return '';
+    $names = array_map(static fn($k) => explode(' — ', HOME_LAYOUTS[$k])[0], $uses);
+    return '<p class="layout-off">Not shown by your current homepage layout (' . h(explode(' — ', HOME_LAYOUTS[$layout])[0])
+        . '). Kept, and shown by: ' . h(implode(', ', $names)) . '.</p>';
+}
 $STAT_ICONS = [
     'years'  => 'Calendar (years)',
     'stock'  => 'Boxes (stock)',
@@ -87,6 +168,8 @@ $SECTIONS = [
             // AUDIT-12 decision 48 (A12-L6-W3-G5-1) — all six cards opened the
             // same unfiltered catalog. Checked on save below.
             ['key' => 'link',        'type' => 'text',     'label' => 'Links to (a page of this website, e.g. /services)', 'full' => true],
+            // Keagan 2026-10-17 — shown only by the Light homepage layout.
+            ['key' => 'photo',       'type' => 'text',     'labelHtml' => true, 'label' => 'Photo — Light homepage layout only (empty: no photo)<br><small style="font-weight:400;color:#4b5563">A picture already on your server, such as <code>images/site/IPC-Building.jpg</code> or <code>uploads/site/…</code>. Putting a new one on the server: Help → "Putting a new photo or logo on the server".</small>', 'full' => true],
         ],
     ],
     'stats' => [
@@ -346,7 +429,11 @@ $COPY_GROUPS = [
         ['key' => 'bandTeamPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage band — team photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',     'default' => 'images/site/staff.jpg'],
         ['key' => 'bandBuildingPhoto',  'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage band — building photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/IPC-Building.jpg'],
         ['key' => 'aboutPhoto',         'type' => 'text', 'labelHtml' => true, 'label' => 'About page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',             'default' => 'images/site/IPC-Building.jpg'],
-        ['key' => 'servicesPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
+        // Keagan 2026-10-17 — the Bold homepage layout's two photos. Shown
+        // only while Business Details → Branding → Homepage layout is Bold.
+        ['key' => 'boldHeroPhoto',      'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage — spools photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Used by the <b>Bold</b>, <b>Distributor catalog</b> and <b>Corporate</b> homepage layouts (Business Details → Branding → Homepage layout). Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/bold-hero-spools.jpg'],
+        ['key' => 'boldFeaturePhoto',   'type' => 'text', 'labelHtml' => true, 'label' => 'Homepage — featured product photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">The large first Products &amp; Services card in the <b>Bold</b> layout, and the Products panel and product list in the <b>Corporate</b> layout. Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>', 'default' => 'images/site/bold-heat-shrink.jpg'],
+        ['key' => 'servicesPhoto',     'type' => 'text', 'labelHtml' => true, 'label' => 'Services page — photo (empty removes it)<br><small style="font-weight:400;color:#4b5563">Paths starting <code>uploads/</code> are safe forever. A path starting <code>images/</code> is part of the website itself and will be replaced the next time the site is updated — put your own photos in <code>uploads/site/</code>.</small>',          'default' => 'images/site/Marker-Sample-2.jpg'],
     ]],
     // ADM-8 + NEW-V2-3 (audit 2026-09-27) — business claims that were
     // hardcoded in src/App.jsx with no admin screen. Made editable on the
@@ -380,7 +467,15 @@ $COPY_GROUPS = [
         ['key' => 'headlineAccent',    'type' => 'text',     'label' => 'Headline — line 2 (accent color)'],
         ['key' => 'headlineLine3',     'type' => 'text',     'label' => 'Headline — line 3'],
         ['key' => 'subhead',           'type' => 'textarea', 'label' => 'Sub-headline paragraph'],
-        ['key' => 'ctaPrimaryLabel',   'type' => 'text',     'label' => 'Primary button text'],
+        // Keagan 2026-10-17 — the Bold layout's hero has room for one
+        // sentence; the paragraph above is used by the Classic layout.
+        ['key' => 'boldSubhead',       'type' => 'text',     'label' => 'Short sub-headline, one sentence (Bold, Light and Corporate layouts; the paragraph above is used by Classic and Distributor catalog)', 'full' => true,
+            // Audit 2026-10-17 — no stored content.json has this key yet, so
+            // the box showed EMPTY while the site showed the built-in sentence:
+            // Rick could not see what he was editing. Prefilled with the same
+            // value as COPY_DEFAULTS.hero.boldSubhead (homelayout.js).
+            'default' => 'Spec-grade heat-shrinkable and extruded tubing, electrical sleeving and industrial adhesives, stocked in Bolingbrook and cut to your spec.'],
+        ['key' => 'ctaPrimaryLabel',  'type' => 'text',     'label' => 'Primary button text'],
         ['key' => 'ctaPrimaryPage',    'type' => 'page',     'label' => 'Primary button links to', 'options' => $PAGE_OPTIONS],
         ['key' => 'ctaSecondaryLabel', 'type' => 'text',     'label' => 'Secondary button text'],
         ['key' => 'ctaSecondaryPage',  'type' => 'page',     'label' => 'Secondary button links to', 'options' => $PAGE_OPTIONS],
@@ -395,6 +490,29 @@ $COPY_GROUPS = [
         ['key' => 'eyebrow',  'type' => 'text',     'label' => 'Eyebrow'],
         ['key' => 'title',    'type' => 'text',     'label' => 'Title'],
         ['key' => 'subtitle', 'type' => 'textarea', 'label' => 'Subtitle'],
+    ]],
+    // Audit 2026-10-17 — the headings and short lines the three industry
+    // layouts print that no other box holds. Same values as
+    // COPY_DEFAULTS.homeLayouts in src/App.jsx (homelayout.js holds the pair);
+    // an emptied box shows the default again, as the headings above do.
+    'homeLayouts' => ['title' => 'Homepage — Distributor catalog, Corporate and Classic distributor headings', 'fields' => [
+        ['key' => 'familiesTitle',         'type' => 'text', 'label' => 'Distributor catalog — product families heading',                 'default' => 'Shop by Product Family'],
+        ['key' => 'servicesTitle',         'type' => 'text', 'label' => 'Distributor catalog — services heading',                         'default' => 'Value-Added Services'],
+        ['key' => 'approvalsTitle',        'type' => 'text', 'label' => 'Distributor catalog — approvals heading',                        'default' => 'Approvals Across Our Catalog'],
+        ['key' => 'approvalsLead',         'type' => 'text', 'label' => 'Distributor catalog — line under the approvals heading',         'default' => 'Each opens the Product Index showing the products that carry it.', 'full' => true],
+        ['key' => 'faqText',               'type' => 'text', 'label' => 'Distributor catalog — line under "Resources & FAQ"',             'default' => 'Sizing, materials and ordering answers.'],
+        ['key' => 'productsPanelTitle',    'type' => 'text', 'label' => 'Corporate — first photo panel title (products)',                 'default' => 'Products'],
+        ['key' => 'capabilitiesPanelTitle','type' => 'text', 'label' => 'Corporate — second photo panel title (your services)',           'default' => 'Capabilities'],
+        ['key' => 'industriesPanelTitle',  'type' => 'text', 'label' => 'Corporate — third photo panel title (your industries)',          'default' => 'Industries'],
+        ['key' => 'productsListTitle',     'type' => 'text', 'label' => 'Corporate — product list heading',                               'default' => 'Our Products'],
+        ['key' => 'featuredTitle',         'type' => 'text', 'label' => 'Classic distributor — featured products heading',                'default' => 'Featured Products'],
+        ['key' => 'sidebarApprovalsTitle', 'type' => 'text', 'label' => 'Classic distributor — approvals heading',                        'default' => 'Approvals in Our Catalog'],
+        ['key' => 'sidebarServicesTitle',  'type' => 'text', 'label' => 'Classic distributor — services heading in the sidebar',          'default' => 'Services'],
+        ['key' => 'quoteLinkTitle',        'type' => 'text', 'label' => 'Classic distributor — first quick link (opens Contact)',         'default' => 'Request a Quote'],
+        ['key' => 'quoteLinkText',         'type' => 'text', 'label' => 'Classic distributor — line under the first quick link',          'default' => 'Pricing and lead time'],
+        ['key' => 'fabLinkTitle',          'type' => 'text', 'label' => 'Classic distributor — services quick link (opens Services)',    'default' => 'Custom Fabrication'],
+        ['key' => 'fabLinkText',           'type' => 'text', 'label' => 'Classic distributor — line under the services quick link',       'default' => 'Cut, mark, spool and kit'],
+        ['key' => 'isoLinkText',           'type' => 'text', 'label' => 'Classic distributor — line under the ISO quick link (the ISO wording itself is Business Details → Certifications)', 'default' => 'Registered quality system', 'full' => true],
     ]],
     'servicesHeader' => ['title' => 'Services page — banner', 'fields' => [
         ['key' => 'eyebrow', 'type' => 'text',     'label' => 'Eyebrow'],
@@ -704,6 +822,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $t = is_array($p) ? trim((string)($p['partType'] ?? '')) : '';
         if ($t !== '') $familyNames[$t] = true;
     }
+    // Keagan 2026-10-17 — a card's Photo box (Light layout). The site paints
+    // only a picture path on this website (App.jsx cardPhotoSrc), so anything
+    // else is refused here, naming the card, rather than saved and ignored.
+    foreach (($out['features'] ?? []) as $fi => $row) {
+        $ph = trim((string)($row['photo'] ?? ''));
+        $out['features'][$fi]['photo'] = $ph;
+        if ($ph === '') continue;
+        if (!preg_match('#^/?(images|uploads)/[A-Za-z0-9._ ()/-]+\.(jpe?g|png|webp|gif)$#i', $ph) || strpos($ph, '..') !== false) {
+            $card = trim((string)($row['title'] ?? ''));
+            $errors[] = 'The Photo box on the "' . ($card !== '' ? $card : 'card ' . ($fi + 1)) . '" card must be a picture on this website, such as images/site/IPC-Building.jpg or uploads/site/my-photo.jpg. Nothing was saved.';
+        }
+    }
     foreach (($out['features'] ?? []) as $fi => $row) {
         $link = trim((string)($row['link'] ?? ''));
         $out['features'][$fi]['link'] = $link;
@@ -952,6 +1082,12 @@ function field_id(string $name): string {
 function render_field(string $section, int $i, array $f, array $row, string $sectionTitle = ''): string {
     $key  = $f['key'];
     $raw  = $row[$key] ?? '';
+    // A card saved before the Photo box existed has no `photo` key at all:
+    // show the built-in picture the site already shows for it, so a Save
+    // keeps it. A key that is present (even "") is shown as stored.
+    if ($section === 'features' && $key === 'photo' && $row !== [] && !array_key_exists('photo', $row)) {
+        $raw = FEATURE_PHOTO_DEFAULTS[(string)($row['iconKey'] ?? '')] ?? '';
+    }
     $val  = is_array($raw) ? $raw : (string)$raw;
     $name = $section . '[' . $i . '][' . $key . ']';
     $id   = field_id($name);
@@ -1101,7 +1237,7 @@ function ipc_family_product_count(string $name): int {
 
 /** Render one fixed copy field (hero text, section headings, page banners).
  * These are fixed (not repeatable), so names are static — no JS involved. */
-function render_copy_field(string $group, array $f, $val, array $pageOptions, string $groupTitle = ''): string {
+function render_copy_field(string $group, array $f, $val, array $pageOptions, string $groupTitle = '', string $note = ''): string {
     $name = 'copy[' . $group . '][' . $f['key'] . ']';
     $id   = field_id($name);
     $v = (string)$val;
@@ -1133,7 +1269,9 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     } else {
         $out .= '<input type="text" class="ci" id="' . h($id) . '" name="' . h($name) . '" value="' . h($v) . '">';
     }
-    return $out . '</div>';
+    // $note: home_layout_off_note() — after the box, so the label (and the
+    // accessible name other pages and suites rely on) is unchanged.
+    return $out . $note . '</div>';
 }
 
 $navActive = 'content';
@@ -1168,6 +1306,11 @@ $navActive = 'content';
     .where { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: -10px 0 18px; }
     .where-link { flex-shrink: 0; font-size: 12px; font-weight: 700; color: #005da3; text-decoration: none; background: rgba(0,93,163,0.08); border-radius: 6px; padding: 5px 10px; }
     .where-link:hover { background: rgba(0,93,163,0.16); }
+    /* Audit 2026-10-17 — the homepage layout marks (home_layout_off_note). */
+    .layout-now { font-size: 13px; color: #1e3a5f; background: #eef5fb; border: 1px solid #c9dcee; border-radius: 8px; padding: 10px 14px; margin: 0 0 18px; }
+    .layout-now a { color: #005da3; }
+    .layout-off { margin: 6px 0 0; font-size: 12px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 5px 9px; }
+    .card > .layout-off { margin: -6px 0 16px; }
     .where-link:focus-visible { outline: 3px solid #005da3; outline-offset: 2px; }
     .where-note { font-size: 12px; color: #6b7280; line-height: 1.5; flex: 1 1 240px; min-width: 0; }
     @media (pointer: coarse) { .where-link { padding: 12px 14px; } }
@@ -1220,6 +1363,8 @@ $navActive = 'content';
        FAQ, Contact, Privacy, the SEO text, the navigation menus and the
        footer. Same defect as the hardcoded audit-log line above, in the copy. -->
   <p class="sub">Edit the wording and lists for every page of the site below — homepage, Services, Industries, About, FAQ, Contact, Privacy, search-engine text, menus and footer. Add, remove, or reorder items — changes go live within about a minute.</p>
+  <?php $homeLayout = home_layout_current(load_site_info()); ?>
+  <p class="layout-now" id="ipc-layout-now">Your homepage uses the <strong><?= h(explode(' — ', HOME_LAYOUTS[$homeLayout])[0]) ?></strong> layout (<a href="settings.php#theme_layout">Business Details → Branding → Homepage layout</a>). Every layout is edited on this page; homepage boxes this layout does not show are marked <em>Not shown by your current homepage layout</em>. They are kept, and appear again if you switch.</p>
 
   <?php if ($saved && $noChange): ?><div class="alert-info">No changes to save — the page content already says exactly this, so nothing was written and no backup was used.</div>
   <?php elseif ($saved): ?><div class="alert-success">✅ Content saved. The website will reflect the changes within ~60 seconds.</div><?php endif; ?>
@@ -1279,7 +1424,7 @@ $navActive = 'content';
           <?php /* PLAN-9 item 1 — `??` and not `?:`: only a key ABSENT from the
                 stored file falls back to the field default. A stored "" is a
                 real clearing — it shows empty and stays cleared. */
-                foreach ($gcfg['fields'] as $f) echo render_copy_field($g, $f, ($content['copy'][$g][$f['key']] ?? ($f['default'] ?? '')), $PAGE_OPTIONS, (string)($gcfg['title'] ?? '')); ?>
+                foreach ($gcfg['fields'] as $f) echo render_copy_field($g, $f, ($content['copy'][$g][$f['key']] ?? ($f['default'] ?? '')), $PAGE_OPTIONS, (string)($gcfg['title'] ?? ''), home_layout_off_note($g . '.' . $f['key'], $homeLayout)); ?>
         </div>
       </fieldset>
     <?php endforeach; ?>
@@ -1304,6 +1449,7 @@ $navActive = 'content';
       <fieldset class="card" data-section="<?= h($sec) ?>" data-section-title="<?= h((string)($cfg['title'] ?? '')) ?>">
         <legend class="card-title"><?= h((string)$cfg['title']) ?></legend>
         <p class="sub"><?= $cfg['sub'] ?></p>
+        <?= home_layout_off_note($sec, $homeLayout) ?>
         <?php /* E1/E2 — "where does this actually appear?"
                  Every group already described its location in prose ("the
                  four-up stat strip below the hero"). Prose is the right thing

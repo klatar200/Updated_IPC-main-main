@@ -76,7 +76,15 @@ const PRISTINE = path.join(__dirname, 'pristine');
 // 2026-10-14: **468** — AUDIT-12 decision 48 gave each of the six homepage
 // Products & Services cards a "Links to" box: one posted field per card.
 // Structural (features[i][link]); plan2-trunc / plan2-formlast re-run at 468.
-const POSTED_BEFORE = 468;
+// 2026-10-17: **471** — the Bold homepage layout: Hero's "Bold layout only —
+// short sub-headline" and the Site Images fields boldHeroPhoto and
+// boldFeaturePhoto, one posted field each. Structural (468 + 3).
+// 2026-10-17: **477** — the Light homepage layout: a Photo box on each of the
+// six Products & Services cards (features[i][photo]). Structural (471 + 6).
+// 2026-10-17: **494** — the Page Content group "Homepage — Distributor
+// catalog, Corporate and Classic distributor headings" (copy.homeLayouts),
+// 17 text boxes. Structural (477 + 17); plan2-trunc re-run at 494.
+const POSTED_BEFORE = 494;
 
 const results = [];
 const note = (ok, what, detail = '') => {

@@ -236,6 +236,12 @@ function startServer(port, limited) {
         await Promise.all([page.waitForNavigation(), page.click('form:has(input[name=orig_sig]) button[type=submit]')]);
       }
       note(backups('products-all').length === n0, 'DI-8: opening a product in a browser and saving it unchanged writes no backup (3 products, size charts included)', `${backups('products-all').length - n0} new backups`);
+      // The first save after a release stores the defaults of boxes the
+      // fixture predates (PLAN-9 item 1 / claims.js "firstsave": settled — the
+      // homepage-layout fields of 2026-10-17 are such boxes). The no-op rule
+      // is about the save AFTER that: an unchanged form must write nothing.
+      await page.goto(BASE + '/admin/content.php');
+      await Promise.all([page.waitForNavigation(), page.click('button[type="submit"]:has-text("Save")')]);
       const c0 = backups('content').length;
       await page.goto(BASE + '/admin/content.php');
       await Promise.all([page.waitForNavigation(), page.click('button[type="submit"]:has-text("Save")')]);

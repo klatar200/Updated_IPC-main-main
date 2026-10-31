@@ -13,11 +13,16 @@ ServerSignature Off
 
 # Force HTTPS — the login form posts a password and the session cookie is
 # marked Secure (see admin/config.php), so plain HTTP must redirect first.
+# THE_REQUEST, path only, NE — the same rule as public/.htaccess, which says
+# why: REQUEST_URI leaked the host's internal /~<account>/htdocs/ prefix into
+# this redirect (measured live 2026-10-31), and a "?" through a back-reference
+# is a 403 on Apache 2.4.56+.
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteCond %{HTTPS} !=on
   RewriteCond %{HTTP:X-Forwarded-Proto} !=https
-  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+  RewriteCond %{THE_REQUEST} ^\S+\s(/[^?\s]*)
+  RewriteRule ^ https://%{HTTP_HOST}%1 [R=301,L,NE]
 </IfModule>
 
 # No directory listings
