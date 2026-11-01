@@ -331,6 +331,10 @@ require_auth();
           <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
           <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
         </ul>
+        <div class="callout callout-tip">
+          <b>On the long forms</b>
+          Business Details, Add Product, Edit Product and Page Content keep their <strong>Save</strong> button in a bar along the bottom of the screen, so you never have to scroll down to find it. Once you start typing, the bar says where: <em>Unsaved changes in: Company, Contact</em>. On the first three, a row of section names above the form takes you straight to a section (the one you are reading is filled in, and one with unsaved changes has an orange dot), and each section has a <strong>Hide</strong> button to fold it away while you work on another. Hidden sections are still saved.
+        </div>
 
         <div class="diagram-wrap">
           <div class="diagram-caption">Dashboard layout at a glance</div>
@@ -455,7 +459,7 @@ require_auth();
           <li>
             <strong>Size chart</strong> — the grid of measurements (order sizes, expanded/recovered diameters, etc.), if this product has one. Use the visual builder — see <a href="#sizechart">Building the size / dimension chart</a> below.
           </li>
-          <li>Click <span class="btn btn-primary btn-mock">Add Product</span> at the bottom of the form.</li>
+          <li>Click <span class="btn btn-primary btn-mock">Add Product</span> in the bar along the bottom of the screen.</li>
           <li>You'll land back on the dashboard with a green confirmation message. Find your new product and click <span class="btn btn-sm btn-edit btn-mock">View ↗</span> to see it live (remember: allow ~60 seconds, or hard-refresh to see it immediately).</li>
         </ol>
         <div class="callout callout-tip">

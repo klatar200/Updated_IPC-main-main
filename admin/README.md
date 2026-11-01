@@ -110,8 +110,9 @@ public_html/
     ├── audit-log.php       ← View every change made through the admin
     ├── *.js                ← confirm / search / spectable-editor / content-editor /
     │                         unsaved / help / product-preview / settings-preview /
-    │                         contrast-guard / csrf-back / site-images / nav
-    │                         (twelve files; `ls admin/*.js`)
+    │                         contrast-guard / csrf-back / site-images / nav /
+    │                         longform
+    │                         (thirteen files; `ls admin/*.js`)
     ├── admin-log.jsonl     ← Audit log (auto-created on first save)
     ├── inquiries.jsonl     ← Contact-form leads (written by contact.php)
     ├── admin-log-*.jsonl, inquiries-*.jsonl ← Rotated archives (16 MB), never deleted
@@ -341,6 +342,23 @@ holding the current page is chosen in `nav.php` from the script name — pages
 do not set it. Below 900px the menu sits behind a **Menu** button. Product
 sub-pages (Edit, Upload PDF, Product Photo, Delete) carry a breadcrumb from
 `admin_breadcrumb()` in `config.php`.
+
+### The long forms
+
+Business Details, Add Product, Edit Product and Page Content end in a
+`.save-bar` (styled in `admin_head()`) that sticks to the bottom of the screen
+while the form is in view, and is fixed there at 1024px and narrower, where the
+live preview stacks below the form (PLAN-13 Phase 3). Its `.save-status` is
+filled by `unsaved.js`: "Unsaved changes in: Company, Contact", naming each
+section that has been typed in, and empty while nothing has changed.
+
+The first three forms carry `data-long-form`, which `longform.js` reads to add
+a strip of section links above the form (sticky under the menu bar; the
+section being read is filled in, a section with unsaved changes has a dot) and
+a **Hide / Show** button on each section. Nothing starts hidden; a hidden
+section opens again when Save is blocked on one of its fields. Neither adds a
+named field, so the POST is the same with JavaScript on or off
+(`_harness/plan13-longform.js`).
 
 ## Spec-table JSON examples
 

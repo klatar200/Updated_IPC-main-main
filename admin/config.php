@@ -597,6 +597,48 @@ function admin_head(): string {
   .btn-pdf { background: rgba(0,190,242,0.1); color: #0369a1; }
   .btn-pdf:hover { background: rgba(0,190,242,0.2); }
 
+  /* ── Long forms (PLAN-13 Phase 3) ────────────────────────────────────────
+     Business Details, Add, Edit and Page Content. Save used to sit only at
+     the very bottom — 4,127px down on Business Details (§2 D1) — so the
+     save bar sticks to the bottom of the screen while the form is in view.
+     unsaved.js fills .save-status with the sections that have changes. */
+  .save-bar { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 0; background: var(--page-bg); border-top: 1px solid var(--line); }
+  .save-status { margin-right: auto; min-width: 0; font-size: var(--fs-2); color: var(--ink-2); }
+  .save-status:empty { display: none; }
+  .save-status.is-dirty { color: #92400e; font-weight: 600; }
+  .save-status.is-dirty::before { content: "\25CF"; margin-right: 6px; color: #d97706; }
+  /* Stacked (the live preview drops below the form at 1024 and under), a
+     bar that sticks inside the form scrolls away above the preview, so it is
+     fixed to the bottom of the screen instead. */
+  @media (max-width: 1024px) {
+    .save-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px; box-shadow: 0 -2px 8px rgba(13,45,82,0.08); }
+    body:has(.save-bar) { padding-bottom: 76px; }
+  }
+  @media (max-width: 600px) {
+    .save-status:not(:empty) { flex-basis: 100%; }
+    body:has(.save-status:not(:empty)) { padding-bottom: 104px; }
+  }
+  /* longform.js: the strip of section links above the form (§2 D2), sticky
+     under the menu bar, and the Hide/Show button on each section. Without
+     JavaScript neither exists and the form is the plain one. It is one row
+     that scrolls sideways below 1280, where the links no longer fit. */
+  .form-index { position: sticky; top: var(--admin-bar-h); z-index: 30; margin: -8px 0 16px; padding: 8px 0; background: var(--page-bg); }
+  .form-index ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .form-index a { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 4px 12px; border: 1px solid var(--field-line); border-radius: 999px; background: #fff; color: var(--ink); font-size: var(--fs-2); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .form-index a:hover { border-color: var(--brand); color: var(--brand); }
+  .form-index a[aria-current="true"] { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
+  .form-index a.has-changes::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #d97706; }
+  @media (max-width: 1279px) {
+    .form-index ol { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .form-index ol::-webkit-scrollbar { display: none; }
+  }
+  form[data-long-form] > .card { position: relative; scroll-margin-top: calc(var(--form-index-h, 0px) + 8px); }
+  form[data-long-form] > .card.has-toggle > .card-title { padding-right: 88px; }
+  .sec-toggle { position: absolute; top: 22px; right: 22px; min-height: 32px; padding: 4px 12px; border: 1px solid var(--field-line); border-radius: 7px; background: #fff; color: var(--ink-2); font-size: var(--fs-2); font-weight: 600; cursor: pointer; }
+  .sec-toggle:hover { border-color: var(--brand); color: var(--brand); }
+  .card.is-collapsed > :not(.card-title):not(.sec-toggle) { display: none !important; }
+  .card.is-collapsed > .card-title { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
+
   /* ── Alerts ─────────────────────────────────────────────────────────── */
   .alert { padding: 12px 16px; border-radius: 8px; font-size: var(--fs-2); margin-bottom: 20px; }
   .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: var(--fs-2); }

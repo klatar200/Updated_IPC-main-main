@@ -364,7 +364,6 @@ $partTypes = ipc_product_families();
     .page-header p  { font-size: var(--fs-2); color: #6b7280; margin: 4px 0 0; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
     textarea { resize: vertical; line-height: 1.5; }
-    .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; }
     @media(max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -390,7 +389,7 @@ $partTypes = ipc_product_families();
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
   <?php endif; ?>
 
-  <form method="POST"<?= !empty($product['pdfUrl']) ? ' data-ipc-has-pdf="1"' : '' ?>><?php /* A12-L5-01-W5-4 — product-preview.js */ ?>
+  <form method="POST" data-long-form<?= !empty($product['pdfUrl']) ? ' data-ipc-has-pdf="1"' : '' ?>><?php /* A12-L5-01-W5-4 — product-preview.js */ ?>
     <!-- Basic Info -->
     <div class="card">
       <div class="card-title">Basic Information</div>
@@ -532,7 +531,8 @@ $partTypes = ipc_product_families();
       </div>
     </div>
 
-    <div class="form-actions">
+    <div class="save-bar form-actions">
+      <span class="save-status" role="status" aria-live="polite"></span>
       <a href="index.php" class="btn btn-secondary">Cancel</a>
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
       <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
@@ -549,5 +549,6 @@ $partTypes = ipc_product_families();
 <script src="spectable-editor.js"></script>
 <?= approval_patterns_json_tag() ?>
 <script src="product-preview.js"></script>
+<script src="longform.js"></script>
 </body>
 </html>

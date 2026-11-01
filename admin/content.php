@@ -1349,7 +1349,6 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     .warn-list ul { margin: 0; padding-left: 20px; }
     .warn-list li { font-size: var(--fs-2); margin-bottom: 4px; line-height: 1.5; }
     .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
-    .save-bar { position: sticky; bottom: 0; background: #f0f4f8; padding: 16px 0; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e5e9ee; }
     @media(max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -1489,6 +1488,7 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     <?php endforeach; ?>
 
     <div class="save-bar">
+      <span class="save-status" role="status" aria-live="polite"></span>
       <a href="index.php" class="btn btn-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary">Save Content</button>
     </div>

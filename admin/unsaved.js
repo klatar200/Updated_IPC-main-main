@@ -21,7 +21,61 @@
     return Array.prototype.slice.call(document.querySelectorAll("form:not([data-no-guard])"));
   }
 
-  function markDirty() { dirty = true; }
+  function markDirty(e) {
+    dirty = true;
+    noteSection(e && e.target);
+  }
+
+  // ── "Unsaved changes in: Company, Contact" (PLAN-13 Phase 3, §2 B6) ──────
+  // The save bar said nothing about whether anything had changed, or where.
+  // Each edit marks its section (the nearest [data-section-title] or .card)
+  // with data-unsaved, and every .save-status in the form lists the marked
+  // sections in page order. longform.js listens for ipc:unsaved-sections to
+  // put a dot on the same sections in its "On this page" strip. Shown only
+  // while there is something unsaved: an empty status claims nothing, which
+  // matters on a page that is the answer to a refused POST.
+  function sectionOf(el) {
+    if (!el || !el.closest) return null;
+    return el.closest("[data-section-title]") || el.closest("form .card");
+  }
+  function sectionName(s) {
+    var t = s.getAttribute("data-section-title");
+    if (!t) {
+      var h = s.querySelector(".card-title");
+      t = h ? h.textContent : "";
+    }
+    return t.replace(/\s+/g, " ").trim();
+  }
+  function renderStatus(form, text) {
+    var outs = form.querySelectorAll(".save-status");
+    if (!outs.length) return;
+    if (text === undefined) {
+      var names = [];
+      Array.prototype.forEach.call(form.querySelectorAll("[data-unsaved]"), function (s) {
+        var n = sectionName(s);
+        if (n && names.indexOf(n) < 0) names.push(n);
+      });
+      text = !dirty ? ""
+        : !names.length ? "Unsaved changes"
+        : "Unsaved changes in: " + (names.length > 3
+          ? names.slice(0, 3).join(", ") + " and " + (names.length - 3) + " more"
+          : names.join(", "));
+    }
+    for (var i = 0; i < outs.length; i++) {
+      if (outs[i].textContent !== text) outs[i].textContent = text;
+      outs[i].classList.toggle("is-dirty", text !== "" && text.indexOf("Saving") !== 0);
+    }
+  }
+  function noteSection(t) {
+    var form = t && t.closest ? t.closest("form:not([data-no-guard])") : null;
+    if (!form) return;
+    var s = sectionOf(t);
+    if (s && !s.hasAttribute("data-unsaved")) {
+      s.setAttribute("data-unsaved", "1");
+      try { document.dispatchEvent(new CustomEvent("ipc:unsaved-sections")); } catch (x) { /* old browser */ }
+    }
+    renderStatus(form);
+  }
 
   // A-5.21 — the guard armed only on `input`/`change`, but the content and spec
   // editors mutate the DOM from `click`: removing a row, reordering with the
@@ -56,20 +110,20 @@
       }
       submitting = true;
       setTimeout(function () {
-        if (e.defaultPrevented) submitting = false;
-        else f._ipcSentAt = Date.now();
+        if (e.defaultPrevented) { submitting = false; renderStatus(f); }
+        else { f._ipcSentAt = Date.now(); renderStatus(f, "Saving…"); }
       }, 0);
     });
   });
   // Back/Forward can restore this page from the browser's cache with the
   // marker still set; the restored page has sent nothing.
   window.addEventListener("pageshow", function () {
-    forms().forEach(function (f) { f._ipcSentAt = 0; });
+    forms().forEach(function (f) { f._ipcSentAt = 0; renderStatus(f); });
   });
 
   // Content/spec editors rebuild their DOM, so catch late-added controls too.
   document.addEventListener("input", function (e) {
-    if (e.target && e.target.closest && e.target.closest("form:not([data-no-guard])")) markDirty();
+    if (e.target && e.target.closest && e.target.closest("form:not([data-no-guard])")) markDirty(e);
   }, true);
 
   window.addEventListener("beforeunload", function (e) {

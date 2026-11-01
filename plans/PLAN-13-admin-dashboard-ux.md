@@ -152,7 +152,8 @@ never was, except on Help.
 3. **One page-header pattern.** Breadcrumb on sub-pages, then title, then a
    one-line description, with the primary action on the right.
 4. **One long-form pattern** (Page Content, Business Details, Add, Edit):
-   - a sticky section index beside the form (Help's TOC, reused);
+   - a sticky section index (built in Phase 3 as a strip above the form and
+     its preview, not beside the form: see the Phase 3 record);
    - collapsible sections;
    - a sticky save bar that says “Unsaved changes in: FAQ, Contact page”.
 5. **Page Content regrouped by public page**, in site order:
@@ -422,6 +423,84 @@ white.
   - Both stop where they call command-line `php` for `gd` image functions.
     The CLI here loads no `php.ini`, so it has no `gd`.
   - `adminaudit11`'s two reds (DI-3, DI-4) are the same.
+
+### Phase 3 — done 2026-11-01 (branch `claude/admin-ux`)
+
+**Save bar (`admin_head()`):** `.save-bar` is shared, replacing Page Content's
+own rule and the `.form-actions` row at the end of Business Details, Add and
+Edit (which keep `form-actions` as a second class: `homelayout` and
+`nodupbackups` click through it).
+- It sticks to the bottom of the screen while the form is in view (D1).
+- At 1024px and under it is fixed to the bottom instead. There the live
+  preview stacks below the form, and a bar that sticks inside the form
+  scrolled away above it: the Edit page at 390 was red for this in Phase 2.
+- `body:has(.save-bar)` gets bottom padding so the end of the page is not
+  under the bar.
+
+**`unsaved.js` fills the bar's `.save-status` (B6).**
+- It reads "Unsaved changes in: Company, Contact", or the first three section
+  names and "and N more".
+- Each edit marks its section (`[data-section-title]`, else the nearest
+  `.card`) with `data-unsaved` and fires `ipc:unsaved-sections`.
+- It is empty while nothing has changed, so it claims nothing on a page that
+  answers a refused POST.
+- It reads "Saving…" once a submit goes through.
+
+**`admin/longform.js` (new) runs on `form[data-long-form]`:** Business Details,
+Add and Edit.
+- **A strip of section links (D2),** built from the cards' `.card-title`s.
+  - It sits above the form *and* the preview, sticky under the menu bar.
+  - The section being read is filled in, and a section with unsaved changes
+    has an orange dot.
+  - A link opens its section, scrolls it below the strip and focuses its title.
+- **Not beside the form (§3.4 said "beside the form").** Beside the preview
+  the form column is about 800px, so a left index would leave the form about
+  420px wide. Inside the form column, Business Details' eight links took two
+  rows (90px). Across both columns they fit in one 50px row at 1280 and
+  wider; below that the strip is one row that scrolls sideways.
+- **A Hide/Show button on each section** (`aria-expanded`).
+  - Nothing starts hidden.
+  - A section opens again when Save is blocked on one of its fields (the
+    `invalid` event fires before the browser focuses the field).
+- **No new named field:** the POST is the same with JavaScript on and off.
+- The previews' sticky `top` adds the strip's height (`--form-index-h`).
+
+**Fixed in passing:** the Business Details and product-editor previews never
+stayed on screen. Their column was only as tall as the preview under the
+row's `align-items: flex-start`, so the sticky panel had no room to move.
+`align-self: stretch` on the column fixes it.
+
+**Not done here:** collapse and the section index on Page Content are
+Phase 4, with its regroup. Page Content gets only the status line now.
+
+**Docs:**
+- Help: an "On the long forms" tip under Reading the dashboard, and the Add
+  Product step points at the bar.
+- `admin/README.md`: a "Long forms" section, and the JS list is now thirteen
+  files.
+
+**Suites:**
+- New `plan13-longform`, 31/31: strip census, jump, status and dot, Hide/Show
+  with the fields still posted, the reopen on a blocked Save, previews on
+  screen, and JavaScript off.
+- `admin-ux` **78/83**: U4 is green on all four forms at 1440 and 390. Left
+  red: U5 ×5 (Phase 5).
+- Green: `plan2-formlast`, `plan2-trunc`, `plan2-sku`, `plan2-delete`,
+  `plan2-contrast`, `lowsD-admin`, `sec3-sessionexpiry`, `invariants`,
+  `adminwidth`, every `plan10` suite, `homelayout(s)`, `nodupbackups`,
+  `copyroundtrip`, `contentlinks`, `claims` and every `plan4`–`plan9` admin
+  suite.
+- **At the Phase 2 baseline:** `audit5-high`, `contactflow`, `docmap`,
+  `siteimages`, `leadpath12`, `audit7-lead`, and `adminaudit11` 35/37 (it ran
+  this time).
+- **`audit9-fixes` 37/40:**
+  - `b2-14` (the README tree) was red until `longform` was listed.
+  - `d4` is the Phase 2 red.
+  - `p7-2` ×2: the mirror's `contact.php` answered **429 Too many
+    submissions** after the contact suites ahead of it. That is the public
+    form's rate limit, not this change.
+- **Environment only, as before:** `audit5-medium` and `lowsA2-admin`
+  (command-line PHP has no `gd`).
 
 ## 5. Constraints and what must stay green
 

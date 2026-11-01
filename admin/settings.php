@@ -356,8 +356,11 @@ $th = $info['theme'] ?? [];
        shrinking in relative terms. Applied here for consistency with the
        product editor's panel — if only one of the two previews should widen,
        this is the one to revert. */
-    .preview-col { flex: 0 0 clamp(400px, 32%, 720px); min-width: 0; }
-    .preview-inner { position: sticky; top: calc(var(--admin-bar-h) + 16px); max-height: calc(100vh - var(--admin-bar-h) - 32px); overflow: auto; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
+    /* align-self: stretch — under the row's flex-start the column was only as
+       tall as the preview, so its sticky box had no room to stick in and the
+       preview scrolled away with the first screen (PLAN-13 Phase 3). */
+    .preview-col { flex: 0 0 clamp(400px, 32%, 720px); min-width: 0; align-self: stretch; }
+    .preview-inner { position: sticky; top: calc(var(--admin-bar-h) + var(--form-index-h, 0px) + 16px); max-height: calc(100vh - var(--admin-bar-h) - var(--form-index-h, 0px) - 32px); overflow: auto; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
     .preview-head { position: sticky; top: 0; background: #0d2d52; color: #fff; font-size: var(--fs-1); font-weight: 700; padding: 10px 16px; }
     .preview-body { padding: 16px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
@@ -372,7 +375,6 @@ $th = $info['theme'] ?? [];
     input[type=text]:focus, textarea:focus, select:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     textarea { resize: vertical; line-height: 1.5; }
     .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
-    .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 4px; }
     @media(max-width: 1024px) { .layout { flex-direction: column; } .preview-col { flex: 1 1 auto; width: 100%; } .preview-inner { position: static; max-height: none; } .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -416,7 +418,7 @@ $th = $info['theme'] ?? [];
   <?php endif; ?>
 
   <div class="layout">
-    <form method="POST">
+    <form method="POST" data-long-form>
       <div class="card">
         <div class="card-title">Branding &amp; Theme</div>
         <div class="grid-2">
@@ -686,7 +688,8 @@ $th = $info['theme'] ?? [];
         </div>
       </div>
 
-      <div class="form-actions">
+      <div class="save-bar form-actions">
+        <span class="save-status" role="status" aria-live="polite"></span>
         <a href="index.php" class="btn btn-secondary">Cancel</a>
         <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
         <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
@@ -712,6 +715,7 @@ $th = $info['theme'] ?? [];
 <?php /* 4.23 — live contrast readout as the color picker moves. The same notes
          are already rendered server-side above, so this only keeps them current. */ ?>
 <script src="contrast-guard.js"></script>
+<script src="longform.js"></script>
 <script src="unsaved.js" defer></script>
 </body>
 </html>

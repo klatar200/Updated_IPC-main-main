@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
   <?php endif; ?>
 
-  <form method="POST">
+  <form method="POST" data-long-form>
     <div class="card">
       <div class="card-title">Basic Information</div>
       <div class="grid-2">
@@ -255,7 +255,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <textarea id="specTable2_json" name="specTable2_json" rows="12" class="mono"><?= h($emptyTable2) ?></textarea>
     </div>
 
-    <div class="form-actions">
+    <div class="save-bar form-actions">
+      <span class="save-status" role="status" aria-live="polite"></span>
       <a href="index.php" class="btn btn-secondary">Cancel</a>
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
       <button type="submit" class="btn btn-primary">Add Product</button>
@@ -265,6 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="spectable-editor.js"></script>
 <?= approval_patterns_json_tag() ?>
 <script src="product-preview.js"></script>
+<script src="longform.js"></script>
 <script src="unsaved.js" defer></script>
 </body>
 </html>
