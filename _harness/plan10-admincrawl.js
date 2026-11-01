@@ -24,10 +24,11 @@
  *                   fails the run.
  *   the states set  the frames where a phase D change is actually visible.
  *                   `delete.php` and `upload-*.php` need a `?sku=`, and
- *                   `upload-image.php` is the page that carries the MOST nav
- *                   items (13 — it injects two $navExtra links, more than
- *                   edit.php or upload-pdf.php at 12), so it is the real worst
- *                   case for A10-021 and is shot deliberately.
+ *                   `upload-image.php` used to carry the MOST nav items (13 —
+ *                   it injected two $navExtra links), so it was the real worst
+ *                   case for A10-021 and is still shot deliberately. Since
+ *                   PLAN-13 Phase 2 every page has the same 13 menu links, and
+ *                   at 390 they sit in the Menu panel, which the shot opens.
  *
  * Read-only. Nothing here submits a form, so no `site-data/*.json`, `pdfs/` or
  * `uploads/` write is possible and no pristine restore is owed. The two POST
@@ -134,9 +135,10 @@ const STATES = [
   },
   {
     slug: 'nav-13-items', vp: M, url: `/admin/upload-image.php?sku=${SKU}`, full: false,
-    note: 'item 6 — the header containing 13 nav items at 390; it used to spill above and below the bar',
+    note: 'item 6 — the 13 menu links at 390, in the Menu panel (PLAN-13 Phase 2); they used to spill above and below the bar',
     act: async (page) => {
       await page.evaluate('window.scrollTo(0, 0)');
+      await page.click('.ipc-admin-header .menu-toggle');
       await page.waitForTimeout(200);
       return (await page.locator('.ipc-admin-header nav a, .ipc-admin-header nav button').count()) === 13;
     },

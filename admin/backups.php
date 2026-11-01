@@ -155,7 +155,6 @@ function nice_size(int $b): string {
     return $b >= 1048576 ? round($b / 1048576, 1) . ' MB' : round($b / 1024) . ' KB';
 }
 
-$navActive = 'backups';
 ?>
 <!doctype html>
 <html lang="en">

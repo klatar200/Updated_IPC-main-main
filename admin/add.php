@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </style>
 </head>
 <body>
-<?php $navActive = 'add'; include 'nav.php'; ?>
+<?php include 'nav.php'; ?>
 <main class="admin-wide">
   <h1>Add Product</h1>
   <p class="sub">Fill in the product details. All required fields are marked with *.</p>

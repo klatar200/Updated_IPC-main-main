@@ -11,7 +11,6 @@ if ($idx === -1) {
 }
 
 $product = $products[$idx];
-$navActive = '';
 
 // POST = confirmed delete — verify CSRF token
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -102,6 +101,7 @@ $brokenRefs = industry_refs_broken_by($products, $without);
 <body>
 <?php include 'nav.php'; ?>
 <main>
+  <?= admin_breadcrumb([['Products', 'index.php'], [$sku, 'edit.php?sku=' . urlencode($sku)], ['Delete']]) ?>
   <div class="card">
     <div class="icon">⚠️</div>
     <h1>Delete this product?</h1>

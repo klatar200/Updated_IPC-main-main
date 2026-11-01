@@ -71,7 +71,7 @@
     // roughly half the width. At 2560 the container is 2048 and the preview
     // lands at ~680px — a panel you can actually read a spec table in.
     ".ipc-preview-col{flex:0 0 clamp(440px, 34%, 760px);min-width:0;}" +
-    ".ipc-preview-inner{position:sticky;top:24px;max-height:calc(100vh - 40px);overflow:auto;background:#fff;border:1px solid #e5e9ee;border-radius:12px;box-shadow:0 1px 4px rgba(0,45,82,0.06);}" +
+    ".ipc-preview-inner{position:sticky;top:calc(var(--admin-bar-h, 60px) + 16px);max-height:calc(100vh - var(--admin-bar-h, 60px) - 32px);overflow:auto;background:#fff;border:1px solid #e5e9ee;border-radius:12px;box-shadow:0 1px 4px rgba(0,45,82,0.06);}" +
     ".ipc-preview-head{position:sticky;top:0;background:#0d2d52;color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;padding:10px 16px;z-index:1;}" +
     ".ipc-preview-body{padding:16px;}" +
     ".ste-prevwrap{display:none !important;}" +

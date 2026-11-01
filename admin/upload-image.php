@@ -208,12 +208,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </style>
 </head>
 <body>
-<?php
-$navExtra = '<a href="edit.php?sku=' . urlencode($sku) . '">Edit Details</a>'
-          . '<a href="upload-pdf.php?sku=' . urlencode($sku) . '">Manage PDF</a>';
-include 'nav.php';
-?>
+<?php include 'nav.php'; ?>
 <main>
+  <?= admin_breadcrumb([['Products', 'index.php'], [$sku, 'edit.php?sku=' . urlencode($sku)], ['Product photo']]) ?>
   <h1>Product Photo: <?= h($sku) ?></h1>
   <p class="sub"><?= h($product['name'] ?? '') ?></p>
 
@@ -261,6 +258,7 @@ include 'nav.php';
   </div>
 
   <a href="index.php" class="btn btn-secondary">← Back to Products</a>
+  <a href="upload-pdf.php?sku=<?= urlencode($sku) ?>" class="btn btn-secondary">Manage this product's PDF</a>
 </main>
 <script src="confirm.js"></script>
 </body>

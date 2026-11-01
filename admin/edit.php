@@ -369,18 +369,20 @@ $partTypes = ipc_product_families();
   </style>
 </head>
 <body>
-<?php
-$navExtra = '<a href="upload-pdf.php?sku=' . urlencode($product['sku'] ?? '') . '">Upload PDF</a>';
-include 'nav.php';
-?>
+<?php include 'nav.php'; ?>
 <main class="admin-wide">
+  <?= admin_breadcrumb([['Products', 'index.php'], ['Edit ' . ($product['sku'] ?? '')]]) ?>
   <div class="page-header">
     <div>
       <h1>Edit Product: <?= h($product['sku'] ?? '') ?></h1>
       <p><?= h($product['name'] ?? '') ?></p>
     </div>
-    <div style="display:flex;gap:8px;">
-      <a href="index.php" class="btn btn-secondary">← Back</a>
+    <?php /* PLAN-13 §2 A4 — "Upload PDF" used to be pushed into the shared
+             menu bar from this page ($navExtra), so the menu changed from page
+             to page. The product's own pages belong here, with the product. */ ?>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="upload-pdf.php?sku=<?= urlencode($product['sku'] ?? '') ?>" class="btn btn-secondary">Manage PDF</a>
+      <a href="upload-image.php?sku=<?= urlencode($product['sku'] ?? '') ?>" class="btn btn-secondary">Photo</a>
     </div>
   </div>
 

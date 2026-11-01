@@ -262,7 +262,7 @@ $csrf    = csrf_token();
   </style>
 </head>
 <body>
-<?php $navActive = ''; include 'nav.php'; ?>
+<?php include 'nav.php'; ?>
 <main>
   <h1>Site Images &amp; Logo</h1>
   <p class="sub">The photos that belong to the pages themselves, and your logo. Upload a new picture from your computer, or pick one that is already on the server. Product photos are separate — use the <strong>Photo</strong> button on the Products page.</p>

@@ -78,7 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$navActive = 'password';
 ?>
 <!doctype html>
 <html lang="en">

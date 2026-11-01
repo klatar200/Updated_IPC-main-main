@@ -301,7 +301,7 @@ $targetOptions = function (bool $withNone) use ($services) {
   </style>
 </head>
 <body>
-<?php $navActive = ''; include 'nav.php'; ?>
+<?php include 'nav.php'; ?>
 <main>
   <h1>Catalog &amp; Brochure PDFs</h1>
   <p class="sub">PDFs that are not a single product's data sheet: your full product catalog (linked in the footer of every page) and the brochures on the Services page. Upload one here and choose where it is used. Product data sheets are separate — use the <strong>Manage PDF</strong> button on the Products page.</p>

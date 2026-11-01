@@ -328,6 +328,101 @@ scale). That makes it stricter for Help, not looser.
   rules use the colour tokens);
 - inline `style=""` font sizes were moved onto the tokens but not into classes.
 
+### Phase 2 — done 2026-10-31 (branch `claude/admin-ux`)
+
+**`nav.php` is the sticky top bar of §3.1.**
+- Six entries: Products ▾, Website ▾, Inquiries, Backups & History ▾, Help and,
+  at the right-hand end, Account ▾. The drop-downs are `<details>`/`<summary>`.
+- Menu labels are in Title Case and match the page titles (“Business Details”,
+  “Audit Log”), not the sentence case §3.1 wrote. Rick clicks a word and lands
+  on a page with that word as its title, and `adminwidth.js` pins the titles.
+- Site Images & Logo and Catalog & Brochure PDFs are in the Website menu (A3).
+- The current entry is a white pill: 13:1 against the bar, where the old
+  underline was 2.0:1 (A5). The current link inside its drop-down is bold on
+  pale blue.
+- The current entry comes from the script name inside `nav.php`. `$navActive`
+  was removed from all 12 pages that set it, and `$navExtra` from the 3 that
+  used it (A4).
+- The logo subtitle now reads “Website dashboard”, not “Product Manager” (A7).
+
+**`admin/nav.js`** (new; external because the admin CSP is `script-src 'self'`):
+- only one drop-down open at a time;
+- Escape or a click elsewhere closes it, and Escape puts focus back on the entry;
+- the phone Menu button.
+
+It loads without `defer`, straight after the bar, so the bar is marked
+`.has-js` before first paint.
+
+**Phone, below 900px:** the bar shows the logo, a new-leads shortcut (only when
+there are new leads) and a **Menu** button. Menu opens every group as one
+panel under the bar, with every link 44px tall.
+- **900px, not §3.1's 768:** the six entries need about 850px in one row, so
+  834-wide tablets get the Menu button too.
+- **Without JavaScript:** the entries wrap below the logo and the bar stops
+  being sticky, so it cannot cover the page.
+
+**`--admin-bar-h`** is 60px, or 56px below 900px, set in `admin_head()`. These
+sit below the bar using it:
+- `html { scroll-padding-top }`, so in-page jumps clear it;
+- Help's contents list;
+- the Business Details preview;
+- the product editor's live preview.
+
+Help's own `header { position: sticky }` and its bare `nav a` rules were
+removed. The `nav a` rules would have painted the drop-downs' links white on
+white.
+
+**Breadcrumb:** `admin_breadcrumb()` in `config.php`, with its styles in
+`admin_head()`, on Edit, Upload PDF, Product Photo and Delete (A8).
+- Edit's header now carries Manage PDF and Photo buttons in place of the
+  injected menu link.
+- Product Photo keeps a “Manage this product's PDF” link.
+
+**Help:**
+- The “Header bar” paragraph and every “click X in the header” step now name
+  the menu path (“Website, then Business Details”).
+- The dashboard diagram redraws the strip as the six entries, with Products
+  as the pill.
+
+**Suites:**
+- `plan10-adminnav` was rewritten for the new shape: 27 checks became 41, on
+  the same four viewports and four pages.
+  - **What it checks:** the census, one row, every entry and every opened
+    drop-down link (on screen, hit-testable, ≥4.5:1 on the painted surface),
+    and the phone panel (44px, tappable, readable).
+  - **Behaviour:** keyboard, outside click, JavaScript off and sticky.
+  - **Unchanged:** overflow and the Sign Out CSRF token.
+- `admin-ux` U7 skips what `checkVisibility()` says is not painted. Chromium
+  keeps a 226×40 layout box for links inside a closed `<details>`.
+- `audit9-fixes` b2-01 checks the Help diagram against `nav.php`'s six
+  top-level entries, no longer against “Business Details” in one flat line.
+- The `plan10-admincrawl` `nav-13-items` state opens the Menu panel before its
+  shot.
+
+**Result:**
+- `admin-ux` **74/85**, up from 20/84. U1, U3, U6, U7 and U8 are green on
+  every page. Still red: U4, the long forms' Save buttons (Phase 3), and U5,
+  products on a phone (Phase 5).
+- `plan10-adminnav` 41/41, `plan10-admincrawl` 42/42, `plan10-help` 29/29,
+  `plan10-helpwidth` 21/21 and `plan10-adminrows` 15/15.
+- `adminwidth` 66/66, `invariants` 19/19, `plan2-formlast` 8/8 and
+  `plan2-trunc` 14/14.
+- `homelayout` 121/121, `homelayouts` 115/115, `copyroundtrip` 15/15,
+  `contentlinks` 18/18, `plan2-contrast` 41/41 and `plan2-delete` 18/18.
+- Also green: every `plan4`–`plan9` admin suite, `claims`, `lowsA1-sec`,
+  `lowsD-admin`, `sec3-sessionexpiry` and `sec5b-datalock`.
+- **At baseline:** `audit9-fixes` 39/40, `audit5-high` 24/33, `contactflow`
+  65/87, `docmap` 14/28, `siteimages` 17/25, `leadpath12` 18/34 and
+  `audit7-lead` 16/23.
+  - `plan2-sku` read 10/14 in the sweep and **14/14 alone**: an order effect.
+  - `adminaudit11` is **35/37 alone**. It crashed in the sweep on its own
+    orphaned `:8743` server, as in Phase 1.
+- **Environment only, not the menu:**
+  - `audit5-medium` and `lowsA2-admin` were added to this sweep.
+  - Both stop where they call command-line `php` for `gd` image functions.
+    The CLI here loads no `php.ini`, so it has no `gd`.
+  - `adminaudit11`'s two reds (DI-3, DI-4) are the same.
+
 ## 5. Constraints and what must stay green
 
 - **Invariant 6** — `form_complete` stays the last field of Page Content's form.
@@ -351,7 +446,7 @@ scale). That makes it stricter for Help, not looser.
 
 ---
 
-## 6. Decisions needed before Phase 2
+## 6. Decisions
 
 | # | Question | Recommendation |
 |---|---|---|

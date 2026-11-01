@@ -511,7 +511,15 @@ function admin_head(): string {
     --page-bg: #f0f4f8;
     --brand: #005da3;
     --brand-dark: #0d2d52;
+    /* Height of nav.php's sticky menu bar (PLAN-13 Phase 2). Anything else
+       that sticks to the top — Help's contents list, the live previews —
+       sits at this offset so it is not hidden under the bar. */
+    --admin-bar-h: 60px;
   }
+  @media (max-width: 899px) { :root { --admin-bar-h: 56px; } }
+  /* An in-page jump (#faq, Help's contents) must not land its heading under
+     the sticky bar. */
+  html { scroll-padding-top: calc(var(--admin-bar-h) + 16px); }
 
   /* ── Reset + page shell ─────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; }
@@ -540,6 +548,14 @@ function admin_head(): string {
   /* ── Typography ─────────────────────────────────────────────────────── */
   h1 { font-size: var(--fs-6); font-weight: 800; margin: 0 0 4px; line-height: 1.2; }
   .sub { font-size: var(--fs-2); color: var(--ink-2); margin: 0 0 24px; }
+
+  /* ── Breadcrumb (admin_breadcrumb()) ─────────────────────────────────── */
+  .crumbs { font-size: var(--fs-2); color: var(--ink-2); margin: 0 0 12px; }
+  .crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .crumbs li + li::before { content: "›"; margin-right: 8px; color: #6b7280; }
+  .crumbs a { color: var(--brand); text-decoration: none; font-weight: 600; }
+  .crumbs a:hover { text-decoration: underline; }
+  .crumbs [aria-current="page"] { color: var(--ink); }
 
   /* ── Cards ──────────────────────────────────────────────────────────── */
   .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
@@ -597,6 +613,26 @@ function admin_head(): string {
   .error-list li { font-size: var(--fs-2); margin-bottom: 4px; }
 </style>
 CSS;
+}
+
+/**
+ * The "where am I" line at the top of a sub-page (PLAN-13 §3.3, finding A8):
+ * Edit, Upload PDF, Product Photo and Delete had no way back but a lone
+ * "← Back" button or the browser. Each crumb is [label, href]; the last one
+ * is the current page and takes no href.
+ *
+ *   echo admin_breadcrumb([['Products', 'index.php'], [$sku, 'edit.php?sku=…'], ['Upload PDF']]);
+ */
+function admin_breadcrumb(array $crumbs): string {
+    $out = '<nav class="crumbs" aria-label="You are here"><ol>';
+    $last = count($crumbs) - 1;
+    foreach (array_values($crumbs) as $i => $c) {
+        $label = h((string)($c[0] ?? ''));
+        $out .= ($i === $last || empty($c[1]))
+            ? '<li><span' . ($i === $last ? ' aria-current="page"' : '') . '>' . $label . '</span></li>'
+            : '<li><a href="' . h((string)$c[1]) . '">' . $label . '</a></li>';
+    }
+    return $out . '</ol></nav>';
 }
 
 // A bare `die('Invalid CSRF token…')` was what an admin saw when his session

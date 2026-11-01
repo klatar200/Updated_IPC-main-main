@@ -110,7 +110,8 @@ public_html/
     ├── audit-log.php       ← View every change made through the admin
     ├── *.js                ← confirm / search / spectable-editor / content-editor /
     │                         unsaved / help / product-preview / settings-preview /
-    │                         contrast-guard / csrf-back  (ten files; `ls admin/*.js`)
+    │                         contrast-guard / csrf-back / site-images / nav
+    │                         (twelve files; `ls admin/*.js`)
     ├── admin-log.jsonl     ← Audit log (auto-created on first save)
     ├── inquiries.jsonl     ← Contact-form leads (written by contact.php)
     ├── admin-log-*.jsonl, inquiries-*.jsonl ← Rotated archives (16 MB), never deleted
@@ -321,12 +322,25 @@ page's filter offers
 
 ### The navigation bar
 
-Every authenticated admin page shares the same header/nav, rendered from
-`admin/nav.php`. It's included (not copy-pasted) on every page, so
-**Products**, **+ Add Product**, **Business Details**, **Page Content**,
-**Inquiries**, **Backups**, **Audit Log**, **Password**, **Help**,
-**View Live Site ↗** and **Sign Out** are always one click away no matter where
-you are in the admin.
+Every authenticated admin page shares the same menu bar, rendered from
+`admin/nav.php` (behaviour in `admin/nav.js`). It's included (not copy-pasted)
+on every page and stays at the top of the screen while the page scrolls
+(PLAN-13 Phase 2). Six entries, grouped by job:
+
+| Entry | Opens |
+|---|---|
+| **Products ▾** | All Products · Add Product |
+| **Website ▾** | Business Details · Page Content · Site Images & Logo · Catalog & Brochure PDFs |
+| **Inquiries** | the lead log (red badge = new since last looked) |
+| **Backups & History ▾** | Backups · Audit Log |
+| **Help** | this documentation |
+| **Account ▾** | Password · View Live Site ↗ · Sign Out |
+
+The drop-downs are `<details>`, so they work with JavaScript off. The entry
+holding the current page is chosen in `nav.php` from the script name — pages
+do not set it. Below 900px the menu sits behind a **Menu** button. Product
+sub-pages (Edit, Upload PDF, Product Photo, Delete) carry a breadcrumb from
+`admin_breadcrumb()` in `config.php`.
 
 ## Spec-table JSON examples
 

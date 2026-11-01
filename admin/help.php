@@ -1,7 +1,6 @@
 <?php
 require_once 'config.php';
 require_auth();
-$navActive = 'help';
 ?>
 <!doctype html>
 <html lang="en">
@@ -14,16 +13,10 @@ $navActive = 'help';
   <style>
     html { scroll-behavior: smooth; }
 
-    /* Header (matches index.php) */
-    /* Only the sticky part. Every other property this rule used to carry
-       (background, padding, height, display, align-items, justify-content) was
-       a copy of nav.php's `.ipc-admin-header`, which outranks a bare `header`
-       and was already winning — see the A10-021 note there, which had to add
-       `height: auto` precisely to beat these copies. `position` is the one
-       thing nav.php does not set, so Help's sticky nav is real and stays. */
-    header { position: sticky; top: 0; z-index: 20; }
-    nav a:hover, nav a.current { color: #fff; }
-    nav a.current { border-bottom: 2px solid #005da3; padding-bottom: 4px; }
+    /* The sticky header this page used to declare for itself
+       (`header { position: sticky }`, plus bare `nav a.current` rules) is now
+       nav.php's, on every page (PLAN-13 Phase 2). The bare `nav a` rules had
+       to go: they would paint the white drop-down's links white. */
 
     .page-header { margin-bottom: 28px; background: linear-gradient(135deg, #0d2d52 0%, #005da3 100%); border-radius: 16px; padding: 28px 32px; display: flex; align-items: center; gap: 20px; box-shadow: 0 8px 24px rgba(13,45,82,0.18); }
     .page-header-icon { font-size: 30px; width: 58px; height: 58px; flex-shrink: 0; background: rgba(255,255,255,0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
@@ -36,7 +29,7 @@ $navActive = 'help';
 
     /* Two-column layout */
     .help-layout { display: flex; align-items: flex-start; gap: 32px; }
-    .help-toc { position: sticky; top: 92px; width: 250px; flex-shrink: 0; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; max-height: calc(100vh - 120px); overflow-y: auto; }
+    .help-toc { position: sticky; top: calc(var(--admin-bar-h) + 32px); width: 250px; flex-shrink: 0; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; max-height: calc(100vh - var(--admin-bar-h) - 60px); overflow-y: auto; }
     .help-toc .toc-group { font-size: var(--fs-1); font-weight: 700; color: #6b7280; margin: 16px 0 6px; padding: 0 10px; }
     .help-toc .toc-group:first-child { margin-top: 0; }
     .help-toc a { display: block; font-size: var(--fs-2); color: #374151; text-decoration: none; padding: 6px 10px 6px 9px; border-radius: 6px; margin-bottom: 1px; line-height: 1.4; border-left: 3px solid transparent; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease; }
@@ -44,7 +37,7 @@ $navActive = 'help';
     .help-toc a.active { background: #eaf3fb; color: #005da3; font-weight: 700; border-left-color: #005da3; }
     .help-content { flex: 1; min-width: 0; }
 
-    section.help-section { background: #fff; border: 1px solid #e5e9ee; border-top: 4px solid transparent; border-radius: 14px; padding: 32px; margin-bottom: 22px; scroll-margin-top: 84px; box-shadow: 0 1px 3px rgba(13,45,82,0.04); }
+    section.help-section { background: #fff; border: 1px solid #e5e9ee; border-top: 4px solid transparent; border-radius: 14px; padding: 32px; margin-bottom: 22px; scroll-margin-top: 8px; /* + html scroll-padding-top (the bar) */ box-shadow: 0 1px 3px rgba(13,45,82,0.04); }
     section.help-section:has(.eyebrow-start)     { border-top-color: #005da3; }
     section.help-section:has(.eyebrow-manage)    { border-top-color: #16a34a; }
     section.help-section:has(.eyebrow-advanced)  { border-top-color: #7c3aed; }
@@ -296,7 +289,7 @@ $navActive = 'help';
           After <?= (int)LOGIN_FREE_ATTEMPTS + 1 ?> wrong passwords in a row, the sign-in page asks you to wait <strong><?= (int)LOGIN_COOLOFF_BASE ?> seconds</strong> before it will check another one — even the right one. Each further wrong password doubles the wait, up to a maximum of <strong><?= (int)round(LOGIN_COOLOFF_MAX / 60) ?> minutes</strong>. It never locks you out permanently, and it forgets the failed attempts entirely after <?= (int)round(LOGIN_THROTTLE_WINDOW / 60) ?> quiet minutes. This is a normal security precaution against guessing attacks, not an error. Wait it out and re-enter your password carefully (check that Caps Lock isn't on).
         </div>
         <h3>Signing out</h3>
-        <p>Click <strong>Sign Out</strong> in the top-right corner of any page. Your sign-in stays active until you do this, until <strong><?= (int)(ADMIN_IDLE_LIMIT / 3600) ?> hours</strong> pass without you opening or saving a page, or <strong><?= (int)(ADMIN_ABSOLUTE_LIMIT / 3600) ?> hours</strong> after you signed in, whichever comes first. A page left open does not count as using the dashboard. Simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed. If you are ever signed out in the middle of an edit, see <em>"I was signed out in the middle of editing"</em> in <a href="#faq">Troubleshooting</a> before you press anything.</p>
+        <p>Click <strong>Account</strong> at the right-hand end of the menu bar, then <strong>Sign Out</strong>. Your sign-in stays active until you do this, until <strong><?= (int)(ADMIN_IDLE_LIMIT / 3600) ?> hours</strong> pass without you opening or saving a page, or <strong><?= (int)(ADMIN_ABSOLUTE_LIMIT / 3600) ?> hours</strong> after you signed in, whichever comes first. A page left open does not count as using the dashboard. Simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed. If you are ever signed out in the middle of an edit, see <em>"I was signed out in the middle of editing"</em> in <a href="#faq">Troubleshooting</a> before you press anything.</p>
         <div class="callout callout-tip">
           <b>One password for everyone</b>
           This dashboard uses a single shared admin password rather than individual employee logins. If more than one person updates the catalog, everyone signs in with the same password. Keep that in mind for two things: anyone who has the password can make changes, and the <a href="#auditlog">Audit log</a> can only identify a change by device/location and time, not by which person was typing — see the note in that section.
@@ -318,7 +311,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-tip">
           <b>You can change it yourself, any time</b>
-          Click <strong>Password</strong> in the top navigation. You'll need your current password, then a new one of at least 12 characters — a short sentence or four random words is both stronger and easier to remember than something like <code>Xk7!p</code>. The change takes effect immediately and you stay signed in. You don't need to call anyone.
+          Click <strong>Account</strong> in the menu bar, then <strong>Password</strong>. You'll need your current password, then a new one of at least 12 characters — a short sentence or four random words is both stronger and easier to remember than something like <code>Xk7!p</code>. The change takes effect immediately and you stay signed in. You don't need to call anyone.
         </div>
         <div class="callout callout-warning">
           <b>If you've forgotten it</b>
@@ -333,7 +326,7 @@ $navActive = 'help';
         <h2>📊 Reading the dashboard</h2>
         <p>The <strong>Products</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
         <ul class="plain">
-          <li><strong>Header bar</strong> — your logo on the left; on the right, a link to every page of the dashboard: <strong>Products</strong>, <strong>+ Add Product</strong>, <strong>Business Details</strong>, <strong>Page Content</strong>, <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups</strong>, <strong>Audit Log</strong>, <strong>Password</strong> and <strong>Help</strong>, plus <strong>View Live Site ↗</strong> to open the public website in a new tab and <strong>Sign Out</strong>. This same navigation bar appears at the top of every admin page. Two pages are not in the bar: <strong>Site Images &amp; Logo</strong> and <strong>Catalog &amp; Brochure PDFs</strong> — open them from the links on Page Content (the Site Images and Value-Added Services cards) and Business Details (the Logo URL and Catalog PDF URL boxes).</li>
+          <li><strong>Header bar</strong> — your logo on the left, then the menu. The bar is the same on every admin page and stays at the top of the screen while you scroll. Entries with a small arrow open a list when you click them: <strong>Products</strong> (All Products, Add Product), <strong>Website</strong> (Business Details, Page Content, Site Images &amp; Logo, Catalog &amp; Brochure PDFs), <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups &amp; History</strong> (Backups, Audit Log), <strong>Help</strong>, and on the right <strong>Account</strong> (Password, View Live Site ↗ to open the public website in a new tab, and Sign Out). The entry for the page you are on is shown in white. On a phone the menu is behind the <strong>Menu</strong> button at the top right.</li>
           <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>
           <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
           <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
@@ -344,15 +337,18 @@ $navActive = 'help';
           <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the dashboard layout: header, search bar, summary cards, and product table">
             <rect x="1" y="1" width="638" height="338" rx="10" fill="#ffffff" stroke="#e5e9ee"/>
             <rect x="10" y="10" width="620" height="30" rx="6" fill="#0d2d52"/>
-            <!-- ADM-9(d) — this omitted Inquiries and View Live Site; it now
-                 lists admin/nav.php's items in nav.php's order. Two more items
-                 would run past the bar at the old 9px, so the size drops to 8
-                 and textLength pins the line inside the 620px bar. PLAN-13 Phase 1
-                 raised every label in both diagrams to 10 (about 13px on screen at
-                 1440; 8 and 9 rendered at 10.6 and 11.9). Phases 2 and 5 replace
-                 the header and table this one draws, and it is redrawn then. -->
-            <text x="20" y="29" font-family="system-ui,sans-serif" font-size="10" fill="#ffffff" textLength="600" lengthAdjust="spacingAndGlyphs">IPC Admin · Products · + Add Product · Business Details · Page Content · Inquiries · Backups · Audit Log · Password · Help · View Live Site ↗ · Sign Out</text>
-            <text x="10" y="56" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">HEADER — same on every page</text>
+            <!-- ADM-9(d) — the strip lists admin/nav.php's top-level entries in
+                 nav.php's order. PLAN-13 Phase 2 redrew it for the grouped bar:
+                 six entries, the current one (Products, on this page) as a
+                 white pill, Account at the right-hand end. Labels are 10 (about
+                 13px on screen at 1440; PLAN-13 Phase 1). Phase 5 redraws the
+                 table below. -->
+            <text x="20" y="29" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">IPC Admin</text>
+            <rect x="90" y="16" width="70" height="18" rx="9" fill="#ffffff"/>
+            <text x="100" y="29" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#0d2d52">Products ▾</text>
+            <text x="172" y="29" font-family="system-ui,sans-serif" font-size="10" fill="#ffffff">Website ▾ · Inquiries · Backups &amp; History ▾ · Help</text>
+            <text x="560" y="29" font-family="system-ui,sans-serif" font-size="10" fill="#ffffff">Account ▾</text>
+            <text x="10" y="56" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">HEADER — same on every page, stays on screen as you scroll</text>
 
             <rect x="10" y="66" width="430" height="24" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
             <text x="20" y="82" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">Search by SKU / part number or product name…</text>
@@ -425,7 +421,7 @@ $navActive = 'help';
         <div class="eyebrow eyebrow-manage">Managing Products</div>
         <h2>➕ Adding a new product</h2>
         <ol class="steps">
-          <li>From the dashboard, click <span class="btn btn-primary btn-mock">+ Add Product</span> in the top right (it's also in the header nav on every page).</li>
+          <li>From the dashboard, click <span class="btn btn-primary btn-mock">+ Add Product</span> in the top right (it's also under <strong>Products</strong> in the menu bar on every page).</li>
           <li>
             <strong>Fill in Basic Information.</strong> Three fields are required (marked with *):
             <table class="field-ref">
@@ -915,7 +911,7 @@ $navActive = 'help';
       <section class="help-section" id="business">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>🏢 Business Details</h2>
-        <p>Click <strong>Business Details</strong> in the header. This one page controls the facts about your company that appear all over the public site — the phone number in the header, the address in the footer, the copyright year, your hours, your certifications, and the colors and logo.</p>
+        <p>Click <strong>Website</strong> in the menu bar, then <strong>Business Details</strong>. This one page controls the facts about your company that appear all over the public site — the phone number in the header, the address in the footer, the copyright year, your hours, your certifications, and the colors and logo.</p>
         <p>Change something here and it changes <em>everywhere it appears</em>. You never have to hunt for the same phone number on six pages.</p>
         <table class="field-ref">
           <!-- NEW-V2-2 — this row said all three drive the "header, footer,
@@ -962,7 +958,7 @@ $navActive = 'help';
       <section class="help-section" id="pagecontent">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>📝 Page Content</h2>
-        <p>Click <strong>Page Content</strong> in the header. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the navigation menus, the footer links, the contact form's wording and its automatic reply email, and the privacy policy.</p>
+        <p>Click <strong>Website</strong> in the menu bar, then <strong>Page Content</strong>. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the navigation menus, the footer links, the contact form's wording and its automatic reply email, and the privacy policy.</p>
         <p>Not sure which card controls something you can see on the site? <a href="#sitemap">Where each part of the site is edited</a> walks every page top to bottom and names the card.</p>
         <p>Each block is a row. Rows have <strong>↑ ↓</strong> buttons to reorder them, an <strong>✕</strong> to remove them, and a <strong>+ Add</strong> button at the bottom of each section.</p>
         <div class="callout callout-warning">
@@ -1007,7 +1003,7 @@ $navActive = 'help';
       <section class="help-section" id="inquiries">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>📥 Inquiries — every lead from the contact form</h2>
-        <p>Click <strong>Inquiries</strong> in the header. Every quote request and message submitted through the website is recorded here, <em>including ones the mail server failed to send</em>. This is your safety net: if email breaks, the lead is still on this page.</p>
+        <p>Click <strong>Inquiries</strong> in the menu bar. Every quote request and message submitted through the website is recorded here, <em>including ones the mail server failed to send</em>. This is your safety net: if email breaks, the lead is still on this page.</p>
         <p>Click any row to expand it and see the full message, the part number, quantities, required date and the visitor's contact details. Reply from your own email program — this page does not send email.</p>
         <table class="field-ref">
           <tr><td><span class="badge-mock">Quote</span> / <span class="badge-mock">Message</span></td><td>Which form the visitor used. "Quote" is a full RFQ with part number and quantity.</td></tr>
@@ -1037,7 +1033,7 @@ $navActive = 'help';
       <section class="help-section" id="backups">
         <div class="eyebrow eyebrow-advanced">Advanced</div>
         <h2>↩️ Backups &amp; undo</h2>
-        <p>Click <strong>Backups</strong> in the header. <strong>You can undo your own mistakes — you do not need to call anyone.</strong></p>
+        <p>Click <strong>Backups &amp; History</strong> in the menu bar, then <strong>Backups</strong>. <strong>You can undo your own mistakes — you do not need to call anyone.</strong></p>
         <p>Every time you save a <em>change</em> to products, business details or page content, a dated copy of the previous version is written first. The <?= (int)BACKUP_KEEP ?> most recent are kept for each of the three. If you press Save without having changed anything, nothing is written and no backup slot is used — so the list never fills up with identical copies of the same version, and the <?= (int)BACKUP_KEEP ?> slots hold <?= (int)BACKUP_KEEP ?> genuinely different versions. Each entry shows what's inside it ("41 products", "119 content rows", your company name and phone) — though Page Content entries usually all show the same row count, so go by the time.</p>
         <p><strong>How the times work:</strong> each entry is stamped with the moment you <em>saved a change</em>, and holds the version from <em>just before</em> that save. So restoring the entry stamped 10:15 undoes the change you saved at 10:15 — and everything saved after it.</p>
         <ol class="steps">
@@ -1064,7 +1060,7 @@ $navActive = 'help';
         <h2>🕒 Audit log / change history</h2>
         <p><strong>Everything you can change from this dashboard is recorded here</strong> — not just products. Adding, editing and deleting parts; uploading and removing data sheets and photos; changing a page photo or the logo; saving Business Details; saving Page Content; restoring a backup; and changing your password. Each entry records what happened, which product it was about, exactly when, and the IP address it came from.</p>
         <ol class="steps">
-          <li>Click <strong>Audit Log</strong> in the header navigation.</li>
+          <li>Click <strong>Backups &amp; History</strong> in the menu bar, then <strong>Audit Log</strong>.</li>
           <li>Browse the list — newest changes are always at the top.</li>
           <li>Use the filter boxes to narrow it down: type a SKU to see everything that's happened to one specific product, or pick an action type from the dropdown (it lists every action in the table below) — then click <strong>Filter</strong>. Nothing changes until you do.</li>
           <li>Click <strong>Clear</strong> (it appears once a filter is on) to see everything again.</li>
@@ -1195,7 +1191,7 @@ $navActive = 'help';
 
         <details class="faq">
           <summary>I want to change my password.</summary>
-          <p>Click <strong>Password</strong> in the header navigation. You'll need your current password and a new one of at least 12 characters. It takes effect immediately and you stay signed in — no developer needed. See <a href="#password">Your admin password</a>.</p>
+          <p>Click <strong>Account</strong> in the menu bar, then <strong>Password</strong>. You'll need your current password and a new one of at least 12 characters. It takes effect immediately and you stay signed in — no developer needed. See <a href="#password">Your admin password</a>.</p>
         </details>
 
         <details class="faq">

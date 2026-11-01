@@ -42,7 +42,6 @@ foreach ($products as $p) {
     $grouped[$type][] = $p;
 }
 ksort($grouped);
-$navActive = 'products';
 ?>
 <!doctype html>
 <html lang="en">

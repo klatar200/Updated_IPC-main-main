@@ -213,6 +213,10 @@ const CONTRAST = `(a, b) => {
       const logo = hdr.querySelector('.logo');
       const items = [...hdr.querySelectorAll('a, button, summary')].filter((e) => {
         if (logo && logo.contains(e)) return false;
+        // The links inside a CLOSED <details> keep a layout box in Chromium
+        // (226x40 measured) but are not painted; checkVisibility() is the
+        // browser's own answer to "can this be seen".
+        if (e.checkVisibility && !e.checkVisibility()) return false;
         const rc = e.getBoundingClientRect();
         return rc.width > 0 && rc.height > 0;
       });

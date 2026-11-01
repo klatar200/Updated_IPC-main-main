@@ -1274,7 +1274,6 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     return $out . $note . '</div>';
 }
 
-$navActive = 'content';
 ?>
 <!doctype html>
 <html lang="en">

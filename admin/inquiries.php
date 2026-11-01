@@ -171,7 +171,6 @@ foreach ($entries as $e) {
     if (empty($e['sent'])) $failed++;
 }
 
-$navActive = 'inquiries';
 ?>
 <!doctype html>
 <html lang="en">

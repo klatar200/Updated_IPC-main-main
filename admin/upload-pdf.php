@@ -166,11 +166,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </style>
 </head>
 <body>
-<?php
-$navExtra = '<a href="edit.php?sku=' . urlencode($sku) . '">Edit Details</a>';
-include 'nav.php';
-?>
+<?php include 'nav.php'; ?>
 <main>
+  <?= admin_breadcrumb([['Products', 'index.php'], [$sku, 'edit.php?sku=' . urlencode($sku)], ['Data sheet PDF']]) ?>
   <h1>Upload PDF: <?= h($sku) ?></h1>
   <p class="sub"><?= h($product['name'] ?? '') ?></p>
 

@@ -333,7 +333,6 @@ $daysStr  = implode(', ', $asList($hr['days'] ?? []));
 $otherStr = implode("\n", $asList($ce['other'] ?? []));
 $aboutStr = implode("\n", $asList($info['about']['paragraphs'] ?? []));
 $th = $info['theme'] ?? [];
-$navActive = 'settings';
 ?>
 <!doctype html>
 <html lang="en">
@@ -358,7 +357,7 @@ $navActive = 'settings';
        product editor's panel — if only one of the two previews should widen,
        this is the one to revert. */
     .preview-col { flex: 0 0 clamp(400px, 32%, 720px); min-width: 0; }
-    .preview-inner { position: sticky; top: 24px; max-height: calc(100vh - 40px); overflow: auto; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
+    .preview-inner { position: sticky; top: calc(var(--admin-bar-h) + 16px); max-height: calc(100vh - var(--admin-bar-h) - 32px); overflow: auto; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
     .preview-head { position: sticky; top: 0; background: #0d2d52; color: #fff; font-size: var(--fs-1); font-weight: 700; padding: 10px 16px; }
     .preview-body { padding: 16px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }

@@ -446,10 +446,18 @@ function armDocs() {
     .filter((l) => !new RegExp(l.replace(/ /g, '\\s+')).test(help.slice(help.indexOf('Header bar'), help.indexOf('Header bar') + 900)));
   ok('b2-01  the header-bar paragraph names the tabs the bar really carries',
     missingFromHelp.length === 0, `not named: ${missingFromHelp.join(', ')}`);
-  const svgLine = (/(<text[^>]*>IPC Admin[^<]*<\/text>)/.exec(help) || [, ''])[1];
+  // PLAN-13 Phase 2 grouped the bar into six entries (Business Details now
+  // sits under Website), so the strip is checked against nav.php's top-level
+  // entries: the <summary> labels and the two direct links.
+  const strip = help.slice(help.indexOf('>IPC Admin</text>'), help.indexOf('HEADER — same on every page'))
+    .replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&');
+  // Anchored on the closing tag: the opening <summary> carries a PHP `?>`.
+  const topEntries = [...nav.matchAll(/>([^<>]+)<\/summary>/g)].map((m) => m[1].replace(/&amp;/g, '&').trim())
+    .concat(['Inquiries', 'Help']);
+  const notDrawn = topEntries.filter((e) => !strip.includes(e));
   ok('b2-01  the dashboard diagram\'s header strip matches the real bar',
-    /Business Details/.test(svgLine) || /…|\.\.\./.test(svgLine),
-    `diagram says ${JSON.stringify(svgLine.replace(/<[^>]*>/g, '').slice(0, 90))}`);
+    topEntries.length === 6 && notDrawn.length === 0,
+    `nav.php entries ${JSON.stringify(topEntries)}; not in the diagram: ${notDrawn.join(', ')}`);
   console.log(`  note  nav.php renders: ${navLabels.join(' · ')}`);
 
   section('A-9.B2-02  the audit-log dropdown claim matches the badge table');

@@ -148,7 +148,7 @@ function action_color(string $a): array {
   </style>
 </head>
 <body>
-<?php $navActive = 'auditlog'; include 'nav.php'; ?>
+<?php include 'nav.php'; ?>
 <main class="admin-wide">
   <div class="page-header">
     <div>
