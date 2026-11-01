@@ -328,8 +328,9 @@ require_auth();
         <ul class="plain">
           <li><strong>Header bar</strong> — your logo on the left, then the menu. The bar is the same on every admin page and stays at the top of the screen while you scroll. Entries with a small arrow open a list when you click them: <strong>Products</strong> (All Products, Add Product), <strong>Website</strong> (Business Details, Page Content, Site Images &amp; Logo, Catalog &amp; Brochure PDFs), <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups &amp; History</strong> (Backups, Audit Log), <strong>Help</strong>, and on the right <strong>Account</strong> (Password, View Live Site ↗ to open the public website in a new tab, and Sign Out). The entry for the page you are on is shown in white. On a phone the menu is behind the <strong>Menu</strong> button at the top right.</li>
           <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>
-          <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
-          <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
+          <li><strong>Summary cards</strong> — five at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, products <strong>Missing PDF</strong>, and products <strong>Missing Photo</strong>. Useful for spotting gaps — if a "Missing" number looks too high, that's a quick to-do list.</li>
+          <li><strong>Category chips</strong> — <strong>All</strong>, then one chip per category; click one to see just that category.</li>
+          <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing its photo, SKU, Product Name, Temp Rating, whether it has a data sheet and a photo, and <strong>Edit</strong> and <strong>More ▾</strong>.</li>
         </ul>
         <div class="callout callout-tip">
           <b>On the long forms</b>
@@ -338,15 +339,15 @@ require_auth();
 
         <div class="diagram-wrap">
           <div class="diagram-caption">Dashboard layout at a glance</div>
-          <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the dashboard layout: header, search bar, summary cards, and product table">
-            <rect x="1" y="1" width="638" height="338" rx="10" fill="#ffffff" stroke="#e5e9ee"/>
+          <svg viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the dashboard layout: header, search bar, summary cards, category chips, and product table">
+            <rect x="1" y="1" width="638" height="378" rx="10" fill="#ffffff" stroke="#e5e9ee"/>
             <rect x="10" y="10" width="620" height="30" rx="6" fill="#0d2d52"/>
             <!-- ADM-9(d) — the strip lists admin/nav.php's top-level entries in
                  nav.php's order. PLAN-13 Phase 2 redrew it for the grouped bar:
                  six entries, the current one (Products, on this page) as a
                  white pill, Account at the right-hand end. Labels are 10 (about
-                 13px on screen at 1440; PLAN-13 Phase 1). Phase 5 redraws the
-                 table below. -->
+                 13px on screen at 1440; PLAN-13 Phase 1). Phase 5 redrew the
+                 cards, chips and table below. -->
             <text x="20" y="29" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">IPC Admin</text>
             <rect x="90" y="16" width="70" height="18" rx="9" fill="#ffffff"/>
             <text x="100" y="29" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#0d2d52">Products ▾</text>
@@ -359,66 +360,87 @@ require_auth();
             <text x="450" y="82" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">← SEARCH BAR</text>
 
             <g font-family="system-ui,sans-serif">
-              <rect x="10" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <rect x="10" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="20" y="122" font-size="16" font-weight="800" fill="#005da3">128</text>
               <text x="20" y="136" font-size="10" fill="#6b7280">Total Products</text>
 
-              <rect x="164" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
-              <text x="174" y="122" font-size="16" font-weight="800" fill="#005da3">9</text>
-              <text x="174" y="136" font-size="10" fill="#6b7280">Categories</text>
+              <rect x="136" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="146" y="122" font-size="16" font-weight="800" fill="#005da3">9</text>
+              <text x="146" y="136" font-size="10" fill="#6b7280">Categories</text>
 
-              <rect x="318" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
-              <text x="328" y="122" font-size="16" font-weight="800" fill="#005da3">94</text>
-              <text x="328" y="136" font-size="10" fill="#6b7280">With PDF</text>
+              <rect x="262" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="272" y="122" font-size="16" font-weight="800" fill="#005da3">94</text>
+              <text x="272" y="136" font-size="10" fill="#6b7280">With PDF</text>
 
-              <rect x="472" y="100" width="158" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
-              <text x="482" y="122" font-size="16" font-weight="800" fill="#005da3">34</text>
-              <text x="482" y="136" font-size="10" fill="#6b7280">Missing PDF</text>
+              <rect x="388" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="398" y="122" font-size="16" font-weight="800" fill="#005da3">34</text>
+              <text x="398" y="136" font-size="10" fill="#6b7280">Missing PDF</text>
+
+              <rect x="514" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="524" y="122" font-size="16" font-weight="800" fill="#005da3">6</text>
+              <text x="524" y="136" font-size="10" fill="#6b7280">Missing Photo</text>
             </g>
             <text x="10" y="162" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">SUMMARY CARDS — at-a-glance counts</text>
 
-            <text x="10" y="186" font-family="system-ui,sans-serif" font-size="11" font-weight="800" fill="#0d2d52">Fiberglass Sleeving (12)</text>
-            <line x1="10" y1="192" x2="630" y2="192" stroke="#e5e9ee" stroke-width="2"/>
+            <!-- PLAN-13 Phase 5 — the category chips, then the redrawn rows:
+                 photo, SKU, name, temperature, PDF / photo chips, Edit and More. -->
+            <g font-family="system-ui,sans-serif" font-size="10">
+              <rect x="10" y="172" width="54" height="18" rx="9" fill="#0d2d52"/><text x="20" y="185" fill="#ffffff" font-weight="700">All 128</text>
+              <rect x="70" y="172" width="96" height="18" rx="9" fill="#ffffff" stroke="#d1d9e0"/><text x="80" y="185" fill="#141414" font-weight="700">Heat Shrink 40</text>
+              <rect x="172" y="172" width="80" height="18" rx="9" fill="#ffffff" stroke="#d1d9e0"/><text x="182" y="185" fill="#141414" font-weight="700">Sleeving 22</text>
+              <rect x="258" y="172" width="56" height="18" rx="9" fill="#ffffff" stroke="#d1d9e0"/><text x="268" y="185" fill="#141414" font-weight="700">Tape 9</text>
+              <text x="324" y="185" fill="#6b7280">…</text>
+            </g>
+            <text x="10" y="206" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">CATEGORY CHIPS — show one category at a time</text>
 
-            <rect x="10" y="198" width="620" height="22" fill="#0d2d52"/>
-            <text x="20" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">SKU</text>
-            <text x="110" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">PRODUCT NAME</text>
-            <text x="340" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">TEMP RATING</text>
-            <text x="440" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">DATA SHEET</text>
-            <text x="530" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">ACTIONS</text>
+            <text x="10" y="228" font-family="system-ui,sans-serif" font-size="11" font-weight="800" fill="#0d2d52">Fiberglass Sleeving (12)</text>
 
-            <rect x="10" y="220" width="620" height="30" fill="#ffffff"/>
-            <text x="20" y="239" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">IP33PO</text>
-            <text x="110" y="239" font-family="system-ui,sans-serif" font-size="10" fill="#374151">3:1 Polyolefin Heat Shrink Tubing</text>
-            <text x="340" y="239" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">-55°C to 135°C</text>
-            <rect x="440" y="228" width="60" height="16" rx="8" fill="rgba(0,190,242,0.15)"/>
-            <text x="447" y="240" font-family="system-ui,sans-serif" font-size="10" fill="#0369a1">View PDF</text>
-            <rect x="530" y="228" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="240" font-family="system-ui,sans-serif" font-size="10" fill="#005da3">Edit</text>
-            <rect x="568" y="228" width="40" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="240" font-family="system-ui,sans-serif" font-size="10" fill="#dc2626">Delete</text>
+            <g font-family="system-ui,sans-serif" font-size="10">
+              <rect x="10" y="236" width="620" height="22" fill="#f6f8fb" stroke="#e5e9ee"/>
+              <text x="20" y="251" font-weight="700" fill="#4b5563">Photo</text>
+              <text x="70" y="251" font-weight="700" fill="#4b5563">SKU</text>
+              <text x="150" y="251" font-weight="700" fill="#4b5563">Product Name</text>
+              <text x="330" y="251" font-weight="700" fill="#4b5563">Temp Rating</text>
+              <text x="420" y="251" font-weight="700" fill="#4b5563">Files</text>
+              <text x="574" y="251" font-weight="700" fill="#4b5563">Actions</text>
 
-            <rect x="10" y="250" width="620" height="30" fill="#f8fafc"/>
-            <text x="20" y="269" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">IP50PVDF</text>
-            <text x="110" y="269" font-family="system-ui,sans-serif" font-size="10" fill="#374151">2:1 PVDF Heat Shrink Tubing</text>
-            <text x="340" y="269" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">-55°C to 175°C</text>
-            <text x="440" y="269" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">None</text>
-            <rect x="530" y="258" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="270" font-family="system-ui,sans-serif" font-size="10" fill="#005da3">Edit</text>
-            <rect x="568" y="258" width="40" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="270" font-family="system-ui,sans-serif" font-size="10" fill="#dc2626">Delete</text>
+              <rect x="10" y="258" width="620" height="34" fill="#ffffff" stroke="#e5e9ee"/>
+              <rect x="20" y="263" width="24" height="24" rx="5" fill="#cbd5e1"/>
+              <text x="70" y="279" font-weight="700" fill="#005da3">IP33PO</text>
+              <text x="150" y="279" fill="#374151">3:1 Polyolefin Heat Shrink Tubing</text>
+              <text x="330" y="279" fill="#6b7280">-55°C to 135°C</text>
+              <rect x="420" y="267" width="44" height="16" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/><text x="428" y="279" fill="#166534">PDF ✓</text>
+              <rect x="468" y="267" width="54" height="16" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/><text x="476" y="279" fill="#166534">Photo ✓</text>
+              <rect x="540" y="266" width="32" height="18" rx="5" fill="rgba(0,93,163,0.1)"/><text x="547" y="279" fill="#005da3">Edit</text>
+              <rect x="576" y="266" width="46" height="18" rx="5" fill="#ffffff" stroke="#d1d9e0"/><text x="583" y="279" fill="#141414">More ▾</text>
 
-            <line x1="10" y1="280" x2="630" y2="280" stroke="#f0f4f8" stroke-width="2"/>
-            <text x="10" y="302" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">PRODUCT TABLE — grouped by category, action buttons on the right</text>
-            <text x="10" y="322" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">(A simplified example — your real catalog will show your actual products.)</text>
+              <rect x="10" y="292" width="620" height="34" fill="#ffffff" stroke="#e5e9ee"/>
+              <rect x="20" y="297" width="24" height="24" rx="5" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="70" y="313" font-weight="700" fill="#005da3">IP50PVDF</text>
+              <text x="150" y="313" fill="#374151">2:1 PVDF Heat Shrink Tubing</text>
+              <text x="330" y="313" fill="#6b7280">-55°C to 175°C</text>
+              <rect x="420" y="301" width="44" height="16" rx="8" fill="#fffbeb" stroke="#fde68a"/><text x="426" y="313" fill="#92400e">No PDF</text>
+              <rect x="468" y="301" width="54" height="16" rx="8" fill="#fffbeb" stroke="#fde68a"/><text x="474" y="313" fill="#92400e">No photo</text>
+              <rect x="540" y="300" width="32" height="18" rx="5" fill="rgba(0,93,163,0.1)"/><text x="547" y="313" fill="#005da3">Edit</text>
+              <rect x="576" y="300" width="46" height="18" rx="5" fill="#ffffff" stroke="#d1d9e0"/><text x="583" y="313" fill="#141414">More ▾</text>
+            </g>
+
+            <text x="10" y="346" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">PRODUCT TABLE — Edit, and More ▾ for Manage PDF, Photo, View on site and Delete</text>
+            <text x="10" y="366" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">(A simplified example — your real catalog will show your actual products.)</text>
           </svg>
         </div>
 
-        <h3>The action buttons on each row</h3>
+        <h3>The buttons and markers on each row</h3>
         <table class="field-ref">
           <tr><td><span class="btn btn-sm btn-edit btn-mock">Edit</span></td><td>Opens the full edit form for that product — every field is changeable here.</td></tr>
-          <tr><td><span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span></td><td>Upload, replace, or remove that product's downloadable data sheet.</td></tr>
-          <tr><td><span class="btn btn-sm btn-pdf btn-mock">Photo</span></td><td>Upload, replace, or remove that product's photo, straight from your computer. See <a href="#photos">Product photos</a>.</td></tr>
-          <tr><td><span class="btn btn-sm btn-edit btn-mock">View ↗</span></td><td>Opens that exact product on your live public website in a new tab — the fastest way to double-check how a change actually looks to customers.</td></tr>
-          <tr><td><span class="btn btn-sm btn-danger btn-mock">Delete</span></td><td>Removes the product after you confirm — you can undo it from Backups. See <a href="#deleting">Deleting a product</a>.</td></tr>
+          <tr><td><span class="btn btn-sm btn-secondary btn-mock">More ▾</span></td><td>Opens a short list for that product:
+            <strong>Manage PDF</strong> (upload, replace, or remove its downloadable data sheet),
+            <strong>Photo</strong> (upload, replace, or remove its photo, straight from your computer — see <a href="#photos">Product photos</a>),
+            <strong>View on site ↗</strong> (opens that exact product on your live website in a new tab — the fastest way to check how a change looks to customers), and, set apart in red,
+            <strong>Delete…</strong> (removes the product after you confirm — you can undo it from Backups; see <a href="#deleting">Deleting a product</a>). Press <kbd>Esc</kbd> or click anywhere else to close it.</td></tr>
+          <tr><td><span class="btn btn-sm btn-mock" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">PDF ✓</span> <span class="btn btn-sm btn-mock" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a">No photo</span></td><td>Whether the product has a data sheet and a photo on your server. A green one opens the PDF (or the photo page); an amber <em>No PDF</em> / <em>No photo</em> takes you straight to the page that adds one. A red <em>PDF missing</em> or <em>Photo missing</em> means the product points at a file that is no longer on the server — upload it again.</td></tr>
         </table>
-        <p>This dashboard works in any modern desktop or tablet browser (Chrome, Edge, Safari, Firefox). On narrower screens, the product tables scroll left-to-right — drag within the table itself to reach the Actions column on the right.</p>
+        <p>The chips above the list — <strong>All</strong>, then one per category — show one category at a time, and the search box works inside the one you pick. This dashboard works in any modern browser (Chrome, Edge, Safari, Firefox). On a phone or a narrow tablet each product becomes a card, with <strong>Edit</strong> and <strong>More</strong> across its bottom — nothing has to be scrolled sideways.</p>
       </section>
 
       <section class="help-section" id="adding">
@@ -460,11 +482,11 @@ require_auth();
             <strong>Size chart</strong> — the grid of measurements (order sizes, expanded/recovered diameters, etc.), if this product has one. Use the visual builder — see <a href="#sizechart">Building the size / dimension chart</a> below.
           </li>
           <li>Click <span class="btn btn-primary btn-mock">Add Product</span> in the bar along the bottom of the screen.</li>
-          <li>You'll land back on the dashboard with a green confirmation message. Find your new product and click <span class="btn btn-sm btn-edit btn-mock">View ↗</span> to see it live (remember: allow ~60 seconds, or hard-refresh to see it immediately).</li>
+          <li>You'll land back on the dashboard with a green confirmation message. Find your new product, open <strong>More ▾</strong> on its row and click <strong>View on site ↗</strong> to see it live (remember: allow ~60 seconds, or hard-refresh to see it immediately).</li>
         </ol>
         <div class="callout callout-tip">
           <b>About the photo</b>
-          The Add Product form doesn't include a photo field — new products start with a branded placeholder image. Once the product is saved, click <span class="btn btn-sm btn-edit btn-mock">Photo</span> on its row on the dashboard and choose a picture from your computer. See <a href="#photos">Product photos</a>.
+          The Add Product form doesn't include a photo field — new products start with a branded placeholder image. Once the product is saved, open <strong>More ▾</strong> on its row on the dashboard, click <strong>Photo</strong> (or click its amber <em>No photo</em> marker) and choose a picture from your computer. See <a href="#photos">Product photos</a>.
         </div>
         <div class="callout callout-warning">
           <b>If Add Product won't save</b>
@@ -479,7 +501,7 @@ require_auth();
           <li>Find the product on the dashboard (use the search bar if your catalog is long) and click <span class="btn btn-sm btn-edit btn-mock">Edit</span>.</li>
           <li>Change any field you need to. Every field from <a href="#adding">Adding a new product</a> is here, plus a few extra:
             <table class="field-ref">
-              <tr><td>Photo URL</td><td><strong>You normally never type in this box.</strong> Use the <span class="btn btn-sm btn-edit btn-mock">Photo</span> button on the product's dashboard row to upload a picture from your computer, and this field fills itself in — see <a href="#photos">Product photos</a>. It's here for the rare case where a picture already lives somewhere else on your own site and you want to point at it (<code>/images/product.jpg</code>). Leave it blank to keep the branded placeholder.</td></tr>
+              <tr><td>Photo URL</td><td><strong>You normally never type in this box.</strong> Use <strong>More ▾ → Photo</strong> on the product's dashboard row to upload a picture from your computer, and this field fills itself in — see <a href="#photos">Product photos</a>. It's here for the rare case where a picture already lives somewhere else on your own site and you want to point at it (<code>/images/product.jpg</code>). Leave it blank to keep the branded placeholder.</td></tr>
               <tr><td>Primary PDF Button Label</td><td>Customizes the text on the main download button, e.g. "Molded Cap" instead of the default "Datasheet." This only changes the button's <em>label</em> — upload the actual file from the <a href="#pdfs">PDF data sheets</a> page.</td></tr>
               <tr><td>Additional PDF Links</td><td>One per line, formatted as <code>/pdfs/filename.pdf | Button Label</code> (the label is optional). Each line adds an extra download button, for products that ship with more than one document.</td></tr>
             </table>
@@ -594,9 +616,9 @@ require_auth();
       <section class="help-section" id="photos">
         <div class="eyebrow eyebrow-manage">Managing Products</div>
         <h2>🖼️ Product photos</h2>
-        <p>Every product on the dashboard has a <span class="btn btn-sm btn-edit btn-mock">Photo</span> button on its row. That is the whole feature — you pick a picture from your own computer and it is uploaded to your server. <strong>You do not need Dropbox, Google Drive, or any image-hosting service</strong>, and you do not need to know what a "direct link" is.</p>
+        <p>Every product on the dashboard has a <strong>Photo</strong> item in the <strong>More ▾</strong> menu on its row. That is the whole feature — you pick a picture from your own computer and it is uploaded to your server. <strong>You do not need Dropbox, Google Drive, or any image-hosting service</strong>, and you do not need to know what a "direct link" is.</p>
         <ol class="steps">
-          <li>On the <strong>Products</strong> page, find the product and click <span class="btn btn-sm btn-edit btn-mock">Photo</span>.</li>
+          <li>On the <strong>Products</strong> page, find the product, open <strong>More ▾</strong> and click <strong>Photo</strong> (or click its <em>Photo ✓</em> / <em>No photo</em> marker).</li>
           <li>Click <strong>Choose File</strong> and pick a <code>.jpg</code>, <code>.png</code>, <code>.gif</code> or <code>.webp</code> file. It must be <strong><?= h(min_upload_label(8)) ?> or smaller</strong>.</li>
           <li>Click <strong>Upload Photo →</strong>.</li>
           <li>That's it — the product's Photo URL field is filled in for you automatically. The new picture appears on the public site within about a minute.</li>
@@ -621,7 +643,7 @@ require_auth();
         <p>Every product can have a downloadable data sheet PDF. When a product has one, its page shows a <strong>"Datasheet"</strong> button; when it doesn't, customers instead see a <strong>"Request Datasheet"</strong> button (so they can contact you directly).</p>
         <h3>Uploading a PDF for the first time</h3>
         <ol class="steps">
-          <li>From the dashboard, click <span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span> on the product's row (or the "Upload PDF" link at the top of its Edit page).</li>
+          <li>From the dashboard, open <strong>More ▾</strong> on the product's row and click <strong>Manage PDF</strong> (or the <strong>Manage PDF</strong> button at the top of its Edit page).</li>
           <li>Click <strong>Select PDF File</strong> and choose the file from your computer. It must be a genuine PDF, <strong><?= h(min_upload_label(20)) ?> or smaller</strong> — that is the lower of the dashboard's own 20MB limit and what your server accepts (see <a href="#server-limits">What your server allows</a>).</li>
           <li>Click <span class="btn btn-primary btn-mock">Upload PDF →</span>.</li>
           <li>You'll see a green confirmation, and the button on the product's live page switches to "Datasheet" automatically (allow up to 60 seconds, or hard-refresh to see it right away).</li>
@@ -644,7 +666,7 @@ require_auth();
         <div class="eyebrow eyebrow-manage">Managing Products</div>
         <h2>🗑️ Deleting a product</h2>
         <ol class="steps">
-          <li>From the dashboard, click <span class="btn btn-sm btn-danger btn-mock">Delete</span> on the product's row.</li>
+          <li>From the dashboard, open <strong>More ▾</strong> on the product's row and click <strong>Delete…</strong> (in red, at the bottom of the list).</li>
           <li>Read the confirmation screen carefully — it names the exact product you're about to remove.</li>
           <li>Click <strong>Yes, Delete</strong> to confirm, or <strong>Cancel</strong> to back out.</li>
         </ol>
@@ -713,9 +735,9 @@ require_auth();
 
         <ol class="steps">
           <li>Go to <a href="#adding">Adding a new product</a> and fill in the Add Product form — SKU, Part Type, Product Name, badges, description, and (if the data is ready) the Specifications list and Size chart. Click <strong>Add Product</strong>.</li>
-          <li>Click <span class="btn btn-sm btn-edit btn-mock">Photo</span> on the product you just created and upload a picture from your computer — see <a href="#photos">Product photos</a>. The Add form has no photo field, so this always happens as a second step.</li>
-          <li>Click <span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span> and upload the product's data sheet, if you have one — see <a href="#pdfs">Managing PDF data sheets</a>.</li>
-          <li>Open the product with <span class="btn btn-sm btn-edit btn-mock">View ↗</span> and hard-refresh (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>) to check the photo, specs, size chart, and PDF button all look right.</li>
+          <li>Open <strong>More ▾ → Photo</strong> on the product you just created and upload a picture from your computer — see <a href="#photos">Product photos</a>. The Add form has no photo field, so this always happens as a second step.</li>
+          <li>Open <strong>More ▾ → Manage PDF</strong> and upload the product's data sheet, if you have one — see <a href="#pdfs">Managing PDF data sheets</a>.</li>
+          <li>Open the product with <strong>More ▾ → View on site ↗</strong> and hard-refresh (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>) to check the photo, specs, size chart, and PDF button all look right.</li>
         </ol>
         <div class="visual-note"><span class="vn-icon">✅</span>None of this has to happen in one sitting. A product with no photo or PDF yet is still live and visible on the site — just less complete. Come back and finish it with Edit whenever the missing pieces are ready.</div>
       </section>
@@ -1169,7 +1191,7 @@ require_auth();
 
         <details class="faq">
           <summary>My product photo isn't showing.</summary>
-          <p>First, give it a minute and then hard-refresh the live page (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>). If it still isn't there, upload it again with the <strong>Photo</strong> button on the product's dashboard row — see <a href="#photos">Product photos</a>. If the upload itself is failing, check <a href="#server-limits">What your server allows</a>: the <code>uploads/images</code> row must say Yes, and the file must be <?= h(min_upload_label(8)) ?> or smaller.</p>
+          <p>First, give it a minute and then hard-refresh the live page (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>). If it still isn't there, upload it again with <strong>More ▾ → Photo</strong> on the product's dashboard row — see <a href="#photos">Product photos</a>. If the upload itself is failing, check <a href="#server-limits">What your server allows</a>: the <code>uploads/images</code> row must say Yes, and the file must be <?= h(min_upload_label(8)) ?> or smaller.</p>
           <p>If the Photo URL box was filled in by hand with an address from somewhere else, clear it and use the Photo button instead. A product with no photo shows a branded placeholder rather than a broken image.</p>
         </details>
 

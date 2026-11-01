@@ -577,6 +577,73 @@ bracket ("(empty removes it)", "(e.g. ≤ 1 week)") and a Site Images label's
 - `adminaudit11` crashed in the sweep. Its own `:8743` server from an earlier
   run still held `out/aa11-site`; stop that `php.exe` before running it.
 
+### Phase 5 — done 2026-11-01 (branch `claude/admin-ux`)
+
+**One row per product (E1, E3):**
+- **Columns:** a 48px photo (or "No photo"), SKU, name, temperature, then
+  status chips and actions.
+- **PDF chip:** *PDF ✓* (green, opens the data sheet), *No PDF* (amber, opens
+  Manage PDF) or *PDF missing* (red: the product points at a file that is not
+  on the server).
+- **Photo chip:** the same three states.
+- **Actions:** **Edit** plus a **More ▾** `<details>` menu holding Manage PDF,
+  Photo, View on site ↗ and, set apart in red, Delete…. Delete keeps its
+  `data-confirm` and still goes through `delete.php`.
+- **Before:** five equal buttons per row, 210 on the page, with Delete beside
+  View and the same size.
+
+**Missing Photo (E3):** a stat card, counted like the PDF (a site path counts
+only when `site_file_missing()` finds its file). It reads 5, the five products
+§2 names.
+
+**Category chips (E4):** All plus one per category, with counts.
+- They are links to each section's id, so they jump with JavaScript off.
+- `search.js` turns them into a filter. The search box works inside the chosen
+  category, and the count reads "7 of 42 products".
+- The fifteen sections keep their headings, now `<h2>`. The header row is
+  light, not dark.
+
+**Phone and tablet (E2):** below 900px each row is a card.
+- The photo is on the left, then SKU, name, temperature and chips.
+- Edit and More sit across the bottom, 44px tall, capped at 440px wide.
+- The More menu spans the button row.
+- Nothing scrolls sideways at any width. The old table needed a sideways-
+  scrolling wrapper at 834 and 390, which is what hid every action.
+- The old Actions-column arithmetic (A10-020) went with the five buttons.
+
+**`search.js` also manages the More menus:** one open at a time; Escape
+closes it and puts focus back on More; a click elsewhere closes it.
+
+**Docs:**
+- Help: the dashboard diagram is redrawn (five cards, chips, the new row), the
+  button table is now "buttons and markers", and every "click Photo / Manage
+  PDF / View ↗ / Delete on its row" step now reads "More ▾ → …".
+- `admin/README.md`: the same steps, and the `index.php` line.
+
+**Suites:**
+- New `plan13-products`, 16/16: the stat matches its chips, the category
+  filter with and without JavaScript, the More menu by keyboard, Escape and
+  outside click, and Delete still dialog-then-`delete.php`.
+- `plan10-adminrows` rewritten for the new row, 24/24: at four widths, Edit,
+  More and all four menu links hit-testable on 42 rows; Delete full-label and
+  confirmed; nothing scrolls sideways.
+- The `plan10-admincrawl` `index-actions` state opens the first More menu for
+  its shot.
+- **`admin-ux` 83/83: every check green.** U5 was the last red.
+- Everything else is at or above the Phase 4 sweep. `audit9-fixes` 39/40
+  (`d4` is the standing red), and `adminaudit11` 35/37 ran clean this time.
+
+**Harness fix found on the way:** five suites (`adminaudit11`, `audit5-high`,
+`dep2-envelope`, `leadpath12`, `lowsB-contact`) set PHP's `sendmail_path` to a
+bare `.sh` file.
+- **What happened on Windows:** PHP hands that path to the shell to open, so
+  every `mail()` raised the "How do you want to open this file?" dialog on the
+  desktop and captured nothing.
+- **The fix:** they now run it through `sh`, as `php-mail.ini` already did.
+- **Result:** `leadpath12` went from 18/34 to 26/34 and `audit5-high` from
+  24/33 to 25/33. Their remaining reds are other Windows arms, such as a
+  `mail()` killed mid-send.
+
 ## 5. Constraints and what must stay green
 
 - **Invariant 6** — `form_complete` stays the last field of Page Content's form.

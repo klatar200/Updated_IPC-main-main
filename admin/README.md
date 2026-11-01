@@ -93,7 +93,11 @@ public_html/
     ├── config.local.php    ← Admin password hash (written on the server by the reset flow — never uploaded; gitignored)
     ├── nav.php             ← Shared header/nav, included on every page
     ├── auth.php            ← Login / logout / FTP-unlocked password recovery
-    ├── index.php           ← Product dashboard + server-health banner
+    ├── index.php           ← Product dashboard + server-health banner. One row per
+    │                         product: photo, SKU, name, temperature, PDF/photo chips,
+    │                         Edit + a More menu (`<details>`; Delete inside, in red);
+    │                         category chips; cards below 900px (PLAN-13 Phase 5).
+    │                         search.js: search, category filter, one More open at a time
     ├── add.php / edit.php / delete.php
     ├── settings.php        ← Business Details editor  (site-info.json)
     ├── content.php         ← Page Content editor      (content.json)
@@ -257,8 +261,8 @@ here — A-9.B2-12.)
    updated; this file was not, so it taught the owner to hand-write JSON for a
    screen that has not needed it in months. A-9.B2-13.)*
 6. Click **Add Product**.
-7. On the dashboard, click **View ↗** next to the new product to see how it
-   renders on the public site. Allow ~60 seconds for the change to propagate.
+7. On the dashboard, open **More ▾** on the new product's row and click
+   **View on site ↗** to see how it renders on the public site. Allow ~60 seconds for the change to propagate.
 
 ### Editing a product
 
@@ -268,12 +272,14 @@ here — A-9.B2-12.)
 3. **If you edited a spec table under Advanced and the JSON is invalid**,
    the save will fail with a parse error message — fix the syntax and
    resubmit. The visual builder cannot produce invalid JSON.
-4. Click **Save Changes**. Click **View ↗** afterwards to verify.
+4. Click **Save Changes**. Use **More ▾ → View on site ↗** on its dashboard
+   row afterwards to verify.
 
 ### Deleting a product
 
-1. From the dashboard, click **Delete** on the row.
-2. Confirm.
+1. From the dashboard, open **More ▾** on the row and click **Delete…** (red,
+   set apart at the bottom of the menu).
+2. Confirm the dialog, then confirm again on `delete.php`.
 3. The product disappears from the public site within ~60 seconds.
 4. **The PDF files and the uploaded photo are moved aside**, unless another
    product still references the same file — `delete.php` renames each one to
@@ -285,7 +291,8 @@ here — A-9.B2-12.)
 
 ### Uploading a data sheet (PDF)
 
-1. From the dashboard, click **Manage PDF** on the row.
+1. From the dashboard, open **More ▾** on the row and click **Manage PDF** (or
+   click the row's **No PDF** marker).
 2. Choose a PDF file. The real ceiling is
    **`min(upload_max_filesize, 20MB)`** — `uploaded_pdf_problem()` in
    `config.php` hard-rejects anything over 20MB regardless of the ini value, and

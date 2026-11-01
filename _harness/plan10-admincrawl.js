@@ -113,14 +113,15 @@ const PAGE_VPS = [D, T, M];
 const STATES = [
   {
     slug: 'index-actions', vp: D, url: '/admin/index.php', full: false,
-    note: 'item 5 — Delete now sits inside the table, on a wrapped second line',
+    note: 'item 5 — Edit plus a More menu holding Manage PDF, Photo, View on site and Delete (PLAN-13 Phase 5)',
     // Put the first row's action cell in view rather than shooting the page
-    // top, which is a stats bar.
+    // top, which is a stats bar, and open its More menu for the shot.
     act: async (page) => {
       if (!(await page.locator('table tbody tr').count())) return false;   // same scroll-before-check shape (A12-L13-05-W5-1)
       await page.locator('table tbody tr').first().scrollIntoViewIfNeeded({ timeout: 5000 });
+      await page.locator('table tbody tr').first().locator('details.row-more > summary').click();
       await page.waitForTimeout(250);
-      return (await page.locator('table tbody tr td:nth-child(5) a, table tbody tr td:nth-child(5) button').count()) >= 5;
+      return (await page.locator('table tbody tr').first().locator('.row-more-menu a:visible').count()) === 4;
     },
   },
   {
