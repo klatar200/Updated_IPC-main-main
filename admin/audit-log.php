@@ -125,18 +125,18 @@ function action_color(string $a): array {
   <style>
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
     h1 { font-size: var(--fs-6); font-weight: 800; margin: 0 0 4px; }
-    .sub { font-size: var(--fs-2); color: #6b7280; margin: 0; }
+    .sub { font-size: var(--fs-2); color: #4b5563; margin: 0; }
     .alert { padding: 12px 16px; border-radius: 8px; font-size: var(--fs-2); margin-bottom: 16px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
     th { background: #0d2d52; color: rgba(255,255,255,0.7); font-size: var(--fs-1); font-weight: 700; padding: 12px 16px; text-align: left; }
     td { padding: 11px 16px; border-bottom: 1px solid #f0f4f8; font-size: var(--fs-2); vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
-    .ts   { color: #6b7280; font-size: var(--fs-1); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .ts   { color: #4b5563; font-size: var(--fs-1); white-space: nowrap; font-variant-numeric: tabular-nums; }
     .sku  { font-weight: 700; color: #005da3; font-size: var(--fs-1); }
     .action-badge { display: inline-block; font-size: var(--fs-1); font-weight: 700; padding: 3px 8px; border-radius: 20px; }
     .detail { color: #374151; }
-    .ip { color: #6b7280; font-size: var(--fs-1); font-family: var(--font-mono); white-space: nowrap; }
-    .empty { padding: 40px; text-align: center; color: #6b7280; font-size: var(--fs-3); }
+    .ip { color: #4b5563; font-size: var(--fs-1); font-family: var(--font-mono); white-space: nowrap; }
+    .empty { padding: 40px; text-align: center; color: #4b5563; font-size: var(--fs-3); }
     /* PLAN-13 Phase 6 — one heading row per day inside the table. */
     tr.day-row th { background: #f6f8fb; color: var(--brand-dark); font-size: var(--fs-2); font-weight: 700; padding: 9px 16px; border-bottom: 1px solid #e5e9ee; }
     .reset { display: inline-flex; align-items: center; min-height: 38px; padding: 8px 14px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; background: #f0f4f8; color: #141414; border: 1px solid #d1d9e0; text-decoration: none; }
@@ -150,12 +150,22 @@ function action_color(string $a): array {
        off the right edge. The date now sits over the time, the fixed column
        widths give way, and the cells are tighter, so Detail starts on the
        first screen; IP, the least-read column, is what scrolls. */
+    /* PLAN-13 Phase 7 — and even so, Detail was squeezed to ~120px and the
+       IP sat past the edge. On a phone each entry is now a card: the time,
+       action and SKU on one line, the whole detail under them, the IP last
+       and small. The column headings stay for screen readers. */
     @media (max-width: 640px) {
-      .col-when, .col-action, .col-sku, .col-ip { width: auto; }
-      th, td { padding: 9px 8px; }
-      .ts { white-space: normal; }
-      .ts span { display: block; white-space: nowrap; }
-      .detail { min-width: 116px; }
+      .table-scroll { overflow: visible; }
+      table, tbody, tr, td { display: block; width: auto; }
+      thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      tr.day-row th { display: block; }
+      tbody tr:not(.day-row) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 12px 14px; border-bottom: 1px solid #f0f4f8; }
+      tbody tr:not(.day-row) td { padding: 0; border: 0; }
+      td.ts { white-space: normal; }
+      td.ts span { white-space: nowrap; }
+      td.detail { flex-basis: 100%; }
+      td.ip { flex-basis: 100%; }
+      td.ip:empty, td.sku-cell:empty { display: none; }
     }
   </style>
 </head>

@@ -148,13 +148,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?= admin_head() ?>
   <style>
     main { max-width: 600px; margin: 0 auto; padding: 40px 24px; }
-    .sub { font-size: var(--fs-2); color: #6b7280; margin: 0 0 28px; }
+    .sub { font-size: var(--fs-2); color: #4b5563; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
     /* Kept, against admin_head()'s shared 5px: these two upload pages and
        password.php have always used 6px here. One pixel, but the point of
        the extraction was that it changed nothing on screen. */
     label { margin-bottom: 6px; }
-    .hint { font-size: var(--fs-1); color: #6b7280; margin-top: 5px; }
+    .hint { font-size: var(--fs-1); color: #4b5563; margin-top: 5px; }
     input[type=file] { width: 100%; padding: 10px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: var(--fs-2); cursor: pointer; transition: border-color 0.15s; }
     input[type=file]:hover { border-color: #005da3; }
     .btn { display: inline-flex; align-items: center; padding: 10px 22px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
@@ -190,13 +190,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <form method="POST" style="display:inline" data-confirm="Remove this PDF? The product will revert to showing &quot;Request Datasheet&quot; on the website. The file is kept aside on the server, so restoring the catalog from Backups brings it back.">
             <input type="hidden" name="action" value="remove">
             <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
-            <button type="submit" class="btn btn-secondary" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca">Remove PDF</button>
+            <button type="submit" class="btn btn-secondary" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca">Remove PDF</button>
           </form>
         </div>
       </div>
       <div class="hint" style="margin-top:10px">Uploading a new file will replace this PDF <strong>in place</strong> — it overwrites <code><?= h(basename($currentPdf)) ?></code> in the <code>/pdfs/</code> folder, so the link keeps working for every part covered by this data sheet.</div>
     <?php else: ?>
-      <p style="color:#6b7280;font-size:var(--fs-2);margin:0">No PDF uploaded yet for this product — the website is showing a "Request Datasheet" button.</p>
+      <p style="color:#4b5563;font-size:var(--fs-2);margin:0">No PDF uploaded yet for this product — the website is showing a "Request Datasheet" button.</p>
     <?php endif; ?>
   </div>
 
@@ -236,11 +236,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    product: the upload is not refused (upload's refusal needs
                    $filename !== $existingName); it replaces the one file both
                    use, as Help #pdfs says. The hint said "will be refused". */ ?>
-          <span style="color:#dc2626;font-weight:600"> ⚠ This data sheet is shared with <?= h($otherOwner) ?>. Uploading here replaces it for both products, and the old version is not kept.</span>
+          <span style="color:#b91c1c;font-weight:600"> ⚠ This data sheet is shared with <?= h($otherOwner) ?>. Uploading here replaces it for both products, and the old version is not kept.</span>
         <?php elseif ($willOverwrite && $otherOwner !== ''): ?>
-          <span style="color:#dc2626;font-weight:600"> ⚠ That filename is <?= h($otherOwner) ?>'s data sheet. This upload will be refused — remove the PDF from <?= h($otherOwner) ?> first, or change this product's SKU.</span>
+          <span style="color:#b91c1c;font-weight:600"> ⚠ That filename is <?= h($otherOwner) ?>'s data sheet. This upload will be refused — remove the PDF from <?= h($otherOwner) ?> first, or change this product's SKU.</span>
         <?php elseif ($willOverwrite): ?>
-          <span style="color:#dc2626;font-weight:600"> ⚠ This will replace the existing PDF for this product.</span>
+          <span style="color:#b91c1c;font-weight:600"> ⚠ This will replace the existing PDF for this product.</span>
         <?php endif; ?>
       </div>
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">

@@ -1395,7 +1395,7 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     .layout-off { margin: 6px 0 0; font-size: var(--fs-1); color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 5px 9px; }
     .card > .layout-off { margin: -6px 0 16px; }
     .where-link:focus-visible { outline: 3px solid #005da3; outline-offset: 2px; }
-    .where-note { font-size: var(--fs-1); color: #6b7280; line-height: 1.5; flex: 1 1 240px; min-width: 0; }
+    .where-note { font-size: var(--fs-1); color: #4b5563; line-height: 1.5; flex: 1 1 240px; min-width: 0; }
     @media (pointer: coarse) { .where-link { padding: 12px 14px; } }
     .card-title { font-size: var(--fs-4); font-weight: 700; color: var(--brand-dark); margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid #e5e9ee; line-height: 1.3; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -1424,7 +1424,7 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     }
     .rbtn:hover:not(:disabled) { background: #eef4fb; border-color: #005da3; }
     .rbtn:disabled { opacity: 0.35; cursor: default; }
-    .rbtn.danger:hover:not(:disabled) { background: #fef2f2; border-color: #dc2626; color: #dc2626; }
+    .rbtn.danger:hover:not(:disabled) { background: #fef2f2; border-color: #dc2626; color: #b91c1c; }
     /* 4.12 — amber, distinct from the red .error-list (nothing was lost) and
        from the green banner it sits under. The left bar is what makes it read
        as a callout rather than more body copy. */

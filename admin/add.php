@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?= admin_head() ?>
   <style>
     h1 { font-size: var(--fs-6); font-weight: 800; margin: 0 0 6px; }
-    .sub { font-size: var(--fs-2); color: #6b7280; margin: 0 0 28px; }
+    .sub { font-size: var(--fs-2); color: #4b5563; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
     input:focus, select:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     @media(max-width:600px) { .grid-2 { grid-template-columns: 1fr; } }

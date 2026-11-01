@@ -254,7 +254,7 @@ $shown      = array_slice($matches, ($page - 1) * $PER_PAGE, $PER_PAGE);
   <title>IPC Admin — Inquiries</title>
   <?= admin_head() ?>
   <style>
-    .empty { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 40px; text-align: center; color: #6b7280; font-size: var(--fs-3); }
+    .empty { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 40px; text-align: center; color: #4b5563; font-size: var(--fs-3); }
     .inq { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
     .inq summary { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; list-style: none; flex-wrap: wrap; }
     .inq summary::-webkit-details-marker { display: none; }
@@ -263,26 +263,26 @@ $shown      = array_slice($matches, ($page - 1) * $PER_PAGE, $PER_PAGE);
     .badge-rfq { background: rgba(0,93,163,0.1); color: #005da3; }
     .badge-msg { background: rgba(107,114,128,0.12); color: #4b5563; }
     .badge-sent { background: #f0fdf4; color: #166534; }
-    .badge-failed { background: #fef2f2; color: #dc2626; }
+    .badge-failed { background: #fef2f2; color: #b91c1c; }
     .badge-pending { background: #fffbeb; color: #92400e; }
     /* Blocked/spam entries read as neutral, not as an error to chase. */
-    .badge-blocked { background: rgba(107,114,128,0.12); color: #6b7280; }
+    .badge-blocked { background: rgba(107,114,128,0.12); color: #4b5563; }
     .inq-rejected { background: #fafbfc; border-style: dashed; }
-    .inq-rejected .who { font-weight: 400; color: #6b7280; }
+    .inq-rejected .who { font-weight: 400; color: #4b5563; }
     .note-box { margin: 0 0 12px; padding: 10px 12px; background: #f8fafc; border-left: 3px solid #d1d9e0; border-radius: 4px; font-size: var(--fs-1); color: #4b5563; line-height: 1.5; }
     .who { font-size: var(--fs-2); font-weight: 600; }
-    .who small { color: #6b7280; font-weight: 400; }
-    .when { margin-left: auto; font-size: var(--fs-1); color: #6b7280; flex-shrink: 0; }
+    .who small { color: #4b5563; font-weight: 400; }
+    .when { margin-left: auto; font-size: var(--fs-1); color: #4b5563; flex-shrink: 0; }
     .detail { border-top: 1px solid #eef2f6; padding: 16px 18px; }
     .detail table { border-collapse: collapse; width: 100%; }
-    .detail th { text-align: left; font-size: var(--fs-1); color: #6b7280; padding: 5px 14px 5px 0; vertical-align: top; white-space: nowrap; width: 130px; }
+    .detail th { text-align: left; font-size: var(--fs-1); color: #4b5563; padding: 5px 14px 5px 0; vertical-align: top; white-space: nowrap; width: 130px; }
     .detail td { font-size: var(--fs-2); color: #374151; padding: 5px 0; white-space: pre-wrap; word-break: break-word; }
     .detail a { color: #005da3; }
     .stats { display: flex; gap: 12px; margin-bottom: 20px; }
     .stat { background: #fff; border: 1px solid #e5e9ee; border-radius: 10px; padding: 14px 20px; }
     .stat-num { font-size: var(--fs-5); font-weight: 800; color: #005da3; }
-    .stat-num.bad { color: #dc2626; }
-    .stat-lbl { font-size: var(--fs-1); color: #6b7280; }
+    .stat-num.bad { color: #b91c1c; }
+    .stat-lbl { font-size: var(--fs-1); color: #4b5563; }
     .note { font-size: var(--fs-1); color: #4b5563; margin-top: 16px; }
     /* PLAN-13 Phase 6 — a lead that arrived since the last visit. */
     .inq-new { border-color: #93c5fd; box-shadow: inset 4px 0 0 var(--brand); }
@@ -386,7 +386,7 @@ $shown      = array_slice($matches, ($page - 1) * $PER_PAGE, $PER_PAGE);
         <?php endif; ?>
       <?php endif; ?>
       <span class="who"><?= h($e['name'] ?? '') !== '' ? h($e['name']) : '—' ?> <small><?= h($e['company'] ?? '') ?></small></span>
-      <?php if ($rej): ?><small style="color:#6b7280"><?= h($rej['blurb']) ?></small><?php endif; ?>
+      <?php if ($rej): ?><small style="color:#4b5563"><?= h($rej['blurb']) ?></small><?php endif; ?>
       <span class="when"><?= h($e['ts'] ?? '') ?></span>
     </summary>
     <div class="detail">

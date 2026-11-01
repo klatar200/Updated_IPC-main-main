@@ -361,7 +361,7 @@ $partTypes = ipc_product_families();
   <style>
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }
     .page-header h1 { font-size: var(--fs-6); font-weight: 800; margin: 0; }
-    .page-header p  { font-size: var(--fs-2); color: #6b7280; margin: 4px 0 0; }
+    .page-header p  { font-size: var(--fs-2); color: #4b5563; margin: 4px 0 0; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
     textarea { resize: vertical; line-height: 1.5; }
     @media(max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }

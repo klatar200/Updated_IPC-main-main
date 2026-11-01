@@ -271,12 +271,12 @@ function nice_size(int $b): string {
     .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-bottom: 1px solid #f0f4f8; font-size: var(--fs-2); }
     .row:last-child { border-bottom: none; }
     .when { font-weight: 600; }
-    .size { color: #6b7280; font-size: var(--fs-1); }
+    .size { color: #4b5563; font-size: var(--fs-1); }
     .items { color: #374151; font-size: var(--fs-1); background: #f0f4f8; border-radius: 5px; padding: 2px 8px; }
     .row form { margin-left: auto; }
     .btn { display: inline-flex; align-items: center; padding: 7px 16px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; cursor: pointer; text-decoration: none; border: 1px solid #d1d9e0; background: #fff; color: #141414; }
     .btn:hover { border-color: #005da3; background: #eef4fb; }
-    .none { color: #6b7280; font-size: var(--fs-2); }
+    .none { color: #4b5563; font-size: var(--fs-2); }
     .note { font-size: var(--fs-1); color: #4b5563; }
     /* PLAN-13 Phase 6 — what the version was saved ahead of. */
     .why { flex-basis: 100%; order: 10; font-size: var(--fs-2); color: var(--ink-2); line-height: 1.45; }
@@ -320,7 +320,7 @@ function nice_size(int $b): string {
           <button type="submit" class="btn">Restore This Version</button>
         </form>
         <?php else: ?>
-        <span class="size" style="margin-left:auto;color:#dc2626">Not a backup this page wrote — cannot restore it from here.</span>
+        <span class="size" style="margin-left:auto;color:#b91c1c">Not a backup this page wrote — cannot restore it from here.</span>
         <?php endif; ?>
       </div>
       <?php endforeach; ?>

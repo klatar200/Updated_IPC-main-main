@@ -194,9 +194,9 @@
     });
   })();
 
-  // The strip's height, for what must clear it as well as the menu bar: a
-  // jump to a section (html's scroll-padding-top covers only the bar) and the
-  // sticky live previews.
+  // The strip's height, for what must clear it as well as the menu bar:
+  // html's scroll-padding-top (a jump to a section, and a field reached with
+  // Tab — PLAN-13 Phase 7) and the sticky live previews.
   function measure() {
     document.documentElement.style.setProperty("--form-index-h", nav.offsetHeight + "px");
   }

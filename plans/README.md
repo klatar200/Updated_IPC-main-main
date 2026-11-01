@@ -36,8 +36,9 @@ on `claude/admin-ux`: the guard suite, one type scale, the sticky grouped
 menu bar, the long-form pattern (sticky save bar, section strip, Hide/Show),
 Page Content regrouped by public page with a "Find a box" filter, the
 Products list redesigned (Edit + More menu, photo and PDF chips, category chips,
-cards on a phone), and search, filters, paging and day headings on Inquiries
-and the Audit Log, with each backup saying what it was saved ahead of.
+cards on a phone), search, filters, paging and day headings on Inquiries
+and the Audit Log, with each backup saying what it was saved ahead of, and a
+phone, keyboard and contrast pass over the whole admin.
 §6 holds the remaining decisions.
 
 ---

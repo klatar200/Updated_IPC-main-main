@@ -56,12 +56,12 @@ ksort($grouped);
        admin_head() in config.php; what is left here is this page only. */
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
     .page-header h1 { font-size: var(--fs-6); font-weight: 800; margin: 0; }
-    .page-header p  { font-size: var(--fs-2); color: #6b7280; margin: 2px 0 0; }
+    .page-header p  { font-size: var(--fs-2); color: #4b5563; margin: 2px 0 0; }
     /* Stats bar */
     .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
     .stat  { background: #fff; border: 1px solid #e5e9ee; border-radius: 10px; padding: 14px 20px; flex: 1; min-width: 140px; }
     .stat-val { font-size: var(--fs-5); font-weight: 800; color: #005da3; line-height: 1; }
-    .stat-lbl { font-size: var(--fs-1); color: #6b7280; margin-top: 3px; }
+    .stat-lbl { font-size: var(--fs-1); color: #4b5563; margin-top: 3px; }
     /* Products list — PLAN-13 Phase 5 (§2 E1–E4). One row per product:
        photo, SKU, name, temperature, PDF and photo chips, then Edit and a
        More menu. It replaced five equal buttons per row (210 on the page,
@@ -152,7 +152,9 @@ ksort($grouped);
     /* Search */
     .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
     .search-bar input { flex: 1; padding: 10px 14px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: var(--fs-2); outline: none; }
-    .search-bar input:focus { border-color: #005da3; }
+    /* PLAN-13 Phase 7 — the border change alone was the only focus sign
+       (outline: none above), and a 1px colour change is not one. */
+    .search-bar input:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.25); }
   </style>
 </head>
 <body>
@@ -383,7 +385,7 @@ ksort($grouped);
   <!-- Search -->
   <div class="search-bar">
     <input type="search" id="productSearch" placeholder="Search by SKU / part number or product name…" autocomplete="off" aria-label="Search products" />
-    <span id="searchCount" role="status" aria-live="polite" style="display:flex;align-items:center;font-size:var(--fs-2);color:#6b7280;white-space:nowrap;"></span>
+    <span id="searchCount" role="status" aria-live="polite" style="display:flex;align-items:center;font-size:var(--fs-2);color:#4b5563;white-space:nowrap;"></span>
   </div>
   <p id="searchEmpty" style="display:none;color:#4b5563;font-size:var(--fs-2);margin:0 0 24px;">No products match your search.</p>
 

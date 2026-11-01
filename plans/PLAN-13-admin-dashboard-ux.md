@@ -717,6 +717,69 @@ phone. That is Phase 7's phone pass.
   which is missing, and the other needs a Unix `/tmp`. Environment, not this
   change.
 
+### Phase 7 — done 2026-11-01 (branch `claude/admin-ux`), with one gap
+
+**The check came first.** `_harness/plan13-a11y.js` covers the sign-in page
+and all 15 signed-in pages at 390 and 768.
+- **W1:** no sideways page scroll.
+- **W2:** no control reachable only sideways.
+- **W3:** 24×24 targets, with WCAG 2.5.8's inline and spacing exceptions
+  measured.
+- **W4:** 4.5:1 text against the painted background.
+- **W5:** the Audit Log's detail spans its card on a phone.
+- **K1–K3, at 768 with Tab:** a visible focus indicator at every stop, none
+  covered by the menu bar, the save bar or the section strip, and stops in
+  document order with no positive `tabindex`.
+- **Result on the Phase 6 code:** 121/165. With the spacing exception measured
+  rather than ignored, it was 137/165.
+
+**What it found, and the fixes:**
+- **Contrast.**
+  - `#6b7280` grey was 4.37:1 on the page background, on every page's
+    subtitle and in many notes. Every use in `admin/` became `#4b5563`
+    (`--ink-2`, 7.0:1 there).
+  - Red `#dc2626` as text on `#fef2f2` was 4.41:1: Remove Photo, Remove PDF,
+    Stop Using and every `.btn-danger`. All became `#b91c1c` (5.9:1), the
+    colour `.error-list` already used.
+  - The live previews' sample text was `#aeb8c4`, 2.0:1; it is now `#6b7280`.
+- **Focus.** The Products search box's only focus sign was a 1px border
+  colour; it now has a ring.
+- **Focus hidden.** Tab parked fields under the save bar (Business Details,
+  Add, Page Content) and under the section strip (Edit).
+  - `html` `scroll-padding-top` now adds `--form-index-h`, and
+    `html:has(.save-bar)` gets `scroll-padding-bottom: 104px`. The browser
+    keeps a focused field clear of both.
+  - The cards' `scroll-margin-top` dropped to 8px to keep jumps where they
+    were.
+- **Audit Log on a phone.** Detail was squeezed to about 120px and the IP was
+  past the edge. Below 640px each entry is now a card: time, action and SKU,
+  then the whole detail, then the IP. Help's "swipe the table sideways"
+  sentence was replaced.
+- **Size-chart grid on a phone.** It is columns by nature and scrolls inside
+  its box. It now says "Swipe the chart sideways to see every column →"
+  above itself, and the suite treats it as a deliberate scroller, as it does
+  the two one-row strips.
+
+**Already fine once measured:** tap targets (every small link was spaced or
+inline), Tab order, and the sign-in page.
+
+**Result:** `plan13-a11y` 172/172, `admin-ux` 84/84, and every suite that was
+green is still green.
+
+**The gap: "full admin suite list green" is not met here.** These suites were
+red before Phase 0, and their reds are the local harness, not the admin:
+- `siteimages` and `docmap`: their uploads and saves fail on the `:8123`
+  server. It starts with `-c php-mail.ini`, which replaces `php.ini`, so it
+  loads no `gd`.
+- `contactflow`, `audit7-lead` and `leadpath12`: the contact form's rate
+  limit, plus Windows mail-capture arms.
+- `audit5-medium`, `lowsA2-admin` and `adminaudit11` DI-3/DI-4: command-line
+  PHP without `gd`.
+- `audit9-fixes`: the standing `d4`.
+
+Making those green is a harness job: load `gd` in the harness ini files, and
+reset the contact limiter between suites. It is not part of this phase.
+
 ## 5. Constraints and what must stay green
 
 - **Invariant 6** — `form_complete` stays the last field of Page Content's form.

@@ -88,7 +88,7 @@ $brokenRefs = industry_refs_broken_by($products, $without);
     .card { background: #fff; border-radius: 12px; padding: 40px; max-width: 440px; width: 100%; box-shadow: 0 4px 24px rgba(0,45,82,0.12); text-align: center; }
     .icon { font-size: 48px; margin-bottom: 16px; }
     h1 { font-size: 20px; font-weight: 800; color: #141414; margin: 0 0 8px; }
-    p  { font-size: var(--fs-3); color: #6b7280; margin: 0 0 28px; }
+    p  { font-size: var(--fs-3); color: #4b5563; margin: 0 0 28px; }
     .product-name { font-weight: 600; color: #141414; }
     .actions { display: flex; gap: 10px; justify-content: center; }
     .btn { padding: 10px 24px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }

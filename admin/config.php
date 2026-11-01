@@ -519,7 +519,12 @@ function admin_head(): string {
   @media (max-width: 899px) { :root { --admin-bar-h: 56px; } }
   /* An in-page jump (#faq, Help's contents) must not land its heading under
      the sticky bar. */
-  html { scroll-padding-top: calc(var(--admin-bar-h) + 16px); }
+  html { scroll-padding-top: calc(var(--admin-bar-h) + var(--form-index-h, 0px) + 16px); }
+  /* PLAN-13 Phase 7 — and Tab must not park a field under the save bar at
+     the bottom, or under the long forms' section strip (--form-index-h, set
+     by longform.js) at the top: the browser scrolls a focused field clear of
+     both. */
+  html:has(.save-bar) { scroll-padding-bottom: 104px; }
 
   /* ── Reset + page shell ─────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; }
@@ -552,7 +557,7 @@ function admin_head(): string {
   /* ── Breadcrumb (admin_breadcrumb()) ─────────────────────────────────── */
   .crumbs { font-size: var(--fs-2); color: var(--ink-2); margin: 0 0 12px; }
   .crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
-  .crumbs li + li::before { content: "›"; margin-right: 8px; color: #6b7280; }
+  .crumbs li + li::before { content: "›"; margin-right: 8px; color: #4b5563; }
   .crumbs a { color: var(--brand); text-decoration: none; font-weight: 600; }
   .crumbs a:hover { text-decoration: underline; }
   .crumbs [aria-current="page"] { color: var(--ink); }
@@ -592,7 +597,7 @@ function admin_head(): string {
   .btn-sm { padding: 5px 12px; font-size: var(--fs-1); }
   .btn-edit { background: rgba(0,93,163,0.08); color: #005da3; }
   .btn-edit:hover { background: rgba(0,93,163,0.15); }
-  .btn-danger { background: rgba(220,38,38,0.08); color: #dc2626; }
+  .btn-danger { background: rgba(220,38,38,0.08); color: #b91c1c; }
   .btn-danger:hover { background: rgba(220,38,38,0.15); }
   .btn-pdf { background: rgba(0,190,242,0.1); color: #0369a1; }
   .btn-pdf:hover { background: rgba(0,190,242,0.2); }
@@ -634,7 +639,7 @@ function admin_head(): string {
   }
   /* A section is a .card (Business Details, Add, Edit) or, on Page Content,
      a .page-group: one public page holding several cards (Phase 4). */
-  form[data-long-form] > .card, form[data-long-form] > .page-group { position: relative; scroll-margin-top: calc(var(--form-index-h, 0px) + 8px); }
+  form[data-long-form] > .card, form[data-long-form] > .page-group { position: relative; scroll-margin-top: 8px; }
   form[data-long-form] > .has-toggle > .card-title, form[data-long-form] > .has-toggle > .page-group-title { padding-right: 88px; }
   .sec-toggle { position: absolute; top: 22px; right: 22px; min-height: 32px; padding: 4px 12px; border: 1px solid var(--field-line); border-radius: 7px; background: #fff; color: var(--ink-2); font-size: var(--fs-2); font-weight: 600; cursor: pointer; }
   .page-group > .sec-toggle { top: 0; right: 0; }

@@ -30,7 +30,7 @@ require_auth();
     /* Two-column layout */
     .help-layout { display: flex; align-items: flex-start; gap: 32px; }
     .help-toc { position: sticky; top: calc(var(--admin-bar-h) + 32px); width: 250px; flex-shrink: 0; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; max-height: calc(100vh - var(--admin-bar-h) - 60px); overflow-y: auto; }
-    .help-toc .toc-group { font-size: var(--fs-1); font-weight: 700; color: #6b7280; margin: 16px 0 6px; padding: 0 10px; }
+    .help-toc .toc-group { font-size: var(--fs-1); font-weight: 700; color: #4b5563; margin: 16px 0 6px; padding: 0 10px; }
     .help-toc .toc-group:first-child { margin-top: 0; }
     .help-toc a { display: block; font-size: var(--fs-2); color: #374151; text-decoration: none; padding: 6px 10px 6px 9px; border-radius: 6px; margin-bottom: 1px; line-height: 1.4; border-left: 3px solid transparent; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease; }
     .help-toc a:hover { background: #f0f4f8; color: #005da3; }
@@ -84,7 +84,7 @@ require_auth();
 
     /* Diagrams */
     .diagram-wrap { background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; margin: 16px 0 20px; }
-    .diagram-caption { font-size: var(--fs-1); font-weight: 700; color: #6b7280; margin: 0 0 12px; }
+    .diagram-caption { font-size: var(--fs-1); font-weight: 700; color: #4b5563; margin: 0 0 12px; }
     .diagram-wrap svg { width: 100%; height: auto; display: block; }
 
     /* Back to top */
@@ -362,23 +362,23 @@ require_auth();
             <g font-family="system-ui,sans-serif">
               <rect x="10" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="20" y="122" font-size="16" font-weight="800" fill="#005da3">128</text>
-              <text x="20" y="136" font-size="10" fill="#6b7280">Total Products</text>
+              <text x="20" y="136" font-size="10" fill="#4b5563">Total Products</text>
 
               <rect x="136" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="146" y="122" font-size="16" font-weight="800" fill="#005da3">9</text>
-              <text x="146" y="136" font-size="10" fill="#6b7280">Categories</text>
+              <text x="146" y="136" font-size="10" fill="#4b5563">Categories</text>
 
               <rect x="262" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="272" y="122" font-size="16" font-weight="800" fill="#005da3">94</text>
-              <text x="272" y="136" font-size="10" fill="#6b7280">With PDF</text>
+              <text x="272" y="136" font-size="10" fill="#4b5563">With PDF</text>
 
               <rect x="388" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="398" y="122" font-size="16" font-weight="800" fill="#005da3">34</text>
-              <text x="398" y="136" font-size="10" fill="#6b7280">Missing PDF</text>
+              <text x="398" y="136" font-size="10" fill="#4b5563">Missing PDF</text>
 
               <rect x="514" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="524" y="122" font-size="16" font-weight="800" fill="#005da3">6</text>
-              <text x="524" y="136" font-size="10" fill="#6b7280">Missing Photo</text>
+              <text x="524" y="136" font-size="10" fill="#4b5563">Missing Photo</text>
             </g>
             <text x="10" y="162" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">SUMMARY CARDS — at-a-glance counts</text>
 
@@ -389,7 +389,7 @@ require_auth();
               <rect x="70" y="172" width="96" height="18" rx="9" fill="#ffffff" stroke="#d1d9e0"/><text x="80" y="185" fill="#141414" font-weight="700">Heat Shrink 40</text>
               <rect x="172" y="172" width="80" height="18" rx="9" fill="#ffffff" stroke="#d1d9e0"/><text x="182" y="185" fill="#141414" font-weight="700">Sleeving 22</text>
               <rect x="258" y="172" width="56" height="18" rx="9" fill="#ffffff" stroke="#d1d9e0"/><text x="268" y="185" fill="#141414" font-weight="700">Tape 9</text>
-              <text x="324" y="185" fill="#6b7280">…</text>
+              <text x="324" y="185" fill="#4b5563">…</text>
             </g>
             <text x="10" y="206" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">CATEGORY CHIPS — show one category at a time</text>
 
@@ -408,7 +408,7 @@ require_auth();
               <rect x="20" y="263" width="24" height="24" rx="5" fill="#cbd5e1"/>
               <text x="70" y="279" font-weight="700" fill="#005da3">IP33PO</text>
               <text x="150" y="279" fill="#374151">3:1 Polyolefin Heat Shrink Tubing</text>
-              <text x="330" y="279" fill="#6b7280">-55°C to 135°C</text>
+              <text x="330" y="279" fill="#4b5563">-55°C to 135°C</text>
               <rect x="420" y="267" width="44" height="16" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/><text x="428" y="279" fill="#166534">PDF ✓</text>
               <rect x="468" y="267" width="54" height="16" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/><text x="476" y="279" fill="#166534">Photo ✓</text>
               <rect x="540" y="266" width="32" height="18" rx="5" fill="rgba(0,93,163,0.1)"/><text x="547" y="279" fill="#005da3">Edit</text>
@@ -418,7 +418,7 @@ require_auth();
               <rect x="20" y="297" width="24" height="24" rx="5" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="70" y="313" font-weight="700" fill="#005da3">IP50PVDF</text>
               <text x="150" y="313" fill="#374151">2:1 PVDF Heat Shrink Tubing</text>
-              <text x="330" y="313" fill="#6b7280">-55°C to 175°C</text>
+              <text x="330" y="313" fill="#4b5563">-55°C to 175°C</text>
               <rect x="420" y="301" width="44" height="16" rx="8" fill="#fffbeb" stroke="#fde68a"/><text x="426" y="313" fill="#92400e">No PDF</text>
               <rect x="468" y="301" width="54" height="16" rx="8" fill="#fffbeb" stroke="#fde68a"/><text x="474" y="313" fill="#92400e">No photo</text>
               <rect x="540" y="300" width="32" height="18" rx="5" fill="rgba(0,93,163,0.1)"/><text x="547" y="313" fill="#005da3">Edit</text>
@@ -653,7 +653,7 @@ require_auth();
         <h3>Removing a PDF</h3>
         <ol class="steps">
           <li>Open the product's "Manage PDF" page.</li>
-          <li>Click the red <span class="btn btn-sm btn-mock" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">Remove PDF</span> button next to the current file.</li>
+          <li>Click the red <span class="btn btn-sm btn-mock" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;">Remove PDF</span> button next to the current file.</li>
           <li>Confirm the removal. The product reverts to showing "Request Datasheet," and the file is kept aside on the server (not on the website), so restoring the Product Catalog from Backups brings it back.</li>
         </ol>
         <div class="callout callout-warning">
@@ -1094,7 +1094,7 @@ require_auth();
           <li>Use the filter boxes to narrow it down: type a SKU (or any word from the detail, such as <em>photo</em> or <em>FAQ</em>) into <strong>Search</strong> to see everything that's happened to one product, or pick an <strong>Action</strong> from the dropdown (it lists every action in the table below). The list changes as you type.</li>
           <li>Click <strong>Clear</strong> (it appears once a filter is on) to see everything again.</li>
         </ol>
-        <p>On a phone, the date sits above the time so that the <strong>Detail</strong> column — what actually happened — fits on the screen. The IP address is just past the right edge: swipe the table sideways to see it.</p>
+        <p>On a phone, each entry is a small card: the time, action and SKU on the first line, then the whole <strong>Detail</strong> — what actually happened — and the IP address underneath. Nothing has to be swiped sideways.</p>
         <h3>What each colored badge means</h3>
         <table class="field-ref">
           <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#dcfce7;color:#166534;">add</span></td><td>A brand-new product was created.</td></tr>
@@ -1316,20 +1316,20 @@ require_auth();
           <?php /* SEC-3 — this read session.gc_maxlifetime, which is garbage collection, not a limit; the real limits are the two constants. */ ?>
           <tr><th>Signed-out after inactivity</th><td><code><?= (int)(ADMIN_IDLE_LIMIT / 3600) ?> hours</code> without opening or saving a page; <code><?= (int)(ADMIN_ABSOLUTE_LIMIT / 3600) ?> hours</code> after signing in at most</td></tr>
           <tr><th>PHP version</th><td><code><?= h(PHP_VERSION) ?></code></td></tr>
-          <tr><th><code>admin</code> folder writable</th><td><?= admin_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; sales leads are not being saved to Inquiries</strong>' ?></td></tr>
-          <tr><th><code>site-data</code> folder writable</th><td><?= data_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; nothing you edit can be saved</strong>' ?></td></tr>
-          <tr><th><code>uploads/images</code> writable</th><td><?= (is_dir(IMG_DIR) && is_writable(IMG_DIR)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; photo uploads will fail</strong>' ?></td></tr>
+          <tr><th><code>admin</code> folder writable</th><td><?= admin_writable() ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; sales leads are not being saved to Inquiries</strong>' ?></td></tr>
+          <tr><th><code>site-data</code> folder writable</th><td><?= data_writable() ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; nothing you edit can be saved</strong>' ?></td></tr>
+          <tr><th><code>uploads/images</code> writable</th><td><?= (is_dir(IMG_DIR) && is_writable(IMG_DIR)) ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; photo uploads will fail</strong>' ?></td></tr>
           <?php /* NEW-N3-9 — the three other checks the Products-page banner
                    makes (admin/index.php), with the same tests, so this table
                    and the banner cannot disagree about the same server. */
                 $helpTmpDir = sys_get_temp_dir(); ?>
           <?php foreach ([[SITE_IMG_DIR, 'uploads/site', 'Site Images &amp; Logo uploads will fail'], [MARKETING_PDF_DIR, 'pdfs/marketing', 'Catalog &amp; Brochure PDF uploads will fail']] as [$hDir, $hLbl, $hFail]):
                 $hD = rtrim($hDir, '/'); $hOk = is_dir($hD) ? is_writable($hD) : is_writable(dirname($hD)); ?>
-          <tr><th><code><?= $hLbl ?></code> writable</th><td><?= $hOk ? 'Yes' . (is_dir($hD) ? '' : ' (created on first upload)') : '<strong style="color:#dc2626">NO &mdash; ' . $hFail . '</strong>' ?></td></tr>
+          <tr><th><code><?= $hLbl ?></code> writable</th><td><?= $hOk ? 'Yes' . (is_dir($hD) ? '' : ' (created on first upload)') : '<strong style="color:#b91c1c">NO &mdash; ' . $hFail . '</strong>' ?></td></tr>
           <?php endforeach; ?>
-          <tr><th><code>pdfs</code> folder writable</th><td><?= (is_dir(PDF_DIR) && is_writable(PDF_DIR)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; data sheet uploads will fail</strong>' ?></td></tr>
-          <tr><th>Server temporary folder writable</th><td><?= (is_dir($helpTmpDir) && is_writable($helpTmpDir)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; the contact form&rsquo;s spam limit is not counting</strong> (<code>' . h($helpTmpDir) . '</code>)' ?></td></tr>
-          <tr><th>Photo resizing (<code>gd</code>)</th><td><?= (extension_loaded('gd') && function_exists('imagescale')) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; large photos are saved at full size</strong>' ?></td></tr>
+          <tr><th><code>pdfs</code> folder writable</th><td><?= (is_dir(PDF_DIR) && is_writable(PDF_DIR)) ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; data sheet uploads will fail</strong>' ?></td></tr>
+          <tr><th>Server temporary folder writable</th><td><?= (is_dir($helpTmpDir) && is_writable($helpTmpDir)) ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; the contact form&rsquo;s spam limit is not counting</strong> (<code>' . h($helpTmpDir) . '</code>)' ?></td></tr>
+          <tr><th>Photo resizing (<code>gd</code>)</th><td><?= (extension_loaded('gd') && function_exists('imagescale')) ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; large photos are saved at full size</strong>' ?></td></tr>
           <tr><th>Backups kept per file</th><td><code><?= (int)BACKUP_KEEP ?></code></td></tr>
         </table>
         <div class="callout callout-tip">

@@ -190,13 +190,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?= admin_head() ?>
   <style>
     main { max-width: 600px; margin: 0 auto; padding: 40px 24px; }
-    .sub { font-size: var(--fs-2); color: #6b7280; margin: 0 0 28px; }
+    .sub { font-size: var(--fs-2); color: #4b5563; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
     /* Kept, against admin_head()'s shared 5px: these two upload pages and
        password.php have always used 6px here. One pixel, but the point of
        the extraction was that it changed nothing on screen. */
     label { margin-bottom: 6px; }
-    .hint { font-size: var(--fs-1); color: #6b7280; margin-top: 5px; }
+    .hint { font-size: var(--fs-1); color: #4b5563; margin-top: 5px; }
     input[type=file] { width: 100%; padding: 10px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: var(--fs-2); cursor: pointer; transition: border-color 0.15s; }
     input[type=file]:hover { border-color: #005da3; }
     .btn { display: inline-flex; align-items: center; padding: 10px 22px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
@@ -232,12 +232,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <form method="POST" style="display:inline" data-confirm="Remove this photo? The product will revert to the IPC branded placeholder on the website.<?= $isManaged ? ' The image file is kept aside on the server, so restoring the catalog from Backups brings it back.' : '' ?>">
             <input type="hidden" name="action" value="remove">
             <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
-            <button type="submit" class="btn btn-secondary" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca">Remove Photo</button>
+            <button type="submit" class="btn btn-secondary" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca">Remove Photo</button>
           </form>
         </div>
       </div>
     <?php else: ?>
-      <p style="color:#6b7280;font-size:var(--fs-2);margin:0">No photo set — the website is showing the IPC branded placeholder for this product.</p>
+      <p style="color:#4b5563;font-size:var(--fs-2);margin:0">No photo set — the website is showing the IPC branded placeholder for this product.</p>
     <?php endif; ?>
   </div>
 
@@ -249,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="file" id="image_file" name="image_file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" required />
       <div class="hint">
         The file is saved in <code>/uploads/images/</code> named after the SKU and the product's Photo URL is updated automatically.
-        <?php if ($isManaged): ?><span style="color:#dc2626;font-weight:600"> ⚠ Uploading replaces the current photo.</span><?php endif; ?>
+        <?php if ($isManaged): ?><span style="color:#b91c1c;font-weight:600"> ⚠ Uploading replaces the current photo.</span><?php endif; ?>
         A landscape photo about 3:2 (e.g. 1200×800px) fits the product page's frame; anything taller or wider is trimmed to fit.
       </div>
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">

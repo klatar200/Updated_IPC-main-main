@@ -185,15 +185,15 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
     .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
     .logo-mark { width: 44px; height: 44px; background: #005da3; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #fff; letter-spacing: 0.08em; }
     .logo-text { font-size: 14px; font-weight: 700; color: #141414; line-height: 1.3; }
-    .logo-sub  { font-size: 13px; color: #6b7280; }
+    .logo-sub  { font-size: 13px; color: #4b5563; }
     h1 { font-size: 18px; font-weight: 700; color: #141414; margin: 0 0 6px; }
-    p  { font-size: 14px; color: #6b7280; margin: 0 0 24px; }
+    p  { font-size: 14px; color: #4b5563; margin: 0 0 24px; }
     label { display: block; font-size: 14px; font-weight: 600; color: #141414; margin-bottom: 6px; }
     input[type=password] { width: 100%; padding: 11px 14px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: 15px; color: #141414; outline: none; transition: border-color 0.15s; }
     input[type=password]:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     button { width: 100%; margin-top: 18px; padding: 12px; background: #005da3; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
     button:hover { background: #004e8c; }
-    .error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; font-size: 14px; margin-bottom: 16px; }
+    .error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; font-size: 14px; margin-bottom: 16px; }
   </style>
 </head>
 <body>

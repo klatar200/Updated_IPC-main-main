@@ -19,24 +19,28 @@
     ".vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}" +
     ".ste-lab{flex:0 0 32%;}" +
     ".ste-val{flex:1;resize:vertical;line-height:1.4;overflow:hidden;min-height:34px;}" +
-    ".ste-x{flex:0 0 auto;width:32px;height:34px;border:1px solid #e5e9ee;background:#fff;border-radius:7px;color:#6b7280;cursor:pointer;font-size:17px;line-height:1;}" +
-    ".ste-x:hover{background:#fef2f2;color:#dc2626;border-color:#fecaca;}" +
+    ".ste-x{flex:0 0 auto;width:32px;height:34px;border:1px solid #e5e9ee;background:#fff;border-radius:7px;color:#4b5563;cursor:pointer;font-size:17px;line-height:1;}" +
+    ".ste-x:hover{background:#fef2f2;color:#b91c1c;border-color:#fecaca;}" +
     ".ste-x.sm{width:26px;height:28px;font-size:var(--fs-3);}" +
     ".ste-add{padding:7px 12px;border:1px solid #d1d9e0;background:#fff;border-radius:7px;color:#005da3;font-weight:600;font-size:var(--fs-1);cursor:pointer;}" +
     ".ste-add:hover{background:#f0f4f8;}" +
     ".ste-tool{padding:7px 12px;border:1px solid #d1d9e0;background:#fff;border-radius:7px;color:#141414;font-weight:600;font-size:var(--fs-1);cursor:pointer;}" +
     ".ste-tool:hover{background:#f0f4f8;}" +
-    ".ste-adv{font-size:var(--fs-1);color:#6b7280;text-decoration:none;margin-left:4px;cursor:pointer;background:none;border:0;padding:2px 4px;font-family:inherit;}" +
+    ".ste-adv{font-size:var(--fs-1);color:#4b5563;text-decoration:none;margin-left:4px;cursor:pointer;background:none;border:0;padding:2px 4px;font-family:inherit;}" +
     ".ste-adv:hover{color:#005da3;text-decoration:underline;}" +
     ".ste-adv:focus-visible{outline:2px solid #005da3;outline-offset:2px;border-radius:4px;}" +
     ".ste-prevwrap{margin-top:14px;border-top:1px solid #e5e9ee;padding-top:12px;}" +
-    ".ste-prevlab{font-size:var(--fs-1);color:#6b7280;margin-bottom:8px;}" +
+    ".ste-prevlab{font-size:var(--fs-1);color:#4b5563;margin-bottom:8px;}" +
     ".ste-splist{border:1px solid #e5e9ee;border-radius:10px;overflow:hidden;}" +
     ".ste-sprow{padding:8px 12px;font-size:var(--fs-2);border-bottom:1px solid #f0f4f8;color:#4b5563;}" +
     ".ste-sprow:last-child{border-bottom:none;}" +
     ".ste-splab{color:#005da3;font-weight:600;}" +
-    ".ste-note{color:#6b7280;}" +
+    ".ste-note{color:#4b5563;}" +
     ".ste-host{overflow-x:auto;max-width:100%;}" +
+    // PLAN-13 Phase 7 — a size chart is a grid of columns: on a phone it
+    // cannot fit and scrolls sideways in its box. Say so, so the columns past
+    // the edge are not mistaken for missing ones.
+    "@media(max-width:600px){.ste-host::before{content:'Swipe the chart sideways to see every column \\2192';display:block;font-size:var(--fs-1);color:#4b5563;margin:0 0 6px;}}" +
     ".ste-grid{display:grid;gap:6px;align-items:start;margin-bottom:6px;}" +
     ".ste-grp{display:flex;flex-direction:column;gap:5px;border:1px solid #e5e9ee;border-radius:7px;padding:6px;background:#f8fafc;}" +
     ".ste-gtools{display:flex;gap:4px;flex-wrap:wrap;}" +
@@ -54,12 +58,12 @@
     ".ste-gt th{background:#0d2d52;color:rgba(255,255,255,0.85);font-weight:600;padding:7px 10px;text-align:left;white-space:pre-line;border:1px solid rgba(255,255,255,0.15);}" +
     ".ste-gt td{padding:6px 10px;border-bottom:1px solid #f0f4f8;color:#141414;}" +
     ".ste-paste{border:1px dashed #c7d2dd;border-radius:8px;padding:12px;margin-top:10px;background:#f8fafc;}" +
-    ".ste-pastehint{font-size:var(--fs-1);color:#6b7280;margin-bottom:8px;}" +
+    ".ste-pastehint{font-size:var(--fs-1);color:#4b5563;margin-bottom:8px;}" +
     ".ste-pastebox{width:100%;min-height:90px;padding:8px;border:1px solid #d1d9e0;border-radius:7px;font-family:var(--font-mono);font-size:var(--fs-1);margin-bottom:8px;box-sizing:border-box;}" +
     ".ste-chk{display:flex;align-items:center;gap:6px;font-size:var(--fs-1);color:#374151;margin-bottom:10px;}" +
     ".ste-note2{font-size:var(--fs-1);color:#4b5563;background:#f0f4f8;border-radius:8px;padding:10px 12px;margin-bottom:10px;}" +
     ".ste-advbox{width:100%;padding:10px;border:1px solid #d1d9e0;border-radius:7px;font-family:var(--font-mono);font-size:var(--fs-1);box-sizing:border-box;}" +
-    ".ste-bad{color:#dc2626;font-size:var(--fs-1);padding:8px 12px;}";
+    ".ste-bad{color:#b91c1c;font-size:var(--fs-1);padding:8px 12px;}";
 
   function injectCSS() {
     var s = document.createElement("style");
