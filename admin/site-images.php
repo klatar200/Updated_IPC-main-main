@@ -242,21 +242,21 @@ $csrf    = csrf_token();
   <?= admin_head() ?>
   <style>
     main { max-width: 600px; margin: 0 auto; padding: 40px 24px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
+    .sub { font-size: var(--fs-2); color: #6b7280; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-    .where { font-size: 13px; color: #4b5563; margin: 0 0 14px; }
-    .current { display: flex; gap: 14px; align-items: center; padding: 12px; background: #f0f4f8; border-radius: 8px; margin-bottom: 14px; font-size: 13px; }
+    .where { font-size: var(--fs-2); color: #4b5563; margin: 0 0 14px; }
+    .current { display: flex; gap: 14px; align-items: center; padding: 12px; background: #f0f4f8; border-radius: 8px; margin-bottom: 14px; font-size: var(--fs-2); }
     .current img { width: 120px; height: 80px; object-fit: contain; background: #fff; border-radius: 6px; flex-shrink: 0; }
     .current code { word-break: break-all; }
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
     .row select, .row input[type=file] { flex: 1 1 240px; min-width: 0; }
-    input[type=file] { padding: 8px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: 13px; }
-    select { padding: 8px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: 13px; background: #fff; }
-    .btn { display: inline-flex; align-items: center; padding: 9px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+    input[type=file] { padding: 8px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: var(--fs-2); }
+    select { padding: 8px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: var(--fs-2); background: #fff; }
+    .btn { display: inline-flex; align-items: center; padding: 9px 16px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; cursor: pointer; border: none; }
     .btn-primary { background: #005da3; color: #fff; }
     .btn-secondary { background: #f0f4f8; color: #141414; border: 1px solid #d1d9e0; }
     .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-    .hint { font-size: 11px; color: #6b7280; margin-top: 6px; }
+    .hint { font-size: var(--fs-1); color: #6b7280; margin-top: 6px; }
     .choice-preview { display: block; width: 100%; max-width: 320px; max-height: 200px; object-fit: contain; background: #f0f4f8; border-radius: 6px; margin-top: 10px; }
     .choice-preview[hidden] { display: none; }
   </style>

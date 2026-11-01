@@ -148,20 +148,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?= admin_head() ?>
   <style>
     main { max-width: 600px; margin: 0 auto; padding: 40px 24px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
+    .sub { font-size: var(--fs-2); color: #6b7280; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
     /* Kept, against admin_head()'s shared 5px: these two upload pages and
        password.php have always used 6px here. One pixel, but the point of
        the extraction was that it changed nothing on screen. */
     label { margin-bottom: 6px; }
-    .hint { font-size: 11px; color: #6b7280; margin-top: 5px; }
-    input[type=file] { width: 100%; padding: 10px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: 13px; cursor: pointer; transition: border-color 0.15s; }
+    .hint { font-size: var(--fs-1); color: #6b7280; margin-top: 5px; }
+    input[type=file] { width: 100%; padding: 10px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: var(--fs-2); cursor: pointer; transition: border-color 0.15s; }
     input[type=file]:hover { border-color: #005da3; }
-    .btn { display: inline-flex; align-items: center; padding: 10px 22px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
+    .btn { display: inline-flex; align-items: center; padding: 10px 22px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
     .btn-primary { background: #005da3; color: #fff; width: 100%; justify-content: center; margin-top: 16px; }
-    .btn-secondary { background: #f0f4f8; color: #141414; font-size: 13px; padding: 8px 16px; }
+    .btn-secondary { background: #f0f4f8; color: #141414; font-size: var(--fs-2); padding: 8px 16px; }
     /* A12-L6-03-W5-4 — wrap, or Remove PDF sticks out of the box on a phone. */
-    .current-pdf { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: #f0f4f8; border-radius: 8px; font-size: 13px; }
+    .current-pdf { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: #f0f4f8; border-radius: 8px; font-size: var(--fs-2); }
     .current-pdf > span { min-width: 0; overflow-wrap: anywhere; }
   </style>
 </head>
@@ -198,7 +198,7 @@ include 'nav.php';
       </div>
       <div class="hint" style="margin-top:10px">Uploading a new file will replace this PDF <strong>in place</strong> — it overwrites <code><?= h(basename($currentPdf)) ?></code> in the <code>/pdfs/</code> folder, so the link keeps working for every part covered by this data sheet.</div>
     <?php else: ?>
-      <p style="color:#6b7280;font-size:13px;margin:0">No PDF uploaded yet for this product — the website is showing a "Request Datasheet" button.</p>
+      <p style="color:#6b7280;font-size:var(--fs-2);margin:0">No PDF uploaded yet for this product — the website is showing a "Request Datasheet" button.</p>
     <?php endif; ?>
   </div>
 

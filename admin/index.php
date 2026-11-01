@@ -56,16 +56,16 @@ $navActive = 'products';
     /* Layout — the reset, body, container, buttons and alerts now come from
        admin_head() in config.php; what is left here is this page only. */
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-    .page-header h1 { font-size: 22px; font-weight: 800; margin: 0; }
-    .page-header p  { font-size: 13px; color: #6b7280; margin: 2px 0 0; }
+    .page-header h1 { font-size: var(--fs-6); font-weight: 800; margin: 0; }
+    .page-header p  { font-size: var(--fs-2); color: #6b7280; margin: 2px 0 0; }
     /* Stats bar */
     .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
     .stat  { background: #fff; border: 1px solid #e5e9ee; border-radius: 10px; padding: 14px 20px; flex: 1; min-width: 140px; }
-    .stat-val { font-size: 22px; font-weight: 800; color: #005da3; line-height: 1; }
-    .stat-lbl { font-size: 11px; color: #6b7280; margin-top: 3px; }
+    .stat-val { font-size: var(--fs-5); font-weight: 800; color: #005da3; line-height: 1; }
+    .stat-lbl { font-size: var(--fs-1); color: #6b7280; margin-top: 3px; }
     /* Table */
     .section { margin-bottom: 32px; }
-    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid #e5e9ee; }
+    .section-title { font-size: var(--fs-4); font-weight: 700; color: var(--brand-dark); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #e5e9ee; line-height: 1.3; }
     /* Fixed layout + shared column widths so every category table lines up
        identically down the page (headers and columns align across sections). */
     /* KEEP: the narrow-screen safety net. `overflow-x: auto` is what lets the
@@ -74,8 +74,8 @@ $navActive = 'products';
        tuning the column widths below. */
     .table-wrap { overflow-x: auto; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
     table { width: 100%; min-width: 980px; table-layout: fixed; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; }
-    th    { background: #0d2d52; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 16px; text-align: left; }
-    td    { padding: 12px 16px; border-bottom: 1px solid #f0f4f8; font-size: 13px; vertical-align: middle; }
+    th    { background: #0d2d52; color: rgba(255,255,255,0.7); font-size: var(--fs-1); font-weight: 700; padding: 12px 16px; text-align: left; }
+    td    { padding: 12px 16px; border-bottom: 1px solid #f0f4f8; font-size: var(--fs-2); vertical-align: middle; }
     /* Uniform columns: SKU · Name (fills) · Temp · Data Sheet · Actions */
     th:nth-child(1), td:nth-child(1) { width: 160px; word-break: break-word; }
     th:nth-child(3), td:nth-child(3) { width: 150px; }
@@ -124,8 +124,8 @@ $navActive = 'products';
     td:nth-child(2) { word-break: break-word; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(0,93,163,0.02); }
-    .sku  { font-weight: 700; color: #005da3; font-size: 12px; }
-    .type-badge { background: rgba(17,158,200,0.1); color: #0369a1; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; }
+    .sku  { font-weight: 700; color: #005da3; font-size: var(--fs-1); }
+    .type-badge { background: rgba(17,158,200,0.1); color: #0369a1; font-size: var(--fs-1); font-weight: 600; padding: 3px 8px; border-radius: 20px; }
     /* KEEP: flex-wrap stays. With the column at 460 it should never fire, but
        it is the last line of defence on a font wider than anything measured —
        wrapping is ugly, a clipped Delete button is not recoverable. */
@@ -133,7 +133,7 @@ $navActive = 'products';
     .actions .btn { flex-shrink: 0; }
     /* Search */
     .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
-    .search-bar input { flex: 1; padding: 10px 14px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: 13px; outline: none; }
+    .search-bar input { flex: 1; padding: 10px 14px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: var(--fs-2); outline: none; }
     .search-bar input:focus { border-color: #005da3; }
   </style>
 </head>
@@ -342,7 +342,7 @@ $navActive = 'products';
     <div class="alert" role="status" style="text-align:left;background:#e8f4ff;border:1px solid #99c9ee;color:#0d2d52">
       <strong><?= (int)$newLeads ?> new <?= $newLeads === 1 ? 'inquiry' : 'inquiries' ?> since you last looked.</strong>
       <a href="inquiries.php" style="margin-left:8px;font-weight:700;color:#005da3">Read <?= $newLeads === 1 ? 'it' : 'them' ?> →</a>
-      <div style="margin-top:6px;font-size:13px">
+      <div style="margin-top:6px;font-size:var(--fs-2)">
         Every quote request is saved here even when the notification email does not arrive,
         so this is the list to trust.
       </div>
@@ -365,9 +365,9 @@ $navActive = 'products';
   <!-- Search -->
   <div class="search-bar">
     <input type="search" id="productSearch" placeholder="Search by SKU / part number or product name…" autocomplete="off" aria-label="Search products" />
-    <span id="searchCount" role="status" aria-live="polite" style="display:flex;align-items:center;font-size:13px;color:#6b7280;white-space:nowrap;"></span>
+    <span id="searchCount" role="status" aria-live="polite" style="display:flex;align-items:center;font-size:var(--fs-2);color:#6b7280;white-space:nowrap;"></span>
   </div>
-  <p id="searchEmpty" style="display:none;color:#4b5563;font-size:13px;margin:0 0 24px;">No products match your search.</p>
+  <p id="searchEmpty" style="display:none;color:#4b5563;font-size:var(--fs-2);margin:0 0 24px;">No products match your search.</p>
 
   <!-- Stats -->
   <div class="stats">
@@ -418,12 +418,12 @@ $navActive = 'products';
         <tr data-search="<?= h(($p['sku'] ?? $p['id'] ?? '') . ' ' . ($p['name'] ?? '')) ?>"><?php /* NEW-N2-14: search.js lower-cases */ ?>
           <td><span class="sku"><?= h($p['sku'] ?? $p['id'] ?? '—') ?></span></td>
           <td><?= h($p['name'] ?? '—') ?></td>
-          <td style="font-size:12px;color:#6b7280"><?= h($p['operatingTemp'] ?? '—') ?></td>
+          <td style="font-size:var(--fs-1);color:#6b7280"><?= h($p['operatingTemp'] ?? '—') ?></td>
           <td>
             <?php if (!empty($p['pdfUrl'])): ?>
               <a href="<?= h($p['pdfUrl']) ?>" target="_blank" class="btn btn-sm btn-pdf">View PDF</a>
             <?php else: ?>
-              <span style="color:#6b7280;font-size:12px;">None</span>
+              <span style="color:#6b7280;font-size:var(--fs-1);">None</span>
             <?php endif; ?>
           </td>
           <td>

@@ -182,12 +182,12 @@ $navActive = 'inquiries';
   <title>IPC Admin — Inquiries</title>
   <?= admin_head() ?>
   <style>
-    .empty { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 40px; text-align: center; color: #6b7280; font-size: 14px; }
+    .empty { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 40px; text-align: center; color: #6b7280; font-size: var(--fs-3); }
     .inq { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
     .inq summary { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; list-style: none; flex-wrap: wrap; }
     .inq summary::-webkit-details-marker { display: none; }
     .inq summary:hover { background: #f8fafc; }
-    .badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+    .badge { font-size: var(--fs-1); font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
     .badge-rfq { background: rgba(0,93,163,0.1); color: #005da3; }
     .badge-msg { background: rgba(107,114,128,0.12); color: #4b5563; }
     .badge-sent { background: #f0fdf4; color: #166534; }
@@ -197,21 +197,21 @@ $navActive = 'inquiries';
     .badge-blocked { background: rgba(107,114,128,0.12); color: #6b7280; }
     .inq-rejected { background: #fafbfc; border-style: dashed; }
     .inq-rejected .who { font-weight: 400; color: #6b7280; }
-    .note-box { margin: 0 0 12px; padding: 10px 12px; background: #f8fafc; border-left: 3px solid #d1d9e0; border-radius: 4px; font-size: 12px; color: #4b5563; line-height: 1.5; }
-    .who { font-size: 13px; font-weight: 600; }
+    .note-box { margin: 0 0 12px; padding: 10px 12px; background: #f8fafc; border-left: 3px solid #d1d9e0; border-radius: 4px; font-size: var(--fs-1); color: #4b5563; line-height: 1.5; }
+    .who { font-size: var(--fs-2); font-weight: 600; }
     .who small { color: #6b7280; font-weight: 400; }
-    .when { margin-left: auto; font-size: 12px; color: #6b7280; flex-shrink: 0; }
+    .when { margin-left: auto; font-size: var(--fs-1); color: #6b7280; flex-shrink: 0; }
     .detail { border-top: 1px solid #eef2f6; padding: 16px 18px; }
     .detail table { border-collapse: collapse; width: 100%; }
-    .detail th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; padding: 5px 14px 5px 0; vertical-align: top; white-space: nowrap; width: 130px; }
-    .detail td { font-size: 13px; color: #374151; padding: 5px 0; white-space: pre-wrap; word-break: break-word; }
+    .detail th { text-align: left; font-size: var(--fs-1); color: #6b7280; padding: 5px 14px 5px 0; vertical-align: top; white-space: nowrap; width: 130px; }
+    .detail td { font-size: var(--fs-2); color: #374151; padding: 5px 0; white-space: pre-wrap; word-break: break-word; }
     .detail a { color: #005da3; }
     .stats { display: flex; gap: 12px; margin-bottom: 20px; }
     .stat { background: #fff; border: 1px solid #e5e9ee; border-radius: 10px; padding: 14px 20px; }
-    .stat-num { font-size: 20px; font-weight: 800; color: #005da3; }
+    .stat-num { font-size: var(--fs-5); font-weight: 800; color: #005da3; }
     .stat-num.bad { color: #dc2626; }
-    .stat-lbl { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; }
-    .note { font-size: 12px; color: #4b5563; margin-top: 16px; }
+    .stat-lbl { font-size: var(--fs-1); color: #6b7280; }
+    .note { font-size: var(--fs-1); color: #4b5563; margin-top: 16px; }
   </style>
 </head>
 <body>

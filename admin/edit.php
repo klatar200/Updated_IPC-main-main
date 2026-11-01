@@ -360,8 +360,8 @@ $partTypes = ipc_product_families();
   <?= admin_head() ?>
   <style>
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }
-    .page-header h1 { font-size: 22px; font-weight: 800; margin: 0; }
-    .page-header p  { font-size: 13px; color: #6b7280; margin: 4px 0 0; }
+    .page-header h1 { font-size: var(--fs-6); font-weight: 800; margin: 0; }
+    .page-header p  { font-size: var(--fs-2); color: #6b7280; margin: 4px 0 0; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
     textarea { resize: vertical; line-height: 1.5; }
     .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; }
@@ -451,7 +451,7 @@ include 'nav.php';
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px 14px">
           <?php foreach (IPC_APPROVALS as $ap): $on = in_array($ap, $approvalSet, true); ?>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:<?= $on ? '600' : '400' ?>;cursor:pointer;text-transform:none">
+            <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-2);font-weight:<?= $on ? '600' : '400' ?>;cursor:pointer;text-transform:none">
               <input type="checkbox" name="approvals[]" value="<?= h($ap) ?>" <?= $on ? 'checked' : '' ?> />
               <?= h($ap) ?>
             </label>

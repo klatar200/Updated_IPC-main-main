@@ -1301,28 +1301,28 @@ $navActive = 'content';
     /* A12-L9-02-3 — guidance inside a label inherited the label's 11px
        capitals, so "uploads/site/" read "UPLOADS/SITE/" in 9px type: a path
        Rick must type exactly, on a case-sensitive server. */
-    label small { text-transform: none; letter-spacing: normal; font-size: 12px; }
+    label small { text-transform: none; letter-spacing: normal; font-size: var(--fs-1); }
     /* E1/E2 — the "where does this appear" line under each section's prose. */
     .where { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: -10px 0 18px; }
-    .where-link { flex-shrink: 0; font-size: 12px; font-weight: 700; color: #005da3; text-decoration: none; background: rgba(0,93,163,0.08); border-radius: 6px; padding: 5px 10px; }
+    .where-link { flex-shrink: 0; font-size: var(--fs-1); font-weight: 700; color: #005da3; text-decoration: none; background: rgba(0,93,163,0.08); border-radius: 6px; padding: 5px 10px; }
     .where-link:hover { background: rgba(0,93,163,0.16); }
     /* Audit 2026-10-17 — the homepage layout marks (home_layout_off_note). */
-    .layout-now { font-size: 13px; color: #1e3a5f; background: #eef5fb; border: 1px solid #c9dcee; border-radius: 8px; padding: 10px 14px; margin: 0 0 18px; }
+    .layout-now { font-size: var(--fs-2); color: #1e3a5f; background: #eef5fb; border: 1px solid #c9dcee; border-radius: 8px; padding: 10px 14px; margin: 0 0 18px; }
     .layout-now a { color: #005da3; }
-    .layout-off { margin: 6px 0 0; font-size: 12px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 5px 9px; }
+    .layout-off { margin: 6px 0 0; font-size: var(--fs-1); color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 5px 9px; }
     .card > .layout-off { margin: -6px 0 16px; }
     .where-link:focus-visible { outline: 3px solid #005da3; outline-offset: 2px; }
-    .where-note { font-size: 12px; color: #6b7280; line-height: 1.5; flex: 1 1 240px; min-width: 0; }
+    .where-note { font-size: var(--fs-1); color: #6b7280; line-height: 1.5; flex: 1 1 240px; min-width: 0; }
     @media (pointer: coarse) { .where-link { padding: 12px 14px; } }
-    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
+    .card-title { font-size: var(--fs-4); font-weight: 700; color: var(--brand-dark); margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid #e5e9ee; line-height: 1.3; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-group { margin-bottom: 0; }
-    input[type=text], textarea, select.ci { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; background: #fff; }
+    input[type=text], textarea, select.ci { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: var(--fs-2); color: #141414; outline: none; font-family: inherit; background: #fff; }
     input[type=text]:focus, textarea:focus, select.ci:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     textarea { resize: vertical; line-height: 1.5; }
     .content-row { border: 1px solid #e5e9ee; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; background: #fafcff; }
     .row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .row-num { font-size: 12px; font-weight: 800; color: #005da3; }
+    .row-num { font-size: var(--fs-1); font-weight: 800; color: #005da3; }
     .row-tools { display: flex; gap: 6px; align-items: center; }
     /* 4.13 — ↑/↓ are one visual group; ✕ is deliberately pushed away from them.
        The two used to be 6px apart, and the ✕ deletes the whole card while the
@@ -1331,7 +1331,7 @@ $navActive = 'content';
        and 375. Do not collapse this back into a single evenly-spaced row. */
     .row-move { display: flex; gap: 6px; align-items: center; }
     .row-tools .rbtn.danger { margin-left: 28px; }
-    .rbtn { width: 28px; height: 28px; border: 1px solid #d1d9e0; background: #fff; border-radius: 6px; font-size: 13px; cursor: pointer; color: #374151; line-height: 1; }
+    .rbtn { width: 28px; height: 28px; border: 1px solid #d1d9e0; background: #fff; border-radius: 6px; font-size: var(--fs-2); cursor: pointer; color: #374151; line-height: 1; }
     /* On a touch device the 28px box is below the 44px minimum target, and
        these three controls sit side by side. Grow them where the pointer is
        coarse; the desktop density is unchanged. */
@@ -1346,10 +1346,10 @@ $navActive = 'content';
        from the green banner it sits under. The left bar is what makes it read
        as a callout rather than more body copy. */
     .warn-list { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-    .warn-list strong { display: block; font-size: 13px; margin-bottom: 6px; }
+    .warn-list strong { display: block; font-size: var(--fs-2); margin-bottom: 6px; }
     .warn-list ul { margin: 0; padding-left: 20px; }
-    .warn-list li { font-size: 13px; margin-bottom: 4px; line-height: 1.5; }
-    .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
+    .warn-list li { font-size: var(--fs-2); margin-bottom: 4px; line-height: 1.5; }
+    .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
     .save-bar { position: sticky; bottom: 0; background: #f0f4f8; padding: 16px 0; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e5e9ee; }
     @media(max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
   </style>

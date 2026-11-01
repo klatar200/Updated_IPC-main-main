@@ -28,18 +28,18 @@ $navActive = 'help';
     .page-header { margin-bottom: 28px; background: linear-gradient(135deg, #0d2d52 0%, #005da3 100%); border-radius: 16px; padding: 28px 32px; display: flex; align-items: center; gap: 20px; box-shadow: 0 8px 24px rgba(13,45,82,0.18); }
     .page-header-icon { font-size: 30px; width: 58px; height: 58px; flex-shrink: 0; background: rgba(255,255,255,0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
     .page-header h1 { font-size: 26px; font-weight: 800; margin: 0 0 6px; color: #fff; }
-    .page-header p  { font-size: 14px; color: rgba(255,255,255,0.82); margin: 0; max-width: 720px; line-height: 1.6; }
+    .page-header p  { font-size: var(--fs-3); color: rgba(255,255,255,0.82); margin: 0; max-width: 720px; line-height: 1.6; }
 
     .btn-mock { pointer-events: none; cursor: default; }
     /* Inline reproduction of the badges on the Inquiries page. */
-    .badge-mock { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 9px; border-radius: 20px; background: rgba(107,114,128,0.12); color: #4b5563; white-space: nowrap; }
+    .badge-mock { display: inline-block; font-size: var(--fs-1); font-weight: 700; padding: 3px 9px; border-radius: 20px; background: rgba(107,114,128,0.12); color: #4b5563; white-space: nowrap; }
 
     /* Two-column layout */
     .help-layout { display: flex; align-items: flex-start; gap: 32px; }
     .help-toc { position: sticky; top: 92px; width: 250px; flex-shrink: 0; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; max-height: calc(100vh - 120px); overflow-y: auto; }
-    .help-toc .toc-group { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #6b7280; margin: 16px 0 6px; padding: 0 10px; }
+    .help-toc .toc-group { font-size: var(--fs-1); font-weight: 700; color: #6b7280; margin: 16px 0 6px; padding: 0 10px; }
     .help-toc .toc-group:first-child { margin-top: 0; }
-    .help-toc a { display: block; font-size: 12.5px; color: #374151; text-decoration: none; padding: 6px 10px 6px 9px; border-radius: 6px; margin-bottom: 1px; line-height: 1.4; border-left: 3px solid transparent; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease; }
+    .help-toc a { display: block; font-size: var(--fs-2); color: #374151; text-decoration: none; padding: 6px 10px 6px 9px; border-radius: 6px; margin-bottom: 1px; line-height: 1.4; border-left: 3px solid transparent; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease; }
     .help-toc a:hover { background: #f0f4f8; color: #005da3; }
     .help-toc a.active { background: #eaf3fb; color: #005da3; font-weight: 700; border-left-color: #005da3; }
     .help-content { flex: 1; min-width: 0; }
@@ -50,30 +50,30 @@ $navActive = 'help';
     section.help-section:has(.eyebrow-advanced)  { border-top-color: #7c3aed; }
     section.help-section:has(.eyebrow-reference) { border-top-color: #b45309; }
     section.help-section:has(.eyebrow-site)      { border-top-color: #0284c7; }
-    .help-section .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px; padding: 4px 12px; border-radius: 20px; }
+    .help-section .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-1); font-weight: 700; margin: 0 0 12px; padding: 4px 12px; border-radius: 20px; }
     .eyebrow-start     { background: rgba(0,93,163,0.1);   color: #005da3; }
     .eyebrow-manage    { background: rgba(22,163,74,0.1);  color: #15803d; }
     .eyebrow-advanced  { background: rgba(124,58,237,0.1); color: #6d28d9; }
     .eyebrow-reference { background: rgba(180,83,9,0.1);   color: #b45309; }
     .eyebrow-site      { background: rgba(2,132,199,0.1);  color: #0369a1; }
     .help-section h2 { font-size: 20px; font-weight: 800; margin: 0 0 12px; }
-    .help-section h3 { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: #0d2d52; }
-    .help-section p { font-size: 14px; line-height: 1.7; color: #374151; margin: 0 0 14px; }
+    .help-section h3 { font-size: var(--fs-3); font-weight: 700; margin: 22px 0 10px; color: #0d2d52; }
+    .help-section p { font-size: var(--fs-3); line-height: 1.7; color: #374151; margin: 0 0 14px; }
     .help-section p:last-child { margin-bottom: 0; }
-    .help-section ul.plain { font-size: 14px; line-height: 1.7; color: #374151; margin: 0 0 14px; padding-left: 20px; }
+    .help-section ul.plain { font-size: var(--fs-3); line-height: 1.7; color: #374151; margin: 0 0 14px; padding-left: 20px; }
     .help-section ul.plain li { margin-bottom: 6px; }
-    .help-section code { background: #f0f4f8; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 12.5px; color: #0d2d52; }
+    .help-section code { background: #f0f4f8; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: var(--fs-2); color: #0d2d52; }
     .help-section strong { color: #141414; }
 
     /* Numbered step lists */
     ol.steps { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: step; }
-    ol.steps > li { counter-increment: step; position: relative; padding: 3px 0 3px 42px; margin-bottom: 16px; font-size: 14px; line-height: 1.65; color: #141414; }
-    ol.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: #005da3; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    ol.steps > li { counter-increment: step; position: relative; padding: 3px 0 3px 42px; margin-bottom: 16px; font-size: var(--fs-3); line-height: 1.65; color: #141414; }
+    ol.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: #005da3; color: #fff; font-size: var(--fs-1); font-weight: 700; display: flex; align-items: center; justify-content: center; }
     ol.steps > li p { margin: 4px 0 0; }
 
     /* Callouts */
-    .callout { border-radius: 10px; padding: 14px 16px; font-size: 13px; margin: 16px 0; line-height: 1.6; }
-    .callout b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .callout { border-radius: 10px; padding: 14px 16px; font-size: var(--fs-2); margin: 16px 0; line-height: 1.6; }
+    .callout b { display: block; font-size: var(--fs-1); margin-bottom: 4px; }
     .callout-tip     { background: #eff8ff; border: 1px solid #bfe0f7; color: #0c4a6e; }
     .callout-warning { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
     .callout-danger  { background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d; }
@@ -85,13 +85,13 @@ $navActive = 'help';
     .credentials-box { background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 4px 18px; margin: 16px 0; }
     .credentials-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px dashed #d9dee5; }
     .credentials-row:last-child { border-bottom: none; }
-    .cred-label { flex: 0 0 210px; font-size: 12.5px; font-weight: 700; color: #0d2d52; }
+    .cred-label { flex: 0 0 210px; font-size: var(--fs-2); font-weight: 700; color: #0d2d52; }
     /* A10-031 (§1at) — was .cred-fill, an empty 620px rule with no instruction. */
-    .cred-value { flex: 1; font-size: 13px; color: #374151; }
+    .cred-value { flex: 1; font-size: var(--fs-2); color: #374151; }
 
     /* Diagrams */
     .diagram-wrap { background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; margin: 16px 0 20px; }
-    .diagram-caption { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #6b7280; margin: 0 0 12px; }
+    .diagram-caption { font-size: var(--fs-1); font-weight: 700; color: #6b7280; margin: 0 0 12px; }
     .diagram-wrap svg { width: 100%; height: auto; display: block; }
 
     /* Back to top */
@@ -99,8 +99,8 @@ $navActive = 'help';
     .back-to-top:hover { background: #004e8c; transform: translateY(-2px); }
 
     /* Field reference tables */
-    table.field-ref { width: 100%; border-collapse: collapse; margin: 6px 0 18px; font-size: 13px; }
-    table.field-ref th { text-align: left; background: #f0f4f8; color: #374151; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding: 9px 12px; }
+    table.field-ref { width: 100%; border-collapse: collapse; margin: 6px 0 18px; font-size: var(--fs-2); }
+    table.field-ref th { text-align: left; background: #f0f4f8; color: #374151; font-size: var(--fs-1); padding: 9px 12px; }
     table.field-ref td { padding: 10px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: top; color: #374151; }
     table.field-ref td:first-child { font-weight: 700; color: #005da3; white-space: nowrap; }
     table.field-ref tr:last-child td { border-bottom: none; }
@@ -110,13 +110,13 @@ $navActive = 'help';
     /* FAQ disclosure */
     details.faq { border: 1px solid #e5e9ee; border-radius: 10px; padding: 4px 16px; margin-bottom: 10px; transition: border-color 0.15s ease; }
     details.faq:hover { border-color: #bfe0f7; }
-    details.faq summary { position: relative; padding: 12px 0 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; color: #0d2d52; list-style: none; }
+    details.faq summary { position: relative; padding: 12px 0 12px 24px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; color: #0d2d52; list-style: none; }
     details.faq summary::-webkit-details-marker { display: none; }
     details.faq summary::after { content: "›"; position: absolute; left: 0; top: 9px; font-size: 19px; font-weight: 800; color: #005da3; display: inline-block; transition: transform 0.2s ease; }
     details.faq[open] summary::after { transform: rotate(90deg); }
     details.faq p { padding-bottom: 14px; margin: 0; }
 
-    .visual-note { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; border: 1px dashed #c7d2dd; border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; font-size: 12.5px; color: #4b5563; line-height: 1.55; }
+    .visual-note { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; border: 1px dashed #c7d2dd; border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; font-size: var(--fs-2); color: #4b5563; line-height: 1.55; }
     .visual-note .vn-icon { flex-shrink: 0; font-size: 15px; }
 
     hr.sep { border: none; border-top: 1px solid #e5e9ee; margin: 24px 0; }
@@ -347,30 +347,33 @@ $navActive = 'help';
             <!-- ADM-9(d) — this omitted Inquiries and View Live Site; it now
                  lists admin/nav.php's items in nav.php's order. Two more items
                  would run past the bar at the old 9px, so the size drops to 8
-                 and textLength pins the line inside the 620px bar. -->
-            <text x="20" y="29" font-family="system-ui,sans-serif" font-size="8" fill="#ffffff" textLength="600" lengthAdjust="spacingAndGlyphs">IPC Admin · Products · + Add Product · Business Details · Page Content · Inquiries · Backups · Audit Log · Password · Help · View Live Site ↗ · Sign Out</text>
+                 and textLength pins the line inside the 620px bar. PLAN-13 Phase 1
+                 raised every label in both diagrams to 10 (about 13px on screen at
+                 1440; 8 and 9 rendered at 10.6 and 11.9). Phases 2 and 5 replace
+                 the header and table this one draws, and it is redrawn then. -->
+            <text x="20" y="29" font-family="system-ui,sans-serif" font-size="10" fill="#ffffff" textLength="600" lengthAdjust="spacingAndGlyphs">IPC Admin · Products · + Add Product · Business Details · Page Content · Inquiries · Backups · Audit Log · Password · Help · View Live Site ↗ · Sign Out</text>
             <text x="10" y="56" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">HEADER — same on every page</text>
 
             <rect x="10" y="66" width="430" height="24" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
-            <text x="20" y="82" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af">Search by SKU / part number or product name…</text>
+            <text x="20" y="82" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">Search by SKU / part number or product name…</text>
             <text x="450" y="82" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">← SEARCH BAR</text>
 
             <g font-family="system-ui,sans-serif">
               <rect x="10" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="20" y="122" font-size="16" font-weight="800" fill="#005da3">128</text>
-              <text x="20" y="136" font-size="9" fill="#6b7280">Total Products</text>
+              <text x="20" y="136" font-size="10" fill="#6b7280">Total Products</text>
 
               <rect x="164" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="174" y="122" font-size="16" font-weight="800" fill="#005da3">9</text>
-              <text x="174" y="136" font-size="9" fill="#6b7280">Categories</text>
+              <text x="174" y="136" font-size="10" fill="#6b7280">Categories</text>
 
               <rect x="318" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="328" y="122" font-size="16" font-weight="800" fill="#005da3">94</text>
-              <text x="328" y="136" font-size="9" fill="#6b7280">With PDF</text>
+              <text x="328" y="136" font-size="10" fill="#6b7280">With PDF</text>
 
               <rect x="472" y="100" width="158" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="482" y="122" font-size="16" font-weight="800" fill="#005da3">34</text>
-              <text x="482" y="136" font-size="9" fill="#6b7280">Missing PDF</text>
+              <text x="482" y="136" font-size="10" fill="#6b7280">Missing PDF</text>
             </g>
             <text x="10" y="162" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">SUMMARY CARDS — at-a-glance counts</text>
 
@@ -378,32 +381,32 @@ $navActive = 'help';
             <line x1="10" y1="192" x2="630" y2="192" stroke="#e5e9ee" stroke-width="2"/>
 
             <rect x="10" y="198" width="620" height="22" fill="#0d2d52"/>
-            <text x="20" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">SKU</text>
-            <text x="110" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">PRODUCT NAME</text>
-            <text x="340" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">TEMP RATING</text>
-            <text x="440" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">DATA SHEET</text>
-            <text x="530" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">ACTIONS</text>
+            <text x="20" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">SKU</text>
+            <text x="110" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">PRODUCT NAME</text>
+            <text x="340" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">TEMP RATING</text>
+            <text x="440" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">DATA SHEET</text>
+            <text x="530" y="213" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">ACTIONS</text>
 
             <rect x="10" y="220" width="620" height="30" fill="#ffffff"/>
-            <text x="20" y="239" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#005da3">IP33PO</text>
-            <text x="110" y="239" font-family="system-ui,sans-serif" font-size="9" fill="#374151">3:1 Polyolefin Heat Shrink Tubing</text>
-            <text x="340" y="239" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">-55°C to 135°C</text>
+            <text x="20" y="239" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">IP33PO</text>
+            <text x="110" y="239" font-family="system-ui,sans-serif" font-size="10" fill="#374151">3:1 Polyolefin Heat Shrink Tubing</text>
+            <text x="340" y="239" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">-55°C to 135°C</text>
             <rect x="440" y="228" width="60" height="16" rx="8" fill="rgba(0,190,242,0.15)"/>
-            <text x="447" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#0369a1">View PDF</text>
-            <rect x="530" y="228" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#005da3">Edit</text>
-            <rect x="568" y="228" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Delete</text>
+            <text x="447" y="240" font-family="system-ui,sans-serif" font-size="10" fill="#0369a1">View PDF</text>
+            <rect x="530" y="228" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="240" font-family="system-ui,sans-serif" font-size="10" fill="#005da3">Edit</text>
+            <rect x="568" y="228" width="40" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="240" font-family="system-ui,sans-serif" font-size="10" fill="#dc2626">Delete</text>
 
             <rect x="10" y="250" width="620" height="30" fill="#f8fafc"/>
-            <text x="20" y="269" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#005da3">IP50PVDF</text>
-            <text x="110" y="269" font-family="system-ui,sans-serif" font-size="9" fill="#374151">2:1 PVDF Heat Shrink Tubing</text>
-            <text x="340" y="269" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">-55°C to 175°C</text>
-            <text x="440" y="269" font-family="system-ui,sans-serif" font-size="8" fill="#9ca3af">None</text>
-            <rect x="530" y="258" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="270" font-family="system-ui,sans-serif" font-size="8" fill="#005da3">Edit</text>
-            <rect x="568" y="258" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="270" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Delete</text>
+            <text x="20" y="269" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">IP50PVDF</text>
+            <text x="110" y="269" font-family="system-ui,sans-serif" font-size="10" fill="#374151">2:1 PVDF Heat Shrink Tubing</text>
+            <text x="340" y="269" font-family="system-ui,sans-serif" font-size="10" fill="#6b7280">-55°C to 175°C</text>
+            <text x="440" y="269" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">None</text>
+            <rect x="530" y="258" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="270" font-family="system-ui,sans-serif" font-size="10" fill="#005da3">Edit</text>
+            <rect x="568" y="258" width="40" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="270" font-family="system-ui,sans-serif" font-size="10" fill="#dc2626">Delete</text>
 
             <line x1="10" y1="280" x2="630" y2="280" stroke="#f0f4f8" stroke-width="2"/>
             <text x="10" y="302" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">PRODUCT TABLE — grouped by category, action buttons on the right</text>
-            <text x="10" y="322" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af">(A simplified example — your real catalog will show your actual products.)</text>
+            <text x="10" y="322" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">(A simplified example — your real catalog will show your actual products.)</text>
           </svg>
         </div>
 
@@ -670,8 +673,8 @@ $navActive = 'help';
               <rect x="6" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
               <circle cx="30" cy="30" r="14" fill="#005da3"/><text x="30" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">1</text>
               <text x="81" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Add Product</text>
-              <text x="81" y="78" font-size="9" fill="#374151" text-anchor="middle">SKU, category,</text>
-              <text x="81" y="92" font-size="9" fill="#374151" text-anchor="middle">name &amp; details</text>
+              <text x="81" y="78" font-size="10" fill="#374151" text-anchor="middle">SKU, category,</text>
+              <text x="81" y="92" font-size="10" fill="#374151" text-anchor="middle">name &amp; details</text>
 
               <text x="172" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
 
@@ -686,24 +689,24 @@ $navActive = 'help';
                    Only the three strings changed; the x/y/font-size/anchor
                    attributes and the box geometry are untouched. -->
               <text x="263" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Photo</text>
-              <text x="263" y="78" font-size="9" fill="#374151" text-anchor="middle">Upload from</text>
-              <text x="263" y="92" font-size="9" fill="#374151" text-anchor="middle">your computer</text>
+              <text x="263" y="78" font-size="10" fill="#374151" text-anchor="middle">Upload from</text>
+              <text x="263" y="92" font-size="10" fill="#374151" text-anchor="middle">your computer</text>
 
               <text x="354" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
 
               <rect x="370" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
               <circle cx="394" cy="30" r="14" fill="#005da3"/><text x="394" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">3</text>
               <text x="445" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Manage PDF</text>
-              <text x="445" y="78" font-size="9" fill="#374151" text-anchor="middle">Upload the</text>
-              <text x="445" y="92" font-size="9" fill="#374151" text-anchor="middle">data sheet</text>
+              <text x="445" y="78" font-size="10" fill="#374151" text-anchor="middle">Upload the</text>
+              <text x="445" y="92" font-size="10" fill="#374151" text-anchor="middle">data sheet</text>
 
               <text x="536" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
 
               <rect x="552" y="30" width="122" height="80" rx="10" fill="#eefaf1" stroke="#a7e2b8"/>
               <circle cx="576" cy="30" r="14" fill="#16a34a"/><text x="576" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">4</text>
               <text x="613" y="60" font-size="12" font-weight="800" fill="#166534" text-anchor="middle">View ↗</text>
-              <text x="613" y="78" font-size="9" fill="#374151" text-anchor="middle">Confirm it</text>
-              <text x="613" y="92" font-size="9" fill="#374151" text-anchor="middle">looks right</text>
+              <text x="613" y="78" font-size="10" fill="#374151" text-anchor="middle">Confirm it</text>
+              <text x="613" y="92" font-size="10" fill="#374151" text-anchor="middle">looks right</text>
             </g>
           </svg>
         </div>
@@ -1069,28 +1072,28 @@ $navActive = 'help';
         <p>On a phone, the date sits above the time so that the <strong>Detail</strong> column — what actually happened — fits on the screen. The IP address is just past the right edge: swipe the table sideways to see it.</p>
         <h3>What each colored badge means</h3>
         <table class="field-ref">
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dcfce7;color:#166534;">add</span></td><td>A brand-new product was created.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dbeafe;color:#1e40af;">edit</span></td><td>An existing product's details were changed.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">delete</span></td><td>A product was deleted (restorable from Backups).</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#cffafe;color:#155e75;">upload-pdf</span></td><td>A data sheet was uploaded or replaced.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">upload-image</span></td><td>A product photo was uploaded from a computer.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">remove-image</span></td><td>A product photo was removed. The file is kept aside on the server (not shown on the site), so restoring the catalog from Backups brings the photo back.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">site-image</span></td><td>A page photo or the logo was uploaded, picked or removed on the Site Images &amp; Logo page. The entry names which one.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#cffafe;color:#155e75;">marketing-pdf</span></td><td>A catalog or brochure PDF was uploaded on the Catalog &amp; Brochure PDFs page, or chosen for (or taken off) the footer catalog link or a Services brochure, or taken off the website altogether. The entry names the file and where.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">settings</span></td><td>Business Details was saved. The entry only says the details were updated (or that nothing had changed) — it does not list which fields. The version from before each save is kept on the <a href="#backups">Backups</a> page if you need to put it back.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#f3e8ff;color:#6b21a8;">password</span></td><td>The admin password was changed. The password itself is never recorded.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#dcfce7;color:#166534;">add</span></td><td>A brand-new product was created.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#dbeafe;color:#1e40af;">edit</span></td><td>An existing product's details were changed.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fee2e2;color:#991b1b;">delete</span></td><td>A product was deleted (restorable from Backups).</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#cffafe;color:#155e75;">upload-pdf</span></td><td>A data sheet was uploaded or replaced.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#ede9fe;color:#5b21b6;">upload-image</span></td><td>A product photo was uploaded from a computer.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fee2e2;color:#991b1b;">remove-image</span></td><td>A product photo was removed. The file is kept aside on the server (not shown on the site), so restoring the catalog from Backups brings the photo back.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#ede9fe;color:#5b21b6;">site-image</span></td><td>A page photo or the logo was uploaded, picked or removed on the Site Images &amp; Logo page. The entry names which one.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#cffafe;color:#155e75;">marketing-pdf</span></td><td>A catalog or brochure PDF was uploaded on the Catalog &amp; Brochure PDFs page, or chosen for (or taken off) the footer catalog link or a Services brochure, or taken off the website altogether. The entry names the file and where.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#e0f2fe;color:#075985;">settings</span></td><td>Business Details was saved. The entry only says the details were updated (or that nothing had changed) — it does not list which fields. The version from before each save is kept on the <a href="#backups">Backups</a> page if you need to put it back.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#f3e8ff;color:#6b21a8;">password</span></td><td>The admin password was changed. The password itself is never recorded.</td></tr>
           <!-- A-9.B2-02 — the three sign-in actions. The dropdown has always
                offered them and this table has never explained them, while the
                sentence above it says the dropdown lists every action in the
                table below. sign-in-failed is the one that matters most: a run
                of them from an address you do not recognise is the only warning
                of someone guessing the password. -->
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dcfce7;color:#166534;">sign-in</span></td><td>Someone signed in successfully, from the address shown.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e5e7eb;color:#374151;">sign-out</span></td><td>Someone signed out.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">sign-in-failed</span></td><td>A wrong password was entered. One or two is usually a typo. <strong>A run of them from an address you don't recognise is worth telling your developer about</strong> — it is what someone guessing the password looks like.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#dcfce7;color:#166534;">sign-in</span></td><td>Someone signed in successfully, from the address shown.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#e5e7eb;color:#374151;">sign-out</span></td><td>Someone signed out.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fee2e2;color:#991b1b;">sign-in-failed</span></td><td>A wrong password was entered. One or two is usually a typo. <strong>A run of them from an address you don't recognise is worth telling your developer about</strong> — it is what someone guessing the password looks like.</td></tr>
         </table>
         <div class="callout callout-tip">
           <b>Page Content saves say what you actually edited</b>

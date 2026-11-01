@@ -113,11 +113,15 @@ const CONTRAST = `(a, b) => {
         if (!rc.width || !rc.height || s.visibility === 'hidden' || s.display === 'none') continue;
         if (rc.width <= 1 && rc.height <= 1) continue; // screen-reader-only text, never seen
         if (![...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
-        if (parseFloat(s.fontSize) < 12) small.push(`${s.fontSize} ${e.tagName.toLowerCase()} "${e.textContent.trim().slice(0, 30)}"`);
+        // SVG text is drawn at font-size × the picture's scale, so measure what
+        // reaches the screen (Help's header diagram is a scaled <svg>).
+        const scale = e instanceof SVGElement && e.getScreenCTM ? Math.abs(e.getScreenCTM().a) : 1;
+        const px = parseFloat(s.fontSize) * scale;
+        if (px < 12) small.push(`${px.toFixed(1)}px ${e.tagName.toLowerCase()} "${e.textContent.trim().slice(0, 30)}"`);
       }
       return small;
     });
-    results[`U2:${name(pg)}`] = r.length;
+    results[`U2:${name(pg)}`] = r;
     ok(r.length === 0, `${name(pg).padEnd(18)} ${r.length} text elements under 12px${r.length ? ' e.g. ' + r.slice(0, 2).join(' | ') : ''}`);
   }
 

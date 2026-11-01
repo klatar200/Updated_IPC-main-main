@@ -146,8 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>IPC Admin — Add Product</title>
   <?= admin_head() ?>
   <style>
-    h1 { font-size: 22px; font-weight: 800; margin: 0 0 6px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
+    h1 { font-size: var(--fs-6); font-weight: 800; margin: 0 0 6px; }
+    .sub { font-size: var(--fs-2); color: #6b7280; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
     input:focus, select:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     @media(max-width:600px) { .grid-2 { grid-template-columns: 1fr; } }
@@ -208,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px 14px">
         <?php $addAp = is_array($_POST['approvals'] ?? null) ? $_POST['approvals'] : []; ?>
         <?php foreach (IPC_APPROVALS as $ap): ?>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;text-transform:none">
+          <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-2);cursor:pointer;text-transform:none">
             <input type="checkbox" name="approvals[]" value="<?= h($ap) ?>" <?= in_array($ap, $addAp, true) ? 'checked' : '' ?> />
             <?= h($ap) ?>
           </label>

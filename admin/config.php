@@ -488,9 +488,34 @@ function csrf_token(): string {
 function admin_head(): string {
     return <<<'CSS'
 <style>
+  /* ── Design tokens (PLAN-13 Phase 1) ────────────────────────────────────
+     One type scale for the whole dashboard. Before this, text ran from 8px to
+     30px in 15 steps and most of what the owner reads — labels, hints, table
+     cells, badges — was 10–13px (PLAN-13 §2 C1: 984 elements under 12px on
+     Page Content alone). Nothing the owner reads is under --fs-1; the live
+     previews of the public site are the one exception, at 12px, because they
+     are miniatures of a page and keep its proportions. Page styles use these
+     variables rather than px so the scale can be tuned in one place. */
+  :root {
+    --fs-1: 13px;   /* hints, meta, badges */
+    --fs-2: 14px;   /* labels, buttons, table cells, menu */
+    --fs-3: 15px;   /* body text, input boxes */
+    --fs-4: 18px;   /* section titles */
+    --fs-5: 22px;   /* big numbers */
+    --fs-6: 26px;   /* page titles */
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --ink: #141414;
+    --ink-2: #4b5563;   /* secondary text, 7.6:1 on white */
+    --line: #e5e9ee;
+    --field-line: #d1d9e0;
+    --page-bg: #f0f4f8;
+    --brand: #005da3;
+    --brand-dark: #0d2d52;
+  }
+
   /* ── Reset + page shell ─────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; }
-  body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
+  body { font-family: system-ui, sans-serif; background: var(--page-bg); margin: 0; color: var(--ink); font-size: var(--fs-3); line-height: 1.5; }
 
   /* THE container rule. Mirrors .ipc-container on the public site
      (src/index.css) so the admin and the site it edits agree about how wide a
@@ -513,36 +538,42 @@ function admin_head(): string {
   }
 
   /* ── Typography ─────────────────────────────────────────────────────── */
-  h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
-  .sub { font-size: 13px; color: #6b7280; margin: 0 0 24px; }
+  h1 { font-size: var(--fs-6); font-weight: 800; margin: 0 0 4px; line-height: 1.2; }
+  .sub { font-size: var(--fs-2); color: var(--ink-2); margin: 0 0 24px; }
 
   /* ── Cards ──────────────────────────────────────────────────────────── */
-  .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
-  .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 20px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  /* Section titles were 12px blue UPPERCASE and field labels 11px grey
+     UPPERCASE — the same shape at the same weight, so a section and a field
+     could not be told apart (PLAN-13 §2 B4). Now a title is a heading. */
+  .card-title { font-size: var(--fs-4); font-weight: 700; color: var(--brand-dark); margin: 0 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--line); line-height: 1.3; }
 
   /* ── Forms ──────────────────────────────────────────────────────────── */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .form-group { margin-bottom: 16px; }
   .form-group.full { grid-column: 1 / -1; }
-  label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 5px; }
-  .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+  label { display: block; font-size: var(--fs-2); font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .hint { font-size: var(--fs-1); color: var(--ink-2); margin-top: 4px; }
+  /* The UA default for <small> is `smaller` — 11.7px inside a 14px label. */
+  small { font-size: var(--fs-1); }
   /* A10-049 (§1at) — UA stylesheets give <button> its own font (Arial on
      the measured box): 442 of 458 admin buttons ignored the page's system-ui.
      Size and line-height stay with each button's own rule. */
   button { font-family: inherit; }
-  input[type=text], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; transition: border-color 0.15s; }
-  input[type=text]:focus, select:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
+  input[type=text], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--field-line); border-radius: 7px; font-size: var(--fs-3); color: var(--ink); outline: none; font-family: inherit; transition: border-color 0.15s; }
+  input[type=text]:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
   textarea { resize: vertical; }
-  .mono { font-family: 'Courier New', monospace; font-size: 12px; }
+  .mono, code, kbd, samp { font-family: var(--font-mono); }
+  .mono { font-size: var(--fs-1); }
   .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
   /* ── Buttons ────────────────────────────────────────────────────────── */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; transition: background 0.15s; }
-  .btn-primary { background: #005da3; color: #fff; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; transition: background 0.15s; }
+  .btn-primary { background: var(--brand); color: #fff; }
   .btn-primary:hover { background: #004e8c; }
-  .btn-secondary { background: #fff; color: #141414; border: 1px solid #d1d9e0; }
-  .btn-secondary:hover { background: #f0f4f8; }
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-secondary { background: #fff; color: var(--ink); border: 1px solid var(--field-line); }
+  .btn-secondary:hover { background: var(--page-bg); }
+  .btn-sm { padding: 5px 12px; font-size: var(--fs-1); }
   .btn-edit { background: rgba(0,93,163,0.08); color: #005da3; }
   .btn-edit:hover { background: rgba(0,93,163,0.15); }
   .btn-danger { background: rgba(220,38,38,0.08); color: #dc2626; }
@@ -551,17 +582,19 @@ function admin_head(): string {
   .btn-pdf:hover { background: rgba(0,190,242,0.2); }
 
   /* ── Alerts ─────────────────────────────────────────────────────────── */
-  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; }
-  .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
-  .alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: var(--fs-2); margin-bottom: 20px; }
+  .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: var(--fs-2); }
+  /* #dc2626 is 4.41:1 on #fef2f2 — under 4.5:1 at any size this text uses;
+     #b91c1c (5.91:1) is what .error-list below already switched to (A10-030). */
+  .alert-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
   /* F3 — the "nothing to save" banner. Deliberately informational rather than
      green: the save DID succeed, but telling the owner "Saved" when no byte
      changed is what trained him not to trust the banner. Palette matches
      help.php's .callout-tip. */
-  .alert-info { background: #eff8ff; color: #0c4a6e; border: 1px solid #bfe0f7; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+  .alert-info { background: #eff8ff; color: #0c4a6e; border: 1px solid #bfe0f7; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: var(--fs-2); }
   /* A10-030 (§1at) — #dc2626 measured 4.41:1 on #fef2f2 at 13px; #b91c1c is 5.91:1. */
   .error-list { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-  .error-list li { font-size: 13px; margin-bottom: 4px; }
+  .error-list li { font-size: var(--fs-2); margin-bottom: 4px; }
 </style>
 CSS;
 }

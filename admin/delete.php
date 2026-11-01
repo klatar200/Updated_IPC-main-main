@@ -89,10 +89,10 @@ $brokenRefs = industry_refs_broken_by($products, $without);
     .card { background: #fff; border-radius: 12px; padding: 40px; max-width: 440px; width: 100%; box-shadow: 0 4px 24px rgba(0,45,82,0.12); text-align: center; }
     .icon { font-size: 48px; margin-bottom: 16px; }
     h1 { font-size: 20px; font-weight: 800; color: #141414; margin: 0 0 8px; }
-    p  { font-size: 14px; color: #6b7280; margin: 0 0 28px; }
+    p  { font-size: var(--fs-3); color: #6b7280; margin: 0 0 28px; }
     .product-name { font-weight: 600; color: #141414; }
     .actions { display: flex; gap: 10px; justify-content: center; }
-    .btn { padding: 10px 24px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
+    .btn { padding: 10px 24px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
     .btn-danger { background: #dc2626; color: #fff; }
     .btn-danger:hover { background: #b91c1c; }
     .btn-cancel { background: #f0f4f8; color: #141414; }
@@ -116,7 +116,7 @@ $brokenRefs = industry_refs_broken_by($products, $without);
       photo come off the website too — unless another product still uses the
       same file, in which case that file stays.
     </p>
-    <p style="font-size:13px;color:#4b5563">
+    <p style="font-size:var(--fs-2);color:#4b5563">
       <?php /* ADM-3 — this promise used to be half true: the catalog came back
                but the files had been erased. They are now kept out of sight,
                and a restore puts them back. */ ?>
@@ -130,7 +130,7 @@ $brokenRefs = industry_refs_broken_by($products, $without);
       counts.
     </p>
     <?php if ($brokenRefs): ?>
-    <p style="font-size:13px;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px">
+    <p style="font-size:var(--fs-2);color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:6px;padding:10px 12px">
       <strong>The Industries page links to this product</strong> from <?= h(implode(', ', $brokenRefs)) ?>.
       After deleting, those links show &ldquo;product not found&rdquo; until you change them in
       <a href="content.php">Page Content</a> &rarr; Industries.

@@ -140,8 +140,10 @@ never was, except on Help.
    - Long forms' own sticky elements (save bar, section index, live preview)
      sit below the bar, not under it: one shared `--admin-bar-h` token sets
      their `top`.
-2. **Design tokens in `admin_head()`.** CSS custom properties for colour, a
-   type scale (13 / 15 / 17 / 20 / 26), spacing and radius.
+2. **Design tokens in `admin_head()`.** CSS custom properties for colour and
+   a type scale, `--fs-1` … `--fs-6` = 13 / 14 / 15 / 18 / 22 / 26 (as built in
+   Phase 1; this line said 13 / 15 / 17 / 20 / 26 before the labels and page
+   titles were sized).
    - Body 15px.
    - Labels 14px semibold sentence case.
    - Hints 13px.
@@ -267,6 +269,64 @@ The five greens show the checks can pass.
   including `$navExtra`) and `plan10-adminrows` (Delete reachability) assert
   today's header and table directly, so Phases 2 and 5 must update them in the
   same PR.
+
+### Phase 1 — done 2026-10-31 (branch `claude/admin-ux`)
+
+**`admin_head()`** now opens with `:root` tokens:
+- the type scale, `--fs-1` 13, `--fs-2` 14, `--fs-3` 15, `--fs-4` 18,
+  `--fs-5` 22 and `--fs-6` 26;
+- `--font-mono`;
+- seven colours: ink, secondary ink, line, field line, page background, brand
+  and brand dark.
+
+The shared rules use them:
+- body 15px with line height 1.5;
+- labels 14px semibold in sentence case;
+- hints and `<small>` 13px;
+- section titles 18px in dark ink;
+- inputs 15px, buttons 14px, small buttons 13px;
+- page titles 26px.
+
+`.alert-error` text goes from `#dc2626` (4.41:1) to `#b91c1c` (5.91:1).
+
+**Page files.** A scripted transform (`_harness/out/plan13-phase1-type.js`,
+gitignored) made 215 changes across 19 files:
+- ≤12px became `--fs-1`, 12.5–13px became `--fs-2` and 14px became `--fs-3`;
+- every `text-transform: uppercase` went, with its letter-spacing;
+- `auth.php`, which has no `admin_head()`, got the same steps as literal px;
+- the two live previews only went from 10–11px to 12px, keeping their
+  uppercase, because they mirror the public site.
+
+By hand:
+- page `h1`s became `--fs-6`, and the stat numbers `--fs-5`;
+- the section titles of Page Content and Backups, the Products category
+  headings and the Password labels moved to the shared scale;
+- one monospace stack everywhere;
+- Help's two SVG diagrams went from 8–9 to 10 nominal, about 13px on screen.
+
+**`admin-ux`** now measures SVG text at its on-screen size (font size × CTM
+scale). That makes it stricter for Help, not looser.
+
+**Result:**
+- `admin-ux` **20/84**, up from 5/83. U2 (text under 12px) passes on all 15 pages.
+- `adminwidth` 66/66, `invariants` 19/19, `plan2-formlast` 8/8 and
+  `plan2-trunc` 14/14.
+- `homelayout` 121/121, `homelayouts` 115/115, `plan10-adminnav` 27/27,
+  `plan10-help` 29/29, `plan10-helpwidth` 21/21 and `plan10-admincrawl` 42/42.
+- **Improved:** `plan10-adminrows` **15/15** (was 13/15) and `audit9-fixes`
+  **39/40** (was 37/40).
+- **Matched the baseline** when run alone: `audit5-high` 24/33, `contactflow`
+  65/87, `docmap` 14/28, `siteimages` 17/25, `leadpath12` 18/34,
+  `adminaudit11` 35/37 and `audit7-lead` 16/23.
+  - `audit7-lead` read 14/23 inside the sweep, run right after `contactflow` had
+    filled the contact form's rate limit.
+  - `adminaudit11` crashed in the sweep on a Windows lock left by an orphaned
+    `:8743` server.
+
+**Not done in Phase 1, and left to later phases:**
+- page `<style>` blocks still hard-code their colours as hex (only the shared
+  rules use the colour tokens);
+- inline `style=""` font sizes were moved onto the tokens but not into classes.
 
 ## 5. Constraints and what must stay green
 

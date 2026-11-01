@@ -46,14 +46,14 @@ $navExtra  = $navExtra  ?? '';
   .ipc-admin-header { background: #0d2d52; padding: 8px 24px; height: auto; min-height: 60px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
   .ipc-admin-header nav { display: flex; flex-wrap: wrap; align-items: center; row-gap: 4px; }
   .ipc-admin-header .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-  .ipc-admin-header .logo-title { color: #fff; font-size: 13px; font-weight: 700; }
-  .ipc-admin-header .logo-sub   { color: rgba(255,255,255,0.5); font-size: 10px; }
-  .ipc-admin-header nav a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; margin-left: 20px; }
+  .ipc-admin-header .logo-title { color: #fff; font-size: var(--fs-2); font-weight: 700; }
+  .ipc-admin-header .logo-sub   { color: rgba(255,255,255,0.5); font-size: var(--fs-1); }
+  .ipc-admin-header nav a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: var(--fs-2); margin-left: 20px; }
   .ipc-admin-header nav a:hover, .ipc-admin-header nav a.current { color: #fff; }
   .ipc-admin-header nav a.current { border-bottom: 2px solid #005da3; padding-bottom: 4px; }
   .ipc-admin-header .logout { color: rgba(255,255,255,0.5) !important; }
   .ipc-admin-header nav a .nav-badge { display: inline-block; min-width: 18px; margin-left: 6px; padding: 1px 6px;
-    border-radius: 9px; background: #d92d20; color: #fff; font-size: 11px; font-weight: 700; line-height: 16px; text-align: center; }
+    border-radius: 9px; background: #d92d20; color: #fff; font-size: var(--fs-1); font-weight: 700; line-height: 16px; text-align: center; }
   /* A12-L7-01-W5-4 — on a touch screen the 13px links were 15px tall in three
      tight rows, under WCAG 2.5.8's 24px, so a tap opened the neighbouring page.
      Touch only, the way the public site does it (src/index.css, pointer: coarse);
@@ -92,7 +92,7 @@ $navExtra  = $navExtra  ?? '';
     <form method="POST" action="auth.php" style="display:inline;margin:0;" data-no-guard>
       <input type="hidden" name="logout" value="1">
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
-      <button type="submit" class="logout" style="background:none;border:none;padding:0;margin-left:20px;font:inherit;font-size:13px;color:rgba(255,255,255,0.5);cursor:pointer;">Sign Out</button>
+      <button type="submit" class="logout" style="background:none;border:none;padding:0;margin-left:20px;font:inherit;font-size:var(--fs-2);color:rgba(255,255,255,0.5);cursor:pointer;">Sign Out</button>
     </form>
   </nav>
 </header>
@@ -103,7 +103,7 @@ $navExtra  = $navExtra  ?? '';
 if (!empty($_SESSION['ipc_unbacked_saves']) && is_array($_SESSION['ipc_unbacked_saves'])):
   $navUnbacked = array_keys($_SESSION['ipc_unbacked_saves']);
   unset($_SESSION['ipc_unbacked_saves']); ?>
-<div role="alert" style="max-width:1100px;margin:16px auto 0;padding:12px 16px;background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;color:#78350f;font-size:14px;line-height:1.5;">
+<div role="alert" style="max-width:1100px;margin:16px auto 0;padding:12px 16px;background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;color:#78350f;font-size:var(--fs-3);line-height:1.5;">
   <strong>⚠ Your change to <?= h(implode(' and ', $navUnbacked)) ?> was saved, but this change can't be undone from Backups.</strong>
   The server could not keep a copy of the version before it — its disk is probably full. Free up space on your hosting account (or ask your host to), so that your next change is backed up again.
 </div>

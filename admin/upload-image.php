@@ -190,19 +190,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?= admin_head() ?>
   <style>
     main { max-width: 600px; margin: 0 auto; padding: 40px 24px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
+    .sub { font-size: var(--fs-2); color: #6b7280; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
     /* Kept, against admin_head()'s shared 5px: these two upload pages and
        password.php have always used 6px here. One pixel, but the point of
        the extraction was that it changed nothing on screen. */
     label { margin-bottom: 6px; }
-    .hint { font-size: 11px; color: #6b7280; margin-top: 5px; }
-    input[type=file] { width: 100%; padding: 10px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: 13px; cursor: pointer; transition: border-color 0.15s; }
+    .hint { font-size: var(--fs-1); color: #6b7280; margin-top: 5px; }
+    input[type=file] { width: 100%; padding: 10px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: var(--fs-2); cursor: pointer; transition: border-color 0.15s; }
     input[type=file]:hover { border-color: #005da3; }
-    .btn { display: inline-flex; align-items: center; padding: 10px 22px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
+    .btn { display: inline-flex; align-items: center; padding: 10px 22px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: background 0.15s; }
     .btn-primary { background: #005da3; color: #fff; width: 100%; justify-content: center; margin-top: 16px; }
-    .btn-secondary { background: #f0f4f8; color: #141414; font-size: 13px; padding: 8px 16px; }
-    .current-img { padding: 12px 16px; background: #f0f4f8; border-radius: 8px; font-size: 13px; }
+    .btn-secondary { background: #f0f4f8; color: #141414; font-size: var(--fs-2); padding: 8px 16px; }
+    .current-img { padding: 12px 16px; background: #f0f4f8; border-radius: 8px; font-size: var(--fs-2); }
     .current-img img { max-width: 100%; max-height: 260px; display: block; margin: 0 auto 12px; border-radius: 6px; background: #fff; }
     .img-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   </style>
@@ -240,7 +240,7 @@ include 'nav.php';
         </div>
       </div>
     <?php else: ?>
-      <p style="color:#6b7280;font-size:13px;margin:0">No photo set — the website is showing the IPC branded placeholder for this product.</p>
+      <p style="color:#6b7280;font-size:var(--fs-2);margin:0">No photo set — the website is showing the IPC branded placeholder for this product.</p>
     <?php endif; ?>
   </div>
 

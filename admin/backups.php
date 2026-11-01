@@ -167,19 +167,19 @@ $navActive = 'backups';
   <?= admin_head() ?>
   <style>
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
+    .card-title { font-size: var(--fs-4); font-weight: 700; color: var(--brand-dark); margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid #e5e9ee; line-height: 1.3; }
     /* UX-5 (admin audit 2026-10-05) — wraps: at 390 px the Restore button,
        the page's one action, ran 39 px off the right edge. */
-    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-bottom: 1px solid #f0f4f8; font-size: 13px; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-bottom: 1px solid #f0f4f8; font-size: var(--fs-2); }
     .row:last-child { border-bottom: none; }
     .when { font-weight: 600; }
-    .size { color: #6b7280; font-size: 12px; }
-    .items { color: #374151; font-size: 12px; background: #f0f4f8; border-radius: 5px; padding: 2px 8px; }
+    .size { color: #6b7280; font-size: var(--fs-1); }
+    .items { color: #374151; font-size: var(--fs-1); background: #f0f4f8; border-radius: 5px; padding: 2px 8px; }
     .row form { margin-left: auto; }
-    .btn { display: inline-flex; align-items: center; padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: 1px solid #d1d9e0; background: #fff; color: #141414; }
+    .btn { display: inline-flex; align-items: center; padding: 7px 16px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; cursor: pointer; text-decoration: none; border: 1px solid #d1d9e0; background: #fff; color: #141414; }
     .btn:hover { border-color: #005da3; background: #eef4fb; }
-    .none { color: #6b7280; font-size: 13px; }
-    .note { font-size: 12px; color: #4b5563; }
+    .none { color: #6b7280; font-size: var(--fs-2); }
+    .note { font-size: var(--fs-1); color: #4b5563; }
   </style>
 </head>
 <body>
