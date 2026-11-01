@@ -101,8 +101,12 @@ public_html/
     ├── add.php / edit.php / delete.php
     ├── settings.php        ← Business Details editor  (site-info.json)
     ├── content.php         ← Page Content editor      (content.json)
-    ├── inquiries.php       ← Contact-form lead viewer (inquiries.jsonl)
-    ├── backups.php         ← Self-service restore of any site-data/*.json backup
+    ├── inquiries.php       ← Contact-form lead viewer (inquiries.jsonl). ?q= ?type=
+    │                         ?status= ?since= ?page= (25 a page, by day; New since the
+    │                         last visit kept in the session); listfilter.js applies them live
+    ├── backups.php         ← Self-service restore of any site-data/*.json backup; each
+    │                         says what it was saved ahead of (backup_change_notes(),
+    │                         from the audit log)
     ├── password.php        ← Signed-in password change
     ├── upload-pdf.php      ← Upload, replace, or remove a PDF
     ├── upload-image.php    ← Upload or remove a product photo
@@ -111,12 +115,13 @@ public_html/
     ├── logo.svg            ← Admin favicon / header mark
     ├── ping.php            ← Session keepalive probe for unsaved.js
     ├── help.php            ← In-app help & documentation
-    ├── audit-log.php       ← View every change made through the admin
+    ├── audit-log.php       ← View every change made through the admin. ?q= (older ?sku=)
+    │                         ?action= ?page= (50 a page, by day); listfilter.js live
     ├── *.js                ← confirm / search / spectable-editor / content-editor /
     │                         unsaved / help / product-preview / settings-preview /
     │                         contrast-guard / csrf-back / site-images / nav /
-    │                         longform
-    │                         (thirteen files; `ls admin/*.js`)
+    │                         longform / listfilter
+    │                         (fourteen files; `ls admin/*.js`)
     ├── admin-log.jsonl     ← Audit log (auto-created on first save)
     ├── inquiries.jsonl     ← Contact-form leads (written by contact.php)
     ├── admin-log-*.jsonl, inquiries-*.jsonl ← Rotated archives (16 MB), never deleted

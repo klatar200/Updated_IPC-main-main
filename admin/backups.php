@@ -151,6 +151,105 @@ function backups_for(string $key, string $dataDir): array {
     return $out;
 }
 
+/**
+ * PLAN-13 Phase 6 (§2 F3) — what each version is from. A column of identical
+ * "Restore This Version" buttons with only a time said nothing about what a
+ * restore would undo, although the audit log knows: save_*() writes the
+ * backup of the CURRENT file a moment before it writes the change, and the
+ * page that saved logs the change straight after. So the first unclaimed
+ * audit line of a matching action within 15 seconds after a backup's stamp is
+ * the change that version was saved ahead of. No match (an old backup whose
+ * log line has rotated out of reach, or a save that logged nothing) shows
+ * nothing rather than a guess.
+ *
+ * $lists: key => backups_for() output. Returns key => [file => sentence].
+ */
+function backup_change_notes(array $lists): array {
+    $ACTIONS = [
+        'products-all' => ['add', 'edit', 'delete', 'upload-pdf', 'remove-pdf', 'upload-image', 'remove-image', 'restore'],
+        'site-info'    => ['settings', 'site-image', 'marketing-pdf', 'restore'],
+        'content'      => ['content', 'site-image', 'marketing-pdf', 'restore'],
+    ];
+    $LABEL = [
+        'add' => 'Product added', 'edit' => 'Product edited', 'delete' => 'Product deleted',
+        'upload-pdf' => 'Data sheet uploaded', 'remove-pdf' => 'Data sheet removed',
+        'upload-image' => 'Photo uploaded', 'remove-image' => 'Photo removed',
+        'settings' => 'Business Details saved', 'content' => 'Page Content saved',
+        'site-image' => 'Site image or logo changed', 'marketing-pdf' => 'Catalog or brochure PDF changed',
+        'restore' => 'An older version restored',
+    ];
+    $stampOf = static function (string $file): ?int {
+        if (!preg_match('/\.backup\.(\d{8})-(\d{6})/', $file, $m)) return null;
+        $t = strtotime(substr($m[1], 0, 4) . '-' . substr($m[1], 4, 2) . '-' . substr($m[1], 6, 2) . ' '
+                     . substr($m[2], 0, 2) . ':' . substr($m[2], 2, 2) . ':' . substr($m[2], 4, 2));
+        return $t === false ? null : $t;
+    };
+    $oldest = PHP_INT_MAX;
+    foreach ($lists as $list) foreach ($list as $b) { $t = $stampOf($b['file']); if ($t !== null && $t < $oldest) $oldest = $t; }
+    if ($oldest === PHP_INT_MAX) return [];
+
+    // Read the log newest first, live file then archives, until it is older
+    // than the oldest backup (or 32 MB have been read).
+    $wanted = array_flip(array_merge(...array_values($ACTIONS)));
+    $lines = [];
+    $files = glob(__DIR__ . '/admin-log-*.jsonl') ?: [];
+    rsort($files, SORT_STRING);
+    array_unshift($files, __DIR__ . '/admin-log.jsonl');
+    $read = 0;
+    foreach ($files as $path) {
+        $fh = @fopen($path, 'rb');
+        if (!$fh) continue;
+        $pos = (int)@filesize($path);
+        $carry = '';
+        $done = false;
+        while ($pos > 0 && !$done && $read < 32 * 1024 * 1024) {
+            $len = (int)min(1024 * 1024, $pos);
+            $pos -= $len;
+            fseek($fh, $pos);
+            $chunk = (string)fread($fh, $len);
+            $read += $len;
+            $parts = explode("\n", $chunk . $carry);
+            $carry = $pos > 0 ? array_shift($parts) : '';
+            for ($i = count($parts) - 1; $i >= 0; $i--) {
+                $e = json_decode($parts[$i], true);
+                if (!is_array($e)) continue;
+                $t = strtotime((string)($e['ts'] ?? ''));
+                if ($t === false) continue;
+                if ($t < $oldest - 60) { $done = true; break; }
+                if (isset($wanted[$e['action'] ?? ''])) $lines[] = ['t' => $t] + $e;
+            }
+        }
+        fclose($fh);
+        if ($done || $read >= 32 * 1024 * 1024) break;
+    }
+    $lines = array_reverse($lines);   // oldest first
+
+    $out = [];
+    foreach ($lists as $key => $list) {
+        $acts = array_flip($ACTIONS[$key] ?? []);
+        $asc = array_reverse($list);   // backups_for() is newest first
+        $used = [];
+        foreach ($asc as $b) {
+            $t = $stampOf($b['file']);
+            if ($t === null) continue;
+            foreach ($lines as $i => $e) {
+                if (isset($used[$i]) || !isset($acts[$e['action']])) continue;
+                if ($e['action'] === 'restore' && ($e['sku'] ?? '') !== $key) continue;
+                if ($e['t'] < $t) continue;
+                if ($e['t'] > $t + 15) break;
+                $used[$i] = true;
+                $sku = (string)($e['sku'] ?? '');
+                $what = $LABEL[$e['action']] . (($sku !== '' && $sku !== '-' && $sku !== $key && $e['action'] !== 'restore') ? ' — ' . $sku : '');
+                $detail = trim((string)($e['detail'] ?? ''));
+                if (strlen($detail) > 140) $detail = rtrim(substr($detail, 0, 137)) . '…';
+                $out[$key][$b['file']] = ['what' => $what, 'detail' => $detail];
+                break;
+            }
+        }
+    }
+    return $out;
+}
+
 function nice_size(int $b): string {
     return $b >= 1048576 ? round($b / 1048576, 1) . ' MB' : round($b / 1024) . ' KB';
 }
@@ -179,6 +278,9 @@ function nice_size(int $b): string {
     .btn:hover { border-color: #005da3; background: #eef4fb; }
     .none { color: #6b7280; font-size: var(--fs-2); }
     .note { font-size: var(--fs-1); color: #4b5563; }
+    /* PLAN-13 Phase 6 — what the version was saved ahead of. */
+    .why { flex-basis: 100%; order: 10; font-size: var(--fs-2); color: var(--ink-2); line-height: 1.45; }
+    .why strong { color: var(--ink); }
   </style>
 </head>
 <body>
@@ -194,7 +296,10 @@ function nice_size(int $b): string {
     <div class="alert-success">✅ <?= h($success) ?></div>
   <?php endif; ?>
 
-  <?php foreach ($TARGETS as $key => $t): $list = backups_for($key, $dataDir); ?>
+  <?php $lists = [];
+        foreach ($TARGETS as $key => $t) $lists[$key] = backups_for($key, $dataDir);
+        $notes = backup_change_notes($lists); ?>
+  <?php foreach ($TARGETS as $key => $t): $list = $lists[$key]; ?>
   <div class="card">
     <div class="card-title"><?= h($t['label']) ?></div>
     <?php if (empty($list)): ?>
@@ -205,8 +310,11 @@ function nice_size(int $b): string {
         <span class="when"><?= h($b['when']) ?></span>
         <?php if (!empty($b['items'])): ?><span class="items"><?= h($b['items']) ?></span><?php endif; ?>
         <span class="size"><?= h(nice_size((int)$b['size'])) ?></span>
+        <?php $why = $notes[$key][$b['file']] ?? null; if ($why): ?>
+        <div class="why">This is how it was just before: <strong><?= h($why['what']) ?></strong><?= $why['detail'] !== '' ? ' — ' . h($why['detail']) : '' ?></div>
+        <?php endif; ?>
         <?php if ($b['restorable']): ?>
-        <form method="POST" data-confirm="Restore <?= h($t['label']) ?> to its state from <?= h($b['when']) ?><?= !empty($b['items']) ? ' (' . h($b['items']) . ')' : '' ?>? The current version is backed up first, so this can be undone.">
+        <form method="POST" data-confirm="Restore <?= h($t['label']) ?> to its state from <?= h($b['when']) ?><?= !empty($b['items']) ? ' (' . h($b['items']) . ')' : '' ?><?= $why ? ', just before: ' . h($why['what']) : '' ?>? The current version is backed up first, so this can be undone.">
           <input type="hidden" name="backup" value="<?= h($b['file']) ?>">
           <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
           <button type="submit" class="btn">Restore This Version</button>

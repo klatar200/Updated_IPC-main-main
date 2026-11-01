@@ -8,7 +8,14 @@ require_auth();
  * mail() failure never silently loses a lead. Newest first.
  */
 
-$MAX_SHOW = 200;
+// PLAN-13 Phase 6 — the window the search and filters look through. It was
+// the 200 shown on one page; the list now pages 25 at a time, so the window
+// can be the most recent 1,000 (about 1 MB of the 2 MB tail read below).
+$MAX_SHOW = 1000;
+// A filter request from listfilter.js: it must not count as looking at the
+// leads again (see "New" below).
+$isFetch = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
+$newCount = 0;
 
 // Read only the TAIL of the log, never the whole thing.
 // file() loads every line into memory at once: measured, a 43MB / 20,000-entry
@@ -99,7 +106,8 @@ if (file_exists(INQUIRIES_FILE)) {
     // `Sec-Fetch-Site` is sent by every current browser; `none` is a typed URL
     // or a bookmark. A browser that sends no header keeps the old behaviour.
     $fetchSite = $_SERVER['HTTP_SEC_FETCH_SITE'] ?? '';
-    if ($fetchSite === '' || $fetchSite === 'same-origin' || $fetchSite === 'none') {
+    if (!$isFetch) $newCount = inquiries_new_count();   // before the mark below clears it
+    if (!$isFetch && ($fetchSite === '' || $fetchSite === 'same-origin' || $fetchSite === 'none')) {
         inquiries_mark_seen($total);
     }
     // Twice the lines: since decision 42 a lead can be two (row + result).
@@ -171,6 +179,71 @@ foreach ($entries as $e) {
     if (empty($e['sent'])) $failed++;
 }
 
+// ── PLAN-13 Phase 6 (§2 F1): search, filters, paging, new leads ────────────
+// The filters are query-string parameters, applied here, so they work with
+// JavaScript off and survive a reload, Back and a bookmark; listfilter.js
+// applies them as you type by fetching this same page. The stats above stay
+// those of the whole window: a filter narrows the list, not the counts.
+$PER_PAGE = 25;
+$page   = max(1, (int)as_str($_GET['page'] ?? null));
+$fq     = trim(as_str($_GET['q'] ?? null));
+$fType  = as_str($_GET['type'] ?? null);     // rfq | message | refused
+$fState = as_str($_GET['status'] ?? null);   // sent | failed | pending
+$fSince = (int)as_str($_GET['since'] ?? null);
+if (!in_array($fType, ['', 'rfq', 'message', 'refused'], true)) $fType = '';
+if (!in_array($fState, ['', 'sent', 'failed', 'pending'], true)) $fState = '';
+if (!in_array($fSince, [0, 7, 30, 90, 365], true)) $fSince = 0;
+$query  = ['q' => $fq, 'type' => $fType, 'status' => $fState, 'since' => $fSince ?: ''];
+$filtering = $fq !== '' || $fType !== '' || $fState !== '' || $fSince > 0;
+
+// "New" = arrived since the last visit. Opening this page is what marks the
+// leads seen (above), so the newest $newCount badge-worthy rows are picked
+// out on the full page load and kept in the session; a filter request
+// (listfilter.js) reuses them instead of finding nothing new.
+$leadKey = static fn(array $e): string => md5(($e['id'] ?? '') . '|' . ($e['ts'] ?? '') . '|' . ($e['email'] ?? '') . '|' . ($e['name'] ?? ''));
+if (!$isFetch) {
+    $notBadge = array_flip(array_diff(inquiry_rejected_types(), inquiry_callback_types()));
+    $newKeys = [];
+    foreach ($entries as $e) {
+        if (count($newKeys) >= $newCount) break;
+        if (isset($notBadge[$e['type'] ?? ''])) continue;
+        $newKeys[] = $leadKey($e);
+    }
+    $_SESSION['inq_new'] = $newKeys;
+}
+$newSet = array_flip((array)($_SESSION['inq_new'] ?? []));
+
+$cutoff = $fSince > 0 ? time() - $fSince * 86400 : 0;
+$matches = [];
+foreach ($entries as $e) {
+    $rejE = isset($REJECTED[$e['type'] ?? '']);
+    $rfqE = ($e['type'] ?? '') === 'rfq' || ($e['form'] ?? '') === 'rfq';
+    if ($fType === 'refused' && !$rejE) continue;
+    if ($fType === 'rfq' && ($rejE || !$rfqE)) continue;
+    if ($fType === 'message' && ($rejE || $rfqE)) continue;
+    if ($fState !== '') {
+        if ($rejE) continue;
+        $st = ($e['status'] ?? '') === 'pending' ? 'pending' : (!empty($e['sent']) ? 'sent' : 'failed');
+        if ($st !== $fState) continue;
+    }
+    if ($cutoff > 0) {
+        $t = strtotime((string)($e['ts'] ?? ''));
+        if ($t === false || $t < $cutoff) continue;
+    }
+    if ($fq !== '') {
+        $hay = '';
+        foreach (['name', 'company', 'email', 'phone', 'part', 'material', 'quantity', 'reqDate', 'special', 'notes', 'subject', 'message', 'note'] as $k) {
+            if (isset($e[$k]) && is_scalar($e[$k])) $hay .= ' ' . $e[$k];
+        }
+        if (stripos($hay, $fq) === false) continue;
+    }
+    $matches[] = $e;
+}
+$matchCount = count($matches);
+$pages      = max(1, (int)ceil($matchCount / $PER_PAGE));
+if ($page > $pages) $page = $pages;
+$shown      = array_slice($matches, ($page - 1) * $PER_PAGE, $PER_PAGE);
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -211,6 +284,9 @@ foreach ($entries as $e) {
     .stat-num.bad { color: #dc2626; }
     .stat-lbl { font-size: var(--fs-1); color: #6b7280; }
     .note { font-size: var(--fs-1); color: #4b5563; margin-top: 16px; }
+    /* PLAN-13 Phase 6 — a lead that arrived since the last visit. */
+    .inq-new { border-color: #93c5fd; box-shadow: inset 4px 0 0 var(--brand); }
+    .badge-new { background: var(--brand); color: #fff; }
   </style>
 </head>
 <body>
@@ -240,15 +316,61 @@ foreach ($entries as $e) {
     <div class="empty">No inquiries yet. Submissions from the website's contact form will appear here.</div>
   <?php endif; ?>
 
-  <?php foreach ($entries as $e):
+  <?php if (!empty($entries)): ?>
+  <form method="GET" class="list-filters" data-live-filter="#inq-results" role="search" aria-label="Filter inquiries">
+    <div class="fld fld-grow">
+      <label for="inq-q">Search</label>
+      <input type="search" id="inq-q" name="q" value="<?= h($fq) ?>" placeholder="Name, company, email, part number or words from the message" autocomplete="off" />
+    </div>
+    <div class="fld">
+      <label for="inq-type">Type</label>
+      <select id="inq-type" name="type">
+        <option value="">All types</option>
+        <option value="rfq"<?= $fType === 'rfq' ? ' selected' : '' ?>>Quote requests</option>
+        <option value="message"<?= $fType === 'message' ? ' selected' : '' ?>>Messages</option>
+        <option value="refused"<?= $fType === 'refused' ? ' selected' : '' ?>>Refused by the form</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label for="inq-status">Email</label>
+      <select id="inq-status" name="status">
+        <option value="">Any</option>
+        <option value="sent"<?= $fState === 'sent' ? ' selected' : '' ?>>Sent to mail server</option>
+        <option value="failed"<?= $fState === 'failed' ? ' selected' : '' ?>>Email failed</option>
+        <option value="pending"<?= $fState === 'pending' ? ' selected' : '' ?>>Not confirmed</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label for="inq-since">Received</label>
+      <select id="inq-since" name="since">
+        <option value="">Any time</option>
+        <?php foreach ([7 => 'Last 7 days', 30 => 'Last 30 days', 90 => 'Last 3 months', 365 => 'Last 12 months'] as $d => $l): ?>
+        <option value="<?= $d ?>"<?= $fSince === $d ? ' selected' : '' ?>><?= $l ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary filter-submit">Filter</button>
+    <?php if ($filtering): ?><a href="inquiries.php" class="btn btn-secondary">Clear</a><?php endif; ?>
+  </form>
+  <?php endif; ?>
+
+  <div id="inq-results" aria-live="polite">
+  <?php if (!empty($entries)): ?>
+    <p class="list-count"><?php if ($matchCount === 0): ?>Nothing matches these filters.<?php else: ?><?= $filtering ? $matchCount . ' matching' : $matchCount ?> <?= $matchCount === 1 ? 'inquiry' : 'inquiries' ?><?= $pages > 1 ? ' — showing ' . (($page - 1) * $PER_PAGE + 1) . '–' . (($page - 1) * $PER_PAGE + count($shown)) : '' ?>, newest first.<?php if ($newSet): ?> <strong><?= count($newSet) ?> new</strong> since your last visit.<?php endif; ?><?php endif; ?></p>
+  <?php endif; ?>
+  <?php $lastDay = null; foreach ($shown as $e):
       $type   = $e['type'] ?? '';
       $rej    = $REJECTED[$type] ?? null;
       $isRfq  = $type === 'rfq' || ($e['form'] ?? '') === 'rfq';   // UX-11 — a refused quote keeps its quote fields
       $sent   = !empty($e['sent']);
       $pending = ($e['status'] ?? '') === 'pending';   // decision 42 — no send result was written
+      $isNew  = isset($newSet[$leadKey($e)]);
+      $day    = substr((string)($e['ts'] ?? ''), 0, 10);
   ?>
-  <details class="inq<?= $rej ? ' inq-rejected' : '' ?>">
+  <?php if ($day !== $lastDay): $lastDay = $day; ?><h2 class="day-head"><?= h(admin_day_label((string)($e['ts'] ?? ''))) ?></h2><?php endif; ?>
+  <details class="inq<?= $rej ? ' inq-rejected' : '' ?><?= $isNew ? ' inq-new' : '' ?>">
     <summary>
+      <?php if ($isNew): ?><span class="badge badge-new">New</span><?php endif; ?>
       <?php if ($rej): ?>
         <span class="badge badge-blocked"><?= h($rej['label']) ?></span>
       <?php else: ?>
@@ -294,9 +416,11 @@ foreach ($entries as $e) {
     </div>
   </details>
   <?php endforeach; ?>
+  <?= admin_pager($page, $page < $pages, $query) ?>
+  </div>
 
   <?php if ($total > $MAX_SHOW): ?>
-    <p class="note">Showing the <?= $MAX_SHOW ?> most recent of <?= $total ?> inquiries. The full history is kept in <code>admin/inquiries.jsonl</code>.</p>
+    <p class="note">The search and filters look through the <?= $MAX_SHOW ?> most recent of <?= $total ?> inquiries. The full history is kept in <code>admin/inquiries.jsonl</code>.</p>
   <?php endif; ?>
   <?php if ($fromArchive > 0): ?>
     <p class="note">The last <?= $fromArchive ?> shown come from the newest archive file, because the live log was started afresh when it reached its size limit.</p>
@@ -307,5 +431,6 @@ foreach ($entries as $e) {
       ask your developer if you need to look inside one.</p>
   <?php endif; ?>
 </main>
+<script src="listfilter.js"></script>
 </body>
 </html>

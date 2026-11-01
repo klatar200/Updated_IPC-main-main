@@ -34,9 +34,10 @@ Written and tested 2026-10-07; **run 2026-10-07 → 2026-10-13** — report in
 dashboard's navigation, layout and readability (2026-10-31). Phases 0–4 are done
 on `claude/admin-ux`: the guard suite, one type scale, the sticky grouped
 menu bar, the long-form pattern (sticky save bar, section strip, Hide/Show),
-Page Content regrouped by public page with a "Find a box" filter, and the
+Page Content regrouped by public page with a "Find a box" filter, the
 Products list redesigned (Edit + More menu, photo and PDF chips, category chips,
-cards on a phone).
+cards on a phone), and search, filters, paging and day headings on Inquiries
+and the Audit Log, with each backup saying what it was saved ahead of.
 §6 holds the remaining decisions.
 
 ---

@@ -6,11 +6,14 @@ require_auth();
 // (one JSON object per line), newest at the bottom of the file.
 $logPath = __DIR__ . '/admin-log.jsonl';
 $entries = [];
-$truncated = false;
-$MAX_LINES = 500; // most recent N — bigger than this and we paginate later
+// PLAN-13 Phase 6 (§2 F2) — one page of matches at a time. This was 500
+// rows on one page; the reader below still stops as soon as it has the page
+// it needs, so an early page costs what it did.
+$PER_PAGE = 50;
+$page = max(1, (int)as_str($_GET['page'] ?? null));
 
 // NEW-N2-11 (audit 2026-09-27) — read BACKWARDS, newest first, across the
-// live log and then its rotated archives, until $MAX_LINES entries match or a
+// live log and then its rotated archives, until a page of entries matches or a
 // hard byte budget runs out. The previous reader loaded only the last 4 MB
 // (A-5.4's memory bound), so a filter could not reach anything older, the
 // archives were never read, and the header said "Showing the most recent 500"
@@ -45,11 +48,17 @@ $linesBackward = static function (string $path) use (&$scanned, &$budgetHit) {
     fclose($fh);
 };
 
-// Optional filter by SKU or action via querystring.
+// Filters, via the query string so they work with JavaScript off and survive
+// a reload, Back and a bookmark (listfilter.js applies them as you type).
+// `q` searches the SKU, the action and the detail. `sku` is the older
+// SKU-only filter: links that carry it (and the harness) still work, and it
+// fills the search box when `q` is absent.
 $filterSku    = as_str($_GET['sku'] ?? null);   // A-5.7 — trim(array) fatals on PHP 8
 $filterAction = as_str($_GET['action'] ?? null);
+$q            = trim(as_str($_GET['q'] ?? null));
+if ($q === '' && $filterSku !== '') $q = $filterSku;
 
-// Parse and FILTER first, and only then keep the newest $MAX_LINES.
+// Parse and FILTER first, and only then page.
 //
 // This used to slice to the last 500 lines and filter what survived, so the
 // filter could only ever search the tail of the file. That is fine until the
@@ -59,20 +68,25 @@ $filterAction = as_str($_GET['action'] ?? null);
 // owner then opens Activity Log, sees nothing but "Sign-in failed", picks
 // "edit" from the filter, and is told "No entries match" — while his edits sit
 // in the file, just outside the slice. (audit-runs/audit5.md A-5.4)
-$filtering = ($filterSku !== '' || $filterAction !== '');
+$filtering = ($q !== '' || $filterAction !== '');
+$skip     = ($page - 1) * $PER_PAGE;
+$hasOlder = false;
 foreach ($logFiles as $file) {
     foreach ($linesBackward($file) as $line) {          // newest first
         $row = json_decode($line, true);
         if (!is_array($row)) continue;
-        if ($filtering) {
-            if ($filterSku !== '' && stripos((string)($row['sku'] ?? ''), $filterSku) === false) continue;
-            if ($filterAction !== '' && ($row['action'] ?? '') !== $filterAction) continue;
+        if ($filterAction !== '' && ($row['action'] ?? '') !== $filterAction) continue;
+        if ($q !== '') {
+            $hay = ($row['sku'] ?? '') . ' ' . ($row['action'] ?? '') . ' ' . ($row['detail'] ?? '');
+            if (stripos((string)$hay, $q) === false) continue;
         }
+        if ($skip > 0) { $skip--; continue; }
+        if (count($entries) >= $PER_PAGE) { $hasOlder = true; break 2; }
         $entries[] = $row;
-        if (count($entries) >= $MAX_LINES) { $truncated = true; break 2; }
     }
     if ($budgetHit) break;
 }
+$query = ['q' => $q, 'action' => $filterAction];
 
 // Action badge colors
 function action_color(string $a): array {
@@ -112,11 +126,6 @@ function action_color(string $a): array {
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
     h1 { font-size: var(--fs-6); font-weight: 800; margin: 0 0 4px; }
     .sub { font-size: var(--fs-2); color: #6b7280; margin: 0; }
-    .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-    .filters input, .filters select { padding: 8px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: var(--fs-2); outline: none; background: #fff; }
-    .filters input:focus, .filters select:focus { border-color: #005da3; }
-    .filters button, .filters .reset { padding: 8px 14px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; cursor: pointer; border: none; background: #005da3; color: #fff; text-decoration: none; }
-    .filters .reset { background: #f0f4f8; color: #141414; border: 1px solid #d1d9e0; }
     .alert { padding: 12px 16px; border-radius: 8px; font-size: var(--fs-2); margin-bottom: 16px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
     th { background: #0d2d52; color: rgba(255,255,255,0.7); font-size: var(--fs-1); font-weight: 700; padding: 12px 16px; text-align: left; }
@@ -128,6 +137,9 @@ function action_color(string $a): array {
     .detail { color: #374151; }
     .ip { color: #6b7280; font-size: var(--fs-1); font-family: var(--font-mono); white-space: nowrap; }
     .empty { padding: 40px; text-align: center; color: #6b7280; font-size: var(--fs-3); }
+    /* PLAN-13 Phase 6 — one heading row per day inside the table. */
+    tr.day-row th { background: #f6f8fb; color: var(--brand-dark); font-size: var(--fs-2); font-weight: 700; padding: 9px 16px; border-bottom: 1px solid #e5e9ee; }
+    .reset { display: inline-flex; align-items: center; min-height: 38px; padding: 8px 14px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; background: #f0f4f8; color: #141414; border: 1px solid #d1d9e0; text-decoration: none; }
     /* UX-6 (admin audit 2026-10-05) — at 390 px the 700 px table pushed the
        whole page sideways and hid the Detail column; it scrolls in its own
        box instead, as on the dashboard. */
@@ -153,7 +165,7 @@ function action_color(string $a): array {
   <div class="page-header">
     <div>
       <h1>Audit Log</h1>
-      <p class="sub">Every change made through the admin — newest first.<?= $truncated ? ' Showing the most recent ' . $MAX_LINES . ($filtering ? ' matching' : '') . ' entries.' : '' ?><?= $budgetHit ? ' Older history was not searched (over ' . (int)(AUDIT_SCAN_BUDGET / 1048576) . ' MB); the archived admin-log-*.jsonl files in the admin folder hold it.' : '' ?></p>
+      <p class="sub">Every change made through the admin — newest first.<?= $budgetHit ? ' Older history was not searched (over ' . (int)(AUDIT_SCAN_BUDGET / 1048576) . ' MB); the archived admin-log-*.jsonl files in the admin folder hold it.' : '' ?></p>
     </div>
   </div>
 
@@ -161,38 +173,39 @@ function action_color(string $a): array {
     <div class="alert">No activity recorded yet. The log file <code>admin/admin-log.jsonl</code> is created on the first save.</div>
   <?php endif; ?>
 
-  <form method="GET" class="filters">
-    <?php /* A12 — aria-label rather than a visible <label>. This is a one-line
-             inline filter bar and a placeholder is not an accessible name:
-             assistive tech announced both controls unnamed. Visible labels
-             would push the bar onto two rows, which the sprint's guardrail
-             rules out, and the names here say exactly what the placeholder and
-             the first option already say on screen.
-             (audit-runs/audit1.md A-12) */ ?>
-    <input type="text" name="sku" placeholder="Filter by SKU…" aria-label="Filter by SKU" value="<?= h($filterSku) ?>" />
-    <select name="action" aria-label="Filter by action">
-      <option value="">All actions</option>
-      <?php /* 'import' was listed for a feature that does not exist anywhere in
-               the codebase — the filter always returned "No entries match".
-               Replaced with the actions that are actually written.
-               (DEPLOY_READINESS_v2 4.34) */ ?>
-      <?php /* A15 — read from config.php's IPC_AUDIT_ACTIONS rather than a
-               literal here. The literal was the third copy of this list and
-               nothing compared it to the call sites; lint.php now does, in
-               both directions. (audit-runs/audit1.md A-15) */ ?>
-      <?php foreach (IPC_AUDIT_ACTIONS as $a): ?>
-        <option value="<?= h($a) ?>" <?= $filterAction === $a ? 'selected' : '' ?>><?= h($a) ?></option>
-      <?php endforeach; ?>
-    </select>
-    <button type="submit">Filter</button>
-    <?php if ($filterSku !== '' || $filterAction !== ''): ?>
+  <form method="GET" class="list-filters" data-live-filter="#log-results" role="search" aria-label="Filter the audit log">
+    <div class="fld fld-grow">
+      <label for="log-q">Search</label>
+      <input type="search" id="log-q" name="q" value="<?= h($q) ?>" placeholder="A SKU, or a word from the detail — e.g. IP33PO, photo, FAQ" autocomplete="off" />
+    </div>
+    <div class="fld">
+      <label for="log-action">Action</label>
+      <select id="log-action" name="action">
+        <option value="">All actions</option>
+        <?php /* 'import' was listed for a feature that does not exist anywhere in
+                 the codebase — the filter always returned "No entries match".
+                 Replaced with the actions that are actually written.
+                 (DEPLOY_READINESS_v2 4.34) */ ?>
+        <?php /* A15 — read from config.php's IPC_AUDIT_ACTIONS rather than a
+                 literal here. The literal was the third copy of this list and
+                 nothing compared it to the call sites; lint.php now does, in
+                 both directions. (audit-runs/audit1.md A-15) */ ?>
+        <?php foreach (IPC_AUDIT_ACTIONS as $a): ?>
+          <option value="<?= h($a) ?>" <?= $filterAction === $a ? 'selected' : '' ?>><?= h($a) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary filter-submit">Filter</button>
+    <?php if ($filtering): ?>
       <a href="audit-log.php" class="reset">Clear</a>
     <?php endif; ?>
   </form>
 
+  <div id="log-results" aria-live="polite">
   <?php if (empty($entries)): ?>
-    <div class="empty">No entries match the current filter.</div>
+    <div class="empty"><?= $page > 1 ? 'No more entries.' : 'No entries match the current filter.' ?></div>
   <?php else: ?>
+    <p class="list-count"><?= $filtering ? 'Matching entries' : 'Entries' ?> <?= ($page - 1) * $PER_PAGE + 1 ?>–<?= ($page - 1) * $PER_PAGE + count($entries) ?>, newest first.</p>
     <div class="table-scroll">
     <table>
       <thead>
@@ -205,11 +218,14 @@ function action_color(string $a): array {
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($entries as $e):
+        <?php $lastDay = null; foreach ($entries as $e):
           [$bg, $fg] = action_color($e['action'] ?? '');
-        ?>
+          $tsParts = explode(' ', (string)($e['ts'] ?? ''), 2);
+          // PLAN-13 Phase 6 — a heading row each time the day changes.
+          if ($tsParts[0] !== $lastDay): $lastDay = $tsParts[0]; ?>
+        <tr class="day-row"><th colspan="5" scope="colgroup"><?= h(admin_day_label((string)($e['ts'] ?? ''))) ?></th></tr>
+          <?php endif; ?>
         <tr>
-          <?php $tsParts = explode(' ', (string)($e['ts'] ?? ''), 2); ?>
           <td class="ts"><span><?= h($tsParts[0]) ?></span> <span><?= h($tsParts[1] ?? '') ?></span></td>
           <td><span class="action-badge" style="background:<?= $bg ?>;color:<?= $fg ?>"><?= h($e['action'] ?? '') ?></span></td>
           <td><span class="sku"><?= h($e['sku'] ?? '') ?></span></td>
@@ -221,6 +237,9 @@ function action_color(string $a): array {
     </table>
     </div>
   <?php endif; ?>
+  <?= admin_pager($page, $hasOlder, $query) ?>
+  </div>
 </main>
+<script src="listfilter.js"></script>
 </body>
 </html>

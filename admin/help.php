@@ -1032,6 +1032,7 @@ require_auth();
         <h2>📥 Inquiries — every lead from the contact form</h2>
         <p>Click <strong>Inquiries</strong> in the menu bar. Every quote request and message submitted through the website is recorded here, <em>including ones the mail server failed to send</em>. This is your safety net: if email breaks, the lead is still on this page.</p>
         <p>Click any row to expand it and see the full message, the part number, quantities, required date and the visitor's contact details. Reply from your own email program — this page does not send email.</p>
+        <p>The newest are at the top, 25 to a page, under a heading for each day (<strong>Today</strong>, <strong>Yesterday</strong>, then the date). Requests that arrived since you last opened this page are marked <span class="badge-mock">New</span> with a blue edge. To find one, type a name, company, email address, part number or a word from the message into <strong>Search</strong>, or pick a <strong>Type</strong> (quote requests, messages, or refused by the form), an <strong>Email</strong> result, or how recently it was <strong>Received</strong>. The list changes as you type; <strong>Older →</strong> and <strong>← Newer</strong> at the bottom move between pages. The numbers at the top always count everything, whatever the filter shows.</p>
         <table class="field-ref">
           <tr><td><span class="badge-mock">Quote</span> / <span class="badge-mock">Message</span></td><td>Which form the visitor used. "Quote" is a full RFQ with part number and quantity.</td></tr>
           <!-- Docs audit 2026-09-29 — this row said "Emailed … reached your inbox";
@@ -1065,6 +1066,7 @@ require_auth();
         <p><strong>How the times work:</strong> each entry is stamped with the moment you <em>saved a change</em>, and holds the version from <em>just before</em> that save. So restoring the entry stamped 10:15 undoes the change you saved at 10:15 — and everything saved after it.</p>
         <ol class="steps">
           <li>Find the entry stamped with the time you saved the change you want to undo (the <a href="#auditlog">Audit Log</a> shows that time). Do not pick an earlier one: that would also undo the change saved at its own time.</li>
+          <li>Check the line under it: <em>“This is how it was just before: Product edited — IP33PO”</em> names the change that restoring it would undo, taken from the Audit Log. (A very old entry may have no line, if its log entry has been archived.)</li>
           <li>Click <strong>Restore This Version</strong> and confirm.</li>
           <li>Done. The site reflects it within about a minute.</li>
         </ol>
@@ -1088,8 +1090,8 @@ require_auth();
         <p><strong>Everything you can change from this dashboard is recorded here</strong> — not just products. Adding, editing and deleting parts; uploading and removing data sheets and photos; changing a page photo or the logo; saving Business Details; saving Page Content; restoring a backup; and changing your password. Each entry records what happened, which product it was about, exactly when, and the IP address it came from.</p>
         <ol class="steps">
           <li>Click <strong>Backups &amp; History</strong> in the menu bar, then <strong>Audit Log</strong>.</li>
-          <li>Browse the list — newest changes are always at the top.</li>
-          <li>Use the filter boxes to narrow it down: type a SKU to see everything that's happened to one specific product, or pick an action type from the dropdown (it lists every action in the table below) — then click <strong>Filter</strong>. Nothing changes until you do.</li>
+          <li>Browse the list — newest changes are always at the top, 50 to a page, under a heading for each day. <strong>Older →</strong> at the bottom goes further back.</li>
+          <li>Use the filter boxes to narrow it down: type a SKU (or any word from the detail, such as <em>photo</em> or <em>FAQ</em>) into <strong>Search</strong> to see everything that's happened to one product, or pick an <strong>Action</strong> from the dropdown (it lists every action in the table below). The list changes as you type.</li>
           <li>Click <strong>Clear</strong> (it appears once a filter is on) to see everything again.</li>
         </ol>
         <p>On a phone, the date sits above the time so that the <strong>Detail</strong> column — what actually happened — fits on the screen. The IP address is just past the right edge: swipe the table sideways to see it.</p>

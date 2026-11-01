@@ -644,6 +644,79 @@ bare `.sh` file.
   24/33 to 25/33. Their remaining reds are other Windows arms, such as a
   `mail()` killed mid-send.
 
+### Phase 6 — done 2026-11-01 (branch `claude/admin-ux`)
+
+**Filters are on the server.** Every filter is a query-string parameter that
+the page applies itself, so it works with JavaScript off and survives a
+reload, Back and a bookmark.
+- `admin/listfilter.js` (new) makes them apply as you type. On a
+  `form[data-live-filter]` it fetches the same URL, swaps in the results block
+  and `replaceState`s the address.
+- The Filter button is hidden only when that script runs. Paging links load in
+  place too.
+- There is one filter implementation: the server's.
+
+**Inquiries (F1).**
+- **Filters:** `?q=` (name, company, email, part, message, and the rest),
+  `?type=` (quotes, messages, refused by the form), `?status=` (sent, failed,
+  not confirmed) and `?since=` (7, 30, 90 or 365 days).
+- **Paging:** 25 per page, under day headings ("Today", "Yesterday", then the
+  date). The window searched grew from the 200 shown to the most recent 1,000.
+- **The stats** still count the whole window. Their markup is untouched;
+  `leadpath12` reads it.
+- **New since the last visit:** opening the page marks the leads seen. So the
+  newest `inquiries_new_count()` rows are picked out on the full load and kept
+  in the session.
+  - A filter request carries `X-Requested-With: fetch`. It neither marks the
+    leads seen nor recomputes the set, so New survives filtering.
+  - The next full visit clears it.
+
+**Audit Log (F2).**
+- **Filters:** `?q=` searches the SKU, the action and the detail. The older
+  `?sku=` still works, with the same rows, and fills the box. `?action=` is
+  unchanged.
+- **Paging:** 50 per page, not §3.7's 25: one-line rows, and the page was 500.
+  `?page=`.
+- **Day grouping:** a heading row in the table each time the day changes.
+- The backward, budget-bounded reader is unchanged. It stops as soon as it has
+  the page plus one row.
+
+**Backups (F3).**
+- `backup_change_notes()` reads the audit log back to the oldest backup. For
+  each version it takes the first unclaimed line of a matching action within
+  15 seconds after the backup's stamp.
+- **Why that works:** `save_*()` writes the backup a moment before the change,
+  and the page logs the change straight after.
+- **What Rick sees:** "This is how it was just before: **Product edited —
+  IP33PO** — …", in the row and in the restore prompt.
+- No match shows nothing rather than a guess.
+
+**Shared pieces:**
+- `admin_day_label()` and `admin_pager()` in `config.php`.
+- `.list-filters`, `.day-head` and `.pager` in `admin_head()`.
+
+**Docs:**
+- Help: Inquiries has a paragraph on filters, pages and New; the Audit Log
+  steps describe live search and paging; Backups has a step that reads the
+  "just before" line.
+- `admin/README.md`: the three file entries, and the JS list is now fourteen
+  files.
+
+**Not done here:** the Audit Log is still a sideways-scrolling table on a
+phone. That is Phase 7's phone pass.
+
+**Suites:**
+- New `plan13-lists`, 14/14.
+- `admin-ux` 84/84: one more page now scrolls past U1's cut-off.
+- Everything else is at the Phase 5 sweep.
+- `audit9-fixes`: `b2-14` was red until `listfilter` was listed. `d4` is the
+  standing red, and `p7-2` is the contact form's rate limit when it runs
+  after the mail suites.
+- `audit9-logic-admin` and `n2-damageddata` were added to this sweep. Both
+  crash in setup, before any check: one needs `_harness/pristine/products-all.json`,
+  which is missing, and the other needs a Unix `/tmp`. Environment, not this
+  change.
+
 ## 5. Constraints and what must stay green
 
 - **Invariant 6** — `form_complete` stays the last field of Page Content's form.

@@ -650,6 +650,22 @@ function admin_head(): string {
   .form-filter-count { font-size: var(--fs-2); color: var(--ink-2); }
   .f-out { display: none !important; }
 
+  /* ── Lists: Inquiries and Audit Log (PLAN-13 Phase 6) ─────────────────── */
+  .list-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; margin: 0 0 18px; }
+  .list-filters label { margin: 0 0 4px; font-size: var(--fs-1); color: var(--ink-2); }
+  .list-filters .fld { display: flex; flex-direction: column; }
+  .list-filters .fld-grow { flex: 1 1 240px; min-width: 0; }
+  .list-filters input, .list-filters select { padding: 9px 12px; border: 1px solid var(--field-line); border-radius: 7px; font: inherit; font-size: var(--fs-2); background: #fff; color: var(--ink); }
+  .list-filters input:focus, .list-filters select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
+  /* listfilter.js applies the filter as you type, so the button goes. */
+  .list-filters.is-live .filter-submit { display: none; }
+  .list-count { margin: 0 0 12px; font-size: var(--fs-2); color: var(--ink-2); }
+  .day-head { margin: 22px 0 8px; font-size: var(--fs-2); font-weight: 700; color: var(--brand-dark); }
+  .day-head:first-child { margin-top: 0; }
+  .pager { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 18px 0 0; font-size: var(--fs-2); color: var(--ink-2); }
+  .pager a { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 14px; border: 1px solid var(--field-line); border-radius: 7px; background: #fff; color: var(--brand); font-weight: 600; text-decoration: none; }
+  .pager a:hover { border-color: var(--brand); }
+
   /* ── Alerts ─────────────────────────────────────────────────────────── */
   .alert { padding: 12px 16px; border-radius: 8px; font-size: var(--fs-2); margin-bottom: 20px; }
   .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: var(--fs-2); }
@@ -676,6 +692,40 @@ CSS;
  *
  *   echo admin_breadcrumb([['Products', 'index.php'], [$sku, 'edit.php?sku=…'], ['Upload PDF']]);
  */
+/**
+ * PLAN-13 Phase 6 — the heading over one day's rows on Inquiries and Audit
+ * Log: "Today", "Yesterday", else "Friday 30 October 2026". $ts starts with
+ * Y-m-d, as audit_log() and contact.php both write it.
+ */
+function admin_day_label(string $ts): string {
+    $day = substr($ts, 0, 10);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) return 'Date not recorded';
+    if ($day === date('Y-m-d')) return 'Today';
+    if ($day === date('Y-m-d', strtotime('-1 day'))) return 'Yesterday';
+    $t = strtotime($day);
+    return $t === false ? $day : date('l j F Y', $t);
+}
+
+/**
+ * PLAN-13 Phase 6 — "← Newer · Page 2 · Older →" under a list. $query is the
+ * page's own filter, carried into each link, so paging never loses it; the
+ * links are plain GET (listfilter.js loads them in place when it can).
+ */
+function admin_pager(int $page, bool $hasOlder, array $query): string {
+    if ($page <= 1 && !$hasOlder) return '';
+    $link = static function (int $p, string $label) use ($query): string {
+        $q = array_filter($query, static fn($v) => $v !== '' && $v !== null);
+        if ($p > 1) $q['page'] = $p; else unset($q['page']);
+        $href = '?' . http_build_query($q);
+        return '<a href="' . h($href === '?' ? basename($_SERVER['SCRIPT_NAME'] ?? '') : $href) . '" data-page="' . $p . '">' . $label . '</a>';
+    };
+    $out = '<nav class="pager" aria-label="Pages">';
+    if ($page > 1) $out .= $link($page - 1, '&larr; Newer');
+    $out .= '<span>Page ' . $page . '</span>';
+    if ($hasOlder) $out .= $link($page + 1, 'Older &rarr;');
+    return $out . '</nav>';
+}
+
 function admin_breadcrumb(array $crumbs): string {
     $out = '<nav class="crumbs" aria-label="You are here"><ol>';
     $last = count($crumbs) - 1;
