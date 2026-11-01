@@ -209,7 +209,7 @@ array_map('unlink', glob($dir . '/*')); @rmdir($dir);
     execFileSync('chmod', ['-R', 'a+rX', TT]);
     const start = (port, tmp, asNobody) => {
       const args = ['-S', `127.0.0.1:${port}`, '-t', T, '-c', path.join(__dirname, 'php-mail.ini'),
-        '-d', `sys_temp_dir=${tmp}`, '-d', `sendmail_path=${path.join(TT, 'fakemail.sh')}`, '-d', `session.save_path=${SESS}`,
+        '-d', `sys_temp_dir=${tmp}`, '-d', `sendmail_path=sh ${path.join(TT, 'fakemail.sh').replace(/\\/g, '/')}`, '-d', `session.save_path=${SESS}`,
         path.join(TT, 'router.php')];
       const p = asNobody ? spawn('runuser', ['-u', 'nobody', '--', 'php', ...args], { cwd: T, env: { ...process.env, IPC_MAIL_LOG: MAIL }, stdio: 'ignore' })
         : spawn('php', args, { cwd: T, env: { ...process.env, IPC_MAIL_LOG: MAIL }, stdio: 'ignore' });

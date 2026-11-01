@@ -72,7 +72,7 @@ function server(port, extra = []) {
   const t = fs.mkdtempSync(path.join(TMP, `t${port}-`));
   tempOf[port] = t;
   const p = spawn('php', ['-S', `127.0.0.1:${port}`, '-t', T, '-c', path.join(__dirname, 'php-mail.ini'),
-    '-d', `sendmail_path=${REC}`, '-d', `sys_temp_dir=${t}`, ...extra, path.join(__dirname, 'router.php')],
+    '-d', `sendmail_path=sh ${REC.replace(/\\/g, '/')}`, '-d', `sys_temp_dir=${t}`, ...extra, path.join(__dirname, 'router.php')],
   { cwd: T, stdio: 'ignore', detached: true });
   servers.push(p);
   return p;

@@ -103,7 +103,7 @@ const set = (pairs, k, v) => pairs.map(([n, x]) => (n === k ? [n, v] : [n, x]));
 
 function startServer(port, limited) {
   const args = ['-S', `127.0.0.1:${port}`, '-t', SITE, '-c', path.join(H, 'php-mail.ini'),
-    '-d', `sys_temp_dir=${TMP}`, '-d', `sendmail_path=${path.join(H, 'fakemail.sh')}`, path.join(H, 'router.php')];
+    '-d', `sys_temp_dir=${TMP}`, '-d', `sendmail_path=sh ${path.join(H, 'fakemail.sh').replace(/\\/g, '/')}`, path.join(H, 'router.php')];
   const cmd = limited
     ? spawn('sh', ['-c', `ulimit -f 100; trap '' XFSZ; exec php ${args.map((x) => `'${x}'`).join(' ')}`], { cwd: SITE, stdio: 'ignore' })
     : spawn('php', args, { cwd: SITE, stdio: 'ignore' });

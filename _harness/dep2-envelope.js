@@ -45,7 +45,7 @@ fs.writeFileSync(PREPEND, `<?php define('IPC_ENVELOPE_FROM', '${ADDR}');\n`);
 function server(port, extra) {
   const tmp = fs.mkdtempSync(path.join(TMP, `s${port}-`));
   return spawn('php', ['-S', `127.0.0.1:${port}`, '-t', SITE,
-    '-d', `sendmail_path=${REC} -t -i`, '-d', `sys_temp_dir=${tmp}`, '-d', 'opcache.revalidate_freq=0',
+    '-d', `sendmail_path=sh ${REC.replace(/\\/g, '/')} -t -i`, '-d', `sys_temp_dir=${tmp}`, '-d', 'opcache.revalidate_freq=0',
     ...extra, path.join(__dirname, 'router.php')], { cwd: SITE, stdio: 'ignore' });
 }
 
