@@ -352,10 +352,18 @@ live preview stacks below the form (PLAN-13 Phase 3). Its `.save-status` is
 filled by `unsaved.js`: "Unsaved changes in: Company, Contact", naming each
 section that has been typed in, and empty while nothing has changed.
 
-The first three forms carry `data-long-form`, which `longform.js` reads to add
+All four forms carry `data-long-form`, which `longform.js` reads to add
 a strip of section links above the form (sticky under the menu bar; the
 section being read is filled in, a section with unsaved changes has a dot) and
-a **Hide / Show** button on each section. Nothing starts hidden; a hidden
+a **Hide / Show** button on each section. On Page Content a section is one
+public page (`<section class="page-group">`, PLAN-13 Phase 4): the boxes are
+shown in `$PAGE_MAP` order, site order, instead of "every single-box group,
+then every list". `$PAGE_MAP` is display only — the save still builds
+`content.json` from `$COPY_GROUPS` and `$SECTIONS`, and a group missing from
+the map shows under "Everything else". Page Content's form also carries
+`data-filter`, for the "Find a box" filter, and its labels are split by
+`content_label_parts()` into a short label and a `.lbl-hint` line, both still
+inside the `<label>`. Nothing starts hidden; a hidden
 section opens again when Save is blocked on one of its fields. Neither adds a
 named field, so the POST is the same with JavaScript on or off
 (`_harness/plan13-longform.js`).

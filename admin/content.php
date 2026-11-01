@@ -642,6 +642,84 @@ $COPY_GROUPS = [
     ]],
 ];
 
+/*
+ * PLAN-13 Phase 4 — the order this page SHOWS its boxes in: by public page,
+ * in the order the site's menu reaches them (§3.5). It used to be every
+ * single-box group first, then every repeating list (§2 B2), so one page was
+ * scattered — the homepage hero was section 3 and its proof points 27.
+ *
+ * Display only. The names are unchanged and the save builds content.json
+ * from $COPY_GROUPS and $SECTIONS, never from this, so a save writes the same
+ * bytes (plan13-pagecontent.js). A group or list missing from here is still
+ * shown, under "Everything else", never dropped.
+ *
+ * 'copy:<group>' is a $COPY_GROUPS entry, 'list:<section>' a $SECTIONS one.
+ * 'short' is the label in the strip of page links; 'url' the public page.
+ */
+$PAGE_MAP = [
+    'homepage'   => ['title' => 'Homepage', 'url' => '/', 'items' => [
+        'copy:hero', 'list:heroProofPoints', 'list:heroTrust', 'list:stats',
+        'copy:homeFeatures', 'list:features', 'copy:homeMarkets', 'list:markets', 'copy:homeLayouts']],
+    'families'   => ['title' => 'Product families', 'short' => 'Families', 'url' => '/products', 'items' => ['list:productFamilies']],
+    'services'   => ['title' => 'Services page', 'short' => 'Services', 'url' => '/services', 'items' => ['copy:servicesHeader', 'list:services']],
+    'industries' => ['title' => 'Industries page', 'short' => 'Industries', 'url' => '/industries', 'items' => ['copy:industriesHeader', 'list:industryDetail']],
+    'about'      => ['title' => 'About page', 'short' => 'About', 'url' => '/about',
+        'note' => 'The “Our Story” paragraphs are on <a href="settings.php#about_paragraphs">Business Details → About Page</a>.',
+        'items' => ['copy:aboutHeader', 'list:milestones', 'list:capabilities', 'list:certs']],
+    'datasheets' => ['title' => 'Datasheets page', 'short' => 'Datasheets', 'url' => '/datasheets', 'items' => ['copy:datasheetsHeader']],
+    'faq'        => ['title' => 'FAQ page', 'short' => 'FAQ', 'url' => '/faq', 'items' => ['copy:faqHeader', 'list:faq']],
+    'contact'    => ['title' => 'Contact page', 'short' => 'Contact', 'url' => '/contact', 'items' => ['copy:contactHeader', 'copy:contactForm', 'list:contactTips']],
+    'privacy'    => ['title' => 'Privacy page', 'short' => 'Privacy', 'url' => '/privacy', 'items' => ['copy:privacyHeader', 'list:privacySections']],
+    'menus'      => ['title' => 'Menus & footer', 'short' => 'Menus & footer', 'items' => ['copy:nav', 'list:companyNav', 'copy:footer', 'list:footerLinks']],
+    'seo'        => ['title' => 'Search engines', 'short' => 'Search engines', 'items' => ['list:seo']],
+    'sitewide'   => ['title' => 'Site-wide claims & images', 'short' => 'Claims & images', 'items' => ['copy:claims', 'copy:siteImages']],
+];
+
+/** $PAGE_MAP with unknown entries dropped and anything it misses appended. */
+function content_page_map(array $map, array $copyGroups, array $sections): array {
+    $seen = [];
+    foreach ($map as $pk => $pg) {
+        $map[$pk]['items'] = array_values(array_filter($pg['items'], static function ($it) use ($copyGroups, $sections, &$seen) {
+            [$kind, $key] = array_pad(explode(':', $it, 2), 2, '');
+            $ok = ($kind === 'copy' && isset($copyGroups[$key])) || ($kind === 'list' && isset($sections[$key]));
+            if ($ok && !isset($seen[$it])) { $seen[$it] = true; return true; }
+            return false;
+        }));
+    }
+    $rest = [];
+    foreach (array_keys($copyGroups) as $g) if (!isset($seen['copy:' . $g])) $rest[] = 'copy:' . $g;
+    foreach (array_keys($sections) as $s) if (!isset($seen['list:' . $s])) $rest[] = 'list:' . $s;
+    if ($rest) $map['other'] = ['title' => 'Everything else', 'items' => $rest];
+    return array_filter($map, static fn($pg) => !empty($pg['items']));
+}
+
+/**
+ * PLAN-13 Phase 4 (§2 B3) — a label carried its rule inside it: “About page
+ * facts — Structure; also the homepage band's … (empty removes both)”. The
+ * trailing bracket, and a Site Images label's <br><small> guidance, become a
+ * lighter hint line under a short label. Both stay INSIDE the <label>, so the
+ * accessible name is what it was and no id has to follow a row when
+ * content-editor.js renumbers it. Returns [label HTML, hint HTML or ''].
+ */
+function content_label_parts(string $label, bool $isHtml): array {
+    $hint = '';
+    if ($isHtml && preg_match('~^(.*?)<br\s*/?>(.*)$~s', $label, $m)) {
+        $label = $m[1];
+        $hint  = trim((string)preg_replace('~^\s*<small[^>]*>(.*)</small>\s*$~s', '$1', $m[2]));
+    }
+    $text = $isHtml ? $label : h($label);
+    if (preg_match('~^(.+?)\s*\(([^()]+)\)\s*$~su', $text, $m)) {
+        // ucfirst(), not mb_*: mbstring is not guaranteed on the host (the
+        // harness PHP has none). Every rule starts with an ASCII letter, and
+        // a multibyte first byte is left as it is.
+        $rule = ucfirst($m[2]);
+        if (!preg_match('~[.!?]$~', $rule)) $rule .= '.';
+        $text = $m[1];
+        $hint = $rule . ($hint !== '' ? ' ' . $hint : '');
+    }
+    return [$text, $hint];
+}
+
 $errors = [];
 
 // 4.12 — unmatched-product-code notices. These render alongside $errors but
@@ -1094,7 +1172,9 @@ function render_field(string $section, int $i, array $f, array $row, string $sec
     $full = !empty($f['full']) ? ' full' : '';
     $ctx  = '<span class="vh" data-rowctx> &#8212; row ' . ($i + 1)
           . ($sectionTitle !== '' ? ' of ' . h($sectionTitle) : '') . '</span>';
-    $out  = '<div class="form-group' . $full . '"><label for="' . h($id) . '">' . $f['label'] . $ctx . '</label>';
+    [$lbl, $hint] = content_label_parts((string)$f['label'], true);
+    $out  = '<div class="form-group' . $full . '"><label for="' . h($id) . '">' . $lbl . $ctx
+          . ($hint !== '' ? '<span class="lbl-hint">' . $hint . '</span>' : '') . '</label>';
     if ($f['type'] === 'icon') {
         $out .= '<select class="ci" id="' . h($id) . '" data-field="' . h($key) . '" name="' . h($name) . '">';
         foreach ($f['icons'] as $ik => $il) {
@@ -1256,8 +1336,12 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
        the same reason. Rather than drop the escape for every copy label, a
        field opts in explicitly; the labels are developer-authored literals in
        this file, never owner data. */
-    $labelHtml = !empty($f['labelHtml']) ? $f['label'] : h($f['label']);
-    $out = '<div class="form-group full"><label for="' . h($id) . '">' . $labelHtml . $ctx . '</label>';
+    [$lbl, $hint] = content_label_parts((string)$f['label'], !empty($f['labelHtml']));
+    // §2 B5 — one-line boxes (a badge, a heading) took the full 1,180px; they
+    // now pair up two to a row. Paragraphs, and boxes with a hint, stay full.
+    $full = ($f['type'] === 'textarea' || !empty($f['full']) || $hint !== '') ? ' full' : '';
+    $out = '<div class="form-group' . $full . '"><label for="' . h($id) . '">' . $lbl . $ctx
+         . ($hint !== '' ? '<span class="lbl-hint">' . $hint . '</span>' : '') . '</label>';
     if ($f['type'] === 'page') {
         $out .= '<select class="ci" id="' . h($id) . '" name="' . h($name) . '">';
         foreach ($pageOptions as $pk => $pl) {
@@ -1350,6 +1434,12 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     .warn-list li { font-size: var(--fs-2); margin-bottom: 4px; line-height: 1.5; }
     .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
     @media(max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+    /* PLAN-13 Phase 4 — one block per public page ($PAGE_MAP). */
+    .page-group { margin: 0 0 40px; }
+    .page-group-title { font-size: var(--fs-5); font-weight: 800; color: var(--brand-dark); margin: 0 0 8px; line-height: 1.25; }
+    .page-group-sub { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; }
+    /* content_label_parts(): the rule that used to sit inside the label. */
+    .lbl-hint { display: block; margin-top: 2px; font-size: var(--fs-1); font-weight: 400; color: var(--ink-2); line-height: 1.45; }
   </style>
 </head>
 <body>
@@ -1408,11 +1498,25 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
            back over a page that is itself the answer to a POST (an error
            render already shows what was submitted). An attribute, not a
            field: nothing may follow form_complete (invariant 6). */ ?>
-  <form method="POST"<?= $_SERVER['REQUEST_METHOD'] === 'POST' ? ' data-ipc-post-response="1"' : '' ?>>
+  <form method="POST" data-long-form data-filter<?= $_SERVER['REQUEST_METHOD'] === 'POST' ? ' data-ipc-post-response="1"' : '' ?>>
     <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
     <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
 
-    <?php foreach ($COPY_GROUPS as $g => $gcfg): ?>
+    <?php /* PLAN-13 Phase 4 — one <section> per public page, in $PAGE_MAP
+             order; each holds that page's fieldsets, unchanged inside. */
+          foreach (content_page_map($PAGE_MAP, $COPY_GROUPS, $SECTIONS) as $pk => $pg): ?>
+    <section class="page-group" id="page-<?= h($pk) ?>" data-index-title="<?= h((string)($pg['short'] ?? $pg['title'])) ?>">
+      <h2 class="page-group-title"><?= h((string)$pg['title']) ?></h2>
+      <?php if (!empty($pg['url']) || !empty($pg['note'])): ?>
+        <p class="page-group-sub">
+          <?php if (!empty($pg['url'])): ?><a class="where-link" href="<?= h($pg['url']) ?>" target="_blank" rel="noopener" title="Opens the live site in a new tab">Open this page on the site &#8599;</a><?php endif; ?>
+          <?php if (!empty($pg['note'])): ?><span class="where-note"><?= $pg['note'] ?></span><?php endif; ?>
+        </p>
+      <?php endif; ?>
+    <?php foreach ($pg['items'] as $item):
+        [$kind, $key] = explode(':', $item, 2);
+        if ($kind === 'copy'):
+            $g = $key; $gcfg = $COPY_GROUPS[$g]; ?>
       <fieldset class="card">
         <legend class="card-title"><?= h((string)$gcfg['title']) ?></legend>
         <?php if ($g === 'siteImages'): /* §2h item 3b — the upload button lives on its own page */ ?>
@@ -1425,9 +1529,8 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
                 foreach ($gcfg['fields'] as $f) echo render_copy_field($g, $f, ($content['copy'][$g][$f['key']] ?? ($f['default'] ?? '')), $PAGE_OPTIONS, (string)($gcfg['title'] ?? ''), home_layout_off_note($g . '.' . $f['key'], $homeLayout)); ?>
         </div>
       </fieldset>
-    <?php endforeach; ?>
-
-    <?php foreach ($SECTIONS as $sec => $cfg):
+    <?php else:
+        $sec = $key; $cfg = $SECTIONS[$sec];
         $rows = $content[$sec] ?? [];
         if (!is_array($rows)) $rows = [];
         // PLAN-6 item 1 — seed the family editor with the list that is ACTUALLY
@@ -1485,6 +1588,8 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
         <button type="button" class="btn btn-secondary" data-action="add" data-section="<?= h($sec) ?>">+ Add <?= h($cfg['addLabel']) ?></button>
         <template id="tpl-<?= h($sec) ?>"><?= render_row($sec, 0, $cfg, []) ?></template>
       </fieldset>
+    <?php endif; endforeach; ?>
+    </section>
     <?php endforeach; ?>
 
     <div class="save-bar">
@@ -1526,6 +1631,7 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
          of these two script tags. */ ?>
 <script src="confirm.js"></script>
 <script src="content-editor.js"></script>
+<script src="longform.js"></script>
 <script src="unsaved.js" defer></script>
 </body>
 </html>

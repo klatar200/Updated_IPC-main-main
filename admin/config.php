@@ -632,12 +632,23 @@ function admin_head(): string {
     .form-index ol { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
     .form-index ol::-webkit-scrollbar { display: none; }
   }
-  form[data-long-form] > .card { position: relative; scroll-margin-top: calc(var(--form-index-h, 0px) + 8px); }
-  form[data-long-form] > .card.has-toggle > .card-title { padding-right: 88px; }
+  /* A section is a .card (Business Details, Add, Edit) or, on Page Content,
+     a .page-group: one public page holding several cards (Phase 4). */
+  form[data-long-form] > .card, form[data-long-form] > .page-group { position: relative; scroll-margin-top: calc(var(--form-index-h, 0px) + 8px); }
+  form[data-long-form] > .has-toggle > .card-title, form[data-long-form] > .has-toggle > .page-group-title { padding-right: 88px; }
   .sec-toggle { position: absolute; top: 22px; right: 22px; min-height: 32px; padding: 4px 12px; border: 1px solid var(--field-line); border-radius: 7px; background: #fff; color: var(--ink-2); font-size: var(--fs-2); font-weight: 600; cursor: pointer; }
+  .page-group > .sec-toggle { top: 0; right: 0; }
   .sec-toggle:hover { border-color: var(--brand); color: var(--brand); }
-  .card.is-collapsed > :not(.card-title):not(.sec-toggle) { display: none !important; }
+  form[data-long-form] > .is-collapsed > :not(.card-title):not(.page-group-title):not(.sec-toggle) { display: none !important; }
   .card.is-collapsed > .card-title { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
+  /* longform.js on form[data-filter] (Page Content): "Find a box". */
+  .form-filter { margin: 0 0 12px; }
+  .form-filter label { margin-bottom: 4px; }
+  .form-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .form-filter input { flex: 0 1 420px; min-width: 0; width: 100%; padding: 10px 12px; border: 1px solid var(--field-line); border-radius: 7px; font: inherit; font-size: var(--fs-3); background: #fff; color: var(--ink); }
+  .form-filter input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
+  .form-filter-count { font-size: var(--fs-2); color: var(--ink-2); }
+  .f-out { display: none !important; }
 
   /* ── Alerts ─────────────────────────────────────────────────────────── */
   .alert { padding: 12px 16px; border-radius: 8px; font-size: var(--fs-2); margin-bottom: 20px; }

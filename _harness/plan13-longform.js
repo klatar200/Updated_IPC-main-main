@@ -100,7 +100,9 @@ const name = (pg) => pg.replace(/\?.*/, '');
       const f = c.querySelector('input[type=text], textarea');
       f.id = f.id || 'l3-probe';
       const t = c.getAttribute('data-section-title') || c.querySelector('.card-title').textContent;
-      return { sel: '#' + CSS.escape(f.id), title: t.replace(/\s+/g, ' ').trim() };
+      // Page Content's strip lists pages (Phase 4): the dot is on the page.
+      const pg = c.closest('[data-index-title]');
+      return { sel: '#' + CSS.escape(f.id), title: t.replace(/\s+/g, ' ').trim(), link: pg ? pg.getAttribute('data-index-title') : t.replace(/\s+/g, ' ').trim() };
     });
     await p.focus(sec.sel);
     await p.keyboard.type('x');
@@ -109,7 +111,7 @@ const name = (pg) => pg.replace(/\?.*/, '');
       dots: [...document.querySelectorAll('.form-index a.has-changes')].map((a) => a.textContent.trim()),
       hasStrip: !!document.querySelector('.form-index'),
     }));
-    ok(before === '' && r.status === `Unsaved changes in: ${sec.title}` && (!r.hasStrip || (r.dots.length === 1 && r.dots[0] === sec.title)),
+    ok(before === '' && r.status === `Unsaved changes in: ${sec.title}` && (!r.hasStrip || (r.dots.length === 1 && r.dots[0] === sec.link)),
       `${name(pg).padEnd(12)} before "${before}", after "${r.status}"${r.hasStrip ? `, dot on ${JSON.stringify(r.dots)}` : ''}`);
   }
 

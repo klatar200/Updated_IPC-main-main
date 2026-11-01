@@ -502,6 +502,81 @@ Phase 4, with its regroup. Page Content gets only the status line now.
 - **Environment only, as before:** `audit5-medium` and `lowsA2-admin`
   (command-line PHP has no `gd`).
 
+### Phase 4 — done 2026-11-01 (branch `claude/admin-ux`)
+
+**Regrouped by public page (B2).** `$PAGE_MAP` in `content.php` lists the
+§3.5 order:
+1. Homepage (9 sections, hero first, in the order the page shows them)
+2. Product families
+3. Services
+4. Industries
+5. About
+6. Datasheets
+7. FAQ
+8. Contact
+9. Privacy
+10. Menus & footer
+11. Search engines
+12. Site-wide claims & images
+
+Each page is a `<section class="page-group">` with its title, an "Open this
+page on the site ↗" link and, for About, a note that the story paragraphs are
+on Business Details (D3).
+- **Display only.** Names, ids, `data-section` and `legend.card-title` are
+  unchanged. The save still builds `content.json` from `$COPY_GROUPS` and
+  `$SECTIONS`.
+- **Measured:** the same no-edit save of the same file wrote byte-identical
+  JSON under the committed `content.php` and the new one.
+- `content_page_map()` drops unknown entries and puts any group the map
+  misses under "Everything else", so nothing can disappear.
+
+**Find a box (B1).** `longform.js` on `form[data-filter]` adds a filter above
+the strip, outside the form (no name, nothing posted).
+- **What it matches:** every word against the box's label, its current value,
+  its section and its page. A list row is one unit; a section whose title
+  matches keeps all its boxes.
+- **What it hides:** boxes, sections, pages and strip links without a match.
+- It shows the count or "Nothing matches", and Escape clears it.
+- Hidden boxes still post.
+
+**Strip and Hide/Show.** Page Content takes `data-long-form`.
+- A strip section can now be a `[data-index-title]` page group, so the strip
+  lists the 12 pages, in one row at 1440.
+- An edit dots its page.
+
+**Label + hint (B3).** `content_label_parts()` moves a label's trailing
+bracket ("(empty removes it)", "(e.g. ≤ 1 week)") and a Site Images label's
+`<br><small>` guidance into a lighter `.lbl-hint` line.
+- 96 hints.
+- The hint stays inside the `<label>`, so the accessible name is unchanged
+  and `content-editor.js` has no new id to renumber.
+- `ucfirst()`, not `mb_*`: the harness PHP has no mbstring, and the host's
+  is not promised.
+
+**Short boxes (B5):** a one-line box without a hint now takes half the row.
+
+**Not done:** the "uppercase" half of B3 was already gone in Phase 1.
+
+**Suites:**
+- New `plan13-pagecontent`, 18/18.
+- `plan13-longform` 31/31: L3 expects the dot on the page link on Page
+  Content.
+- `plan2-delete` 18/18: it used the first `.content-row` on the page, which
+  is now a homepage proof point whose first box ("$50") is not its name. It
+  is pinned to `fieldset[data-section="features"]`, the row it always meant.
+- Green: `invariants` (INV6), `plan2-formlast`, `plan2-trunc` (`:8124`/`:8125`),
+  `copyroundtrip`, `contentlinks`, `homelayout(s)`, `plan4-admin`,
+  `plan5-keys`, `claims`, `nodupbackups`, every `plan10` suite, `adminwidth`,
+  `lowsD-admin`, `sec3-sessionexpiry`, and every other suite of the Phase 3
+  sweep.
+- `admin-ux` 78/83, with U5 (Phase 5) still red.
+- `audit9-fixes` 39/40 in the sweep, run before the contact suites so
+  `contact.php`'s rate limit does not trip `p7-2`. `d4` is the standing red.
+- At baseline: `docmap`, `audit5-high`, `siteimages`, `contactflow`,
+  `leadpath12`, `audit7-lead`, and `adminaudit11` 35/37 alone.
+- `adminaudit11` crashed in the sweep. Its own `:8743` server from an earlier
+  run still held `out/aa11-site`; stop that `php.exe` before running it.
+
 ## 5. Constraints and what must stay green
 
 - **Invariant 6** — `form_complete` stays the last field of Page Content's form.

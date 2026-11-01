@@ -31,9 +31,10 @@ Written and tested 2026-10-07; **run 2026-10-07 → 2026-10-13** — report in
 [`audit-runs/audit12.md`](../audit-runs/audit12.md) (no fixes). The kickoff prompt is its §14.
 
 **In progress: [PLAN-13](PLAN-13-admin-dashboard-ux.md)** — the admin
-dashboard's navigation, layout and readability (2026-10-31). Phases 0–3 are done
+dashboard's navigation, layout and readability (2026-10-31). Phases 0–4 are done
 on `claude/admin-ux`: the guard suite, one type scale, the sticky grouped
-menu bar, and the long-form pattern (sticky save bar, section strip, Hide/Show).
+menu bar, the long-form pattern (sticky save bar, section strip, Hide/Show),
+and Page Content regrouped by public page with a "Find a box" filter.
 §6 holds the remaining decisions.
 
 ---

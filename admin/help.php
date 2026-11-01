@@ -333,7 +333,7 @@ require_auth();
         </ul>
         <div class="callout callout-tip">
           <b>On the long forms</b>
-          Business Details, Add Product, Edit Product and Page Content keep their <strong>Save</strong> button in a bar along the bottom of the screen, so you never have to scroll down to find it. Once you start typing, the bar says where: <em>Unsaved changes in: Company, Contact</em>. On the first three, a row of section names above the form takes you straight to a section (the one you are reading is filled in, and one with unsaved changes has an orange dot), and each section has a <strong>Hide</strong> button to fold it away while you work on another. Hidden sections are still saved.
+          Business Details, Add Product, Edit Product and Page Content keep their <strong>Save</strong> button in a bar along the bottom of the screen, so you never have to scroll down to find it. Once you start typing, the bar says where: <em>Unsaved changes in: Company, Contact</em>. A row of section names above the form (on Page Content, page names) takes you straight to a section (the one you are reading is filled in, and one with unsaved changes has an orange dot), and each section has a <strong>Hide</strong> button to fold it away while you work on another. Hidden sections are still saved.
         </div>
 
         <div class="diagram-wrap">
@@ -963,6 +963,7 @@ require_auth();
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>📝 Page Content</h2>
         <p>Click <strong>Website</strong> in the menu bar, then <strong>Page Content</strong>. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the navigation menus, the footer links, the contact form's wording and its automatic reply email, and the privacy policy.</p>
+        <p>The page is laid out like the website: <strong>Homepage</strong> first, then Product families, Services, Industries, About, Datasheets, FAQ, Contact and Privacy, then <strong>Menus &amp; footer</strong>, <strong>Search engines</strong>, and <strong>Claims &amp; images</strong> (the statements and photos used on several pages). The row of page names near the top jumps to each one, and each page has an <strong>Open this page on the site ↗</strong> link. To find one box among several hundred, type a word or two into <strong>Find a box on this page</strong> — for example <em>phone</em>, <em>FAQ</em> or <em>hero photo</em> — and only the matching boxes stay on screen; press <kbd>Esc</kbd> or empty the box to see everything again. Boxes the search hides are still saved exactly as they are. Under a box's name, a lighter line gives its rule, such as <em>Empty removes it.</em></p>
         <p>Not sure which card controls something you can see on the site? <a href="#sitemap">Where each part of the site is edited</a> walks every page top to bottom and names the card.</p>
         <p>Each block is a row. Rows have <strong>↑ ↓</strong> buttons to reorder them, an <strong>✕</strong> to remove them, and a <strong>+ Add</strong> button at the bottom of each section.</p>
         <div class="callout callout-warning">
