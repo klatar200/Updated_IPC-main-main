@@ -48,7 +48,7 @@ const note = (ok, label, detail) => {
   const SITE = path.join(TMP, 'site');
   fs.cpSync(path.join(MIRROR, 'admin'), path.join(SITE, 'admin'), { recursive: true,
     filter: (p) => !/\/admin\/(\.sessions|.*\.jsonl$|\.login-throttle\.json$)/.test(p) });
-  fs.cpSync(path.join(MIRROR, 'data'), path.join(SITE, 'data'), { recursive: true });
+  fs.cpSync(path.join(MIRROR, 'site-data'), path.join(SITE, 'site-data'), { recursive: true });
   const SESS = path.join(SITE, 'admin', '.sessions');
   const srv = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', SITE], { cwd: SITE, stdio: 'ignore' });
   const now = () => Math.floor(Date.now() / 1000);

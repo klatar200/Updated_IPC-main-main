@@ -126,14 +126,14 @@ function marketing_pdf_uses_of(string $name, array $info, array $content): array
  */
 function marketing_pdf_assign(string $target, string $url, array &$errors): string {
     if ($target === 'catalog') {
-        if (data_file_damaged(SITE_INFO_JSON)) { $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.'; return ''; }
+        if (data_file_damaged(SITE_INFO_JSON)) { $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.'; return ''; }
         $info = load_site_info();
         $info['catalogPdfUrl'] = $url;
         if (!save_site_info($info)) { $errors[] = save_failed_message(); return ''; }   // AUDIT-12 decision 31
         return 'the full product catalog link in the footer';
     }
     if (!preg_match('/^service:(\d+)(?::[0-9a-f]{10})?$/', $target, $m)) { $errors[] = 'Choose where to use this PDF.'; return ''; }
-    if (data_file_damaged(CONTENT_JSON)) { $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.'; return ''; }
+    if (data_file_damaged(CONTENT_JSON)) { $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.'; return ''; }
     if (($tp = marketing_target_problem($target)) !== '') { $errors[] = $tp; return ''; }
     $content = load_content();
     $i = (int)$m[1];
@@ -183,9 +183,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($lockFor === 'site-info' && data_file_damaged(SITE_INFO_JSON)) {
             // Checked BEFORE the file is stored, so a damaged data file never
             // leaves an orphan PDF behind.
-            $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.';
+            $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.';
         } elseif ($lockFor === 'content' && data_file_damaged(CONTENT_JSON)) {
-            $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.';
+            $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.';
         } elseif ($lockFor === 'content' && ($tp = marketing_target_problem($target)) !== '') {
             $errors[] = $tp . ' The PDF was not uploaded.';   // A12-L3-12-1 — checked before storing
         } elseif (($name = marketing_pdf_name((string)$_FILES['pdf_file']['name'])) === '') {
@@ -280,28 +280,28 @@ $targetOptions = function (bool $withNone) use ($services) {
   <?= admin_head() ?>
   <style>
     main { max-width: 600px; margin: 0 auto; padding: 40px 24px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
+    .sub { font-size: var(--fs-2); color: #4b5563; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
     .row select, .row input[type=file] { flex: 1 1 240px; min-width: 0; }
-    input[type=file] { padding: 8px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: 13px; }
-    select { padding: 8px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: 13px; background: #fff; max-width: 100%; }
-    .btn { display: inline-flex; align-items: center; padding: 9px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+    input[type=file] { padding: 8px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: var(--fs-2); }
+    select { padding: 8px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: var(--fs-2); background: #fff; max-width: 100%; }
+    .btn { display: inline-flex; align-items: center; padding: 9px 16px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; cursor: pointer; border: none; }
     .btn-primary { background: #005da3; color: #fff; }
     .btn-secondary { background: #f0f4f8; color: #141414; border: 1px solid #d1d9e0; }
-    .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 12px; padding: 6px 12px; }
-    .hint { font-size: 11px; color: #6b7280; margin-top: 6px; }
+    .btn-danger { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; font-size: var(--fs-1); padding: 6px 12px; }
+    .hint { font-size: var(--fs-1); color: #4b5563; margin-top: 6px; }
     .pdf { border-top: 1px solid #f0f4f8; padding: 14px 0; }
     .pdf:first-of-type { border-top: none; }
-    .pdf-name { font-weight: 600; font-size: 14px; word-break: break-all; }
-    .pdf-meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .pdf-name { font-weight: 600; font-size: var(--fs-3); word-break: break-all; }
+    .pdf-meta { font-size: var(--fs-1); color: #4b5563; margin-top: 2px; }
     .uses { margin: 8px 0 0; padding: 0; list-style: none; }
-    .uses li { font-size: 12px; color: #166534; background: #f0fdf4; border-radius: 5px; padding: 3px 8px; margin: 4px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .uses li { font-size: var(--fs-1); color: #166534; background: #f0fdf4; border-radius: 5px; padding: 3px 8px; margin: 4px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .uses form { margin: 0 0 0 auto; }
   </style>
 </head>
 <body>
-<?php $navActive = ''; include 'nav.php'; ?>
+<?php include 'nav.php'; ?>
 <main>
   <h1>Catalog &amp; Brochure PDFs</h1>
   <p class="sub">PDFs that are not a single product's data sheet: your full product catalog (linked in the footer of every page) and the brochures on the Services page. Upload one here and choose where it is used. Product data sheets are separate — use the <strong>Manage PDF</strong> button on the Products page.</p>

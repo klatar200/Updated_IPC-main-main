@@ -24,7 +24,7 @@ const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
 const SITE = path.join(__dirname, 'site');
-const DATA = path.join(SITE, 'data');
+const DATA = path.join(SITE, 'site-data');
 const ADMIN = path.join(SITE, 'admin');
 const PRISTINE = path.join(__dirname, 'pristine');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'ipc-lowsB-'));
@@ -45,7 +45,7 @@ fs.chmodSync(REC, 0o755);
 function server(port, workers) {
   const t = fs.mkdtempSync(path.join(TMP, `t${port}-`));
   return spawn('php', ['-S', `127.0.0.1:${port}`, '-t', SITE, '-c', path.join(__dirname, 'php-mail.ini'),
-    '-d', `sendmail_path=${REC}`, '-d', `sys_temp_dir=${t}`, path.join(__dirname, 'router.php')],
+    '-d', `sendmail_path=sh ${REC.replace(/\\/g, '/')}`, '-d', `sys_temp_dir=${t}`, path.join(__dirname, 'router.php')],
   { cwd: SITE, stdio: 'ignore', env: { ...process.env, ...(workers ? { PHP_CLI_SERVER_WORKERS: String(workers) } : {}) } });
 }
 const messages = () => {
@@ -140,7 +140,7 @@ async function rfq(port, extra = {}, headers = {}) {
       await new Promise((r) => holder.stdout.once('data', r));
       const t0 = Date.now();
       await new Promise((res) => {
-        const p = spawn('php', ['-c', path.join(__dirname, 'php-mail.ini'), '-d', `sendmail_path=${REC}`, '-d', `sys_temp_dir=${shared}`, '-r',
+        const p = spawn('php', ['-c', path.join(__dirname, 'php-mail.ini'), '-d', `sendmail_path=sh ${REC.replace(/\\/g, '/')}`, '-d', `sys_temp_dir=${shared}`, '-r',
           `$_SERVER['REQUEST_METHOD']='POST'; $_SERVER['REMOTE_ADDR']='203.0.113.7'; $_SERVER['HTTP_ACCEPT']='application/json';
            $_POST=['form_type'=>'rfq','name'=>'Lock Probe','email'=>${JSON.stringify(email)},'partNumber'=>'IP30HS','quantity'=>'5'];
            chdir(${JSON.stringify(SITE)}); include 'contact.php';`], { cwd: SITE, stdio: 'ignore' });

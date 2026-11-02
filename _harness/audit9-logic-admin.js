@@ -3,7 +3,7 @@
  * plus the C21 settling save the no-op invariant (16) needs.
  *
  * HTTP + filesystem only; no browser. Every arm drives the real admin forms on
- * a private mirror and byte-diffs `data/` around each step.
+ * a private mirror and byte-diffs `site-data/` around each step.
  *
  *   BASE      default http://127.0.0.1:8140
  *   SITE      docroot of that origin (mutated, restored in a finally)
@@ -32,7 +32,7 @@ const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
 const NEGCTL = process.env.NEGCTL === '1';
 
 const FILES = { 'products-all.json': 'pristine-products.json', 'site-info.json': 'pristine-siteinfo.json', 'content.json': 'pristine-content.json' };
-const live = (f) => path.join(SITE, 'data', f);
+const live = (f) => path.join(SITE, 'site-data', f);
 const ref = (f) => (fs.existsSync(path.join(PRISTINE, FILES[f])) ? path.join(PRISTINE, FILES[f]) : path.join(PRISTINE, f));
 {
   const missing = Object.keys(FILES).filter((f) => !fs.existsSync(ref(f)));
@@ -135,13 +135,13 @@ async function main() {
     // ── C21 — a genuinely unchanged save writes nothing (invariant 16) ─────
     if (want('C21')) {
       const before = readLive('site-info.json');
-      const nBefore = fs.readdirSync(path.join(SITE, 'data')).filter((x) => x.startsWith('site-info.backup.')).length;
+      const nBefore = fs.readdirSync(path.join(SITE, 'site-data')).filter((x) => x.startsWith('site-info.backup.')).length;
       const g = await req('/admin/settings.php');
       const f = scrapeForm(g.body); f.csrf_token = tokenOf(g.body);
       const r = await POST('/admin/settings.php', f);
       const g2 = await req(r.location ? rel(r.location, '/admin/settings.php') : '/admin/settings.php');
       const after = readLive('site-info.json');
-      const nAfter = fs.readdirSync(path.join(SITE, 'data')).filter((x) => x.startsWith('site-info.backup.')).length;
+      const nAfter = fs.readdirSync(path.join(SITE, 'site-data')).filter((x) => x.startsWith('site-info.backup.')).length;
       check('C21', 'a settled no-op save writes no bytes', before === after, { changed: before !== after }, 'file untouched');
       check('C21', 'a settled no-op save writes no backup', nBefore === nAfter, { nBefore, nAfter }, 'no backup');
       check('C21', 'and it still succeeds with a "No changes" notice', /No changes/i.test(g2.body), { hasNotice: /No changes/i.test(g2.body) }, '"No changes to save"');
@@ -209,7 +209,7 @@ async function main() {
 
     // ── C22 — backups: 90 existing, same-second saves, malformed restore ────
     if (want('C22')) {
-      const dataDir = path.join(SITE, 'data');
+      const dataDir = path.join(SITE, 'site-data');
       const stamp = '20260101-120000';
       // 90 pre-existing backups for the SAME second, named as backup_path() names them
       fs.writeFileSync(path.join(dataDir, `site-info.backup.${stamp}.json`), readLive('site-info.json'));
@@ -340,7 +340,7 @@ async function main() {
       const parsed = JSON.parse(raw);
       check('C32', 'settings.php — the value is byte-faithful in the parsed JSON', parsed.company.slogan === `IPC ${UNI} slogan`, { got: parsed.company.slogan }, 'exactly as typed');
       check('C32', 'settings.php — JSON_UNESCAPED_UNICODE on disk (not \\uXXXX)', raw.includes('°') && raw.includes('µ') && !/\\u00b0/i.test(raw), { hasDegree: raw.includes('°'), hasEscape: /\\u00b0/i.test(raw) }, 'literal UTF-8 bytes on disk');
-      const pub = await fetch(BASE + '/data/site-info.json').then((r) => r.text());
+      const pub = await fetch(BASE + '/site-data/site-info.json').then((r) => r.text());
       check('C32', 'settings.php — and it survives to the served file', pub.includes(`IPC ${UNI} slogan`), { present: pub.includes(UNI) }, 'served byte-for-byte');
       const back = await req('/admin/settings.php');
       check('C32', 'settings.php — it renders back into the form escaped, not doubled', back.body.includes(`IPC ${UNI} slogan`) || back.body.includes(`IPC ${UNI.replace(/&/g, '&amp;')} slogan`), { found: back.body.includes(UNI) }, 'h() once, no &amp;amp;');

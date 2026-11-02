@@ -41,7 +41,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
-const DATA = path.join(__dirname, 'site', 'data');
+const DATA = path.join(__dirname, 'site', 'site-data');
 const OUT = path.join(__dirname, 'out', 'nodupbackups');
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -82,7 +82,7 @@ const ok = (c, m) => { c ? pass++ : fail++; console.log(`  ${c ? 'ok  ' : 'FAIL'
   //
   // Worth knowing for the live site too: the owner's first Save on Business
   // Details will still write one backup. Every one after it is free.
-  // FIXTURE, 2026-09-28 (audit-2026-09-27 NEW-V2-1): data/site-info.json now
+  // FIXTURE, 2026-09-28 (audit-2026-09-27 NEW-V2-1): site-data/site-info.json now
   // SHIPS with those two keys, so the shipped file is no longer the file this
   // step describes. Build that file — the pre-V2-1 shape, which is also what a
   // live site deployed before that fix holds — so the assertion below keeps

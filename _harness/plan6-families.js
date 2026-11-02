@@ -54,9 +54,9 @@ const BASE = 'http://127.0.0.1:8123';
 const APP = path.join(__dirname, '..', 'src', 'App.jsx');
 const ADD_PHP = path.join(__dirname, '..', 'admin', 'add.php');
 const EDIT_PHP = path.join(__dirname, '..', 'admin', 'edit.php');
-const MIRROR = path.join(__dirname, 'site', 'data', 'content.json');
+const MIRROR = path.join(__dirname, 'site', 'site-data', 'content.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'content.json');
-const PRODUCTS_MIRROR = path.join(__dirname, 'site', 'data', 'products-all.json');
+const PRODUCTS_MIRROR = path.join(__dirname, 'site', 'site-data', 'products-all.json');
 const PRODUCTS_PRISTINE = path.join(__dirname, 'pristine', 'products-all.json');
 const PW = 'audit-pass-123';
 
@@ -206,7 +206,7 @@ const sidebarState = (page) =>
     // first save. An unseeded editor showed ZERO rows there while the site
     // rendered eleven families, and invited the owner to retype a list he
     // already had. Measured; now seeded from what is in effect.
-    // pristine/ is seeded from data/, which HAS carried productFamilies (11
+    // pristine/ is seeded from site-data/, which HAS carried productFamilies (11
     // rows) since 081962b — so writing pristine back no longer produced the
     // day-one state and the seeding arm passed with seeding removed (AUDIT-12
     // A12-L13-13-4). Delete the key, as plan8-formpolish does for its default.

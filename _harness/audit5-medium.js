@@ -31,16 +31,16 @@ const POST = (p, o, extra = {}) => req({ path: p, method: 'POST',
 (async () => {
   // ── A-5.29 — a corrupt-but-parseable catalog must not fatal every admin page
   // The REAL load_products() on a {"products":"nope"} file, in a temp copy of
-  // admin/ + data/ (config.php resolves data/ beside admin/). This arm used to
+  // admin/ + site-data/ (config.php resolves site-data/ beside admin/). This arm used to
   // run a copy of the guard typed into the test, which stayed "array" with the
   // guard reverted (AUDIT-12 A12-L13-04-1).
   {
     const t = fs.mkdtempSync(path.join(require('os').tmpdir(), 'a529-'));
-    fs.mkdirSync(path.join(t, 'admin')); fs.mkdirSync(path.join(t, 'data'));
+    fs.mkdirSync(path.join(t, 'admin')); fs.mkdirSync(path.join(t, 'site-data'));
     for (const f of fs.readdirSync(path.join(ROOT, 'admin'))) {
       if (/\.php$/.test(f) && f !== 'config.local.php') fs.copyFileSync(path.join(ROOT, 'admin', f), path.join(t, 'admin', f));
     }
-    fs.writeFileSync(path.join(t, 'data', 'products-all.json'), '{"products":"nope"}');
+    fs.writeFileSync(path.join(t, 'site-data', 'products-all.json'), '{"products":"nope"}');
     let got;
     try {
       got = execFileSync('php', ['-r', `require 'admin/config.php'; $p = load_products(); echo gettype($p), ':', count($p);`],

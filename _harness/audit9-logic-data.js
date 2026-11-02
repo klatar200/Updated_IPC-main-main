@@ -38,7 +38,7 @@ const FILES = {
   'site-info.json': 'pristine-siteinfo.json',
   'content.json': 'pristine-content.json',
 };
-const live = (f) => path.join(SITE, 'data', f);
+const live = (f) => path.join(SITE, 'site-data', f);
 const ref = (f) => (fs.existsSync(path.join(PRISTINE, FILES[f])) ? path.join(PRISTINE, FILES[f]) : path.join(PRISTINE, f));
 {
   const missing = Object.keys(FILES).filter((f) => !fs.existsSync(ref(f)));

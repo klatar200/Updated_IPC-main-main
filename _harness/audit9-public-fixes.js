@@ -32,10 +32,10 @@ const OUT = path.join(__dirname, 'out', 'audit9', 'C');
 
 const SRC = fs.readFileSync(path.join(ROOT, 'src', 'App.jsx'), 'utf8');
 const products = JSON.parse(
-  fs.readFileSync(path.join(ROOT, 'data', 'products-all.json'), 'utf8')
+  fs.readFileSync(path.join(ROOT, 'site-data', 'products-all.json'), 'utf8')
 );
 const siteInfo = JSON.parse(
-  fs.readFileSync(path.join(ROOT, 'data', 'site-info.json'), 'utf8')
+  fs.readFileSync(path.join(ROOT, 'site-data', 'site-info.json'), 'utf8')
 );
 
 const TITLE_CAP = 60;

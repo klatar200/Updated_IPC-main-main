@@ -52,7 +52,7 @@ const TMP = path.join(H, 'out', 'aa11-tmp');
 const PORT = 8742, LIMITED = 8743;
 const BASE = `http://127.0.0.1:${PORT}`;
 const PASS = 'audit-pass-123';
-const D = (f) => path.join(SITE, 'data', f);
+const D = (f) => path.join(SITE, 'site-data', f);
 
 const results = [];
 const note = (ok, label, detail) => {
@@ -64,7 +64,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const cat = () => JSON.parse(fs.readFileSync(D('products-all.json'), 'utf8'));
 const prod = (sku) => cat().find((p) => p.sku === sku);
 const onDisk = (url) => !!url && fs.existsSync(path.join(SITE, url));
-const backups = (prefix) => fs.readdirSync(path.join(SITE, 'data')).filter((n) => n.startsWith(prefix + '.backup.'));
+const backups = (prefix) => fs.readdirSync(path.join(SITE, 'site-data')).filter((n) => n.startsWith(prefix + '.backup.'));
 const newestBackup = (prefix) => backups(prefix).sort((a, b) => fs.statSync(D(a)).mtimeMs - fs.statSync(D(b)).mtimeMs || (a < b ? -1 : 1)).pop();
 const reset = () => { for (const f of ['products-all.json', 'site-info.json', 'content.json']) fs.copyFileSync(path.join(H, 'pristine', f), D(f)); };
 
@@ -103,7 +103,7 @@ const set = (pairs, k, v) => pairs.map(([n, x]) => (n === k ? [n, v] : [n, x]));
 
 function startServer(port, limited) {
   const args = ['-S', `127.0.0.1:${port}`, '-t', SITE, '-c', path.join(H, 'php-mail.ini'),
-    '-d', `sys_temp_dir=${TMP}`, '-d', `sendmail_path=${path.join(H, 'fakemail.sh')}`, path.join(H, 'router.php')];
+    '-d', `sys_temp_dir=${TMP}`, '-d', `sendmail_path=sh ${path.join(H, 'fakemail.sh').replace(/\\/g, '/')}`, path.join(H, 'router.php')];
   const cmd = limited
     ? spawn('sh', ['-c', `ulimit -f 100; trap '' XFSZ; exec php ${args.map((x) => `'${x}'`).join(' ')}`], { cwd: SITE, stdio: 'ignore' })
     : spawn('php', args, { cwd: SITE, stdio: 'ignore' });
@@ -120,7 +120,12 @@ function startServer(port, limited) {
   execFileSync('cp', ['-r', SRC, SITE]);
   reset();
   const srv = startServer(PORT, false);
-  const lim = startServer(LIMITED, true);
+  // `ulimit -f` limits Git Bash's own programs, not a native php.exe it execs,
+  // so on Windows the limited server never failed a save (DI-3 measured the
+  // save succeeding, 2026-11-01) and outlived lim.kill() holding :8743 and a
+  // lock in out/aa11-site. There DI-3 fails the save another way, below.
+  const WIN = process.platform === 'win32';
+  const lim = WIN ? null : startServer(LIMITED, true);
   await wait(800);
   const browser = await launch();
   const a = adminHttp(PORT);
@@ -164,9 +169,16 @@ function startServer(port, limited) {
       reset();
       await upload(a, '/admin/upload-image.php?sku=CC', [], [['image_file', 'red.png', imgAlphaPng('200,0,0'), 'image/png']]);
       const was = prod('CC').photoUrl;
-      const b = adminHttp(LIMITED);
-      const limitedIn = await b.login(PASS);
-      const ur = await upload(b, '/admin/upload-image.php?sku=CC', [], [['image_file', 'blue.jpg', img('jpeg', '0,0,200'), 'image/jpeg']]);
+      // Windows: a read-only products-all.json refuses json_write_atomic()'s
+      // rename over it — the same "catalog save failed after the photo was
+      // replaced" branch the size limit reaches on Linux.
+      const cat = path.join(SITE, 'site-data', 'products-all.json');
+      const b = WIN ? a : adminHttp(LIMITED);
+      const limitedIn = WIN ? true : await b.login(PASS);
+      if (WIN) fs.chmodSync(cat, 0o444);
+      let ur;
+      try { ur = await upload(b, '/admin/upload-image.php?sku=CC', [], [['image_file', 'blue.jpg', img('jpeg', '0,0,200'), 'image/jpeg']]); }
+      finally { if (WIN) fs.chmodSync(cat, 0o644); }
       const now = prod('CC').photoUrl;
       // Prove the failure this arm depends on HAPPENED before crediting the
       // outcome: with the size limit not biting, the save succeeded, the
@@ -426,7 +438,7 @@ function startServer(port, limited) {
     });
   } finally {
     await browser.close();
-    srv.kill(); lim.kill();
+    srv.kill(); if (lim) lim.kill();
   }
   const bad = results.filter((x) => !x.ok).length;
   console.log(`\nadminaudit11 ${results.length - bad}/${results.length}`);

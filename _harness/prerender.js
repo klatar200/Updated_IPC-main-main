@@ -48,7 +48,7 @@ const H = __dirname;
 const SITE = path.join(H, 'out', 'prerender-site');
 const PORT = Number(process.env.PRERENDER_PORT) || 8747;
 const BASE = `http://127.0.0.1:${PORT}`;
-const DATA = path.join(SITE, 'data');
+const DATA = path.join(SITE, 'site-data');
 const results = [];
 const note = (ok, label, detail) => {
   results.push({ ok });
@@ -255,8 +255,8 @@ function rawHead(html) {
       con.copy.claims.aboutPpapClaim = '';
       writeData('content.json', con);
       const p = await jsCtx.newPage();
-      await p.route('**/data/site-info.json*', (r) => r.fulfill({ status: 500, body: 'down' }));
-      await p.route('**/data/content.json*', (r) => r.abort('connectionreset'));
+      await p.route('**/site-data/site-info.json*', (r) => r.fulfill({ status: 500, body: 'down' }));
+      await p.route('**/site-data/content.json*', (r) => r.abort('connectionreset'));
       const seenOld = [];
       await p.goto(BASE + '/about', { waitUntil: 'commit' });
       for (let i = 0; i < 8; i++) {
@@ -276,7 +276,7 @@ function rawHead(html) {
 
       for (const mode of ['503', 'stall']) {
         const q = await jsCtx.newPage();
-        await q.route('**/data/products-all.json*', (r) => (mode === '503' ? r.fulfill({ status: 503, body: 'down' }) : null));
+        await q.route('**/site-data/products-all.json*', (r) => (mode === '503' ? r.fulfill({ status: 503, body: 'down' }) : null));
         await q.goto(BASE + '/products?productId=CC', { waitUntil: 'domcontentloaded' });
         await q.waitForTimeout(mode === 'stall' ? 13500 : 1500);
         const body = await q.innerText('main');

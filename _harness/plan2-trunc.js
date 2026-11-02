@@ -25,7 +25,7 @@ const path = require('path');
 const { launch } = require('./browser');
 
 const PW = 'audit-pass-123';
-const DIR = path.join(__dirname, 'site/data');
+const DIR = path.join(__dirname, 'site/site-data');
 const MIRROR_CONTENT = path.join(DIR, 'content.json');
 const PRISTINE_CONTENT = path.join(__dirname, 'pristine/content.json');
 

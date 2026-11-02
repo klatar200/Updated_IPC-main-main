@@ -94,7 +94,7 @@ async function transient(browser, reducedMotion) {
       return { name: cs.animationName, count: cs.animationIterationCount };
     });
     const q = await ctx.newPage();
-    await q.route('**/data/products-all.json*', () => {});  // hold the catalog: the skeleton stays up
+    await q.route('**/site-data/products-all.json*', () => {});  // hold the catalog: the skeleton stays up
     await q.goto(BASE + '/products', { waitUntil: 'domcontentloaded' });
     await q.waitForSelector('.ipc-skeleton', { timeout: 5000 }).catch(() => {});
     out.skeleton = await q.evaluate(() => {

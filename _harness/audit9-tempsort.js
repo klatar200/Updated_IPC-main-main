@@ -18,7 +18,7 @@ const { launch } = require('./browser');
 const BASE = process.env.IPC_BASE || 'http://127.0.0.1:8123';
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(__dirname, 'out', 'audit9', 'C');
-const products = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'products-all.json'), 'utf8'));
+const products = JSON.parse(fs.readFileSync(path.join(ROOT, 'site-data', 'products-all.json'), 'utf8'));
 
 const results = [];
 const note = (ok, what, detail = '') => {

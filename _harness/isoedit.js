@@ -34,14 +34,14 @@ const PORT = 8745;
 const BASE = `http://127.0.0.1:${PORT}`;
 const results = [];
 const note = (ok, label, detail) => { results.push({ ok }); console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${!ok && detail ? `\n       → ${detail}` : ''}`); };
-const info = () => JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'site-info.json'), 'utf8'));
+const info = () => JSON.parse(fs.readFileSync(path.join(SITE, 'site-data', 'site-info.json'), 'utf8'));
 const HISTORY = /Achieved [A-Z0-9 :.-]* registration/;
 
 (async () => {
   if (spawnSync('curl', ['-s', '-o', '/dev/null', '--max-time', '2', BASE + '/']).status === 0) { console.log(`isoedit: port ${PORT} in use`); process.exit(2); }
   fs.rmSync(SITE, { recursive: true, force: true });
   execFileSync('cp', ['-r', path.join(H, 'site'), SITE]);
-  for (const f of ['products-all.json', 'site-info.json', 'content.json']) fs.copyFileSync(path.join(H, 'pristine', f), path.join(SITE, 'data', f));
+  for (const f of ['products-all.json', 'site-info.json', 'content.json']) fs.copyFileSync(path.join(H, 'pristine', f), path.join(SITE, 'site-data', f));
   const srv = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', SITE, path.join(H, 'router.php')], { cwd: SITE, stdio: 'ignore' });
   await new Promise((r) => setTimeout(r, 700));
   const browser = await launch();
@@ -133,8 +133,10 @@ const HISTORY = /Achieved [A-Z0-9 :.-]* registration/;
     note(/Empty this box/.test(hint), 'help: the ISO box hint says how to stop claiming ISO');
   } finally {
     await browser.close();
-    srv.kill();
-    fs.rmSync(SITE, { recursive: true, force: true });
+    // Wait for it to exit: on Windows the server's working folder (SITE)
+    // cannot be removed while php.exe is still in it (EPERM, 2026-11-01).
+    await new Promise((r) => { if (srv.exitCode !== null) return r(); srv.once('exit', r); srv.kill(); setTimeout(r, 3000); });
+    fs.rmSync(SITE, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   }
   const bad = results.filter((x) => !x.ok).length;
   console.log(`\nisoedit ${results.length - bad}/${results.length}`);

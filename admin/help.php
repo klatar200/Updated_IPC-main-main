@@ -1,7 +1,6 @@
 <?php
 require_once 'config.php';
 require_auth();
-$navActive = 'help';
 ?>
 <!doctype html>
 <html lang="en">
@@ -14,66 +13,60 @@ $navActive = 'help';
   <style>
     html { scroll-behavior: smooth; }
 
-    /* Header (matches index.php) */
-    /* Only the sticky part. Every other property this rule used to carry
-       (background, padding, height, display, align-items, justify-content) was
-       a copy of nav.php's `.ipc-admin-header`, which outranks a bare `header`
-       and was already winning — see the A10-021 note there, which had to add
-       `height: auto` precisely to beat these copies. `position` is the one
-       thing nav.php does not set, so Help's sticky nav is real and stays. */
-    header { position: sticky; top: 0; z-index: 20; }
-    nav a:hover, nav a.current { color: #fff; }
-    nav a.current { border-bottom: 2px solid #005da3; padding-bottom: 4px; }
+    /* The sticky header this page used to declare for itself
+       (`header { position: sticky }`, plus bare `nav a.current` rules) is now
+       nav.php's, on every page (PLAN-13 Phase 2). The bare `nav a` rules had
+       to go: they would paint the white drop-down's links white. */
 
     .page-header { margin-bottom: 28px; background: linear-gradient(135deg, #0d2d52 0%, #005da3 100%); border-radius: 16px; padding: 28px 32px; display: flex; align-items: center; gap: 20px; box-shadow: 0 8px 24px rgba(13,45,82,0.18); }
     .page-header-icon { font-size: 30px; width: 58px; height: 58px; flex-shrink: 0; background: rgba(255,255,255,0.15); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
     .page-header h1 { font-size: 26px; font-weight: 800; margin: 0 0 6px; color: #fff; }
-    .page-header p  { font-size: 14px; color: rgba(255,255,255,0.82); margin: 0; max-width: 720px; line-height: 1.6; }
+    .page-header p  { font-size: var(--fs-3); color: rgba(255,255,255,0.82); margin: 0; max-width: 720px; line-height: 1.6; }
 
     .btn-mock { pointer-events: none; cursor: default; }
     /* Inline reproduction of the badges on the Inquiries page. */
-    .badge-mock { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 9px; border-radius: 20px; background: rgba(107,114,128,0.12); color: #4b5563; white-space: nowrap; }
+    .badge-mock { display: inline-block; font-size: var(--fs-1); font-weight: 700; padding: 3px 9px; border-radius: 20px; background: rgba(107,114,128,0.12); color: #4b5563; white-space: nowrap; }
 
     /* Two-column layout */
     .help-layout { display: flex; align-items: flex-start; gap: 32px; }
-    .help-toc { position: sticky; top: 92px; width: 250px; flex-shrink: 0; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; max-height: calc(100vh - 120px); overflow-y: auto; }
-    .help-toc .toc-group { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: #6b7280; margin: 16px 0 6px; padding: 0 10px; }
+    .help-toc { position: sticky; top: calc(var(--admin-bar-h) + 32px); width: 250px; flex-shrink: 0; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; max-height: calc(100vh - var(--admin-bar-h) - 60px); overflow-y: auto; }
+    .help-toc .toc-group { font-size: var(--fs-1); font-weight: 700; color: #4b5563; margin: 16px 0 6px; padding: 0 10px; }
     .help-toc .toc-group:first-child { margin-top: 0; }
-    .help-toc a { display: block; font-size: 12.5px; color: #374151; text-decoration: none; padding: 6px 10px 6px 9px; border-radius: 6px; margin-bottom: 1px; line-height: 1.4; border-left: 3px solid transparent; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease; }
+    .help-toc a { display: block; font-size: var(--fs-2); color: #374151; text-decoration: none; padding: 6px 10px 6px 9px; border-radius: 6px; margin-bottom: 1px; line-height: 1.4; border-left: 3px solid transparent; transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease; }
     .help-toc a:hover { background: #f0f4f8; color: #005da3; }
     .help-toc a.active { background: #eaf3fb; color: #005da3; font-weight: 700; border-left-color: #005da3; }
     .help-content { flex: 1; min-width: 0; }
 
-    section.help-section { background: #fff; border: 1px solid #e5e9ee; border-top: 4px solid transparent; border-radius: 14px; padding: 32px; margin-bottom: 22px; scroll-margin-top: 84px; box-shadow: 0 1px 3px rgba(13,45,82,0.04); }
+    section.help-section { background: #fff; border: 1px solid #e5e9ee; border-top: 4px solid transparent; border-radius: 14px; padding: 32px; margin-bottom: 22px; scroll-margin-top: 8px; /* + html scroll-padding-top (the bar) */ box-shadow: 0 1px 3px rgba(13,45,82,0.04); }
     section.help-section:has(.eyebrow-start)     { border-top-color: #005da3; }
     section.help-section:has(.eyebrow-manage)    { border-top-color: #16a34a; }
     section.help-section:has(.eyebrow-advanced)  { border-top-color: #7c3aed; }
     section.help-section:has(.eyebrow-reference) { border-top-color: #b45309; }
     section.help-section:has(.eyebrow-site)      { border-top-color: #0284c7; }
-    .help-section .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px; padding: 4px 12px; border-radius: 20px; }
+    .help-section .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-1); font-weight: 700; margin: 0 0 12px; padding: 4px 12px; border-radius: 20px; }
     .eyebrow-start     { background: rgba(0,93,163,0.1);   color: #005da3; }
     .eyebrow-manage    { background: rgba(22,163,74,0.1);  color: #15803d; }
     .eyebrow-advanced  { background: rgba(124,58,237,0.1); color: #6d28d9; }
     .eyebrow-reference { background: rgba(180,83,9,0.1);   color: #b45309; }
     .eyebrow-site      { background: rgba(2,132,199,0.1);  color: #0369a1; }
     .help-section h2 { font-size: 20px; font-weight: 800; margin: 0 0 12px; }
-    .help-section h3 { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: #0d2d52; }
-    .help-section p { font-size: 14px; line-height: 1.7; color: #374151; margin: 0 0 14px; }
+    .help-section h3 { font-size: var(--fs-3); font-weight: 700; margin: 22px 0 10px; color: #0d2d52; }
+    .help-section p { font-size: var(--fs-3); line-height: 1.7; color: #374151; margin: 0 0 14px; }
     .help-section p:last-child { margin-bottom: 0; }
-    .help-section ul.plain { font-size: 14px; line-height: 1.7; color: #374151; margin: 0 0 14px; padding-left: 20px; }
+    .help-section ul.plain { font-size: var(--fs-3); line-height: 1.7; color: #374151; margin: 0 0 14px; padding-left: 20px; }
     .help-section ul.plain li { margin-bottom: 6px; }
-    .help-section code { background: #f0f4f8; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 12.5px; color: #0d2d52; }
+    .help-section code { background: #f0f4f8; padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: var(--fs-2); color: #0d2d52; }
     .help-section strong { color: #141414; }
 
     /* Numbered step lists */
     ol.steps { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: step; }
-    ol.steps > li { counter-increment: step; position: relative; padding: 3px 0 3px 42px; margin-bottom: 16px; font-size: 14px; line-height: 1.65; color: #141414; }
-    ol.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: #005da3; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    ol.steps > li { counter-increment: step; position: relative; padding: 3px 0 3px 42px; margin-bottom: 16px; font-size: var(--fs-3); line-height: 1.65; color: #141414; }
+    ol.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: #005da3; color: #fff; font-size: var(--fs-1); font-weight: 700; display: flex; align-items: center; justify-content: center; }
     ol.steps > li p { margin: 4px 0 0; }
 
     /* Callouts */
-    .callout { border-radius: 10px; padding: 14px 16px; font-size: 13px; margin: 16px 0; line-height: 1.6; }
-    .callout b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .callout { border-radius: 10px; padding: 14px 16px; font-size: var(--fs-2); margin: 16px 0; line-height: 1.6; }
+    .callout b { display: block; font-size: var(--fs-1); margin-bottom: 4px; }
     .callout-tip     { background: #eff8ff; border: 1px solid #bfe0f7; color: #0c4a6e; }
     .callout-warning { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
     .callout-danger  { background: #fef2f2; border: 1px solid #fecaca; color: #7f1d1d; }
@@ -85,13 +78,13 @@ $navActive = 'help';
     .credentials-box { background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 4px 18px; margin: 16px 0; }
     .credentials-row { display: flex; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px dashed #d9dee5; }
     .credentials-row:last-child { border-bottom: none; }
-    .cred-label { flex: 0 0 210px; font-size: 12.5px; font-weight: 700; color: #0d2d52; }
+    .cred-label { flex: 0 0 210px; font-size: var(--fs-2); font-weight: 700; color: #0d2d52; }
     /* A10-031 (§1at) — was .cred-fill, an empty 620px rule with no instruction. */
-    .cred-value { flex: 1; font-size: 13px; color: #374151; }
+    .cred-value { flex: 1; font-size: var(--fs-2); color: #374151; }
 
     /* Diagrams */
     .diagram-wrap { background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; margin: 16px 0 20px; }
-    .diagram-caption { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #6b7280; margin: 0 0 12px; }
+    .diagram-caption { font-size: var(--fs-1); font-weight: 700; color: #4b5563; margin: 0 0 12px; }
     .diagram-wrap svg { width: 100%; height: auto; display: block; }
 
     /* Back to top */
@@ -99,8 +92,8 @@ $navActive = 'help';
     .back-to-top:hover { background: #004e8c; transform: translateY(-2px); }
 
     /* Field reference tables */
-    table.field-ref { width: 100%; border-collapse: collapse; margin: 6px 0 18px; font-size: 13px; }
-    table.field-ref th { text-align: left; background: #f0f4f8; color: #374151; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding: 9px 12px; }
+    table.field-ref { width: 100%; border-collapse: collapse; margin: 6px 0 18px; font-size: var(--fs-2); }
+    table.field-ref th { text-align: left; background: #f0f4f8; color: #374151; font-size: var(--fs-1); padding: 9px 12px; }
     table.field-ref td { padding: 10px 12px; border-bottom: 1px solid #f0f4f8; vertical-align: top; color: #374151; }
     table.field-ref td:first-child { font-weight: 700; color: #005da3; white-space: nowrap; }
     table.field-ref tr:last-child td { border-bottom: none; }
@@ -110,13 +103,13 @@ $navActive = 'help';
     /* FAQ disclosure */
     details.faq { border: 1px solid #e5e9ee; border-radius: 10px; padding: 4px 16px; margin-bottom: 10px; transition: border-color 0.15s ease; }
     details.faq:hover { border-color: #bfe0f7; }
-    details.faq summary { position: relative; padding: 12px 0 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; color: #0d2d52; list-style: none; }
+    details.faq summary { position: relative; padding: 12px 0 12px 24px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; color: #0d2d52; list-style: none; }
     details.faq summary::-webkit-details-marker { display: none; }
     details.faq summary::after { content: "›"; position: absolute; left: 0; top: 9px; font-size: 19px; font-weight: 800; color: #005da3; display: inline-block; transition: transform 0.2s ease; }
     details.faq[open] summary::after { transform: rotate(90deg); }
     details.faq p { padding-bottom: 14px; margin: 0; }
 
-    .visual-note { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; border: 1px dashed #c7d2dd; border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; font-size: 12.5px; color: #4b5563; line-height: 1.55; }
+    .visual-note { display: flex; gap: 10px; align-items: flex-start; background: #f8fafc; border: 1px dashed #c7d2dd; border-radius: 10px; padding: 12px 14px; margin: 8px 0 16px; font-size: var(--fs-2); color: #4b5563; line-height: 1.55; }
     .visual-note .vn-icon { flex-shrink: 0; font-size: 15px; }
 
     hr.sep { border: none; border-top: 1px solid #e5e9ee; margin: 24px 0; }
@@ -296,7 +289,7 @@ $navActive = 'help';
           After <?= (int)LOGIN_FREE_ATTEMPTS + 1 ?> wrong passwords in a row, the sign-in page asks you to wait <strong><?= (int)LOGIN_COOLOFF_BASE ?> seconds</strong> before it will check another one — even the right one. Each further wrong password doubles the wait, up to a maximum of <strong><?= (int)round(LOGIN_COOLOFF_MAX / 60) ?> minutes</strong>. It never locks you out permanently, and it forgets the failed attempts entirely after <?= (int)round(LOGIN_THROTTLE_WINDOW / 60) ?> quiet minutes. This is a normal security precaution against guessing attacks, not an error. Wait it out and re-enter your password carefully (check that Caps Lock isn't on).
         </div>
         <h3>Signing out</h3>
-        <p>Click <strong>Sign Out</strong> in the top-right corner of any page. Your sign-in stays active until you do this, until <strong><?= (int)(ADMIN_IDLE_LIMIT / 3600) ?> hours</strong> pass without you opening or saving a page, or <strong><?= (int)(ADMIN_ABSOLUTE_LIMIT / 3600) ?> hours</strong> after you signed in, whichever comes first. A page left open does not count as using the dashboard. Simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed. If you are ever signed out in the middle of an edit, see <em>"I was signed out in the middle of editing"</em> in <a href="#faq">Troubleshooting</a> before you press anything.</p>
+        <p>Click <strong>Account</strong> at the right-hand end of the menu bar, then <strong>Sign Out</strong>. Your sign-in stays active until you do this, until <strong><?= (int)(ADMIN_IDLE_LIMIT / 3600) ?> hours</strong> pass without you opening or saving a page, or <strong><?= (int)(ADMIN_ABSOLUTE_LIMIT / 3600) ?> hours</strong> after you signed in, whichever comes first. A page left open does not count as using the dashboard. Simply closing the browser tab does <em>not</em> sign you out (fully closing the browser itself normally will). Always click Sign Out when you're using a shared or public computer rather than relying on the tab being closed. If you are ever signed out in the middle of an edit, see <em>"I was signed out in the middle of editing"</em> in <a href="#faq">Troubleshooting</a> before you press anything.</p>
         <div class="callout callout-tip">
           <b>One password for everyone</b>
           This dashboard uses a single shared admin password rather than individual employee logins. If more than one person updates the catalog, everyone signs in with the same password. Keep that in mind for two things: anyone who has the password can make changes, and the <a href="#auditlog">Audit log</a> can only identify a change by device/location and time, not by which person was typing — see the note in that section.
@@ -318,7 +311,7 @@ $navActive = 'help';
         </div>
         <div class="callout callout-tip">
           <b>You can change it yourself, any time</b>
-          Click <strong>Password</strong> in the top navigation. You'll need your current password, then a new one of at least 12 characters — a short sentence or four random words is both stronger and easier to remember than something like <code>Xk7!p</code>. The change takes effect immediately and you stay signed in. You don't need to call anyone.
+          Click <strong>Account</strong> in the menu bar, then <strong>Password</strong>. You'll need your current password, then a new one of at least 12 characters — a short sentence or four random words is both stronger and easier to remember than something like <code>Xk7!p</code>. The change takes effect immediately and you stay signed in. You don't need to call anyone.
         </div>
         <div class="callout callout-warning">
           <b>If you've forgotten it</b>
@@ -331,98 +324,138 @@ $navActive = 'help';
       <section class="help-section" id="dashboard">
         <div class="eyebrow eyebrow-start">Getting Started</div>
         <h2>📊 Reading the dashboard</h2>
-        <p>The <strong>Products</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
+        <p>After you sign in you land on the <strong>Overview</strong>, one page that answers "does anything need me?". Nothing on it changes anything. To come back to it from any page, click <strong>IPC Admin</strong> (the logo, top left); on the Overview itself the logo is underlined.</p>
         <ul class="plain">
-          <li><strong>Header bar</strong> — your logo on the left; on the right, a link to every page of the dashboard: <strong>Products</strong>, <strong>+ Add Product</strong>, <strong>Business Details</strong>, <strong>Page Content</strong>, <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups</strong>, <strong>Audit Log</strong>, <strong>Password</strong> and <strong>Help</strong>, plus <strong>View Live Site ↗</strong> to open the public website in a new tab and <strong>Sign Out</strong>. This same navigation bar appears at the top of every admin page. Two pages are not in the bar: <strong>Site Images &amp; Logo</strong> and <strong>Catalog &amp; Brochure PDFs</strong> — open them from the links on Page Content (the Site Images and Value-Added Services cards) and Business Details (the Logo URL and Catalog PDF URL boxes).</li>
-          <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>
-          <li><strong>Summary cards</strong> — four at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, and products <strong>Missing PDF</strong>. Useful for spotting gaps — if "Missing PDF" looks too high, that's a quick to-do list.</li>
-          <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing SKU, Product Name, Temp Rating, whether a data sheet exists, and action buttons.</li>
+          <li><strong>Inquiries</strong> — how many quote requests and messages arrived since you last opened Inquiries, and the newest four, each marked <em>New</em>, <em>Email failed</em> or <em>Not confirmed</em> as on the Inquiries page. Looking at the Overview does not mark them read; opening Inquiries does.</li>
+          <li><strong>Server</strong> — either "No server problems found" or how many there are. The problems themselves are listed in red at the top of the page, the same list as on All Products (see <a href="#health">Server warnings on the dashboard</a>).</li>
+          <li><strong>Products</strong> — how many products there are, how many have no photo or no data sheet, and the first six of them with an <strong>Add photo</strong> or <strong>Add data sheet</strong> link straight to the right upload page.</li>
+          <li><strong>Recent changes</strong> — the last five things changed from this dashboard (sign-ins are left out), newest first. The <strong>Audit Log</strong> has the rest, and <strong>Backups</strong> can undo one.</li>
+          <li><strong>Shortcuts</strong> — one click to All Products, Add Product, Business Details, Page Content, Site Images &amp; Logo, Catalog &amp; Brochure PDFs, Backups, Help and the live site.</li>
         </ul>
+        <p>The <strong>Products</strong> page (Products → All Products, or the button at the top of the Overview) is organized like this, top to bottom:</p>
+        <ul class="plain">
+          <li><strong>Header bar</strong> — your logo on the left, then the menu. The bar is the same on every admin page and stays at the top of the screen while you scroll. Entries with a small arrow open a list when you click them: <strong>Products</strong> (All Products, Add Product), <strong>Website</strong> (Business Details, Page Content, Site Images &amp; Logo, Catalog &amp; Brochure PDFs), <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups &amp; History</strong> (Backups, Audit Log), <strong>Help</strong>, and on the right <strong>Account</strong> (Password, View Live Site ↗ to open the public website in a new tab, and Sign Out). The entry for the page you are on is shown in white. On a phone the menu is behind the <strong>Menu</strong> button at the top right.</li>
+          <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>
+          <li><strong>Summary cards</strong> — five at-a-glance numbers: Total Products, Categories, products <strong>With PDF</strong>, products <strong>Missing PDF</strong>, and products <strong>Missing Photo</strong>. Useful for spotting gaps — if a "Missing" number looks too high, that's a quick to-do list.</li>
+          <li><strong>Category chips</strong> — <strong>All</strong>, then one chip per category; click one to see just that category.</li>
+          <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing its photo, SKU, Product Name, Temp Rating, whether it has a data sheet and a photo, and <strong>Edit</strong> and <strong>More ▾</strong>.</li>
+        </ul>
+        <div class="callout callout-tip">
+          <b>On the long forms</b>
+          Business Details, Add Product, Edit Product and Page Content keep their <strong>Save</strong> button in a bar along the bottom of the screen, so you never have to scroll down to find it. Once you start typing, the bar says where: <em>Unsaved changes in: Company, Contact</em>. A row of section names above the form (on Page Content, page names) takes you straight to a section (the one you are reading is filled in, and one with unsaved changes has an orange dot), and each section has a <strong>Hide</strong> button to fold it away while you work on another. Hidden sections are still saved.
+        </div>
 
         <div class="diagram-wrap">
           <div class="diagram-caption">Dashboard layout at a glance</div>
-          <svg viewBox="0 0 640 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the dashboard layout: header, search bar, summary cards, and product table">
-            <rect x="1" y="1" width="638" height="338" rx="10" fill="#ffffff" stroke="#e5e9ee"/>
+          <svg viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the dashboard layout: header, search bar, summary cards, category chips, and product table">
+            <rect x="1" y="1" width="638" height="378" rx="10" fill="#ffffff" stroke="#e5e9ee"/>
             <rect x="10" y="10" width="620" height="30" rx="6" fill="#0d2d52"/>
-            <!-- ADM-9(d) — this omitted Inquiries and View Live Site; it now
-                 lists admin/nav.php's items in nav.php's order. Two more items
-                 would run past the bar at the old 9px, so the size drops to 8
-                 and textLength pins the line inside the 620px bar. -->
-            <text x="20" y="29" font-family="system-ui,sans-serif" font-size="8" fill="#ffffff" textLength="600" lengthAdjust="spacingAndGlyphs">IPC Admin · Products · + Add Product · Business Details · Page Content · Inquiries · Backups · Audit Log · Password · Help · View Live Site ↗ · Sign Out</text>
-            <text x="10" y="56" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">HEADER — same on every page</text>
+            <!-- ADM-9(d) — the strip lists admin/nav.php's top-level entries in
+                 nav.php's order. PLAN-13 Phase 2 redrew it for the grouped bar:
+                 six entries, the current one (Products, on this page) as a
+                 white pill, Account at the right-hand end. Labels are 10 (about
+                 13px on screen at 1440; PLAN-13 Phase 1). Phase 5 redrew the
+                 cards, chips and table below. -->
+            <text x="20" y="29" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#ffffff">IPC Admin</text>
+            <rect x="90" y="16" width="70" height="18" rx="9" fill="#ffffff"/>
+            <text x="100" y="29" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#0d2d52">Products ▾</text>
+            <text x="172" y="29" font-family="system-ui,sans-serif" font-size="10" fill="#ffffff">Website ▾ · Inquiries · Backups &amp; History ▾ · Help</text>
+            <text x="560" y="29" font-family="system-ui,sans-serif" font-size="10" fill="#ffffff">Account ▾</text>
+            <text x="10" y="56" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">HEADER — same on every page, stays on screen as you scroll</text>
 
             <rect x="10" y="66" width="430" height="24" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
-            <text x="20" y="82" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af">Search by SKU / part number or product name…</text>
+            <text x="20" y="82" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">Search by SKU / part number or product name…</text>
             <text x="450" y="82" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">← SEARCH BAR</text>
 
             <g font-family="system-ui,sans-serif">
-              <rect x="10" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <rect x="10" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
               <text x="20" y="122" font-size="16" font-weight="800" fill="#005da3">128</text>
-              <text x="20" y="136" font-size="9" fill="#6b7280">Total Products</text>
+              <text x="20" y="136" font-size="10" fill="#4b5563">Total Products</text>
 
-              <rect x="164" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
-              <text x="174" y="122" font-size="16" font-weight="800" fill="#005da3">9</text>
-              <text x="174" y="136" font-size="9" fill="#6b7280">Categories</text>
+              <rect x="136" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="146" y="122" font-size="16" font-weight="800" fill="#005da3">9</text>
+              <text x="146" y="136" font-size="10" fill="#4b5563">Categories</text>
 
-              <rect x="318" y="100" width="145" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
-              <text x="328" y="122" font-size="16" font-weight="800" fill="#005da3">94</text>
-              <text x="328" y="136" font-size="9" fill="#6b7280">With PDF</text>
+              <rect x="262" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="272" y="122" font-size="16" font-weight="800" fill="#005da3">94</text>
+              <text x="272" y="136" font-size="10" fill="#4b5563">With PDF</text>
 
-              <rect x="472" y="100" width="158" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
-              <text x="482" y="122" font-size="16" font-weight="800" fill="#005da3">34</text>
-              <text x="482" y="136" font-size="9" fill="#6b7280">Missing PDF</text>
+              <rect x="388" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="398" y="122" font-size="16" font-weight="800" fill="#005da3">34</text>
+              <text x="398" y="136" font-size="10" fill="#4b5563">Missing PDF</text>
+
+              <rect x="514" y="100" width="116" height="46" rx="8" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="524" y="122" font-size="16" font-weight="800" fill="#005da3">6</text>
+              <text x="524" y="136" font-size="10" fill="#4b5563">Missing Photo</text>
             </g>
             <text x="10" y="162" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">SUMMARY CARDS — at-a-glance counts</text>
 
-            <text x="10" y="186" font-family="system-ui,sans-serif" font-size="11" font-weight="800" fill="#0d2d52">Fiberglass Sleeving (12)</text>
-            <line x1="10" y1="192" x2="630" y2="192" stroke="#e5e9ee" stroke-width="2"/>
+            <!-- PLAN-13 Phase 5 — the category chips, then the redrawn rows:
+                 photo, SKU, name, temperature, PDF / photo chips, Edit and More. -->
+            <g font-family="system-ui,sans-serif" font-size="10">
+              <rect x="10" y="172" width="54" height="18" rx="9" fill="#0d2d52"/><text x="20" y="185" fill="#ffffff" font-weight="700">All 128</text>
+              <rect x="70" y="172" width="96" height="18" rx="9" fill="#ffffff" stroke="#d1d9e0"/><text x="80" y="185" fill="#141414" font-weight="700">Heat Shrink 40</text>
+              <rect x="172" y="172" width="80" height="18" rx="9" fill="#ffffff" stroke="#d1d9e0"/><text x="182" y="185" fill="#141414" font-weight="700">Sleeving 22</text>
+              <rect x="258" y="172" width="56" height="18" rx="9" fill="#ffffff" stroke="#d1d9e0"/><text x="268" y="185" fill="#141414" font-weight="700">Tape 9</text>
+              <text x="324" y="185" fill="#4b5563">…</text>
+            </g>
+            <text x="10" y="206" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">CATEGORY CHIPS — show one category at a time</text>
 
-            <rect x="10" y="198" width="620" height="22" fill="#0d2d52"/>
-            <text x="20" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">SKU</text>
-            <text x="110" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">PRODUCT NAME</text>
-            <text x="340" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">TEMP RATING</text>
-            <text x="440" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">DATA SHEET</text>
-            <text x="530" y="213" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#ffffff">ACTIONS</text>
+            <text x="10" y="228" font-family="system-ui,sans-serif" font-size="11" font-weight="800" fill="#0d2d52">Fiberglass Sleeving (12)</text>
 
-            <rect x="10" y="220" width="620" height="30" fill="#ffffff"/>
-            <text x="20" y="239" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#005da3">IP33PO</text>
-            <text x="110" y="239" font-family="system-ui,sans-serif" font-size="9" fill="#374151">3:1 Polyolefin Heat Shrink Tubing</text>
-            <text x="340" y="239" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">-55°C to 135°C</text>
-            <rect x="440" y="228" width="60" height="16" rx="8" fill="rgba(0,190,242,0.15)"/>
-            <text x="447" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#0369a1">View PDF</text>
-            <rect x="530" y="228" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#005da3">Edit</text>
-            <rect x="568" y="228" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="240" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Delete</text>
+            <g font-family="system-ui,sans-serif" font-size="10">
+              <rect x="10" y="236" width="620" height="22" fill="#f6f8fb" stroke="#e5e9ee"/>
+              <text x="20" y="251" font-weight="700" fill="#4b5563">Photo</text>
+              <text x="70" y="251" font-weight="700" fill="#4b5563">SKU</text>
+              <text x="150" y="251" font-weight="700" fill="#4b5563">Product Name</text>
+              <text x="330" y="251" font-weight="700" fill="#4b5563">Temp Rating</text>
+              <text x="420" y="251" font-weight="700" fill="#4b5563">Files</text>
+              <text x="574" y="251" font-weight="700" fill="#4b5563">Actions</text>
 
-            <rect x="10" y="250" width="620" height="30" fill="#f8fafc"/>
-            <text x="20" y="269" font-family="system-ui,sans-serif" font-size="9" font-weight="700" fill="#005da3">IP50PVDF</text>
-            <text x="110" y="269" font-family="system-ui,sans-serif" font-size="9" fill="#374151">2:1 PVDF Heat Shrink Tubing</text>
-            <text x="340" y="269" font-family="system-ui,sans-serif" font-size="9" fill="#6b7280">-55°C to 175°C</text>
-            <text x="440" y="269" font-family="system-ui,sans-serif" font-size="8" fill="#9ca3af">None</text>
-            <rect x="530" y="258" width="34" height="16" rx="8" fill="rgba(0,93,163,0.1)"/><text x="536" y="270" font-family="system-ui,sans-serif" font-size="8" fill="#005da3">Edit</text>
-            <rect x="568" y="258" width="34" height="16" rx="8" fill="rgba(220,38,38,0.1)"/><text x="573" y="270" font-family="system-ui,sans-serif" font-size="8" fill="#dc2626">Delete</text>
+              <rect x="10" y="258" width="620" height="34" fill="#ffffff" stroke="#e5e9ee"/>
+              <rect x="20" y="263" width="24" height="24" rx="5" fill="#cbd5e1"/>
+              <text x="70" y="279" font-weight="700" fill="#005da3">IP33PO</text>
+              <text x="150" y="279" fill="#374151">3:1 Polyolefin Heat Shrink Tubing</text>
+              <text x="330" y="279" fill="#4b5563">-55°C to 135°C</text>
+              <rect x="420" y="267" width="44" height="16" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/><text x="428" y="279" fill="#166534">PDF ✓</text>
+              <rect x="468" y="267" width="54" height="16" rx="8" fill="#f0fdf4" stroke="#bbf7d0"/><text x="476" y="279" fill="#166534">Photo ✓</text>
+              <rect x="540" y="266" width="32" height="18" rx="5" fill="rgba(0,93,163,0.1)"/><text x="547" y="279" fill="#005da3">Edit</text>
+              <rect x="576" y="266" width="46" height="18" rx="5" fill="#ffffff" stroke="#d1d9e0"/><text x="583" y="279" fill="#141414">More ▾</text>
 
-            <line x1="10" y1="280" x2="630" y2="280" stroke="#f0f4f8" stroke-width="2"/>
-            <text x="10" y="302" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">PRODUCT TABLE — grouped by category, action buttons on the right</text>
-            <text x="10" y="322" font-family="system-ui,sans-serif" font-size="9" fill="#9ca3af">(A simplified example — your real catalog will show your actual products.)</text>
+              <rect x="10" y="292" width="620" height="34" fill="#ffffff" stroke="#e5e9ee"/>
+              <rect x="20" y="297" width="24" height="24" rx="5" fill="#f0f4f8" stroke="#e5e9ee"/>
+              <text x="70" y="313" font-weight="700" fill="#005da3">IP50PVDF</text>
+              <text x="150" y="313" fill="#374151">2:1 PVDF Heat Shrink Tubing</text>
+              <text x="330" y="313" fill="#4b5563">-55°C to 175°C</text>
+              <rect x="420" y="301" width="44" height="16" rx="8" fill="#fffbeb" stroke="#fde68a"/><text x="426" y="313" fill="#92400e">No PDF</text>
+              <rect x="468" y="301" width="54" height="16" rx="8" fill="#fffbeb" stroke="#fde68a"/><text x="474" y="313" fill="#92400e">No photo</text>
+              <rect x="540" y="300" width="32" height="18" rx="5" fill="rgba(0,93,163,0.1)"/><text x="547" y="313" fill="#005da3">Edit</text>
+              <rect x="576" y="300" width="46" height="18" rx="5" fill="#ffffff" stroke="#d1d9e0"/><text x="583" y="313" fill="#141414">More ▾</text>
+            </g>
+
+            <text x="10" y="346" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#005da3">PRODUCT TABLE — Edit, and More ▾ for Manage PDF, Photo, View on site and Delete</text>
+            <text x="10" y="366" font-family="system-ui,sans-serif" font-size="10" fill="#9ca3af">(A simplified example — your real catalog will show your actual products.)</text>
           </svg>
         </div>
 
-        <h3>The action buttons on each row</h3>
+        <h3>The buttons and markers on each row</h3>
         <table class="field-ref">
           <tr><td><span class="btn btn-sm btn-edit btn-mock">Edit</span></td><td>Opens the full edit form for that product — every field is changeable here.</td></tr>
-          <tr><td><span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span></td><td>Upload, replace, or remove that product's downloadable data sheet.</td></tr>
-          <tr><td><span class="btn btn-sm btn-pdf btn-mock">Photo</span></td><td>Upload, replace, or remove that product's photo, straight from your computer. See <a href="#photos">Product photos</a>.</td></tr>
-          <tr><td><span class="btn btn-sm btn-edit btn-mock">View ↗</span></td><td>Opens that exact product on your live public website in a new tab — the fastest way to double-check how a change actually looks to customers.</td></tr>
-          <tr><td><span class="btn btn-sm btn-danger btn-mock">Delete</span></td><td>Removes the product after you confirm — you can undo it from Backups. See <a href="#deleting">Deleting a product</a>.</td></tr>
+          <tr><td><span class="btn btn-sm btn-secondary btn-mock">More ▾</span></td><td>Opens a short list for that product:
+            <strong>Manage PDF</strong> (upload, replace, or remove its downloadable data sheet),
+            <strong>Photo</strong> (upload, replace, or remove its photo, straight from your computer — see <a href="#photos">Product photos</a>),
+            <strong>View on site ↗</strong> (opens that exact product on your live website in a new tab — the fastest way to check how a change looks to customers), and, set apart in red,
+            <strong>Delete…</strong> (removes the product after you confirm — you can undo it from Backups; see <a href="#deleting">Deleting a product</a>). Press <kbd>Esc</kbd> or click anywhere else to close it.</td></tr>
+          <tr><td><span class="btn btn-sm btn-mock" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">PDF ✓</span> <span class="btn btn-sm btn-mock" style="background:#fffbeb;color:#92400e;border:1px solid #fde68a">No photo</span></td><td>Whether the product has a data sheet and a photo on your server. A green one opens the PDF (or the photo page); an amber <em>No PDF</em> / <em>No photo</em> takes you straight to the page that adds one. A red <em>PDF missing</em> or <em>Photo missing</em> means the product points at a file that is no longer on the server — upload it again.</td></tr>
         </table>
-        <p>This dashboard works in any modern desktop or tablet browser (Chrome, Edge, Safari, Firefox). On narrower screens, the product tables scroll left-to-right — drag within the table itself to reach the Actions column on the right.</p>
+        <p>The chips above the list — <strong>All</strong>, then one per category — show one category at a time, and the search box works inside the one you pick. This dashboard works in any modern browser (Chrome, Edge, Safari, Firefox). On a phone or a narrow tablet each product becomes a card, with <strong>Edit</strong> and <strong>More</strong> across its bottom — nothing has to be scrolled sideways.</p>
       </section>
 
       <section class="help-section" id="adding">
         <div class="eyebrow eyebrow-manage">Managing Products</div>
         <h2>➕ Adding a new product</h2>
         <ol class="steps">
-          <li>From the dashboard, click <span class="btn btn-primary btn-mock">+ Add Product</span> in the top right (it's also in the header nav on every page).</li>
+          <li>From the dashboard, click <span class="btn btn-primary btn-mock">+ Add Product</span> in the top right (it's also under <strong>Products</strong> in the menu bar on every page).</li>
           <li>
             <strong>Fill in Basic Information.</strong> Three fields are required (marked with *):
             <table class="field-ref">
@@ -456,12 +489,12 @@ $navActive = 'help';
           <li>
             <strong>Size chart</strong> — the grid of measurements (order sizes, expanded/recovered diameters, etc.), if this product has one. Use the visual builder — see <a href="#sizechart">Building the size / dimension chart</a> below.
           </li>
-          <li>Click <span class="btn btn-primary btn-mock">Add Product</span> at the bottom of the form.</li>
-          <li>You'll land back on the dashboard with a green confirmation message. Find your new product and click <span class="btn btn-sm btn-edit btn-mock">View ↗</span> to see it live (remember: allow ~60 seconds, or hard-refresh to see it immediately).</li>
+          <li>Click <span class="btn btn-primary btn-mock">Add Product</span> in the bar along the bottom of the screen.</li>
+          <li>You'll land back on the dashboard with a green confirmation message. Find your new product, open <strong>More ▾</strong> on its row and click <strong>View on site ↗</strong> to see it live (remember: allow ~60 seconds, or hard-refresh to see it immediately).</li>
         </ol>
         <div class="callout callout-tip">
           <b>About the photo</b>
-          The Add Product form doesn't include a photo field — new products start with a branded placeholder image. Once the product is saved, click <span class="btn btn-sm btn-edit btn-mock">Photo</span> on its row on the dashboard and choose a picture from your computer. See <a href="#photos">Product photos</a>.
+          The Add Product form doesn't include a photo field — new products start with a branded placeholder image. Once the product is saved, open <strong>More ▾</strong> on its row on the dashboard, click <strong>Photo</strong> (or click its amber <em>No photo</em> marker) and choose a picture from your computer. See <a href="#photos">Product photos</a>.
         </div>
         <div class="callout callout-warning">
           <b>If Add Product won't save</b>
@@ -476,7 +509,7 @@ $navActive = 'help';
           <li>Find the product on the dashboard (use the search bar if your catalog is long) and click <span class="btn btn-sm btn-edit btn-mock">Edit</span>.</li>
           <li>Change any field you need to. Every field from <a href="#adding">Adding a new product</a> is here, plus a few extra:
             <table class="field-ref">
-              <tr><td>Photo URL</td><td><strong>You normally never type in this box.</strong> Use the <span class="btn btn-sm btn-edit btn-mock">Photo</span> button on the product's dashboard row to upload a picture from your computer, and this field fills itself in — see <a href="#photos">Product photos</a>. It's here for the rare case where a picture already lives somewhere else on your own site and you want to point at it (<code>/images/product.jpg</code>). Leave it blank to keep the branded placeholder.</td></tr>
+              <tr><td>Photo URL</td><td><strong>You normally never type in this box.</strong> Use <strong>More ▾ → Photo</strong> on the product's dashboard row to upload a picture from your computer, and this field fills itself in — see <a href="#photos">Product photos</a>. It's here for the rare case where a picture already lives somewhere else on your own site and you want to point at it (<code>/images/product.jpg</code>). Leave it blank to keep the branded placeholder.</td></tr>
               <tr><td>Primary PDF Button Label</td><td>Customizes the text on the main download button, e.g. "Molded Cap" instead of the default "Datasheet." This only changes the button's <em>label</em> — upload the actual file from the <a href="#pdfs">PDF data sheets</a> page.</td></tr>
               <tr><td>Additional PDF Links</td><td>One per line, formatted as <code>/pdfs/filename.pdf | Button Label</code> (the label is optional). Each line adds an extra download button, for products that ship with more than one document.</td></tr>
             </table>
@@ -591,9 +624,9 @@ $navActive = 'help';
       <section class="help-section" id="photos">
         <div class="eyebrow eyebrow-manage">Managing Products</div>
         <h2>🖼️ Product photos</h2>
-        <p>Every product on the dashboard has a <span class="btn btn-sm btn-edit btn-mock">Photo</span> button on its row. That is the whole feature — you pick a picture from your own computer and it is uploaded to your server. <strong>You do not need Dropbox, Google Drive, or any image-hosting service</strong>, and you do not need to know what a "direct link" is.</p>
+        <p>Every product on the dashboard has a <strong>Photo</strong> item in the <strong>More ▾</strong> menu on its row. That is the whole feature — you pick a picture from your own computer and it is uploaded to your server. <strong>You do not need Dropbox, Google Drive, or any image-hosting service</strong>, and you do not need to know what a "direct link" is.</p>
         <ol class="steps">
-          <li>On the <strong>Products</strong> page, find the product and click <span class="btn btn-sm btn-edit btn-mock">Photo</span>.</li>
+          <li>On the <strong>Products</strong> page, find the product, open <strong>More ▾</strong> and click <strong>Photo</strong> (or click its <em>Photo ✓</em> / <em>No photo</em> marker).</li>
           <li>Click <strong>Choose File</strong> and pick a <code>.jpg</code>, <code>.png</code>, <code>.gif</code> or <code>.webp</code> file. It must be <strong><?= h(min_upload_label(8)) ?> or smaller</strong>.</li>
           <li>Click <strong>Upload Photo →</strong>.</li>
           <li>That's it — the product's Photo URL field is filled in for you automatically. The new picture appears on the public site within about a minute.</li>
@@ -618,7 +651,7 @@ $navActive = 'help';
         <p>Every product can have a downloadable data sheet PDF. When a product has one, its page shows a <strong>"Datasheet"</strong> button; when it doesn't, customers instead see a <strong>"Request Datasheet"</strong> button (so they can contact you directly).</p>
         <h3>Uploading a PDF for the first time</h3>
         <ol class="steps">
-          <li>From the dashboard, click <span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span> on the product's row (or the "Upload PDF" link at the top of its Edit page).</li>
+          <li>From the dashboard, open <strong>More ▾</strong> on the product's row and click <strong>Manage PDF</strong> (or the <strong>Manage PDF</strong> button at the top of its Edit page).</li>
           <li>Click <strong>Select PDF File</strong> and choose the file from your computer. It must be a genuine PDF, <strong><?= h(min_upload_label(20)) ?> or smaller</strong> — that is the lower of the dashboard's own 20MB limit and what your server accepts (see <a href="#server-limits">What your server allows</a>).</li>
           <li>Click <span class="btn btn-primary btn-mock">Upload PDF →</span>.</li>
           <li>You'll see a green confirmation, and the button on the product's live page switches to "Datasheet" automatically (allow up to 60 seconds, or hard-refresh to see it right away).</li>
@@ -628,7 +661,7 @@ $navActive = 'help';
         <h3>Removing a PDF</h3>
         <ol class="steps">
           <li>Open the product's "Manage PDF" page.</li>
-          <li>Click the red <span class="btn btn-sm btn-mock" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;">Remove PDF</span> button next to the current file.</li>
+          <li>Click the red <span class="btn btn-sm btn-mock" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;">Remove PDF</span> button next to the current file.</li>
           <li>Confirm the removal. The product reverts to showing "Request Datasheet," and the file is kept aside on the server (not on the website), so restoring the Product Catalog from Backups brings it back.</li>
         </ol>
         <div class="callout callout-warning">
@@ -641,7 +674,7 @@ $navActive = 'help';
         <div class="eyebrow eyebrow-manage">Managing Products</div>
         <h2>🗑️ Deleting a product</h2>
         <ol class="steps">
-          <li>From the dashboard, click <span class="btn btn-sm btn-danger btn-mock">Delete</span> on the product's row.</li>
+          <li>From the dashboard, open <strong>More ▾</strong> on the product's row and click <strong>Delete…</strong> (in red, at the bottom of the list).</li>
           <li>Read the confirmation screen carefully — it names the exact product you're about to remove.</li>
           <li>Click <strong>Yes, Delete</strong> to confirm, or <strong>Cancel</strong> to back out.</li>
         </ol>
@@ -670,8 +703,8 @@ $navActive = 'help';
               <rect x="6" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
               <circle cx="30" cy="30" r="14" fill="#005da3"/><text x="30" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">1</text>
               <text x="81" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Add Product</text>
-              <text x="81" y="78" font-size="9" fill="#374151" text-anchor="middle">SKU, category,</text>
-              <text x="81" y="92" font-size="9" fill="#374151" text-anchor="middle">name &amp; details</text>
+              <text x="81" y="78" font-size="10" fill="#374151" text-anchor="middle">SKU, category,</text>
+              <text x="81" y="92" font-size="10" fill="#374151" text-anchor="middle">name &amp; details</text>
 
               <text x="172" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
 
@@ -686,33 +719,33 @@ $navActive = 'help';
                    Only the three strings changed; the x/y/font-size/anchor
                    attributes and the box geometry are untouched. -->
               <text x="263" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Photo</text>
-              <text x="263" y="78" font-size="9" fill="#374151" text-anchor="middle">Upload from</text>
-              <text x="263" y="92" font-size="9" fill="#374151" text-anchor="middle">your computer</text>
+              <text x="263" y="78" font-size="10" fill="#374151" text-anchor="middle">Upload from</text>
+              <text x="263" y="92" font-size="10" fill="#374151" text-anchor="middle">your computer</text>
 
               <text x="354" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
 
               <rect x="370" y="30" width="150" height="80" rx="10" fill="#eaf3fb" stroke="#9cc9e8"/>
               <circle cx="394" cy="30" r="14" fill="#005da3"/><text x="394" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">3</text>
               <text x="445" y="60" font-size="12" font-weight="800" fill="#0d2d52" text-anchor="middle">Manage PDF</text>
-              <text x="445" y="78" font-size="9" fill="#374151" text-anchor="middle">Upload the</text>
-              <text x="445" y="92" font-size="9" fill="#374151" text-anchor="middle">data sheet</text>
+              <text x="445" y="78" font-size="10" fill="#374151" text-anchor="middle">Upload the</text>
+              <text x="445" y="92" font-size="10" fill="#374151" text-anchor="middle">data sheet</text>
 
               <text x="536" y="78" font-size="22" font-weight="800" fill="#9cc9e8" text-anchor="middle">→</text>
 
               <rect x="552" y="30" width="122" height="80" rx="10" fill="#eefaf1" stroke="#a7e2b8"/>
               <circle cx="576" cy="30" r="14" fill="#16a34a"/><text x="576" y="35" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">4</text>
               <text x="613" y="60" font-size="12" font-weight="800" fill="#166534" text-anchor="middle">View ↗</text>
-              <text x="613" y="78" font-size="9" fill="#374151" text-anchor="middle">Confirm it</text>
-              <text x="613" y="92" font-size="9" fill="#374151" text-anchor="middle">looks right</text>
+              <text x="613" y="78" font-size="10" fill="#374151" text-anchor="middle">Confirm it</text>
+              <text x="613" y="92" font-size="10" fill="#374151" text-anchor="middle">looks right</text>
             </g>
           </svg>
         </div>
 
         <ol class="steps">
           <li>Go to <a href="#adding">Adding a new product</a> and fill in the Add Product form — SKU, Part Type, Product Name, badges, description, and (if the data is ready) the Specifications list and Size chart. Click <strong>Add Product</strong>.</li>
-          <li>Click <span class="btn btn-sm btn-edit btn-mock">Photo</span> on the product you just created and upload a picture from your computer — see <a href="#photos">Product photos</a>. The Add form has no photo field, so this always happens as a second step.</li>
-          <li>Click <span class="btn btn-sm btn-pdf btn-mock">Manage PDF</span> and upload the product's data sheet, if you have one — see <a href="#pdfs">Managing PDF data sheets</a>.</li>
-          <li>Open the product with <span class="btn btn-sm btn-edit btn-mock">View ↗</span> and hard-refresh (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>) to check the photo, specs, size chart, and PDF button all look right.</li>
+          <li>Open <strong>More ▾ → Photo</strong> on the product you just created and upload a picture from your computer — see <a href="#photos">Product photos</a>. The Add form has no photo field, so this always happens as a second step.</li>
+          <li>Open <strong>More ▾ → Manage PDF</strong> and upload the product's data sheet, if you have one — see <a href="#pdfs">Managing PDF data sheets</a>.</li>
+          <li>Open the product with <strong>More ▾ → View on site ↗</strong> and hard-refresh (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>) to check the photo, specs, size chart, and PDF button all look right.</li>
         </ol>
         <div class="visual-note"><span class="vn-icon">✅</span>None of this has to happen in one sitting. A product with no photo or PDF yet is still live and visible on the site — just less complete. Come back and finish it with Edit whenever the missing pieces are ready.</div>
       </section>
@@ -912,7 +945,7 @@ $navActive = 'help';
       <section class="help-section" id="business">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>🏢 Business Details</h2>
-        <p>Click <strong>Business Details</strong> in the header. This one page controls the facts about your company that appear all over the public site — the phone number in the header, the address in the footer, the copyright year, your hours, your certifications, and the colors and logo.</p>
+        <p>Click <strong>Website</strong> in the menu bar, then <strong>Business Details</strong>. This one page controls the facts about your company that appear all over the public site — the phone number in the header, the address in the footer, the copyright year, your hours, your certifications, and the colors and logo.</p>
         <p>Change something here and it changes <em>everywhere it appears</em>. You never have to hunt for the same phone number on six pages.</p>
         <table class="field-ref">
           <!-- NEW-V2-2 — this row said all three drive the "header, footer,
@@ -927,7 +960,7 @@ $navActive = 'help';
           <tr><td>Address</td><td>Footer, Contact page, About page fact box, Privacy page, and the map listing search engines build from your site. <strong>Country</strong> is only given to search engines.</td></tr>
           <tr><td>Hours (display text)</td><td>The hours shown in the footer and on the Contact page, e.g. "Mon–Fri, 8am–5pm CT".</td></tr>
           <tr><td>Opens, Closes, Open Days</td><td>Not shown on any page — they are the opening hours search engines (Google Maps and the like) read, so keep them in step with the display text above. Times are 24-hour (<code>08:00</code>, <code>17:00</code>); days are full names separated by commas.</td></tr>
-          <tr><td>Short Description</td><td>Not shown on any page — it is the one-paragraph description of IPC given to search engines. (The box's own hint on the Business Details page also mentioned the footer until 2026-09-29; the footer paragraph is Page Content → Company Claims.)</td></tr>
+          <tr><td>Short Description</td><td>The one-paragraph description of IPC given to search engines. The only page that shows it is the homepage in the <strong>Corporate</strong> layout, as the paragraph under the banner; in every other layout it is not shown on any page. (The box's own hint on the Business Details page also mentioned the footer until 2026-09-29; the footer paragraph is Page Content → Company Claims.)</td></tr>
           <tr><td>Minimum Order, Feet In Stock</td><td>The homepage quote band ("$50 minimum order. 25 million feet in stock."), the About page fact box and the footer paragraph. The site also swaps the original "$50" and "25 million" for these values inside your Page Content wording. Type the minimum as an amount only (<code>$75</code>): the site adds the words "minimum order". <strong>If there is no minimum, empty the Minimum Order box.</strong> The sentence then disappears from the quote band, the About fact box, the footer, the About story, the homepage sub-headline and the search-engine descriptions. Four Page Content entries state it as a figure and stay until you edit or remove them: <strong>Trust Bar Stats</strong> ("$50 — Minimum Order"), <strong>Homepage — Hero Proof Points</strong> ("$50 — Minimum Order"), <strong>Homepage — Hero Trust Ticker</strong> ("$50 Minimum Order") and the <strong>FAQ</strong> answer "IPC's minimum order is $50".</td></tr>
           <tr><td>About story</td><td>The "Our Story" paragraphs on the About page — one paragraph per line. (Its heading is in Page Content → About page — banner &amp; headings.)</td></tr>
           <tr><td>Founded year</td><td>Drives the "© 1974–<?= date('Y') ?>" line automatically. You never update the second year.</td></tr>
@@ -959,7 +992,8 @@ $navActive = 'help';
       <section class="help-section" id="pagecontent">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>📝 Page Content</h2>
-        <p>Click <strong>Page Content</strong> in the header. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the navigation menus, the footer links, the contact form's wording and its automatic reply email, and the privacy policy.</p>
+        <p>Click <strong>Website</strong> in the menu bar, then <strong>Page Content</strong>. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the navigation menus, the footer links, the contact form's wording and its automatic reply email, and the privacy policy.</p>
+        <p>The page is laid out like the website: <strong>Homepage</strong> first, then Product families, Services, Industries, About, Datasheets, FAQ, Contact and Privacy, then <strong>Menus &amp; footer</strong>, <strong>Search engines</strong>, and <strong>Claims &amp; images</strong> (the statements and photos used on several pages). The row of page names near the top jumps to each one, and each page has an <strong>Open this page on the site ↗</strong> link. To find one box among several hundred, type a word or two into <strong>Find a box on this page</strong> — for example <em>phone</em>, <em>FAQ</em> or <em>hero photo</em> — and only the matching boxes stay on screen; press <kbd>Esc</kbd> or empty the box to see everything again. Boxes the search hides are still saved exactly as they are. Under a box's name, a lighter line gives its rule, such as <em>Empty removes it.</em></p>
         <p>Not sure which card controls something you can see on the site? <a href="#sitemap">Where each part of the site is edited</a> walks every page top to bottom and names the card.</p>
         <p>Each block is a row. Rows have <strong>↑ ↓</strong> buttons to reorder them, an <strong>✕</strong> to remove them, and a <strong>+ Add</strong> button at the bottom of each section.</p>
         <div class="callout callout-warning">
@@ -1004,8 +1038,9 @@ $navActive = 'help';
       <section class="help-section" id="inquiries">
         <div class="eyebrow eyebrow-site">Your Website</div>
         <h2>📥 Inquiries — every lead from the contact form</h2>
-        <p>Click <strong>Inquiries</strong> in the header. Every quote request and message submitted through the website is recorded here, <em>including ones the mail server failed to send</em>. This is your safety net: if email breaks, the lead is still on this page.</p>
+        <p>Click <strong>Inquiries</strong> in the menu bar. Every quote request and message submitted through the website is recorded here, <em>including ones the mail server failed to send</em>. This is your safety net: if email breaks, the lead is still on this page.</p>
         <p>Click any row to expand it and see the full message, the part number, quantities, required date and the visitor's contact details. Reply from your own email program — this page does not send email.</p>
+        <p>The newest are at the top, 25 to a page, under a heading for each day (<strong>Today</strong>, <strong>Yesterday</strong>, then the date). Requests that arrived since you last opened this page are marked <span class="badge-mock">New</span> with a blue edge. To find one, type a name, company, email address, part number or a word from the message into <strong>Search</strong>, or pick a <strong>Type</strong> (quote requests, messages, or refused by the form), an <strong>Email</strong> result, or how recently it was <strong>Received</strong>. The list changes as you type; <strong>Older →</strong> and <strong>← Newer</strong> at the bottom move between pages. The numbers at the top always count everything, whatever the filter shows.</p>
         <table class="field-ref">
           <tr><td><span class="badge-mock">Quote</span> / <span class="badge-mock">Message</span></td><td>Which form the visitor used. "Quote" is a full RFQ with part number and quantity.</td></tr>
           <!-- Docs audit 2026-09-29 — this row said "Emailed … reached your inbox";
@@ -1034,11 +1069,12 @@ $navActive = 'help';
       <section class="help-section" id="backups">
         <div class="eyebrow eyebrow-advanced">Advanced</div>
         <h2>↩️ Backups &amp; undo</h2>
-        <p>Click <strong>Backups</strong> in the header. <strong>You can undo your own mistakes — you do not need to call anyone.</strong></p>
+        <p>Click <strong>Backups &amp; History</strong> in the menu bar, then <strong>Backups</strong>. <strong>You can undo your own mistakes — you do not need to call anyone.</strong></p>
         <p>Every time you save a <em>change</em> to products, business details or page content, a dated copy of the previous version is written first. The <?= (int)BACKUP_KEEP ?> most recent are kept for each of the three. If you press Save without having changed anything, nothing is written and no backup slot is used — so the list never fills up with identical copies of the same version, and the <?= (int)BACKUP_KEEP ?> slots hold <?= (int)BACKUP_KEEP ?> genuinely different versions. Each entry shows what's inside it ("41 products", "119 content rows", your company name and phone) — though Page Content entries usually all show the same row count, so go by the time.</p>
         <p><strong>How the times work:</strong> each entry is stamped with the moment you <em>saved a change</em>, and holds the version from <em>just before</em> that save. So restoring the entry stamped 10:15 undoes the change you saved at 10:15 — and everything saved after it.</p>
         <ol class="steps">
           <li>Find the entry stamped with the time you saved the change you want to undo (the <a href="#auditlog">Audit Log</a> shows that time). Do not pick an earlier one: that would also undo the change saved at its own time.</li>
+          <li>Check the line under it: <em>“This is how it was just before: Product edited — IP33PO”</em> names the change that restoring it would undo, taken from the Audit Log. (A very old entry may have no line, if its log entry has been archived.)</li>
           <li>Click <strong>Restore This Version</strong> and confirm.</li>
           <li>Done. The site reflects it within about a minute.</li>
         </ol>
@@ -1061,36 +1097,36 @@ $navActive = 'help';
         <h2>🕒 Audit log / change history</h2>
         <p><strong>Everything you can change from this dashboard is recorded here</strong> — not just products. Adding, editing and deleting parts; uploading and removing data sheets and photos; changing a page photo or the logo; saving Business Details; saving Page Content; restoring a backup; and changing your password. Each entry records what happened, which product it was about, exactly when, and the IP address it came from.</p>
         <ol class="steps">
-          <li>Click <strong>Audit Log</strong> in the header navigation.</li>
-          <li>Browse the list — newest changes are always at the top.</li>
-          <li>Use the filter boxes to narrow it down: type a SKU to see everything that's happened to one specific product, or pick an action type from the dropdown (it lists every action in the table below) — then click <strong>Filter</strong>. Nothing changes until you do.</li>
+          <li>Click <strong>Backups &amp; History</strong> in the menu bar, then <strong>Audit Log</strong>.</li>
+          <li>Browse the list — newest changes are always at the top, 50 to a page, under a heading for each day. <strong>Older →</strong> at the bottom goes further back.</li>
+          <li>Use the filter boxes to narrow it down: type a SKU (or any word from the detail, such as <em>photo</em> or <em>FAQ</em>) into <strong>Search</strong> to see everything that's happened to one product, or pick an <strong>Action</strong> from the dropdown (it lists every action in the table below). The list changes as you type.</li>
           <li>Click <strong>Clear</strong> (it appears once a filter is on) to see everything again.</li>
         </ol>
-        <p>On a phone, the date sits above the time so that the <strong>Detail</strong> column — what actually happened — fits on the screen. The IP address is just past the right edge: swipe the table sideways to see it.</p>
+        <p>On a phone, each entry is a small card: the time, action and SKU on the first line, then the whole <strong>Detail</strong> — what actually happened — and the IP address underneath. Nothing has to be swiped sideways.</p>
         <h3>What each colored badge means</h3>
         <table class="field-ref">
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dcfce7;color:#166534;">add</span></td><td>A brand-new product was created.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dbeafe;color:#1e40af;">edit</span></td><td>An existing product's details were changed.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">delete</span></td><td>A product was deleted (restorable from Backups).</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#cffafe;color:#155e75;">upload-pdf</span></td><td>A data sheet was uploaded or replaced.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">upload-image</span></td><td>A product photo was uploaded from a computer.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">remove-image</span></td><td>A product photo was removed. The file is kept aside on the server (not shown on the site), so restoring the catalog from Backups brings the photo back.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#ede9fe;color:#5b21b6;">site-image</span></td><td>A page photo or the logo was uploaded, picked or removed on the Site Images &amp; Logo page. The entry names which one.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#cffafe;color:#155e75;">marketing-pdf</span></td><td>A catalog or brochure PDF was uploaded on the Catalog &amp; Brochure PDFs page, or chosen for (or taken off) the footer catalog link or a Services brochure, or taken off the website altogether. The entry names the file and where.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">settings</span></td><td>Business Details was saved. The entry only says the details were updated (or that nothing had changed) — it does not list which fields. The version from before each save is kept on the <a href="#backups">Backups</a> page if you need to put it back.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#f3e8ff;color:#6b21a8;">password</span></td><td>The admin password was changed. The password itself is never recorded.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#dcfce7;color:#166534;">add</span></td><td>A brand-new product was created.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#dbeafe;color:#1e40af;">edit</span></td><td>An existing product's details were changed.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fee2e2;color:#991b1b;">delete</span></td><td>A product was deleted (restorable from Backups).</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#cffafe;color:#155e75;">upload-pdf</span></td><td>A data sheet was uploaded or replaced.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fde68a;color:#92400e;">remove-pdf</span></td><td>A data sheet was removed from a product.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#ede9fe;color:#5b21b6;">upload-image</span></td><td>A product photo was uploaded from a computer.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fee2e2;color:#991b1b;">remove-image</span></td><td>A product photo was removed. The file is kept aside on the server (not shown on the site), so restoring the catalog from Backups brings the photo back.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#ede9fe;color:#5b21b6;">site-image</span></td><td>A page photo or the logo was uploaded, picked or removed on the Site Images &amp; Logo page. The entry names which one.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#cffafe;color:#155e75;">marketing-pdf</span></td><td>A catalog or brochure PDF was uploaded on the Catalog &amp; Brochure PDFs page, or chosen for (or taken off) the footer catalog link or a Services brochure, or taken off the website altogether. The entry names the file and where.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#e0f2fe;color:#075985;">settings</span></td><td>Business Details was saved. The entry only says the details were updated (or that nothing had changed) — it does not list which fields. The version from before each save is kept on the <a href="#backups">Backups</a> page if you need to put it back.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#e0f2fe;color:#075985;">content</span></td><td>Page Content was saved. The entry names the pages and sections you changed — see the note below.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fef3c7;color:#92400e;">restore</span></td><td>A backup was restored from the <a href="#backups">Backups</a> page.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#f3e8ff;color:#6b21a8;">password</span></td><td>The admin password was changed. The password itself is never recorded.</td></tr>
           <!-- A-9.B2-02 — the three sign-in actions. The dropdown has always
                offered them and this table has never explained them, while the
                sentence above it says the dropdown lists every action in the
                table below. sign-in-failed is the one that matters most: a run
                of them from an address you do not recognise is the only warning
                of someone guessing the password. -->
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#dcfce7;color:#166534;">sign-in</span></td><td>Someone signed in successfully, from the address shown.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#e5e7eb;color:#374151;">sign-out</span></td><td>Someone signed out.</td></tr>
-          <tr><td><span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;background:#fee2e2;color:#991b1b;">sign-in-failed</span></td><td>A wrong password was entered. One or two is usually a typo. <strong>A run of them from an address you don't recognise is worth telling your developer about</strong> — it is what someone guessing the password looks like.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#dcfce7;color:#166534;">sign-in</span></td><td>Someone signed in successfully, from the address shown.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#e5e7eb;color:#374151;">sign-out</span></td><td>Someone signed out.</td></tr>
+          <tr><td><span style="display:inline-block;font-size:var(--fs-1);font-weight:700;padding:3px 8px;border-radius:20px;background:#fee2e2;color:#991b1b;">sign-in-failed</span></td><td>A wrong password was entered. One or two is usually a typo. <strong>A run of them from an address you don't recognise is worth telling your developer about</strong> — it is what someone guessing the password looks like.</td></tr>
         </table>
         <div class="callout callout-tip">
           <b>Page Content saves say what you actually edited</b>
@@ -1112,7 +1148,7 @@ $navActive = 'help';
         <table class="field-ref">
           <tr><td>The <code>admin</code> folder is not writable</td><td>The most serious one. <strong>Contact-form leads are still emailed to sales but are not being saved to the Inquiries page</strong>, the change history cannot record anything, and the Password page cannot save. Set <code>admin/</code> to 755 (or 775) over FTP. If the warning stays, ask your host to run PHP as your account user (777 also works, as a stop-gap only).</td></tr>
           <tr><td>The <code>admin/.htaccess</code> security file is missing</td><td><strong>Urgent.</strong> That file is what stops anyone on the internet from downloading the saved quote requests (your customers' names, emails and phone numbers), the activity log and the password-file backups from the admin folder. It comes with the website files but starts with a dot, so many FTP programs hide it and skip it. Turn on "show hidden files" in your FTP program, upload <code>admin/.htaccess</code> from the release, and reload the Products page — the warning goes away once it is there. If you cannot find it, ask your developer to put it back today. <!-- AUDIT-12 decision 38 --></td></tr>
-          <tr><td>The <code>data</code> folder is not writable</td><td>Nothing you edit on any page can be saved at all. Set <code>data/</code> to 755 (or 775) over FTP. If the warning stays, ask your host to run PHP as your account user (777 also works, as a stop-gap only).</td></tr>
+          <tr><td>The <code>site-data</code> folder is not writable</td><td>Nothing you edit on any page can be saved at all. Set <code>site-data/</code> to 755 (or 775) over FTP. If the warning stays, ask your host to run PHP as your account user (777 also works, as a stop-gap only).</td></tr>
           <tr><td>The <code>uploads/images</code> folder is missing or not writable</td><td>Product photo uploads will fail. Create <code>public_html/uploads/images/</code> over FTP and set it to 755. <strong>Check that the file <code>public_html/uploads/.htaccess</code> is there too</strong> — it comes with the website files, and it is what stops anyone running a program from the photos folder. If it is missing, ask your developer to put it back before any more photos go up. <!-- NEW-N3-3 --></td></tr>
           <!-- A-9.B2-03 — the four rows the dashboard could raise and this
                table never listed. The section said "three things" over four
@@ -1123,7 +1159,7 @@ $navActive = 'help';
                written down, and photos that are never resized. -->
           <!-- §1aq (2026-10-05) — four more rows the Products page can raise
                that this table did not list. -->
-          <tr><td>A file in <code>data</code> is damaged</td><td>The product catalog, Page Content or Business Details file cannot be read — usually because it was edited by hand or only partly uploaded. For Page Content or Business Details, the website shows its built-in content for that part. For the <strong>product catalog</strong> there is no built-in copy: the Products page and every product page show "Catalog Unavailable", so no product, data sheet or product quote request works until you restore it — do it straight away. Either way, saving on that page is refused so nothing is overwritten. Go to <strong>Backups</strong> and restore the most recent entry for that file.</td></tr>
+          <tr><td>A file in <code>site-data</code> is damaged</td><td>The product catalog, Page Content or Business Details file cannot be read — usually because it was edited by hand or only partly uploaded. For Page Content or Business Details, the website shows its built-in content for that part. For the <strong>product catalog</strong> there is no built-in copy: the Products page and every product page show "Catalog Unavailable", so no product, data sheet or product quote request works until you restore it — do it straight away. Either way, saving on that page is refused so nothing is overwritten. Go to <strong>Backups</strong> and restore the most recent entry for that file.</td></tr>
           <tr><td>The <code>uploads/.htaccess</code> security file is missing</td><td>Photo uploads (product photos and Site Images) are refused until it is back, because without it a file in that folder could be run as a program. Upload <code>uploads/.htaccess</code> from the release over FTP (turn on "show hidden files" to see it).</td></tr>
           <tr><td>A newer upload folder is not writable</td><td>The warning names <code>uploads/site</code> or <code>pdfs/marketing</code>. Uploads on Site Images &amp; Logo, or on Catalog &amp; Brochure PDFs, will fail. Create the folder under <code>public_html/</code> over FTP and set it to 755.</td></tr>
           <tr><td>An old password-reset file is still there</td><td>The file <code>ALLOW-PASSWORD-RESET</code> no longer does anything, but should not be left in the admin folder. Click <strong>Close It Now</strong> in the warning, or delete the file over FTP.</td></tr>
@@ -1165,7 +1201,7 @@ $navActive = 'help';
 
         <details class="faq">
           <summary>My product photo isn't showing.</summary>
-          <p>First, give it a minute and then hard-refresh the live page (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>). If it still isn't there, upload it again with the <strong>Photo</strong> button on the product's dashboard row — see <a href="#photos">Product photos</a>. If the upload itself is failing, check <a href="#server-limits">What your server allows</a>: the <code>uploads/images</code> row must say Yes, and the file must be <?= h(min_upload_label(8)) ?> or smaller.</p>
+          <p>First, give it a minute and then hard-refresh the live page (<strong>Ctrl+Shift+R</strong> / <strong>Cmd+Shift+R</strong>). If it still isn't there, upload it again with <strong>More ▾ → Photo</strong> on the product's dashboard row — see <a href="#photos">Product photos</a>. If the upload itself is failing, check <a href="#server-limits">What your server allows</a>: the <code>uploads/images</code> row must say Yes, and the file must be <?= h(min_upload_label(8)) ?> or smaller.</p>
           <p>If the Photo URL box was filled in by hand with an address from somewhere else, clear it and use the Photo button instead. A product with no photo shows a branded placeholder rather than a broken image.</p>
         </details>
 
@@ -1192,7 +1228,7 @@ $navActive = 'help';
 
         <details class="faq">
           <summary>I want to change my password.</summary>
-          <p>Click <strong>Password</strong> in the header navigation. You'll need your current password and a new one of at least 12 characters. It takes effect immediately and you stay signed in — no developer needed. See <a href="#password">Your admin password</a>.</p>
+          <p>Click <strong>Account</strong> in the menu bar, then <strong>Password</strong>. You'll need your current password and a new one of at least 12 characters. It takes effect immediately and you stay signed in — no developer needed. See <a href="#password">Your admin password</a>.</p>
         </details>
 
         <details class="faq">
@@ -1288,20 +1324,20 @@ $navActive = 'help';
           <?php /* SEC-3 — this read session.gc_maxlifetime, which is garbage collection, not a limit; the real limits are the two constants. */ ?>
           <tr><th>Signed-out after inactivity</th><td><code><?= (int)(ADMIN_IDLE_LIMIT / 3600) ?> hours</code> without opening or saving a page; <code><?= (int)(ADMIN_ABSOLUTE_LIMIT / 3600) ?> hours</code> after signing in at most</td></tr>
           <tr><th>PHP version</th><td><code><?= h(PHP_VERSION) ?></code></td></tr>
-          <tr><th><code>admin</code> folder writable</th><td><?= admin_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; sales leads are not being saved to Inquiries</strong>' ?></td></tr>
-          <tr><th><code>data</code> folder writable</th><td><?= data_writable() ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; nothing you edit can be saved</strong>' ?></td></tr>
-          <tr><th><code>uploads/images</code> writable</th><td><?= (is_dir(IMG_DIR) && is_writable(IMG_DIR)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; photo uploads will fail</strong>' ?></td></tr>
+          <tr><th><code>admin</code> folder writable</th><td><?= admin_writable() ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; sales leads are not being saved to Inquiries</strong>' ?></td></tr>
+          <tr><th><code>site-data</code> folder writable</th><td><?= data_writable() ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; nothing you edit can be saved</strong>' ?></td></tr>
+          <tr><th><code>uploads/images</code> writable</th><td><?= (is_dir(IMG_DIR) && is_writable(IMG_DIR)) ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; photo uploads will fail</strong>' ?></td></tr>
           <?php /* NEW-N3-9 — the three other checks the Products-page banner
                    makes (admin/index.php), with the same tests, so this table
                    and the banner cannot disagree about the same server. */
                 $helpTmpDir = sys_get_temp_dir(); ?>
           <?php foreach ([[SITE_IMG_DIR, 'uploads/site', 'Site Images &amp; Logo uploads will fail'], [MARKETING_PDF_DIR, 'pdfs/marketing', 'Catalog &amp; Brochure PDF uploads will fail']] as [$hDir, $hLbl, $hFail]):
                 $hD = rtrim($hDir, '/'); $hOk = is_dir($hD) ? is_writable($hD) : is_writable(dirname($hD)); ?>
-          <tr><th><code><?= $hLbl ?></code> writable</th><td><?= $hOk ? 'Yes' . (is_dir($hD) ? '' : ' (created on first upload)') : '<strong style="color:#dc2626">NO &mdash; ' . $hFail . '</strong>' ?></td></tr>
+          <tr><th><code><?= $hLbl ?></code> writable</th><td><?= $hOk ? 'Yes' . (is_dir($hD) ? '' : ' (created on first upload)') : '<strong style="color:#b91c1c">NO &mdash; ' . $hFail . '</strong>' ?></td></tr>
           <?php endforeach; ?>
-          <tr><th><code>pdfs</code> folder writable</th><td><?= (is_dir(PDF_DIR) && is_writable(PDF_DIR)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; data sheet uploads will fail</strong>' ?></td></tr>
-          <tr><th>Server temporary folder writable</th><td><?= (is_dir($helpTmpDir) && is_writable($helpTmpDir)) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; the contact form&rsquo;s spam limit is not counting</strong> (<code>' . h($helpTmpDir) . '</code>)' ?></td></tr>
-          <tr><th>Photo resizing (<code>gd</code>)</th><td><?= (extension_loaded('gd') && function_exists('imagescale')) ? 'Yes' : '<strong style="color:#dc2626">NO &mdash; large photos are saved at full size</strong>' ?></td></tr>
+          <tr><th><code>pdfs</code> folder writable</th><td><?= (is_dir(PDF_DIR) && is_writable(PDF_DIR)) ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; data sheet uploads will fail</strong>' ?></td></tr>
+          <tr><th>Server temporary folder writable</th><td><?= (is_dir($helpTmpDir) && is_writable($helpTmpDir)) ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; the contact form&rsquo;s spam limit is not counting</strong> (<code>' . h($helpTmpDir) . '</code>)' ?></td></tr>
+          <tr><th>Photo resizing (<code>gd</code>)</th><td><?= (extension_loaded('gd') && function_exists('imagescale')) ? 'Yes' : '<strong style="color:#b91c1c">NO &mdash; large photos are saved at full size</strong>' ?></td></tr>
           <tr><th>Backups kept per file</th><td><code><?= (int)BACKUP_KEEP ?></code></td></tr>
         </table>
         <div class="callout callout-tip">

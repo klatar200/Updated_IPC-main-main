@@ -61,14 +61,14 @@ function sfList(string $key, $current, string $sep = "\n"): array {
 // unreadable file. Say so on arrival, and refuse the save.
 $siteInfoDamaged = data_file_damaged(SITE_INFO_JSON);
 if ($siteInfoDamaged && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read. The boxes below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Business Details entry.';
+    $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read. The boxes below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Business Details entry.';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
 
     if ($siteInfoDamaged) {
-        $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved — saving now would replace them with this mostly empty form. Go to Backups and restore the most recent Business Details entry, then make your change again.';
+        $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved — saving now would replace them with this mostly empty form. Go to Backups and restore the most recent Business Details entry, then make your change again.';
     }
 
     $submittedSig = $_POST['orig_sig'] ?? '';
@@ -148,6 +148,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ],
         'catalogPdfUrl' => sf('catalogPdfUrl', $info['catalogPdfUrl'] ?? ''),
     ];
+    // The shipped site-info.json has no homeLayout, and absent already means
+    // Classic everywhere it is read. Writing 'classic' into it made the first
+    // untouched save a change — "Saved", and a backup slot spent on nothing
+    // (invariant 16; lowsA2-admin V2-1, 2026-11-01). Keep it absent until a
+    // different layout is chosen.
+    if ($updated['theme']['homeLayout'] === 'classic' && !isset($curTh['homeLayout'])) unset($updated['theme']['homeLayout']);
 
     if ($updated['company']['name'] === '') $errors[] = 'Company name is required.';
     // D-01: this field is rendered as an href in the footer of every page, and
@@ -333,7 +339,6 @@ $daysStr  = implode(', ', $asList($hr['days'] ?? []));
 $otherStr = implode("\n", $asList($ce['other'] ?? []));
 $aboutStr = implode("\n", $asList($info['about']['paragraphs'] ?? []));
 $th = $info['theme'] ?? [];
-$navActive = 'settings';
 ?>
 <!doctype html>
 <html lang="en">
@@ -346,9 +351,9 @@ $navActive = 'settings';
   <style>
     /* UX-4 — the amber "saved, but…" box, same as content.php's. */
     .warn-list { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-    .warn-list strong { display: block; font-size: 13px; margin-bottom: 6px; }
+    .warn-list strong { display: block; font-size: var(--fs-2); margin-bottom: 6px; }
     .warn-list ul { margin: 0; padding-left: 20px; }
-    .warn-list li { font-size: 13px; margin-bottom: 4px; line-height: 1.5; overflow-wrap: anywhere; }
+    .warn-list li { font-size: var(--fs-2); margin-bottom: 4px; line-height: 1.5; overflow-wrap: anywhere; }
     .layout { display: flex; gap: 24px; align-items: flex-start; }
     .layout > form { flex: 1 1 auto; min-width: 0; }
     /* D2 — the same clamp as .ipc-preview-col in product-preview.js, and for
@@ -357,23 +362,25 @@ $navActive = 'settings';
        shrinking in relative terms. Applied here for consistency with the
        product editor's panel — if only one of the two previews should widen,
        this is the one to revert. */
-    .preview-col { flex: 0 0 clamp(400px, 32%, 720px); min-width: 0; }
-    .preview-inner { position: sticky; top: 24px; max-height: calc(100vh - 40px); overflow: auto; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
-    .preview-head { position: sticky; top: 0; background: #0d2d52; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; padding: 10px 16px; }
+    /* align-self: stretch — under the row's flex-start the column was only as
+       tall as the preview, so its sticky box had no room to stick in and the
+       preview scrolled away with the first screen (PLAN-13 Phase 3). */
+    .preview-col { flex: 0 0 clamp(400px, 32%, 720px); min-width: 0; align-self: stretch; }
+    .preview-inner { position: sticky; top: calc(var(--admin-bar-h) + var(--form-index-h, 0px) + 16px); max-height: calc(100vh - var(--admin-bar-h) - var(--form-index-h, 0px) - 32px); overflow: auto; background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,45,82,0.06); }
+    .preview-head { position: sticky; top: 0; background: #0d2d52; color: #fff; font-size: var(--fs-1); font-weight: 700; padding: 10px 16px; }
     .preview-body { padding: 16px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
     /* 4.23 — contrast readout under each brand color. Three states: ok (quiet,
        so the page is not shouting when nothing is wrong), warn, and bad. */
-    .cnote { font-size: 11px; margin-top: 6px; line-height: 1.45; border-radius: 6px; padding: 6px 8px; }
+    .cnote { font-size: var(--fs-1); margin-top: 6px; line-height: 1.45; border-radius: 6px; padding: 6px 8px; }
     .cnote-ok   { color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; }
     .cnote-warn { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; }
     .cnote-bad  { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
     .cnote b { font-weight: 700; }
-    input[type=text], textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; }
+    input[type=text], textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: var(--fs-2); color: #141414; outline: none; font-family: inherit; }
     input[type=text]:focus, textarea:focus, select:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     textarea { resize: vertical; line-height: 1.5; }
-    .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
-    .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 4px; }
+    .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
     @media(max-width: 1024px) { .layout { flex-direction: column; } .preview-col { flex: 1 1 auto; width: 100%; } .preview-inner { position: static; max-height: none; } .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -403,7 +410,7 @@ $navActive = 'settings';
     <div class="warn-list" role="status" id="iso-mentions">
       <strong>⚠️ The ISO box is empty, but these entries still mention ISO 9001</strong>
       <ul><?php foreach ($isoLeft as $m): ?><li><?= h($m) ?></li><?php endforeach; ?></ul>
-      <div style="font-size:12px;margin-top:6px">Edit or remove each in the place named (Page Content, Business Details, or Products → Edit for a product's own text). A historical sentence (for example a milestone) can stay if it is still true.</div>
+      <div style="font-size:var(--fs-1);margin-top:6px">Edit or remove each in the place named (Page Content, Business Details, or Products → Edit for a product's own text). A historical sentence (for example a milestone) can stay if it is still true.</div>
     </div>
   <?php endif;
         if ($missingFiles): ?>
@@ -417,7 +424,7 @@ $navActive = 'settings';
   <?php endif; ?>
 
   <div class="layout">
-    <form method="POST">
+    <form method="POST" data-long-form>
       <div class="card">
         <div class="card-title">Branding &amp; Theme</div>
         <div class="grid-2">
@@ -533,7 +540,8 @@ $navActive = 'settings';
           <div class="form-group full">
             <label for="company_description">Short Description</label>
             <textarea id="company_description" name="company_description" rows="3"><?= h($c['description'] ?? '') ?></textarea>
-            <?php /* Docs audit 2026-09-29 — this said "site footer"; measured, the text appears only in the search-engine data (the footer paragraph is fixed). */ ?><div class="hint">Not shown on any page — this is the description of your company given to search engines (Google and the like).</div>
+            <?php /* Docs audit 2026-09-29 — this said "site footer"; measured, the text appears only in the search-engine data (the footer paragraph is fixed).
+                     2026-11-01 — and, since 902291b, under the Corporate homepage's banner (CorporateHome); docmap.js holds both. */ ?><div class="hint">The description of your company given to search engines (Google and the like). On the website it shows only on the homepage in the Corporate layout, under the banner.</div>
           </div>
         </div>
       </div>
@@ -687,7 +695,8 @@ $navActive = 'settings';
         </div>
       </div>
 
-      <div class="form-actions">
+      <div class="save-bar form-actions">
+        <span class="save-status" role="status" aria-live="polite"></span>
         <a href="index.php" class="btn btn-secondary">Cancel</a>
         <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
         <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
@@ -713,6 +722,7 @@ $navActive = 'settings';
 <?php /* 4.23 — live contrast readout as the color picker moves. The same notes
          are already rendered server-side above, so this only keeps them current. */ ?>
 <script src="contrast-guard.js"></script>
+<script src="longform.js"></script>
 <script src="unsaved.js" defer></script>
 </body>
 </html>

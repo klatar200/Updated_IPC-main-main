@@ -1,34 +1,26 @@
 /**
- * PLAN-10 item 5 / AUDIT-10 A10-020 — the Delete button must be readable and
- * reachable on the page Rick uses most.
+ * PLAN-10 item 5 / AUDIT-10 A10-020 — every product action, Delete included,
+ * must be readable and reachable on the page Rick uses most.
  *
- * The defect: admin/index.php sets `table { min-width: 980px; table-layout:
- * fixed; overflow: hidden }`, gives the Actions column `width: 350px`, and sets
- * `.actions { flex-wrap: nowrap }` with `.actions .btn { flex-shrink: 0 }`.
- * Five buttons do not fit in 350px. At desktop-1440 the Actions cell ends at
- * x=1336 while the buttons run to 1388, so Delete is clipped 52 of 69px — and
- * `.table-wrap` has `scrollWidth === clientWidth`, so there is NO way to bring
- * it into view. It is the destructive control, it repeats on all 42 rows, and
- * it stays live and clickable as a ~17px red sliver.
+ * The original defect: five buttons per row in a 350px Actions column of a
+ * `table-layout: fixed` table; at 1440 Delete was clipped 52 of 69px with no
+ * way to scroll it into view. Rewritten 2026-11-01 for PLAN-13 Phase 5, which
+ * replaced the five buttons with Edit plus a More menu (Manage PDF, Photo,
+ * View on site, Delete) and turns each row into a card below 900px (§2 E1,
+ * E2). The question this suite answers is the same.
  *
- * This is specific to the two large viewports. At 834 and 390 the same table
- * genuinely scrolls in its wrapper, which is why the audit measured those as
- * fine and why checks 3/4 below assert they STAY fine.
+ * What it asserts, at 1440, 1024, 834 and 390:
+ *   1. all 42 product rows render
+ *   2. each row's Edit and More, brought into view the way a person can
+ *      (vertical scroll only), are on screen and hit-testable at their centre
+ *   3. each row's More menu, once opened, shows Manage PDF, Photo, View on
+ *      site and Delete, each on screen and hit-testable; Delete renders its
+ *      full label and still carries its confirmation
+ *   4. Delete is not a first-level control: it is inside the closed menu
+ *   5. nothing scrolls sideways — not the page, not a table wrapper
  *
- * What this suite asserts:
- *   1. 1440 + 1024 — every action button's right edge is inside the table's
- *      content box, on all 42 rows. Clipped px 0 (was 52 / 56).
- *   2. 1440 + 1024 — Delete still renders its full label (width >= 60).
- *   3. all four viewports — all five buttons present on every row, and EACH one,
- *      scrolled into view the way a person can, hit-testable at its
- *      own centre (elementFromPoint returns the button or a descendant). This
- *      is the check that actually encodes "Rick can click it".
- *   4. 834 + 390 — unchanged: the table still scrolls inside its card and the
- *      page itself gains no horizontal scroll.
- *
- * Hit-testing rather than geometry alone: a button can sit inside the content
- * box and still be covered. Geometry says "not clipped"; elementFromPoint says
- * "clickable", which is the thing the finding is about.
+ * Hit-testing rather than geometry alone: a control can sit inside its box
+ * and still be covered (by the sticky menu bar, or by another row's menu).
  *
  * Usage: node _harness/plan10-adminrows.js      (needs :8123)
  */
@@ -47,89 +39,52 @@ const VP = {
   'tablet-834': { width: 834, height: 1112 },
   'mobile-390': { width: 390, height: 844 },
 };
-const BIG = ['desktop-1440', 'tablet-1024'];
+const MENU = ['Manage PDF', 'Photo', 'View on site', 'Delete'];
 
-const MEASURE = `(() => {
-  const rows = [];
-  for (const tr of document.querySelectorAll('table tbody tr')) {
-    const cell = tr.querySelector('td:nth-child(5)');
-    if (!cell) continue;
-    const table = tr.closest('table');
-    const wrap = tr.closest('.table-wrap');
-    // The CONTENT box, not the border box: overflow:hidden clips at the
-    // padding edge, and the audit's 1336 is exactly left + clientWidth.
-    const tRect = table.getBoundingClientRect();
-    const contentRight = tRect.left + table.clientWidth;
-    const btns = [...cell.querySelectorAll('a,button')].map((b) => {
-      const r = b.getBoundingClientRect();
-      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-      let hit = null;
-      if (cx >= 0 && cy >= 0 && cx <= innerWidth && cy <= innerHeight) {
-        const el = document.elementFromPoint(cx, cy);
-        hit = !!(el && (el === b || b.contains(el)));
-      }
-      return {
-        text: (b.textContent || '').trim().slice(0, 14),
-        left: Math.round(r.left * 10) / 10,
-        right: Math.round(r.right * 10) / 10,
-        w: Math.round(r.width * 10) / 10,
-        h: Math.round(r.height * 10) / 10,
-        clipped: Math.round(Math.max(0, r.right - contentRight) * 10) / 10,
-        inViewport: cx >= 0 && cy >= 0 && cx <= innerWidth && cy <= innerHeight,
-        hit,
-      };
-    });
-    rows.push({
-      sku: (tr.querySelector('td:nth-child(1)') || {}).textContent?.trim().slice(0, 20) || '?',
-      contentRight: Math.round(contentRight * 10) / 10,
-      cellH: Math.round(cell.getBoundingClientRect().height * 10) / 10,
-      wrapCanScroll: wrap ? wrap.scrollWidth > wrap.clientWidth : null,
-      wrapOverflowPx: wrap ? wrap.scrollWidth - wrap.clientWidth : null,
-      btns,
-    });
-  }
-  return {
-    rows,
-    docOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  };
-})()`;
-
-// Check 3, per button: bring it into view the way a PERSON can — scroll the
-// page vertically to its row and, where the table wrapper is user-scrollable
-// (overflow-x auto/scroll), scroll the wrapper sideways to it — then hit-test
-// its centre. Never scrollIntoView(): that also scrolls overflow:hidden boxes,
-// which a person cannot, and would "reach" a clipped Delete. MEASURE alone ran
-// after the page was back at the top, so only the first screen was ever
-// hit-tested (50/24/26/0 of 210 buttons) — AUDIT-12 A12-L13-10-3.
-const HITALL = `(async () => {
+const WALK = `(async (MENU) => {
   const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const out = [];
-  for (const tr of document.querySelectorAll('table tbody tr')) {
-    const cell = tr.querySelector('td:nth-child(5)');
-    if (!cell) continue;
-    const sku = ((tr.querySelector('td:nth-child(1)') || {}).textContent || '?').trim().slice(0, 20);
-    const wrap = tr.closest('.table-wrap');
-    const userScrollX = wrap && /auto|scroll/.test(getComputedStyle(wrap).overflowX) && wrap.scrollWidth > wrap.clientWidth;
-    for (const b of cell.querySelectorAll('a,button')) {
-      let r = b.getBoundingClientRect();
-      scrollBy(0, (r.top + r.height / 2) - innerHeight / 2);
-      if (userScrollX) {
-        const wr = wrap.getBoundingClientRect();
-        r = b.getBoundingClientRect();
-        wrap.scrollLeft += (r.left + r.width / 2) - (wr.left + Math.min(wr.width, innerWidth) / 2);
+  const hitAt = (el) => {
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const inView = r.width > 0 && cx >= 0 && cy >= 0 && cx <= innerWidth && cy <= innerHeight;
+    const top = inView ? document.elementFromPoint(cx, cy) : null;
+    return { inView, hit: !!(top && (top === el || el.contains(top))), w: Math.round(r.width) };
+  };
+  const bring = async (el) => {
+    const r = el.getBoundingClientRect();
+    scrollBy(0, (r.top + r.height / 2) - innerHeight / 2);
+    await frame();
+  };
+  const rows = [];
+  for (const tr of document.querySelectorAll('tr[data-search]')) {
+    const sku = (tr.querySelector('.sku') || {}).textContent || '?';
+    const edit = tr.querySelector('a[href^="edit.php?sku="]');
+    const det = tr.querySelector('details.row-more');
+    const sum = det && det.querySelector('summary');
+    const del = det && det.querySelector('a[href^="delete.php?sku="]');
+    const row = { sku, edit: null, more: null, menu: [], delFirstLevel: !del || !det.contains(del), delConfirm: !!(del && del.getAttribute('data-confirm')) };
+    if (edit) { await bring(edit); row.edit = hitAt(edit); }
+    if (sum) {
+      await bring(sum); row.more = hitAt(sum);
+      det.open = true; await frame();
+      const menu = det.querySelector('.row-more-menu');
+      // A menu near the bottom of the screen opens below it: scroll the page
+      // so the whole menu shows, as a person would.
+      const mr = menu.getBoundingClientRect();
+      if (mr.bottom > innerHeight) { scrollBy(0, mr.bottom - innerHeight + 12); await frame(); }
+      for (const a of menu.querySelectorAll('a')) {
+        const label = a.textContent.trim();
+        const m = MENU.find((x) => label.startsWith(x));
+        row.menu.push({ label: m || label, ...hitAt(a) });
       }
-      await frame();
-      r = b.getBoundingClientRect();
-      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-      const inView = cx >= 0 && cy >= 0 && cx <= innerWidth && cy <= innerHeight;
-      const el = inView ? document.elementFromPoint(cx, cy) : null;
-      out.push({ sku, text: (b.textContent || '').trim().slice(0, 14), inView, hit: !!(el && (el === b || b.contains(el))) });
+      det.open = false; await frame();
     }
-    if (wrap) wrap.scrollLeft = 0;
+    rows.push(row);
   }
   scrollTo(0, 0);
-  return out;
-})()`;
+  const wraps = [...document.querySelectorAll('.table-wrap')].filter((w) => w.scrollWidth > w.clientWidth + 1).length;
+  return { rows, wrapsScrolling: wraps, docOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+})`;
 
 const results = [];
 function note(ok, msg, detail) {
@@ -137,91 +92,45 @@ function note(ok, msg, detail) {
   console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${msg}${!ok && detail ? `\n         <- ${detail}` : ''}`);
 }
 
-async function signIn(ctx) {
-  const page = await ctx.newPage();
-  await page.goto(`${BASE}/admin/auth.php`, { waitUntil: 'domcontentloaded' });
-  await page.fill('input[type="password"]', PW);
-  await page.click('button[type="submit"]');
-  await page.waitForLoadState('domcontentloaded');
-  return page;
-}
-
 (async () => {
   const browser = await launch();
   const data = {};
-
   for (const vp of Object.keys(VP)) {
     const ctx = await browser.newContext({ viewport: VP[vp] });
-    const page = await signIn(ctx);
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/admin/auth.php`, { waitUntil: 'domcontentloaded' });
+    await page.fill('input[type="password"]', PW);
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState('domcontentloaded');
     await page.goto(`${BASE}/admin/index.php`, { waitUntil: 'networkidle' });
-    await page.waitForSelector('table tbody tr', { state: 'attached' });
-    // Scroll each row into view before hit-testing, the way a person would.
-    await page.evaluate(`(async () => {
-      const h = document.body.scrollHeight;
-      for (let y = 0; y < h; y += 400) { scrollTo(0, y); await new Promise(r => setTimeout(r, 15)); }
-      scrollTo(0, 0);
-    })()`);
-    await page.waitForTimeout(200);
-    data[vp] = await page.evaluate(MEASURE);
-    data[vp].hits = await page.evaluate(HITALL);
+    data[vp] = await page.evaluate(`${WALK}(${JSON.stringify(MENU)})`);
     await ctx.close();
-    process.stdout.write(`  · ${vp.padEnd(14)} ${data[vp].rows.length} rows, ` +
-      `${data[vp].rows[0] ? data[vp].rows[0].btns.length : 0} buttons/row\n`);
+    console.log(`  · ${vp.padEnd(14)} ${data[vp].rows.length} rows`);
   }
   await browser.close();
   fs.writeFileSync(path.join(OUT, 'adminrows.json'), JSON.stringify(data, null, 2));
 
-  const n = data['desktop-1440'].rows.length;
-  note(n === 42, `the catalog renders all 42 product rows (${n})`);
-
-  // ── 1. nothing clipped at the two large viewports ─────────────────────────
-  for (const vp of BIG) {
-    const bad = [];
-    for (const r of data[vp].rows) for (const b of r.btns) if (b.clipped > 0.5) bad.push(`${r.sku} "${b.text}" ${b.clipped}px past ${r.contentRight}`);
-    const worst = Math.max(0, ...data[vp].rows.flatMap((r) => r.btns.map((b) => b.clipped)));
-    note(bad.length === 0,
-      `${vp}: every action button is inside the table content box on ${data[vp].rows.length} rows ` +
-      `— worst clip ${worst}px (was 52 / 56)`,
-      bad.slice(0, 4).join(' | ') + (bad.length > 4 ? ` (+${bad.length - 4})` : ''));
-  }
-
-  // ── 2. Delete renders its full label ──────────────────────────────────────
-  for (const vp of BIG) {
-    const dels = data[vp].rows.map((r) => r.btns.find((b) => /Delete/i.test(b.text))).filter(Boolean);
-    const narrow = dels.filter((b) => b.w < 60);
-    note(dels.length === data[vp].rows.length && narrow.length === 0,
-      `${vp}: the Delete button renders its full label on ${dels.length - narrow.length}/${data[vp].rows.length} rows ` +
-      `(min width ${dels.length ? Math.min(...dels.map((b) => b.w)) : 'n/a'}px, floor 60)`,
-      narrow.slice(0, 3).map((b) => `${b.w}px`).join(', '));
-  }
-
-  // ── 3. every button actually clickable, all four viewports ────────────────
   for (const vp of Object.keys(VP)) {
-    const rows = data[vp].rows;
-    const hits = data[vp].hits || [];
-    const present = rows.reduce((n, r) => n + r.btns.length, 0);
-    const notInView = hits.filter((h) => !h.inView);
-    const miss = hits.filter((h) => h.inView && !h.hit).map((h) => `${h.sku} "${h.text}"`);
-    const counts = new Set(rows.map((r) => r.btns.length));
-    note(miss.length === 0 && notInView.length === 0 && hits.length === present && counts.size === 1 && counts.has(5),
-      `${vp}: all 5 action buttons present on every row and each one, brought into view, is hit-testable ` +
-      `(${rows.length} rows, ${[...counts].join('/')} buttons each; ${hits.length - notInView.length}/${present} hit-tested, ${miss.length} unreachable)`,
-      [...miss.slice(0, 4), ...notInView.slice(0, 2).map((h) => `${h.sku} "${h.text}" could not be brought into view`)].join(', '));
-  }
+    const { rows } = data[vp];
+    note(rows.length === 42, `${vp}: the catalog renders all 42 product rows (${rows.length})`);
 
-  // ── 4. the small viewports are UNCHANGED ──────────────────────────────────
-  for (const vp of ['tablet-834', 'mobile-390']) {
-    const rows = data[vp].rows;
-    const scrolls = rows.filter((r) => r.wrapCanScroll).length;
-    note(scrolls === rows.length,
-      `${vp}: the table still scrolls inside its card on ${scrolls}/${rows.length} rows ` +
-      `(${rows[0] ? rows[0].wrapOverflowPx : '?'}px scrollable — unchanged)`);
-    note(data[vp].docOverflow === 0,
-      `${vp}: the page itself gains no horizontal scroll (documentElement overflow ${data[vp].docOverflow}px)`);
-  }
-  for (const vp of BIG) {
-    note(data[vp].docOverflow === 0,
-      `${vp}: the page itself gains no horizontal scroll (documentElement overflow ${data[vp].docOverflow}px)`);
+    const badTop = rows.filter((r) => !(r.edit && r.edit.hit && r.more && r.more.hit))
+      .map((r) => `${r.sku} edit ${r.edit ? (r.edit.hit ? 'ok' : r.edit.inView ? 'covered' : 'off-screen') : 'missing'}, more ${r.more ? (r.more.hit ? 'ok' : r.more.inView ? 'covered' : 'off-screen') : 'missing'}`);
+    note(badTop.length === 0, `${vp}: Edit and More on screen and hit-testable on ${rows.length - badTop.length}/${rows.length} rows`, badTop.slice(0, 4).join(' | '));
+
+    const badMenu = rows.filter((r) => MENU.some((m) => !r.menu.find((x) => x.label === m && x.hit)))
+      .map((r) => `${r.sku}: ${r.menu.map((x) => `${x.label}=${x.hit ? 'ok' : x.inView ? 'covered' : 'off'}`).join(', ')}`);
+    note(badMenu.length === 0, `${vp}: each More menu shows ${MENU.join(', ')}, all hit-testable, on ${rows.length - badMenu.length}/${rows.length} rows`, badMenu.slice(0, 3).join(' | '));
+
+    const dels = rows.map((r) => r.menu.find((x) => x.label === 'Delete')).filter(Boolean);
+    const narrow = dels.filter((d) => d.w < 60);
+    note(dels.length === rows.length && narrow.length === 0 && rows.every((r) => r.delConfirm),
+      `${vp}: Delete renders its full label (min ${dels.length ? Math.min(...dels.map((d) => d.w)) : 'n/a'}px, floor 60) and keeps its confirmation on every row`);
+
+    note(rows.every((r) => !r.delFirstLevel), `${vp}: Delete sits inside the More menu on every row, not beside Edit`);
+
+    note(data[vp].docOverflow === 0 && data[vp].wrapsScrolling === 0,
+      `${vp}: nothing scrolls sideways (page overflow ${data[vp].docOverflow}px, ${data[vp].wrapsScrolling} table wrappers scrolling)`);
   }
 
   const bad = results.filter((r) => !r.ok).length;

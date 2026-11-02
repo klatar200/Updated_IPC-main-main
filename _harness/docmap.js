@@ -62,12 +62,16 @@ const markers = {};                     // marker → field
 const mk = (field) => { const m = `zq${(n++).toString(36)}zq`; markers[m] = field; return m; };
 const SKIP_CONTENT = /^(csrf_token|orig_sig|form_complete)$|\[(ctaPrimaryPage|ctaSecondaryPage|iconKey|page)\]$/;
 // Fields that must hold a validated value — no marker, checked by name below.
-const SKIP_SETTINGS = /^(csrf_token|orig_sig|theme_(primary|dark|accent|accent2)|company_foundedYear|contact_phone|contact_phoneDial|hours_(opens|closes|days))$/;
+// theme_layout is a <select> of HOME_LAYOUTS keys (902291b); a marker in it is
+// refused, which took the whole Business Details save down with it.
+const SKIP_SETTINGS = /^(csrf_token|orig_sig|theme_(primary|dark|accent|accent2|layout)|company_foundedYear|contact_phone|contact_phoneDial|hours_(opens|closes|days))$/;
 
 function markContent(pairs) {
   return pairs.map(([k, v]) => {
     if (SKIP_CONTENT.test(k)) return [k, v];
-    if (/\[siteImages\]/.test(k)) return [k, `uploads/site/${mk(k)}.jpg`];
+    // A card's Photo box (902291b) must name a picture on the site, like the
+    // Site Images slots; "<old path> zq…zq" was refused and nothing saved.
+    if (/\[siteImages\]/.test(k) || /^features\[\d+\]\[photo\]$/.test(k)) return [k, `uploads/site/${mk(k)}.jpg`];
     if (/\[brochure_url\]$/.test(k)) return [k, `/pdfs/${mk(k)}.pdf`];
     // A card's "Links to" box (AUDIT-12 decision 48) must be a page of the site:
     // a family that does not exist only warns, so the marker rides in ?family=.
@@ -124,7 +128,28 @@ function record(route, snap) {
   }
 }
 
-async function crawl(browser) {
+async function crawl(browser, site) {
+  // Some Page Content boxes show only in one homepage layout (902291b): the
+  // card Photo boxes in Light, copy[homeLayouts][…] in the last three. Look at
+  // "/" in each of them in the private copy, then put Classic back.
+  {
+    const f = path.join(site, 'site-data', 'site-info.json');
+    const orig = fs.readFileSync(f, 'utf8');
+    const si = JSON.parse(orig);
+    try {
+      for (const lay of ['bold', 'light', 'distributor', 'corporate', 'sidebar']) {
+        fs.writeFileSync(f, JSON.stringify({ ...si, theme: { ...(si.theme || {}), homeLayout: lay } }));
+        const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+        const page = await ctx.newPage();
+        const requested = [];
+        page.on('request', (rq) => requested.push(rq.url()));
+        await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+        record(`/#${lay}`, await page.evaluate(COLLECT));
+        record(`/#${lay}`, { requests: requested.join('\n') });
+        await ctx.close();
+      }
+    } finally { fs.writeFileSync(f, orig); }
+  }
   for (const w of [1440, 390]) {
     for (const route of ROUTES) {
       const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
@@ -194,8 +219,8 @@ async function crawl(browser) {
   const SITE = path.join(TMP, 'site');
   const MAIL = path.join(TMP, 'mail.log');
   fs.cpSync(MIRROR, SITE, { recursive: true, filter: (p) => !/\/admin\/(\.sessions|.*\.jsonl$|\.login-throttle\.json$|\.inquiries-seen\.json$)/.test(p) });
-  for (const f of ['products-all.json', 'content.json', 'site-info.json']) fs.copyFileSync(path.join(__dirname, 'pristine', f), path.join(SITE, 'data', f));
-  for (const x of fs.readdirSync(path.join(SITE, 'data'))) if (/\.backup\./.test(x)) fs.rmSync(path.join(SITE, 'data', x));
+  for (const f of ['products-all.json', 'content.json', 'site-info.json']) fs.copyFileSync(path.join(__dirname, 'pristine', f), path.join(SITE, 'site-data', f));
+  for (const x of fs.readdirSync(path.join(SITE, 'site-data'))) if (/\.backup\./.test(x)) fs.rmSync(path.join(SITE, 'site-data', x));
   fs.copyFileSync(path.join(__dirname, 'fakemail.sh'), path.join(TMP, 'fakemail.sh'));   // php-mail.ini: sendmail_path = ../fakemail.sh
   // Its own temp dir: contact.php keeps its per-IP rate limit and auto-reply
   // cap there, and the shared one fills up after a couple of runs (measured:
@@ -222,13 +247,13 @@ async function crawl(browser) {
     const eg = await a.req('GET', `/admin/edit.php?sku=${SKU}`);
     const er = await a.post(`/admin/edit.php?sku=${SKU}`, markProduct(a.formFields(eg.body, /orig_sig/)));
     note(er.status === 302, `setup: product ${SKU} saves with a marker in its text fields`, `status ${er.status}`);
-    const disk = ['content.json', 'site-info.json', 'products-all.json'].map((f) => fs.readFileSync(path.join(SITE, 'data', f), 'utf8').toLowerCase()).join('\n');
+    const disk = ['content.json', 'site-info.json', 'products-all.json'].map((f) => fs.readFileSync(path.join(SITE, 'site-data', f), 'utf8').toLowerCase()).join('\n');
     const lost = Object.entries(markers).filter(([m]) => !disk.includes(m)).map(([, f]) => f);
     note(lost.length === 0, `setup: all ${Object.keys(markers).length} markers reached the data files`, lost.slice(0, 8).join(', '));
 
     // ── 2. crawl ──
     browser = await launch();
-    await crawl(browser);
+    await crawl(browser, SITE);
     const mail = fs.existsSync(MAIL) ? fs.readFileSync(MAIL, 'utf8') : '';
     const mailText = (mail.replace(/=\r?\n/g, '') + '\n' + (mail.match(/^[A-Za-z0-9+/=]{40,}$/gm) || []).map((l) => Buffer.from(l, 'base64').toString('utf8')).join('\n')).toLowerCase();
     for (const m of Object.keys(markers)) if (mailText.includes(m)) (seen[m] = seen[m] || new Set()).add('email');
@@ -247,9 +272,12 @@ async function crawl(browser) {
 
     // ── 3b. the Help page's specific claims ──
     const visibleAnywhere = (field) => where(field).some((w) => / visible$/.test(w));
-    for (const f of ['company_description', 'addr_country']) {
-      note(where(f).length > 0 && !visibleAnywhere(f), `Help: "${f}" is not shown on any page, only to search engines`, where(f).slice(0, 4).join(', '));
-    }
+    note(where('addr_country').length > 0 && !visibleAnywhere('addr_country'), 'Help: "addr_country" is not shown on any page, only to search engines', where('addr_country').slice(0, 4).join(', '));
+    // Help said "not shown on any page" until 2026-11-01; the Corporate
+    // homepage prints it under the banner (CorporateHome, 902291b).
+    const descSeen = where('company_description').filter((w) => / visible$/.test(w)).map((w) => w.split(' ')[0]);
+    note(where('company_description').some((w) => / ld$/.test(w)) && descSeen.length > 0 && descSeen.every((r) => r === '/#corporate'),
+      'Help: Short Description goes to search engines, and is shown only on the Corporate homepage', where('company_description').slice(0, 6).join(', '));
     note(!visibleAnywhere('company_shortName') && where('company_shortName').some((w) => / title$/.test(w)),
       'Help: Short Name is not in page text, but can end a product page\'s browser-tab title');
     const ot = where('product.operatingTemp').filter((w) => / visible$/.test(w)).map((w) => w.split(' ')[0]);
@@ -278,6 +306,7 @@ async function crawl(browser) {
     // input with no entry here fails: document it, then add it.
     const DOC_TERMS = {
       theme_primary: 'Primary', theme_dark: 'Dark', theme_accent: 'colors', theme_accent2: 'Secondary accent', theme_logo: 'Logo URL',
+      theme_layout: 'Homepage layout',
       company_name: 'Company name', company_shortName: 'Short name', company_foundedYear: 'Founded year', company_slogan: 'Slogan',
       company_description: 'Short Description', contact_phone: 'Phone', contact_phoneDial: 'dial', contact_fax: 'fax', contact_email: 'email',
       addr_street: 'Address', addr_city: 'Address', addr_state: 'Address', addr_zip: 'Address', addr_country: 'Country',
@@ -320,7 +349,7 @@ async function crawl(browser) {
       note(/No datasheets found/.test(ds) && ds.includes(NEWPHONE) && !ds.includes('630.771.0700'), '§2t: /datasheets "No datasheets found" gives the Business Details phone');
       const pr = await read('/products', 'Search by part number');
       note(/No products found/.test(pr) && pr.includes(NEWPHONE) && !pr.includes('630.771.0700'), '§2t: /products "No products found" gives the Business Details phone');
-      const cat = path.join(SITE, 'data', 'products-all.json');
+      const cat = path.join(SITE, 'site-data', 'products-all.json');
       const keep = fs.readFileSync(cat);
       fs.writeFileSync(cat, '[]');
       const dash = await read('/dashboard');

@@ -35,9 +35,9 @@ const atBase = (p) => {
   catch (e) { return null; }
 };
 
-const content = json('data/content.json');
-const site = json('data/site-info.json');
-const products = json('data/products-all.json');
+const content = json('site-data/content.json');
+const site = json('site-data/site-info.json');
+const products = json('site-data/products-all.json');
 // The records were measured on BASE, and several of their claims are OPEN
 // OWNER ITEMS in WHATS_LEFT (the FAQ's button name, a catalog PDF, the
 // "Products Stocked" figure, other certifications). Reading them at HEAD made
@@ -45,6 +45,7 @@ const products = json('data/products-all.json');
 // arm below already avoids. Record arms read the data AT BASE; arms that are
 // about today say so and never fail on a resolved item (AUDIT-12 A12-L13-06-1).
 const dataAtBase = (p, fallback) => { const t = atBase(p); return t ? JSON.parse(t) : fallback; };
+// At BASE the folder was still data/ (renamed site-data/ 2026-10-31).
 const baseContent = dataAtBase('data/content.json', content);
 const baseSite = dataAtBase('data/site-info.json', site);
 const baseCatalog = dataAtBase('data/products-all.json', products);

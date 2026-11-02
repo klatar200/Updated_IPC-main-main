@@ -30,6 +30,17 @@ with the Workflow tool:
 Written and tested 2026-10-07; **run 2026-10-07 → 2026-10-13** — report in
 [`audit-runs/audit12.md`](../audit-runs/audit12.md) (no fixes). The kickoff prompt is its §14.
 
+**In progress: [PLAN-13](PLAN-13-admin-dashboard-ux.md)** — the admin
+dashboard's navigation, layout and readability (2026-10-31). Phases 0–8 are done
+on `claude/admin-ux`: the guard suite, one type scale, the sticky grouped
+menu bar, the long-form pattern (sticky save bar, section strip, Hide/Show),
+Page Content regrouped by public page with a "Find a box" filter, the
+Products list redesigned (Edit + More menu, photo and PDF chips, category chips,
+cards on a phone), search, filters, paging and day headings on Inquiries
+and the Audit Log, with each backup saying what it was saved ahead of, and a
+phone, keyboard and contrast pass over the whole admin. Phase 8 added the
+Overview (`admin/home.php`), where sign-in now lands. Nothing is merged to `main` yet.
+
 ---
 
 ## Where the earlier plans went

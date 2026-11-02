@@ -64,6 +64,60 @@ const REC = path.join(TMP, 'rec.sh');
 fs.writeFileSync(REC, `#!/bin/sh\nmsg=$(cat)\n[ -f "${SLOW}" ] && sleep "$(cat "${SLOW}")"\n[ -f "${FAILMAIL}" ] && exit 1\n{ echo "===MESSAGE==="; printf '%s\\n' "$msg"; echo; } >> "${MAIL}"\nexit 0\n`);
 fs.chmodSync(REC, 0o755);
 
+// PHP for Windows runs sendmail_path but ignores its exit status: rec.sh's
+// `exit 1` still came back from mail() as true, so the refused-send arms of 42
+// and 19 never saw a refusal, and the dashboard checks after them counted the
+// wrong rows (measured 2026-11-01). There, mail() goes over SMTP instead, to
+// this sink, which does what rec.sh does: waits while SLOW holds a number,
+// answers 554 while FAILMAIL exists, otherwise appends the message to MAIL.
+const WIN = process.platform === 'win32';
+let smtpPort = 0;
+const sinks = [];
+function smtpSink() {
+  const net = require('net');
+  const srv = net.createServer((sock) => {
+    sock.on('error', () => {});
+    const say = (s) => { if (!sock.destroyed) sock.write(s + '\r\n'); };
+    let buf = '', inData = false, msg = '', busy = Promise.resolve();
+    const line = async (l) => {
+      if (inData) {
+        if (l !== '.') { msg += (l.startsWith('..') ? l.slice(1) : l) + '\n'; return; }
+        inData = false;
+        if (fs.existsSync(SLOW)) await new Promise((r) => { const t = setTimeout(r, 1000 * Number(fs.readFileSync(SLOW, 'utf8'))); t.unref(); });
+        if (fs.existsSync(FAILMAIL)) say('554 refused by the leadpath12 sink');
+        else { fs.appendFileSync(MAIL, `===MESSAGE===\n${msg}\n`); say('250 queued'); }
+        msg = '';
+        return;
+      }
+      if (/^DATA\b/i.test(l)) { inData = true; say('354 go ahead'); return; }
+      if (/^QUIT\b/i.test(l)) { say('221 bye'); sock.end(); return; }
+      say('250 ok');
+    };
+    say('220 leadpath12 sink');
+    sock.on('data', (d) => {
+      buf += d.toString('utf8');
+      let i;
+      while ((i = buf.indexOf('\r\n')) >= 0) { const l = buf.slice(0, i); buf = buf.slice(i + 2); busy = busy.then(() => line(l)); }
+    });
+  });
+  sinks.push(srv);
+  return new Promise((r) => srv.listen(0, '127.0.0.1', () => r(srv.address().port)));
+}
+const mailArgs = () => (WIN
+  ? ['-d', 'SMTP=127.0.0.1', '-d', `smtp_port=${smtpPort}`]
+  : ['-d', `sendmail_path=sh ${REC.replace(/\\/g, '/')}`]);
+// SMTP is used only when sendmail_path is ABSENT: `-d sendmail_path=` leaves
+// it set to "", PHP popen()s an empty command and mail() returns true having
+// sent nothing (measured). So on Windows the servers get php-mail.ini and this
+// machine's php-local.ini merged into one file with that line left out, and no
+// scan directory.
+let SMTP_INI = null;
+if (WIN) {
+  const strip = (s) => s.split(/\r?\n/).filter((l) => !/^\s*sendmail_path\s*=/.test(l)).join('\n');
+  SMTP_INI = path.join(TMP, 'php-smtp.ini');
+  fs.writeFileSync(SMTP_INI, `${strip(fs.readFileSync(path.join(__dirname, 'php-mail.ini'), 'utf8'))}\n${strip(fs.readFileSync(require('./php-local').ensure().file, 'utf8'))}\n`);
+}
+
 const servers = [];
 const tempOf = {};
 // The 5-per-10-minutes limiter is not under test in 19's arms; empty it.
@@ -71,9 +125,9 @@ const clearLimiter = (port) => { for (const f of fs.readdirSync(tempOf[port])) i
 function server(port, extra = []) {
   const t = fs.mkdtempSync(path.join(TMP, `t${port}-`));
   tempOf[port] = t;
-  const p = spawn('php', ['-S', `127.0.0.1:${port}`, '-t', T, '-c', path.join(__dirname, 'php-mail.ini'),
-    '-d', `sendmail_path=${REC}`, '-d', `sys_temp_dir=${t}`, ...extra, path.join(__dirname, 'router.php')],
-  { cwd: T, stdio: 'ignore', detached: true });
+  const p = spawn('php', ['-S', `127.0.0.1:${port}`, '-t', T, '-c', SMTP_INI || path.join(__dirname, 'php-mail.ini'),
+    ...mailArgs(), '-d', `sys_temp_dir=${t}`, ...extra, path.join(__dirname, 'router.php')],
+  { cwd: T, stdio: 'ignore', detached: true, env: WIN ? { ...process.env, PHP_INI_SCAN_DIR: '' } : process.env });
   servers.push(p);
   return p;
 }
@@ -110,6 +164,7 @@ async function rfq(port, extra = {}, headers = {}) {
     console.log('leadpath12: no synced mirror — run npm run build && sh _harness/sync.sh');
     process.exit(2);
   }
+  if (WIN) smtpPort = await smtpSink();
   execFileSync('cp', ['-r', SITE, T]);
   fs.rmSync(path.join(T, 'admin', '.sessions'), { recursive: true, force: true });
   for (const f of fs.readdirSync(path.join(T, 'admin'))) {
@@ -368,8 +423,9 @@ async function rfq(port, extra = {}, headers = {}) {
     }
   } finally {
     for (const p of servers) stop(p);
-    await sleep(200);
-    fs.rmSync(TMP, { recursive: true, force: true });
+    for (const s of sinks) s.close();
+    await sleep(WIN ? 1000 : 200);   // Windows releases a killed php.exe's handles late (EPERM on the rm)
+    try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) { console.log(`leadpath12: could not remove ${TMP} (${e.code}) — harmless, it is in the temp dir`); }
   }
 
   const bad = results.filter((r) => !r.ok).length;

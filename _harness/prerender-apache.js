@@ -71,9 +71,9 @@ try {
   fs.mkdirSync(PUB, { recursive: true });
   spawnSync('cp', ['-r', path.join(ROOT, 'dist') + '/.', PUB]);
   fs.writeFileSync(path.join(PUB, '.htaccess'), src('public/.htaccess'));
-  fs.mkdirSync(path.join(PUB, 'data'), { recursive: true });
-  fs.writeFileSync(path.join(PUB, 'data', '.htaccess'), src('data/.htaccess'));
-  for (const f of ['products-all.json', 'site-info.json', 'content.json']) fs.copyFileSync(path.join(ROOT, 'data', f), path.join(PUB, 'data', f));
+  fs.mkdirSync(path.join(PUB, 'site-data'), { recursive: true });
+  fs.writeFileSync(path.join(PUB, 'site-data', '.htaccess'), src('site-data/.htaccess'));
+  for (const f of ['products-all.json', 'site-info.json', 'content.json']) fs.copyFileSync(path.join(ROOT, 'site-data', f), path.join(PUB, 'site-data', f));
   spawnSync('chmod', ['-R', 'a+rX', WORK]);
   fs.mkdirSync(path.join(WORK, 'logs'), { recursive: true });
   const mods = ['mpm_prefork', 'authz_core', 'authz_host', 'access_compat', 'mime', 'headers', 'setenvif', 'dir', 'alias', 'rewrite', 'deflate', 'filter']
@@ -165,7 +165,7 @@ DocumentRoot ${PUB}
   const sm = get(`${B}/sitemap.xml`);
   note(sm.status === 200 && /<urlset/.test(sm.body) && /productId=CC</.test(sm.body), '/sitemap.xml is still the generated sitemap', String(sm.status));
 
-  fs.writeFileSync(path.join(PUB, 'data', 'content.json'), '{ broken');
+  fs.writeFileSync(path.join(PUB, 'site-data', 'content.json'), '{ broken');
   const fb = get(`${B}/about`);
   note(fb.status === 200 && fb.body === shell, 'a damaged content.json serves index.html byte for byte', `${fb.status} ${fb.body.length}/${shell.length}`);
 

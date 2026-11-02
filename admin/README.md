@@ -11,7 +11,7 @@ appears on the public website within ~60 seconds.
    Public visitors  ───→  │ React site at yourdomain.com │  ──┐
                           └──────────────────────────────┘    │  fetches
                                                               ↓
-                                                  /data/products-all.json
+                                                  /site-data/products-all.json
                                                               ↑
                           ┌──────────────────────────────┐    │  reads / writes
    You (admin)      ───→  │ Admin at yourdomain.com/admin│  ──┘
@@ -26,13 +26,13 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 
 | Path | Access |
 |---|---|
-| `data/products-all.json` | read / write |
-| `data/site-info.json` | read / write |
-| `data/content.json` | read / write |
-| `data/*.json.<pid>-<n>.tmp` | write then rename over the target (atomic save); a leftover means a killed process |
-| `data/*.backup.*.json` | write / prune (90 kept per prefix, `BACKUP_KEEP`) |
-| `data/.products-write.lock` | create / `flock` around every catalog save (SEC-5) |
-| `data/.content-write.lock`, `data/.site-info-write.lock` | create / `flock` around every Page Content / Business Details write (`data_write_lock()`, WHATS_LEFT §1an) |
+| `site-data/products-all.json` | read / write |
+| `site-data/site-info.json` | read / write |
+| `site-data/content.json` | read / write |
+| `site-data/*.json.<pid>-<n>.tmp` | write then rename over the target (atomic save); a leftover means a killed process |
+| `site-data/*.backup.*.json` | write / prune (90 kept per prefix, `BACKUP_KEEP`) |
+| `site-data/.products-write.lock` | create / `flock` around every catalog save (SEC-5) |
+| `site-data/.content-write.lock`, `site-data/.site-info-write.lock` | create / `flock` around every Page Content / Business Details write (`data_write_lock()`, WHATS_LEFT §1an) |
 | `pdfs/` | read / write (created if absent, with `pdfs/.htaccess` written if missing — `pdfs_protection_problem()`); removed and replaced-by-rename data sheets go to `.deleted.*`, not deleted |
 | `pdfs/marketing/` | read / write, never erased (created at runtime if absent by `marketing-pdfs.php`); catalog and brochure PDFs, named from the uploaded file's own name, never overwritten (`-2`, `-3` …). **Take Off the Website** renames a PDF no current use points at to `.deleted.<name>` (`file_to_trash()`, AUDIT-12 decision 39); nothing prunes or restores those |
 | `uploads/images/` | read / write / delete (created at runtime if absent); every JPG/PNG/WEBP upload is re-encoded by gd into `.upload-<pid>-<rand>.tmp` in the target folder and renamed in (AUDIT-12 decisions 23/27; `uploads/site/` the same) |
@@ -52,12 +52,12 @@ store and trash — audit 2026-09-27 DEP-11). It matches the list in `CLAUDE.md`
 | `admin/ALLOW-PASSWORD-RESET` | read / delete — you create it over FTP; the admin never does |
 
 `public/contact.php` is a **second** dynamic piece: it ships into `dist/`,
-reads `data/site-info.json` and `data/content.json`, calls `mail()`, appends to
+reads `site-data/site-info.json` and `site-data/content.json`, calls `mail()`, appends to
 `admin/inquiries.jsonl` (rotating it at 16 MB), writes and clears
 `admin/.inquiry-log-failed.json`, and keeps its rate-limit / auto-reply-cap
 state as `ipc_rl_*`, `ipc_ar_*`, `ipc_lk_*` files in the PHP temp dir.
 
-The React site reads the three `data/*.json` files at runtime. The React build
+The React site reads the three `site-data/*.json` files at runtime. The React build
 itself is fully static.
 
 ## Server file layout (on Network Solutions, under `public_html/`)
@@ -65,7 +65,7 @@ itself is fully static.
 ```
 public_html/
 ├── index.html              ← React app (FTP'd from your local /dist)
-├── index.php               ← front controller: every page's head + plain-HTML body from data/ (A-5.10)
+├── index.php               ← front controller: every page's head + plain-HTML body from site-data/ (A-5.10)
 ├── assets/                 ← Hashed JS/CSS from Vite
 ├── contact.php             ← Contact/RFQ mail handler (ships inside dist/)
 ├── sitemap.php             ← Live sitemap, served at /sitemap.xml (there is no sitemap.xml file)
@@ -73,7 +73,7 @@ public_html/
 ├── .htaccess               ← rewrite to index.php + cache headers + dotfile block
 ├── .user.ini               ← PHP limits for public_html/ and everything under it
 ├── images/                 ← Static site imagery
-├── data/
+├── site-data/
 │   ├── .htaccess           ← Blocks backups, dotfiles, PHP execution
 │   ├── products-all.json   ← Live product catalog (admin edits this)
 │   ├── site-info.json      ← Business details (admin edits this)
@@ -93,12 +93,23 @@ public_html/
     ├── config.local.php    ← Admin password hash (written on the server by the reset flow — never uploaded; gitignored)
     ├── nav.php             ← Shared header/nav, included on every page
     ├── auth.php            ← Login / logout / FTP-unlocked password recovery
-    ├── index.php           ← Product dashboard + server-health banner
+    ├── home.php            ← Overview, where sign-in lands (PLAN-13 Phase 8): new
+    │                         leads, server problems, products missing a photo or
+    │                         data sheet, the last 5 changes, shortcuts. Reads only.
+    ├── index.php           ← All Products + server-health banner. One row per
+    │                         product: photo, SKU, name, temperature, PDF/photo chips,
+    │                         Edit + a More menu (`<details>`; Delete inside, in red);
+    │                         category chips; cards below 900px (PLAN-13 Phase 5).
+    │                         search.js: search, category filter, one More open at a time
     ├── add.php / edit.php / delete.php
     ├── settings.php        ← Business Details editor  (site-info.json)
     ├── content.php         ← Page Content editor      (content.json)
-    ├── inquiries.php       ← Contact-form lead viewer (inquiries.jsonl)
-    ├── backups.php         ← Self-service restore of any data/*.json backup
+    ├── inquiries.php       ← Contact-form lead viewer (inquiries.jsonl). ?q= ?type=
+    │                         ?status= ?since= ?page= (25 a page, by day; New since the
+    │                         last visit kept in the session); listfilter.js applies them live
+    ├── backups.php         ← Self-service restore of any site-data/*.json backup; each
+    │                         says what it was saved ahead of (backup_change_notes(),
+    │                         from the audit log)
     ├── password.php        ← Signed-in password change
     ├── upload-pdf.php      ← Upload, replace, or remove a PDF
     ├── upload-image.php    ← Upload or remove a product photo
@@ -107,10 +118,13 @@ public_html/
     ├── logo.svg            ← Admin favicon / header mark
     ├── ping.php            ← Session keepalive probe for unsaved.js
     ├── help.php            ← In-app help & documentation
-    ├── audit-log.php       ← View every change made through the admin
+    ├── audit-log.php       ← View every change made through the admin. ?q= (older ?sku=)
+    │                         ?action= ?page= (50 a page, by day); listfilter.js live
     ├── *.js                ← confirm / search / spectable-editor / content-editor /
     │                         unsaved / help / product-preview / settings-preview /
-    │                         contrast-guard / csrf-back  (ten files; `ls admin/*.js`)
+    │                         contrast-guard / csrf-back / site-images / nav /
+    │                         longform / listfilter
+    │                         (fourteen files; `ls admin/*.js`)
     ├── admin-log.jsonl     ← Audit log (auto-created on first save)
     ├── inquiries.jsonl     ← Contact-form leads (written by contact.php)
     ├── admin-log-*.jsonl, inquiries-*.jsonl ← Rotated archives (16 MB), never deleted
@@ -128,20 +142,20 @@ public_html/
 ## First-time deploy (one-time setup)
 
 > **Which deploy is this? Answer before following anything below.** Open
-> `https://www.insulationproducts.com/data/products-all.json`. A catalog of
+> `https://www.insulationproducts.com/site-data/products-all.json`. A catalog of
 > products means the site is live and this section is history — use the
 > manifest in the root [README.md](../README.md), and **never upload the
-> contents of `data/`, `pdfs/` or `uploads/` from the repo**, because they are live customer state, an FTP
+> contents of `site-data/`, `pdfs/` or `uploads/` from the repo**, because they are live customer state, an FTP
 > overwrite creates no backup, and it destroys every edit the owner has made.
 > A 404 means this is the **first** deploy, the steps below are the ones to
-> follow, and `data/`, `pdfs/` and `uploads/` go up exactly once, now.
+> follow, and `site-data/`, `pdfs/` and `uploads/` go up exactly once, now.
 > [`GO-LIVE.md`](../GO-LIVE.md) STEP 0 is the same question with the full
 > branch either way.
 >
 > This paragraph opened "**This site is already live.**" until 2026-09-14,
 > when audit 9 measured the host answering **404** for all three data files:
 > the guidance was the exact opposite of what the operator needed, on the one
-> deploy where skipping `data/` means shipping a site with no catalog.
+> deploy where skipping `site-data/` means shipping a site with no catalog.
 > (A-9.B2-12. Settled 2026-08-04 for the re-deploy branch; AUDIT_v3 D7/D9.)
 
 The full checklist is [`GO-LIVE.md`](../GO-LIVE.md) §B; the file list is the
@@ -162,7 +176,7 @@ root [README.md](../README.md) deploy tables. In short:
       `admin/.htaccess`; not your local `*.jsonl`, `.login-throttle.json`,
       `.inquiries-seen.json`, `.inquiry-log-failed.json`, `.pdf-renames.json`,
       `.sessions/` or `config.local.php*`)
-   3. **`data/`**, **`pdfs/`** and **`uploads/`** folders, each **with its
+   3. **`site-data/`**, **`pdfs/`** and **`uploads/`** folders, each **with its
       `.htaccess`** (**first deploy only — never again**). Upload `uploads/`
       from the repo; never create it by hand on the server — without its
       `.htaccess`, PHP can execute files placed in it (NEW-N3-3).
@@ -173,8 +187,8 @@ root [README.md](../README.md) deploy tables. In short:
 
    | Path | Permissions |
    |---|---|
-   | `public_html/data/` | 755 |
-   | `public_html/data/*.json` | 644 — never 666 (see "Failed to save" under Troubleshooting) |
+   | `public_html/site-data/` | 755 |
+   | `public_html/site-data/*.json` | 644 — never 666 (see "Failed to save" under Troubleshooting) |
    | `public_html/pdfs/` | 755 |
    | `public_html/uploads/images/` | 755 |
    | `public_html/uploads/site/` | 755 |
@@ -208,7 +222,7 @@ FTP the **contents** of `/dist` into `public_html/` — `assets/`, `images/`,
 small root files — in the order `GO-LIVE.md` §B2 gives: `assets/` **before**
 `index.html`, or every visitor between the two uploads gets a shell pointing at
 a bundle that is not there yet.
-**Do NOT re-upload `data/`, `pdfs/` or `uploads/`** — those are live customer
+**Do NOT re-upload `site-data/`, `pdfs/` or `uploads/`** — those are live customer
 state on the server and your local copies are stale.
 **`admin/` is re-uploaded only when admin code changed**, and then only its
 tracked files (`git ls-files admin/`). Never its live-state files:
@@ -218,11 +232,11 @@ tracked files (`git ls-files admin/`). Never its live-state files:
 re-upload `admin/`" unqualified, and listed `dist/` as only `index.html` +
 `assets/` — audit 2026-09-27 R3-l4-2.)
 
-**With one exception:** `data/.htaccess`, `pdfs/.htaccess` and
+**With one exception:** `site-data/.htaccess`, `pdfs/.htaccess` and
 `uploads/.htaccess` are repo code that happens to live inside those folders.
 Vite never copies them into `dist/`, so nothing downstream carries them.
 Upload the **file**, never the folder, whenever one of them has changed.
-`data/.htaccess` alone holds the `AddType application/json` the site's loader
+`site-data/.htaccess` alone holds the `AddType application/json` the site's loader
 requires and the `X-Robots-Tag: noindex` half of the catalog-indexing fix.
 (A-6.2 closed this in the root README; the same unqualified rule was still
 here — A-9.B2-12.)
@@ -255,8 +269,8 @@ here — A-9.B2-12.)
    updated; this file was not, so it taught the owner to hand-write JSON for a
    screen that has not needed it in months. A-9.B2-13.)*
 6. Click **Add Product**.
-7. On the dashboard, click **View ↗** next to the new product to see how it
-   renders on the public site. Allow ~60 seconds for the change to propagate.
+7. On the dashboard, open **More ▾** on the new product's row and click
+   **View on site ↗** to see how it renders on the public site. Allow ~60 seconds for the change to propagate.
 
 ### Editing a product
 
@@ -266,12 +280,14 @@ here — A-9.B2-12.)
 3. **If you edited a spec table under Advanced and the JSON is invalid**,
    the save will fail with a parse error message — fix the syntax and
    resubmit. The visual builder cannot produce invalid JSON.
-4. Click **Save Changes**. Click **View ↗** afterwards to verify.
+4. Click **Save Changes**. Use **More ▾ → View on site ↗** on its dashboard
+   row afterwards to verify.
 
 ### Deleting a product
 
-1. From the dashboard, click **Delete** on the row.
-2. Confirm.
+1. From the dashboard, open **More ▾** on the row and click **Delete…** (red,
+   set apart at the bottom of the menu).
+2. Confirm the dialog, then confirm again on `delete.php`.
 3. The product disappears from the public site within ~60 seconds.
 4. **The PDF files and the uploaded photo are moved aside**, unless another
    product still references the same file — `delete.php` renames each one to
@@ -283,7 +299,8 @@ here — A-9.B2-12.)
 
 ### Uploading a data sheet (PDF)
 
-1. From the dashboard, click **Manage PDF** on the row.
+1. From the dashboard, open **More ▾** on the row and click **Manage PDF** (or
+   click the row's **No PDF** marker).
 2. Choose a PDF file. The real ceiling is
    **`min(upload_max_filesize, 20MB)`** — `uploaded_pdf_problem()` in
    `config.php` hard-rejects anything over 20MB regardless of the ini value, and
@@ -321,12 +338,52 @@ page's filter offers
 
 ### The navigation bar
 
-Every authenticated admin page shares the same header/nav, rendered from
-`admin/nav.php`. It's included (not copy-pasted) on every page, so
-**Products**, **+ Add Product**, **Business Details**, **Page Content**,
-**Inquiries**, **Backups**, **Audit Log**, **Password**, **Help**,
-**View Live Site ↗** and **Sign Out** are always one click away no matter where
-you are in the admin.
+Every authenticated admin page shares the same menu bar, rendered from
+`admin/nav.php` (behaviour in `admin/nav.js`). It's included (not copy-pasted)
+on every page and stays at the top of the screen while the page scrolls
+(PLAN-13 Phase 2). Six entries, grouped by job:
+
+| Entry | Opens |
+|---|---|
+| **Products ▾** | All Products · Add Product |
+| **Website ▾** | Business Details · Page Content · Site Images & Logo · Catalog & Brochure PDFs |
+| **Inquiries** | the lead log (red badge = new since last looked) |
+| **Backups & History ▾** | Backups · Audit Log |
+| **Help** | this documentation |
+| **Account ▾** | Password · View Live Site ↗ · Sign Out |
+
+The drop-downs are `<details>`, so they work with JavaScript off. The entry
+holding the current page is chosen in `nav.php` from the script name — pages
+do not set it. The logo links to the Overview (`home.php`), where sign-in
+lands, and is the current-page marker there; it is not a seventh entry.
+Below 900px the menu sits behind a **Menu** button. Product
+sub-pages (Edit, Upload PDF, Product Photo, Delete) carry a breadcrumb from
+`admin_breadcrumb()` in `config.php`.
+
+### The long forms
+
+Business Details, Add Product, Edit Product and Page Content end in a
+`.save-bar` (styled in `admin_head()`) that sticks to the bottom of the screen
+while the form is in view, and is fixed there at 1024px and narrower, where the
+live preview stacks below the form (PLAN-13 Phase 3). Its `.save-status` is
+filled by `unsaved.js`: "Unsaved changes in: Company, Contact", naming each
+section that has been typed in, and empty while nothing has changed.
+
+All four forms carry `data-long-form`, which `longform.js` reads to add
+a strip of section links above the form (sticky under the menu bar; the
+section being read is filled in, a section with unsaved changes has a dot) and
+a **Hide / Show** button on each section. On Page Content a section is one
+public page (`<section class="page-group">`, PLAN-13 Phase 4): the boxes are
+shown in `$PAGE_MAP` order, site order, instead of "every single-box group,
+then every list". `$PAGE_MAP` is display only — the save still builds
+`content.json` from `$COPY_GROUPS` and `$SECTIONS`, and a group missing from
+the map shows under "Everything else". Page Content's form also carries
+`data-filter`, for the "Find a box" filter, and its labels are split by
+`content_label_parts()` into a short label and a `.lbl-hint` line, both still
+inside the `<label>`. Nothing starts hidden; a hidden
+section opens again when Save is blocked on one of its fields. Neither adds a
+named field, so the POST is the same with JavaScript on or off
+(`_harness/plan13-longform.js`).
 
 ## Spec-table JSON examples
 
@@ -449,10 +506,10 @@ at once there too.
 | Symptom | Cause / fix |
 |---|---|
 | Login loops back to the login page | Cookies blocked, or password wrong. Six tries in a row are checked; after the sixth wrong one the page pauses before the next try: 15 seconds, doubling each time, up to a 5-minute ceiling (`LOGIN_FREE_ATTEMPTS` / `LOGIN_COOLOFF_BASE` / `LOGIN_COOLOFF_MAX`). This row said "1-8 second delay" until 2026-09-14 — A-9.B2-14 — and "after 5" until 2026-09-28 — NEW-N3-10. |
-| "Failed to save" on Add or Edit | The `data/` **folder** is not writable by PHP. A save writes a temporary file in `data/` and renames it over `products-all.json`, so the file's own mode does not matter: set `data/` to 755, or 775. If it still fails, the host runs PHP as a different user from your FTP account — ask them to run PHP as your account user ([`GO-LIVE.md`](../GO-LIVE.md) §B3). Leave the JSON files at 644: 666 does not fix this, and every later save keeps it, leaving the catalog writable by other accounts on a shared server. |
+| "Failed to save" on Add or Edit | The `site-data/` **folder** is not writable by PHP. A save writes a temporary file in `site-data/` and renames it over `products-all.json`, so the file's own mode does not matter: set `site-data/` to 755, or 775. If it still fails, the host runs PHP as a different user from your FTP account — ask them to run PHP as your account user ([`GO-LIVE.md`](../GO-LIVE.md) §B3). Leave the JSON files at 644: 666 does not fix this, and every later save keeps it, leaving the catalog writable by other accounts on a shared server. |
 | PDF upload errors with "Upload failed" | `pdfs/` is not writable — chmod 755 (or 775) |
 | Public site doesn't show my edit | Wait 60 seconds, then hard-refresh (Ctrl+Shift+R) |
-| Public site says "Catalog Unavailable" | Open `/data/products-all.json` directly. If it is missing, will not open as a catalog, or is not served as `application/json` (`data/.htaccess` missing), that is the server fault to fix — a damaged catalog can be restored from **Backups**. If it opens fine and the site loads for you, nothing on the server is wrong: the visitor's own connection dropped, or did not finish loading the catalog within 12 seconds, and that shows the same screen. Ask them to tap **Retry** on a better signal. |
+| Public site says "Catalog Unavailable" | Open `/site-data/products-all.json` directly. If it is missing, will not open as a catalog, or is not served as `application/json` (`site-data/.htaccess` missing), that is the server fault to fix — a damaged catalog can be restored from **Backups**. If it opens fine and the site loads for you, nothing on the server is wrong: the visitor's own connection dropped, or did not finish loading the catalog within 12 seconds, and that shows the same screen. Ask them to tap **Retry** on a better signal. |
 | "Another product already uses SKU X" | You tried to rename an SKU to one that already exists — pick a different SKU |
 | Spec table change won't save | The JSON has a syntax error — the message shows what's wrong (missing comma, bad bracket, etc.) |
 

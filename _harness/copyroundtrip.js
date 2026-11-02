@@ -4,14 +4,14 @@
  * copydrift.js compares the two DECLARATIONS. That is a static claim. This
  * drives the real path end to end against the mirror:
  *
- *   admin/content.php form  ->  POST  ->  data/content.json  ->  mergeContent()
+ *   admin/content.php form  ->  POST  ->  site-data/content.json  ->  mergeContent()
  *   ->  rendered DOM on the public page
  *
  * If any link in that chain were broken, copydrift's "N matched" (121 on 2026-10-13) would be
  * worthless — which is exactly the NB-copy failure mode: a green "Content
  * saved" over an edit that never renders.
  *
- * Needs the mirror on :8123. Restores data/content.json from _harness/pristine
+ * Needs the mirror on :8123. Restores site-data/content.json from _harness/pristine
  * afterwards and verifies byte-identity with the caller.
  *
  * Usage: node _harness/copyroundtrip.js
@@ -23,7 +23,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
-const MIRROR_CONTENT = path.join(__dirname, 'site/data/content.json');
+const MIRROR_CONTENT = path.join(__dirname, 'site/site-data/content.json');
 const PRISTINE_CONTENT = path.join(__dirname, 'pristine/content.json');
 
 // A marker unique to this run, so a stale value can never look like a pass.

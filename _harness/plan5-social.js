@@ -34,8 +34,8 @@
  *     writes them, the other five survive that save, and both reach the public
  *     footer with no rebuild
  *
- * Writes the MIRROR's data/site-info.json only, restores it from pristine/ and
- * proves byte-identity at the end. The repo's data/ is never touched.
+ * Writes the MIRROR's site-data/site-info.json only, restores it from pristine/ and
+ * proves byte-identity at the end. The repo's site-data/ is never touched.
  *
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
@@ -48,7 +48,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const OUT = path.join(__dirname, 'out', 'plan5-social');
-const MIRROR = path.join(__dirname, 'site', 'data', 'site-info.json');
+const MIRROR = path.join(__dirname, 'site', 'site-data', 'site-info.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'site-info.json');
 const KEYS = ['twitter', 'facebook', 'linkedin', 'youtube', 'pinterest', 'instagram', 'tiktok'];
 

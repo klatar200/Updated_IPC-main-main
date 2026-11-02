@@ -17,11 +17,11 @@
  * crawler the site returns junk URLs.
  *
  * Generating it at BUILD time has the same defect one step removed: the build
- * runs on a laptop from the repo's `data/`, the catalog lives on the server and
+ * runs on a laptop from the repo's `site-data/`, the catalog lives on the server and
  * is owned by the admin, and `npm run build` is not part of adding a product.
  * It would be correct exactly until the first save.
  *
- * Reading `data/products-all.json` per request is the only version that cannot
+ * Reading `site-data/products-all.json` per request is the only version that cannot
  * be stale, and it costs one file read of ~280 KB on a URL that is fetched a
  * handful of times a day. `_harness/plan5c-sitemap.js` adds and deletes a
  * product in a live catalog and asserts the sitemap tracks it with no rebuild.
@@ -73,7 +73,7 @@ $ROUTES = [
  */
 $ORIGIN = 'https://www.insulationproducts.com';
 
-$CATALOG = __DIR__ . '/data/products-all.json';
+$CATALOG = __DIR__ . '/site-data/products-all.json';
 
 /** Product ids, in catalog order, de-duplicated. [] on any problem at all. */
 function sitemap_product_ids($file)
@@ -182,7 +182,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 <?php endforeach; ?>
 <?php if ($ids): ?>
 
-  <!-- <?= count($ids) ?> product detail pages, read from data/products-all.json
+  <!-- <?= count($ids) ?> product detail pages, read from site-data/products-all.json
        at request time. 4.3 made each of these canonical to itself. Do not
        replace this with a hand-written list: the catalog is owned by the admin
        and this file is not. -->
@@ -196,7 +196,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 <?php endforeach; ?>
 <?php else: ?>
 
-  <!-- data/products-all.json was missing or unparseable when this was
+  <!-- site-data/products-all.json was missing or unparseable when this was
        generated, so only the static routes are listed. A crawler seeing fewer
        URLs is recoverable; a 500 or an empty urlset is not. -->
 <?php endif; ?>

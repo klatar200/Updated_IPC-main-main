@@ -87,7 +87,7 @@ Object.entries(tally).sort((a, b) => b[1] - a[1])
 
 // The list that matters: claims this project introduced, in the two data files
 // and the HTML shell — i.e. what a visitor reads, not what App.jsx defaults to.
-console.log('\nINTRODUCED, in data/*.json and index.html:');
+console.log('\nINTRODUCED, in site-data/*.json and index.html:');
 out.filter((r) => r.provenance === 'INTRODUCED'
     && /^(data\/|index\.html)/.test(r.file))
   .forEach((r) => console.log(`  ${r.file}:${r.line}  ${r.pointer || ''}\n      ${r.text.slice(0, 160)}`));

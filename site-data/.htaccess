@@ -1,4 +1,4 @@
-# /data/ — server-only storage for the live product catalog.
+# /site-data/ — server-only storage for the live product catalog.
 # The React frontend reads products-all.json, site-info.json and content.json
 # over HTTP, so those three files must be public. What this file blocks is a
 # LIST, not deny-by-default: script-named files, the admin's timestamped

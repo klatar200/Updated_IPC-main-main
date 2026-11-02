@@ -78,7 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$navActive = 'password';
 ?>
 <!doctype html>
 <html lang="en">
@@ -90,16 +89,16 @@ $navActive = 'password';
   <?= admin_head() ?>
   <style>
     main { max-width: 520px; margin: 0 auto; padding: 40px 24px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
+    .sub { font-size: var(--fs-2); color: #4b5563; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
     .form-group { margin-bottom: 18px; }
-    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 6px; }
-    input[type=password] { width: 100%; padding: 11px 14px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: 14px; color: #141414; outline: none; }
+    label { display: block; font-size: var(--fs-2); font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    input[type=password] { width: 100%; padding: 11px 14px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: var(--fs-3); color: #141414; outline: none; }
     input[type=password]:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
-    .hint { font-size: 11px; color: #6b7280; margin-top: 5px; }
-    .btn-primary { width: 100%; padding: 12px; background: #005da3; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .hint { font-size: var(--fs-1); color: #4b5563; margin-top: 5px; }
+    .btn-primary { width: 100%; padding: 12px; background: #005da3; color: #fff; border: none; border-radius: 8px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; }
     .btn-primary:hover { background: #004e8c; }
-    .note { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 12px 16px; font-size: 12px; margin-top: 16px; }
+    .note { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 12px 16px; font-size: var(--fs-1); margin-top: 16px; }
   </style>
 </head>
 <body>

@@ -26,7 +26,7 @@
  * _harness/out/plan5-spectable/ at 1440 and 375.
  *
  * The mirror's products-all.json is written for the title-but-no-rows case and
- * restored from pristine/ afterwards. The repo's data/ is never touched.
+ * restored from pristine/ afterwards. The repo's site-data/ is never touched.
  *
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
@@ -39,7 +39,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const OUT = path.join(__dirname, 'out', 'plan5-spectable');
-const MIRROR_DATA = path.join(__dirname, 'site', 'data');
+const MIRROR_DATA = path.join(__dirname, 'site', 'site-data');
 const PRISTINE = path.join(__dirname, 'pristine');
 
 const EMPTY_T2 = ['IP75AD', 'VALUE-ADDED', 'VT-1100'];

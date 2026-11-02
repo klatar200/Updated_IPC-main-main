@@ -9,7 +9,7 @@
  *   N2-1  a damaged content.json showed every Page Content section empty and
  *         the next Save wrote [] everywhere (a deletion, invariant 3); a
  *         content.json merely MISSING a section key (the realistic case: a
- *         release adds a section, data/ is never re-uploaded) lost that
+ *         release adds a section, site-data/ is never re-uploaded) lost that
  *         section's built-in text on the next ordinary save
  *
  * Own `php -S` on :8707 over the mirror, real pages, 12 checks:
@@ -30,11 +30,11 @@ const { launch } = require('./browser');
 
 const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
-const DATA = path.join(SITE, 'data');
+const DATA = path.join(SITE, 'site-data');
 const PRISTINE = path.join(__dirname, 'pristine');
 const PORT = 8707;
 const BASE = `http://127.0.0.1:${PORT}`;
-const TMP = fs.mkdtempSync('/tmp/ipc-n2-');
+const TMP = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ipc-n2-'));   // not '/tmp': C:\tmp on Windows, absent
 
 const results = [];
 const note = (ok, label, detail) => {

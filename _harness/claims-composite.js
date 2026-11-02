@@ -55,8 +55,8 @@ function seen(text) {
   return 'no';
 }
 
-const rawContent = fs.readFileSync(path.join(ROOT, 'data/content.json'), 'utf8');
-const rawInfo = fs.readFileSync(path.join(ROOT, 'data/site-info.json'), 'utf8');
+const rawContent = fs.readFileSync(path.join(ROOT, 'site-data/content.json'), 'utf8');
+const rawInfo = fs.readFileSync(path.join(ROOT, 'site-data/site-info.json'), 'utf8');
 const content = JSON.parse(rawContent);
 const info = JSON.parse(rawInfo);
 
@@ -80,44 +80,44 @@ function add(id, source, line, text, parts) {
 }
 
 // ── content.json — the blocks a visitor reads as assertions ─────────────────
-content.stats.forEach((s, i) => add(`STAT-${i + 1}`, 'data/content.json',
+content.stats.forEach((s, i) => add(`STAT-${i + 1}`, 'site-data/content.json',
   lineOf(rawContent, s.value), `${s.value} — ${s.label} (${s.sub})`, [s.value, s.label, s.sub]));
 
-content.heroProofPoints.forEach((s, i) => add(`HERO-${i + 1}`, 'data/content.json',
+content.heroProofPoints.forEach((s, i) => add(`HERO-${i + 1}`, 'site-data/content.json',
   lineOf(rawContent, s.stat), `${s.stat} — ${s.label} (${s.sub})`, [s.stat, s.label, s.sub]));
 
-content.heroTrust.forEach((s, i) => add(`TRUST-${i + 1}`, 'data/content.json',
+content.heroTrust.forEach((s, i) => add(`TRUST-${i + 1}`, 'site-data/content.json',
   lineOf(rawContent, s.text), s.text, [s.text]));
 
-content.certs.forEach((s, i) => add(`CERT-${i + 1}`, 'data/content.json',
+content.certs.forEach((s, i) => add(`CERT-${i + 1}`, 'site-data/content.json',
   lineOf(rawContent, s.title), `${s.title} — ${s.sub}`, [s.title, s.sub]));
 
-content.milestones.forEach((s, i) => add(`MILE-${i + 1}`, 'data/content.json',
+content.milestones.forEach((s, i) => add(`MILE-${i + 1}`, 'site-data/content.json',
   lineOf(rawContent, s.desc), `${s.year} ${s.label}: ${s.desc}`, [s.desc]));
 
-content.services.forEach((s, i) => add(`SVC-${i + 1}`, 'data/content.json',
+content.services.forEach((s, i) => add(`SVC-${i + 1}`, 'site-data/content.json',
   lineOf(rawContent, s.title), `${s.title} — lead time "${s.leadTime}" — ${s.desc}`,
   [s.leadTime, s.desc]));
 
 content.industryDetail.forEach((d, i) => (d.certs || []).forEach((c, j) =>
-  add(`IND-${i + 1}.${j + 1}`, 'data/content.json', lineOf(rawContent, c),
+  add(`IND-${i + 1}.${j + 1}`, 'site-data/content.json', lineOf(rawContent, c),
     `${d.name}: "${c}"`, [c])));
 
-content.faq.forEach((f, i) => add(`FAQ-${i + 1}`, 'data/content.json',
+content.faq.forEach((f, i) => add(`FAQ-${i + 1}`, 'site-data/content.json',
   lineOf(rawContent, f.question), `Q: ${f.question} / A: ${f.answer}`, [f.answer]));
 
 // ── site-info.json — the company facts ─────────────────────────────────────
-add('CO-1', 'data/site-info.json', lineOf(rawInfo, info.company.foundedYear),
+add('CO-1', 'site-data/site-info.json', lineOf(rawInfo, info.company.foundedYear),
   `Founded ${info.company.foundedYear}`, [info.company.foundedYear, info.company.description]);
-add('CO-2', 'data/site-info.json', lineOf(rawInfo, info.stats.feetInStock),
+add('CO-2', 'site-data/site-info.json', lineOf(rawInfo, info.stats.feetInStock),
   `${info.stats.feetInStock} feet in stock`, [info.stats.feetInStock]);
-add('CO-3', 'data/site-info.json', lineOf(rawInfo, info.stats.minimumOrder),
+add('CO-3', 'site-data/site-info.json', lineOf(rawInfo, info.stats.minimumOrder),
   `${info.stats.minimumOrder} minimum order`, [info.stats.minimumOrder]);
-add('CO-4', 'data/site-info.json', lineOf(rawInfo, info.certifications.iso),
+add('CO-4', 'site-data/site-info.json', lineOf(rawInfo, info.certifications.iso),
   `Certification: ${info.certifications.iso}` +
   (info.certifications.other.length ? ` + ${info.certifications.other.join(', ')}` : ''),
   [info.certifications.iso]);
-info.about.paragraphs.forEach((p, i) => add(`ABOUT-${i + 1}`, 'data/site-info.json',
+info.about.paragraphs.forEach((p, i) => add(`ABOUT-${i + 1}`, 'site-data/site-info.json',
   lineOf(rawInfo, p), p, [p]));
 
 // ── index.html — what a crawler and a social unfurl read ───────────────────

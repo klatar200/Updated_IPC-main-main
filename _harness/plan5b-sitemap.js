@@ -21,7 +21,7 @@
  *   - `/dashboard` in particular is a genuine PUBLIC page: it renders the
  *     Product Index table with real product rows and needs no session
  *
- * Reads only. Nothing under data/ is written.
+ * Reads only. Nothing under site-data/ is written.
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
  * UPDATED 2026-08-07: the sitemap is no longer a file. `public/sitemap.xml` was

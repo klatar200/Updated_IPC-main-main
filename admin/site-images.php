@@ -108,7 +108,7 @@ function slot_current(string $slot, array $content, array $info): array {
 function slot_write(string $slot, string $value, array &$errors): bool {
     if ($slot === 'logo') {
         if (data_file_damaged(SITE_INFO_JSON)) {
-            $errors[] = 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.';
+            $errors[] = 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.';
             return false;
         }
         $url = $value === '' ? '' : '/' . ltrim($value, '/');
@@ -120,7 +120,7 @@ function slot_write(string $slot, string $value, array &$errors): bool {
         return true;
     }
     if (data_file_damaged(CONTENT_JSON)) {
-        $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.';
+        $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.';
         return false;
     }
     $content = load_content();
@@ -146,8 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // The target file is checked BEFORE anything is uploaded, so a damaged
     // data file never leaves an orphan picture behind.
     $damagedMsg = !isset($SLOTS[$slot]) ? '' : ($slot === 'logo'
-        ? (data_file_damaged(SITE_INFO_JSON) ? 'The saved business details (data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.' : '')
-        : (data_file_damaged(CONTENT_JSON) ? 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.' : ''));
+        ? (data_file_damaged(SITE_INFO_JSON) ? 'The saved business details (site-data/site-info.json) are damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Business Details entry, then try again.' : '')
+        : (data_file_damaged(CONTENT_JSON) ? 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Page Content entry, then try again.' : ''));
     if (!isset($SLOTS[$slot])) {
         $errors[] = 'Unknown picture slot.';
     } elseif ($damagedMsg !== '') {
@@ -242,27 +242,27 @@ $csrf    = csrf_token();
   <?= admin_head() ?>
   <style>
     main { max-width: 600px; margin: 0 auto; padding: 40px 24px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
+    .sub { font-size: var(--fs-2); color: #4b5563; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-    .where { font-size: 13px; color: #4b5563; margin: 0 0 14px; }
-    .current { display: flex; gap: 14px; align-items: center; padding: 12px; background: #f0f4f8; border-radius: 8px; margin-bottom: 14px; font-size: 13px; }
+    .where { font-size: var(--fs-2); color: #4b5563; margin: 0 0 14px; }
+    .current { display: flex; gap: 14px; align-items: center; padding: 12px; background: #f0f4f8; border-radius: 8px; margin-bottom: 14px; font-size: var(--fs-2); }
     .current img { width: 120px; height: 80px; object-fit: contain; background: #fff; border-radius: 6px; flex-shrink: 0; }
     .current code { word-break: break-all; }
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
     .row select, .row input[type=file] { flex: 1 1 240px; min-width: 0; }
-    input[type=file] { padding: 8px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: 13px; }
-    select { padding: 8px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: 13px; background: #fff; }
-    .btn { display: inline-flex; align-items: center; padding: 9px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+    input[type=file] { padding: 8px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: var(--fs-2); }
+    select { padding: 8px; border: 1px solid #d1d9e0; border-radius: 8px; font-size: var(--fs-2); background: #fff; }
+    .btn { display: inline-flex; align-items: center; padding: 9px 16px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; cursor: pointer; border: none; }
     .btn-primary { background: #005da3; color: #fff; }
     .btn-secondary { background: #f0f4f8; color: #141414; border: 1px solid #d1d9e0; }
-    .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-    .hint { font-size: 11px; color: #6b7280; margin-top: 6px; }
+    .btn-danger { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .hint { font-size: var(--fs-1); color: #4b5563; margin-top: 6px; }
     .choice-preview { display: block; width: 100%; max-width: 320px; max-height: 200px; object-fit: contain; background: #f0f4f8; border-radius: 6px; margin-top: 10px; }
     .choice-preview[hidden] { display: none; }
   </style>
 </head>
 <body>
-<?php $navActive = ''; include 'nav.php'; ?>
+<?php include 'nav.php'; ?>
 <main>
   <h1>Site Images &amp; Logo</h1>
   <p class="sub">The photos that belong to the pages themselves, and your logo. Upload a new picture from your computer, or pick one that is already on the server. Product photos are separate — use the <strong>Photo</strong> button on the Products page.</p>

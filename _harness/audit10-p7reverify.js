@@ -16,7 +16,7 @@
  * measurement rather than repeating pass-1..6's.
  *
  * A10-027 mutates mirror data (it is a save journey). It runs only with
- * --journey, and the caller restores _harness/site/data/ from _harness/pristine/
+ * --journey, and the caller restores _harness/site/site-data/ from _harness/pristine/
  * afterwards; pass-7 does that and cmp-checks it.
  *
  * Output: _harness/out/audit10/p7/reverify.json

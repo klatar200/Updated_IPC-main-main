@@ -124,11 +124,11 @@ for (const r of routes) {
   add('ROUTE', 'L10', `${r} head`, r, 'title, description, canonical, og:*, JSON-LD; served HTML equals hydrated head');
   add('ROUTE', 'L11', `${r} @390 cold`, r, 'transfer bytes, requests, LCP, CLS, console, failed requests');
 }
-const cat = JSON.parse(read('data/products-all.json'));
+const cat = JSON.parse(read('site-data/products-all.json'));
 const products = Array.isArray(cat) ? cat : cat.products || [];
 for (const p of products) {
   const u = `/products?productId=${p.id}`;
-  add('PRODUCT', 'L8', `${u}`, `data/products-all.json id=${p.id}`, 'specs, family, PDF and photo are this part\'s; wording consistent');
+  add('PRODUCT', 'L8', `${u}`, `site-data/products-all.json id=${p.id}`, 'specs, family, PDF and photo are this part\'s; wording consistent');
   add('PRODUCT', 'L6', `${u} @390`, u, 'layout, spec table, Datasheet/RFQ actions');
   add('PRODUCT', 'L10', `${u} head`, u, 'title fits, description, canonical, Product JSON-LD valid and true');
 }
@@ -173,17 +173,17 @@ for (const f of files.filter((x) => /\.htaccess$/.test(x) && !/^dist\//.test(x))
 // ── DATA: every field shape in the three JSON files ──────────────────────────
 const productKeys = new Set();
 for (const p of products) for (const k of Object.keys(p)) productKeys.add(k);
-for (const k of productKeys) add('DATA', 'L8', `products[].${k}`, 'data/products-all.json', `type, presence across ${products.length}, where it renders, true`);
+for (const k of productKeys) add('DATA', 'L8', `products[].${k}`, 'site-data/products-all.json', `type, presence across ${products.length}, where it renders, true`);
 const flat = (o, pre, out) => {
   if (o && typeof o === 'object' && !Array.isArray(o)) for (const k of Object.keys(o)) flat(o[k], pre ? `${pre}.${k}` : k, out);
   else out.push(pre);
   return out;
 };
-for (const k of flat(JSON.parse(read('data/site-info.json')), '', [])) add('DATA', 'L5', `site-info.${k}`, 'data/site-info.json', 'blank / missing / wrong type: mergeSiteInfo and index.php agree (invariant 4)');
-const content = JSON.parse(read('data/content.json'));
+for (const k of flat(JSON.parse(read('site-data/site-info.json')), '', [])) add('DATA', 'L5', `site-info.${k}`, 'site-data/site-info.json', 'blank / missing / wrong type: mergeSiteInfo and index.php agree (invariant 4)');
+const content = JSON.parse(read('site-data/content.json'));
 for (const k of Object.keys(content)) {
-  if (k === 'copy') for (const g of Object.keys(content.copy)) add('DATA', 'L5', `content.copy.${g}`, 'data/content.json', 'blank / missing: default vs empty is deliberate, both renderers agree');
-  else add('DATA', 'L5', `content.${k}${Array.isArray(content[k]) ? ` [${content[k].length} rows]` : ''}`, 'data/content.json', 'an empty array is a deletion (invariant 3); index.php agrees');
+  if (k === 'copy') for (const g of Object.keys(content.copy)) add('DATA', 'L5', `content.copy.${g}`, 'site-data/content.json', 'blank / missing: default vs empty is deliberate, both renderers agree');
+  else add('DATA', 'L5', `content.${k}${Array.isArray(content[k]) ? ` [${content[k].length} rows]` : ''}`, 'site-data/content.json', 'an empty array is a deletion (invariant 3); index.php agrees');
 }
 
 // ── FIELD: every owner-editable field → where it renders ─────────────────────

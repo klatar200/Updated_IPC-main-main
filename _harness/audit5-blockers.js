@@ -16,7 +16,7 @@
  * regression of invariant 10's intent and of "no lead is ever lost".
  *
  * A-5.2. The SPA is wholly client-rendered and builds every page from
- * /data/*.json. `Disallow: /data/` therefore made all 42 product pages render
+ * /site-data/*.json. `Disallow: /site-data/` therefore made all 42 product pages render
  * the catalog-error state for any crawler that obeys robots.txt, while
  * sitemap.php advertised those URLs. Under REP the longest match wins, so the
  * rule beat `Allow: /`.
@@ -96,20 +96,20 @@ function post(body) {
     .filter((l) => /^\s*Disallow:/i.test(l))
     .map((l) => l.replace(/^\s*Disallow:\s*/i, '').trim());
 
-  ok(!disallowed.some((d) => d !== '' && '/data/products-all.json'.startsWith(d)),
-     'A-5.2 robots.txt does not block /data/products-all.json',
+  ok(!disallowed.some((d) => d !== '' && '/site-data/products-all.json'.startsWith(d)),
+     'A-5.2 robots.txt does not block /site-data/products-all.json',
      `Disallow rules: ${JSON.stringify(disallowed)}`);
-  ok(!disallowed.some((d) => d !== '' && '/data/site-info.json'.startsWith(d)),
-     'A-5.2 robots.txt does not block /data/site-info.json');
-  ok(!disallowed.some((d) => d !== '' && '/data/content.json'.startsWith(d)),
-     'A-5.2 robots.txt does not block /data/content.json');
+  ok(!disallowed.some((d) => d !== '' && '/site-data/site-info.json'.startsWith(d)),
+     'A-5.2 robots.txt does not block /site-data/site-info.json');
+  ok(!disallowed.some((d) => d !== '' && '/site-data/content.json'.startsWith(d)),
+     'A-5.2 robots.txt does not block /site-data/content.json');
   ok(disallowed.includes('/admin/'), 'A-5.2 robots.txt still blocks /admin/');
 
   // The files must stay out of the index by header rather than by robots, or
   // removing the Disallow simply trades one problem for another.
-  const dataHt = fs.readFileSync(path.join(ROOT, 'data/.htaccess'), 'utf8');
+  const dataHt = fs.readFileSync(path.join(ROOT, 'site-data/.htaccess'), 'utf8');
   ok(/X-Robots-Tag/i.test(dataHt) && /noindex/i.test(dataHt),
-     'A-5.2 data/.htaccess sends X-Robots-Tag: noindex instead');
+     'A-5.2 site-data/.htaccess sends X-Robots-Tag: noindex instead');
 
   // ── A-5.1 — the auto-reply must not carry attacker-composed prose ────────
   try { fs.writeFileSync(MAIL_LOG, ''); } catch { /* sink may not exist yet */ }

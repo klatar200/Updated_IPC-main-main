@@ -52,7 +52,7 @@ const note = (ok, what, detail = '') => {
 
 function restore() {
   for (const f of ['content.json', 'site-info.json', 'products-all.json'])
-    fs.copyFileSync(path.join(PRISTINE, f), path.join(SITE, 'data', f));
+    fs.copyFileSync(path.join(PRISTINE, f), path.join(SITE, 'site-data', f));
 }
 
 /* ------------------------------------------------------------ admin */
@@ -258,7 +258,7 @@ function iconContrast() {
         `${name}: every admin change saved`, JSON.stringify({ flashes, adminErrs }));
 
       const logAt = fs.existsSync(PHPLOG) ? fs.statSync(PHPLOG).size : null;
-      const snap = JSON.parse(fs.readFileSync(path.join(SITE, 'data/content.json'), 'utf8'));
+      const snap = JSON.parse(fs.readFileSync(path.join(SITE, 'site-data/content.json'), 'utf8'));
       for (const w of WIDTHS) {
         const { ctx, page, errs } = await render(browser, w);
         const r = await page.evaluate(pageChecks);

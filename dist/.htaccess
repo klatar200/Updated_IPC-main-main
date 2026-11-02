@@ -156,7 +156,7 @@ RewriteCond %{REQUEST_URI} !^/assets/
 # broken Data Sheet link was invisible to link checkers and Search Console,
 # and a browser saved the shell as "datasheet.pdf". Only real routes fall
 # through; these 404.
-RewriteCond %{REQUEST_URI} !^/(pdfs|uploads|images|data)/
+RewriteCond %{REQUEST_URI} !^/(pdfs|uploads|images|site-data)/
 RewriteCond %{REQUEST_URI} !^/(favicon\.ico|apple-touch-icon[^/]*\.png|robots\.txt)$
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
@@ -167,7 +167,7 @@ RewriteCond %{REQUEST_FILENAME} !-d
 #
 # A-5.10 (WHATS_LEFT §1ar) — index.php, not index.html. It serves the same
 # built index.html with this route's title, description, canonical and share
-# card filled in from data/*.json, plus a plain-HTML body, for the crawlers
+# card filled in from site-data/*.json, plus a plain-HTML body, for the crawlers
 # and link unfurlers that never run the bundle. On any error it serves
 # index.html unmodified. REQUEST_URI is still the visitor's URL after this
 # internal rewrite, which is what index.php reads.
@@ -232,7 +232,7 @@ RewriteRule ^ index.php [QSA,L]
 
 # Dotfiles. Apache's stock <Files ".ht*"> does not cover .user.ini, which this
 # release ships into public_html/ and which would otherwise be web-readable.
-# Same rule data/.htaccess already carries, which is proven on this host.
+# Same rule site-data/.htaccess already carries, which is proven on this host.
 # <FilesMatch> tests the final path component, so /.well-known/acme-challenge/…
 # challenge files are unaffected. (AUDIT_v3_FINDINGS NB15)
 <FilesMatch "^\.">

@@ -44,7 +44,7 @@
  *   - every `name=` the forms post is a key contact.php actually reads
  *
  * Needs the mirror on :8123 started with `-c _harness/php-mail.ini`, so mail()
- * succeeds and the messages are captured. Writes nothing under data/.
+ * succeeds and the messages are captured. Writes nothing under site-data/.
  *
  * Usage: node _harness/contactflow.js
  */
@@ -61,7 +61,7 @@ const OUT = path.join(__dirname, 'out', 'contactflow');
 // sys_get_temp_dir(). Same reasoning as plan3-contact.js.
 const MAIL_LOG = process.env.IPC_MAIL_LOG || path.join(os.tmpdir(), 'ipc-harness-mail.log');
 const INQUIRIES = path.join(__dirname, 'site/admin/inquiries.jsonl');
-const SITE_INFO = path.join(__dirname, 'site/data/site-info.json');
+const SITE_INFO = path.join(__dirname, 'site/site-data/site-info.json');
 const CONTACT_PHP = path.join(__dirname, 'site/contact.php');
 
 const results = [];

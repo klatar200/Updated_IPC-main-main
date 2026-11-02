@@ -14,7 +14,7 @@
  *     inquiry log (admin/inquiries.jsonl, blocked from the web)
  *
  * The recipient address and the contact details quoted in error/auto-reply
- * text are read from data/site-info.json (editable in the admin under
+ * text are read from site-data/site-info.json (editable in the admin under
  * "Business Details"), with the original values as hardcoded fallbacks.
  */
 
@@ -27,9 +27,9 @@ header('Cache-Control: no-store');
 
 // ── Live business details (site-info.json) ─────────────────────
 // Two candidate paths so this works both deployed (public_html/contact.php
-// next to public_html/data/) and in the repo (public/contact.php with ../data).
+// next to public_html/site-data/) and in the repo (public/contact.php with ../site-data).
 function ipc_site_info(): array {
-    foreach ([__DIR__ . '/data/site-info.json', __DIR__ . '/../data/site-info.json'] as $p) {
+    foreach ([__DIR__ . '/site-data/site-info.json', __DIR__ . '/../site-data/site-info.json'] as $p) {
         if (is_file($p)) {
             $d = json_decode(ipc_strip_bom((string)@file_get_contents($p)), true);
             return is_array($d) ? $d : [];
@@ -62,7 +62,7 @@ function ipc_strip_bom(string $raw): string {
 // by the time this is read, and every caller below falls back to the built-in
 // text. Asserted both ways in _harness/plan3-autoreply.js.
 function ipc_contact_copy(): array {
-    foreach ([__DIR__ . '/data/content.json', __DIR__ . '/../data/content.json'] as $p) {
+    foreach ([__DIR__ . '/site-data/content.json', __DIR__ . '/../site-data/content.json'] as $p) {
         if (!is_file($p)) continue;
         $d = json_decode(ipc_strip_bom((string)@file_get_contents($p)), true);
         if (!is_array($d)) return [];

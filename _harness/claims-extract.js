@@ -95,7 +95,7 @@ function walkJson(file) {
 
 // index.html and contact.php carry claims as markup/PHP, not as JSON leaves, so
 // they are scanned line-wise. App.jsx is scanned the same way: its hardcoded
-// COPY/SITE defaults are what renders when data/*.json is missing a key, which
+// COPY/SITE defaults are what renders when site-data/*.json is missing a key, which
 // is exactly the state a fresh deploy is in for one request.
 function walkText(file, opts = {}) {
   const raw = fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -110,8 +110,8 @@ function walkText(file, opts = {}) {
   });
 }
 
-walkJson('data/site-info.json');
-walkJson('data/content.json');
+walkJson('site-data/site-info.json');
+walkJson('site-data/content.json');
 walkText('index.html');
 walkText('public/contact.php', { skip: /^(\/\/|\*|\/\*|#)/ });
 // App.jsx: only the lines that are visible copy or a default, not every line

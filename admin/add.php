@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // catalog file is damaged (NEW-N2-1); "check file permissions" sent the
         // owner to the wrong fix.
         $errors[] = products_load_damaged()
-            ? 'The product catalog (data/products-all.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Product Catalog entry, then add the product again.'
+            ? 'The product catalog (site-data/products-all.json) is damaged and cannot be read, so nothing was saved. Go to Backups and restore the most recent Product Catalog entry, then add the product again.'
             : save_failed_message();   // AUDIT-12 decision 31
     }
 
@@ -146,15 +146,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>IPC Admin — Add Product</title>
   <?= admin_head() ?>
   <style>
-    h1 { font-size: 22px; font-weight: 800; margin: 0 0 6px; }
-    .sub { font-size: 13px; color: #6b7280; margin: 0 0 28px; }
+    h1 { font-size: var(--fs-6); font-weight: 800; margin: 0 0 6px; }
+    .sub { font-size: var(--fs-2); color: #4b5563; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
     input:focus, select:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     @media(max-width:600px) { .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-<?php $navActive = 'add'; include 'nav.php'; ?>
+<?php include 'nav.php'; ?>
 <main class="admin-wide">
   <h1>Add Product</h1>
   <p class="sub">Fill in the product details. All required fields are marked with *.</p>
@@ -163,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
   <?php endif; ?>
 
-  <form method="POST">
+  <form method="POST" data-long-form>
     <div class="card">
       <div class="card-title">Basic Information</div>
       <div class="grid-2">
@@ -208,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px 14px">
         <?php $addAp = is_array($_POST['approvals'] ?? null) ? $_POST['approvals'] : []; ?>
         <?php foreach (IPC_APPROVALS as $ap): ?>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;text-transform:none">
+          <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-2);cursor:pointer;text-transform:none">
             <input type="checkbox" name="approvals[]" value="<?= h($ap) ?>" <?= in_array($ap, $addAp, true) ? 'checked' : '' ?> />
             <?= h($ap) ?>
           </label>
@@ -255,7 +255,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <textarea id="specTable2_json" name="specTable2_json" rows="12" class="mono"><?= h($emptyTable2) ?></textarea>
     </div>
 
-    <div class="form-actions">
+    <div class="save-bar form-actions">
+      <span class="save-status" role="status" aria-live="polite"></span>
       <a href="index.php" class="btn btn-secondary">Cancel</a>
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
       <button type="submit" class="btn btn-primary">Add Product</button>
@@ -265,6 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script src="spectable-editor.js"></script>
 <?= approval_patterns_json_tag() ?>
 <script src="product-preview.js"></script>
+<script src="longform.js"></script>
 <script src="unsaved.js" defer></script>
 </body>
 </html>

@@ -69,7 +69,7 @@ async function measure(browser, route) {
   const ABS = 'https://example.invalid/x.jpg';
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
-  await page.route('**/data/content.json*', (r) => {
+  await page.route('**/site-data/content.json*', (r) => {
     const json = JSON.parse(JSON.stringify(PRISTINE));
     json.copy = json.copy || {};
     json.copy.siteImages = { ...(json.copy.siteImages || {}), bandTeamPhoto: ABS };

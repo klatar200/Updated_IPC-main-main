@@ -13,7 +13,7 @@
  *   - the measured edge-to-edge gap between ✕ and the nearest arrow is >= 24px
  *   - the touch hit target is >= 44px when the pointer is coarse
  *
- * Needs the mirror on :8123. Does not save, so data/ is never written.
+ * Needs the mirror on :8123. Does not save, so site-data/ is never written.
  *
  * Usage: node _harness/plan2-delete.js
  */
@@ -24,6 +24,10 @@ const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
 const MIN_GAP = 24;
 const MIN_TOUCH = 44;
+// The first row of Products & Services Cards: the first row on the page until
+// PLAN-13 Phase 4 put Page Content in site order, which made it a homepage
+// proof point, whose first box ("$50") is not the box that names it.
+const ROW = 'fieldset[data-section="features"] .content-row';
 
 const results = [];
 const note = (ok, what, detail = '') => {
@@ -42,7 +46,7 @@ async function signIn(ctx) {
 
 /** Edge-to-edge gap between the ✕ and the nearest reorder button in the row. */
 async function measureGap(page) {
-  return page.$eval('.content-row', (row) => {
+  return page.$eval(ROW, (row) => {
     const x = row.querySelector('[data-action="remove"]');
     const arrows = [...row.querySelectorAll('[data-action="up"], [data-action="down"]')];
     const xr = x.getBoundingClientRect();
@@ -72,14 +76,14 @@ async function measureGap(page) {
         `measured ${m.gap.toFixed(1)}px`);
 
       // ── the prompt names the row ──────────────────────────────────────────
-      const rowName = await page.$eval('.content-row',
+      const rowName = await page.$eval(ROW,
         (row) => { const f = row.querySelector('input.ci[type=text], textarea.ci'); return f ? f.value.trim() : ''; });
 
       let prompt = null;
       page.on('dialog', async (d) => { prompt = d.message(); await d.dismiss(); });
 
-      const rowsBefore = await page.$$eval('.content-row', (r) => r.length);
-      await page.click('.content-row [data-action="remove"]');
+      const rowsBefore = await page.$$eval(ROW, (r) => r.length);
+      await page.click(ROW + ' [data-action="remove"]');
       await page.waitForTimeout(150);
 
       note(prompt !== null, `${vp.w}px: clicking ✕ raises a confirmation`);
@@ -93,11 +97,11 @@ async function measureGap(page) {
         `prompt was: ${JSON.stringify(prompt)}`);
 
       // ── cancelling leaves everything alone ────────────────────────────────
-      const rowsAfterCancel = await page.$$eval('.content-row', (r) => r.length);
+      const rowsAfterCancel = await page.$$eval(ROW, (r) => r.length);
       note(rowsAfterCancel === rowsBefore,
         `${vp.w}px: cancelling leaves the row in place (${rowsBefore} rows before, ${rowsAfterCancel} after)`);
 
-      const nameAfterCancel = await page.$eval('.content-row',
+      const nameAfterCancel = await page.$eval(ROW,
         (row) => { const f = row.querySelector('input.ci[type=text], textarea.ci'); return f ? f.value.trim() : ''; });
       note(nameAfterCancel === rowName,
         `${vp.w}px: cancelling leaves the row's fields untouched`,
@@ -106,9 +110,9 @@ async function measureGap(page) {
       // ── accepting removes it ──────────────────────────────────────────────
       page.removeAllListeners('dialog');
       page.on('dialog', async (d) => { await d.accept(); });
-      await page.click('.content-row [data-action="remove"]');
+      await page.click(ROW + ' [data-action="remove"]');
       await page.waitForTimeout(150);
-      const rowsAfterAccept = await page.$$eval('.content-row', (r) => r.length);
+      const rowsAfterAccept = await page.$$eval(ROW, (r) => r.length);
       note(rowsAfterAccept === rowsBefore - 1,
         `${vp.w}px: accepting removes exactly one row (${rowsBefore} -> ${rowsAfterAccept})`);
 

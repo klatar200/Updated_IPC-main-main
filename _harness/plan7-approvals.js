@@ -27,7 +27,7 @@
  *    deletion) applied to a new field, and the first draft of this feature had
  *    the bug: `Array.isArray(p.approvals) && p.approvals.length`.
  *
- * 2. **The migration is progressive, not a bulk rewrite.** data/products-all.json
+ * 2. **The migration is progressive, not a bulk rewrite.** site-data/products-all.json
  *    is server-owned in production, so a 30-product edit made here would not
  *    travel. The field materialises when the owner saves a product; until then
  *    the site derives. Both states must render the same page, and both are
@@ -47,7 +47,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const PRISTINE = path.join(__dirname, 'pristine', 'products-all.json');
-const MIRROR = path.join(__dirname, 'site', 'data', 'products-all.json');
+const MIRROR = path.join(__dirname, 'site', 'site-data', 'products-all.json');
 const products = JSON.parse(fs.readFileSync(PRISTINE, 'utf8'));
 
 const results = [];

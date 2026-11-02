@@ -34,7 +34,7 @@
  *     one of the gradient's own stops, so using it as ink there is the 1.00:1
  *     case by construction, whatever the numbers happen to say today
  *
- * Reads only. Nothing under data/ is written — the pale palette is injected by
+ * Reads only. Nothing under site-data/ is written — the pale palette is injected by
  * intercepting the site-info.json response, as inkaudit.js does.
  *
  * Needs the mirror on :8123 (started with -t _harness/site).

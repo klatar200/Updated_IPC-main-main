@@ -129,7 +129,7 @@ function php(code) {
   section('A-6.2  the three data-tree .htaccess files are in the deploy manifest');
   const readme = R('README.md');
   const uploadTable = readme.slice(readme.indexOf('| Upload to `public_html/` |'), readme.indexOf('**Do NOT upload:**'));
-  for (const f of ['data/.htaccess', 'pdfs/.htaccess', 'uploads/.htaccess']) {
+  for (const f of ['site-data/.htaccess', 'pdfs/.htaccess', 'uploads/.htaccess']) {
     ok(uploadTable.includes(f), `README upload table names ${f}`,
        'not in dist/, so nothing else will carry it to the server');
   }
@@ -223,16 +223,16 @@ function php(code) {
   // ── A-6.7 ────────────────────────────────────────────────────────────────
   section('A-6.7  sitemap.php accepts both catalog shapes');
   const sitemapOut = php(
-    '$dir=sys_get_temp_dir()."/audit6-sm";@mkdir($dir);@mkdir("$dir/data");' +
+    '$dir=sys_get_temp_dir()."/audit6-sm";@mkdir($dir);@mkdir("$dir/site-data");' +
     'copy("public/sitemap.php","$dir/sitemap.php");' +
     '$rows=[["id"=>"AA"],["id"=>"BB"]];' +
-    'file_put_contents("$dir/data/products-all.json",json_encode(["products"=>$rows]));' +
+    'file_put_contents("$dir/site-data/products-all.json",json_encode(["products"=>$rows]));' +
     '$w=shell_exec("php ".escapeshellarg("$dir/sitemap.php"));' +
     'echo substr_count($w,"productId="),"\\n";' +
-    'file_put_contents("$dir/data/products-all.json",json_encode($rows));' +
+    'file_put_contents("$dir/site-data/products-all.json",json_encode($rows));' +
     '$b=shell_exec("php ".escapeshellarg("$dir/sitemap.php"));' +
     'echo substr_count($b,"productId="),"\\n";' +
-    'array_map("unlink",glob("$dir/data/*"));@rmdir("$dir/data");@unlink("$dir/sitemap.php");@rmdir($dir);'
+    'array_map("unlink",glob("$dir/site-data/*"));@rmdir("$dir/site-data");@unlink("$dir/sitemap.php");@rmdir($dir);'
   ).trim().split('\n');
   ok(sitemapOut[1] === '2', 'a bare-array catalog still emits its product URLs', sitemapOut[1]);
   ok(sitemapOut[0] === '2', 'a {products:[...]} catalog emits its product URLs too', sitemapOut[0]);

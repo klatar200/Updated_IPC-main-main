@@ -117,7 +117,7 @@ const INQ = path.join(ADMIN, 'inquiries.jsonl');
 const SEEN = path.join(ADMIN, '.inquiries-seen.json');
 const FLAG = path.join(ADMIN, 'ALLOW-PASSWORD-RESET');
 const LOCAL = path.join(ADMIN, 'config.local.php');
-const CATALOG = path.join(SITE, 'data', 'products-all.json');
+const CATALOG = path.join(SITE, 'site-data', 'products-all.json');
 
 (async () => {
   if (spawnSync('curl', ['-s', '-o', '/dev/null', '--max-time', '2', BASE + '/']).status === 0) {
@@ -240,7 +240,8 @@ const CATALOG = path.join(SITE, 'data', 'products-all.json');
       const g = await req('GET', '/admin/auth.php');
       const r = await post('/admin/auth.php', [['new_password', NEWPW], ['confirm_password', NEWPW], ['set_password', '1'], ['csrf_token', csrfOf(g.body)]]);
       const written = fs.existsSync(LOCAL) ? fs.readFileSync(LOCAL, 'utf8') : '';
-      note(r.status === 302 && /index\.php/.test(r.headers.location || '') && /^<\?php\b/.test(written) && /ADMIN_PASSWORD_HASH/.test(written) && !fs.existsSync(FLAG),
+      // home.php: sign-in, and this reset, land on the Overview since PLAN-13 Phase 8.
+      note(r.status === 302 && /home\.php/.test(r.headers.location || '') && /^<\?php\b/.test(written) && /ADMIN_PASSWORD_HASH/.test(written) && !fs.existsSync(FLAG),
         'B4: Set Admin Password writes config.local.php as PHP, deletes the flag and redirects to the dashboard',
         `status ${r.status} ${r.headers.location || ''}; config.local.php ${written ? JSON.stringify(written.slice(0, 12)) : 'MISSING'}; flag ${fs.existsSync(FLAG) ? 'still there' : 'gone'}`);
       const d = await req('GET', '/admin/index.php');

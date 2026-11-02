@@ -38,8 +38,8 @@ const { launch } = require('./browser');
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
 const ROOT = path.join(__dirname, '..');
-const SITE_INFO = path.join(__dirname, 'site', 'data', 'site-info.json');
-const CONTENT = path.join(__dirname, 'site', 'data', 'content.json');
+const SITE_INFO = path.join(__dirname, 'site', 'site-data', 'site-info.json');
+const CONTENT = path.join(__dirname, 'site', 'site-data', 'content.json');
 
 let pass = 0, fail = 0;
 const ok = (c, m, detail = '') => {
@@ -210,7 +210,7 @@ const SCORE = (rootSel) => {
     // ── 4–6 for each layout ──────────────────────────────────────────────
     const features = (content.features || []).length;
     const markets = (content.markets || []).length;
-    const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, 'site', 'data', 'products-all.json'), 'utf8'));
+    const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, 'site', 'site-data', 'products-all.json'), 'utf8'));
     const familyNames = [...new Set(catalog.map((p) => p.partType).filter(Boolean))];
     const familiesWithPhoto = familyNames.filter((n) => catalog.some((p) => p.partType === n && p.photoUrl)).length;
     const expect = {
@@ -280,7 +280,7 @@ const SCORE = (rootSel) => {
       // count it does not have ("0 products across 0 families" shipped).
       if (L.families || L.featured) {
         const page = await browser.newPage({ viewport: { width: 390, height: 900 } });
-        await page.route('**/data/products-all.json*', (rt) => rt.abort());
+        await page.route('**/site-data/products-all.json*', (rt) => rt.abort());
         await page.goto(BASE + '/?v=' + Date.now(), { waitUntil: 'networkidle' });
         await page.waitForTimeout(400);
         const z = await page.evaluate((root) => {

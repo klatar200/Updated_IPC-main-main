@@ -44,7 +44,7 @@ const note = (ok, label, detail) => { results.push({ ok }); console.log(`${ok ? 
       return { header: getComputedStyle(document.querySelector('header')).display !== 'none', footer: getComputedStyle(document.querySelector('footer')).display !== 'none',
         printLineOnScreen: !!pc && getComputedStyle(pc).display !== 'none' };
     });
-    const facts = await p.evaluate(async () => { const r = await fetch('/data/site-info.json'); const j = await r.json(); return { name: j.company.name, phone: j.contact.phone, email: j.contact.email }; });
+    const facts = await p.evaluate(async () => { const r = await fetch('/site-data/site-info.json'); const j = await r.json(); return { name: j.company.name, phone: j.contact.phone, email: j.contact.email }; });
     await p.emulateMedia({ media: 'print' });
     const m = await p.evaluate(() => {
       let rules = 0;

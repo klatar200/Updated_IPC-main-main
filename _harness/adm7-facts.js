@@ -28,7 +28,7 @@ const { launch } = require('./browser');
 
 const ROOT = path.join(__dirname, '..');
 const SITE = path.join(__dirname, 'site');
-const INFO = path.join(SITE, 'data', 'site-info.json');
+const INFO = path.join(SITE, 'site-data', 'site-info.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'site-info.json');
 const PORT = Number(process.env.ADM7_PORT) || 8708;
 const BASE = `http://127.0.0.1:${PORT}`;

@@ -24,12 +24,13 @@
  *                   fails the run.
  *   the states set  the frames where a phase D change is actually visible.
  *                   `delete.php` and `upload-*.php` need a `?sku=`, and
- *                   `upload-image.php` is the page that carries the MOST nav
- *                   items (13 — it injects two $navExtra links, more than
- *                   edit.php or upload-pdf.php at 12), so it is the real worst
- *                   case for A10-021 and is shot deliberately.
+ *                   `upload-image.php` used to carry the MOST nav items (13 —
+ *                   it injected two $navExtra links), so it was the real worst
+ *                   case for A10-021 and is still shot deliberately. Since
+ *                   PLAN-13 Phase 2 every page has the same 13 menu links, and
+ *                   at 390 they sit in the Menu panel, which the shot opens.
  *
- * Read-only. Nothing here submits a form, so no `data/*.json`, `pdfs/` or
+ * Read-only. Nothing here submits a form, so no `site-data/*.json`, `pdfs/` or
  * `uploads/` write is possible and no pristine restore is owed. The two POST
  * pages that would mutate state (`delete.php`, the upload handlers) are opened
  * at their CONFIRMATION step and never confirmed.
@@ -80,6 +81,7 @@ const SKU = 'IP38FE';
 // site-images.php and marketing-pdfs.php (2026-09-29, 2026-10-05) were missing
 // while the README said "every admin page" (AUDIT-12 A12-L13-10-2).
 const PAGES = [
+  { slug: 'home',         url: '/admin/home.php', note: 'PLAN-13 Phase 8 — the Overview, where sign-in lands' },
   { slug: 'index',        url: '/admin/index.php',  note: 'item 5 (A10-020) — the Delete button used to be clipped to a 17px sliver on all 42 rows' },
   { slug: 'add',          url: '/admin/add.php' },
   { slug: 'edit',         url: `/admin/edit.php?sku=${SKU}` },
@@ -112,14 +114,15 @@ const PAGE_VPS = [D, T, M];
 const STATES = [
   {
     slug: 'index-actions', vp: D, url: '/admin/index.php', full: false,
-    note: 'item 5 — Delete now sits inside the table, on a wrapped second line',
+    note: 'item 5 — Edit plus a More menu holding Manage PDF, Photo, View on site and Delete (PLAN-13 Phase 5)',
     // Put the first row's action cell in view rather than shooting the page
-    // top, which is a stats bar.
+    // top, which is a stats bar, and open its More menu for the shot.
     act: async (page) => {
       if (!(await page.locator('table tbody tr').count())) return false;   // same scroll-before-check shape (A12-L13-05-W5-1)
       await page.locator('table tbody tr').first().scrollIntoViewIfNeeded({ timeout: 5000 });
+      await page.locator('table tbody tr').first().locator('details.row-more > summary').click();
       await page.waitForTimeout(250);
-      return (await page.locator('table tbody tr td:nth-child(5) a, table tbody tr td:nth-child(5) button').count()) >= 5;
+      return (await page.locator('table tbody tr').first().locator('.row-more-menu a:visible').count()) === 4;
     },
   },
   {
@@ -134,9 +137,10 @@ const STATES = [
   },
   {
     slug: 'nav-13-items', vp: M, url: `/admin/upload-image.php?sku=${SKU}`, full: false,
-    note: 'item 6 — the header containing 13 nav items at 390; it used to spill above and below the bar',
+    note: 'item 6 — the 13 menu links at 390, in the Menu panel (PLAN-13 Phase 2); they used to spill above and below the bar',
     act: async (page) => {
       await page.evaluate('window.scrollTo(0, 0)');
+      await page.click('.ipc-admin-header .menu-toggle');
       await page.waitForTimeout(200);
       return (await page.locator('.ipc-admin-header nav a, .ipc-admin-header nav button').count()) === 13;
     },

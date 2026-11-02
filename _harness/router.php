@@ -21,7 +21,7 @@
  *
  * NOT emulated (php -S ignores .htaccess and .user.ini entirely — see
  * GUARDRAILS 4.3): the SetEnvIf-scoped cache headers, the dotfile block, the
- * admin/ and data/ file-blocking rules, and every limit in public/.user.ini.
+ * admin/ and site-data/ file-blocking rules, and every limit in public/.user.ini.
  * Anything depending on those is [UNVERIFIED] locally.
  */
 

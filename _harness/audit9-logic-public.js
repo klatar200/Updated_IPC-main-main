@@ -7,7 +7,7 @@
  *
  * BASE   — origin to drive (default http://127.0.0.1:8140)
  * SITE   — docroot of that origin; read for its catalog and built bundle (the NEGCTL arm
- *          patches a disposable mirror's copy). This file mutates no data/:
+ *          patches a disposable mirror's copy). This file mutates no site-data/:
  *          the C5 arms that did moved to audit9-logic-data.js, and the dead
  *          restoreAll()/writeData() helpers went with them (AUDIT-12
  *          A12-L13-05-5).
@@ -24,7 +24,7 @@ const SITE = process.env.SITE || '_harness/out/audit9/site-A';
 const OUT = process.env.OUT || '_harness/out/audit9/P7';
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
 const NEGCTL = process.env.NEGCTL || '';
-const dataPath = (f) => path.join(SITE, 'data', f);
+const dataPath = (f) => path.join(SITE, 'site-data', f);
 
 
 // ── Negative control ───────────────────────────────────────────────────────

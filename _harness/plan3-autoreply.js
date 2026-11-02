@@ -46,7 +46,7 @@ const MAIL_LOG = process.env.IPC_MAIL_LOG || path.join(os.tmpdir(), 'ipc-harness
 const INQUIRIES = path.join(__dirname, 'site/admin/inquiries.jsonl');
 const AR_MAX = 3;    // contact.php's $arMax
 const SALES = 'sales@insulationproducts.com';
-const CONTENT = path.join(__dirname, 'site/data/content.json');
+const CONTENT = path.join(__dirname, 'site/site-data/content.json');
 const PRISTINE_CONTENT = path.join(__dirname, 'pristine/content.json');
 
 const results = [];

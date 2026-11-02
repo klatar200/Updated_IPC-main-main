@@ -14,7 +14,7 @@
  * This suite is expected to FAIL against the pre-fix content.php. Run it
  * against an un-synced mirror to see that, then re-sync and run it again.
  *
- * Needs the mirror on :8123. Restores data/content.json from pristine.
+ * Needs the mirror on :8123. Restores site-data/content.json from pristine.
  *
  * Usage: node _harness/plan2-sku.js
  */
@@ -25,7 +25,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const PW = 'audit-pass-123';
-const DIR = path.join(__dirname, 'site/data');
+const DIR = path.join(__dirname, 'site/site-data');
 const MIRROR_CONTENT = path.join(DIR, 'content.json');
 const PRISTINE_CONTENT = path.join(__dirname, 'pristine/content.json');
 const PRISTINE_PRODUCTS = path.join(__dirname, 'pristine/products-all.json');
@@ -80,7 +80,7 @@ function restore() {
     await page.fill(heroSel, MARKER);
 
     await Promise.all([
-      page.waitForLoadState('domcontentloaded'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),   // not waitForLoadState: the page being left is already loaded, so that resolved before the POST came back
       page.click('button:has-text("Save Content")'),
     ]);
 
@@ -134,7 +134,7 @@ function restore() {
     await ta2.fill(orig2.trimEnd() + `\n${realSku} | Real Product`);
 
     await Promise.all([
-      page.waitForLoadState('domcontentloaded'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
       page.click('button:has-text("Save Content")'),
     ]);
     const body2 = await page.innerText('body');
@@ -152,7 +152,7 @@ function restore() {
     restore();
     await page.goto(`${BASE}/admin/content.php`, { waitUntil: 'domcontentloaded' });
     await Promise.all([
-      page.waitForLoadState('domcontentloaded'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
       page.click('button:has-text("Save Content")'),
     ]);
     const untouched = await page.innerText('body');
@@ -166,7 +166,7 @@ function restore() {
     const ta3 = await page.$(prodSel);
     await ta3.fill((await ta3.inputValue()).trimEnd() + '\n\n   \n');
     await Promise.all([
-      page.waitForLoadState('domcontentloaded'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
       page.click('button:has-text("Save Content")'),
     ]);
     note(!/Check these product codes/i.test(await page.innerText('body')),

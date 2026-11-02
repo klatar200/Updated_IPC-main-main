@@ -10,7 +10,7 @@
  *
  * Method:
  *   - render every public route at two viewports under TWO palettes, the
- *     shipped navy and a pale one, by intercepting /data/site-info.json (no
+ *     shipped navy and a pale one, by intercepting /site-data/site-info.json (no
  *     file on disk is touched, so there is nothing to restore and no cache to
  *     fight);
  *   - for every element that paints its own text, resolve the EFFECTIVE

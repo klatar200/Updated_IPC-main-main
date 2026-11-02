@@ -360,27 +360,28 @@ $partTypes = ipc_product_families();
   <?= admin_head() ?>
   <style>
     .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }
-    .page-header h1 { font-size: 22px; font-weight: 800; margin: 0; }
-    .page-header p  { font-size: 13px; color: #6b7280; margin: 4px 0 0; }
+    .page-header h1 { font-size: var(--fs-6); font-weight: 800; margin: 0; }
+    .page-header p  { font-size: var(--fs-2); color: #4b5563; margin: 4px 0 0; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
     textarea { resize: vertical; line-height: 1.5; }
-    .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; }
     @media(max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-<?php
-$navExtra = '<a href="upload-pdf.php?sku=' . urlencode($product['sku'] ?? '') . '">Upload PDF</a>';
-include 'nav.php';
-?>
+<?php include 'nav.php'; ?>
 <main class="admin-wide">
+  <?= admin_breadcrumb([['Products', 'index.php'], ['Edit ' . ($product['sku'] ?? '')]]) ?>
   <div class="page-header">
     <div>
       <h1>Edit Product: <?= h($product['sku'] ?? '') ?></h1>
       <p><?= h($product['name'] ?? '') ?></p>
     </div>
-    <div style="display:flex;gap:8px;">
-      <a href="index.php" class="btn btn-secondary">← Back</a>
+    <?php /* PLAN-13 §2 A4 — "Upload PDF" used to be pushed into the shared
+             menu bar from this page ($navExtra), so the menu changed from page
+             to page. The product's own pages belong here, with the product. */ ?>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="upload-pdf.php?sku=<?= urlencode($product['sku'] ?? '') ?>" class="btn btn-secondary">Manage PDF</a>
+      <a href="upload-image.php?sku=<?= urlencode($product['sku'] ?? '') ?>" class="btn btn-secondary">Photo</a>
     </div>
   </div>
 
@@ -388,7 +389,7 @@ include 'nav.php';
     <ul class="error-list"><?php foreach ($errors as $e): ?><li><?= h($e) ?></li><?php endforeach; ?></ul>
   <?php endif; ?>
 
-  <form method="POST"<?= !empty($product['pdfUrl']) ? ' data-ipc-has-pdf="1"' : '' ?>><?php /* A12-L5-01-W5-4 — product-preview.js */ ?>
+  <form method="POST" data-long-form<?= !empty($product['pdfUrl']) ? ' data-ipc-has-pdf="1"' : '' ?>><?php /* A12-L5-01-W5-4 — product-preview.js */ ?>
     <!-- Basic Info -->
     <div class="card">
       <div class="card-title">Basic Information</div>
@@ -451,7 +452,7 @@ include 'nav.php';
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px 14px">
           <?php foreach (IPC_APPROVALS as $ap): $on = in_array($ap, $approvalSet, true); ?>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:<?= $on ? '600' : '400' ?>;cursor:pointer;text-transform:none">
+            <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-2);font-weight:<?= $on ? '600' : '400' ?>;cursor:pointer;text-transform:none">
               <input type="checkbox" name="approvals[]" value="<?= h($ap) ?>" <?= $on ? 'checked' : '' ?> />
               <?= h($ap) ?>
             </label>
@@ -530,7 +531,8 @@ include 'nav.php';
       </div>
     </div>
 
-    <div class="form-actions">
+    <div class="save-bar form-actions">
+      <span class="save-status" role="status" aria-live="polite"></span>
       <a href="index.php" class="btn btn-secondary">Cancel</a>
       <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
       <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
@@ -547,5 +549,6 @@ include 'nav.php';
 <script src="spectable-editor.js"></script>
 <?= approval_patterns_json_tag() ?>
 <script src="product-preview.js"></script>
+<script src="longform.js"></script>
 </body>
 </html>

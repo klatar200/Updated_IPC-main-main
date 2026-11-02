@@ -36,7 +36,7 @@
  *     React bundle (production strips them, so the shipped bundle cannot fail
  *     this check — same reason plan5-keys builds its own bundle)
  *
- * Reads only. Nothing under data/ is written.
+ * Reads only. Nothing under site-data/ is written.
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
  * Usage: node _harness/plan5b-sidebar.js

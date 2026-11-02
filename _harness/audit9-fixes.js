@@ -13,7 +13,7 @@
  * `_harness/README.md`). The mutating arms drive the REAL admin forms over HTTP
  * — a hand-built POST would trip `content.php`'s truncation guard and would not
  * exercise the code the findings are about — and every one of them restores
- * `_harness/site/data/` and `_harness/site/pdfs/` from `_harness/pristine/` in a
+ * `_harness/site/site-data/` and `_harness/site/pdfs/` from `_harness/pristine/` in a
  * `finally`, asserting the restore byte-for-byte before reporting. That
  * assertion is itself a scored check: A-9.D6 is a finding about a suite that
  * restored without proving it.
@@ -81,7 +81,7 @@ async function login() {
 /* --------------------------------------------------------------- mirror */
 const dataFiles = ['products-all.json', 'site-info.json', 'content.json'];
 function restoreMirror() {
-  for (const f of dataFiles) fs.copyFileSync(path.join(PRISTINE, f), path.join(SITE, 'data', f));
+  for (const f of dataFiles) fs.copyFileSync(path.join(PRISTINE, f), path.join(SITE, 'site-data', f));
   // sync.sh re-copies pdfs/ but NEVER deletes: `cp -ru pdfs`. A renamed sheet
   // therefore survives as an extra file, and `edit.php`'s (correct) no-clobber
   // guard then SKIPS the next run's rename — which made this suite's own
@@ -100,11 +100,11 @@ function assertRestored() {
   let allEqual = true;
   const bad = [];
   for (const f of dataFiles) {
-    const a = fs.readFileSync(path.join(SITE, 'data', f));
+    const a = fs.readFileSync(path.join(SITE, 'site-data', f));
     const b = fs.readFileSync(path.join(PRISTINE, f));
     if (!a.equals(b)) { allEqual = false; bad.push(f); }
   }
-  ok('restore  the mirror\'s data/ is byte-equal to _harness/pristine/ after the run',
+  ok('restore  the mirror\'s site-data/ is byte-equal to _harness/pristine/ after the run',
     allEqual, `differs: ${bad.join(', ')}`);
   const repoPdfs = fs.readdirSync(path.join(ROOT, 'pdfs')).sort();
   const mirrorList = fs.existsSync(path.join(SITE, 'pdfs')) ? fs.readdirSync(path.join(SITE, 'pdfs')).sort() : [];
@@ -154,7 +154,7 @@ const decodeEntities = (s) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').rep
 // product must not rename the file out from under the other product.
 async function armP71() {
   section('A-9.P7-1  shared data sheet survives a SKU rename');
-  const products = JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'products-all.json'), 'utf8'));
+  const products = JSON.parse(fs.readFileSync(path.join(SITE, 'site-data', 'products-all.json'), 'utf8'));
   const byFile = {};
   for (const p of products) {
     const u = p.pdfUrl && path.basename(p.pdfUrl);
@@ -178,7 +178,7 @@ async function armP71() {
   ok('p7-1  the rename is accepted', r.status === 302 || /saved successfully/i.test(r.body),
     `status ${r.status}`);
 
-  const after = JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'products-all.json'), 'utf8'));
+  const after = JSON.parse(fs.readFileSync(path.join(SITE, 'site-data', 'products-all.json'), 'utf8'));
   const otherRec = after.find((p) => p.sku === other);
   const otherUrl = otherRec && otherRec.pdfUrl;
   const otherFile = otherUrl && path.join(SITE, otherUrl.replace(/^\//, ''));
@@ -286,7 +286,7 @@ async function armP32() {
   ok('p3-2  the uploader checks the decoded image, not just the header and MIME',
     /\bimagecreatefromstring\b/.test(src), 'no decode step found in upload-image.php');
 
-  const sku = JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'products-all.json'), 'utf8'))[0].sku;
+  const sku = JSON.parse(fs.readFileSync(path.join(SITE, 'site-data', 'products-all.json'), 'utf8'))[0].sku;
   const imgDir = path.join(SITE, 'uploads', 'images');
   const before = fs.existsSync(imgDir) ? fs.readdirSync(imgDir) : [];
 
@@ -312,7 +312,7 @@ async function armP32() {
   ok('p3-2  nothing landed in uploads/images/', landed.length === 0, `new files: ${landed.join(', ')}`);
   for (const f of landed) fs.unlinkSync(path.join(imgDir, f));
 
-  const cat = JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'products-all.json'), 'utf8'));
+  const cat = JSON.parse(fs.readFileSync(path.join(SITE, 'site-data', 'products-all.json'), 'utf8'));
   const rec = cat.find((p) => p.sku === sku);
   ok('p3-2  the product\'s photo was not repointed at it',
     !(rec && /poly\.gif|\.gif$/i.test(rec.photoUrl || '')) || !landed.length,
@@ -384,7 +384,7 @@ async function armAdmin() {
   section('A-9.B2-04  the upload screens state the limit this server really allows');
   // The reference is the SAME server, read from the Help page, not this
   // process's CLI ini — that mistake made this arm fail against a correct fix.
-  const sku = JSON.parse(fs.readFileSync(path.join(SITE, 'data', 'products-all.json'), 'utf8'))[0].sku;
+  const sku = JSON.parse(fs.readFileSync(path.join(SITE, 'site-data', 'products-all.json'), 'utf8'))[0].sku;
   const helpPage = await req('GET', '/admin/help.php');
   const serverMax = (/Largest single file the server accepts[\s\S]{0,120}?<code>\s*(\d+(?:\.\d+)?)\s*([KMG])?/i
     .exec(helpPage.body) || []);
@@ -417,10 +417,10 @@ async function armAdmin() {
     const src = fs.readFileSync(path.join(ROOT, 'admin', f), 'utf8');
     for (const m of src.matchAll(/products\.json/g)) ghost.push(`${f}`);
   }
-  const dataFilesOnDisk = fs.readdirSync(path.join(ROOT, 'data')).filter((f) => f.endsWith('.json'));
-  ok('b2-07  no message names `products.json`, which is not a file in data/',
+  const dataFilesOnDisk = fs.readdirSync(path.join(ROOT, 'site-data')).filter((f) => f.endsWith('.json'));
+  ok('b2-07  no message names `products.json`, which is not a file in site-data/',
     ghost.length === 0,
-    `${[...new Set(ghost)].join(', ')} still name it; data/ holds ${dataFilesOnDisk.join(', ')}`);
+    `${[...new Set(ghost)].join(', ')} still name it; site-data/ holds ${dataFilesOnDisk.join(', ')}`);
 }
 
 // ---------------------------------------------------------------- the docs
@@ -446,10 +446,18 @@ function armDocs() {
     .filter((l) => !new RegExp(l.replace(/ /g, '\\s+')).test(help.slice(help.indexOf('Header bar'), help.indexOf('Header bar') + 900)));
   ok('b2-01  the header-bar paragraph names the tabs the bar really carries',
     missingFromHelp.length === 0, `not named: ${missingFromHelp.join(', ')}`);
-  const svgLine = (/(<text[^>]*>IPC Admin[^<]*<\/text>)/.exec(help) || [, ''])[1];
+  // PLAN-13 Phase 2 grouped the bar into six entries (Business Details now
+  // sits under Website), so the strip is checked against nav.php's top-level
+  // entries: the <summary> labels and the two direct links.
+  const strip = help.slice(help.indexOf('>IPC Admin</text>'), help.indexOf('HEADER — same on every page'))
+    .replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&');
+  // Anchored on the closing tag: the opening <summary> carries a PHP `?>`.
+  const topEntries = [...nav.matchAll(/>([^<>]+)<\/summary>/g)].map((m) => m[1].replace(/&amp;/g, '&').trim())
+    .concat(['Inquiries', 'Help']);
+  const notDrawn = topEntries.filter((e) => !strip.includes(e));
   ok('b2-01  the dashboard diagram\'s header strip matches the real bar',
-    /Business Details/.test(svgLine) || /…|\.\.\./.test(svgLine),
-    `diagram says ${JSON.stringify(svgLine.replace(/<[^>]*>/g, '').slice(0, 90))}`);
+    topEntries.length === 6 && notDrawn.length === 0,
+    `nav.php entries ${JSON.stringify(topEntries)}; not in the diagram: ${notDrawn.join(', ')}`);
   console.log(`  note  nav.php renders: ${navLabels.join(' · ')}`);
 
   section('A-9.B2-02  the audit-log dropdown claim matches the badge table');
@@ -461,7 +469,8 @@ function armDocs() {
     `explained ${explained.length} of ${actions.length}; missing: ${actions.filter((a) => !explained.includes(a)).join(', ')}`);
 
   section('A-9.B2-03  the server-warning section counts what the dashboard can raise');
-  const branches = (index.match(/healthProblems\[\] = /g) || []).length;
+  // The list moved into config.php's admin_health_problems() (PLAN-13 Phase 8).
+  const branches = ((index + config).match(/healthProblems\[\] = /g) || []).length;
   const claimed = (/can go wrong on the server/.exec(help) ? help.slice(help.indexOf('can go wrong on the server') - 120, help.indexOf('can go wrong on the server')) : '');
   ok('b2-03  the section does not claim a number smaller than the dashboard raises',
     !/\bThree\b/i.test(claimed), `the sentence still says ${JSON.stringify(claimed.trim().slice(-40))}, dashboard raises ${branches}`);
@@ -499,7 +508,7 @@ function armDocs() {
     `it opens ${JSON.stringify(firstQuoted.slice(0, 70))}`);
   ok('b2-12  the subsequent-deploys rule carries the .htaccess exception',
     /\.htaccess/.test(aReadme.slice(aReadme.indexOf('### Subsequent deploys'), aReadme.indexOf('### Subsequent deploys') + 1200)),
-    'the "do not re-upload" rule still has no exception, which drops data/.htaccess');
+    'the "do not re-upload" rule still has no exception, which drops site-data/.htaccess');
   ok('b2-13  the spec-table section teaches the visual builder, not raw JSON',
     /visual|builder|Advanced/i.test(aReadme.slice(aReadme.indexOf('Specification'), aReadme.indexOf('Specification') + 2500)),
     'the spec-table section still describes only the JSON workflow');
@@ -551,7 +560,7 @@ function armDocs() {
 
   try {
     if (needsServer) {
-      const up = await req('GET', '/data/site-info.json').catch(() => ({ status: 0 }));
+      const up = await req('GET', '/site-data/site-info.json').catch(() => ({ status: 0 }));
       if (up.status !== 200) {
         console.error(`audit9-fixes: ${BASE} is not serving the mirror — start the :8123 server first.`);
         process.exit(2);

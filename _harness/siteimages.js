@@ -55,10 +55,10 @@ const sizeOf = (file) => spawnSync('php', ['-r', '$s=getimagesize($argv[1]); ech
   const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'ipc-siteimg-'));
   const SITE = path.join(TMP, 'site');
   fs.cpSync(MIRROR, SITE, { recursive: true, filter: (p) => !/\/admin\/(\.sessions|.*\.jsonl$|\.login-throttle\.json$)|\/pdfs(\/|$)/.test(p) });
-  for (const f of ['products-all.json', 'content.json', 'site-info.json']) fs.copyFileSync(path.join(__dirname, 'pristine', f), path.join(SITE, 'data', f));
-  for (const x of fs.readdirSync(path.join(SITE, 'data'))) if (/\.backup\./.test(x)) fs.rmSync(path.join(SITE, 'data', x));
+  for (const f of ['products-all.json', 'content.json', 'site-info.json']) fs.copyFileSync(path.join(__dirname, 'pristine', f), path.join(SITE, 'site-data', f));
+  for (const x of fs.readdirSync(path.join(SITE, 'site-data'))) if (/\.backup\./.test(x)) fs.rmSync(path.join(SITE, 'site-data', x));
   fs.rmSync(path.join(SITE, 'uploads', 'site'), { recursive: true, force: true });
-  const DATA = path.join(SITE, 'data');
+  const DATA = path.join(SITE, 'site-data');
   const UP = path.join(SITE, 'uploads', 'site');
   const readJ = (f) => JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8'));
   const upFiles = () => (fs.existsSync(UP) ? fs.readdirSync(UP).filter((n) => !n.startsWith('.')) : []);
@@ -141,7 +141,7 @@ const sizeOf = (file) => spawnSync('php', ['-r', '$s=getimagesize($argv[1]); ech
     const r3 = await act('aboutPhoto', 'choose', [['choice', 'images/site/staff.jpg']]);
     note(r3.status === 302 && readJ('content.json').copy.siteImages.aboutPhoto === 'images/site/staff.jpg', 'choose: a shipped images/site/ picture is accepted');
     const snap = fs.readFileSync(path.join(DATA, 'content.json'), 'utf8');
-    for (const bad of ['../data/content.json', 'uploads/site/does-not-exist.jpg', 'images/site/../../data/content.json', '/etc/passwd', 'uploads/images/CC.png']) {
+    for (const bad of ['../site-data/content.json', 'uploads/site/does-not-exist.jpg', 'images/site/../../site-data/content.json', '/etc/passwd', 'uploads/images/CC.png']) {
       const r = await act('aboutPhoto', 'choose', [['choice', bad]]);
       note(r.status === 200 && /Pick a picture from the list/.test(r.body) && fs.readFileSync(path.join(DATA, 'content.json'), 'utf8') === snap,
         `choose: "${bad}" is refused and changes nothing`);

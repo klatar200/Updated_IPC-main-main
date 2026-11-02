@@ -4,10 +4,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * DEV ONLY — serve the repo's top-level `data/` folder at `/data/*`.
+ * DEV ONLY — serve the repo's top-level `site-data/` folder at `/site-data/*`.
  *
  * The three runtime JSON files (`products-all.json`, `site-info.json`,
- * `content.json`) live in `data/`, which deploys to `public_html/data/` and is
+ * `content.json`) live in `site-data/`, which deploys to `public_html/site-data/` and is
  * written by the PHP admin. Vite's publicDir is `public/`, so in dev those
  * paths fell through to the SPA fallback and were answered with `index.html`
  * and a **200** — `res.ok` was true and the failure only surfaced as a JSON
@@ -16,27 +16,27 @@ import path from 'node:path';
  * (AUDIT_v3 4.24).
  *
  * Replaces the old `public/products-all.json` snapshot, which was a fourth copy
- * of the catalog and drifted from `data/` silently.
+ * of the catalog and drifted from `site-data/` silently.
  */
 function serveDataDir() {
   return {
     name: 'ipc-serve-data-dir',
     apply: 'serve',
     configureServer(server) {
-      const dataDir = path.resolve(server.config.root, 'data');
+      const dataDir = path.resolve(server.config.root, 'site-data');
       server.middlewares.use((req, res, next) => {
         const urlPath = (req.url || '').split('?')[0];
-        if (!urlPath.startsWith('/data/')) return next();
+        if (!urlPath.startsWith('/site-data/')) return next();
 
         let rel;
         try {
-          rel = decodeURIComponent(urlPath.slice('/data/'.length));
+          rel = decodeURIComponent(urlPath.slice('/site-data/'.length));
         } catch {
           res.statusCode = 400;
           return res.end('{"error":"bad request"}');
         }
 
-        // Containment: a `..` in the request must not escape data/. Mirrors the
+        // Containment: a `..` in the request must not escape site-data/. Mirrors the
         // basename()+realpath() containment every PHP read/write already uses.
         const resolved = path.resolve(dataDir, rel);
         if (resolved !== dataDir && !resolved.startsWith(dataDir + path.sep)) {
@@ -76,7 +76,7 @@ function serveDataDir() {
  * `npm run dev -- --host` is used to check the site on a phone.
  *
  * The site itself needs none of it: the SPA, /src, /node_modules (incl.
- * /node_modules/.vite), /public's files, /data via serveDataDir, and /pdfs,
+ * /node_modules/.vite), /public's files, /site-data via serveDataDir, and /pdfs,
  * /images, /uploads for the pages that link them. A refused path gets a real
  * 404, like serveDataDir's miss, not the SPA shell.
  */

@@ -3,7 +3,7 @@ require_once 'config.php';
 require_auth();
 
 /**
- * Page Content editor — edits data/content.json, the homepage section arrays
+ * Page Content editor — edits site-data/content.json, the homepage section arrays
  * (Products & Services cards, the trust-bar stats, and the Industries grid)
  * that the React site reads at runtime. Mirrors settings.php conventions.
  */
@@ -642,6 +642,84 @@ $COPY_GROUPS = [
     ]],
 ];
 
+/*
+ * PLAN-13 Phase 4 — the order this page SHOWS its boxes in: by public page,
+ * in the order the site's menu reaches them (§3.5). It used to be every
+ * single-box group first, then every repeating list (§2 B2), so one page was
+ * scattered — the homepage hero was section 3 and its proof points 27.
+ *
+ * Display only. The names are unchanged and the save builds content.json
+ * from $COPY_GROUPS and $SECTIONS, never from this, so a save writes the same
+ * bytes (plan13-pagecontent.js). A group or list missing from here is still
+ * shown, under "Everything else", never dropped.
+ *
+ * 'copy:<group>' is a $COPY_GROUPS entry, 'list:<section>' a $SECTIONS one.
+ * 'short' is the label in the strip of page links; 'url' the public page.
+ */
+$PAGE_MAP = [
+    'homepage'   => ['title' => 'Homepage', 'url' => '/', 'items' => [
+        'copy:hero', 'list:heroProofPoints', 'list:heroTrust', 'list:stats',
+        'copy:homeFeatures', 'list:features', 'copy:homeMarkets', 'list:markets', 'copy:homeLayouts']],
+    'families'   => ['title' => 'Product families', 'short' => 'Families', 'url' => '/products', 'items' => ['list:productFamilies']],
+    'services'   => ['title' => 'Services page', 'short' => 'Services', 'url' => '/services', 'items' => ['copy:servicesHeader', 'list:services']],
+    'industries' => ['title' => 'Industries page', 'short' => 'Industries', 'url' => '/industries', 'items' => ['copy:industriesHeader', 'list:industryDetail']],
+    'about'      => ['title' => 'About page', 'short' => 'About', 'url' => '/about',
+        'note' => 'The “Our Story” paragraphs are on <a href="settings.php#about_paragraphs">Business Details → About Page</a>.',
+        'items' => ['copy:aboutHeader', 'list:milestones', 'list:capabilities', 'list:certs']],
+    'datasheets' => ['title' => 'Datasheets page', 'short' => 'Datasheets', 'url' => '/datasheets', 'items' => ['copy:datasheetsHeader']],
+    'faq'        => ['title' => 'FAQ page', 'short' => 'FAQ', 'url' => '/faq', 'items' => ['copy:faqHeader', 'list:faq']],
+    'contact'    => ['title' => 'Contact page', 'short' => 'Contact', 'url' => '/contact', 'items' => ['copy:contactHeader', 'copy:contactForm', 'list:contactTips']],
+    'privacy'    => ['title' => 'Privacy page', 'short' => 'Privacy', 'url' => '/privacy', 'items' => ['copy:privacyHeader', 'list:privacySections']],
+    'menus'      => ['title' => 'Menus & footer', 'short' => 'Menus & footer', 'items' => ['copy:nav', 'list:companyNav', 'copy:footer', 'list:footerLinks']],
+    'seo'        => ['title' => 'Search engines', 'short' => 'Search engines', 'items' => ['list:seo']],
+    'sitewide'   => ['title' => 'Site-wide claims & images', 'short' => 'Claims & images', 'items' => ['copy:claims', 'copy:siteImages']],
+];
+
+/** $PAGE_MAP with unknown entries dropped and anything it misses appended. */
+function content_page_map(array $map, array $copyGroups, array $sections): array {
+    $seen = [];
+    foreach ($map as $pk => $pg) {
+        $map[$pk]['items'] = array_values(array_filter($pg['items'], static function ($it) use ($copyGroups, $sections, &$seen) {
+            [$kind, $key] = array_pad(explode(':', $it, 2), 2, '');
+            $ok = ($kind === 'copy' && isset($copyGroups[$key])) || ($kind === 'list' && isset($sections[$key]));
+            if ($ok && !isset($seen[$it])) { $seen[$it] = true; return true; }
+            return false;
+        }));
+    }
+    $rest = [];
+    foreach (array_keys($copyGroups) as $g) if (!isset($seen['copy:' . $g])) $rest[] = 'copy:' . $g;
+    foreach (array_keys($sections) as $s) if (!isset($seen['list:' . $s])) $rest[] = 'list:' . $s;
+    if ($rest) $map['other'] = ['title' => 'Everything else', 'items' => $rest];
+    return array_filter($map, static fn($pg) => !empty($pg['items']));
+}
+
+/**
+ * PLAN-13 Phase 4 (§2 B3) — a label carried its rule inside it: “About page
+ * facts — Structure; also the homepage band's … (empty removes both)”. The
+ * trailing bracket, and a Site Images label's <br><small> guidance, become a
+ * lighter hint line under a short label. Both stay INSIDE the <label>, so the
+ * accessible name is what it was and no id has to follow a row when
+ * content-editor.js renumbers it. Returns [label HTML, hint HTML or ''].
+ */
+function content_label_parts(string $label, bool $isHtml): array {
+    $hint = '';
+    if ($isHtml && preg_match('~^(.*?)<br\s*/?>(.*)$~s', $label, $m)) {
+        $label = $m[1];
+        $hint  = trim((string)preg_replace('~^\s*<small[^>]*>(.*)</small>\s*$~s', '$1', $m[2]));
+    }
+    $text = $isHtml ? $label : h($label);
+    if (preg_match('~^(.+?)\s*\(([^()]+)\)\s*$~su', $text, $m)) {
+        // ucfirst(), not mb_*: mbstring is not guaranteed on the host (the
+        // harness PHP has none). Every rule starts with an ASCII letter, and
+        // a multibyte first byte is left as it is.
+        $rule = ucfirst($m[2]);
+        if (!preg_match('~[.!?]$~', $rule)) $rule .= '.';
+        $text = $m[1];
+        $hint = $rule . ($hint !== '' ? ' ' . $hint : '');
+    }
+    return [$text, $hint];
+}
+
 $errors = [];
 
 // 4.12 — unmatched-product-code notices. These render alongside $errors but
@@ -679,7 +757,7 @@ $storedContent = load_content();
 $storedSig     = sha1(json_encode($storedContent));
 // NEW-N2-1 — say so on arrival, not only after he has typed and pressed Save.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' && data_file_damaged(CONTENT_JSON)) {
-    $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read. The sections below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Page Content entry.';
+    $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read. The sections below are empty because of that, not because they are empty on the website. Saving is blocked so nothing is erased — go to Backups and restore the most recent Page Content entry.';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -702,7 +780,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // reads empty, and saving would write [] (a deletion, invariant 3) over the
     // whole site. Refuse; the dashboard banner says how to repair it.
     if (data_file_damaged(CONTENT_JSON)) {
-        $errors[] = 'The saved page content (data/content.json) is damaged and cannot be read, so nothing was saved — saving now would erase every section of the website. Go to Backups and restore the most recent Page Content entry, then make your change again.';
+        $errors[] = 'The saved page content (site-data/content.json) is damaged and cannot be read, so nothing was saved — saving now would erase every section of the website. Go to Backups and restore the most recent Page Content entry, then make your change again.';
     }
 
     $submittedSig = $_POST['orig_sig'] ?? '';
@@ -778,7 +856,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // here while the website shows its built-in text. Writing [] for it
         // would turn "not saved yet" into "deleted" (invariant 3) the first
         // time Rick pressed Save for any other reason — e.g. after a release
-        // that adds a section, since data/ is never re-uploaded. Leave it
+        // that adds a section, since site-data/ is never re-uploaded. Leave it
         // absent unless he actually added rows. Emptying a section that IS
         // saved still deletes it, exactly as before.
         if ($clean === [] && !array_key_exists($sec, $storedContent)) continue;
@@ -1094,7 +1172,9 @@ function render_field(string $section, int $i, array $f, array $row, string $sec
     $full = !empty($f['full']) ? ' full' : '';
     $ctx  = '<span class="vh" data-rowctx> &#8212; row ' . ($i + 1)
           . ($sectionTitle !== '' ? ' of ' . h($sectionTitle) : '') . '</span>';
-    $out  = '<div class="form-group' . $full . '"><label for="' . h($id) . '">' . $f['label'] . $ctx . '</label>';
+    [$lbl, $hint] = content_label_parts((string)$f['label'], true);
+    $out  = '<div class="form-group' . $full . '"><label for="' . h($id) . '">' . $lbl . $ctx
+          . ($hint !== '' ? '<span class="lbl-hint">' . $hint . '</span>' : '') . '</label>';
     if ($f['type'] === 'icon') {
         $out .= '<select class="ci" id="' . h($id) . '" data-field="' . h($key) . '" name="' . h($name) . '">';
         foreach ($f['icons'] as $ik => $il) {
@@ -1256,8 +1336,12 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
        the same reason. Rather than drop the escape for every copy label, a
        field opts in explicitly; the labels are developer-authored literals in
        this file, never owner data. */
-    $labelHtml = !empty($f['labelHtml']) ? $f['label'] : h($f['label']);
-    $out = '<div class="form-group full"><label for="' . h($id) . '">' . $labelHtml . $ctx . '</label>';
+    [$lbl, $hint] = content_label_parts((string)$f['label'], !empty($f['labelHtml']));
+    // §2 B5 — one-line boxes (a badge, a heading) took the full 1,180px; they
+    // now pair up two to a row. Paragraphs, and boxes with a hint, stay full.
+    $full = ($f['type'] === 'textarea' || !empty($f['full']) || $hint !== '') ? ' full' : '';
+    $out = '<div class="form-group' . $full . '"><label for="' . h($id) . '">' . $lbl . $ctx
+         . ($hint !== '' ? '<span class="lbl-hint">' . $hint . '</span>' : '') . '</label>';
     if ($f['type'] === 'page') {
         $out .= '<select class="ci" id="' . h($id) . '" name="' . h($name) . '">';
         foreach ($pageOptions as $pk => $pl) {
@@ -1274,7 +1358,6 @@ function render_copy_field(string $group, array $f, $val, array $pageOptions, st
     return $out . $note . '</div>';
 }
 
-$navActive = 'content';
 ?>
 <!doctype html>
 <html lang="en">
@@ -1301,28 +1384,28 @@ $navActive = 'content';
     /* A12-L9-02-3 — guidance inside a label inherited the label's 11px
        capitals, so "uploads/site/" read "UPLOADS/SITE/" in 9px type: a path
        Rick must type exactly, on a case-sensitive server. */
-    label small { text-transform: none; letter-spacing: normal; font-size: 12px; }
+    label small { text-transform: none; letter-spacing: normal; font-size: var(--fs-1); }
     /* E1/E2 — the "where does this appear" line under each section's prose. */
     .where { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: -10px 0 18px; }
-    .where-link { flex-shrink: 0; font-size: 12px; font-weight: 700; color: #005da3; text-decoration: none; background: rgba(0,93,163,0.08); border-radius: 6px; padding: 5px 10px; }
+    .where-link { flex-shrink: 0; font-size: var(--fs-1); font-weight: 700; color: #005da3; text-decoration: none; background: rgba(0,93,163,0.08); border-radius: 6px; padding: 5px 10px; }
     .where-link:hover { background: rgba(0,93,163,0.16); }
     /* Audit 2026-10-17 — the homepage layout marks (home_layout_off_note). */
-    .layout-now { font-size: 13px; color: #1e3a5f; background: #eef5fb; border: 1px solid #c9dcee; border-radius: 8px; padding: 10px 14px; margin: 0 0 18px; }
+    .layout-now { font-size: var(--fs-2); color: #1e3a5f; background: #eef5fb; border: 1px solid #c9dcee; border-radius: 8px; padding: 10px 14px; margin: 0 0 18px; }
     .layout-now a { color: #005da3; }
-    .layout-off { margin: 6px 0 0; font-size: 12px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 5px 9px; }
+    .layout-off { margin: 6px 0 0; font-size: var(--fs-1); color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 5px 9px; }
     .card > .layout-off { margin: -6px 0 16px; }
     .where-link:focus-visible { outline: 3px solid #005da3; outline-offset: 2px; }
-    .where-note { font-size: 12px; color: #6b7280; line-height: 1.5; flex: 1 1 240px; min-width: 0; }
+    .where-note { font-size: var(--fs-1); color: #4b5563; line-height: 1.5; flex: 1 1 240px; min-width: 0; }
     @media (pointer: coarse) { .where-link { padding: 12px 14px; } }
-    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
+    .card-title { font-size: var(--fs-4); font-weight: 700; color: var(--brand-dark); margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid #e5e9ee; line-height: 1.3; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-group { margin-bottom: 0; }
-    input[type=text], textarea, select.ci { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; background: #fff; }
+    input[type=text], textarea, select.ci { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: var(--fs-2); color: #141414; outline: none; font-family: inherit; background: #fff; }
     input[type=text]:focus, textarea:focus, select.ci:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
     textarea { resize: vertical; line-height: 1.5; }
     .content-row { border: 1px solid #e5e9ee; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; background: #fafcff; }
     .row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .row-num { font-size: 12px; font-weight: 800; color: #005da3; }
+    .row-num { font-size: var(--fs-1); font-weight: 800; color: #005da3; }
     .row-tools { display: flex; gap: 6px; align-items: center; }
     /* 4.13 — ↑/↓ are one visual group; ✕ is deliberately pushed away from them.
        The two used to be 6px apart, and the ✕ deletes the whole card while the
@@ -1331,7 +1414,7 @@ $navActive = 'content';
        and 375. Do not collapse this back into a single evenly-spaced row. */
     .row-move { display: flex; gap: 6px; align-items: center; }
     .row-tools .rbtn.danger { margin-left: 28px; }
-    .rbtn { width: 28px; height: 28px; border: 1px solid #d1d9e0; background: #fff; border-radius: 6px; font-size: 13px; cursor: pointer; color: #374151; line-height: 1; }
+    .rbtn { width: 28px; height: 28px; border: 1px solid #d1d9e0; background: #fff; border-radius: 6px; font-size: var(--fs-2); cursor: pointer; color: #374151; line-height: 1; }
     /* On a touch device the 28px box is below the 44px minimum target, and
        these three controls sit side by side. Grow them where the pointer is
        coarse; the desktop density is unchanged. */
@@ -1341,17 +1424,22 @@ $navActive = 'content';
     }
     .rbtn:hover:not(:disabled) { background: #eef4fb; border-color: #005da3; }
     .rbtn:disabled { opacity: 0.35; cursor: default; }
-    .rbtn.danger:hover:not(:disabled) { background: #fef2f2; border-color: #dc2626; color: #dc2626; }
+    .rbtn.danger:hover:not(:disabled) { background: #fef2f2; border-color: #dc2626; color: #b91c1c; }
     /* 4.12 — amber, distinct from the red .error-list (nothing was lost) and
        from the green banner it sits under. The left bar is what makes it read
        as a callout rather than more body copy. */
     .warn-list { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-    .warn-list strong { display: block; font-size: 13px; margin-bottom: 6px; }
+    .warn-list strong { display: block; font-size: var(--fs-2); margin-bottom: 6px; }
     .warn-list ul { margin: 0; padding-left: 20px; }
-    .warn-list li { font-size: 13px; margin-bottom: 4px; line-height: 1.5; }
-    .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
-    .save-bar { position: sticky; bottom: 0; background: #f0f4f8; padding: 16px 0; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid #e5e9ee; }
+    .warn-list li { font-size: var(--fs-2); margin-bottom: 4px; line-height: 1.5; }
+    .btn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 7px; font-size: var(--fs-3); font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
     @media(max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+    /* PLAN-13 Phase 4 — one block per public page ($PAGE_MAP). */
+    .page-group { margin: 0 0 40px; }
+    .page-group-title { font-size: var(--fs-5); font-weight: 800; color: var(--brand-dark); margin: 0 0 8px; line-height: 1.25; }
+    .page-group-sub { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; }
+    /* content_label_parts(): the rule that used to sit inside the label. */
+    .lbl-hint { display: block; margin-top: 2px; font-size: var(--fs-1); font-weight: 400; color: var(--ink-2); line-height: 1.45; }
   </style>
 </head>
 <body>
@@ -1410,11 +1498,25 @@ $navActive = 'content';
            back over a page that is itself the answer to a POST (an error
            render already shows what was submitted). An attribute, not a
            field: nothing may follow form_complete (invariant 6). */ ?>
-  <form method="POST"<?= $_SERVER['REQUEST_METHOD'] === 'POST' ? ' data-ipc-post-response="1"' : '' ?>>
+  <form method="POST" data-long-form data-filter<?= $_SERVER['REQUEST_METHOD'] === 'POST' ? ' data-ipc-post-response="1"' : '' ?>>
     <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>">
     <input type="hidden" name="orig_sig" value="<?= h($storedSig) ?>">
 
-    <?php foreach ($COPY_GROUPS as $g => $gcfg): ?>
+    <?php /* PLAN-13 Phase 4 — one <section> per public page, in $PAGE_MAP
+             order; each holds that page's fieldsets, unchanged inside. */
+          foreach (content_page_map($PAGE_MAP, $COPY_GROUPS, $SECTIONS) as $pk => $pg): ?>
+    <section class="page-group" id="page-<?= h($pk) ?>" data-index-title="<?= h((string)($pg['short'] ?? $pg['title'])) ?>">
+      <h2 class="page-group-title"><?= h((string)$pg['title']) ?></h2>
+      <?php if (!empty($pg['url']) || !empty($pg['note'])): ?>
+        <p class="page-group-sub">
+          <?php if (!empty($pg['url'])): ?><a class="where-link" href="<?= h($pg['url']) ?>" target="_blank" rel="noopener" title="Opens the live site in a new tab">Open this page on the site &#8599;</a><?php endif; ?>
+          <?php if (!empty($pg['note'])): ?><span class="where-note"><?= $pg['note'] ?></span><?php endif; ?>
+        </p>
+      <?php endif; ?>
+    <?php foreach ($pg['items'] as $item):
+        [$kind, $key] = explode(':', $item, 2);
+        if ($kind === 'copy'):
+            $g = $key; $gcfg = $COPY_GROUPS[$g]; ?>
       <fieldset class="card">
         <legend class="card-title"><?= h((string)$gcfg['title']) ?></legend>
         <?php if ($g === 'siteImages'): /* §2h item 3b — the upload button lives on its own page */ ?>
@@ -1427,9 +1529,8 @@ $navActive = 'content';
                 foreach ($gcfg['fields'] as $f) echo render_copy_field($g, $f, ($content['copy'][$g][$f['key']] ?? ($f['default'] ?? '')), $PAGE_OPTIONS, (string)($gcfg['title'] ?? ''), home_layout_off_note($g . '.' . $f['key'], $homeLayout)); ?>
         </div>
       </fieldset>
-    <?php endforeach; ?>
-
-    <?php foreach ($SECTIONS as $sec => $cfg):
+    <?php else:
+        $sec = $key; $cfg = $SECTIONS[$sec];
         $rows = $content[$sec] ?? [];
         if (!is_array($rows)) $rows = [];
         // PLAN-6 item 1 — seed the family editor with the list that is ACTUALLY
@@ -1487,9 +1588,12 @@ $navActive = 'content';
         <button type="button" class="btn btn-secondary" data-action="add" data-section="<?= h($sec) ?>">+ Add <?= h($cfg['addLabel']) ?></button>
         <template id="tpl-<?= h($sec) ?>"><?= render_row($sec, 0, $cfg, []) ?></template>
       </fieldset>
+    <?php endif; endforeach; ?>
+    </section>
     <?php endforeach; ?>
 
     <div class="save-bar">
+      <span class="save-status" role="status" aria-live="polite"></span>
       <a href="index.php" class="btn btn-secondary">Cancel</a>
       <button type="submit" class="btn btn-primary">Save Content</button>
     </div>
@@ -1527,6 +1631,7 @@ $navActive = 'content';
          of these two script tags. */ ?>
 <script src="confirm.js"></script>
 <script src="content-editor.js"></script>
+<script src="longform.js"></script>
 <script src="unsaved.js" defer></script>
 </body>
 </html>

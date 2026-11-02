@@ -70,23 +70,26 @@
     // of the container above that, capped at 760 so the form never drops below
     // roughly half the width. At 2560 the container is 2048 and the preview
     // lands at ~680px — a panel you can actually read a spec table in.
-    ".ipc-preview-col{flex:0 0 clamp(440px, 34%, 760px);min-width:0;}" +
-    ".ipc-preview-inner{position:sticky;top:24px;max-height:calc(100vh - 40px);overflow:auto;background:#fff;border:1px solid #e5e9ee;border-radius:12px;box-shadow:0 1px 4px rgba(0,45,82,0.06);}" +
-    ".ipc-preview-head{position:sticky;top:0;background:#0d2d52;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;padding:10px 16px;z-index:1;}" +
+    // align-self:stretch — PLAN-13 Phase 3: under the row's flex-start the
+    // column was only as tall as the preview, so the sticky panel inside it
+    // had no room to stick and scrolled away with the first screen.
+    ".ipc-preview-col{flex:0 0 clamp(440px, 34%, 760px);min-width:0;align-self:stretch;}" +
+    ".ipc-preview-inner{position:sticky;top:calc(var(--admin-bar-h, 60px) + var(--form-index-h, 0px) + 16px);max-height:calc(100vh - var(--admin-bar-h, 60px) - var(--form-index-h, 0px) - 32px);overflow:auto;background:#fff;border:1px solid #e5e9ee;border-radius:12px;box-shadow:0 1px 4px rgba(0,45,82,0.06);}" +
+    ".ipc-preview-head{position:sticky;top:0;background:#0d2d52;color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;padding:10px 16px;z-index:1;}" +
     ".ipc-preview-body{padding:16px;}" +
     ".ste-prevwrap{display:none !important;}" +
     ".pp-name{font-size:18px;font-weight:800;color:#141414;margin:0 0 6px;}" +
-    ".pp-meta{font-size:12px;color:#6b7280;margin-bottom:12px;}" +
+    ".pp-meta{font-size:12px;color:#4b5563;margin-bottom:12px;}" +
     ".pp-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}" +
-    ".pp-badge{background:rgba(0,93,163,0.08);color:#005da3;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;}" +
+    ".pp-badge{background:rgba(0,93,163,0.08);color:#005da3;font-size:12px;font-weight:600;padding:3px 9px;border-radius:20px;}" +
     ".pp-pdfs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}" +
     ".pp-pdf{background:#005da3;color:#fff;font-size:12px;font-weight:600;padding:5px 12px;border-radius:6px;}" +
     ".pp-img{max-width:100%;border-radius:8px;border:1px solid #e5e9ee;display:block;margin-bottom:6px;}" +
-    ".pp-imgph{height:120px;border:1px dashed #d1d9e0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#aeb8c4;font-size:12px;margin-bottom:12px;background:#f8fafc;}" +
-    ".pp-cap{font-size:11px;color:#6b7280;margin-bottom:12px;font-style:italic;}" +
-    ".pp-h{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4b5563;margin:0 0 6px;}" +
+    ".pp-imgph{height:120px;border:1px dashed #d1d9e0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:12px;margin-bottom:12px;background:#f8fafc;}" +
+    ".pp-cap{font-size:12px;color:#4b5563;margin-bottom:12px;font-style:italic;}" +
+    ".pp-h{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4b5563;margin:0 0 6px;}" +
     ".pp-apprs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}" +
-    ".pp-appr{font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em;background:#fff;color:#374151;border:1px solid #d1d9e0;padding:3px 8px;border-radius:4px;}" +
+    ".pp-appr{font:600 12px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em;background:#fff;color:#374151;border:1px solid #d1d9e0;padding:3px 8px;border-radius:4px;}" +
     ".pp-p{font-size:13px;color:#4b5563;line-height:1.5;margin:0 0 8px;}" +
     ".pp-block{margin-bottom:14px;}" +
     ".pp-sthead{font-size:12px;font-weight:700;color:#fff;background:#0d2d52;padding:6px 10px;border-radius:8px 8px 0 0;}" +
@@ -94,14 +97,14 @@
     ".pp-sr{padding:6px 10px;font-size:12px;border-bottom:1px solid #f0f4f8;color:#4b5563;}" +
     ".pp-sr:last-child{border-bottom:none;}" +
     ".pp-sl{color:#005da3;font-weight:600;}" +
-    ".pp-note{color:#6b7280;}" +
+    ".pp-note{color:#4b5563;}" +
     ".pp-gwrap{overflow-x:auto;border:1px solid #e5e9ee;border-radius:8px;margin-top:4px;}" +
-    ".pp-gt{border-collapse:collapse;width:100%;font-size:11px;}" +
+    ".pp-gt{border-collapse:collapse;width:100%;font-size:12px;}" +
     ".pp-gt th{background:#0d2d52;color:rgba(255,255,255,0.85);font-weight:600;padding:5px 8px;text-align:left;white-space:pre-line;border:1px solid rgba(255,255,255,0.15);}" +
     ".pp-gt td{padding:5px 8px;border-bottom:1px solid #f0f4f8;color:#141414;}" +
-    ".pp-ph{color:#aeb8c4 !important;}" +
+    ".pp-ph{color:#6b7280 !important;}" +
     ".pp-ghost{opacity:.5;}" +
-    ".pp-ghost-tag{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#aeb8c4;margin:0 0 12px;}" +
+    ".pp-ghost-tag{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin:0 0 12px;}" +
     // D2 — the stacking rule, rechecked. 1024 is still the right breakpoint:
     // at 1025 the container is ~977px inside its padding, the clamp floor puts
     // the preview at 440 and leaves the form 513px, which is still usable;

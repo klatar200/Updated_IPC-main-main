@@ -32,7 +32,7 @@
  *   - the hover effect it drives still works, at 1440 and at 375
  *   - the sticky quote bar still appears on scroll and retracts, at both widths
  *
- * Reads only. Nothing under data/ is written.
+ * Reads only. Nothing under site-data/ is written.
  * Needs the mirror on :8123 (started with -t _harness/site).
  *
  * Usage: node _harness/plan5-listeners.js

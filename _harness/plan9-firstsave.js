@@ -2,7 +2,7 @@
  * PLAN-9 item 1 — the FIRST Page Content save must not delete the marketing
  * photographs. (Audit 2026-08-09 finding 1, severity A.)
  *
- * The shipped data/content.json predates PLAN-7 item 3a and has no
+ * The shipped site-data/content.json predates PLAN-7 item 3a and has no
  * copy.siteImages key. Before the fix, content.php prefilled the five Site
  * Images fields with `?? ''` so they rendered EMPTY, and the save loop wrote
  * every configured field back — so Rick's first save of anything materialized
@@ -25,7 +25,7 @@ const { launch } = require('./browser');
 
 const BASE = 'http://127.0.0.1:8123';
 const PASS = 'audit-pass-123';
-const CONTENT = path.join(__dirname, 'site', 'data', 'content.json');
+const CONTENT = path.join(__dirname, 'site', 'site-data', 'content.json');
 const PRISTINE = path.join(__dirname, 'pristine', 'content.json');
 const OUT = path.join(__dirname, 'out', 'plan9');
 
@@ -93,7 +93,7 @@ async function saveForm(page) {
   fs.mkdirSync(OUT, { recursive: true });
 
   // ── 1. the pre-3a shape: pristine content.json has NO copy.siteImages ───
-  // FIXTURE, 2026-09-28 (audit-2026-09-27 NEW-V2-1): data/content.json now
+  // FIXTURE, 2026-09-28 (audit-2026-09-27 NEW-V2-1): site-data/content.json now
   // SHIPS with copy.siteImages, as the admin writes it. The pre-3a file this
   // suite protects is still what a site deployed before that holds, so build
   // it — pristine minus the key — rather than copy pristine verbatim.

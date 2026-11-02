@@ -5,13 +5,13 @@
  */
 
 // Path to products-all.json — relative to document root
-define('PRODUCTS_JSON', __DIR__ . '/../data/products-all.json');
+define('PRODUCTS_JSON', __DIR__ . '/../site-data/products-all.json');
 
 // Path to site-info.json (business details read by the React site) — same folder
-define('SITE_INFO_JSON', __DIR__ . '/../data/site-info.json');
+define('SITE_INFO_JSON', __DIR__ . '/../site-data/site-info.json');
 
 // Path to content.json (editable page content — homepage sections, etc.) — same folder
-define('CONTENT_JSON', __DIR__ . '/../data/content.json');
+define('CONTENT_JSON', __DIR__ . '/../site-data/content.json');
 
 // Path to PDF storage folder — relative to document root
 define('PDF_DIR', __DIR__ . '/../pdfs/');
@@ -488,9 +488,47 @@ function csrf_token(): string {
 function admin_head(): string {
     return <<<'CSS'
 <style>
+  /* ── Design tokens (PLAN-13 Phase 1) ────────────────────────────────────
+     One type scale for the whole dashboard. Before this, text ran from 8px to
+     30px in 15 steps and most of what the owner reads — labels, hints, table
+     cells, badges — was 10–13px (PLAN-13 §2 C1: 984 elements under 12px on
+     Page Content alone). Nothing the owner reads is under --fs-1; the live
+     previews of the public site are the one exception, at 12px, because they
+     are miniatures of a page and keep its proportions. Page styles use these
+     variables rather than px so the scale can be tuned in one place. */
+  :root {
+    --fs-1: 13px;   /* hints, meta, badges */
+    --fs-2: 14px;   /* labels, buttons, table cells, menu */
+    --fs-3: 15px;   /* body text, input boxes */
+    --fs-4: 18px;   /* section titles */
+    --fs-5: 22px;   /* big numbers */
+    --fs-6: 26px;   /* page titles */
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --ink: #141414;
+    --ink-2: #4b5563;   /* secondary text, 7.6:1 on white */
+    --line: #e5e9ee;
+    --field-line: #d1d9e0;
+    --page-bg: #f0f4f8;
+    --brand: #005da3;
+    --brand-dark: #0d2d52;
+    /* Height of nav.php's sticky menu bar (PLAN-13 Phase 2). Anything else
+       that sticks to the top — Help's contents list, the live previews —
+       sits at this offset so it is not hidden under the bar. */
+    --admin-bar-h: 60px;
+  }
+  @media (max-width: 899px) { :root { --admin-bar-h: 56px; } }
+  /* An in-page jump (#faq, Help's contents) must not land its heading under
+     the sticky bar. */
+  html { scroll-padding-top: calc(var(--admin-bar-h) + var(--form-index-h, 0px) + 16px); }
+  /* PLAN-13 Phase 7 — and Tab must not park a field under the save bar at
+     the bottom, or under the long forms' section strip (--form-index-h, set
+     by longform.js) at the top: the browser scrolls a focused field clear of
+     both. */
+  html:has(.save-bar) { scroll-padding-bottom: 104px; }
+
   /* ── Reset + page shell ─────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; }
-  body { font-family: system-ui, sans-serif; background: #f0f4f8; margin: 0; color: #141414; }
+  body { font-family: system-ui, sans-serif; background: var(--page-bg); margin: 0; color: var(--ink); font-size: var(--fs-3); line-height: 1.5; }
 
   /* THE container rule. Mirrors .ipc-container on the public site
      (src/index.css) so the admin and the site it edits agree about how wide a
@@ -513,57 +551,196 @@ function admin_head(): string {
   }
 
   /* ── Typography ─────────────────────────────────────────────────────── */
-  h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
-  .sub { font-size: 13px; color: #6b7280; margin: 0 0 24px; }
+  h1 { font-size: var(--fs-6); font-weight: 800; margin: 0 0 4px; line-height: 1.2; }
+  .sub { font-size: var(--fs-2); color: var(--ink-2); margin: 0 0 24px; }
+
+  /* ── Breadcrumb (admin_breadcrumb()) ─────────────────────────────────── */
+  .crumbs { font-size: var(--fs-2); color: var(--ink-2); margin: 0 0 12px; }
+  .crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .crumbs li + li::before { content: "›"; margin-right: 8px; color: #4b5563; }
+  .crumbs a { color: var(--brand); text-decoration: none; font-weight: 600; }
+  .crumbs a:hover { text-decoration: underline; }
+  .crumbs [aria-current="page"] { color: var(--ink); }
 
   /* ── Cards ──────────────────────────────────────────────────────────── */
-  .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 28px; margin-bottom: 20px; }
-  .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #005da3; margin: 0 0 20px; padding-bottom: 8px; border-bottom: 1px solid #e5e9ee; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  /* Section titles were 12px blue UPPERCASE and field labels 11px grey
+     UPPERCASE — the same shape at the same weight, so a section and a field
+     could not be told apart (PLAN-13 §2 B4). Now a title is a heading. */
+  .card-title { font-size: var(--fs-4); font-weight: 700; color: var(--brand-dark); margin: 0 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--line); line-height: 1.3; }
 
   /* ── Forms ──────────────────────────────────────────────────────────── */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .form-group { margin-bottom: 16px; }
   .form-group.full { grid-column: 1 / -1; }
-  label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 5px; }
-  .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
+  label { display: block; font-size: var(--fs-2); font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .hint { font-size: var(--fs-1); color: var(--ink-2); margin-top: 4px; }
+  /* The UA default for <small> is `smaller` — 11.7px inside a 14px label. */
+  small { font-size: var(--fs-1); }
   /* A10-049 (§1at) — UA stylesheets give <button> its own font (Arial on
      the measured box): 442 of 458 admin buttons ignored the page's system-ui.
      Size and line-height stay with each button's own rule. */
   button { font-family: inherit; }
-  input[type=text], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; border-radius: 7px; font-size: 13px; color: #141414; outline: none; font-family: inherit; transition: border-color 0.15s; }
-  input[type=text]:focus, select:focus, textarea:focus { border-color: #005da3; box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
+  input[type=text], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--field-line); border-radius: 7px; font-size: var(--fs-3); color: var(--ink); outline: none; font-family: inherit; transition: border-color 0.15s; }
+  input[type=text]:focus, select:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
   textarea { resize: vertical; }
-  .mono { font-family: 'Courier New', monospace; font-size: 12px; }
+  .mono, code, kbd, samp { font-family: var(--font-mono); }
+  .mono { font-size: var(--fs-1); }
   .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
   /* ── Buttons ────────────────────────────────────────────────────────── */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; transition: background 0.15s; }
-  .btn-primary { background: #005da3; color: #fff; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 7px; font-size: var(--fs-2); font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap; transition: background 0.15s; }
+  .btn-primary { background: var(--brand); color: #fff; }
   .btn-primary:hover { background: #004e8c; }
-  .btn-secondary { background: #fff; color: #141414; border: 1px solid #d1d9e0; }
-  .btn-secondary:hover { background: #f0f4f8; }
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-secondary { background: #fff; color: var(--ink); border: 1px solid var(--field-line); }
+  .btn-secondary:hover { background: var(--page-bg); }
+  .btn-sm { padding: 5px 12px; font-size: var(--fs-1); }
   .btn-edit { background: rgba(0,93,163,0.08); color: #005da3; }
   .btn-edit:hover { background: rgba(0,93,163,0.15); }
-  .btn-danger { background: rgba(220,38,38,0.08); color: #dc2626; }
+  .btn-danger { background: rgba(220,38,38,0.08); color: #b91c1c; }
   .btn-danger:hover { background: rgba(220,38,38,0.15); }
   .btn-pdf { background: rgba(0,190,242,0.1); color: #0369a1; }
   .btn-pdf:hover { background: rgba(0,190,242,0.2); }
 
+  /* ── Long forms (PLAN-13 Phase 3) ────────────────────────────────────────
+     Business Details, Add, Edit and Page Content. Save used to sit only at
+     the very bottom — 4,127px down on Business Details (§2 D1) — so the
+     save bar sticks to the bottom of the screen while the form is in view.
+     unsaved.js fills .save-status with the sections that have changes. */
+  .save-bar { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 0; background: var(--page-bg); border-top: 1px solid var(--line); }
+  .save-status { margin-right: auto; min-width: 0; font-size: var(--fs-2); color: var(--ink-2); }
+  .save-status:empty { display: none; }
+  .save-status.is-dirty { color: #92400e; font-weight: 600; }
+  .save-status.is-dirty::before { content: "\25CF"; margin-right: 6px; color: #d97706; }
+  /* Stacked (the live preview drops below the form at 1024 and under), a
+     bar that sticks inside the form scrolls away above the preview, so it is
+     fixed to the bottom of the screen instead. */
+  @media (max-width: 1024px) {
+    .save-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 16px; box-shadow: 0 -2px 8px rgba(13,45,82,0.08); }
+    body:has(.save-bar) { padding-bottom: 76px; }
+  }
+  @media (max-width: 600px) {
+    .save-status:not(:empty) { flex-basis: 100%; }
+    body:has(.save-status:not(:empty)) { padding-bottom: 104px; }
+  }
+  /* longform.js: the strip of section links above the form (§2 D2), sticky
+     under the menu bar, and the Hide/Show button on each section. Without
+     JavaScript neither exists and the form is the plain one. It is one row
+     that scrolls sideways below 1280, where the links no longer fit. */
+  .form-index { position: sticky; top: var(--admin-bar-h); z-index: 30; margin: -8px 0 16px; padding: 8px 0; background: var(--page-bg); }
+  .form-index ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .form-index a { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 4px 12px; border: 1px solid var(--field-line); border-radius: 999px; background: #fff; color: var(--ink); font-size: var(--fs-2); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .form-index a:hover { border-color: var(--brand); color: var(--brand); }
+  .form-index a[aria-current="true"] { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
+  .form-index a.has-changes::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #d97706; }
+  @media (max-width: 1279px) {
+    .form-index ol { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .form-index ol::-webkit-scrollbar { display: none; }
+  }
+  /* A section is a .card (Business Details, Add, Edit) or, on Page Content,
+     a .page-group: one public page holding several cards (Phase 4). */
+  form[data-long-form] > .card, form[data-long-form] > .page-group { position: relative; scroll-margin-top: 8px; }
+  form[data-long-form] > .has-toggle > .card-title, form[data-long-form] > .has-toggle > .page-group-title { padding-right: 88px; }
+  .sec-toggle { position: absolute; top: 22px; right: 22px; min-height: 32px; padding: 4px 12px; border: 1px solid var(--field-line); border-radius: 7px; background: #fff; color: var(--ink-2); font-size: var(--fs-2); font-weight: 600; cursor: pointer; }
+  .page-group > .sec-toggle { top: 0; right: 0; }
+  .sec-toggle:hover { border-color: var(--brand); color: var(--brand); }
+  form[data-long-form] > .is-collapsed > :not(.card-title):not(.page-group-title):not(.sec-toggle) { display: none !important; }
+  .card.is-collapsed > .card-title { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
+  /* longform.js on form[data-filter] (Page Content): "Find a box". */
+  .form-filter { margin: 0 0 12px; }
+  .form-filter label { margin-bottom: 4px; }
+  .form-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .form-filter input { flex: 0 1 420px; min-width: 0; width: 100%; padding: 10px 12px; border: 1px solid var(--field-line); border-radius: 7px; font: inherit; font-size: var(--fs-3); background: #fff; color: var(--ink); }
+  .form-filter input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
+  .form-filter-count { font-size: var(--fs-2); color: var(--ink-2); }
+  .f-out { display: none !important; }
+
+  /* ── Lists: Inquiries and Audit Log (PLAN-13 Phase 6) ─────────────────── */
+  .list-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; margin: 0 0 18px; }
+  .list-filters label { margin: 0 0 4px; font-size: var(--fs-1); color: var(--ink-2); }
+  .list-filters .fld { display: flex; flex-direction: column; }
+  .list-filters .fld-grow { flex: 1 1 240px; min-width: 0; }
+  .list-filters input, .list-filters select { padding: 9px 12px; border: 1px solid var(--field-line); border-radius: 7px; font: inherit; font-size: var(--fs-2); background: #fff; color: var(--ink); }
+  .list-filters input:focus, .list-filters select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0,93,163,0.1); }
+  /* listfilter.js applies the filter as you type, so the button goes. */
+  .list-filters.is-live .filter-submit { display: none; }
+  .list-count { margin: 0 0 12px; font-size: var(--fs-2); color: var(--ink-2); }
+  .day-head { margin: 22px 0 8px; font-size: var(--fs-2); font-weight: 700; color: var(--brand-dark); }
+  .day-head:first-child { margin-top: 0; }
+  .pager { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 18px 0 0; font-size: var(--fs-2); color: var(--ink-2); }
+  .pager a { display: inline-flex; align-items: center; min-height: 36px; padding: 6px 14px; border: 1px solid var(--field-line); border-radius: 7px; background: #fff; color: var(--brand); font-weight: 600; text-decoration: none; }
+  .pager a:hover { border-color: var(--brand); }
+
   /* ── Alerts ─────────────────────────────────────────────────────────── */
-  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 20px; }
-  .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
-  .alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: var(--fs-2); margin-bottom: 20px; }
+  .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: var(--fs-2); }
+  /* #dc2626 is 4.41:1 on #fef2f2 — under 4.5:1 at any size this text uses;
+     #b91c1c (5.91:1) is what .error-list below already switched to (A10-030). */
+  .alert-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
   /* F3 — the "nothing to save" banner. Deliberately informational rather than
      green: the save DID succeed, but telling the owner "Saved" when no byte
      changed is what trained him not to trust the banner. Palette matches
      help.php's .callout-tip. */
-  .alert-info { background: #eff8ff; color: #0c4a6e; border: 1px solid #bfe0f7; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+  .alert-info { background: #eff8ff; color: #0c4a6e; border: 1px solid #bfe0f7; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: var(--fs-2); }
   /* A10-030 (§1at) — #dc2626 measured 4.41:1 on #fef2f2 at 13px; #b91c1c is 5.91:1. */
   .error-list { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
-  .error-list li { font-size: 13px; margin-bottom: 4px; }
+  .error-list li { font-size: var(--fs-2); margin-bottom: 4px; }
 </style>
 CSS;
+}
+
+/**
+ * The "where am I" line at the top of a sub-page (PLAN-13 §3.3, finding A8):
+ * Edit, Upload PDF, Product Photo and Delete had no way back but a lone
+ * "← Back" button or the browser. Each crumb is [label, href]; the last one
+ * is the current page and takes no href.
+ *
+ *   echo admin_breadcrumb([['Products', 'index.php'], [$sku, 'edit.php?sku=…'], ['Upload PDF']]);
+ */
+/**
+ * PLAN-13 Phase 6 — the heading over one day's rows on Inquiries and Audit
+ * Log: "Today", "Yesterday", else "Friday 30 October 2026". $ts starts with
+ * Y-m-d, as audit_log() and contact.php both write it.
+ */
+function admin_day_label(string $ts): string {
+    $day = substr($ts, 0, 10);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) return 'Date not recorded';
+    if ($day === date('Y-m-d')) return 'Today';
+    if ($day === date('Y-m-d', strtotime('-1 day'))) return 'Yesterday';
+    $t = strtotime($day);
+    return $t === false ? $day : date('l j F Y', $t);
+}
+
+/**
+ * PLAN-13 Phase 6 — "← Newer · Page 2 · Older →" under a list. $query is the
+ * page's own filter, carried into each link, so paging never loses it; the
+ * links are plain GET (listfilter.js loads them in place when it can).
+ */
+function admin_pager(int $page, bool $hasOlder, array $query): string {
+    if ($page <= 1 && !$hasOlder) return '';
+    $link = static function (int $p, string $label) use ($query): string {
+        $q = array_filter($query, static fn($v) => $v !== '' && $v !== null);
+        if ($p > 1) $q['page'] = $p; else unset($q['page']);
+        $href = '?' . http_build_query($q);
+        return '<a href="' . h($href === '?' ? basename($_SERVER['SCRIPT_NAME'] ?? '') : $href) . '" data-page="' . $p . '">' . $label . '</a>';
+    };
+    $out = '<nav class="pager" aria-label="Pages">';
+    if ($page > 1) $out .= $link($page - 1, '&larr; Newer');
+    $out .= '<span>Page ' . $page . '</span>';
+    if ($hasOlder) $out .= $link($page + 1, 'Older &rarr;');
+    return $out . '</nav>';
+}
+
+function admin_breadcrumb(array $crumbs): string {
+    $out = '<nav class="crumbs" aria-label="You are here"><ol>';
+    $last = count($crumbs) - 1;
+    foreach (array_values($crumbs) as $i => $c) {
+        $label = h((string)($c[0] ?? ''));
+        $out .= ($i === $last || empty($c[1]))
+            ? '<li><span' . ($i === $last ? ' aria-current="page"' : '') . '>' . $label . '</span></li>'
+            : '<li><a href="' . h((string)$c[1]) . '">' . $label . '</a></li>';
+    }
+    return $out . '</ol></nav>';
 }
 
 // A bare `die('Invalid CSRF token…')` was what an admin saw when his session
@@ -850,7 +1027,7 @@ function require_auth(): void {
  * the whole old file or the whole new one, and a failed write never touches the
  * live file. The byte count is checked before the rename.
  *
- * The temp name ends in `.tmp` on purpose — data/.htaccess blocks that suffix,
+ * The temp name ends in `.tmp` on purpose — site-data/.htaccess blocks that suffix,
  * so a leftover from a killed process is not web-readable.
  * (audit-runs/audit5.md A-5.5)
  */
@@ -887,9 +1064,9 @@ function json_write_atomic(string $path, string $json): bool {
 // ends: the handle lives in a static and PHP releases the flock when the
 // process closes it, so nothing has to remember to unlock. Blocking, bounded
 // by max_execution_time; one owner, so the wait is one other save at most.
-// If the lock file cannot be opened (data/ unwritable) it proceeds unlocked,
+// If the lock file cannot be opened (site-data/ unwritable) it proceeds unlocked,
 // and the save fails anyway with the banner that condition already raises.
-// The dot name keeps it web-blocked by data/.htaccess.
+// The dot name keeps it web-blocked by site-data/.htaccess.
 function products_write_lock(): void {
     static $fh = null;
     if ($fh !== null) return;
@@ -1203,7 +1380,7 @@ function save_json_with_backup(string $path, string $prefix, string $json, strin
  * "directory". Which sentence depends on the cause: a folder the server will
  * not let the dashboard write to (the shared one), a folder it may write to
  * but could not (a full disk), or text that cannot be stored at all.
- * $dir/$name name the folder ('data' for the three data files).
+ * $dir/$name name the folder ('site-data' for the three data files).
  */
 function write_failed_message(string $dir, string $name): string {
     if (is_dir($dir) && !is_writable($dir)) {
@@ -1223,10 +1400,10 @@ function save_failed_message(): string {
             return 'Nothing was changed: the server\'s disk is full, so it could not first keep a copy of the current version, '
                  . 'and without that copy this could not be undone. Free up space on your hosting account (or ask your host to), then try again.';
         case 'damaged':
-            return 'Nothing was saved: the product catalog file (data/products-all.json) is damaged. '
+            return 'Nothing was saved: the product catalog file (site-data/products-all.json) is damaged. '
                  . 'Go to Backups and restore the most recent Product Catalog entry, then try again.';
     }
-    return write_failed_message(dirname(PRODUCTS_JSON), 'data');
+    return write_failed_message(dirname(PRODUCTS_JSON), 'site-data');
 }
 
 // All backups for one prefix, OLDEST FIRST.
@@ -1887,10 +2064,310 @@ function admin_writable(): bool {
     return is_writable(__DIR__);
 }
 
-// True when data/ can be written — product/content/settings saves and every
+// True when site-data/ can be written — product/content/settings saves and every
 // backup depend on it.
 function data_writable(): bool {
     return is_writable(dirname(PRODUCTS_JSON));
+}
+
+// ─── Reading the inquiry log and the activity log ─────────────────────────
+// inq_tail_lines(), inq_split() and inq_apply_result() were inquiries.php's
+// own until PLAN-13 Phase 8 (2026-11-01): the Overview page shows the newest
+// leads too, and two copies of the decision-42 merge would drift.
+
+// Read only the TAIL of the log, never the whole thing.
+// file() loads every line into memory at once: measured, a 43MB / 20,000-entry
+// log still rendered, and a 65MB one died with "Allowed memory size of
+// 134217728 bytes exhausted … on line 15" — i.e. the page Rick relies on as the
+// "no lead is ever lost" safety net goes permanently blank, and his only
+// recovery is FTP-deleting the file that holds every real lead.
+// 2MB is ~4,000 entries, comfortably more than inquiries.php shows.
+// (AUDIT_v3_FINDINGS B3)
+define('INQ_TAIL_BYTES', 2 * 1024 * 1024);
+
+/** Last $maxLines JSONL lines of $path, reading at most INQ_TAIL_BYTES. */
+function inq_tail_lines(string $path, int $maxLines): array {
+    $fh = @fopen($path, 'rb');
+    if (!$fh) return [];
+    $size  = (int)@filesize($path);
+    $start = max(0, $size - INQ_TAIL_BYTES);
+    if ($start > 0) fseek($fh, $start);
+    $buf = (string)stream_get_contents($fh);
+    fclose($fh);
+    if ($start > 0) {
+        $nl  = strpos($buf, "\n");            // drop the half-line we landed in
+        $buf = $nl === false ? '' : substr($buf, $nl + 1);
+    }
+    $lines = preg_split('/\r\n|\n|\r/', $buf, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    return count($lines) > $maxLines ? array_slice($lines, -$maxLines) : $lines;
+}
+
+/**
+ * AUDIT-12 decision 42 (A12-L4-W2-G4-1) — contact.php writes a lead's row
+ * BEFORE it calls mail(), marked `"status":"pending"`, and appends the send
+ * result afterwards as `{"type":"send-result","id":…,"sent":…}`. This splits
+ * decoded lines into the rows to show (file order) and a map of results by id;
+ * inq_apply_result() then merges them. Rows written before the change carry
+ * `sent` directly and no id, and pass through untouched.
+ */
+function inq_split(array $lines, array &$results): array {
+    $rows = [];
+    foreach ($lines as $line) {
+        $e = json_decode($line, true);
+        if (!is_array($e)) continue;
+        if (($e['type'] ?? '') === 'send-result') {
+            if (is_string($e['id'] ?? null)) $results[$e['id']] = !empty($e['sent']);
+            continue;
+        }
+        $rows[] = $e;
+    }
+    return $rows;
+}
+
+/** A pending row with its send result applied; still pending when none was written. */
+function inq_apply_result(array $e, array $results): array {
+    if (($e['status'] ?? '') !== 'pending' || !is_string($e['id'] ?? null)) return $e;
+    if (!array_key_exists($e['id'], $results)) return $e;
+    $e['sent']   = $results[$e['id']];
+    $e['status'] = $e['sent'] ? 'sent' : 'failed';
+    return $e;
+}
+
+/**
+ * The newest $n leads, newest first, with their send results merged — the
+ * same rows the new-inquiries badge counts (real leads and call-backs; never
+ * the spam trap or another website's form). Reads the live log only: after a
+ * rotation the Overview may show fewer, and links to Inquiries for the rest.
+ * Reading it marks nothing seen.
+ */
+function inquiries_latest(int $n): array {
+    if ($n <= 0 || !is_file(INQUIRIES_FILE)) return [];
+    $skip = array_flip(array_diff(inquiry_rejected_types(), inquiry_callback_types()));
+    $results = [];
+    // A lead can be two lines (row + result), and refused rows are skipped.
+    $rows = inq_split(inq_tail_lines(INQUIRIES_FILE, 8 * $n + 40), $results);
+    $out = [];
+    foreach (array_reverse($rows) as $e) {
+        if (isset($skip[(string)($e['type'] ?? '')])) continue;
+        $out[] = inq_apply_result($e, $results);
+        if (count($out) === $n) break;
+    }
+    return $out;
+}
+
+/**
+ * The newest $n entries of the activity log that CHANGED something, newest
+ * first: sign-ins, sign-outs and failed sign-ins are left out (they are on the
+ * Audit Log page). Reads the tail of the live log only.
+ */
+function audit_recent_changes(int $n): array {
+    $path = __DIR__ . '/admin-log.jsonl';
+    if ($n <= 0 || !is_file($path)) return [];
+    $out = [];
+    foreach (array_reverse(inq_tail_lines($path, 400)) as $line) {
+        $e = json_decode($line, true);
+        if (!is_array($e) || in_array((string)($e['action'] ?? ''), ['sign-in', 'sign-out', 'sign-in-failed'], true)) continue;
+        $out[] = $e;
+        if (count($out) === $n) break;
+    }
+    return $out;
+}
+
+/**
+ * Every server-setup problem the owner must hand to the developer, as HTML
+ * list items (each already escaped where it carries data). Shown at the top of
+ * the Overview and of All Products. It was built inline in index.php until
+ * PLAN-13 Phase 8 (2026-11-01); the reasoning behind each entry is kept here.
+ *
+ * Three things fail SILENTLY on a host where the PHP user differs from the FTP
+ * user, and every one of them is invisible until it matters: the audit log
+ * stays empty, every inbound sales lead is dropped (inquiries.jsonl), and
+ * password changes cannot be written. Surface it. (DEPLOY_READINESS_v2 T3.3)
+ *
+ * New leads are deliberately NOT an entry (A-5.6): nothing is broken, and
+ * burying them among red permission warnings is how they would get ignored.
+ */
+function admin_health_problems(array $products): array {
+  $healthProblems = [];
+  // NEW-N3-2 — 755/775 cannot help when PHP runs as a different user from the
+  // FTP account (measured on real Apache: only 777 cleared it), and this banner
+  // was the only instruction Rick gets. Say what to do when the first try fails.
+  $permFallback = ' If this warning is still here after that, the host runs PHP as a different user from your FTP account: '
+    . 'ask the host to run PHP as your account user. Setting the folder to 777 also works as a stop-gap, but lets other accounts on the server write there too.';
+  // NEW-N2-1 / NEW-N2-2 — a data file that exists but cannot be read. The
+  // loaders turn it into "nothing", so without this the dashboard simply read
+  // "0 products" and the next save wrote that emptiness over the real file.
+  // Saving is now refused (config.php data_file_damaged()); this says why.
+  foreach ([
+      [PRODUCTS_JSON, 'products-all.json', 'Product Catalog', 'Adding, editing and deleting products is blocked'],
+      [CONTENT_JSON,  'content.json',      'Page Content',    'Saving Page Content is blocked'],
+      [SITE_INFO_JSON,'site-info.json',    'Business Details','The website is showing its built-in business details'],
+  ] as [$dfPath, $dfName, $dfLabel, $dfEffect]) {
+      if (data_file_damaged($dfPath)) {
+          $healthProblems[] = '<strong>The file <code>site-data/' . h($dfName) . '</code> is damaged</strong> — it cannot be read, '
+            . 'usually because it was edited by hand or only partly uploaded. ' . h($dfEffect) . ' so that nothing is overwritten. '
+            . 'Go to <a href="backups.php">Backups</a> and restore the most recent <em>' . h($dfLabel) . '</em> entry, '
+            . 'or ask your developer to repair the file.';
+      }
+  }
+  if (!admin_writable()) {
+      // A-5.8 — this one condition takes down BOTH brute-force controls at once,
+      // and the banner used to name neither. login_throttle_mutate() opens
+      // .login-throttle.json and returns null when it cannot, so
+      // login_attempt_gate() falls through with wait = 0 and every request goes
+      // straight to password_verify() with no cool-off, permanently; audit_log()
+      // no-ops in the same failure, so the guessing run is also unrecorded.
+      // Failing open is deliberate (it must not lock the owner out) — which is
+      // exactly why it has to be said out loud here.
+      $healthProblems[] = 'The <code>admin</code> folder is not writable by the web server. '
+        . 'Contact-form leads are still emailed to sales but are NOT being saved to the Inquiries page, the activity log cannot record anything, '
+        . 'the Password page cannot save, and — because both depend on files in this folder — '
+        . '<strong>the login cool-off that limits password guessing is switched off and failed sign-ins are not being recorded</strong>. '
+        . 'Set admin/ to 755 (or 775) over FTP, then sign out and back in to confirm this warning is gone.' . $permFallback;
+  } else {
+      // A12-L3-01-1 / A12-L3-06-1 — admin_writable() is a bare
+      // is_writable(__DIR__), blind to ONE file in the folder being unwritable
+      // (uploaded with the folder, or left owned by another user after a host
+      // change). Each of these two then fails open in silence: audit_log()
+      // records nothing, and login_throttle_mutate() cannot open its file, so
+      // there is no cool-off at all. Same gap A-7.4 closed for inquiries.jsonl.
+      foreach ([
+          ['admin-log.jsonl', 'the activity log is not recording anything — sign-ins, failed password attempts and every edit go unrecorded'],
+          ['.login-throttle.json', '<strong>the login cool-off that limits password guessing is switched off</strong>'],
+      ] as [$adminFile, $adminEffect]) {
+          $p = __DIR__ . '/' . $adminFile;
+          if (file_exists($p) && (!is_file($p) || !is_writable($p))) {
+              $healthProblems[] = 'The file <code>admin/' . h($adminFile) . '</code> cannot be written by the web server, so '
+                . $adminEffect . '. Over FTP, set that file to 644 (or 664); if that does not clear this warning, '
+                . 'the file belongs to a different user than the web server — ask your host to give it to the same user as the admin folder.';
+          }
+      }
+  }
+  if (!data_writable()) {
+      $healthProblems[] = 'The <code>site-data</code> folder is not writable by the web server. '
+        . 'Nothing you edit on any page can be saved. Set site-data/ to 755 (or 775) over FTP.' . $permFallback;
+  }
+  if (!is_dir(IMG_DIR) || !is_writable(IMG_DIR)) {
+      $healthProblems[] = 'The <code>uploads/images</code> folder is missing or not writable. '
+        . 'Product photo uploads will fail. Create public_html/uploads/images/ over FTP and set it to 755.' . $permFallback;
+  }
+  // NEW-N3-3 / NEW-R3-m3-2 (audit 2026-09-27) — the folder can exist with its
+  // security file missing (created by hand, or dotfiles hidden by the FTP
+  // client). upload-image.php now refuses uploads then; say so up front.
+  // AUDIT-12 decision 38 (A12-L3-W5-G2-1) — the same mistake on admin/ itself:
+  // without admin/.htaccess (a dotfile the FTP client may hide) the inquiry
+  // log, the activity log and the password-file backups download for anyone.
+  if (!file_exists(__DIR__ . '/.htaccess')) {
+      $healthProblems[] = 'The <code>admin/.htaccess</code> security file is missing, so <strong>anyone can download the saved quote requests '
+        . '(names, email addresses and phone numbers), the activity log and the password-file backups</strong> from this folder. '
+        . 'Upload <code>admin/.htaccess</code> from the release over FTP (turn on "show hidden files" to see it).';
+  }
+  $uploadsHtaccess = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
+  if (is_dir(dirname($uploadsHtaccess)) && !file_exists($uploadsHtaccess)) {
+      $healthProblems[] = 'The <code>uploads/.htaccess</code> security file is missing, so photo uploads are refused. '
+        . 'Upload <code>uploads/.htaccess</code> from the release over FTP (turn on "show hidden files" to see it).';
+  }
+  // A-5.9 — the contact form's rate limit and its per-recipient auto-reply cap
+  // both keep their state in the system temp dir. If that is not writable the
+  // controls do not fail loudly, they simply stop counting, and nothing else
+  // in the dashboard would ever say so. The admin runs as the same PHP user,
+  // so this is the same question the form asks.
+  $tmpDir = sys_get_temp_dir();
+  if (!is_dir($tmpDir) || !is_writable($tmpDir)) {
+      $healthProblems[] = 'The server\'s temporary folder (<code>' . h($tmpDir) . '</code>) is not writable. '
+        . 'The contact form still works and still records every lead, but its spam rate limit is not counting, '
+        . 'and confirmation emails to senders are being held back as a precaution. Ask the host to fix permissions on it.';
+  }
+  // A12-L8-03-W5-2 — "missing" and "not writable" are different problems.
+  // A missing pdfs/ is a first deploy that skipped it: uploads still work
+  // (upload-pdf.php creates the folder), but every Datasheet link is dead —
+  // and one upload used to silence this warning while the rest stayed dead.
+  $pdfsMissing = [];
+  foreach ($products as $p) {
+      $pu = $p['pdfUrl'] ?? '';
+      if (is_string($pu) && strpos($pu, PDF_URL) === 0 && site_file_missing($pu)) $pdfsMissing[] = (string)($p['sku'] ?? '?');
+  }
+  if (!is_dir(PDF_DIR)) {
+      $healthProblems[] = 'The <code>pdfs</code> folder is missing on the server, so every product\'s Datasheet link on the website leads nowhere. '
+        . 'Upload the <code>pdfs/</code> folder from the release over FTP (it ships on the first deploy), including its hidden <code>.htaccess</code> file.';
+  } elseif (!is_writable(PDF_DIR)) {
+      $healthProblems[] = 'The <code>pdfs</code> folder is not writable. '
+        . 'Data sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.' . $permFallback;
+  }
+  if (is_dir(PDF_DIR) && $pdfsMissing) {
+      $healthProblems[] = '<strong>' . count($pdfsMissing) . ' product' . (count($pdfsMissing) === 1 ? '' : 's')
+        . ' point at a data sheet that is not on the server</strong>, so the Datasheet button gives buyers a "not found" page: '
+        . h(implode(', ', array_slice($pdfsMissing, 0, 8))) . (count($pdfsMissing) > 8 ? ' and ' . (count($pdfsMissing) - 8) . ' more' : '') . '. '
+        . 'Upload the missing files with <strong>Manage PDF</strong>, or upload the <code>pdfs/</code> folder from the release over FTP.';
+  }
+  // §1aq (doc verification 2026-10-05) — the two folders the newer upload
+  // pages write were in the permissions tables but not checked here, so a
+  // read-only one surfaced only as a failed upload. Each is created on first
+  // use, so "missing" is fine while its parent folder is writable.
+  foreach ([[SITE_IMG_DIR, 'uploads/site', 'Site Images &amp; Logo uploads'], [MARKETING_PDF_DIR, 'pdfs/marketing', 'Catalog &amp; Brochure PDF uploads']] as [$dir, $label, $what]) {
+      $d = rtrim($dir, '/');
+      if (is_dir($d) ? !is_writable($d) : !is_writable(dirname($d))) {
+          $healthProblems[] = 'The <code>' . $label . '</code> folder is not writable (or cannot be created). '
+            . $what . ' will fail. Create public_html/' . $label . '/ over FTP and set it to 755.' . $permFallback;
+      }
+  }
+  /* A-9.P2-2 — the image extension the photo resizer needs. Every other row
+     here is a permission; this one is a missing PHP extension, and it fails
+     SOFTLY: the upload still succeeds, the photo is just never scaled down, so
+     the product page silently carries a multi-megabyte LCP image. Measured
+     with `php -d disable_functions=imagescale`: a 4032×3024 photo stored at
+     4032×3024. The upload screen now says so too, but only to whoever happens
+     to be uploading — this is the row that tells the owner the server is the
+     reason, before the next photo goes up. */
+  if (!extension_loaded('gd') || !function_exists('imagescale')) {
+      $healthProblems[] = 'This server cannot resize images — the PHP <code>gd</code> extension is missing. '
+        . 'Photo uploads still work, but large photos are saved at their original size and those product pages '
+        . 'will load slowly on a phone. Ask the host to enable <code>gd</code>, or resize photos to about '
+        . IMG_MAX_WIDTH . ' pixels wide before uploading them.';
+  }
+  /* A-7.4 — contact.php could not write the inquiry log.
+     This is the one mail/log outcome that is otherwise SILENT: the mail went,
+     so the visitor saw a success page and has no reason to resend, and A-5.6
+     made this log the record the owner is told to trust when a notification
+     does not arrive. The marker is written by ipc_log_inquiry() and cleared by
+     the next write that succeeds, so it says "this is happening now", not
+     "this happened once".
+     Deliberately not gated on admin_writable(): that is a bare
+     is_writable(__DIR__) and returns true for a log file that is individually
+     unwritable, locked, or replaced by a directory — which is the gap this
+     covers. */
+  $logFailMarker = __DIR__ . '/.inquiry-log-failed.json';
+  if (is_file($logFailMarker)) {
+      $when = @filemtime($logFailMarker);
+      $healthProblems[] = '<strong>Quote requests are arriving but cannot be recorded.</strong> '
+        . 'The website could not write to <code>admin/inquiries.jsonl</code>'
+        . ($when ? ' (last tried ' . h(date('M j, Y g:i a', $when)) . ')' : '') . '. '
+        . 'The notification emails are still being sent, so nothing is lost yet — but the '
+        . 'Inquiries page is not recording new leads. Usually a full disk or a permissions '
+        . 'change on public_html/admin/. This clears itself as soon as one write succeeds.';
+  }
+  /* The password-reset window. While it is open, ANY visitor to /admin/ — signed
+     in or not — is served the "Set Admin Password" form and can take the
+     account. It used to be invisible: nothing on any page mentioned it, and
+     auth.php bounces a signed-in admin here before he can see the screen.
+     (AUDIT_v3_FINDINGS B2)
+     The form posts to index.php, which handles close_reset_window, so the
+     button works the same on the Overview. */
+  $closeBtn = '<form method="POST" action="index.php" style="display:inline;margin-left:6px">'
+    . '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '">'
+    . '<input type="hidden" name="close_reset_window" value="1">'
+    . '<button type="submit" class="btn btn-sm btn-danger" style="vertical-align:baseline">Close It Now</button>'
+    . '</form>';
+  if (password_reset_unlocked()) {
+      $healthProblems[] = '<strong>The password-reset window is OPEN.</strong> '
+        . 'While <code>admin/ALLOW-PASSWORD-RESET</code> is in the admin folder, anyone on the internet who opens '
+        . 'your admin address is shown a "Set Admin Password" form and can lock you out. '
+        . 'It closes by itself one hour after the file was uploaded — close it now if you are done.' . $closeBtn;
+  } elseif (password_reset_expired()) {
+      $healthProblems[] = 'The file <code>admin/ALLOW-PASSWORD-RESET</code> is still in the admin folder. '
+        . 'It no longer does anything because ' . password_reset_expired_reason() . ', but it should not be left there.' . $closeBtn;
+  }
+  return $healthProblems;
 }
 
 // ─── Login throttle (persistent, IP-keyed) ────────────────────────────────
@@ -2374,7 +2851,7 @@ function sku_problems(string $sku): array {
  * protocol-relative, not local. Kept deliberately identical in effect to the
  * client-side guard, and both are needed — the client guard is what actually
  * stops a script-scheme href reaching a visitor, including for values already
- * sitting in data/ from before this check existed, while this one is what stops
+ * sitting in site-data/ from before this check existed, while this one is what stops
  * the owner from saving a broken link and getting no explanation for why it
  * never appeared. (audit-runs/audit4.md D-01)
  *
