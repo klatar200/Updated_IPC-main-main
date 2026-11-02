@@ -141,16 +141,28 @@ const POST = (p, o, extra = {}) => req({ path: p, method: 'POST',
   // ── A-5.5 — a failed write must leave the live file untouched ───────────
   const probe = path.join(ROOT, '_harness/out/a55-probe.php');
   fs.mkdirSync(path.dirname(probe), { recursive: true });
+  // Linux fails the big write with `ulimit -f` (a short write: the disk-full
+  // case). Windows has neither ulimit nor pcntl, and Git Bash's ulimit does not
+  // reach a native php.exe; there an open handle on the live file refuses the
+  // rename that ends json_write_atomic() (Windows will not replace an open
+  // file) — the other way the write cannot complete, with the same promise:
+  // reported, live file intact, no .tmp left (2026-11-01). Not a read-only
+  // file: json_write_atomic() copies the target's mode onto the temp file, and
+  // Windows will not unlink a read-only one, so that leaves a .tmp that Linux,
+  // where the directory decides, never would.
+  const WIN = process.platform === 'win32';
   fs.writeFileSync(probe, `<?php
-pcntl_signal(SIGXFSZ, SIG_IGN);            // short write instead of a killed process
-require '${path.join(ROOT, 'admin/config.php')}';
+${WIN ? '' : 'pcntl_signal(SIGXFSZ, SIG_IGN);            // short write instead of a killed process'}
+require '${path.join(ROOT, 'admin/config.php').replace(/\\/g, '/')}';
 $dir = sys_get_temp_dir() . '/ipc-a55-' . getmypid(); @mkdir($dir);
 $live = $dir . '/products-all.json';
 $good = json_encode(['products' => [['sku' => 'IP38FE']]]);
 file_put_contents($live, $good);
 $hash = md5_file($live);
 $big  = json_encode(['products' => array_fill(0, 4000, ['sku' => 'X', 'name' => str_repeat('y', 60)])]);
+${WIN ? '$hold = fopen($live, \'r\');' : ''}
 $ok   = json_write_atomic($live, $big);
+${WIN ? 'fclose($hold);' : ''}
 $intact = md5_file($live) === $hash && is_array(json_decode(file_get_contents($live), true));
 $leftovers = count(glob($dir . '/*.tmp'));
 $small = json_encode(['products' => [['sku' => 'IP55FL']]]);
@@ -161,7 +173,9 @@ array_map('unlink', glob($dir . '/*')); @rmdir($dir);
 `);
   let a55 = {};
   try {
-    a55 = JSON.parse(execFileSync('/bin/sh', ['-c', `ulimit -f 100; php ${probe} 2>/dev/null`], { encoding: 'utf8', cwd: ROOT }));
+    a55 = JSON.parse(WIN
+      ? execFileSync('php', ['-d', 'display_errors=stderr', probe], { encoding: 'utf8', cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] })
+      : execFileSync('/bin/sh', ['-c', `ulimit -f 100; php ${probe} 2>/dev/null`], { encoding: 'utf8', cwd: ROOT }));
   } catch (e) { a55 = { error: e.message }; }
   ok(a55.failed_write_reported === false, 'A-5.5 a write that cannot complete is reported as failure', JSON.stringify(a55));
   ok(a55.live_intact === true, 'A-5.5 the live catalog is byte-identical after a failed write', JSON.stringify(a55));
@@ -253,14 +267,19 @@ array_map('unlink', glob($dir . '/*')); @rmdir($dir);
 
     // :8751 — the dashboard as Rick sees it on a host with admin/, site-data/ and the
     // temp dir unwritable.
-    if (process.getuid && process.getuid() === 0 && spawnSync('runuser', ['--help']).status === 0) {
-      start(8751, path.join(TT, 'no-such-temp-dir'), true);
+    // Windows has no runuser; the same host is made by denying THIS user write
+    // access to the private copy's admin/ and site-data/ (icacls, removed in
+    // the finally below). Only T, the throwaway copy under the temp dir.
+    const WINDENY = process.platform === 'win32' ? [path.join(T, 'admin'), path.join(T, 'site-data')] : null;
+    const whoami = WINDENY ? require('os').userInfo().username : '';
+    if (WINDENY) for (const d of WINDENY) execFileSync('icacls', [d, '/deny', `${whoami}:(OI)(CI)(WD,AD)`], { stdio: 'ignore' });
+    if (WINDENY || (process.getuid && process.getuid() === 0 && spawnSync('runuser', ['--help']).status === 0)) {
+      start(8751, path.join(TT, 'no-such-temp-dir'), !WINDENY);
       if (!(await up(8751))) throw new Error(':8751 did not start (port taken, or runuser/nobody unavailable)');
       const li = await req({ port: 8751, path: '/admin/auth.php', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, form({ password: 'audit-pass-123' }));
       const ck = (li.headers['set-cookie'] || []).map((c) => c.split(';')[0]).join('; ');
       const d = await req({ port: 8751, path: '/admin/index.php', method: 'GET', headers: { Cookie: ck } });
-      const signedIn = d.status === 200 && /Dashboard|healthProblems|not writable/i.test(d.body);
-      ok(signedIn && /cool-off that limits password guessing is switched off/.test(d.body),
+      const signedIn = d.status === 200 && /Dashboard|healthProblems|not writable/i.test(d.body);      ok(signedIn && /cool-off that limits password guessing is switched off/.test(d.body),
          'A-5.8 the health banner names the login cool-off as disabled', `status ${d.status}`);
       ok(signedIn && /failed sign-ins are not being recorded/.test(d.body),
          'A-5.8 the health banner names the audit log as disabled');
@@ -283,7 +302,10 @@ array_map('unlink', glob($dir . '/*')); @rmdir($dir);
       const ps = spawnSync('ps', ['-eo', 'pid,args'], { encoding: 'utf8' }).stdout || '';
       for (const line of ps.split('\n')) if (line.includes(`php -S 127.0.0.1:${port}`) && line.includes(TT)) { try { process.kill(parseInt(line, 10)); } catch (_) {} }
     }
-    fs.rmSync(TT, { recursive: true, force: true });
+    if (process.platform === 'win32') {
+      for (const d of ['admin', 'site-data']) spawnSync('icacls', [path.join(TT, 'site', d), '/remove:d', require('os').userInfo().username, '/T'], { stdio: 'ignore' });
+    }
+    try { fs.rmSync(TT, { recursive: true, force: true }); } catch (e) { console.log(`audit5-high: could not remove ${TT} (${e.code})`); }
   }
 
   const cp = fs.readFileSync(path.join(ROOT, 'public/contact.php'), 'utf8');

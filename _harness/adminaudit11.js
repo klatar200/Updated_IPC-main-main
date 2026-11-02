@@ -120,7 +120,12 @@ function startServer(port, limited) {
   execFileSync('cp', ['-r', SRC, SITE]);
   reset();
   const srv = startServer(PORT, false);
-  const lim = startServer(LIMITED, true);
+  // `ulimit -f` limits Git Bash's own programs, not a native php.exe it execs,
+  // so on Windows the limited server never failed a save (DI-3 measured the
+  // save succeeding, 2026-11-01) and outlived lim.kill() holding :8743 and a
+  // lock in out/aa11-site. There DI-3 fails the save another way, below.
+  const WIN = process.platform === 'win32';
+  const lim = WIN ? null : startServer(LIMITED, true);
   await wait(800);
   const browser = await launch();
   const a = adminHttp(PORT);
@@ -164,9 +169,16 @@ function startServer(port, limited) {
       reset();
       await upload(a, '/admin/upload-image.php?sku=CC', [], [['image_file', 'red.png', imgAlphaPng('200,0,0'), 'image/png']]);
       const was = prod('CC').photoUrl;
-      const b = adminHttp(LIMITED);
-      const limitedIn = await b.login(PASS);
-      const ur = await upload(b, '/admin/upload-image.php?sku=CC', [], [['image_file', 'blue.jpg', img('jpeg', '0,0,200'), 'image/jpeg']]);
+      // Windows: a read-only products-all.json refuses json_write_atomic()'s
+      // rename over it — the same "catalog save failed after the photo was
+      // replaced" branch the size limit reaches on Linux.
+      const cat = path.join(SITE, 'site-data', 'products-all.json');
+      const b = WIN ? a : adminHttp(LIMITED);
+      const limitedIn = WIN ? true : await b.login(PASS);
+      if (WIN) fs.chmodSync(cat, 0o444);
+      let ur;
+      try { ur = await upload(b, '/admin/upload-image.php?sku=CC', [], [['image_file', 'blue.jpg', img('jpeg', '0,0,200'), 'image/jpeg']]); }
+      finally { if (WIN) fs.chmodSync(cat, 0o644); }
       const now = prod('CC').photoUrl;
       // Prove the failure this arm depends on HAPPENED before crediting the
       // outcome: with the size limit not biting, the save succeeded, the
@@ -426,7 +438,7 @@ function startServer(port, limited) {
     });
   } finally {
     await browser.close();
-    srv.kill(); lim.kill();
+    srv.kill(); if (lim) lim.kill();
   }
   const bad = results.filter((x) => !x.ok).length;
   console.log(`\nadminaudit11 ${results.length - bad}/${results.length}`);

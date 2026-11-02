@@ -148,6 +148,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ],
         'catalogPdfUrl' => sf('catalogPdfUrl', $info['catalogPdfUrl'] ?? ''),
     ];
+    // The shipped site-info.json has no homeLayout, and absent already means
+    // Classic everywhere it is read. Writing 'classic' into it made the first
+    // untouched save a change — "Saved", and a backup slot spent on nothing
+    // (invariant 16; lowsA2-admin V2-1, 2026-11-01). Keep it absent until a
+    // different layout is chosen.
+    if ($updated['theme']['homeLayout'] === 'classic' && !isset($curTh['homeLayout'])) unset($updated['theme']['homeLayout']);
 
     if ($updated['company']['name'] === '') $errors[] = 'Company name is required.';
     // D-01: this field is rendered as an href in the footer of every page, and
@@ -534,7 +540,8 @@ $th = $info['theme'] ?? [];
           <div class="form-group full">
             <label for="company_description">Short Description</label>
             <textarea id="company_description" name="company_description" rows="3"><?= h($c['description'] ?? '') ?></textarea>
-            <?php /* Docs audit 2026-09-29 — this said "site footer"; measured, the text appears only in the search-engine data (the footer paragraph is fixed). */ ?><div class="hint">Not shown on any page — this is the description of your company given to search engines (Google and the like).</div>
+            <?php /* Docs audit 2026-09-29 — this said "site footer"; measured, the text appears only in the search-engine data (the footer paragraph is fixed).
+                     2026-11-01 — and, since 902291b, under the Corporate homepage's banner (CorporateHome); docmap.js holds both. */ ?><div class="hint">The description of your company given to search engines (Google and the like). On the website it shows only on the homepage in the Corporate layout, under the banner.</div>
           </div>
         </div>
       </div>

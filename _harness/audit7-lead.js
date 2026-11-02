@@ -65,16 +65,20 @@ async function post(fields, headers = {}) {
  * arms — it is keyed md5(ip) under the system temp dir, exactly as
  * contact.php computes it.
  */
+// os.tmpdir(), not '/tmp': PHP's sys_get_temp_dir() is %TEMP% on Windows,
+// where Node reads '/tmp' as C:\tmp and every arm after the fifth got a 429
+// (measured 2026-11-01; contactflow.js made the same change earlier).
+const TMPDIR = require('os').tmpdir();
 function clearLimiter() {
   const md5 = require('crypto').createHash('md5').update('127.0.0.1').digest('hex');
   for (const f of [`ipc_rl_${md5}.json`]) {
-    try { fs.unlinkSync(path.join('/tmp', f)); } catch { /* not there */ }
+    try { fs.unlinkSync(path.join(TMPDIR, f)); } catch { /* not there */ }
   }
   // The auto-reply cap is keyed on the address; drop those too so a repeated
   // address in a later arm is not silently capped.
   try {
-    for (const f of fs.readdirSync('/tmp')) {
-      if (f.startsWith('ipc_ar_')) fs.unlinkSync(path.join('/tmp', f));
+    for (const f of fs.readdirSync(TMPDIR)) {
+      if (f.startsWith('ipc_ar_')) fs.unlinkSync(path.join(TMPDIR, f));
     }
   } catch { /* ignore */ }
 }
@@ -359,7 +363,9 @@ const RFQ = {
     // 2026-09-29 so site-images.php runs the same one. Only helpers the
     // uploader actually calls count, so this is still the upload path.
     let up = fs.readFileSync(path.join(ROOT, 'admin', 'upload-image.php'), 'utf8');
-    const cfgSrc = fs.readFileSync(path.join(ROOT, 'admin', 'config.php'), 'utf8');
+    // LF-normalised: a Windows checkout has CRLF, and '\n}\n' below then never
+    // found the end of a helper, so its body was never added.
+    const cfgSrc = fs.readFileSync(path.join(ROOT, 'admin', 'config.php'), 'utf8').replace(/\r\n/g, '\n');
     for (const fn of ['uploaded_image_problem', 'image_resize_note']) {
       const i = cfgSrc.indexOf(`function ${fn}(`);
       if (i >= 0 && new RegExp(`\\b${fn}\\s*\\(`).test(up)) up += '\n' + cfgSrc.slice(i, cfgSrc.indexOf('\n}\n', i) + 2);

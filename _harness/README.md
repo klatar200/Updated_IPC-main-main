@@ -73,19 +73,43 @@ if it is not on PATH), not PowerShell. It needs `cp -ru`, `cmp` and `grep -o`,
 all of which Git Bash has, and it shells out to `php`, which Git Bash picks up
 from the inherited Windows PATH.
 
-Start each `php -S` in its own terminal. Windows PowerShell 5.1 has no trailing
-`&`; the equivalent is `Start-Process php -ArgumentList '-S','127.0.0.1:8123',...`,
-but two terminals is simpler and keeps the request logs visible. Bind
-`127.0.0.1` rather than `0.0.0.0` — all-interfaces raises a Defender Firewall
-prompt and buys nothing for a local browser.
+**Start the servers with `node _harness/servers.js`** (all three, logging to
+`out/php<port>.log`; `node _harness/servers.js 8123` for one), not the `php -S`
+lines above. It is the same three commands plus `PHP_INI_SCAN_DIR` pointing at
+`out/php.d/local.ini`, which `_harness/php-local.js` writes for this machine,
+and `run.js` sets the same variable for every suite. On Windows that file is
+what makes the harness measure the admin rather than the PHP install
+(measured 2026-11-01, when seven suites failed for these reasons alone):
 
-**`mail()` does not go through `fakemail.sh` on Windows.** `sendmail_path` is a
-Unix-only directive; PHP for Windows routes `mail()` through the `SMTP` /
-`smtp_port` ini settings instead, so it dials localhost:25, finds nothing, and
-`contact.php` stops at its "mail server could not send" branch. Every suite that
-reads the captured mail — `contactflow.js`, `plan3-autoreply.js` — is therefore
-[UNVERIFIED] on Windows unless something is listening on 25. Browsing the site
-and the whole admin are unaffected.
+- **Extensions.** The winget/zip PHP has no php.ini and no scan directory, so
+  under `-c` it loaded no gd, mbstring or fileinfo, and every photo upload
+  failed (`docmap`, `siteimages`, `audit5-medium`, `lowsA2-admin`,
+  `adminaudit11`). `extension=gd` alone looks in `C:\php\ext`; the file names
+  this install's own `ext\`.
+- **`sendmail_path`.** PHP for Windows does run it — earlier wording here said
+  it was Unix-only — but through `cmd.exe /c`, which takes `&&` and `>` as its
+  own, strips the outer double quotes and knows no single quotes. So
+  php-mail.ini's walk-up-to-`fakemail.sh` command never ran, `mail()` returned
+  true anyway, `contact.php` said "sent" and the mail log stayed empty. The
+  local file says `sh <absolute path>/fakemail.sh` instead.
+- **What it cannot fix:** PHP for Windows ignores the sendmail command's exit
+  status, so a stub that refuses (`exit 1`) still reads as sent, and it uses
+  SMTP only when `sendmail_path` is absent altogether (`-d sendmail_path=`
+  leaves it `""`, which "sends" nothing successfully). `leadpath12.js`
+  therefore runs its own SMTP sink on Windows.
+
+Bind `127.0.0.1` rather than `0.0.0.0` — all-interfaces raises a Defender
+Firewall prompt and buys nothing for a local browser.
+
+Other Windows differences the suites now handle themselves: `/tmp` in Node is
+`C:\tmp`, not PHP's temp dir (use `os.tmpdir()`); `ulimit -f` in Git Bash does
+not reach a native `php.exe`, so `adminaudit11` DI-3 and `audit5-high` A-5.5
+fail their writes another way there; `runuser` does not exist, so `audit5-high`
+A-5.8/A-5.9 deny this user write access to its private copy (`icacls`) instead
+of serving as `nobody`; and a checkout with CRLF line endings must not break a
+source match (`audit7-lead` A-7.6). `run.js` also clears contact.php's limiter
+files (`ipc_rl_*`, `ipc_ar_*` in `os.tmpdir()`) before each suite — five
+submissions per ten minutes from 127.0.0.1 is less than one contact suite.
 
 Line endings are governed by [`.gitattributes`](../.gitattributes); if `bash`
 reports `set: -` as an invalid option or `cd: $'...\r'`, the checkout predates

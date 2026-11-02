@@ -34,7 +34,7 @@ const DATA = path.join(SITE, 'site-data');
 const PRISTINE = path.join(__dirname, 'pristine');
 const PORT = 8707;
 const BASE = `http://127.0.0.1:${PORT}`;
-const TMP = fs.mkdtempSync('/tmp/ipc-n2-');
+const TMP = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ipc-n2-'));   // not '/tmp': C:\tmp on Windows, absent
 
 const results = [];
 const note = (ok, label, detail) => {

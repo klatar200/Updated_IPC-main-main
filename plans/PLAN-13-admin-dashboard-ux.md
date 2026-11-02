@@ -717,7 +717,7 @@ phone. That is Phase 7's phone pass.
   which is missing, and the other needs a Unix `/tmp`. Environment, not this
   change.
 
-### Phase 7 — done 2026-11-01 (branch `claude/admin-ux`), with one gap
+### Phase 7 — done 2026-11-01 (branch `claude/admin-ux`); its gap closed the same day
 
 **The check came first.** `_harness/plan13-a11y.js` covers the sign-in page
 and all 15 signed-in pages at 390 and 768.
@@ -766,19 +766,44 @@ inline), Tab order, and the sign-in page.
 **Result:** `plan13-a11y` 172/172, `admin-ux` 84/84, and every suite that was
 green is still green.
 
-**The gap: "full admin suite list green" is not met here.** These suites were
-red before Phase 0, and their reds are the local harness, not the admin:
-- `siteimages` and `docmap`: their uploads and saves fail on the `:8123`
-  server. It starts with `-c php-mail.ini`, which replaces `php.ini`, so it
-  loads no `gd`.
-- `contactflow`, `audit7-lead` and `leadpath12`: the contact form's rate
-  limit, plus Windows mail-capture arms.
-- `audit5-medium`, `lowsA2-admin` and `adminaudit11` DI-3/DI-4: command-line
-  PHP without `gd`.
-- `audit9-fixes`: the standing `d4`.
+**The gap, as committed (5fc8465): "full admin suite list green" was not
+met.** Ten suites had been red since before Phase 0. Closed the same day: the
+54-suite sweep (the Phase 7 list plus `n2-damageddata`) is now 54/54 in one
+run on this Windows machine. Most of it was the harness; three causes were
+not, and one first diagnosis was wrong.
+- **Harness (Windows PHP).** `_harness/php-local.js` writes
+  `out/php.d/local.ini` (gd, mbstring, fileinfo from this install's `ext\`,
+  and a `sendmail_path` that `cmd.exe` can run). `run.js` and the new
+  `servers.js` load it through `PHP_INI_SCAN_DIR`. PHP for Windows runs
+  `sendmail_path` but ignores its exit status, so `leadpath12` runs an SMTP
+  sink there to get a real refusal.
+- **Harness (Windows assumptions in suites).** `/tmp` literals, now
+  `os.tmpdir()` (`audit7-lead`, `n2-damageddata`). `ulimit -f` doesn't reach a
+  native `php.exe`, so `adminaudit11` DI-3 and `audit5-high` A-5.5 fail the
+  write another way there. No `runuser`: A-5.8/A-5.9 use an `icacls`
+  write-deny on their private copy. CRLF in a source match (A-7.6). And a
+  leftover `php.exe` from DI-3 crashed the next run.
+- **Harness (shared state).** `run.js` clears contact.php's limiter and
+  auto-reply-cap files before each suite. `plan2-sku` waited for "loaded" on
+  the page it was leaving.
+- **`docmap` was never the image library.** The homepage-layouts commit
+  (902291b) added each card's Photo box and the Homepage layout picker;
+  `docmap` filled both with markers and the admin rightly refused the save.
+  It now marks them validly and crawls `/` in all six layouts.
+- **Admin, Help wrong.** Help and the Business Details hint said the Short
+  Description "is not shown on any page"; the Corporate layout shows it under
+  the banner. Both now say so, and `docmap` holds it.
+- **Admin, a fake change.** The shipped `site-info.json` has no `homeLayout`,
+  and an untouched Business Details save wrote `"classic"` into it: "Saved",
+  plus a backup slot (invariant 16; `lowsA2-admin` V2-1). `settings.php` now
+  leaves it absent until another layout is chosen. `plan13-lists` had relied
+  on that fake change; it now makes a real edit.
+- **Docs.** GUARDRAILS cited `content.php:345-349` for the photo slots, now
+  428-436 (`audit9-fixes` d4). The harness README's "On Windows" section
+  wrongly said `sendmail_path` was Unix-only.
 
-Making those green is a harness job: load `gd` in the harness ini files, and
-reset the contact limiter between suites. It is not part of this phase.
+`audit9-logic-admin` is an *instrument* that needs its own prepared site and
+server, not part of this list.
 
 ## 5. Constraints and what must stay green
 

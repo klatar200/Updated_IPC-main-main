@@ -80,7 +80,7 @@ function restore() {
     await page.fill(heroSel, MARKER);
 
     await Promise.all([
-      page.waitForLoadState('domcontentloaded'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),   // not waitForLoadState: the page being left is already loaded, so that resolved before the POST came back
       page.click('button:has-text("Save Content")'),
     ]);
 
@@ -134,7 +134,7 @@ function restore() {
     await ta2.fill(orig2.trimEnd() + `\n${realSku} | Real Product`);
 
     await Promise.all([
-      page.waitForLoadState('domcontentloaded'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
       page.click('button:has-text("Save Content")'),
     ]);
     const body2 = await page.innerText('body');
@@ -152,7 +152,7 @@ function restore() {
     restore();
     await page.goto(`${BASE}/admin/content.php`, { waitUntil: 'domcontentloaded' });
     await Promise.all([
-      page.waitForLoadState('domcontentloaded'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
       page.click('button:has-text("Save Content")'),
     ]);
     const untouched = await page.innerText('body');
@@ -166,7 +166,7 @@ function restore() {
     const ta3 = await page.$(prodSel);
     await ta3.fill((await ta3.inputValue()).trimEnd() + '\n\n   \n');
     await Promise.all([
-      page.waitForLoadState('domcontentloaded'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
       page.click('button:has-text("Save Content")'),
     ]);
     note(!/Check these product codes/i.test(await page.innerText('body')),

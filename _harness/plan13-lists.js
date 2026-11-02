@@ -142,9 +142,13 @@ const put = (f, buf) => { if (buf === null) fs.rmSync(f, { force: true }); else 
     console.log('\n── B1 Backups say what each version was saved ahead of ──');
     {
       await p.goto(BASE + '/admin/settings.php', { waitUntil: 'networkidle' });
+      // A real edit, not a trailing space: the save trims, so " " was a no-op
+      // that only made a backup because the save also wrote homeLayout
+      // "classic" into a file without one (fixed 2026-11-01). site-info.json
+      // is put back in the finally.
       const field = await p.evaluate(() => {
-        const f = document.querySelector('form[data-long-form] input[type=text][name]');
-        f.value = f.value + ' '; f.dispatchEvent(new Event('input', { bubbles: true })); return f.name;
+        const f = document.querySelector('form[data-long-form] input[name="company_slogan"]');
+        f.value = f.value + ' (plan13-lists)'; f.dispatchEvent(new Event('input', { bubbles: true })); return f.name;
       });
       await Promise.all([p.waitForNavigation({ waitUntil: 'domcontentloaded' }), p.click('button:has-text("Save Business Details")')]);
       await p.goto(BASE + '/admin/backups.php', { waitUntil: 'networkidle' });
