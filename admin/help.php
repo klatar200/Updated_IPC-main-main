@@ -324,7 +324,15 @@ require_auth();
       <section class="help-section" id="dashboard">
         <div class="eyebrow eyebrow-start">Getting Started</div>
         <h2>📊 Reading the dashboard</h2>
-        <p>The <strong>Products</strong> page (your home page after signing in) is organized like this, top to bottom:</p>
+        <p>After you sign in you land on the <strong>Overview</strong>, one page that answers "does anything need me?". Nothing on it changes anything. To come back to it from any page, click <strong>IPC Admin</strong> (the logo, top left); on the Overview itself the logo is underlined.</p>
+        <ul class="plain">
+          <li><strong>Inquiries</strong> — how many quote requests and messages arrived since you last opened Inquiries, and the newest four, each marked <em>New</em>, <em>Email failed</em> or <em>Not confirmed</em> as on the Inquiries page. Looking at the Overview does not mark them read; opening Inquiries does.</li>
+          <li><strong>Server</strong> — either "No server problems found" or how many there are. The problems themselves are listed in red at the top of the page, the same list as on All Products (see <a href="#health">Server warnings on the dashboard</a>).</li>
+          <li><strong>Products</strong> — how many products there are, how many have no photo or no data sheet, and the first six of them with an <strong>Add photo</strong> or <strong>Add data sheet</strong> link straight to the right upload page.</li>
+          <li><strong>Recent changes</strong> — the last five things changed from this dashboard (sign-ins are left out), newest first. The <strong>Audit Log</strong> has the rest, and <strong>Backups</strong> can undo one.</li>
+          <li><strong>Shortcuts</strong> — one click to All Products, Add Product, Business Details, Page Content, Site Images &amp; Logo, Catalog &amp; Brochure PDFs, Backups, Help and the live site.</li>
+        </ul>
+        <p>The <strong>Products</strong> page (Products → All Products, or the button at the top of the Overview) is organized like this, top to bottom:</p>
         <ul class="plain">
           <li><strong>Header bar</strong> — your logo on the left, then the menu. The bar is the same on every admin page and stays at the top of the screen while you scroll. Entries with a small arrow open a list when you click them: <strong>Products</strong> (All Products, Add Product), <strong>Website</strong> (Business Details, Page Content, Site Images &amp; Logo, Catalog &amp; Brochure PDFs), <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups &amp; History</strong> (Backups, Audit Log), <strong>Help</strong>, and on the right <strong>Account</strong> (Password, View Live Site ↗ to open the public website in a new tab, and Sign Out). The entry for the page you are on is shown in white. On a phone the menu is behind the <strong>Menu</strong> button at the top right.</li>
           <li><strong>Search bar</strong> — start typing a SKU (part number) or product name and the list filters instantly. Clear the box to see everything again. It only matches the SKU and Product Name fields — it won't find a product by searching for a spec value, a badge, or something in the description.</li>

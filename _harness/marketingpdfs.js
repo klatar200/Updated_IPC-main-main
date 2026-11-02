@@ -164,8 +164,10 @@ const footerCatalog = async (browser) => {
     note(/id="catalogPdfUrl"[\s\S]{0,400}href="marketing-pdfs\.php"/.test(set.body), 'links: Business Details\' Catalog PDF box links to the page');
   } finally {
     await browser.close();
-    srv.kill();
-    fs.rmSync(SITE, { recursive: true, force: true });
+    // Wait for it to exit: on Windows the server's working folder (SITE)
+    // cannot be removed while php.exe is still in it (EPERM, 2026-11-01).
+    await new Promise((r) => { if (srv.exitCode !== null) return r(); srv.once('exit', r); srv.kill(); setTimeout(r, 3000); });
+    fs.rmSync(SITE, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   }
   const bad = results.filter((x) => !x.ok).length;
   console.log(`\nmarketingpdfs ${results.length - bad}/${results.length}`);

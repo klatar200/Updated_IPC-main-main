@@ -43,7 +43,7 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 // unwritable (root ignores permissions, so a chmod would not do it). A real
 // php -S over a throwaway copy of the admin, a real sign-in, a real PNG.
 async function armN33() {
-  const tmp = fs.mkdtempSync('/tmp/ipc-lowsF-');
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ipc-lowsF-'));
   try {
     const admin = path.join(tmp, 'admin');
     fs.mkdirSync(admin, { recursive: true });
@@ -77,16 +77,23 @@ async function armN33() {
       note(landed.length === 0 && /security file \(uploads\/\.htaccess\)/.test(r.body),
         'N3-3: a valid photo is refused, and nothing lands, while uploads/.htaccess is missing and cannot be written',
         `landed: ${landed.join(', ') || 'none'}; status ${r.status}`);
-    } finally { srv.kill(); }
-  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+    } finally {
+      // Wait for it to exit: on Windows the server's working folder (tmp)
+      // cannot be removed while php.exe is still in it (EPERM, 2026-11-01).
+      await new Promise((r) => { if (srv.exitCode !== null) return r(); srv.once('exit', r); srv.kill(); setTimeout(r, 3000); });
+    }
+  } finally { fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }
 }
 
 (async () => {
 await armN33();
 // ── DEP-8 ──
 {
-  const out = fs.mkdtempSync('/tmp/ipc-lowsF-dist-');
-  const r = spawnSync('npx', ['vite', 'build', '--outDir', out, '--emptyOutDir'], { cwd: ROOT, encoding: 'utf8' });
+  const out = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ipc-lowsF-dist-'));
+  // shell on Windows: npx is npx.cmd there, which Node will not spawn without
+  // one (ENOENT/EINVAL, so the build never ran and DEP-8 failed; 2026-11-01).
+  const r = spawnSync('npx', ['vite', 'build', '--outDir', `"${out}"`, '--emptyOutDir'].map((x) => (process.platform === 'win32' ? x : x.replace(/^"|"$/g, ''))),
+    { cwd: ROOT, encoding: 'utf8', shell: process.platform === 'win32' });
   const text = (r.stdout || '') + (r.stderr || '');
   note(r.status === 0 && !/CJS build of Vite|MODULE_TYPELESS_PACKAGE_JSON|Module type of file/i.test(text),
     'DEP-8: the build prints no CJS-deprecation or module-type warnings', text.split('\n').filter((l) => /warn|deprecat/i.test(l)).join(' | '));

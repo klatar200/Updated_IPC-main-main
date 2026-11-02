@@ -37,6 +37,7 @@ require_auth(); // defense in depth if this partial is ever requested directly
 
 $navPage = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $navGroup = [
+    'home.php' => 'overview',
     'index.php' => 'products', 'add.php' => 'products', 'edit.php' => 'products',
     'upload-pdf.php' => 'products', 'upload-image.php' => 'products', 'delete.php' => 'products',
     'settings.php' => 'website', 'content.php' => 'website',
@@ -61,6 +62,11 @@ $navNewLeads = function_exists('inquiries_new_count') ? inquiries_new_count() : 
   .ipc-admin-header .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
   .ipc-admin-header .logo-title { color: #fff; font-size: var(--fs-2); font-weight: 700; }
   .ipc-admin-header .logo-sub   { color: rgba(255,255,255,0.72); font-size: var(--fs-1); }
+  /* On the Overview: a white rule under the logo (13:1 on the bar) — the
+     same kind of marker admin-ux U3 measures for the entries. */
+  .ipc-admin-header .logo { padding: 6px 0 4px; border-bottom: 2px solid transparent; }
+  .ipc-admin-header .logo.current { border-bottom-color: #fff; }
+  .ipc-admin-header .logo:focus-visible { outline: 3px solid #7cc4ff; outline-offset: 2px; }
   .ipc-admin-header nav { flex: 1; display: flex; align-items: center; gap: 4px; min-width: 0; }
   .ipc-admin-header .nav-account { margin-left: auto; }
 
@@ -122,7 +128,11 @@ $navNewLeads = function_exists('inquiries_new_count') ? inquiries_new_count() : 
   @media (max-width: 420px) { .ipc-admin-header .logo-sub { display: none; } }
 </style>
 <header class="ipc-admin-header">
-  <a class="logo" href="index.php">
+  <?php /* PLAN-13 Phase 8 — the logo is the way to the Overview (home.php),
+           the page sign-in lands on. Not a seventh entry: §3.1 holds the bar
+           to six (admin-ux U7), and at 900px a seventh pushed it past the
+           screen. On the Overview the logo is the current-page marker. */ ?>
+  <a class="logo<?= $navTop('overview') ?>" href="home.php" title="Overview"<?= $navCur('home.php') ?>>
     <img src="logo.svg" alt="IPC" style="width:38px;height:38px;border-radius:6px;display:block;flex-shrink:0;">
     <div>
       <div class="logo-title">IPC Admin</div>

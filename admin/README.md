@@ -93,7 +93,10 @@ public_html/
     ├── config.local.php    ← Admin password hash (written on the server by the reset flow — never uploaded; gitignored)
     ├── nav.php             ← Shared header/nav, included on every page
     ├── auth.php            ← Login / logout / FTP-unlocked password recovery
-    ├── index.php           ← Product dashboard + server-health banner. One row per
+    ├── home.php            ← Overview, where sign-in lands (PLAN-13 Phase 8): new
+    │                         leads, server problems, products missing a photo or
+    │                         data sheet, the last 5 changes, shortcuts. Reads only.
+    ├── index.php           ← All Products + server-health banner. One row per
     │                         product: photo, SKU, name, temperature, PDF/photo chips,
     │                         Edit + a More menu (`<details>`; Delete inside, in red);
     │                         category chips; cards below 900px (PLAN-13 Phase 5).
@@ -351,7 +354,9 @@ on every page and stays at the top of the screen while the page scrolls
 
 The drop-downs are `<details>`, so they work with JavaScript off. The entry
 holding the current page is chosen in `nav.php` from the script name — pages
-do not set it. Below 900px the menu sits behind a **Menu** button. Product
+do not set it. The logo links to the Overview (`home.php`), where sign-in
+lands, and is the current-page marker there; it is not a seventh entry.
+Below 900px the menu sits behind a **Menu** button. Product
 sub-pages (Edit, Upload PDF, Product Photo, Delete) carry a breadcrumb from
 `admin_breadcrumb()` in `config.php`.
 

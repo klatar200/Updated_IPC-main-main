@@ -2070,6 +2070,306 @@ function data_writable(): bool {
     return is_writable(dirname(PRODUCTS_JSON));
 }
 
+// ─── Reading the inquiry log and the activity log ─────────────────────────
+// inq_tail_lines(), inq_split() and inq_apply_result() were inquiries.php's
+// own until PLAN-13 Phase 8 (2026-11-01): the Overview page shows the newest
+// leads too, and two copies of the decision-42 merge would drift.
+
+// Read only the TAIL of the log, never the whole thing.
+// file() loads every line into memory at once: measured, a 43MB / 20,000-entry
+// log still rendered, and a 65MB one died with "Allowed memory size of
+// 134217728 bytes exhausted … on line 15" — i.e. the page Rick relies on as the
+// "no lead is ever lost" safety net goes permanently blank, and his only
+// recovery is FTP-deleting the file that holds every real lead.
+// 2MB is ~4,000 entries, comfortably more than inquiries.php shows.
+// (AUDIT_v3_FINDINGS B3)
+define('INQ_TAIL_BYTES', 2 * 1024 * 1024);
+
+/** Last $maxLines JSONL lines of $path, reading at most INQ_TAIL_BYTES. */
+function inq_tail_lines(string $path, int $maxLines): array {
+    $fh = @fopen($path, 'rb');
+    if (!$fh) return [];
+    $size  = (int)@filesize($path);
+    $start = max(0, $size - INQ_TAIL_BYTES);
+    if ($start > 0) fseek($fh, $start);
+    $buf = (string)stream_get_contents($fh);
+    fclose($fh);
+    if ($start > 0) {
+        $nl  = strpos($buf, "\n");            // drop the half-line we landed in
+        $buf = $nl === false ? '' : substr($buf, $nl + 1);
+    }
+    $lines = preg_split('/\r\n|\n|\r/', $buf, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    return count($lines) > $maxLines ? array_slice($lines, -$maxLines) : $lines;
+}
+
+/**
+ * AUDIT-12 decision 42 (A12-L4-W2-G4-1) — contact.php writes a lead's row
+ * BEFORE it calls mail(), marked `"status":"pending"`, and appends the send
+ * result afterwards as `{"type":"send-result","id":…,"sent":…}`. This splits
+ * decoded lines into the rows to show (file order) and a map of results by id;
+ * inq_apply_result() then merges them. Rows written before the change carry
+ * `sent` directly and no id, and pass through untouched.
+ */
+function inq_split(array $lines, array &$results): array {
+    $rows = [];
+    foreach ($lines as $line) {
+        $e = json_decode($line, true);
+        if (!is_array($e)) continue;
+        if (($e['type'] ?? '') === 'send-result') {
+            if (is_string($e['id'] ?? null)) $results[$e['id']] = !empty($e['sent']);
+            continue;
+        }
+        $rows[] = $e;
+    }
+    return $rows;
+}
+
+/** A pending row with its send result applied; still pending when none was written. */
+function inq_apply_result(array $e, array $results): array {
+    if (($e['status'] ?? '') !== 'pending' || !is_string($e['id'] ?? null)) return $e;
+    if (!array_key_exists($e['id'], $results)) return $e;
+    $e['sent']   = $results[$e['id']];
+    $e['status'] = $e['sent'] ? 'sent' : 'failed';
+    return $e;
+}
+
+/**
+ * The newest $n leads, newest first, with their send results merged — the
+ * same rows the new-inquiries badge counts (real leads and call-backs; never
+ * the spam trap or another website's form). Reads the live log only: after a
+ * rotation the Overview may show fewer, and links to Inquiries for the rest.
+ * Reading it marks nothing seen.
+ */
+function inquiries_latest(int $n): array {
+    if ($n <= 0 || !is_file(INQUIRIES_FILE)) return [];
+    $skip = array_flip(array_diff(inquiry_rejected_types(), inquiry_callback_types()));
+    $results = [];
+    // A lead can be two lines (row + result), and refused rows are skipped.
+    $rows = inq_split(inq_tail_lines(INQUIRIES_FILE, 8 * $n + 40), $results);
+    $out = [];
+    foreach (array_reverse($rows) as $e) {
+        if (isset($skip[(string)($e['type'] ?? '')])) continue;
+        $out[] = inq_apply_result($e, $results);
+        if (count($out) === $n) break;
+    }
+    return $out;
+}
+
+/**
+ * The newest $n entries of the activity log that CHANGED something, newest
+ * first: sign-ins, sign-outs and failed sign-ins are left out (they are on the
+ * Audit Log page). Reads the tail of the live log only.
+ */
+function audit_recent_changes(int $n): array {
+    $path = __DIR__ . '/admin-log.jsonl';
+    if ($n <= 0 || !is_file($path)) return [];
+    $out = [];
+    foreach (array_reverse(inq_tail_lines($path, 400)) as $line) {
+        $e = json_decode($line, true);
+        if (!is_array($e) || in_array((string)($e['action'] ?? ''), ['sign-in', 'sign-out', 'sign-in-failed'], true)) continue;
+        $out[] = $e;
+        if (count($out) === $n) break;
+    }
+    return $out;
+}
+
+/**
+ * Every server-setup problem the owner must hand to the developer, as HTML
+ * list items (each already escaped where it carries data). Shown at the top of
+ * the Overview and of All Products. It was built inline in index.php until
+ * PLAN-13 Phase 8 (2026-11-01); the reasoning behind each entry is kept here.
+ *
+ * Three things fail SILENTLY on a host where the PHP user differs from the FTP
+ * user, and every one of them is invisible until it matters: the audit log
+ * stays empty, every inbound sales lead is dropped (inquiries.jsonl), and
+ * password changes cannot be written. Surface it. (DEPLOY_READINESS_v2 T3.3)
+ *
+ * New leads are deliberately NOT an entry (A-5.6): nothing is broken, and
+ * burying them among red permission warnings is how they would get ignored.
+ */
+function admin_health_problems(array $products): array {
+  $healthProblems = [];
+  // NEW-N3-2 — 755/775 cannot help when PHP runs as a different user from the
+  // FTP account (measured on real Apache: only 777 cleared it), and this banner
+  // was the only instruction Rick gets. Say what to do when the first try fails.
+  $permFallback = ' If this warning is still here after that, the host runs PHP as a different user from your FTP account: '
+    . 'ask the host to run PHP as your account user. Setting the folder to 777 also works as a stop-gap, but lets other accounts on the server write there too.';
+  // NEW-N2-1 / NEW-N2-2 — a data file that exists but cannot be read. The
+  // loaders turn it into "nothing", so without this the dashboard simply read
+  // "0 products" and the next save wrote that emptiness over the real file.
+  // Saving is now refused (config.php data_file_damaged()); this says why.
+  foreach ([
+      [PRODUCTS_JSON, 'products-all.json', 'Product Catalog', 'Adding, editing and deleting products is blocked'],
+      [CONTENT_JSON,  'content.json',      'Page Content',    'Saving Page Content is blocked'],
+      [SITE_INFO_JSON,'site-info.json',    'Business Details','The website is showing its built-in business details'],
+  ] as [$dfPath, $dfName, $dfLabel, $dfEffect]) {
+      if (data_file_damaged($dfPath)) {
+          $healthProblems[] = '<strong>The file <code>site-data/' . h($dfName) . '</code> is damaged</strong> — it cannot be read, '
+            . 'usually because it was edited by hand or only partly uploaded. ' . h($dfEffect) . ' so that nothing is overwritten. '
+            . 'Go to <a href="backups.php">Backups</a> and restore the most recent <em>' . h($dfLabel) . '</em> entry, '
+            . 'or ask your developer to repair the file.';
+      }
+  }
+  if (!admin_writable()) {
+      // A-5.8 — this one condition takes down BOTH brute-force controls at once,
+      // and the banner used to name neither. login_throttle_mutate() opens
+      // .login-throttle.json and returns null when it cannot, so
+      // login_attempt_gate() falls through with wait = 0 and every request goes
+      // straight to password_verify() with no cool-off, permanently; audit_log()
+      // no-ops in the same failure, so the guessing run is also unrecorded.
+      // Failing open is deliberate (it must not lock the owner out) — which is
+      // exactly why it has to be said out loud here.
+      $healthProblems[] = 'The <code>admin</code> folder is not writable by the web server. '
+        . 'Contact-form leads are still emailed to sales but are NOT being saved to the Inquiries page, the activity log cannot record anything, '
+        . 'the Password page cannot save, and — because both depend on files in this folder — '
+        . '<strong>the login cool-off that limits password guessing is switched off and failed sign-ins are not being recorded</strong>. '
+        . 'Set admin/ to 755 (or 775) over FTP, then sign out and back in to confirm this warning is gone.' . $permFallback;
+  } else {
+      // A12-L3-01-1 / A12-L3-06-1 — admin_writable() is a bare
+      // is_writable(__DIR__), blind to ONE file in the folder being unwritable
+      // (uploaded with the folder, or left owned by another user after a host
+      // change). Each of these two then fails open in silence: audit_log()
+      // records nothing, and login_throttle_mutate() cannot open its file, so
+      // there is no cool-off at all. Same gap A-7.4 closed for inquiries.jsonl.
+      foreach ([
+          ['admin-log.jsonl', 'the activity log is not recording anything — sign-ins, failed password attempts and every edit go unrecorded'],
+          ['.login-throttle.json', '<strong>the login cool-off that limits password guessing is switched off</strong>'],
+      ] as [$adminFile, $adminEffect]) {
+          $p = __DIR__ . '/' . $adminFile;
+          if (file_exists($p) && (!is_file($p) || !is_writable($p))) {
+              $healthProblems[] = 'The file <code>admin/' . h($adminFile) . '</code> cannot be written by the web server, so '
+                . $adminEffect . '. Over FTP, set that file to 644 (or 664); if that does not clear this warning, '
+                . 'the file belongs to a different user than the web server — ask your host to give it to the same user as the admin folder.';
+          }
+      }
+  }
+  if (!data_writable()) {
+      $healthProblems[] = 'The <code>site-data</code> folder is not writable by the web server. '
+        . 'Nothing you edit on any page can be saved. Set site-data/ to 755 (or 775) over FTP.' . $permFallback;
+  }
+  if (!is_dir(IMG_DIR) || !is_writable(IMG_DIR)) {
+      $healthProblems[] = 'The <code>uploads/images</code> folder is missing or not writable. '
+        . 'Product photo uploads will fail. Create public_html/uploads/images/ over FTP and set it to 755.' . $permFallback;
+  }
+  // NEW-N3-3 / NEW-R3-m3-2 (audit 2026-09-27) — the folder can exist with its
+  // security file missing (created by hand, or dotfiles hidden by the FTP
+  // client). upload-image.php now refuses uploads then; say so up front.
+  // AUDIT-12 decision 38 (A12-L3-W5-G2-1) — the same mistake on admin/ itself:
+  // without admin/.htaccess (a dotfile the FTP client may hide) the inquiry
+  // log, the activity log and the password-file backups download for anyone.
+  if (!file_exists(__DIR__ . '/.htaccess')) {
+      $healthProblems[] = 'The <code>admin/.htaccess</code> security file is missing, so <strong>anyone can download the saved quote requests '
+        . '(names, email addresses and phone numbers), the activity log and the password-file backups</strong> from this folder. '
+        . 'Upload <code>admin/.htaccess</code> from the release over FTP (turn on "show hidden files" to see it).';
+  }
+  $uploadsHtaccess = dirname(rtrim(IMG_DIR, '/')) . '/.htaccess';
+  if (is_dir(dirname($uploadsHtaccess)) && !file_exists($uploadsHtaccess)) {
+      $healthProblems[] = 'The <code>uploads/.htaccess</code> security file is missing, so photo uploads are refused. '
+        . 'Upload <code>uploads/.htaccess</code> from the release over FTP (turn on "show hidden files" to see it).';
+  }
+  // A-5.9 — the contact form's rate limit and its per-recipient auto-reply cap
+  // both keep their state in the system temp dir. If that is not writable the
+  // controls do not fail loudly, they simply stop counting, and nothing else
+  // in the dashboard would ever say so. The admin runs as the same PHP user,
+  // so this is the same question the form asks.
+  $tmpDir = sys_get_temp_dir();
+  if (!is_dir($tmpDir) || !is_writable($tmpDir)) {
+      $healthProblems[] = 'The server\'s temporary folder (<code>' . h($tmpDir) . '</code>) is not writable. '
+        . 'The contact form still works and still records every lead, but its spam rate limit is not counting, '
+        . 'and confirmation emails to senders are being held back as a precaution. Ask the host to fix permissions on it.';
+  }
+  // A12-L8-03-W5-2 — "missing" and "not writable" are different problems.
+  // A missing pdfs/ is a first deploy that skipped it: uploads still work
+  // (upload-pdf.php creates the folder), but every Datasheet link is dead —
+  // and one upload used to silence this warning while the rest stayed dead.
+  $pdfsMissing = [];
+  foreach ($products as $p) {
+      $pu = $p['pdfUrl'] ?? '';
+      if (is_string($pu) && strpos($pu, PDF_URL) === 0 && site_file_missing($pu)) $pdfsMissing[] = (string)($p['sku'] ?? '?');
+  }
+  if (!is_dir(PDF_DIR)) {
+      $healthProblems[] = 'The <code>pdfs</code> folder is missing on the server, so every product\'s Datasheet link on the website leads nowhere. '
+        . 'Upload the <code>pdfs/</code> folder from the release over FTP (it ships on the first deploy), including its hidden <code>.htaccess</code> file.';
+  } elseif (!is_writable(PDF_DIR)) {
+      $healthProblems[] = 'The <code>pdfs</code> folder is not writable. '
+        . 'Data sheet uploads will fail. Set public_html/pdfs/ to 755 (or 775) over FTP.' . $permFallback;
+  }
+  if (is_dir(PDF_DIR) && $pdfsMissing) {
+      $healthProblems[] = '<strong>' . count($pdfsMissing) . ' product' . (count($pdfsMissing) === 1 ? '' : 's')
+        . ' point at a data sheet that is not on the server</strong>, so the Datasheet button gives buyers a "not found" page: '
+        . h(implode(', ', array_slice($pdfsMissing, 0, 8))) . (count($pdfsMissing) > 8 ? ' and ' . (count($pdfsMissing) - 8) . ' more' : '') . '. '
+        . 'Upload the missing files with <strong>Manage PDF</strong>, or upload the <code>pdfs/</code> folder from the release over FTP.';
+  }
+  // §1aq (doc verification 2026-10-05) — the two folders the newer upload
+  // pages write were in the permissions tables but not checked here, so a
+  // read-only one surfaced only as a failed upload. Each is created on first
+  // use, so "missing" is fine while its parent folder is writable.
+  foreach ([[SITE_IMG_DIR, 'uploads/site', 'Site Images &amp; Logo uploads'], [MARKETING_PDF_DIR, 'pdfs/marketing', 'Catalog &amp; Brochure PDF uploads']] as [$dir, $label, $what]) {
+      $d = rtrim($dir, '/');
+      if (is_dir($d) ? !is_writable($d) : !is_writable(dirname($d))) {
+          $healthProblems[] = 'The <code>' . $label . '</code> folder is not writable (or cannot be created). '
+            . $what . ' will fail. Create public_html/' . $label . '/ over FTP and set it to 755.' . $permFallback;
+      }
+  }
+  /* A-9.P2-2 — the image extension the photo resizer needs. Every other row
+     here is a permission; this one is a missing PHP extension, and it fails
+     SOFTLY: the upload still succeeds, the photo is just never scaled down, so
+     the product page silently carries a multi-megabyte LCP image. Measured
+     with `php -d disable_functions=imagescale`: a 4032×3024 photo stored at
+     4032×3024. The upload screen now says so too, but only to whoever happens
+     to be uploading — this is the row that tells the owner the server is the
+     reason, before the next photo goes up. */
+  if (!extension_loaded('gd') || !function_exists('imagescale')) {
+      $healthProblems[] = 'This server cannot resize images — the PHP <code>gd</code> extension is missing. '
+        . 'Photo uploads still work, but large photos are saved at their original size and those product pages '
+        . 'will load slowly on a phone. Ask the host to enable <code>gd</code>, or resize photos to about '
+        . IMG_MAX_WIDTH . ' pixels wide before uploading them.';
+  }
+  /* A-7.4 — contact.php could not write the inquiry log.
+     This is the one mail/log outcome that is otherwise SILENT: the mail went,
+     so the visitor saw a success page and has no reason to resend, and A-5.6
+     made this log the record the owner is told to trust when a notification
+     does not arrive. The marker is written by ipc_log_inquiry() and cleared by
+     the next write that succeeds, so it says "this is happening now", not
+     "this happened once".
+     Deliberately not gated on admin_writable(): that is a bare
+     is_writable(__DIR__) and returns true for a log file that is individually
+     unwritable, locked, or replaced by a directory — which is the gap this
+     covers. */
+  $logFailMarker = __DIR__ . '/.inquiry-log-failed.json';
+  if (is_file($logFailMarker)) {
+      $when = @filemtime($logFailMarker);
+      $healthProblems[] = '<strong>Quote requests are arriving but cannot be recorded.</strong> '
+        . 'The website could not write to <code>admin/inquiries.jsonl</code>'
+        . ($when ? ' (last tried ' . h(date('M j, Y g:i a', $when)) . ')' : '') . '. '
+        . 'The notification emails are still being sent, so nothing is lost yet — but the '
+        . 'Inquiries page is not recording new leads. Usually a full disk or a permissions '
+        . 'change on public_html/admin/. This clears itself as soon as one write succeeds.';
+  }
+  /* The password-reset window. While it is open, ANY visitor to /admin/ — signed
+     in or not — is served the "Set Admin Password" form and can take the
+     account. It used to be invisible: nothing on any page mentioned it, and
+     auth.php bounces a signed-in admin here before he can see the screen.
+     (AUDIT_v3_FINDINGS B2)
+     The form posts to index.php, which handles close_reset_window, so the
+     button works the same on the Overview. */
+  $closeBtn = '<form method="POST" action="index.php" style="display:inline;margin-left:6px">'
+    . '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '">'
+    . '<input type="hidden" name="close_reset_window" value="1">'
+    . '<button type="submit" class="btn btn-sm btn-danger" style="vertical-align:baseline">Close It Now</button>'
+    . '</form>';
+  if (password_reset_unlocked()) {
+      $healthProblems[] = '<strong>The password-reset window is OPEN.</strong> '
+        . 'While <code>admin/ALLOW-PASSWORD-RESET</code> is in the admin folder, anyone on the internet who opens '
+        . 'your admin address is shown a "Set Admin Password" form and can lock you out. '
+        . 'It closes by itself one hour after the file was uploaded — close it now if you are done.' . $closeBtn;
+  } elseif (password_reset_expired()) {
+      $healthProblems[] = 'The file <code>admin/ALLOW-PASSWORD-RESET</code> is still in the admin folder. '
+        . 'It no longer does anything because ' . password_reset_expired_reason() . ', but it should not be left there.' . $closeBtn;
+  }
+  return $healthProblems;
+}
+
 // ─── Login throttle (persistent, IP-keyed) ────────────────────────────────
 // The old throttle counted failures in $_SESSION, which an attacker resets
 // simply by not sending the session cookie. This version persists failures

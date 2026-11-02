@@ -35,6 +35,7 @@ fs.mkdirSync(OUT, { recursive: true });
 
 // page, expected behaviour at >=1600
 const WIDE = [
+  ['home.php', 'Overview'],   // PLAN-13 Phase 8
   ['index.php', 'Products'],
   ['add.php', 'Add Product'],
   ['edit.php', 'Edit Product'],

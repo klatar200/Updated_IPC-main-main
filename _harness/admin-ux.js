@@ -32,7 +32,7 @@ const OUT = path.join(__dirname, 'out', 'admin-ux');
 fs.mkdirSync(OUT, { recursive: true });
 
 const PAGES = [
-  'index.php', 'add.php', 'edit.php?sku=IP33PO', 'settings.php', 'content.php',
+  'home.php', 'index.php', 'add.php', 'edit.php?sku=IP33PO', 'settings.php', 'content.php',
   'site-images.php', 'marketing-pdfs.php', 'inquiries.php', 'backups.php',
   'audit-log.php', 'password.php', 'help.php', 'upload-pdf.php?sku=IP33PO',
   'upload-image.php?sku=IP33PO', 'delete.php?sku=IP33PO',

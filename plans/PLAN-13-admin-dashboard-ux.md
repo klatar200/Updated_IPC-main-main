@@ -214,7 +214,7 @@ the check that fails, then fixes, then runs the admin suites listed in §5.
 | **5. Products list** | Row redesign, “More” menu, photo chip + stat, category chips, phone cards. | 0 horizontal-scroll actions at 390; delete still goes through `delete.php` confirm. |
 | **6. Inquiries / Activity log / Backups** | Search, filters, paging, day grouping, backup “what changed” line. | Filters work with JS off (server-side query string) and on. |
 | **7. Phone + accessibility pass** | Whole admin at 390 and 768, keyboard focus order, focus rings, contrast. | `admin-ux` fully green; full admin suite list green. |
-| **8. Overview page** *(optional)* | New `home.php` landing page; Products stays one click away. | Decided by the owner before starting. |
+| **8. Overview page** *(optional)* | New `home.php` landing page; Products stays one click away. | Decided by the owner before starting. **Done 2026-11-01.** |
 
 ---
 
@@ -805,6 +805,57 @@ not, and one first diagnosis was wrong.
 `audit9-logic-admin` is an *instrument* that needs its own prepared site and
 server, not part of this list.
 
+### Phase 8 — done 2026-11-01 (branch `claude/admin-ux`)
+
+**Decision 2 (§6)** recommended building it after Phases 1–7. Those were done,
+and the go-ahead came on 2026-11-01 ("whatever you recommend, I ok it").
+
+**`admin/home.php`, the Overview, is where sign-in lands.** All three
+redirects in `auth.php` (sign-in, already signed in, the FTP-unlocked
+password reset) go there. It reads only; nothing on it saves, and opening it
+does not mark inquiries seen. Five cards:
+- **Inquiries:** the new count (the nav badge's number) and the newest four
+  leads with New / Email failed / Not confirmed, counted as the badge counts
+  (spam-trap and other-site rows left out).
+- **Server:** "No server problems found", or how many. The list itself is in
+  red at the top, the same as on All Products.
+- **Products:** total, how many lack a photo or a data sheet (the same
+  file-on-disk rules as All Products' chips), and the first six with
+  **Add photo** / **Add data sheet** links.
+- **Recent changes:** the last five audit-log rows that changed something
+  (sign-ins left out), with Audit Log and Backups links.
+- **Shortcuts:** nine one-click links, All Products first, so Products stays
+  one click away.
+
+**Shared code, moved into `config.php`:**
+- `admin_health_problems()`: the server-problem list, built inline in
+  `index.php` until now, with every entry's reasoning kept. Its Close It Now
+  form now posts to `index.php` explicitly, so it works from the Overview.
+- `inq_tail_lines()`, `inq_split()` and `inq_apply_result()` from
+  `inquiries.php`, plus the new `inquiries_latest()` and
+  `audit_recent_changes()`.
+
+**Navigation stays at six entries.** A seventh "Overview" entry was tried and
+measured: at 900px the bar became 933px in an 885px window and the page
+scrolled sideways, and §3.1 and `admin-ux` U7 cap the bar at six. Instead the
+logo (IPC Admin, top left) links to the Overview, as a home link does. On the
+Overview it is the current-page marker: a white rule under it, 13:1, the kind
+U3 measures.
+
+**Checks.** New `_harness/plan13-overview.js`, 30/30. `home.php` joined the
+page lists of `admin-ux`, `plan13-a11y`, `adminwidth` (wide),
+`plan10-admincrawl` and `plan10-adminnav`. `lowsA1-sec` B4 now expects the
+reset to land on `home.php`.
+
+The wider sweep (the 54 plus `plan13-overview` and eight more sign-in suites)
+also found Windows-only test bugs, now fixed:
+- `/tmp` literals in `sec4-sessionforge` and `lowsF-docs`.
+- `isoedit`, `marketingpdfs` and `lowsF-docs` deleted their server's working
+  folder before `php.exe` had exited.
+- `lowsF-docs` DEP-8 spawned `npx` without a shell.
+- `plan13-lists` told inquiry rows apart by their text, which other suites
+  repeat within a minute; it now reads the page's "showing 26–50" line.
+
 ## 5. Constraints and what must stay green
 
 - **Invariant 6** — `form_complete` stays the last field of Page Content's form.
@@ -833,6 +884,6 @@ server, not part of this list.
 | # | Question | Recommendation |
 |---|---|---|
 | 1 | Left sidebar, or a sticky top bar with grouped drop-downs? | **Decided 2026-10-31 (owner): sticky top bar** with grouped drop-downs (§3.1). |
-| 2 | Build the Overview landing page (Phase 8)? | Yes, after Phases 1–7. |
+| 2 | Build the Overview landing page (Phase 8)? | **Decided 2026-11-01: yes; built** (Phase 8 record). |
 | 3 | Page Content: one page with an index (safe), or one page per public page (separate saves)? | **One page with an index.** Separate saves change the concurrency check and backups. |
 | 4 | Let Site Images & Logo use the full width as a 2-column grid of photo cards? | Yes. That means removing it from `adminwidth.js`'s narrow list, a deliberate change to invariant 15's list. |

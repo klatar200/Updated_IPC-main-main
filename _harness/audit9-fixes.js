@@ -469,7 +469,8 @@ function armDocs() {
     `explained ${explained.length} of ${actions.length}; missing: ${actions.filter((a) => !explained.includes(a)).join(', ')}`);
 
   section('A-9.B2-03  the server-warning section counts what the dashboard can raise');
-  const branches = (index.match(/healthProblems\[\] = /g) || []).length;
+  // The list moved into config.php's admin_health_problems() (PLAN-13 Phase 8).
+  const branches = ((index + config).match(/healthProblems\[\] = /g) || []).length;
   const claimed = (/can go wrong on the server/.exec(help) ? help.slice(help.indexOf('can go wrong on the server') - 120, help.indexOf('can go wrong on the server')) : '');
   ok('b2-03  the section does not claim a number smaller than the dashboard raises',
     !/\bThree\b/i.test(claimed), `the sentence still says ${JSON.stringify(claimed.trim().slice(-40))}, dashboard raises ${branches}`);

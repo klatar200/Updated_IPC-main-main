@@ -133,8 +133,10 @@ const HISTORY = /Achieved [A-Z0-9 :.-]* registration/;
     note(/Empty this box/.test(hint), 'help: the ISO box hint says how to stop claiming ISO');
   } finally {
     await browser.close();
-    srv.kill();
-    fs.rmSync(SITE, { recursive: true, force: true });
+    // Wait for it to exit: on Windows the server's working folder (SITE)
+    // cannot be removed while php.exe is still in it (EPERM, 2026-11-01).
+    await new Promise((r) => { if (srv.exitCode !== null) return r(); srv.once('exit', r); srv.kill(); setTimeout(r, 3000); });
+    fs.rmSync(SITE, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   }
   const bad = results.filter((x) => !x.ok).length;
   console.log(`\nisoedit ${results.length - bad}/${results.length}`);

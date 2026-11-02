@@ -60,7 +60,7 @@ const PHONE = (vp) => VP[vp].width < 900;
 
 // upload-image.php used to inject the most page-specific links (two); it
 // stays in the set to prove no page does any more.
-const PAGES = ['/admin/index.php', '/admin/settings.php', '/admin/help.php', '/admin/upload-image.php?sku=IP38FE'];
+const PAGES = ['/admin/home.php', '/admin/index.php', '/admin/settings.php', '/admin/help.php', '/admin/upload-image.php?sku=IP38FE'];
 const TOP_ENTRIES = 6;
 const MENU_LINKS = 13; // 2 Products + 4 Website + Inquiries + 2 History + Help + Password, View Live Site, Sign Out
 

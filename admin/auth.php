@@ -40,8 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
 // "Close It Now" control (index.php), so landing there IS the answer — but the
 // banner is what makes this redirect safe, not the redirect itself.
 // (AUDIT_v3_FINDINGS B2)
+// PLAN-13 Phase 8 — sign-in now lands on the Overview (home.php), which shows
+// the same list (admin_health_problems()) and the same Close It Now button.
 if (is_authenticated()) {
-    header('Location: index.php');
+    header('Location: home.php');
     exit;
 }
 
@@ -96,7 +98,7 @@ if ($resetUnlocked && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['set
             regenerate_session_id();
             mark_session_authenticated($res['hash']); // SEC-4 — signed with the hash just written
             login_reset_failures($clientIp);
-            header('Location: index.php');
+            header('Location: home.php');
             exit;
         }
     }
@@ -153,7 +155,7 @@ if (!$resetRaced && !$resetUnlocked && !$notConfigured && $_SERVER['REQUEST_METH
         // the IP and the user agent. (audit-runs/audit1.md A-09)
         audit_log('sign-in', '-', 'Signed in');
         login_reset_failures($clientIp);   // clear this IP's failure streak
-        header('Location: index.php');
+        header('Location: home.php');
         exit;
     } else {
         // The gate above already counted this attempt — do NOT count it again.

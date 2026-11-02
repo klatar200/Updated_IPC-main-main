@@ -17,32 +17,9 @@ $MAX_SHOW = 1000;
 $isFetch = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
 $newCount = 0;
 
-// Read only the TAIL of the log, never the whole thing.
-// file() loads every line into memory at once: measured, a 43MB / 20,000-entry
-// log still rendered, and a 65MB one died with "Allowed memory size of
-// 134217728 bytes exhausted … on line 15" — i.e. the page Rick relies on as the
-// "no lead is ever lost" safety net goes permanently blank, and his only
-// recovery is FTP-deleting the file that holds every real lead.
-// 2MB is ~4,000 entries, comfortably more than $MAX_SHOW.
-// (AUDIT_v3_FINDINGS B3)
-define('INQ_TAIL_BYTES', 2 * 1024 * 1024);
-
-/** Last $maxLines JSONL lines of $path, reading at most INQ_TAIL_BYTES. */
-function inq_tail_lines(string $path, int $maxLines): array {
-    $fh = @fopen($path, 'rb');
-    if (!$fh) return [];
-    $size  = (int)@filesize($path);
-    $start = max(0, $size - INQ_TAIL_BYTES);
-    if ($start > 0) fseek($fh, $start);
-    $buf = (string)stream_get_contents($fh);
-    fclose($fh);
-    if ($start > 0) {
-        $nl  = strpos($buf, "\n");            // drop the half-line we landed in
-        $buf = $nl === false ? '' : substr($buf, $nl + 1);
-    }
-    $lines = preg_split('/\r\n|\n|\r/', $buf, -1, PREG_SPLIT_NO_EMPTY) ?: [];
-    return count($lines) > $maxLines ? array_slice($lines, -$maxLines) : $lines;
-}
+// inq_tail_lines(), inq_split(), inq_apply_result() and INQ_TAIL_BYTES now
+// live in config.php: the Overview reads the newest leads too (PLAN-13
+// Phase 8). The reasoning for each stays with them there.
 
 /**
  * Total entries, counted by streaming — O(1) memory on any file size.
@@ -61,37 +38,6 @@ function inq_count_lines(string $path): int {
     }
     fclose($fh);
     return $n;
-}
-
-/**
- * AUDIT-12 decision 42 (A12-L4-W2-G4-1) — contact.php writes a lead's row
- * BEFORE it calls mail(), marked `"status":"pending"`, and appends the send
- * result afterwards as `{"type":"send-result","id":…,"sent":…}`. This splits
- * decoded lines into the rows to show (file order) and a map of results by id;
- * inq_apply_result() then merges them. Rows written before the change carry
- * `sent` directly and no id, and pass through untouched.
- */
-function inq_split(array $lines, array &$results): array {
-    $rows = [];
-    foreach ($lines as $line) {
-        $e = json_decode($line, true);
-        if (!is_array($e)) continue;
-        if (($e['type'] ?? '') === 'send-result') {
-            if (is_string($e['id'] ?? null)) $results[$e['id']] = !empty($e['sent']);
-            continue;
-        }
-        $rows[] = $e;
-    }
-    return $rows;
-}
-
-/** A pending row with its send result applied; still pending when none was written. */
-function inq_apply_result(array $e, array $results): array {
-    if (($e['status'] ?? '') !== 'pending' || !is_string($e['id'] ?? null)) return $e;
-    if (!array_key_exists($e['id'], $results)) return $e;
-    $e['sent']   = $results[$e['id']];
-    $e['status'] = $e['sent'] ? 'sent' : 'failed';
-    return $e;
 }
 
 $entries = [];

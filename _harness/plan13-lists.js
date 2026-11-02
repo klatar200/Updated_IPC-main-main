@@ -68,11 +68,14 @@ const put = (f, buf) => { if (buf === null) fs.rmSync(f, { force: true }); else 
       await plain('/admin/inquiries.php?status=failed&since=7');
       const failed = await q.evaluate(() => [...document.querySelectorAll('details.inq summary .badge')].map((x) => x.textContent.trim()).filter((t) => /mail server|failed|confirmed/i.test(t)));
       ok(failed.every((t) => t === 'Email failed'), `?status=failed&since=7: ${failed.length} rows, every one "Email failed"`);
-      await plain('/admin/inquiries.php?page=2');
-      const p2 = await q.evaluate(() => [...document.querySelectorAll('details.inq .when')].map((w) => w.textContent + w.closest('summary').textContent));
-      await plain('/admin/inquiries.php');
-      const p1 = await q.evaluate(() => [...document.querySelectorAll('details.inq .when')].map((w) => w.textContent + w.closest('summary').textContent));
-      ok(all.n === 25 && p2.length > 0 && !p2.some((x) => p1.includes(x)), `25 per page; page 2 has ${p2.length} rows, none repeated from page 1`);
+      // Rows have no key, and in a sweep other suites write identical leads in
+      // the same minute, so "no row text repeated" failed on a correct page 2
+      // (2026-11-01). The count line says which rows a page holds.
+      const range = async (u) => { await plain(u); return q.evaluate(() => ({ n: document.querySelectorAll('details.inq').length, r: ((/showing (\d+)–(\d+)/.exec(document.querySelector('.list-count').textContent)) || []).slice(1).map(Number) })); };
+      const p2 = await range('/admin/inquiries.php?page=2');
+      const p1 = await range('/admin/inquiries.php');
+      ok(all.n === 25 && p1.r[0] === 1 && p1.r[1] === 25 && p2.r[0] === 26 && p2.n > 0 && p2.r[1] === 25 + p2.n,
+        `25 per page; page 1 shows ${p1.r.join('–')}, page 2 shows ${p2.r.join('–')} (${p2.n} rows)`);
     }
 
     console.log('\n── I2 New since the last visit ──');

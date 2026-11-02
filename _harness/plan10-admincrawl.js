@@ -81,6 +81,7 @@ const SKU = 'IP38FE';
 // site-images.php and marketing-pdfs.php (2026-09-29, 2026-10-05) were missing
 // while the README said "every admin page" (AUDIT-12 A12-L13-10-2).
 const PAGES = [
+  { slug: 'home',         url: '/admin/home.php', note: 'PLAN-13 Phase 8 — the Overview, where sign-in lands' },
   { slug: 'index',        url: '/admin/index.php',  note: 'item 5 (A10-020) — the Delete button used to be clipped to a 17px sliver on all 42 rows' },
   { slug: 'add',          url: '/admin/add.php' },
   { slug: 'edit',         url: `/admin/edit.php?sku=${SKU}` },

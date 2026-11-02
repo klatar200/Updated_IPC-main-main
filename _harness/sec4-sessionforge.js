@@ -33,7 +33,7 @@ const SITE = path.join(__dirname, 'site');
 const SESS = path.join(SITE, 'admin', '.sessions');
 const PORT = 8706;
 const BASE = `http://127.0.0.1:${PORT}`;
-const TMP = fs.mkdtempSync('/tmp/ipc-sec4-');   // the "default" save path for this server
+const TMP = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ipc-sec4-'));   // the "default" save path for this server
 const PW = 'audit-pass-123';
 const NEWPW = 'sec4-new-password-9481';
 
