@@ -41,6 +41,16 @@ and the Audit Log, with each backup saying what it was saved ahead of, and a
 phone, keyboard and contrast pass over the whole admin. Phase 8 added the
 Overview (`admin/home.php`), where sign-in now lands. Nothing is merged to `main` yet.
 
+**Written, not run: [PLAN-14](PLAN-14-every-file-every-word-audit.md)**
+(2026-11-08, at 9d82373) — AUDIT-14. It is a read-only audit of every tracked
+file and every word on the public site, the dashboard, the emails, the PDFs
+and the owner documents. It uses PLAN-12's machinery plus:
+- a generated text corpus;
+- one gentle live snapshot that every agent reads;
+- the lessons of `audit-runs/live-audit-2026-11-08.md`.
+
+Its kickoff prompt is its §13.
+
 ---
 
 ## Where the earlier plans went
