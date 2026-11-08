@@ -180,7 +180,14 @@ def('saved', async (p, go) => {
   await cap.fill('Low shrink temperature, extra clear Teflon tubing');
   await p.locator('button:text-is("Save Changes")').click();
   await p.waitForLoadState('networkidle');
-  const flash = p.locator('main .flash, main .alert, main .notice, main [role=status]').first();
+  // Found by its words, not its class: with unread leads the "new inquiries"
+  // banner is also an alert and comes first, and the shot circled that.
+  const flash = p.locator('main').getByText(/saved successfully/i).first();
+  // Hide the leads banner so the picture shows only the save message.
+  await p.evaluate(() => document.querySelectorAll('main a[href="inquiries.php"]').forEach((a) => {
+    const box = a.closest('.alert, .notice, .banner, [class*="lead"], [class*="inq"]');
+    if (box && !/saved successfully/i.test(box.textContent)) box.style.display = 'none';
+  }));
   await shot(p, 'saved', { marks: [[flash, 1]], area: [p.locator('main h1')] });
 });
 
