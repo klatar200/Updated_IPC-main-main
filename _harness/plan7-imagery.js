@@ -115,9 +115,17 @@ const READ = () => [...document.querySelectorAll('img[src*="images/site/"]')].ma
     'declared width/height match the real file dimensions',
     wrongDims.map((i) => `${i.file}: declared ${i.w}x${i.h}, file ${i.natW}x${i.natH}`).join(' | '));
 
-  note(home.every((i) => i.lazy === 'lazy'),
-    'every marketing image is lazy — none competes with the product photo as LCP',
-    JSON.stringify(home.filter((i) => i.lazy !== 'lazy').map((i) => i.file)));
+  // Live audit 2026-11-08 (L6) — this said "every marketing image is lazy —
+  // none competes with the product photo as LCP". The homepage has no product
+  // photo: Lighthouse measured the hero photo AS the LCP at ≥1024px, held back
+  // ~660 ms by loading="lazy". It is eager now (and costs phones nothing: the
+  // 390 check below still proves it is not downloaded there). Everything
+  // below the first screen stays lazy.
+  const FIRST_SCREEN = ['Marker-Sample-2.jpg'];
+  const wrongLoading = home.filter((i) => (FIRST_SCREEN.includes(i.file) ? i.lazy !== 'eager' : i.lazy !== 'lazy'));
+  note(wrongLoading.length === 0,
+    'the hero photo (the homepage LCP at 1440) is eager; every other marketing image is lazy',
+    JSON.stringify(wrongLoading.map((i) => `${i.file}: ${i.lazy}`)));
 
   const noAlt = home.filter((i) => !i.alt || i.alt.trim().length < 10);
   note(noAlt.length === 0,

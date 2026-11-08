@@ -123,9 +123,14 @@ async function landing(browser) {
     `${badCard.length} bad — ${badCard.slice(0, 3).join(' | ')}`);
 
   const imgs = bare.cards.map((c) => c.img).filter(Boolean);
-  note(imgs.length > 0 && imgs.every((i) => i.lazy === 'lazy'),
-    `C29: all ${imgs.length} landing photos are lazy-loaded (none is the LCP element)`,
-    JSON.stringify(imgs.filter((i) => i.lazy !== 'lazy').slice(0, 3)));
+  // Live audit 2026-11-08 (L6) — this said "all landing photos are lazy (none
+  // is the LCP element)". Lighthouse measured the first card's photo AS the
+  // LCP at 390 and 1440, so the first row (three cards, one row at xl) is
+  // eager and the rest stay lazy.
+  const wrongLoading = imgs.filter((i, n) => (n < 3 ? i.lazy !== 'eager' : i.lazy !== 'lazy'));
+  note(imgs.length > 3 && wrongLoading.length === 0,
+    `C29: the first 3 of ${imgs.length} landing photos are eager (the first is the LCP element), the rest lazy`,
+    JSON.stringify(wrongLoading.slice(0, 3)));
   // Guarded on imgs.length: `[].every()` is true, so without this both of the
   // next two checks pass on a page with no grid at all — the exact state this
   // item exists to change.

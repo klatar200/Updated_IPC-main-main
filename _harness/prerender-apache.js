@@ -12,6 +12,11 @@
  *   /products/CC/extra     noindex, no canonical, still 200 (A5)
  *   /index.html            301 to / (AUDIT-12 decision 25, A12-L10-W3-G3-1); it was
  *                          the static shell: shipped head, shipped phone, no canonical
+ *   //index.html, /./index.html, /%69ndex.html
+ *                          301 to / as well, and / still serves index.html with
+ *                          index.php missing — no loop (live audit 2026-11-08, L2)
+ *   /robots.txt, /manifest.json
+ *                          Cache-Control public, max-age=3600 (live audit, L8)
  *   /site, /site/, /site/index.html
  *                          301 to / once the predecessor's /site/index.html is gone,
  *                          served as before while it is there (the first-deploy
@@ -53,8 +58,8 @@ const note = (ok, label, detail) => {
   results.push({ ok });
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${!ok && detail ? `\n       → ${detail}` : ''}`);
 };
-function get(url) {
-  const r = spawnSync('curl', ['-s', '--noproxy', '*', '--max-time', '10', '-H', 'X-Forwarded-Proto: https', '-D', '-', url], { encoding: 'utf8' });
+function get(url, extra = []) {
+  const r = spawnSync('curl', ['-s', '--noproxy', '*', '--max-time', '10', '-H', 'X-Forwarded-Proto: https', '-D', '-', ...extra, url], { encoding: 'utf8' });
   const text = r.stdout || '';
   const cut = text.indexOf('\r\n\r\n');
   const hdr = text.slice(0, cut);
@@ -134,6 +139,30 @@ DocumentRoot ${PUB}
   const directQ = get(`${B}/index.html?productId=CC`);
   note(directQ.status === 301 && directQ.h('Location') === 'https://127.0.0.1:' + PORT + '/?productId=CC',
     '/index.html?productId=CC keeps its query string', `${directQ.status} ${directQ.h('Location')}`);
+  // Live audit 2026-11-08 (L2) — other spellings of the same file. The rule
+  // keyed on the literal request line, so these three were served the bare
+  // shell with a 200 on the live host. --path-as-is, or curl normalises them.
+  for (const u of ['//index.html', '/./index.html', '/%69ndex.html']) {
+    const r = get(B + u, ['--path-as-is']);
+    note(r.status === 301 && r.h('Location') === 'https://127.0.0.1:' + PORT + '/',
+      `${u} is a 301 to / too (not the static shell)`, `${r.status} ${r.h('Location')}`);
+  }
+  // The guarantee the request-line condition exists for: with index.php
+  // missing, `/` reaches index.html through DirectoryIndex's internal
+  // fall-back, and that must be served, not 301'd back to `/` in a loop.
+  fs.renameSync(path.join(PUB, 'index.php'), path.join(PUB, 'index.php.off'));
+  const noPhp = get(`${B}/`);
+  const noPhpQ = get(`${B}/?utm_source=x`);
+  fs.renameSync(path.join(PUB, 'index.php.off'), path.join(PUB, 'index.php'));
+  note(noPhp.status === 200 && noPhp.body === shell && noPhpQ.status === 200 && noPhpQ.body === shell,
+    'with index.php missing, / and /?utm_source=x serve index.html (no redirect loop)',
+    `${noPhp.status} ${noPhp.h('Location')} | ${noPhpQ.status} ${noPhpQ.h('Location')}`);
+  // L8 — robots.txt and manifest.json carry an explicit Cache-Control.
+  for (const u of ['/robots.txt', '/manifest.json']) {
+    const r = get(B + u);
+    note(r.status === 200 && r.h('Cache-Control') === 'public, max-age=3600',
+      `${u} is cached for an hour (explicit Cache-Control)`, `${r.status} ${r.h('Cache-Control')}`);
+  }
 
   // AUDIT-12 decision 26 — the predecessor at /site/. Its folder is kept until
   // GO-LIVE B2 step 10 (and its admin after that), so both states are run.

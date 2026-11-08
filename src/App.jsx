@@ -1898,6 +1898,9 @@ const HERO_TRUST = [
 // once to the photograph itself, 425x281 -> 397x264. Nothing but the mat was
 // removed; the rule above still holds for every other file.
 const HERO_PHOTO = { w: 1000, h: 667 };      // Marker-Sample-2.jpg, 3:2
+// A 1×1 transparent GIF: what a <picture> hidden at a breakpoint selects so
+// its eager <img> requests nothing there (live audit 2026-11-08, L6).
+const BLANK_GIF = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 const BAND_TEAM = { w: 726, h: 408 };        // staff.jpg
 const BAND_BUILDING = { w: 397, h: 264 };    // IPC-Building.jpg (mat cropped 2026-10-16)
 
@@ -2221,11 +2224,18 @@ function Hero() {
         {slot("heroPhoto") ? (
         <picture className={proofPoints.length ? "hidden lg:block mt-6" : "hidden lg:block"}>
           <source media="(min-width: 1024px)" srcSet={slot("heroPhoto")} />
+          {/* Live audit 2026-11-08 (L6) — this photo is the homepage LCP at
+              ≥1024px, and loading="lazy" delayed its request by ~660 ms. It is
+              now eager with high priority. Below 1024px the <picture> is
+              display:none, and an eager <img> would still download there, so
+              phones get this 1×1 transparent GIF (no request) instead. */}
+          <source media="(max-width: 1023.98px)" srcSet={BLANK_GIF} />
           <img
             src={slot("heroPhoto")}
             onError={onSlotError}
             alt="Custom-printed heat shrink sleeves and wire markers produced by IPC"
-            loading="lazy"
+            loading="eager"
+            fetchpriority="high" /* lower case: React 18 has no fetchPriority prop and warns on it */
             decoding="async"
             width={HERO_PHOTO.w}
             height={HERO_PHOTO.h}
@@ -6633,9 +6643,15 @@ function ContactPage() {
     outline: "none",
     boxSizing: "border-box",
   };
+  // Live audit 2026-11-08 (L10) — the focused field had a 1px border colour
+  // change plus a 10%-opacity halo, the weakest focus cue on the site. The
+  // first 1px shadow doubles the solid edge to 2px (WCAG 2.4.13's perimeter)
+  // and the halo is 35%. Shared by the RFQ and Send-a-Message forms.
+  // (Careful with words in comments here: Tailwind scans this file, and the
+  // bare word for that outline style became a stray utility class.)
   const focusStyle = (e) => {
     e.target.style.borderColor = "var(--brand-primary)";
-    e.target.style.boxShadow = "0 0 0 3px rgba(var(--brand-primary-rgb),0.1)";
+    e.target.style.boxShadow = "0 0 0 1px var(--brand-primary), 0 0 0 4px rgba(var(--brand-primary-rgb),0.35)";
   };
   const blurStyle = (e) => {
     e.target.style.borderColor = "#d1d9e0";
@@ -12439,8 +12455,12 @@ function CatalogLanding({
       // Tailwind's `2xl:` — see the measurement in src/index.css; 1536 is far
       // too early and would make the cards worse, not better.
       <div className="ipc-catalog-grid grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-        {products.map((p) => (
-          <CatalogCard key={p.id} product={p} />
+        {/* Live audit 2026-11-08 (L6) — the first row's photos are eager.
+            Lighthouse found the first card's photo (CC.jpg) IS the LCP
+            element at 390 and 1440, and loading="lazy" held it back until
+            layout. The rest stay lazy. Three = one row at xl. */}
+        {products.map((p, i) => (
+          <CatalogCard key={p.id} product={p} eager={i < 3} />
         ))}
       </div>
       )}
@@ -12468,7 +12488,7 @@ function CatalogLanding({
  * routes into the same "IMAGE COMING SOON" panel the placehold.co products
  * already get, which keeps the 3/2 box reserved and the layout from shifting.
  */
-function CatalogCard({ product: p }) {
+function CatalogCard({ product: p, eager = false }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const photo =
     p.photoUrl && !String(p.photoUrl).includes("placehold.co") && !photoFailed
@@ -12492,7 +12512,7 @@ function CatalogCard({ product: p }) {
         <img
           src={photo}
           alt=""   // A12-L7-01-3 — the card's own text names the product; the name was read twice
-          loading="lazy"
+          loading={eager ? "eager" : "lazy"}
           width="400"
           height="267"
           onError={() => setPhotoFailed(true)}
@@ -12610,10 +12630,30 @@ function ProductPage({ products }) {
    * narrowing, it changes on every keystroke, and pushing history entries per
    * character would trap Back.
    */
-  const [familyParam] = useSearchParam("family");
+  const [familyParam, setFamilyParam] = useSearchParam("family");
   const [, setSearchParamsRaw] = useSearchParams();
   const [query, setQuery] = useState("");
-  const activeFamily = familyParam || null;
+  // Live audit 2026-11-08 (L4) — ?family= is resolved against the catalog the
+  // way DashboardPage does (NEW-N1-11): matched without regard to case, and an
+  // unknown value is dropped. It was compared with ===, so `?family=bogus` or a
+  // stale link left after Rick renamed a family emptied the grid and printed
+  // the raw value in the page header ("Bogus — showing 0 of 42 products").
+  // Only on the landing grid: with a ?productId= open, `products` may be just
+  // the one row index.php sent (SERVER_BOOT) and cannot judge the family.
+  const knownFamily = useMemo(() => {
+    if (!familyParam) return null;
+    const want = String(familyParam).toLowerCase();
+    const hit = products.find((p) => String(p.partType || "").toLowerCase() === want);
+    return hit ? String(hit.partType) : null;
+  }, [products, familyParam]);
+  const activeFamily = selectedId ? familyParam || null : knownFamily;
+  useEffect(() => {
+    if (!familyParam || selectedId) return;
+    // REPLACE, never push (T2.3): this is a read-then-correct cleanup.
+    if (!knownFamily) setFamilyParam(null, { replace: true });
+    else if (knownFamily !== familyParam) setFamilyParam(knownFamily, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [familyParam, knownFamily, selectedId]);
   useEffect(() => {
     const clear = () => setQuery("");
     window.addEventListener("ipc:browse-all", clear);
@@ -12860,8 +12900,13 @@ function ProductPage({ products }) {
             <strong>We couldn't find part "{selectedId}".</strong> It may have been
             renamed or discontinued. Showing the catalog instead — pick a part from
             the list, or{" "}
+            {/* Live audit 2026-11-08 (L5) — carries the part the buyer asked
+                for into the quote form, as every product page's Request Quote
+                does (4.6). It went to a bare /contact, so they retyped it. The
+                200-character cut matches contact.php's IPC_MAX_LINE. */}
             <PageLink
               page="contact"
+              params={{ part: String(selectedId).slice(0, 200) }}
               style={{
                 background: "none",
                 border: "none",
@@ -15356,7 +15401,10 @@ function ServicesPage() {
             src={slot("servicesPhoto")}
             onError={onSlotError}
             alt="Custom hot-stamp printed heat shrink sleeves and wire markers produced by IPC"
-            loading="lazy"
+            // Live audit 2026-11-08 (L6) — the Services LCP at 390 and 1440
+            // (top 452–504 px, inside the first screen): eager, high priority.
+            loading="eager"
+            fetchpriority="high"
             decoding="async"
             width={HERO_PHOTO.w}
             height={HERO_PHOTO.h}
@@ -15877,6 +15925,11 @@ function Footer() {
   const site = useSiteInfo();
   const { footerLinks, copy } = useContent();
   const fc = copy.footer;
+  // WCAG 2.2 2.5.8 — the contact column's links are 12px text in rows 10px
+  // apart, so a 16px-tall link had a 13px safe area. Each gets a 24px-tall
+  // target. The catalog-PDF link failed on every page at 390 once Rick set
+  // catalogPdfUrl (live audit 2026-11-08, M4); tel and mailto take the same box.
+  const contactLinkStyle = { color: "#cbd5e1", textDecoration: "none", display: "inline-block", minHeight: 24, lineHeight: "24px" };
   // Reusable tiny SVG icons for contact items
   const PhoneIcon = () => (
     <svg
@@ -16084,7 +16137,7 @@ function Footer() {
             >
               <div className="flex items-center gap-2">
                 <PhoneIcon />
-                <a href={`tel:${site.contact.phoneDial}`} style={{ color: "#cbd5e1", textDecoration: "none" }}>{site.contact.phone}</a>
+                <a href={`tel:${site.contact.phoneDial}`} style={contactLinkStyle}>{site.contact.phone}</a>
               </div>
               {site.contact.fax ? (
                 <div className="flex items-center gap-2">
@@ -16105,7 +16158,7 @@ function Footer() {
                     href={site.catalogPdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: "#cbd5e1", textDecoration: "none" }}
+                    style={contactLinkStyle}
                   >
                     Full product catalog (PDF)
                     <span className="sr-only"> (opens in a new tab)</span>
@@ -16114,7 +16167,7 @@ function Footer() {
               ) : null}
               <div className="flex items-center gap-2">
                 <MailIcon />
-                <a href={`mailto:${site.contact.email}`} style={{ color: "#cbd5e1", textDecoration: "none", overflowWrap: "anywhere", minWidth: 0 }}>{site.contact.email}</a>{/* A12-L6-04-1 — the address ran past the right edge at 200% zoom */}
+                <a href={`mailto:${site.contact.email}`} style={{ ...contactLinkStyle, overflowWrap: "anywhere", minWidth: 0 }}>{site.contact.email}</a>{/* A12-L6-04-1 — the address ran past the right edge at 200% zoom */}
               </div>
               <div className="flex items-start gap-2">
                 <PinIcon />{" "}
@@ -16249,7 +16302,12 @@ function CatalogSkeleton({ page }) {
     </div>
   );
   return (
-    <div style={{ display: "flex", flexDirection: "column" }} aria-busy="true" aria-live="polite">
+    // minHeight matches the 100vh every resolved catalog page sets on its root.
+    // Without it the /dashboard and /datasheets skeletons ended above the fold,
+    // the footer painted in view and was then pushed off it when the page
+    // mounted: CLS 0.19 / 0.35 at 1440, 0.33 / 0.48 at 1920 (live audit
+    // 2026-11-08, M3). The /products skeleton was already taller than a screen.
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }} aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading the product catalog…</span>
       {/* Breadcrumb row — the same box Breadcrumb draws. */}
       <div className="ipc-container" style={{ display: "flex", gap: 8, padding: "20px 24px 8px" }}>

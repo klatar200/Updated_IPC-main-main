@@ -432,6 +432,9 @@ function ipc_response_body(int $code, array $payload): string {
 
 // ── POST only ──────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    // RFC 9110 §15.5.6: a 405 MUST say which methods are allowed (live audit
+    // 2026-11-08, L11). respond() sends no Allow of its own.
+    header('Allow: POST');
     respond(405, ['ok' => false, 'error' => 'Method not allowed']);
 }
 

@@ -121,7 +121,15 @@ RewriteRule ^sitemap\.xml$ sitemap.php [L]
 # path: index.php reads index.html from disk and is untouched, and on a host
 # whose index.php is missing DirectoryIndex's internal fall-back to
 # index.html must not loop back to `/`. The query string is kept.
-RewriteCond %{THE_REQUEST} ^\S+\s/index\.html[?\s]
+#
+# Live audit 2026-11-08 (L2) — the condition matched only the literal request
+# line `/index.html`, so `//index.html`, `/./index.html` and `/%69ndex.html`
+# (which Apache normalises to the same file before this rule runs) were served
+# the bare shell with a 200. The rule now fires for any request that maps to
+# the root index.html EXCEPT a request for `/` itself — the one case where
+# index.html is reached internally (the DirectoryIndex fall-back), so the
+# no-loop guarantee above is kept.
+RewriteCond %{THE_REQUEST} !^\S+\s/(\?|\s)
 RewriteRule ^index\.html$ https://%{HTTP_HOST}/ [R=301,L]
 
 # AUDIT-12 decision 26 (A12-L10-W5-G2-1) — the predecessor site lived at
@@ -202,6 +210,13 @@ RewriteRule ^ index.php [QSA,L]
   # The HTML shell must NOT be cached — it points to the latest hashed bundle.
   <FilesMatch "\.html$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </FilesMatch>
+  # Live audit 2026-11-08 (L8) — robots.txt and manifest.json were the only
+  # files served with no Cache-Control, so browsers and crawlers cached them
+  # heuristically from Last-Modified. Stable names, rarely changed: an hour,
+  # the same as the owner-editable images above.
+  <FilesMatch "^(robots\.txt|manifest\.json)$">
+    Header set Cache-Control "public, max-age=3600"
   </FilesMatch>
 </IfModule>
 
