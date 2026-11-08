@@ -41,6 +41,10 @@ cp admin/logo.svg _harness/site/admin/
 # (lowsE-apache, dep3-scriptblock). It used to be kept out of the mirror so
 # its presence could not imply coverage php -S does not have.
 cp admin/.htaccess _harness/site/admin/.htaccess
+# Help's screenshots (made by helpshots.js). help_shot() prints nothing for a
+# missing picture, so without this the mirror's Help would quietly show none.
+rm -rf _harness/site/admin/help-img
+cp -r admin/help-img _harness/site/admin/help-img
 
 # pdfs/ is served by the datasheet index and by every product page's download
 # button. Without it in the mirror every pdfUrl 404s for a reason that has

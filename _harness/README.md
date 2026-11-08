@@ -18,6 +18,14 @@ held 123 — recount with `grep -vc '^#' _harness/sweep-list.txt`). Run it with
 not in the sweep until it is added there. `isowaterfall` existed for weeks
 without running because the list lived in session notes.
 
+**Help and handoff-email screenshots** (`helpshots-site.js`, `helpshots.js`)
+are tools, not suites, and not in the sweep. `helpshots-site.js` serves a clean
+copy of the mirror on :8140 (empty logs, five invented leads); with it running,
+`helpshots.js` writes the annotated pictures into `admin/help-img/` (they ship)
+and `rick-email/img/`. Restart the server before a full run — the run saves one
+product edit. `admin/help.php` and the email explain each picture's numbers,
+so a changed callout means editing those keys too.
+
 **AUDIT-12 instruments** (`audit12-ledger.js`, `audit12-cite.js`,
 `audit12-workflow.js`, `audit12-workflow-dryrun.js`) belong to
 [`plans/PLAN-12-full-project-audit.md`](../plans/PLAN-12-full-project-audit.md)

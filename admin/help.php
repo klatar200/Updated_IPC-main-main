@@ -1,6 +1,31 @@
 <?php
 require_once 'config.php';
 require_auth();
+
+/**
+ * One screenshot from help-img/ with its numbered key underneath. The pictures
+ * come from _harness/helpshots.js, which draws the orange numbers into them;
+ * $keys explains number 1, 2, 3 … in that order, so keep the two in step.
+ * $keys and $title are written here by hand (trusted HTML, like the rest of
+ * this page). A missing picture prints nothing rather than a broken image, so
+ * Help still reads correctly if help-img/ was not uploaded.
+ */
+function help_shot(string $file, string $alt, array $keys = [], string $title = ''): string {
+    $path = __DIR__ . '/help-img/' . basename($file);
+    if (!is_file($path)) return '';
+    $size = @getimagesize($path);
+    $wh = $size ? ' width="' . (int)$size[0] . '" height="' . (int)$size[1] . '"' : '';
+    $src = 'help-img/' . rawurlencode(basename($file));
+    $out = '<figure class="shot"><a href="' . $src . '" target="_blank" rel="noopener" title="Open this picture full size in a new tab">'
+         . '<img src="' . $src . '"' . $wh . ' alt="' . h($alt) . '" loading="lazy"></a>';
+    if ($keys || $title !== '') {
+        $out .= '<figcaption>';
+        if ($title !== '') $out .= '<span class="shot-title">' . $title . '</span>';
+        if ($keys) $out .= '<ol class="shot-keys"><li>' . implode('</li><li>', $keys) . '</li></ol>';
+        $out .= '</figcaption>';
+    }
+    return $out . '</figure>';
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -86,6 +111,21 @@ require_auth();
     .diagram-wrap { background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 18px; margin: 16px 0 20px; }
     .diagram-caption { font-size: var(--fs-1); font-weight: 700; color: #4b5563; margin: 0 0 12px; }
     .diagram-wrap svg { width: 100%; height: auto; display: block; }
+
+    /* Screenshots of the real screens (help-img/, made by _harness/helpshots.js
+       — regenerate them there, never edit a picture by hand). The orange
+       numbered circles in each picture are explained by the matching numbered
+       list under it, in the same orange. Clicking a picture opens it full size. */
+    figure.shot { margin: 16px 0 22px; background: #f8fafc; border: 1px solid #e5e9ee; border-radius: 12px; padding: 14px; }
+    figure.shot > a { display: block; line-height: 0; }
+    figure.shot img { display: block; max-width: 100%; height: auto; margin: 0 auto; border: 1px solid #d9dee5; border-radius: 8px; background: #fff; box-shadow: 0 1px 4px rgba(13,45,82,0.08); }
+    figure.shot figcaption { margin: 12px 2px 0; font-size: var(--fs-2); color: #374151; line-height: 1.6; }
+    figure.shot .shot-title { display: block; font-size: var(--fs-1); font-weight: 700; color: #4b5563; margin-bottom: 6px; }
+    ol.shot-keys { list-style: none; margin: 0; padding: 0; counter-reset: key; }
+    ol.shot-keys > li { counter-increment: key; position: relative; padding: 2px 0 2px 34px; margin-bottom: 8px; }
+    ol.shot-keys > li::before { content: counter(key); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: #c2410c; color: #fff; font-size: var(--fs-1); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .shot-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start; }
+    .shot-pair figure.shot { margin: 0; }
 
     /* Back to top */
     .back-to-top { position: fixed; bottom: 28px; right: 28px; width: 44px; height: 44px; border-radius: 50%; background: #005da3; color: #fff; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 18px; font-weight: 800; box-shadow: 0 4px 12px rgba(0,93,163,0.35); transition: background 0.15s ease, transform 0.15s ease; z-index: 15; }
@@ -276,8 +316,12 @@ require_auth();
         <ol class="steps">
           <li>Go to your admin web address (the one your developer gave you — it ends in <code>/admin/</code>).</li>
           <li>Enter your admin password and click <span class="btn btn-primary btn-mock">Sign In →</span>.</li>
-          <li>You'll land on the <strong>Products</strong> page — that's your home base.</li>
+          <li>You'll land on the <strong>Overview</strong> — one page that shows what needs you today (see <a href="#dashboard">Reading the dashboard</a>).</li>
         </ol>
+        <?= help_shot('signin.png', 'The sign-in page: a password box and a Sign In button', [
+          'Type your admin password here. Check Caps Lock if it is refused.',
+          'Click <strong>Sign In →</strong> (or press Enter).',
+        ]) ?>
         <div class="callout callout-warning">
           <b>If your password is rejected repeatedly</b>
           <!-- NEW-N3-10 — this said "after 5". login_attempt_gate() counts an
@@ -313,6 +357,11 @@ require_auth();
           <b>You can change it yourself, any time</b>
           Click <strong>Account</strong> in the menu bar, then <strong>Password</strong>. You'll need your current password, then a new one of at least 12 characters — a short sentence or four random words is both stronger and easier to remember than something like <code>Xk7!p</code>. The change takes effect immediately and you stay signed in. You don't need to call anyone.
         </div>
+        <?= help_shot('password.png', 'The Password page: current password, new password, repeat, and Change Password', [
+          'The password you signed in with today.',
+          'Your new password — at least 12 characters — then type it again in the box underneath.',
+          'Click <strong>Change Password →</strong>. You stay signed in; any other browser signed in with the old password is signed out.',
+        ]) ?>
         <div class="callout callout-warning">
           <b>If you've forgotten it</b>
           That one does need your FTP or file-manager login. Upload an empty file named <code>ALLOW-PASSWORD-RESET</code> (no file extension) into the <code>admin</code> folder, then open the dashboard address in a browser: instead of the password box you'll get a "Set Admin Password" screen. Set a new password and the file deletes itself.
@@ -332,6 +381,21 @@ require_auth();
           <li><strong>Recent changes</strong> — the last five things changed from this dashboard (sign-ins are left out), newest first. The <strong>Audit Log</strong> has the rest, and <strong>Backups</strong> can undo one.</li>
           <li><strong>Shortcuts</strong> — one click to All Products, Add Product, Business Details, Page Content, Site Images &amp; Logo, Catalog &amp; Brochure PDFs, Backups, Help and the live site.</li>
         </ul>
+        <?= help_shot('overview.png', 'The Overview page with four cards: Inquiries, Server, Products and Recent changes', [
+          '<strong>Inquiries</strong> — new quote requests and messages. The big number is how many arrived since you last opened Inquiries.',
+          '<strong>Server</strong> — a green tick means nothing needs fixing. Anything else is listed in red at the top of the page; send your developer a screenshot.',
+          '<strong>Products</strong> — products still missing a photo or a data sheet, each with a link straight to the page that adds one.',
+          '<strong>Recent changes</strong> — the last few things saved from this dashboard. Here: one product was edited.',
+        ], 'The Overview — where you land after signing in') ?>
+        <?= help_shot('menu.png', 'The menu bar along the top of every admin page, with the Website menu open', [
+          '<strong>IPC Admin</strong> — click the logo to come back to the Overview from anywhere.',
+          '<strong>Products</strong> — All Products and Add Product.',
+          '<strong>Website</strong> (shown open) — Business Details, Page Content, Site Images &amp; Logo, and Catalog &amp; Brochure PDFs.',
+          '<strong>Inquiries</strong> — the red number counts leads you have not looked at yet.',
+          '<strong>Backups &amp; History</strong> — Backups (undo) and the Audit Log (who changed what, when).',
+          '<strong>Help</strong> — this page.',
+          '<strong>Account</strong> — Password, View Live Site ↗ and Sign Out.',
+        ], 'The menu bar — the same on every page') ?>
         <p>The <strong>Products</strong> page (Products → All Products, or the button at the top of the Overview) is organized like this, top to bottom:</p>
         <ul class="plain">
           <li><strong>Header bar</strong> — your logo on the left, then the menu. The bar is the same on every admin page and stays at the top of the screen while you scroll. Entries with a small arrow open a list when you click them: <strong>Products</strong> (All Products, Add Product), <strong>Website</strong> (Business Details, Page Content, Site Images &amp; Logo, Catalog &amp; Brochure PDFs), <strong>Inquiries</strong> (with a red number when new leads have arrived since you last looked), <strong>Backups &amp; History</strong> (Backups, Audit Log), <strong>Help</strong>, and on the right <strong>Account</strong> (Password, View Live Site ↗ to open the public website in a new tab, and Sign Out). The entry for the page you are on is shown in white. On a phone the menu is behind the <strong>Menu</strong> button at the top right.</li>
@@ -340,6 +404,17 @@ require_auth();
           <li><strong>Category chips</strong> — <strong>All</strong>, then one chip per category; click one to see just that category.</li>
           <li><strong>Product tables</strong> — every product, grouped into sections by category (Part Type), each showing its photo, SKU, Product Name, Temp Rating, whether it has a data sheet and a photo, and <strong>Edit</strong> and <strong>More ▾</strong>.</li>
         </ul>
+        <?= help_shot('products.png', 'The All Products page: search box, five summary cards, category chips, and the product table', [
+          '<strong>Search</strong> — type a part number or product name and the list filters as you type.',
+          '<strong>Summary cards</strong> — a "Missing PDF" or "Missing Photo" above zero is your to-do list.',
+          '<strong>Category chips</strong> — show one category at a time.',
+          '<strong>Files</strong> — green means the product has its data sheet (PDF) and photo; amber means one is missing.',
+          '<strong>Edit</strong> — open the product to change anything about it.',
+          '<strong>More ▾</strong> — Manage PDF, Photo, View on site and Delete (next picture).',
+        ], 'Products → All Products') ?>
+        <?= help_shot('product-more.png', 'The More menu on a product row, open', [
+          'The <strong>More ▾</strong> list: <strong>Manage PDF</strong> for the data sheet, <strong>Photo</strong> for the picture, <strong>View on site ↗</strong> to see the product as customers do, and <strong>Delete…</strong> set apart in red.',
+        ]) ?>
         <div class="callout callout-tip">
           <b>On the long forms</b>
           Business Details, Add Product, Edit Product and Page Content keep their <strong>Save</strong> button in a bar along the bottom of the screen, so you never have to scroll down to find it. Once you start typing, the bar says where: <em>Unsaved changes in: Company, Contact</em>. A row of section names above the form (on Page Content, page names) takes you straight to a section (the one you are reading is filled in, and one with unsaved changes has an orange dot), and each section has a <strong>Hide</strong> button to fold it away while you work on another. Hidden sections are still saved.
@@ -454,6 +529,11 @@ require_auth();
       <section class="help-section" id="adding">
         <div class="eyebrow eyebrow-manage">Managing Products</div>
         <h2>➕ Adding a new product</h2>
+        <?= help_shot('add.png', 'The top of the Add Product form: SKU, Part Type and Product Name', [
+          '<strong>SKU / Part Number</strong> — required, and different from every other product (for example <code>IP33PO</code>).',
+          '<strong>Part Type</strong> — required: the category the product is listed under on the site.',
+          '<strong>Product Name</strong> — required: the big heading on the product page.',
+        ], 'Products → Add Product — the three boxes you must fill in. The Live preview on the right shows the product page as you type.') ?>
         <ol class="steps">
           <li>From the dashboard, click <span class="btn btn-primary btn-mock">+ Add Product</span> in the top right (it's also under <strong>Products</strong> in the menu bar on every page).</li>
           <li>
@@ -490,7 +570,7 @@ require_auth();
             <strong>Size chart</strong> — the grid of measurements (order sizes, expanded/recovered diameters, etc.), if this product has one. Use the visual builder — see <a href="#sizechart">Building the size / dimension chart</a> below.
           </li>
           <li>Click <span class="btn btn-primary btn-mock">Add Product</span> in the bar along the bottom of the screen.</li>
-          <li>You'll land back on the dashboard with a green confirmation message. Find your new product, open <strong>More ▾</strong> on its row and click <strong>View on site ↗</strong> to see it live (remember: allow ~60 seconds, or hard-refresh to see it immediately).</li>
+          <li>You'll land back on the Products page with a green confirmation message. Find your new product, open <strong>More ▾</strong> on its row and click <strong>View on site ↗</strong> to see it live (remember: allow ~60 seconds, or hard-refresh to see it immediately).</li>
         </ol>
         <div class="callout callout-tip">
           <b>About the photo</b>
@@ -520,6 +600,16 @@ require_auth();
           </li>
           <li>Click <span class="btn btn-primary btn-mock">Save Changes</span>.</li>
         </ol>
+        <?= help_shot('edit.png', 'The Edit Product page: section buttons, the form, the live preview, and the Save Changes button', [
+          '<strong>Section buttons</strong> — jump straight to Approvals, Feature Badges, Specifications, Size chart and the rest of the form.',
+          '<strong>The boxes</strong> — change any of them. Here: the Product Name.',
+          '<strong>Live preview</strong> — the product page as the website will show it, updated as you type. Nothing is live until you save.',
+          '<strong>Manage PDF</strong> and <strong>Photo</strong> — the data sheet and the picture are changed on their own pages.',
+          '<strong>Save Changes</strong> — always at the bottom of the screen, wherever you have scrolled to.',
+        ], 'Products → Edit') ?>
+        <?= help_shot('saved.png', 'A green message at the top of the Products page: IP38FE saved successfully', [
+          'After saving you are back on the Products page with this green message. The change is on the website within about a minute.',
+        ]) ?>
         <div class="callout callout-tip">
           <b>Renaming a SKU</b>
           You can change a product's SKU on this page. If it has a PDF, that file is automatically renamed to match the new SKU, so the download link keeps working — unless another product shares that same file, in which case it keeps its old name so the other product's link keeps working too, and the confirmation message says so. If you try to rename it to a SKU that's already used by another product (or one that differs from it only in capitals, spaces or punctuation), the save is blocked with a clear error — just pick a different one.
@@ -631,6 +721,11 @@ require_auth();
           <li>Click <strong>Upload Photo →</strong>.</li>
           <li>That's it — the product's Photo URL field is filled in for you automatically. The new picture appears on the public site within about a minute.</li>
         </ol>
+        <?= help_shot('upload-photo.png', 'The Product Photo page: the current photo, Remove Photo, Choose File and the upload button', [
+          '<strong>Choose File</strong> — pick the picture on your computer.',
+          '<strong>Upload Photo →</strong> (it reads <strong>Replace Photo →</strong> when the product already has one you uploaded).',
+          '<strong>Remove Photo</strong> — go back to the branded placeholder.',
+        ], 'More ▾ → Photo') ?>
         <div class="callout callout-tip">
           <b>What makes a good product photo</b>
           A plain, well-lit shot of the part on a white or light background, <strong>landscape, about 3 wide by 2 tall</strong> (for example 1200&nbsp;×&nbsp;800&nbsp;pixels), with the part in the middle. Product pages and catalog cards show every photo in a 3:2 frame and trim whatever does not fit, so a square photo loses about a sixth off its top and another off its bottom. Photos are shown fairly small on the site, so detail matters less than a clean background and sharp focus. A photo straight off your phone is fine — anything wider than <?= (int)IMG_MAX_WIDTH ?>&nbsp;pixels is scaled down automatically, and the upload screen tells you when that happens. A <code>.png</code> photo with no see-through areas is saved as a <code>.jpg</code>, which holds the same picture in a much smaller file, so the page loads faster; a PNG with a see-through background stays a PNG. Every JPG, PNG and WEBP is re-saved by the server as it arrives, which also leaves out the hidden camera details (date, phone model, location) a photo file can carry.
@@ -656,6 +751,11 @@ require_auth();
           <li>Click <span class="btn btn-primary btn-mock">Upload PDF →</span>.</li>
           <li>You'll see a green confirmation, and the button on the product's live page switches to "Datasheet" automatically (allow up to 60 seconds, or hard-refresh to see it right away).</li>
         </ol>
+        <?= help_shot('upload-pdf.png', 'The Upload PDF page for a product that already has a data sheet', [
+          '<strong>Choose File</strong> — pick the PDF on your computer.',
+          '<strong>Upload PDF →</strong> — it reads <strong>Replace PDF →</strong> when the product already has one, as here, and warns you in red that the old file will be replaced.',
+          '<strong>Remove PDF</strong> — take the data sheet off the product page.',
+        ], 'More ▾ → Manage PDF') ?>
         <h3>Replacing a PDF</h3>
         <p>Open the same "Manage PDF" page and upload a new file the same way. The new file <strong>overwrites the old one in place</strong> — the download link customers already have keeps working. <strong>The old file is not kept anywhere:</strong> Backups cannot bring back a data sheet you replaced (restoring the Product Catalog puts back the product's details, not the file), so save a copy of the old PDF first if you may want it back.</p>
         <h3>Removing a PDF</h3>
@@ -786,6 +886,12 @@ require_auth();
         </table>
 
         <h3>On every page — the footer</h3>
+        <?= help_shot('site-footer.png', 'The footer of the public website, with four areas marked', [
+          'Phone, fax, email, address and hours — Business Details → <strong>Contact</strong>, <strong>Address</strong> and <strong>Business Hours</strong>.',
+          'The short paragraph about IPC — Page Content → <strong>Company Claims</strong> → the two Footer boxes.',
+          'Quick Links — Page Content → <strong>Navigation — Footer Quick Links</strong>.',
+          'Social media icons — Business Details → <strong>Social Links</strong>. An empty box removes that icon.',
+        ]) ?>
         <table class="field-ref map-ref">
           <tr><td>Logo and company name</td><td>Business Details → <strong>Logo URL</strong> and <strong>Company Name</strong>.</td></tr>
           <tr><td>"ESTABLISHED 1974 · ISO 9001" and any other certifications</td><td>Business Details → <strong>Founded Year</strong>, <strong>ISO Certification</strong> and <strong>Other Certifications</strong> (one per line, shown exactly as typed). The word "ESTABLISHED" is fixed.</td></tr>
@@ -801,6 +907,12 @@ require_auth();
         </table>
 
         <h3>Homepage</h3>
+        <?= help_shot('site-home.jpg', 'The top of the public homepage, with four areas marked', [
+          'Badge, headline lines, paragraph and the two buttons — Page Content → <strong>Homepage — Hero</strong>.',
+          'The four small cards — Page Content → <strong>Homepage — Hero Proof Points</strong>.',
+          'The large photo — <strong>Site Images &amp; Logo</strong> → Homepage — hero photo.',
+          'The <strong>Request a Quote</strong> button in the header — Page Content → <strong>Navigation — Header Labels</strong>.',
+        ], 'The homepage as visitors see it (Classic layout)') ?>
         <table class="field-ref map-ref">
           <tr><td>Small badge, the three headline lines, the paragraph and the two buttons (their words and where they go)</td><td>Page Content → <strong>Homepage — Hero</strong>.</td></tr>
           <tr><td>The small cards beside the headline ("$50 Minimum Order" …)</td><td>Page Content → <strong>Homepage — Hero Proof Points</strong>.</td></tr>
@@ -816,6 +928,12 @@ require_auth();
         </table>
 
         <h3>Products page and each product's own page</h3>
+        <?= help_shot('site-product.jpg', 'A product page on the public website, with four areas marked', [
+          'The product name and part number — that product’s <strong>Edit</strong> screen (Product Name, SKU).',
+          'The <strong>Datasheet</strong> button — the product’s <strong>Manage PDF</strong> page. With no PDF it reads "Request Datasheet".',
+          'The photo and the caption under it — the product’s <strong>Photo</strong> page, and <strong>Image Caption</strong> on Edit.',
+          '<strong>Request a Quote</strong> — fixed. It opens the Contact page with this part number already filled in.',
+        ], 'A product page as visitors see it') ?>
         <table class="field-ref map-ref">
           <tr><td>"Product Catalog" heading and "Browse all 42 products …"</td><td><strong>Fixed</strong> wording; the number is counted automatically.</td></tr>
           <tr><td>Category list in the left column, and its counts</td><td>Your products' <strong>Part Type</strong>, in the order of Page Content → <strong>Product Families / Categories</strong>.</td></tr>
@@ -883,6 +1001,10 @@ require_auth();
         </table>
 
         <h3>Contact page, the confirmation, and the emails</h3>
+        <?= help_shot('site-contact.jpg', 'The public Contact page: the quote form on the right, the direct contact cards on the left', [
+          'The form — <strong>Request a Quote</strong> and <strong>Send a Message</strong>. Its wording is in Page Content → <strong>Contact Page — Form</strong>. Everything a visitor sends is emailed to the address in Business Details and also saved under <strong>Inquiries</strong>.',
+          'Phone, fax, email and address — Business Details.',
+        ], 'The Contact page as visitors see it') ?>
         <table class="field-ref map-ref">
           <tr><td>Banner and the "Direct Contact" heading</td><td>Page Content → <strong>Contact page — banner</strong>.</td></tr>
           <tr><td>The two tabs, form headings, every field's label and grey example text, the submit buttons, "Sending…", the "required" line and the privacy line above the button</td><td>Page Content → <strong>Contact Page — Form</strong>.</td></tr>
@@ -931,6 +1053,12 @@ require_auth();
           <b>Never put your own pictures in the <code>images</code> folder</b>
           Everything in <code>public_html/images/</code> is part of the website itself and is replaced the next time your developer updates the site — a photo you put there silently disappears. <code>uploads/</code> is yours and is never touched by an update.
         </div>
+        <?= help_shot('site-images.png', 'The first card on the Site Images and Logo page: the homepage hero photo', [
+          '<strong>Now showing</strong> — the picture on the website at the moment.',
+          '<strong>Choose File</strong> — pick a new picture on your computer…',
+          '…then click <strong>Upload &amp; Use →</strong>. It is on the website straight away.',
+          'Or pick a picture already on the server from this list and click <strong>Use This One</strong>.',
+        ], 'Website → Site Images &amp; Logo — one card per photo, and one for the logo') ?>
         <h3 id="marketingpdfs">Putting a catalog or brochure PDF on the server</h3>
         <p>Your full product catalog (the "Full product catalog (PDF)" link in the footer) and the brochures on the Services page are PDFs that do not belong to one product. Open <a href="marketing-pdfs.php"><strong>Catalog &amp; Brochure PDFs</strong></a> — it is linked from the <strong>Catalog PDF URL</strong> box on Business Details and from the <strong>Value-Added Services</strong> card on Page Content.</p>
         <ol class="steps">
@@ -938,6 +1066,10 @@ require_auth();
           <li>In <strong>Use it for</strong>, choose <strong>Full product catalog</strong> or the Services card the brochure belongs to — or <em>Just upload it</em> to decide later — and click <strong>Upload</strong>.</li>
           <li>Every PDF on that page has its own <strong>Use This PDF</strong> button, and each place a PDF is used has a <strong>Stop Using</strong> button. The brochure's link text is set in Page Content → Value-Added Services.</li>
         </ol>
+        <?= help_shot('marketing-pdfs.png', 'The Catalog and Brochure PDFs page: choose a file, choose where it is used, upload', [
+          '<strong>Choose File</strong> — pick the PDF on your computer.',
+          'Choose where it is used in <strong>Use it for</strong>, then click <strong>Upload →</strong>. An upload never replaces a file already on the server.',
+        ], 'Website → Catalog &amp; Brochure PDFs') ?>
         <p><strong>A PDF is public the moment it is uploaded</strong> — anyone with its address can open it, even before you use it anywhere, and <strong>Stop Using</strong> only removes the link. If you uploaded the wrong file (a price list instead of the catalog, say), press <strong>Stop Using</strong> for each place it is used, then <strong>Take Off the Website</strong> under it: its address stops working for everyone. The file is kept aside on the server rather than erased, so your developer can bring it back if that was a mistake; Backups cannot.</p>
         <p>An upload never replaces a file already on the server (a second <code>catalog.pdf</code> is saved as <code>catalog-2.pdf</code>), and nothing on that page erases a file. A product's own data sheet is different: use the <strong>Manage PDF</strong> button on the Products page.</p>
       </section>
@@ -947,6 +1079,11 @@ require_auth();
         <h2>🏢 Business Details</h2>
         <p>Click <strong>Website</strong> in the menu bar, then <strong>Business Details</strong>. This one page controls the facts about your company that appear all over the public site — the phone number in the header, the address in the footer, the copyright year, your hours, your certifications, and the colors and logo.</p>
         <p>Change something here and it changes <em>everywhere it appears</em>. You never have to hunt for the same phone number on six pages.</p>
+        <?= help_shot('business.png', 'Business Details: the section buttons, the Contact card with the Email box, and the Live preview', [
+          '<strong>Section buttons</strong> — jump to Branding &amp; Theme, Company, Contact, Address, Business Hours, Certifications &amp; Stats, About Page or Social Links.',
+          '<strong>Email</strong> — shown on the site, <em>and</em> the address every quote request is emailed to. Change it and new leads go to the new address.',
+          '<strong>Live preview</strong> — how the details read on the site, updated as you type. Nothing is live until you click <strong>Save Business Details</strong> in the bar at the bottom.',
+        ], 'Website → Business Details (the Contact card)') ?>
         <table class="field-ref">
           <!-- NEW-V2-2 — this row said all three drive the "header, footer,
                page titles". The header's name beside the logo is fixed text in
@@ -995,7 +1132,19 @@ require_auth();
         <p>Click <strong>Website</strong> in the menu bar, then <strong>Page Content</strong>. This is the wording and the blocks of the public site: homepage headlines and button labels, the feature cards, the industries you serve, your services, the FAQ, the company milestones on the About page, the navigation menus, the footer links, the contact form's wording and its automatic reply email, and the privacy policy.</p>
         <p>The page is laid out like the website: <strong>Homepage</strong> first, then Product families, Services, Industries, About, Datasheets, FAQ, Contact and Privacy, then <strong>Menus &amp; footer</strong>, <strong>Search engines</strong>, and <strong>Claims &amp; images</strong> (the statements and photos used on several pages). The row of page names near the top jumps to each one, and each page has an <strong>Open this page on the site ↗</strong> link. To find one box among several hundred, type a word or two into <strong>Find a box on this page</strong> — for example <em>phone</em>, <em>FAQ</em> or <em>hero photo</em> — and only the matching boxes stay on screen; press <kbd>Esc</kbd> or empty the box to see everything again. Boxes the search hides are still saved exactly as they are. Under a box's name, a lighter line gives its rule, such as <em>Empty removes it.</em></p>
         <p>Not sure which card controls something you can see on the site? <a href="#sitemap">Where each part of the site is edited</a> walks every page top to bottom and names the card.</p>
+        <?= help_shot('content.png', 'The top of Page Content: the search box, the page buttons, and the first card', [
+          '<strong>Find a box on this page</strong> — type <em>phone</em>, <em>FAQ</em>, <em>hero photo</em>… and only the matching boxes stay on screen.',
+          '<strong>Page buttons</strong> — jump to the part of the form for that page of the website.',
+          '<strong>Open this page on the site ↗</strong> — see the real page in a new tab while you edit.',
+          'A box — type the new wording, then click <strong>Save Content</strong> in the bar at the bottom of the screen.',
+        ], 'Website → Page Content') ?>
         <p>Each block is a row. Rows have <strong>↑ ↓</strong> buttons to reorder them, an <strong>✕</strong> to remove them, and a <strong>+ Add</strong> button at the bottom of each section.</p>
+        <?= help_shot('content-list.png', 'The FAQ list on Page Content, showing two questions with their move and remove buttons', [
+          '<strong>Show me on the site ↗</strong> — opens the website at this very section.',
+          '<strong>↑ ↓</strong> — move this question up or down the list.',
+          '<strong>✕</strong> — remove it (you are asked first; Backups can bring it back after a save).',
+          '<strong>+ Add Question</strong> — a new empty row at the bottom of the list.',
+        ], 'A list on Page Content — here, the FAQ') ?>
         <div class="callout callout-warning">
           <b>Renaming a product category does not move the products in it</b>
           <strong>Product Families / Categories</strong> is where the Part Type list on the Add and Edit forms comes from, so you can add or rename a category yourself. But each product stores its own category as text: rename <em>Tape</em> to <em>Tapes</em> and the products stay under <em>Tape</em> until you open each one with <strong>Edit</strong>, pick <em>Tapes</em> in its <strong>Part Type</strong> box, and save. (Saving without changing that box does nothing — it still shows the old name, marked "current — non-standard".) The number beside each row tells you how many products that is before you start. Adding a new category is safe and instant; renaming one is a two-step job.
@@ -1040,6 +1189,11 @@ require_auth();
         <h2>📥 Inquiries — every lead from the contact form</h2>
         <p>Click <strong>Inquiries</strong> in the menu bar. Every quote request and message submitted through the website is recorded here, <em>including ones the mail server failed to send</em>. This is your safety net: if email breaks, the lead is still on this page.</p>
         <p>Click any row to expand it and see the full message, the part number, quantities, required date and the visitor's contact details. Reply from your own email program — this page does not send email.</p>
+        <?= help_shot('inquiries.png', 'The Inquiries page: a search box and the list of leads, the newest one opened', [
+          '<strong>Search</strong> — a name, company, email, part number or any word from the message. The three boxes beside it filter by type, email result and date.',
+          'One lead. <em>New</em> = arrived since you last opened this page; <em>Quote</em> or <em>Message</em> = which form they used; <em>Sent to mail server</em> = the email notification went out. Click the row to open it.',
+          'The visitor’s email address — click it to reply from your own email program.',
+        ], 'Inquiries (the names in this picture are made up)') ?>
         <p>The newest are at the top, 25 to a page, under a heading for each day (<strong>Today</strong>, <strong>Yesterday</strong>, then the date). Requests that arrived since you last opened this page are marked <span class="badge-mock">New</span> with a blue edge. To find one, type a name, company, email address, part number or a word from the message into <strong>Search</strong>, or pick a <strong>Type</strong> (quote requests, messages, or refused by the form), an <strong>Email</strong> result, or how recently it was <strong>Received</strong>. The list changes as you type; <strong>Older →</strong> and <strong>← Newer</strong> at the bottom move between pages. The numbers at the top always count everything, whatever the filter shows.</p>
         <table class="field-ref">
           <tr><td><span class="badge-mock">Quote</span> / <span class="badge-mock">Message</span></td><td>Which form the visitor used. "Quote" is a full RFQ with part number and quantity.</td></tr>
@@ -1078,6 +1232,10 @@ require_auth();
           <li>Click <strong>Restore This Version</strong> and confirm.</li>
           <li>Done. The site reflects it within about a minute.</li>
         </ol>
+        <?= help_shot('backups.png', 'One entry on the Backups page, with its Restore This Version button', [
+          'An entry: the time of the save, what the file held (42 products), and <em>“This is how it was just before: Product edited — IP38FE”</em> — the change restoring it would undo.',
+          '<strong>Restore This Version</strong> — puts that version back. You are asked to confirm, and the restore can itself be undone.',
+        ], 'Backups &amp; History → Backups') ?>
         <div class="callout callout-tip">
           <b>A restore can itself be undone</b>
           Restoring backs up the <em>current</em> state first, so if you restore the wrong one, the version you just replaced is now the newest entry in the list. You cannot get stuck. If the server cannot make that copy (its disk is full), the restore is refused and nothing changes — the page says so. Free up space on your hosting account, then restore again.
@@ -1102,6 +1260,10 @@ require_auth();
           <li>Use the filter boxes to narrow it down: type a SKU (or any word from the detail, such as <em>photo</em> or <em>FAQ</em>) into <strong>Search</strong> to see everything that's happened to one product, or pick an <strong>Action</strong> from the dropdown (it lists every action in the table below). The list changes as you type.</li>
           <li>Click <strong>Clear</strong> (it appears once a filter is on) to see everything again.</li>
         </ol>
+        <?= help_shot('audit-log.png', 'The Audit Log: a search box and the list of changes, newest first', [
+          '<strong>Search</strong> — a SKU, or a word such as <em>photo</em> or <em>FAQ</em>. The <strong>Action</strong> list beside it shows one kind of change.',
+          'One change: when, what kind (<em>edit</em>), which product, and what was done.',
+        ], 'Backups &amp; History → Audit Log') ?>
         <p>On a phone, each entry is a small card: the time, action and SKU on the first line, then the whole <strong>Detail</strong> — what actually happened — and the IP address underneath. Nothing has to be swiped sideways.</p>
         <h3>What each colored badge means</h3>
         <table class="field-ref">
