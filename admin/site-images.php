@@ -245,9 +245,13 @@ $csrf    = csrf_token();
     .sub { font-size: var(--fs-2); color: #4b5563; margin: 0 0 28px; }
     .card { background: #fff; border: 1px solid #e5e9ee; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
     .where { font-size: var(--fs-2); color: #4b5563; margin: 0 0 14px; }
-    .current { display: flex; gap: 14px; align-items: center; padding: 12px; background: #f0f4f8; border-radius: 8px; margin-bottom: 14px; font-size: var(--fs-2); }
-    .current img { width: 120px; height: 80px; object-fit: contain; background: #fff; border-radius: 6px; flex-shrink: 0; }
-    .current code { word-break: break-all; }
+    /* Was `.current`, which nav.php also puts on the menu entry for the page
+       you are on: its 14px bottom margin reached the Website menu's summary
+       and lifted that pill 7px above the rest of the bar, on this page only
+       (found 2026-11-08 taking Help's screenshots). */
+    .now-showing { display: flex; gap: 14px; align-items: center; padding: 12px; background: #f0f4f8; border-radius: 8px; margin-bottom: 14px; font-size: var(--fs-2); }
+    .now-showing img { width: 120px; height: 80px; object-fit: contain; background: #fff; border-radius: 6px; flex-shrink: 0; }
+    .now-showing code { word-break: break-all; }
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
     .row select, .row input[type=file] { flex: 1 1 240px; min-width: 0; }
     input[type=file] { padding: 8px; border: 2px dashed #d1d9e0; border-radius: 8px; font-size: var(--fs-2); }
@@ -285,7 +289,7 @@ $csrf    = csrf_token();
   <section class="card" id="slot-<?= h($slot) ?>" data-slot="<?= h($slot) ?>">
     <div class="card-title"><?= h($cfg['label']) ?></div>
     <p class="where"><?= h($cfg['where']) ?></p>
-    <div class="current">
+    <div class="now-showing">
       <?php if ($shown !== ''): ?>
         <img src="<?= h($shown) ?>" alt="Current <?= h(strtolower($cfg['label'])) ?>">
         <span><?= $isLogo && $cur === '' ? 'The original logo' : ($isDefault ? 'The photo the website shipped with' : 'Now showing') ?><br><code><?= h($isLogo ? $shown : ($cur !== '' ? $cur : '')) ?></code></span>
